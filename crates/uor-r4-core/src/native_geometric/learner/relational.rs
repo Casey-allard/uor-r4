@@ -515,6 +515,114 @@ impl RelationalSelector {
             _ => None,
         }
     }
+
+    /// The **ungated top source**: the argmax of the ctx-free source score, i.e. the source ordering
+    /// *before* NoRead and the strength interaction. The interaction adds the same per-action offset
+    /// to every candidate at a position, so the served source equals this index; the run verifies
+    /// that equality on every scored position rather than assuming it.
+    pub fn ungated_top_source(&self, cands: &[Cand], rel: &[usize]) -> Option<usize> {
+        let mut best: Option<(usize, i32)> = None;
+        for (k, c) in cands.iter().enumerate() {
+            let s = self.source_score(c, rel.get(k).copied().unwrap_or(0));
+            if best.is_none_or(|(_, pr)| s > pr) {
+                best = Some((k, s));
+            }
+        }
+        best.map(|(k, _)| k)
+    }
+
+    /// The **exported** decision detail: `(ungated top source, chosen action, bucket)`.
+    pub fn decision_detail(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+    ) -> (Option<usize>, Option<(usize, usize)>, usize) {
+        (
+            self.ungated_top_source(cands, rel),
+            self.choose(cands, rel),
+            self.bucket_of(cands, rel),
+        )
+    }
+
+    /// Actual exported decision loss at one position, in nats relative to the local baseline
+    /// (`0` for NoRead). This is the deterministic hard objective, not the soft surrogate.
+    pub fn exported_loss(&self, t: &ExactGroupTable, p: &TrainPos) -> f64 {
+        let rel = self.rels_of(t, p);
+        match self.choose(&p.cands, &rel) {
+            Some((k, a)) => p.delta[k][a],
+            None => 0.0,
+        }
+    }
+
+    /// Exported decision **quality** used for phase selection: total exported loss plus the count of
+    /// reads, so two checkpoints with equal loss are separated deterministically.
+    pub fn exported_objective(&self, t: &ExactGroupTable, positions: &[TrainPos]) -> (f64, usize) {
+        let mut loss = 0.0f64;
+        let mut reads = 0usize;
+        for p in positions {
+            let rel = self.rels_of(t, p);
+            match self.choose(&p.cands, &rel) {
+                Some((k, a)) => {
+                    loss += p.delta[k][a];
+                    reads += 1;
+                }
+                None => {}
+            }
+        }
+        (loss, reads)
+    }
+}
+
+/// Exact regret decomposition of one exported decision, in nats relative to the local baseline.
+///
+/// For the factorized source ordering `c* = argmax_c (source score)` and the common per-action
+/// offset, `ranking + gate + dose == actual - lpool` exactly. `lpool` sees only the admitted pool, so
+/// it cannot diagnose a source excluded by admission.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Regret {
+    pub ranking: f64,
+    pub gate: f64,
+    pub dose: f64,
+    pub actual: f64,
+    pub lpool: f64,
+    /// Whether the served source equals the ungated top source (the identity's precondition).
+    pub served_matches_ungated: bool,
+}
+
+/// Compute the exact decomposition for one position under one selector.
+pub fn regret_decomposition(sel: &RelationalSelector, t: &ExactGroupTable, p: &TrainPos) -> Regret {
+    if p.cands.is_empty() {
+        return Regret::default();
+    }
+    let rel = sel.rels_of(t, p);
+    let cstar = sel.ungated_top_source(&p.cands, &rel);
+    let best_pos = |k: usize| p.delta[k].iter().cloned().fold(f64::INFINITY, f64::min);
+    let lplus = |k: usize| best_pos(k).min(0.0);
+    let lplus_star = cstar.map(best_pos).unwrap_or(0.0);
+    let lstar_star = lplus_star.min(0.0);
+    let lpool = (0..p.cands.len()).map(lplus).fold(0.0f64, f64::min);
+    let act = sel.choose(&p.cands, &rel);
+    let actual = match act {
+        Some((k, a)) => p.delta[k][a],
+        None => 0.0,
+    };
+    let read = act.is_some();
+    let ranking = lstar_star - lpool;
+    let gate = (if read { lplus_star } else { 0.0 }) - lstar_star;
+    let dose = if read { actual - lplus_star } else { 0.0 };
+    Regret {
+        ranking,
+        gate,
+        dose,
+        actual,
+        lpool,
+        served_matches_ungated: match act {
+            // When a read happens the served source must be the ungated top source. A closed gate
+            // leaves the served source undefined and does not contradict the ordering.
+            Some((k, _)) => Some(k) == cstar,
+            None => true,
+        },
+    }
 }
 
 /// One training position: constants only, independent of the parameters being fitted.
@@ -2131,5 +2239,253 @@ mod tests {
         let mut trunc = v3.clone();
         trunc.truncate(head + 4 + CTX_BUCKETS * (ACTS + 1) - 1);
         assert!(RelationalArtifact::from_bytes(&trunc, &[1u8; 32], &[2u8; 32]).is_err());
+    }
+
+    // ---- signed-geometry expressivity witness and regret identity -----------------
+
+    /// The centre of the binary icosahedral group: the unique non-identity involution.
+    fn centre(t: &ExactGroupTable) -> usize {
+        let id = t.identity as usize;
+        let mut found = None;
+        for g in 0..RANKS {
+            if g == id {
+                continue;
+            }
+            if t.product[g * ROW_STRIDE + g] as usize == id {
+                assert!(
+                    found.is_none(),
+                    "2I has exactly one non-identity involution"
+                );
+                found = Some(g);
+            }
+        }
+        found.expect("the centre exists")
+    }
+
+    #[test]
+    fn the_centre_is_central_and_the_antipodal_relative_element() {
+        let t = table();
+        let c = centre(&t);
+        for g in 0..RANKS {
+            let antipodal = t.product[c * ROW_STRIDE + g] as usize;
+            assert_eq!(
+                t.product[g * ROW_STRIDE + c] as usize,
+                antipodal,
+                "left and right multiplication agree: the centre is central"
+            );
+            assert_ne!(antipodal, g, "the antipode is a distinct group element");
+            assert_eq!(
+                t.product[c * ROW_STRIDE + antipodal] as usize,
+                g,
+                "order two"
+            );
+            // g^-1 * (-g) == -1, the signed relation the witness uses.
+            assert_eq!(relation(&t, g, antipodal), c);
+            assert_eq!(relation(&t, antipodal, g), c, "both partner directions");
+        }
+    }
+
+    /// The reviewed witness: fourteen distinct antipodal classes excluding the identity class give
+    /// `Q(a_i)=g_i`, `Q(b_i)=-g_i`, so both partner directions have relative element `-1`.
+    #[test]
+    fn the_signed_relation_separates_the_authored_present_and_absent_final_query() {
+        let t = table();
+        let c = centre(&t);
+        let id = t.identity as usize;
+        // The fixture's fourteen partner pairs, built exactly as the runner's banks() helper does.
+        let pairs: Vec<(u32, u32)> = (0..14).map(|i| (10 + i, 30 + i)).collect();
+        let value = |i: u32| 100 + i;
+        // Fourteen distinct antipodal classes, excluding {+1,-1}.
+        let classes: Vec<usize> = (1..RANKS)
+            .filter(|g| {
+                let gp = t.product[c * ROW_STRIDE + *g] as usize;
+                *g != id && *g != c && gp != id && gp != c && (*g).min(gp) == *g
+            })
+            .take(14)
+            .collect();
+        assert_eq!(classes.len(), 14, "2I has sixty antipodal classes");
+        let mut q_roots = vec![id as u8; 256];
+        for (i, (a, b)) in pairs.iter().enumerate() {
+            let g = classes[i] as u8;
+            let antipodal = t.product[c * ROW_STRIDE + classes[i]] as u8;
+            q_roots[*a as usize] = g;
+            q_roots[*b as usize] = antipodal;
+        }
+        // The reviewed witness selector. No parameter here is fitted; it is an expressivity probe.
+        let mut rank = [-WEIGHT_MAX; RANKS];
+        rank[c] = WEIGHT_MAX;
+        let mut w = [0i32; EXACT_FEATS];
+        w[0] = WEIGHT_MAX; // the exact-key feature: the candidate's current token equals the query's
+        let witness = RelationalSelector {
+            q_roots,
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w,
+            rank,
+            bias: 0,
+            sb: [0; ACTS],
+            noread: WEIGHT_MAX,
+            ctx: Vec::new(),
+        };
+        witness.validate().unwrap();
+
+        // Build the fixture through the same block/query construction the runner uses.
+        let block = |role: u32, key: u32, val: u32| vec![role, key, val];
+        let build = |absent: bool| -> Vec<u32> {
+            let (qa, qb) = pairs[0];
+            let key = 60u32;
+            let mut toks = Vec::new();
+            if !absent {
+                toks.extend(block(qa, key, value(0)));
+            }
+            toks.extend(block(pairs[1].1, key, value(1)));
+            toks.extend(block(pairs[2].0, key, value(2)));
+            toks.extend(block(61, 61, value(3)));
+            toks.extend(block(qb, key, value(0)));
+            toks
+        };
+        for absent in [false, true] {
+            let tokens = build(absent);
+            let mut ring = OccurrenceRing::new(64);
+            let i = tokens.len() - 2; // the final query's decision point
+            for tkn in tokens.iter().take(i) {
+                ring.observe(*tkn);
+            }
+            let (cands, _) = admit_mixed(
+                &ring,
+                ring.written(),
+                tokens[i],
+                tokens[i - 1],
+                tokens[i - 2],
+                24,
+            );
+            assert!(
+                !cands.is_empty(),
+                "the shared pool admits same-key occurrences"
+            );
+            let rel: Vec<usize> = cands
+                .iter()
+                .map(|cd| {
+                    relation_index(
+                        &t,
+                        RelMode::Geometric,
+                        &[],
+                        witness.q_roots[tokens[i - 1] as usize],
+                        witness.q_roots[cd.x_prev as usize],
+                        tokens[i - 1] as usize,
+                        cd.x_prev as usize,
+                    )
+                })
+                .collect();
+            let chosen = witness.choose(&cands, &rel);
+            if absent {
+                assert_eq!(chosen, None, "no partner source means a strict NoRead");
+                // Strict tie behaviour: a candidate scoring exactly the NoRead threshold abstains.
+                assert!(cands.iter().enumerate().all(|(k, cd)| {
+                    witness.strength_score(cd, rel[k], ACTS - 1, 0) <= witness.noread
+                }));
+            } else {
+                let (k, a) = chosen.expect("the intent-bearing partner source is selected");
+                assert_eq!(
+                    cands[k].payload,
+                    value(0),
+                    "the correct payload, not a first-match index"
+                );
+                assert_eq!(a, 0, "tied strength biases select the weakest boost");
+                assert_eq!(witness.ungated_top_source(&cands, &rel), Some(k));
+                // A same-key non-partner scores at most the threshold: the relation does the work.
+                assert!(cands
+                    .iter()
+                    .enumerate()
+                    .filter(|(j, _)| *j != k)
+                    .all(
+                        |(j, cd)| witness.strength_score(cd, rel[j], ACTS - 1, 0) <= witness.noread
+                    ));
+            }
+        }
+    }
+
+    #[test]
+    fn the_regret_decomposition_is_exact_and_nonnegative() {
+        let t = table();
+        let mut st = 0x1234_5678u64;
+        let mut seen_no_read = false;
+        let mut seen_read = false;
+        for _ in 0..400 {
+            let n = 1 + (xorshift(&mut st) as usize) % 4;
+            let cands: Vec<Cand> = (0..n)
+                .map(|k| cand([0, 0, 1, 0, 0, k as u8], 40 + k as u32))
+                .collect();
+            let delta: Vec<[f64; ACTS]> = (0..n)
+                .map(|_k| {
+                    let p = 0.001 + ((xorshift(&mut st) % 1000) as f64) / 1000.0;
+                    let correct = xorshift(&mut st) % 2 == 0;
+                    std::array::from_fn(|a| action_loss(p, boost(a), correct))
+                })
+                .collect();
+            let p = TrainPos {
+                cands,
+                q_role: 1,
+                k_role: vec![2; n],
+                delta,
+                group: 0,
+            };
+            let mut sel = RelationalSelector {
+                q_roots: vec![0, 1, 2, 3],
+                mode: RelMode::Geometric,
+                code_of: Vec::new(),
+                w: [0; EXACT_FEATS],
+                rank: [0; RANKS],
+                bias: 0,
+                sb: [1, -1, 0],
+                noread: 0,
+                ctx: Vec::new(),
+            };
+            // Alternate read and NoRead regimes so both branches are exercised.
+            sel.noread = if xorshift(&mut st) % 2 == 0 {
+                -100
+            } else {
+                100
+            };
+            let r = regret_decomposition(&sel, &t, &p);
+            assert!(r.ranking >= -1e-12, "ranking regret {} < 0", r.ranking);
+            assert!(r.gate >= -1e-12, "gate regret {} < 0", r.gate);
+            assert!(r.dose >= -1e-12, "dose regret {} < 0", r.dose);
+            assert!(
+                (r.ranking + r.gate + r.dose - (r.actual - r.lpool)).abs() < 1e-12,
+                "the three terms must sum exactly to actual - lpool"
+            );
+            assert!(r.lpool <= 0.0);
+            assert!(
+                r.served_matches_ungated,
+                "the ordering is factorized by construction"
+            );
+            if r.actual == 0.0 {
+                seen_no_read = true;
+            } else {
+                seen_read = true;
+            }
+        }
+        assert!(seen_read && seen_no_read, "both gate branches must occur");
+        // A no-candidate observation is the empty-pool edge case.
+        let empty = TrainPos {
+            cands: Vec::new(),
+            q_role: usize::MAX,
+            k_role: Vec::new(),
+            delta: Vec::new(),
+            group: 0,
+        };
+        let sel = RelationalSelector {
+            q_roots: vec![0],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank: [0; RANKS],
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+        };
+        assert_eq!(regret_decomposition(&sel, &t, &empty), Regret::default());
     }
 }

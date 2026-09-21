@@ -48,6 +48,11 @@ const STEPS: usize = 200;
 const BATCH: usize = 16;
 const LR: f64 = 0.08;
 const ROUNDS: usize = 2;
+/// Scalar refit steps after the first descriptor refinement: the phase the parent schedule lacked.
+const STEPS_REFIT: usize = 200;
+/// Development construction used only to select between exported fit phases (fit payload bank).
+const N_TUNE: usize = 60;
+const SEED_TUNE: u64 = 0x5C0F_7A11;
 const SEED_FIT: u64 = 0x5C0F_1E71;
 const SEED_FRESH: u64 = 0x5C0F_7F2E;
 /// Prospectively declared primary margin: paired hard-action CE improvement over the exact reader.
@@ -57,7 +62,8 @@ const MARGIN_CTX_BITS: f64 = 0.05;
 /// Tolerated all-position regression on the natural-text development regression.
 const MARGIN_TEXT_BITS: f64 = 0.05;
 const GEN_TOKENS: usize = 48;
-const TEXT_WINDOWS: usize = 8;
+/// Documents per side of the document-separated reader text split (fit vs held out).
+const TEXT_DOCS: usize = 8;
 /// Bounded coordinate-descent rounds for the contextual interaction table.
 const CTX_ROUNDS: usize = 2;
 /// Fixed causal bucket count, matching `relational::CTX_BUCKETS`.
@@ -627,6 +633,244 @@ fn main() -> ExitCode {
     }
 }
 
+/// A complete binding digest over every observation the reader was fitted or scored on: the
+/// construction split, the text-fit documents, the tune construction and the fresh draw, including
+/// candidate payloads, references and targets. A source hash alone is not the binding.
+fn binding_digest(
+    fit_obs: &[Vec<Obs>],
+    text_obs: &[Vec<Obs>],
+    tune_obs: &[Vec<Obs>],
+    fresh_obs: &[Vec<Obs>],
+) -> [u8; 32] {
+    let mut b = Vec::new();
+    for (label, part) in [
+        ("fit", fit_obs),
+        ("text_fit", text_obs),
+        ("tune", tune_obs),
+        ("fresh", fresh_obs),
+    ] {
+        b.extend_from_slice(label.as_bytes());
+        b.push(0);
+        for os in part.iter() {
+            b.extend_from_slice(&(os.len() as u32).to_le_bytes());
+            for o in os.iter() {
+                b.extend_from_slice(&o.cur.to_le_bytes());
+                b.extend_from_slice(&o.prev.to_le_bytes());
+                b.extend_from_slice(&o.prev2.to_le_bytes());
+                b.extend_from_slice(&o.target.to_le_bytes());
+                b.extend_from_slice(&o.group.to_le_bytes());
+                b.extend_from_slice(&o.ring.written().to_le_bytes());
+                b.extend_from_slice(&(o.cands.len() as u32).to_le_bytes());
+                for c in o.cands.iter() {
+                    b.extend_from_slice(&c.abs.to_le_bytes());
+                    b.extend_from_slice(&c.payload.to_le_bytes());
+                    b.extend_from_slice(&c.x_cur.to_le_bytes());
+                    b.extend_from_slice(&c.x_prev.to_le_bytes());
+                    b.extend_from_slice(&c.x_prev2.to_le_bytes());
+                    b.extend_from_slice(&c.feats);
+                }
+            }
+        }
+    }
+    sha256_bytes(&b)
+}
+
+/// Paired cluster interval of `a - b` on the fresh construction, optionally restricted to one
+/// stratum, with the ratio-of-resampled-sums estimator.
+#[allow(clippy::too_many_arguments)]
+fn paired_fresh_diff(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    fresh_obs: &[Vec<Obs>],
+    fresh: &[Seq],
+    a_sel: &RelationalSelector,
+    b_sel: &RelationalSelector,
+    stratum: Option<&str>,
+    seed: u64,
+) -> serde_json::Value {
+    let mut pairs: Vec<(f64, f64, usize)> = Vec::new();
+    for (gi, os) in fresh_obs.iter().enumerate() {
+        let (mut sa, mut sb, mut n) = (0.0f64, 0.0f64, 0usize);
+        for o in os.iter() {
+            if let Some(want) = stratum {
+                if stratum_of(o, &fresh[gi]) != want {
+                    continue;
+                }
+            }
+            let (za, _) = predict_next(
+                &o.ring,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                a_sel,
+                table,
+                parent,
+                local,
+                u,
+                true,
+            );
+            let (zb, _) = predict_next(
+                &o.ring,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                b_sel,
+                table,
+                parent,
+                local,
+                u,
+                true,
+            );
+            sa += bits(&za, o.target, parent.cfg.f_bits);
+            sb += bits(&zb, o.target, parent.cfg.f_bits);
+            n += 1;
+        }
+        if n > 0 {
+            pairs.push((sa, sb, n));
+        }
+    }
+    let mut out = boot_diff(&pairs, seed);
+    if let Some(w) = stratum {
+        out["stratum"] = json!(w);
+    }
+    out
+}
+
+/// Snapshot one fit phase: quantized selector, soft objective, and the **exported** decision quality
+/// on the development construction used for phase selection.
+fn phase_snapshot(
+    tr: &RelationalTrainer,
+    table: &ExactGroupTable,
+    positions: &[TrainPos],
+    tune: &[TrainPos],
+) -> (RelationalSelector, f64, f64, usize) {
+    let sel = tr.quantize();
+    let soft: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
+    let (dev_loss, dev_reads) = sel.exported_objective(table, tune);
+    (sel, soft, dev_loss, dev_reads)
+}
+
+/// Whether the pool's best finite action belongs to a candidate carrying the target payload.
+/// Duplicate correct payloads all qualify; this is never a first-matching-occurrence test.
+fn best_is_correct(p: &TrainPos, o: &Obs) -> bool {
+    if p.cands.is_empty() {
+        return false;
+    }
+    let lstar = |k: usize| {
+        p.delta[k]
+            .iter()
+            .cloned()
+            .fold(f64::INFINITY, f64::min)
+            .min(0.0)
+    };
+    let best = (0..p.cands.len()).map(lstar).fold(0.0f64, f64::min);
+    (0..p.cands.len()).any(|k| lstar(k) <= best + 1e-12 && o.cands[k].payload == o.target)
+}
+
+/// Record one fit phase: soft objective, descriptor bookkeeping and the exported development quality.
+#[allow(clippy::too_many_arguments)]
+fn push_phase(
+    tr: &RelationalTrainer,
+    table: &ExactGroupTable,
+    positions: &[TrainPos],
+    tune: &[TrainPos],
+    label: &str,
+    moves_total: f64,
+    phases: &mut Vec<serde_json::Value>,
+    checkpoints: &mut Vec<(RelationalSelector, f64, usize)>,
+) {
+    let (sel, soft, dev_loss, dev_reads) = phase_snapshot(tr, table, positions, tune);
+    phases.push(json!({
+        "phase": label,
+        "soft_objective": soft,
+        "descriptor_moves_total": moves_total,
+        "descriptor_evaluations_total": tr.descriptor_evaluations,
+        "exported_dev_loss_nats": dev_loss,
+        "exported_dev_reads": dev_reads,
+    }));
+    checkpoints.push((sel, dev_loss, dev_reads));
+}
+
+/// Apply the **identical** contextual utility procedure to one source arm: compute that arm's own
+/// frozen buckets, then fit only the interaction from zero. Returns the arm, its fit receipt, the
+/// used-bucket count and whether nothing but `ctx` moved.
+fn apply_ctx_procedure(
+    table: &ExactGroupTable,
+    positions: &[TrainPos],
+    base: &RelationalSelector,
+    rounds: usize,
+    vocab: usize,
+) -> Result<(RelationalSelector, CtxFit, usize, bool), String> {
+    let mut sel = base.clone();
+    let buckets = sel.buckets_of(table, positions);
+    let used = (0..CTX_BUCKETS).filter(|b| buckets.contains(b)).count();
+    let fit = sel.ctx_fit(table, positions, &buckets, rounds);
+    sel.validate_for_vocab(vocab)?;
+    let only_ctx = {
+        let mut frozen = sel.clone();
+        frozen.ctx = Vec::new();
+        frozen == *base
+    };
+    Ok((sel, fit, used, only_ctx))
+}
+
+/// Active-candidate probe: the same token stream through the shared path, reporting the observed
+/// read/NoRead actions and the work a real serving step would do. This is the cost measurement the
+/// zero-candidate text probe cannot supply.
+fn active_probe(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    stream: &[u32],
+    use_reader: bool,
+) -> (u32, usize, usize, usize) {
+    let mut last = 0u32;
+    let mut admitted = 0usize;
+    let mut reads = 0usize;
+    let mut predictions = 0usize;
+    if !use_reader {
+        for k in 2..stream.len().saturating_sub(1) {
+            let z = local_logits(
+                parent,
+                local,
+                u,
+                stream[k],
+                stream[k - 1] as usize,
+                stream[k - 2],
+                k as u32,
+            );
+            last = black_box(argmax_low(&z)) as u32;
+            predictions += 1;
+        }
+        return (last, predictions, 0, 0);
+    }
+    let mut ring = OccurrenceRing::new(RING_CAP);
+    for k in 0..stream.len() {
+        let cur = stream[k];
+        let prev = if k >= 1 {
+            stream[k - 1] as usize
+        } else {
+            parent.cfg.pad_row()
+        };
+        let prev2 = if k >= 2 { stream[k - 2] } else { NO_TOKEN };
+        if k >= 2 && k + 1 < stream.len() {
+            let (z, r) = predict_next(&ring, cur, prev, prev2, sel, table, parent, local, u, true);
+            last = black_box(argmax_low(&z)) as u32;
+            predictions += 1;
+            admitted += r.admitted;
+            if r.action.is_some() {
+                reads += 1;
+            }
+        }
+        ring.observe(cur);
+    }
+    (last, predictions, admitted, reads)
+}
+
 fn boot_diff(pairs: &[(f64, f64, usize)], seed: u64) -> serde_json::Value {
     if pairs.len() < 8 {
         return json!({"point": null, "lo": null, "hi": null, "note": "too few groups"});
@@ -766,32 +1010,72 @@ fn run() -> Result<ExitCode, String> {
     )?;
     mark("construction", &mut marks);
 
-    // ---- natural-text fit positions (declared development scope, not fresh) ------
-    // The pinned docs corpus is the corpus the frozen local predictor was trained on, so this is a
-    // mixture/fit/regression source, never fresh external validation. One 64-token window per dev
-    // document keeps the text share proportionate to the constructed population.
+    // ---- reader text: document-separated fit and held-out evaluation ---------------
+    // The pinned docs corpus is the corpus the frozen local predictor was trained on. That older
+    // exposure is disclosed separately and is NOT removed by this split. What the split does
+    // guarantee is that the *new reader* never fits and evaluates the same document.
     let (uniq, _, _) = reconstruct_corpus(Path::new(DEFAULT_DOCS));
     let dev: Vec<usize> = (0..uniq.len())
         .filter(|i| uniq[*i].split == Split::Dev)
         .collect();
-    let text_seqs: Vec<Seq> = dev
+    // Deterministic document order by content hash, so the split cannot follow a listing order.
+    let mut dev_sorted: Vec<usize> = dev.clone();
+    dev_sorted.sort_by_key(|i| uniq[*i].sha256);
+    let text_fit_docs: Vec<usize> = dev_sorted.iter().copied().take(TEXT_DOCS).collect();
+    let text_eval_docs: Vec<usize> = dev_sorted
         .iter()
-        .take(TEXT_WINDOWS)
-        .filter_map(|i| {
-            windows_of(&tokenizer.encode(&uniq[*i].text))
-                .into_iter()
-                .next()
-                .map(|w| Seq {
-                    tokens: w,
-                    group: 0xF000,
-                    answer: 0,
-                    absent: false,
-                    answer_source_abs: None,
-                })
-        })
+        .copied()
+        .skip(TEXT_DOCS)
+        .take(TEXT_DOCS)
         .collect();
-    let text_obs: Vec<Vec<Obs>> = text_seqs.iter().map(observe).collect();
+    if text_fit_docs.len() < TEXT_DOCS || text_eval_docs.len() < TEXT_DOCS {
+        return Err(
+            "not enough disjoint Dev documents for a document-separated reader split".into(),
+        );
+    }
+    for a in text_fit_docs.iter() {
+        for b in text_eval_docs.iter() {
+            if uniq[*a].path == uniq[*b].path || uniq[*a].sha256 == uniq[*b].sha256 {
+                return Err("reader text fit and held-out documents overlap".into());
+            }
+        }
+    }
+    let window_seq = |i: usize, group: u16| -> Option<Seq> {
+        windows_of(&tokenizer.encode(&uniq[i].text))
+            .into_iter()
+            .next()
+            .map(|w| Seq {
+                tokens: w,
+                group,
+                answer: 0,
+                absent: false,
+                answer_source_abs: None,
+            })
+    };
+    let text_fit_seqs: Vec<Seq> = text_fit_docs
+        .iter()
+        .filter_map(|i| window_seq(*i, 0xF000))
+        .collect();
+    let text_fit_tokens: usize = text_fit_seqs.iter().map(|s| s.tokens.len()).sum();
+    let text_obs: Vec<Vec<Obs>> = text_fit_seqs.iter().map(observe).collect();
     let text_fit_n: usize = text_obs.iter().map(|v| v.len()).sum();
+    let doc_id = |i: usize| {
+        json!({
+            "path": uniq[i].path,
+            "sha256": hex_of(&uniq[i].sha256),
+            "bytes": uniq[i].bytes,
+            "split": uniq[i].split.name(),
+        })
+    };
+    let text_split_report = json!({
+        "fit_documents": text_fit_docs.iter().map(|i| doc_id(*i)).collect::<Vec<_>>(),
+        "held_out_documents": text_eval_docs.iter().map(|i| doc_id(*i)).collect::<Vec<_>>(),
+        "fit_documents_without_a_window": text_fit_docs.len() - text_fit_seqs.len(),
+        "disjoint_by_path_and_content_hash": true,
+        "fit_tokens": text_fit_tokens,
+        "fit_candidate_positions": text_fit_n,
+        "scope": "The new reader never fits and evaluates the same document. The frozen local prior E was trained on this pinned corpus, so the prior's historical exposure is disclosed, not removed; this is a reader-held-out local evaluation, not an externally unseen claim.",
+    });
 
     // ---- training positions, computed outside the inference function -------------
     let init_roots: Vec<u8> = local
@@ -804,46 +1088,48 @@ fn run() -> Result<ExitCode, String> {
         format!("{RING_CAP}|{MAX_CAND}|{STEPS}|{BATCH}|{LR}|{ROUNDS}|{SEED_FIT}").as_bytes(),
     );
 
-    let build_positions = |obs: &[Vec<Obs>]| -> Vec<TrainPos> {
-        let mut v = Vec::new();
-        for o in obs.iter().flatten() {
-            let z = local_logits(
-                &parent,
-                &local,
-                &u,
-                o.cur,
-                o.prev as usize,
-                o.prev2,
-                o.ring.written(),
-            );
-            let mut delta = Vec::new();
-            for c in o.cands.iter() {
+    // One supervised position from one observation: constants only, computed outside inference.
+    let pos_of = |o: &Obs| -> TrainPos {
+        let z = local_logits(
+            &parent,
+            &local,
+            &u,
+            o.cur,
+            o.prev as usize,
+            o.prev2,
+            o.ring.written(),
+        );
+        let delta: Vec<[f64; ACTS]> = o
+            .cands
+            .iter()
+            .map(|c| {
                 let p = prob_of(&z, c.payload, parent.cfg.f_bits);
-                delta.push(std::array::from_fn(|a| {
+                std::array::from_fn(|a| {
                     let boost = (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << parent.cfg.f_bits) as f64;
                     action_loss(p, boost, c.payload == o.target)
-                }));
-            }
-            v.push(TrainPos {
-                cands: cand_list(&o.cands),
-                q_role: o.prev as usize,
-                k_role: o
-                    .cands
-                    .iter()
-                    .map(|c| {
-                        if c.x_prev == NO_TOKEN {
-                            usize::MAX
-                        } else {
-                            c.x_prev as usize
-                        }
-                    })
-                    .collect(),
-                delta,
-                group: o.group,
-            });
+                })
+            })
+            .collect();
+        TrainPos {
+            cands: cand_list(&o.cands),
+            q_role: o.prev as usize,
+            k_role: o
+                .cands
+                .iter()
+                .map(|c| {
+                    if c.x_prev == NO_TOKEN {
+                        usize::MAX
+                    } else {
+                        c.x_prev as usize
+                    }
+                })
+                .collect(),
+            delta,
+            group: o.group,
         }
-        v
     };
+    let build_positions =
+        |obs: &[Vec<Obs>]| -> Vec<TrainPos> { obs.iter().flatten().map(&pos_of).collect() };
     // One mixture, identical for every arm: constructed fit split + natural-text development.
     let mut positions = build_positions(&fit_obs);
     let constructed_fit_positions = positions.len();
@@ -860,7 +1146,22 @@ fn run() -> Result<ExitCode, String> {
     }
     let data_id = sha256_bytes(&data_bytes);
 
-    // ---- fit the arms on one pool, one dose, one objective ----------------------
+    // ---- tune construction: development phase selection, disjoint from fit and fresh ------
+    let tune = make_pop(&banks, N_TUNE, SEED_TUNE, &banks.values_fit);
+    for s in tune.iter() {
+        validate_fixture(s, &banks)?;
+    }
+    let tune_obs: Vec<Vec<Obs>> = tune.iter().map(observe).collect();
+    let tune_positions = build_positions(&tune_obs);
+    let tune_n: usize = tune_obs.iter().map(|v| v.len()).sum();
+
+    // ---- fit with a bounded alternating schedule; one dose and one selection rule for every arm --
+    const PHASE_LABELS: [&str; 4] = [
+        "scalar_fit",
+        "descriptor_refine_1",
+        "scalar_refit",
+        "descriptor_refine_2",
+    ];
     let mut arms: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
     let mut arm_report = Vec::new();
     for name in ["exact", "categorical", "relational"] {
@@ -891,31 +1192,94 @@ fn run() -> Result<ExitCode, String> {
             },
         );
         let t0 = Instant::now();
+        let mut phases: Vec<serde_json::Value> = Vec::new();
+        let mut checkpoints: Vec<(RelationalSelector, f64, usize)> = Vec::new();
+        // Phase 1: scalar fit on the soft expected-action objective.
         for _ in 0..STEPS {
             let b = tr.next_batch(positions.len(), BATCH);
             tr.step(&positions, &b);
         }
-        // Both learned arms get the same mode-aware bounded coordinate-search opportunity.
-        let before_geom: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
-        let search_change = if mode != RelMode::ExactOnly {
+        push_phase(
+            &tr,
+            &table,
+            &positions,
+            &tune_positions,
+            PHASE_LABELS[0],
+            0.0,
+            &mut phases,
+            &mut checkpoints,
+        );
+        // Phase 2: bounded discrete descriptor refinement.
+        let m2 = if mode != RelMode::ExactOnly {
             tr.refine_descriptor(&positions, ROUNDS)
         } else {
             0.0
         };
-        let after: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
-        let sel = tr.quantize();
+        push_phase(
+            &tr,
+            &table,
+            &positions,
+            &tune_positions,
+            PHASE_LABELS[1],
+            m2,
+            &mut phases,
+            &mut checkpoints,
+        );
+        // Phase 3: scalar **refit** after the descriptors moved: the phase the parent lacked, so the
+        // rank/feature/strength scores are no longer stale with respect to the new assignments.
+        for _ in 0..STEPS_REFIT {
+            let b = tr.next_batch(positions.len(), BATCH);
+            tr.step(&positions, &b);
+        }
+        push_phase(
+            &tr,
+            &table,
+            &positions,
+            &tune_positions,
+            PHASE_LABELS[2],
+            m2,
+            &mut phases,
+            &mut checkpoints,
+        );
+        // Phase 4: descriptor refinement again against the refitted scores.
+        let m4 = if mode != RelMode::ExactOnly {
+            tr.refine_descriptor(&positions, ROUNDS)
+        } else {
+            0.0
+        };
+        push_phase(
+            &tr,
+            &table,
+            &positions,
+            &tune_positions,
+            PHASE_LABELS[3],
+            m2 + m4,
+            &mut phases,
+            &mut checkpoints,
+        );
+        // Select by **exported** decision quality on the development construction: lowest exported
+        // loss, then fewest reads. This is not the soft surrogate.
+        let chosen = checkpoints
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| a.1.partial_cmp(&b.1).unwrap().then(a.2.cmp(&b.2)))
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+        let sel = checkpoints[chosen].0.clone();
         sel.validate_for_vocab(parent.cfg.vocab)?;
         arm_report.push(json!({
             "arm": name,
             "mode": format!("{mode:?}"),
-            "steps": tr.step,
             "seconds": t0.elapsed().as_secs_f64(),
+            "steps": tr.step,
+            "phases": phases,
+            "selected_phase_index": chosen,
+            "selected_phase": PHASE_LABELS[chosen],
             "descriptor_assignments_moved": tr.descriptor_moved(),
             "descriptor_evaluations": tr.descriptor_evaluations,
-            "fit_objective_before_search": before_geom,
-            "fit_objective_after_search": after,
-            "search_change": search_change,
-            "code_search_change": if mode == RelMode::Categorical { search_change } else { 0.0 },
+            "descriptor_refine_1_change": m2,
+            "descriptor_refine_2_change": m4,
+            "code_search_change": if mode == RelMode::Categorical { m2 + m4 } else { 0.0 },
             "quantized": {"w": sel.w.to_vec(), "bias": sel.bias, "sb": sel.sb.to_vec(), "noread": sel.noread,
                           "rank_nonzero": sel.rank.iter().filter(|v| **v != 0).count()},
         }));
@@ -926,105 +1290,111 @@ fn run() -> Result<ExitCode, String> {
     let categorical = arms["categorical"].clone();
     mark("fit", &mut marks);
 
-    // ---- contextual utility controller: frozen ranker, bounded causal interaction --
-    // The frozen integer selector already reproduces the factorised global-strength baseline. The
-    // buckets are computed once from that frozen selector, then only `ctx` moves, so the change is
-    // exactly attributable. `ctx = 0` recovers the baseline byte-for-byte.
-    let mut ctx_sel = relational.clone();
-    let ctx_buckets = ctx_sel.buckets_of(&table, &positions);
-    let ctx_used: usize = (0..N_CTX_BUCKETS)
-        .filter(|b| ctx_buckets.contains(b))
-        .count();
-    let ctx_fit = ctx_sel.ctx_fit(&table, &positions, &ctx_buckets, CTX_ROUNDS);
-    ctx_sel.validate_for_vocab(parent.cfg.vocab)?;
-    let ctx_bytes = RelationalArtifact {
-        selector: ctx_sel.clone(),
-        local_artifact_digest: sha256_bytes(&sb),
-        tokenizer_digest: raw_tok,
-        data_digest: data_id,
-    }
-    .to_bytes();
-    write_checked(&root, "artifacts/contextual_reader.rlr2", &ctx_bytes)?;
-    let ctx_reloaded =
-        RelationalArtifact::from_bytes(&ctx_bytes, &sha256_bytes(&sb), &raw_tok)?.selector;
-    ctx_reloaded.validate_for_vocab(parent.cfg.vocab)?;
-    let ctx_reload_exact = ctx_reloaded == ctx_sel && ctx_reloaded.ctx.len() == N_CTX_BUCKETS;
-    // The interaction fit must touch nothing but `ctx`, and an all-zero table must be
-    // **behaviourally** identical to the factorised baseline on the real pools. Struct equality is
-    // not the right check: the empty and all-zero encodings differ as vectors while acting the same.
-    let ctx_only_changed_ctx = {
-        let mut frozen = ctx_sel.clone();
-        frozen.ctx = Vec::new();
-        frozen == relational
-    };
-    let ctx_baseline_identical = {
-        let mut zero = relational.clone();
+    // ---- contextual utility controller: the same procedure for BOTH source arms --------------
+    // A frozen table does not freeze its function: the ranker's winner and margin determine the
+    // utility bucket, so `ctx` must be re-fitted to each arm's own scorer. Both arms get the same
+    // procedure, rounds, data and starting point (all-zero = that arm's factorised baseline).
+    let (relational_ctx, rel_ctx_fit, rel_ctx_used, rel_ctx_only) = apply_ctx_procedure(
+        &table,
+        &positions,
+        &relational,
+        CTX_ROUNDS,
+        parent.cfg.vocab,
+    )?;
+    let (categorical_ctx, cat_ctx_fit, cat_ctx_used, cat_ctx_only) = apply_ctx_procedure(
+        &table,
+        &positions,
+        &categorical,
+        CTX_ROUNDS,
+        parent.cfg.vocab,
+    )?;
+    // A relation-channel lesion of the contextual arm: reliance check, not query blindness.
+    let relational_ctx_lesion = relational_ctx.without_relation();
+    // An all-zero table must be **behaviourally** identical to that arm's baseline. Struct equality
+    // is the wrong check: the empty and all-zero encodings differ as vectors while acting the same.
+    let zero_table_matches = |base: &RelationalSelector, arm: &RelationalSelector| -> bool {
+        let mut zero = base.clone();
         zero.ctx = vec![[0i32; ACTS + 1]; N_CTX_BUCKETS];
-        let mut same = ctx_only_changed_ctx;
+        let mut same = true;
         for os in fresh_obs.iter().chain(fit_obs.iter()) {
             for o in os.iter() {
-                let rel = rels_for(&relational, o, &table, false);
-                if zero.choose(&o.cands, &rel) != relational.choose(&o.cands, &rel) {
+                let rel = rels_for(base, o, &table, false);
+                if zero.choose(&o.cands, &rel) != base.choose(&o.cands, &rel) {
                     same = false;
                 }
             }
         }
+        let _ = arm;
         same
     };
     let ctx_report = json!({
+        "procedure": "identical for both source arms: compute that arm's own frozen buckets, then fit only ctx from zero by bounded coordinate descent on the same positions",
         "buckets": N_CTX_BUCKETS,
-        "buckets_used": ctx_used,
         "rounds": CTX_ROUNDS,
-        "entries_moved": ctx_fit.entries_moved,
-        "evaluations": ctx_fit.evaluations,
-        "fit_objective_before": ctx_fit.objective_before,
-        "fit_objective_after": ctx_fit.objective_after,
-        "fit_objective_change": ctx_fit.objective_after - ctx_fit.objective_before,
+        "relational": {
+            "buckets_used": rel_ctx_used, "entries_moved": rel_ctx_fit.entries_moved,
+            "evaluations": rel_ctx_fit.evaluations,
+            "fit_objective_before": rel_ctx_fit.objective_before,
+            "fit_objective_after": rel_ctx_fit.objective_after,
+            "table": relational_ctx.ctx.clone(),
+            "only_ctx_changed": rel_ctx_only,
+            "zero_table_behaviourally_equals_baseline": zero_table_matches(&relational, &relational_ctx),
+        },
+        "categorical": {
+            "buckets_used": cat_ctx_used, "entries_moved": cat_ctx_fit.entries_moved,
+            "evaluations": cat_ctx_fit.evaluations,
+            "fit_objective_before": cat_ctx_fit.objective_before,
+            "fit_objective_after": cat_ctx_fit.objective_after,
+            "table": categorical_ctx.ctx.clone(),
+            "only_ctx_changed": cat_ctx_only,
+            "zero_table_behaviourally_equals_baseline": zero_table_matches(&categorical, &categorical_ctx),
+        },
         "constructed_fit_positions": constructed_fit_positions,
         "text_fit_positions": text_fit_n,
-        "table": ctx_sel.ctx.clone(),
-        "reload_exact": ctx_reload_exact,
-        "zero_ctx_recovers_global_baseline": ctx_baseline_identical,
-        "ctx_fit_changed_only_the_interaction": ctx_only_changed_ctx,
+        "tune_positions": tune_n,
+        "soft_objective_note": "the ctx fit objective is the softmax surrogate on the served integers; the exported hard decision quality is reported per arm",
     });
-    let relational_ctx = ctx_sel.clone();
-    mark("ctx fit", &mut marks);
+    mark("ctx fit (both arms)", &mut marks);
 
-    // ---- artifact export / independent reload ----------------------------------
-    let art = RelationalArtifact {
-        selector: relational.clone(),
-        local_artifact_digest: sha256_bytes(&sb),
-        tokenizer_digest: raw_tok,
-        data_digest: data_id,
-    };
-    let bytes = art.to_bytes();
-    write_checked(&root, "artifacts/relational_reader.rlr2", &bytes)?;
-    let reloaded = RelationalArtifact::from_bytes(&bytes, &sha256_bytes(&sb), &raw_tok)?;
-    reloaded.selector.validate_for_vocab(parent.cfg.vocab)?;
-    if reloaded.selector != relational {
-        return Err("reloaded artifact differs from the fitted selector".into());
-    }
-    // Every arm must survive the same independent reload path.
+    // ---- artifact export / independent reload; the RELOADED selectors are what gets exercised --
+    let mut export_bytes: BTreeMap<&'static str, Vec<u8>> = BTreeMap::new();
+    let mut reloaded_arms: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
     let mut arm_parity_failures = 0usize;
-    for (name, sel) in arms.iter() {
+    for (name, sel) in [
+        ("exact", &exact),
+        ("categorical", &categorical),
+        ("categorical_ctx", &categorical_ctx),
+        ("relational", &relational),
+        ("relational_ctx", &relational_ctx),
+    ] {
         let a = RelationalArtifact {
             selector: sel.clone(),
             local_artifact_digest: sha256_bytes(&sb),
             tokenizer_digest: raw_tok,
             data_digest: data_id,
         };
-        match RelationalArtifact::from_bytes(&a.to_bytes(), &sha256_bytes(&sb), &raw_tok) {
+        let bytes = a.to_bytes();
+        write_checked(&root, &format!("artifacts/{name}.rlr2"), &bytes)?;
+        match RelationalArtifact::from_bytes(&bytes, &sha256_bytes(&sb), &raw_tok) {
             Ok(b) => {
                 if b.selector != *sel || b.selector.validate_for_vocab(parent.cfg.vocab).is_err() {
                     arm_parity_failures += 1;
                 }
+                reloaded_arms.insert(name, b.selector);
             }
             Err(_) => arm_parity_failures += 1,
         }
-        let _ = name;
+        export_bytes.insert(name, bytes);
     }
+    let relational_reload = reloaded_arms["relational"].clone();
+    let relational_ctx_reload = reloaded_arms["relational_ctx"].clone();
+    let categorical_reload = reloaded_arms["categorical"].clone();
+    let categorical_ctx_reload = reloaded_arms["categorical_ctx"].clone();
+    let exact_reload = reloaded_arms["exact"].clone();
+    let reload_matches_ctx =
+        relational_ctx_reload == relational_ctx && relational_ctx_reload.ctx.len() == N_CTX_BUCKETS;
     check_reload(
-        arms.get("categorical").ok_or("cat")?,
+        reloaded_arms.get("categorical").ok_or("cat")?,
         &table,
         &template_obs(&fresh_obs),
     )?;
@@ -1038,15 +1408,16 @@ fn run() -> Result<ExitCode, String> {
             let _ = name;
             let _ = sel;
         }
-        let arm_specs: Vec<(&'static str, Option<&RelationalSelector>, bool)> = vec![
-            ("local", None, false),
-            ("exact", Some(&exact), false),
-            ("categorical", Some(&categorical), false),
-            ("relational", Some(&relational), false),
-            ("relational_ctx", Some(&relational_ctx), false),
-            ("relational_query_blind", Some(&relational), true),
+        let arm_specs: Vec<(&'static str, Option<&RelationalSelector>)> = vec![
+            ("local", None),
+            ("exact", Some(&exact_reload)),
+            ("categorical", Some(&categorical_reload)),
+            ("categorical_ctx", Some(&categorical_ctx_reload)),
+            ("relational", Some(&relational_reload)),
+            ("relational_ctx", Some(&relational_ctx_reload)),
+            ("relational_ctx_lesion", Some(&relational_ctx_lesion)),
         ];
-        for (name, sel, blind) in arm_specs {
+        for (name, sel) in arm_specs {
             let mut n = 0usize;
             let mut reads = 0usize;
             let mut correct_reads = 0usize;
@@ -1056,6 +1427,11 @@ fn run() -> Result<ExitCode, String> {
             let mut multi_correct = 0usize;
             let mut hard_ce = 0.0f64;
             let mut emitted_ok = 0usize;
+            let mut served_not_ungated = 0usize;
+            let mut rank_regret = 0.0f64;
+            let mut gate_regret = 0.0f64;
+            let mut dose_regret = 0.0f64;
+            let mut pool_best_correct = 0usize;
             let mut per_group: Vec<(f64, f64)> = Vec::new();
             let mut outcomes = Vec::new();
             let mut strata: BTreeMap<&str, (usize, usize, usize, usize, f64)> = BTreeMap::new();
@@ -1073,7 +1449,7 @@ fn run() -> Result<ExitCode, String> {
                         o.prev2,
                         o.ring.written(),
                     );
-                    let (z, r) = match sel {
+                    let (z, r, detail) = match sel {
                         None => (
                             local_z.clone(),
                             Read {
@@ -1085,45 +1461,24 @@ fn run() -> Result<ExitCode, String> {
                                 admitted: 0,
                                 scanned: 0,
                             },
-                        ),
-                        Some(s) if !blind => predict_next(
-                            &o.ring,
-                            o.cur,
-                            o.prev as usize,
-                            o.prev2,
-                            s,
-                            &table,
-                            &parent,
-                            &local,
-                            &u,
-                            true,
+                            None,
                         ),
                         Some(s) => {
-                            let mut z = local_z.clone();
-                            let rel = rels_for(s, o, &table, blind);
-                            let r = if s.mode == RelMode::ExactOnly && !blind {
-                                read_step(&o.ring, o.cur, o.prev, o.prev2, s, &table, true)
-                            } else {
-                                let act = s.choose(&o.cands, &rel);
-                                Read {
-                                    action: act,
-                                    source: act.map(|(k, _)| o.cands[k].slot_ref),
-                                    payload: act.map(|(k, _)| o.cands[k].payload),
-                                    payload_abs: act.map(|(k, _)| o.cands[k].abs + 1),
-                                    rel: act.map(|(k, _)| rel[k]).unwrap_or(0),
-                                    admitted: o.cands.len(),
-                                    scanned: 0,
-                                }
-                            };
-                            if let Some((_, st)) = r.action {
-                                if let Some(p) = r.payload {
-                                    let p = p as usize;
-                                    if p < z.len() {
-                                        z[p] = z[p].saturating_add(1i32 << AMP_SHIFTS[st]);
-                                    }
-                                }
-                            }
-                            (z, r)
+                            let (z, r) = predict_next(
+                                &o.ring,
+                                o.cur,
+                                o.prev as usize,
+                                o.prev2,
+                                s,
+                                &table,
+                                &parent,
+                                &local,
+                                &u,
+                                true,
+                            );
+                            let rel = rels_for(s, o, &table, false);
+                            let d = s.decision_detail(&o.cands, &rel);
+                            (z, r, Some(d))
                         }
                     };
                     let covered_here = o.cands.iter().any(|c| c.payload == o.target);
@@ -1132,6 +1487,7 @@ fn run() -> Result<ExitCode, String> {
                     }
                     if let Some((k, _)) = r.action {
                         reads += 1;
+                        // Any correct payload counts, never a first-matching occurrence index.
                         if o.cands[k].payload == o.target {
                             correct_reads += 1;
                         }
@@ -1148,6 +1504,35 @@ fn run() -> Result<ExitCode, String> {
                     if emitted == o.target {
                         emitted_ok += 1;
                     }
+                    // Exact regret decomposition on the actual exported decision.
+                    let (reg, source_detail) = match sel {
+                        None => (
+                            Regret::default(),
+                            json!({"ungated_top_source": null, "served_source": null,
+                                   "payload": null, "bucket": null, "action": null}),
+                        ),
+                        Some(s) => {
+                            let p = pos_of(o);
+                            let reg = regret_decomposition(s, &table, &p);
+                            if r.action.is_some() && !reg.served_matches_ungated {
+                                served_not_ungated += 1;
+                            }
+                            if best_is_correct(&p, o) {
+                                pool_best_correct += 1;
+                            }
+                            let (top, act, bucket) = detail.unwrap_or((None, None, 0));
+                            let sd = json!({
+                                "ungated_top_source": top.map(|k| json!({"seq": o.cands[k].slot_ref.seq, "abs": o.cands[k].abs})),
+                                "served_source": r.source.map(|s2| json!({"seq": s2.seq, "abs": s2.abs})),
+                                "payload": r.payload, "bucket": bucket,
+                                "action": act.map(|(k, a)| json!({"candidate": k, "strength": a})),
+                            });
+                            (reg, sd)
+                        }
+                    };
+                    rank_regret += reg.ranking;
+                    gate_regret += reg.gate;
+                    dose_regret += reg.dose;
                     let stratum = stratum_of(o, &pop[gi]);
                     let entry = strata.entry(stratum).or_default();
                     if o.cands.len() >= 2 {
@@ -1164,10 +1549,13 @@ fn run() -> Result<ExitCode, String> {
                     outcomes.push(json!({
                         "group": o.group, "query_abs": o.ring.written(), "stratum": stratum,
                         "target": o.target, "covered": covered_here, "candidates": o.cands.len(),
-                        "selected_source": r.source.map(|s| json!({"seq": s.seq, "abs": s.abs})),
+                        "source": source_detail,
                         "payload_abs": r.payload_abs, "payload": r.payload,
                         "strength": r.action.map(|(_, a)| a), "emitted": emitted,
                         "hard_bits": hb, "local_bits": lb,
+                        "ranking_regret_nats": reg.ranking, "gate_regret_nats": reg.gate,
+                        "dose_regret_nats": reg.dose, "actual_nats": reg.actual, "lpool_nats": reg.lpool,
+                        "served_matches_ungated": reg.served_matches_ungated,
                     }));
                 }
                 per_group.push((g_hard, g_local));
@@ -1189,6 +1577,12 @@ fn run() -> Result<ExitCode, String> {
                 "multi_candidate_positions": multi_candidates,
                 "multi_candidate_correct_reads": multi_correct,
                 "no_read_rate": 1.0 - reads as f64 / n.max(1) as f64,
+                "read_actions_where_served_source_differs_from_ungated_top": served_not_ungated,
+                "mean_ranking_regret_nats": rank_regret / n.max(1) as f64,
+                "mean_gate_regret_nats": gate_regret / n.max(1) as f64,
+                "mean_dose_regret_nats": dose_regret / n.max(1) as f64,
+                "mean_total_regret_nats": (rank_regret + gate_regret + dose_regret) / n.max(1) as f64,
+                "positions_where_pool_best_action_is_correct": pool_best_correct,
                 "strata": strata.iter().map(|(label, (n, covered, correct, emitted, ce))| json!({
                     "stratum": label, "positions": n, "covered_positions": covered,
                     "correct_reads": correct, "emitted_correct": emitted,
@@ -1220,7 +1614,7 @@ fn run() -> Result<ExitCode, String> {
                         h += match sel {
                             None => bits(&lz, o.target, parent.cfg.f_bits),
                             Some(s) => {
-                                let rel = rels_for(s, o, &table, blind);
+                                let rel = rels_for(s, o, &table, false);
                                 let mut z = lz.clone();
                                 if let Some((k, st)) = s.choose(&o.cands, &rel) {
                                     let p = o.cands[k].payload as usize;
@@ -1264,15 +1658,15 @@ fn run() -> Result<ExitCode, String> {
                 o.prev2,
                 o.ring.written(),
             );
-            let rel_r = rels_for(&relational, o, &table, false);
-            let rel_e = rels_for(&exact, o, &table, false);
+            let rel_r = rels_for(&relational_reload, o, &table, false);
+            let rel_e = rels_for(&exact_reload, o, &table, false);
             let mut zr = lz.clone();
-            if let Some((k, st)) = relational.choose(&o.cands, &rel_r) {
+            if let Some((k, st)) = relational_reload.choose(&o.cands, &rel_r) {
                 let p = o.cands[k].payload as usize;
                 zr[p] = zr[p].saturating_add(1i32 << AMP_SHIFTS[st]);
             }
             let mut ze = lz.clone();
-            if let Some((k, st)) = exact.choose(&o.cands, &rel_e) {
+            if let Some((k, st)) = exact_reload.choose(&o.cands, &rel_e) {
                 let p = o.cands[k].payload as usize;
                 ze[p] = ze[p].saturating_add(1i32 << AMP_SHIFTS[st]);
             }
@@ -1283,167 +1677,163 @@ fn run() -> Result<ExitCode, String> {
     }
     let hard_diff = boot_diff(&pairs, 0x1234_5678);
 
-    // Paired interval of the CENTRAL comparison: contextual minus frozen global-strength baseline.
-    let mut ctx_pairs: Vec<(f64, f64, usize)> = Vec::new();
-    for os in fresh_obs.iter() {
-        let mut a = 0.0;
-        let mut b = 0.0;
-        for o in os.iter() {
-            let (zc, _) = predict_next(
-                &o.ring,
-                o.cur,
-                o.prev as usize,
-                o.prev2,
-                &relational_ctx,
-                &table,
-                &parent,
-                &local,
-                &u,
-                true,
-            );
-            let (zg, _) = predict_next(
-                &o.ring,
-                o.cur,
-                o.prev as usize,
-                o.prev2,
-                &relational,
-                &table,
-                &parent,
-                &local,
-                &u,
-                true,
-            );
-            a += bits(&zc, o.target, parent.cfg.f_bits);
-            b += bits(&zg, o.target, parent.cfg.f_bits);
-        }
-        ctx_pairs.push((a, b, os.len()));
-    }
-    let ctx_diff = boot_diff(&ctx_pairs, 0x0C7A_1E17);
+    // ---- fresh paired comparisons on the independently reloaded artifacts -----------------
+    let ctx_diff = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &relational_ctx_reload,
+        &relational_reload,
+        None,
+        0x0C7A_1E17,
+    );
+    let ctx_diff_present = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &relational_ctx_reload,
+        &relational_reload,
+        Some("final_present"),
+        0x0C7A_1E18,
+    );
+    let ctx_diff_absent = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &relational_ctx_reload,
+        &relational_reload,
+        Some("final_absent"),
+        0x0C7A_1E19,
+    );
+    // The matched nongeometric comparison: categorical + the same contextual procedure.
+    let cat_ctx_vs_rel_ctx = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &categorical_ctx_reload,
+        &relational_ctx_reload,
+        None,
+        0x0C7A_1E1A,
+    );
+    let cat_ctx_vs_rel_ctx_present = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &categorical_ctx_reload,
+        &relational_ctx_reload,
+        Some("final_present"),
+        0x0C7A_1E1B,
+    );
+    // Reliance check: the relation channel removed from the contextual arm.
+    let rel_ctx_vs_lesion = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &relational_ctx_reload,
+        &relational_ctx_lesion,
+        None,
+        0x0C7A_1E1C,
+    );
+    // The categorical + contextual arm against its own global-strength parent.
+    let cat_ctx_vs_cat = paired_fresh_diff(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &fresh_obs,
+        &fresh,
+        &categorical_ctx_reload,
+        &categorical_reload,
+        None,
+        0x0C7A_1E1D,
+    );
 
-    // ---- offline finite-action opportunity diagnostic (target-using; diagnostic only) ----
-    // Separates strength error from ranking/admission error. Never a serving feature and never a
-    // model-quality claim: it is an upper bound computed with the target in hand.
-    let mut diag_n = 0usize;
-    let mut diag_actual = 0.0f64;
-    let mut diag_best_selected = 0.0f64;
-    let mut diag_best_all = 0.0f64;
-    let mut diag_rank_wins = 0usize;
-    let mut diag_ctx_wins = 0usize;
-    let mut diag_covered = 0usize;
-    let mut diag_correct_top_ranked = 0usize;
-    let mut diag_selected_correct = 0usize;
-    let mut diag_best_all_is_correct = 0usize;
-    let mut diag_strata: BTreeMap<&str, (usize, f64, f64, f64)> = BTreeMap::new();
-    for os in fresh_obs.iter() {
-        for o in os.iter() {
-            let z = local_logits(
-                &parent,
-                &local,
-                &u,
-                o.cur,
-                o.prev as usize,
-                o.prev2,
-                o.ring.written(),
-            );
-            let delta: Vec<[f64; ACTS]> = o
-                .cands
-                .iter()
-                .map(|c| {
-                    let p = prob_of(&z, c.payload, parent.cfg.f_bits);
-                    std::array::from_fn(|a| {
-                        let boost =
-                            (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << parent.cfg.f_bits) as f64;
-                        action_loss(p, boost, c.payload == o.target)
-                    })
-                })
-                .collect();
-            let rel = rels_for(&relational, o, &table, false);
-            let act = relational.choose(&o.cands, &rel);
-            let actual = match act {
-                Some((k, a)) => delta[k][a],
-                None => 0.0,
-            };
-            let best_selected = match act {
-                Some((k, _)) => delta[k].iter().cloned().fold(0.0f64, f64::min),
-                None => 0.0,
-            };
-            let best_all = delta.iter().flatten().cloned().fold(0.0f64, f64::min);
-            // Which causal variant attains the best finite action for the selected payload?
-            let relc = rels_for(&relational_ctx, o, &table, false);
-            let actc = relational_ctx.choose(&o.cands, &relc);
-            let actual_ctx = match actc {
-                Some((k, a)) => delta[k][a],
-                None => 0.0,
-            };
-            if actual_ctx < actual - 1e-12 {
-                diag_ctx_wins += 1;
-            }
-            if best_all < best_selected - 1e-12 {
-                diag_rank_wins += 1;
-            }
-            // Attribution, not just a bound: at positions where the correct payload IS admitted,
-            // is the relation channel already ranking it top, and is the shortfall a *ranking*
-            // failure rather than a strength one? Still target-using, still diagnostic only.
-            if let Some(ci) = o.cands.iter().position(|c| c.payload == o.target) {
-                diag_covered += 1;
-                let top = (0..o.cands.len())
-                    .map(|k| relational.source_score(&o.cands[k], rel[k]))
-                    .fold(i32::MIN, i32::max);
-                if relational.source_score(&o.cands[ci], rel[ci]) == top {
-                    diag_correct_top_ranked += 1;
+    // ---- exact regret decomposition on the reloaded arms (target-using; diagnostic only) ----
+    // Replaces the retired "ranking dominance" diagnostic, which measured the global arm and charged
+    // NoRead's missing gain to ranking. This decomposes each arm's own exported decisions exactly.
+    let decomp_arms: Vec<(&'static str, &RelationalSelector)> = vec![
+        ("relational", &relational_reload),
+        ("relational_ctx", &relational_ctx_reload),
+        ("categorical_ctx", &categorical_ctx_reload),
+    ];
+    let mut decomp_rows = Vec::new();
+    for (name, sel) in decomp_arms.iter() {
+        let mut n = 0usize;
+        let (mut rk, mut gt, mut ds, mut ac, mut lp) = (0.0f64, 0.0f64, 0.0f64, 0.0f64, 0.0f64);
+        let mut covered = 0usize;
+        let mut pool_best_correct = 0usize;
+        let mut not_ungated = 0usize;
+        let mut strata: BTreeMap<&str, (usize, f64, f64, f64)> = BTreeMap::new();
+        for (gi, os) in fresh_obs.iter().enumerate() {
+            for o in os.iter() {
+                let p = pos_of(o);
+                let r = regret_decomposition(sel, &table, &p);
+                n += 1;
+                rk += r.ranking;
+                gt += r.gate;
+                ds += r.dose;
+                ac += r.actual;
+                lp += r.lpool;
+                if o.cands.iter().any(|c| c.payload == o.target) {
+                    covered += 1;
                 }
-                if matches!(act, Some((k, _)) if k == ci) {
-                    diag_selected_correct += 1;
+                if best_is_correct(&p, o) {
+                    pool_best_correct += 1;
                 }
-                let best_k = (0..o.cands.len()).min_by(|x, y| {
-                    delta[*x]
-                        .iter()
-                        .cloned()
-                        .fold(0.0f64, f64::min)
-                        .partial_cmp(&delta[*y].iter().cloned().fold(0.0f64, f64::min))
-                        .unwrap()
-                });
-                if best_k == Some(ci) {
-                    diag_best_all_is_correct += 1;
+                if !r.served_matches_ungated {
+                    not_ungated += 1;
                 }
+                let e = strata.entry(stratum_of(o, &fresh[gi])).or_default();
+                e.0 += 1;
+                e.1 += r.ranking;
+                e.2 += r.gate;
+                e.3 += r.dose;
             }
-            diag_n += 1;
-            diag_actual += actual;
-            diag_best_selected += best_selected;
-            diag_best_all += best_all;
-            let e = diag_strata
-                .entry(stratum_of(o, &fresh[o.group as usize]))
-                .or_insert((0, 0.0, 0.0, 0.0));
-            e.0 += 1;
-            e.1 += actual;
-            e.2 += best_selected;
-            e.3 += best_all;
         }
+        decomp_rows.push(json!({
+            "arm": name,
+            "positions": n,
+            "mean_ranking_regret_nats": rk / n.max(1) as f64,
+            "mean_gate_regret_nats": gt / n.max(1) as f64,
+            "mean_dose_regret_nats": ds / n.max(1) as f64,
+            "mean_total_regret_nats": (rk + gt + ds) / n.max(1) as f64,
+            "mean_actual_nats": ac / n.max(1) as f64,
+            "mean_lpool_nats": lp / n.max(1) as f64,
+            "covered_positions": covered,
+            "positions_where_pool_best_action_is_correct": pool_best_correct,
+            "read_actions_where_served_source_differs_from_ungated_top": not_ungated,
+            "strata": strata.iter().map(|(k, (nn, a, b, c))| json!({
+                "stratum": k, "positions": nn,
+                "mean_ranking_regret_nats": a / (*nn).max(1) as f64,
+                "mean_gate_regret_nats": b / (*nn).max(1) as f64,
+                "mean_dose_regret_nats": c / (*nn).max(1) as f64,
+            })).collect::<Vec<_>>(),
+        }));
     }
-    let opportunity = json!({
-        "positions": diag_n,
-        "mean_actual_delta_bits": diag_actual / diag_n.max(1) as f64,
-        "mean_best_selected_action_bits": diag_best_selected / diag_n.max(1) as f64,
-        "mean_best_action_over_all_candidates_bits": diag_best_all / diag_n.max(1) as f64,
-        "mean_strength_loss_bits": (diag_actual - diag_best_selected) / diag_n.max(1) as f64,
-        "mean_ranking_admission_loss_bits": (diag_best_selected - diag_best_all) / diag_n.max(1) as f64,
-        "mean_total_opportunity_bits": (diag_actual - diag_best_all) / diag_n.max(1) as f64,
-        "positions_where_a_better_admitted_source_exists": diag_rank_wins,
-        "positions_where_the_contextual_choice_is_better": diag_ctx_wins,
-        "covered_positions": diag_covered,
-        "covered_where_correct_payload_is_top_source_score": diag_correct_top_ranked,
-        "covered_where_the_selected_source_is_correct": diag_selected_correct,
-        "covered_where_the_best_finite_action_belongs_to_the_correct_source": diag_best_all_is_correct,
-        "covered_relation_channel_top_rank_rate": if diag_covered == 0 { f64::NAN } else { diag_correct_top_ranked as f64 / diag_covered as f64 },
-        "covered_selection_success_rate": if diag_covered == 0 { f64::NAN } else { diag_selected_correct as f64 / diag_covered as f64 },
-        "strata": diag_strata.iter().map(|(k, (n, act, sel, all))| json!({
-            "stratum": k, "positions": n,
-            "mean_actual_bits": act / (*n).max(1) as f64,
-            "mean_strength_loss_bits": (act - sel) / (*n).max(1) as f64,
-            "mean_ranking_loss_bits": (sel - all) / (*n).max(1) as f64,
-        })).collect::<Vec<_>>(),
+    let decomposition = json!({
+        "identity": "ranking + gate + dose == actual - lpool, verified per position",
         "unit": "nats_per_candidate_bearing_position",
-        "scope": "TARGET-USING diagnostic; a bound, never a serving feature or a model-quality claim",
+        "target_using": true,
+        "lpool_caveat": "lpool sees only the admitted pool; it cannot diagnose a source excluded by admission",
+        "arms": decomp_rows,
     });
 
     // ---- controls ---------------------------------------------------------------
@@ -1456,15 +1846,15 @@ fn run() -> Result<ExitCode, String> {
                 o.cur,
                 o.prev as usize,
                 o.prev2,
-                &relational,
+                &relational_ctx_reload,
                 &table,
                 &parent,
                 &local,
                 &u,
                 true,
             );
-            let rel = rels_for(&relational, o, &table, false);
-            let act = relational.choose(&o.cands, &rel);
+            let rel = rels_for(&relational_ctx_reload, o, &table, false);
+            let act = relational_ctx_reload.choose(&o.cands, &rel);
             let mut z2 = local_logits(
                 &parent,
                 &local,
@@ -1485,6 +1875,7 @@ fn run() -> Result<ExitCode, String> {
     }
     controls.push(json!({
         "control": "one_shared_inference_path",
+        "arm": "relational_ctx (reloaded)",
         "positions": fresh_obs.iter().take(16).map(|v| v.len()).sum::<usize>(),
         "observed_prefix_scores_and_actions_identical": same_path,
         "note": "predict_next/read_step is compared against the independent score construction on identical stored prefix states; generation prefix advancement is separately covered by a runner unit test",
@@ -1548,7 +1939,7 @@ fn run() -> Result<ExitCode, String> {
                 o.cur,
                 o.prev as usize,
                 o.prev2,
-                &relational,
+                &relational_ctx_reload,
                 &table,
                 &parent,
                 &local,
@@ -1560,7 +1951,7 @@ fn run() -> Result<ExitCode, String> {
                 a1.cur,
                 a1.prev as usize,
                 a1.prev2,
-                &relational,
+                &relational_ctx_reload,
                 &table,
                 &parent,
                 &local,
@@ -1579,68 +1970,144 @@ fn run() -> Result<ExitCode, String> {
         "unchanged_scores_action_reference_payload": causal,
         "scope": "candidate-bearing positions i < cut, including cut-1 when candidate-bearing; x_cut itself is excluded because it is changed input",
     }));
-    // Altered source payload: record selected payload AND actually emitted output.
-    let mut altered_n = 0usize;
-    let mut altered_attempted = 0usize;
-    let mut altered_query_context = 0usize;
-    let mut altered_selected = 0usize;
-    let mut altered_emitted = 0usize;
+    // Selected-source intervention: change ONLY the payload of the occurrence the exported policy
+    // actually selected, and only when that occurrence lies outside the fixed recent query context.
+    // The query tokens and the admission conditions are preserved. Every attempt, lost support and
+    // NoRead is recorded rather than dropped, with an unrelated-source control and read-disabled
+    // behaviour on the same intervened prefix.
+    let mut sel_attempted = 0usize;
+    let mut sel_lost_support = 0usize;
+    let mut sel_no_read_after = 0usize;
+    let mut sel_selected_new = 0usize;
+    let mut sel_emitted_new = 0usize;
+    let mut emitted_old_before = 0usize;
+    let mut emitted_new_after = 0usize;
+    let mut read_disabled_changed = 0usize;
+    let mut unrelated_attempted = 0usize;
+    let mut unrelated_selected_new = 0usize;
     for (gi, os) in fresh_obs.iter().enumerate() {
-        for o in os.iter() {
-            let Some(k) = o.cands.iter().position(|c| c.payload == o.target) else {
-                continue;
-            };
-            let Some(alt) = banks.values_held.iter().find(|v| **v != o.target) else {
-                continue;
-            };
-            let src = (o.cands[k].abs + 1) as usize;
-            if src >= fresh[gi].tokens.len() {
-                continue;
-            }
-            let mut t2 = fresh[gi].tokens.clone();
-            t2[src] = *alt;
-            altered_attempted += 1;
-            altered_query_context += usize::from(src + 2 >= o.ring.written() as usize);
-            let mut changed = fresh[gi].clone();
-            changed.tokens = t2;
-            let alt_obs = observe(&changed);
-            let Some(o2) = alt_obs
-                .iter()
-                .find(|x| x.ring.written() == o.ring.written())
-            else {
-                continue;
-            };
-            let (z, r) = predict_next(
-                &o2.ring,
-                o2.cur,
-                o2.prev as usize,
-                o2.prev2,
-                &relational,
-                &table,
-                &parent,
-                &local,
-                &u,
-                true,
-            );
-            if let Some((kk, _)) = r.action {
-                altered_n += 1;
+        let Some(o) = os.last() else { continue };
+        let rel = rels_for(&relational_ctx_reload, o, &table, false);
+        let Some((k, _a)) = relational_ctx_reload.choose(&o.cands, &rel) else {
+            continue;
+        };
+        let src = (o.cands[k].abs + 1) as usize;
+        // Outside the fixed recent query context: the query triple and its predecessor are untouched.
+        if src + 4 > o.ring.written() as usize || src >= fresh[gi].tokens.len() {
+            continue;
+        }
+        let Some(alt) = banks.values_held.iter().find(|v| **v != o.cands[k].payload) else {
+            continue;
+        };
+        sel_attempted += 1;
+        let (zb, _) = predict_next(
+            &o.ring,
+            o.cur,
+            o.prev as usize,
+            o.prev2,
+            &relational_ctx_reload,
+            &table,
+            &parent,
+            &local,
+            &u,
+            true,
+        );
+        emitted_old_before += usize::from(argmax_low(&zb) as u32 == o.cands[k].payload);
+        let mut t2 = fresh[gi].tokens.clone();
+        t2[src] = *alt;
+        let mut changed = fresh[gi].clone();
+        changed.tokens = t2;
+        let alt_obs = observe(&changed);
+        let Some(o2) = alt_obs
+            .iter()
+            .find(|x| x.ring.written() == o.ring.written())
+        else {
+            sel_lost_support += 1;
+            continue;
+        };
+        let (z2, r2) = predict_next(
+            &o2.ring,
+            o2.cur,
+            o2.prev as usize,
+            o2.prev2,
+            &relational_ctx_reload,
+            &table,
+            &parent,
+            &local,
+            &u,
+            true,
+        );
+        match r2.action {
+            None => sel_no_read_after += 1,
+            Some((kk, _)) => {
                 if o2.cands[kk].payload == *alt {
-                    altered_selected += 1;
+                    sel_selected_new += 1;
                 }
-                if argmax_low(&z) as u32 == *alt {
-                    altered_emitted += 1;
+                if argmax_low(&z2) as u32 == *alt {
+                    sel_emitted_new += 1;
+                }
+            }
+        }
+        emitted_new_after += usize::from(argmax_low(&z2) as u32 == *alt);
+        let (zd, _) = predict_next(
+            &o2.ring,
+            o2.cur,
+            o2.prev as usize,
+            o2.prev2,
+            &relational_ctx_reload,
+            &table,
+            &parent,
+            &local,
+            &u,
+            false,
+        );
+        read_disabled_changed += usize::from(argmax_low(&zd) != argmax_low(&zb));
+        // Unrelated-source control: mutate a different admitted occurrence, same conditions.
+        if let Some(other) = o.cands.iter().position(|c| {
+            (c.abs + 1) as usize + 4 <= o.ring.written() as usize && c.abs != o.cands[k].abs
+        }) {
+            let osrc = (o.cands[other].abs + 1) as usize;
+            if osrc < fresh[gi].tokens.len() && fresh[gi].tokens[osrc] != *alt {
+                let mut t3 = fresh[gi].tokens.clone();
+                t3[osrc] = *alt;
+                let mut ch3 = fresh[gi].clone();
+                ch3.tokens = t3;
+                let obs3 = observe(&ch3);
+                if let Some(o3) = obs3.iter().find(|x| x.ring.written() == o.ring.written()) {
+                    unrelated_attempted += 1;
+                    let (_, r3) = predict_next(
+                        &o3.ring,
+                        o3.cur,
+                        o3.prev as usize,
+                        o3.prev2,
+                        &relational_ctx_reload,
+                        &table,
+                        &parent,
+                        &local,
+                        &u,
+                        true,
+                    );
+                    if r3.payload == Some(*alt) {
+                        unrelated_selected_new += 1;
+                    }
                 }
             }
         }
     }
     controls.push(json!({
-        "control": "altered_source_payload",
-        "changed_source_positions": altered_attempted,
-        "positions_with_post_intervention_read": altered_n,
-        "interventions_also_changing_recent_query_context": altered_query_context,
-        "selected_the_new_payload": altered_selected,
-        "emitted_the_new_payload": altered_emitted,
-        "note": "mutates the first admitted occurrence carrying the target payload, which need not be the previously selected source; records all attempts separately from post-intervention reads and query-context changes; not a paired correct-source attribution test",
+        "control": "selected_source_intervention",
+        "arm": "relational_ctx (reloaded)",
+        "attempted": sel_attempted,
+        "lost_support_after_intervention": sel_lost_support,
+        "no_read_after_intervention": sel_no_read_after,
+        "selected_the_new_payload": sel_selected_new,
+        "emitted_the_new_payload": sel_emitted_new,
+        "emitted_the_old_payload_before": emitted_old_before,
+        "emitted_the_new_payload_after": emitted_new_after,
+        "read_disabled_emission_changed_on_the_same_prefix": read_disabled_changed,
+        "unrelated_source_control_attempted": unrelated_attempted,
+        "unrelated_source_control_selected_the_new_payload": unrelated_selected_new,
+        "note": "changes only the payload of the occurrence the exported policy actually selected, outside the four-token query context; query tokens and admission conditions are unchanged; lost support and NoRead are recorded rather than dropped; the first target-bearing occurrence is never silently substituted",
     }));
     let mut ring = OccurrenceRing::new(RING_CAP);
     for t in [1u32, 2, 3] {
@@ -1654,23 +2121,59 @@ fn run() -> Result<ExitCode, String> {
         "resolved_after_reset": ring.resolve(r).is_some(),
     }));
 
-    // ---- natural-text development regression ------------------------------------
-    let mut text_positions = 0usize;
-    let mut text_local = 0.0f64;
+    // ---- reader text: document-separated held-out evaluation plus a fit-document regression ---
     let text_arms: Vec<(&'static str, &RelationalSelector)> = vec![
-        ("relational", &relational),
-        ("relational_ctx", &relational_ctx),
+        ("relational", &relational_reload),
+        ("relational_ctx", &relational_ctx_reload),
+        ("categorical_ctx", &categorical_ctx_reload),
     ];
-    let mut text_reader = vec![0.0f64; text_arms.len()];
-    let mut text_reads = vec![0usize; text_arms.len()];
-    let mut text_emitted = vec![0usize; text_arms.len()];
-    for i in dev.iter().take(TEXT_WINDOWS) {
-        let ws = windows_of(&tokenizer.encode(&uniq[*i].text));
-        if ws.is_empty() {
-            continue;
-        }
-        // Warm both arms over the window before measuring, so no arm pays a cold first pass.
-        {
+    for (label, docs, scope) in [
+        (
+            "held_out_documents",
+            &text_eval_docs,
+            "Documents the new reader never fitted. The frozen local prior E was trained on this pinned corpus, so its older exposure is disclosed separately and is not removed; this is a reader-held-out local evaluation, not an externally unseen claim. Harmful NoRead and uncovered positions are not filtered out.",
+        ),
+        (
+            "fit_documents_regression",
+            &text_fit_docs,
+            "The same documents used for the reader text fit: an in-sample regression row, never transfer evidence.",
+        ),
+    ] {
+        let mut positions = 0usize;
+        let mut local_sum = 0.0f64;
+        let mut reader_sum = vec![0.0f64; text_arms.len()];
+        let mut reads = vec![0usize; text_arms.len()];
+        let mut emitted = vec![0usize; text_arms.len()];
+        let mut per_doc: Vec<Vec<(f64, f64, usize)>> = vec![Vec::new(); text_arms.len()];
+        for i in docs.iter() {
+            let ws = windows_of(&tokenizer.encode(&uniq[*i].text));
+            if ws.is_empty() {
+                continue;
+            }
+            // Warm every arm over the window before measuring, so no arm pays a cold first pass.
+            {
+                let mut ring = OccurrenceRing::new(RING_CAP);
+                for k in 0..ws[0].len() {
+                    let cur = ws[0][k];
+                    let prev = if k >= 1 {
+                        ws[0][k - 1] as usize
+                    } else {
+                        parent.cfg.pad_row()
+                    };
+                    let prev2 = if k >= 2 { ws[0][k - 2] } else { NO_TOKEN };
+                    if k >= 2 {
+                        for (_n, s) in text_arms.iter() {
+                            let _ = predict_next(
+                                &ring, cur, prev, prev2, s, &table, &parent, &local, &u, true,
+                            );
+                        }
+                    }
+                    ring.observe(cur);
+                }
+            }
+            let mut doc_local = 0.0f64;
+            let mut doc_reader = vec![0.0f64; text_arms.len()];
+            let mut doc_n = 0usize;
             let mut ring = OccurrenceRing::new(RING_CAP);
             for k in 0..ws[0].len() {
                 let cur = ws[0][k];
@@ -1680,80 +2183,64 @@ fn run() -> Result<ExitCode, String> {
                     parent.cfg.pad_row()
                 };
                 let prev2 = if k >= 2 { ws[0][k - 2] } else { NO_TOKEN };
-                if k >= 2 {
-                    for (_n, s) in text_arms.iter() {
-                        let _ = predict_next(
+                if k >= 2 && k + 1 < ws[0].len() {
+                    let target = ws[0][k + 1];
+                    let (zl, _) = predict_next(
+                        &ring, cur, prev, prev2, &relational_reload, &table, &parent, &local, &u,
+                        false,
+                    );
+                    doc_local += bits(&zl, target, parent.cfg.f_bits);
+                    doc_n += 1;
+                    for (ai, (_n, s)) in text_arms.iter().enumerate() {
+                        let (zr, r) = predict_next(
                             &ring, cur, prev, prev2, s, &table, &parent, &local, &u, true,
                         );
+                        doc_reader[ai] += bits(&zr, target, parent.cfg.f_bits);
+                        if r.action.is_some() {
+                            reads[ai] += 1;
+                        }
+                        if argmax_low(&zr) as u32 == target {
+                            emitted[ai] += 1;
+                        }
                     }
                 }
                 ring.observe(cur);
             }
-        }
-        // Score every next-token position on the window through the shared path.
-        let mut ring = OccurrenceRing::new(RING_CAP);
-        for k in 0..ws[0].len() {
-            let cur = ws[0][k];
-            let prev = if k >= 1 {
-                ws[0][k - 1] as usize
-            } else {
-                parent.cfg.pad_row()
-            };
-            let prev2 = if k >= 2 { ws[0][k - 2] } else { NO_TOKEN };
-            if k >= 2 && k + 1 < ws[0].len() {
-                let target = ws[0][k + 1];
-                let (zl, _) = predict_next(
-                    &ring,
-                    cur,
-                    prev,
-                    prev2,
-                    &relational,
-                    &table,
-                    &parent,
-                    &local,
-                    &u,
-                    false,
-                );
-                text_local += bits(&zl, target, parent.cfg.f_bits);
-                text_positions += 1;
-                for (ai, (_n, s)) in text_arms.iter().enumerate() {
-                    let (zr, r) = predict_next(
-                        &ring, cur, prev, prev2, s, &table, &parent, &local, &u, true,
-                    );
-                    text_reader[ai] += bits(&zr, target, parent.cfg.f_bits);
-                    if r.action.is_some() {
-                        text_reads[ai] += 1;
-                    }
-                    if argmax_low(&zr) as u32 == target {
-                        text_emitted[ai] += 1;
-                    }
+            positions += doc_n;
+            local_sum += doc_local;
+            for ai in 0..text_arms.len() {
+                reader_sum[ai] += doc_reader[ai];
+                if doc_n > 0 {
+                    per_doc[ai].push((doc_reader[ai], doc_local, doc_n));
                 }
             }
-            ring.observe(cur);
         }
-    }
-    for (ai, (name, _s)) in text_arms.iter().enumerate() {
-        text_rows.push(json!({
-            "panel": "natural_text_development_regression",
-            "arm": name,
-            "documents": dev.iter().take(TEXT_WINDOWS).count(),
-            "positions": text_positions,
-            "local_bits_per_token": text_local / text_positions.max(1) as f64,
-            "reader_bits_per_token": text_reader[ai] / text_positions.max(1) as f64,
-            "delta_bits": (text_reader[ai] - text_local) / text_positions.max(1) as f64,
-            "reader_reads": text_reads[ai],
-            "reader_emitted_correct": text_emitted[ai],
-            "scope": "pinned repository documentation, open development. The frozen local predictor was trained on this corpus, so this is an inspected development regression, NOT fresh external validation, and harmful NoRead/uncovered positions are not filtered out.",
-        }));
+        for (ai, (name, _s)) in text_arms.iter().enumerate() {
+            let interval = boot_diff(&per_doc[ai], 0x7E47_0000 + ai as u64);
+            text_rows.push(json!({
+                "panel": label,
+                "arm": name,
+                "documents": docs.len(),
+                "positions": positions,
+                "local_bits_per_token": local_sum / positions.max(1) as f64,
+                "reader_bits_per_token": reader_sum[ai] / positions.max(1) as f64,
+                "delta_bits": (reader_sum[ai] - local_sum) / positions.max(1) as f64,
+                "reader_reads": reads[ai],
+                "reader_emitted_correct": emitted[ai],
+                "document_cluster_interval": interval,
+                "scope": scope,
+            }));
+        }
     }
     mark("controls + text", &mut marks);
 
     // ---- generation through the shared path -------------------------------------
     let mut gen_rows = Vec::new();
     let gen_arms: Vec<(&'static str, &RelationalSelector, bool)> = vec![
-        ("local", &relational, false),
-        ("relational", &relational, true),
-        ("relational_ctx", &relational_ctx, true),
+        ("local", &relational_reload, false),
+        ("relational", &relational_reload, true),
+        ("relational_ctx", &relational_ctx_reload, true),
+        ("categorical_ctx", &categorical_ctx_reload, true),
     ];
     for (k, pr) in LEGACY_PROMPTS.iter().enumerate() {
         let mut out = Vec::new();
@@ -1793,37 +2280,92 @@ fn run() -> Result<ExitCode, String> {
         gen_rows.push(json!({"prompt_index": k, "arms": out}));
     }
 
-    // ---- cost: correct denominators, reader-free baseline -----------------------
-    let probe_ws = windows_of(&tokenizer.encode(&uniq[dev[0]].text));
-    let probe: Vec<u32> = probe_ws[0][..32].to_vec();
+    // ---- cost: honest active-candidate path plus a genuine no-reader-work baseline ------
+    // The text window below admits no candidates (the parent run's probe measured 0 over 29
+    // predictions), so it is only a local-path baseline. The active-candidate measurement uses a
+    // real constructed stream, where admission is non-empty and reads actually occur.
+    let text_probe_ws = windows_of(&tokenizer.encode(&uniq[text_eval_docs[0]].text));
+    let text_probe: Vec<u32> = text_probe_ws[0][..32.min(text_probe_ws[0].len())].to_vec();
+    let active_probe_stream: Vec<u32> = fresh[0].tokens.clone();
     let mut timings = Vec::new();
-    for (label, sel, use_reader) in [
-        ("local_no_reader_work", &relational, false),
-        ("reader_global_strength", &relational, true),
-        ("reader_contextual", &relational_ctx, true),
+    for (label, sel, stream, use_reader, protocol) in [
+        (
+            "local_no_reader_work_text_window",
+            &relational_reload,
+            &text_probe,
+            false,
+            "32-token real text window; the local arm builds no ring, performs no admission or feature work and emits from the local baseline alone",
+        ),
+        (
+            "local_no_reader_work_construction_stream",
+            &relational_reload,
+            &active_probe_stream,
+            false,
+            "the SAME constructed stream as the reader arms; matched no-reader-work baseline, so the reader increment is the difference between this row and the reader rows",
+        ),
+        (
+            "reader_global_active_candidates",
+            &relational_reload,
+            &active_probe_stream,
+            true,
+            "a real constructed stream with non-empty admission; full shared path including admission, bucket, source score and table reads",
+        ),
+        (
+            "reader_contextual_active_candidates",
+            &relational_ctx_reload,
+            &active_probe_stream,
+            true,
+            "the reloaded contextual arm on the same stream; the interaction adds one table read per candidate",
+        ),
+        (
+            "reader_categorical_ctx_active_candidates",
+            &categorical_ctx_reload,
+            &active_probe_stream,
+            true,
+            "the reloaded matched categorical arm on the same stream",
+        ),
     ] {
-        let _ = run_probe(&parent, &local, &u, sel, &table, &probe, use_reader);
+        let _ = active_probe(&parent, &local, &u, sel, &table, stream, use_reader);
         let mut s = Vec::new();
         for _ in 0..5 {
             let t0 = Instant::now();
-            let out = run_probe(&parent, &local, &u, sel, &table, &probe, use_reader);
+            let out = active_probe(&parent, &local, &u, sel, &table, stream, use_reader);
             black_box(&out);
             s.push(t0.elapsed().as_secs_f64());
         }
         s.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let predictions = prediction_count(probe.len());
-        let (scanned, admitted) =
-            run_probe_counts(&parent, &local, &u, sel, &table, &probe, use_reader);
+        let (_, predictions, admitted, reads) =
+            active_probe(&parent, &local, &u, sel, &table, stream, use_reader);
         timings.push(json!({
             "label": label,
             "predictions": predictions,
             "median_s": s[s.len() / 2],
-            "per_prediction_us": s[s.len() / 2] / predictions as f64 * 1e6,
-            "ring_records_scanned": scanned,
-            "candidates_admitted": admitted,
-            "protocol": "32-token real window, one discarded warm-up then five repeats, E computed per position with no token-pair cache, black_box on the result; the local arm builds no ring and performs no admission or feature work",
+            "per_prediction_us": s[s.len() / 2] / predictions.max(1) as f64 * 1e6,
+            "candidates_admitted_total": admitted,
+            "candidates_admitted_per_prediction": admitted as f64 / predictions.max(1) as f64,
+            "read_actions": reads,
+            "protocol": protocol,
         }));
     }
+    let mut serialized = serde_json::Map::new();
+    serialized.insert("parent_E".into(), json!(pb.len()));
+    serialized.insert("local_query_artifact".into(), json!(sb.len()));
+    for (k, v) in export_bytes.iter() {
+        serialized.insert((*k).to_string(), json!(v.len()));
+    }
+    let resident_and_serialized = json!({
+        "timings": timings,
+        "serialized_bytes": serde_json::Value::Object(serialized),
+        "resident_bytes": {
+            "local_row_table": 120 * parent.cfg.vocab * 4,
+            "parent_scratch": parent.cfg.vocab * 4,
+            "descriptor_roots_per_arm": relational.q_roots.len(),
+            "rank_entries_per_arm": RANKS * 4,
+            "contextual_table_entries_per_ctx_arm": N_CTX_BUCKETS * (ACTS + 1),
+            "contextual_table_vec_capacity_caveat": "16 [i32;4] rows are 256 resident entry bytes plus Vec metadata/capacity; the serialized payload is 64 bytes",
+        },
+        "energy": "UNAVAILABLE",
+    });
     mark("generation + cost", &mut marks);
 
     // ---- decision ---------------------------------------------------------------
@@ -1852,20 +2394,29 @@ fn run() -> Result<ExitCode, String> {
         && instrument_ok
         && text_delta <= MARGIN_TEXT_BITS;
 
-    // ---- prospective central comparison: contextual vs global strength -----------
+    // ---- prospective endpoints, frozen in the design note before this draw --------------------
+    let text_row = |panel: &str, arm: &str| -> Option<&serde_json::Value> {
+        text_rows
+            .iter()
+            .find(|r| r["panel"] == panel && r["arm"] == arm)
+    };
+    let text_delta = |panel: &str, arm: &str| -> f64 {
+        text_row(panel, arm)
+            .and_then(|r| r["delta_bits"].as_f64())
+            .unwrap_or(f64::NAN)
+    };
+    let held_out_rel = text_delta("held_out_documents", "relational");
+    let held_out_ctx = text_delta("held_out_documents", "relational_ctx");
+    let held_out_cat_ctx = text_delta("held_out_documents", "categorical_ctx");
+    let read_rate = |n: &str| -> f64 { 1.0 - get(n)["no_read_rate"].as_f64().unwrap_or(f64::NAN) };
     let ctx_point = ctx_diff["point"].as_f64().unwrap_or(f64::NAN);
     let ctx_hi = ctx_diff["hi"].as_f64().unwrap_or(f64::NAN);
-    let global_text_delta = text_rows
-        .iter()
-        .find(|r| r["arm"] == "relational")
-        .and_then(|r| r["delta_bits"].as_f64())
-        .unwrap_or(f64::NAN);
-    let ctx_text_delta = text_rows
-        .iter()
-        .find(|r| r["arm"] == "relational_ctx")
-        .and_then(|r| r["delta_bits"].as_f64())
-        .unwrap_or(f64::NAN);
-    let read_rate = |n: &str| -> f64 { 1.0 - get(n)["no_read_rate"].as_f64().unwrap_or(f64::NAN) };
+    let present_point = ctx_diff_present["point"].as_f64().unwrap_or(f64::NAN);
+    let present_hi = ctx_diff_present["hi"].as_f64().unwrap_or(f64::NAN);
+    let absent_point = ctx_diff_absent["point"].as_f64().unwrap_or(f64::NAN);
+    let cat_ctx_minus_rel_ctx = cat_ctx_vs_rel_ctx["point"].as_f64().unwrap_or(f64::NAN);
+    let cat_ctx_lo = cat_ctx_vs_rel_ctx["lo"].as_f64().unwrap_or(f64::NAN);
+    let cat_ctx_hi = cat_ctx_vs_rel_ctx["hi"].as_f64().unwrap_or(f64::NAN);
     let ctx_keeps_reading = read_rate("relational_ctx") >= 0.5 * read_rate("relational");
     let emitted_ok_margin = get("relational_ctx")["emitted_accuracy"]
         .as_f64()
@@ -1874,75 +2425,102 @@ fn run() -> Result<ExitCode, String> {
             .as_f64()
             .unwrap_or(f64::NAN)
             - 0.02;
-    let lang_ok = ctx_text_delta <= global_text_delta + MARGIN_TEXT_BITS;
-    let ctx_instrument_ok = instrument_ok && ctx_reload_exact && ctx_baseline_identical;
+    let lang_ok = held_out_ctx <= held_out_rel + MARGIN_TEXT_BITS;
+    let ctx_instrument_ok = instrument_ok && reload_matches_ctx && arm_parity_failures == 0;
+    // Retained component decision, exactly as preregistered in the parent and re-measured here.
     let ctx_positive = ctx_point <= -MARGIN_CTX_BITS
         && ctx_hi < 0.0
         && ctx_instrument_ok
         && ctx_keeps_reading
         && lang_ok
         && emitted_ok_margin;
+    // The matched comparison that would license a unique-geometric claim: the categorical arm gets
+    // the same contextual procedure, so an interval excluding zero in the geometric arm's favour is
+    // required. Reported as its own endpoint, never inferred from the lesion.
+    let unique_geometric_benefit = cat_ctx_minus_rel_ctx > 0.0 && cat_ctx_lo > 0.0;
+    // An all-NoRead collapse cannot count as attention progress.
+    let all_noread_collapse = read_rate("relational_ctx") <= 0.02;
 
     write_json(
         &root,
         "result.json",
         &json!({
-            "schema": "uor-r4.competitive-reader/3",
-            "base_revision": "89ee803b",
+            "schema": "uor-r4.competitive-reader/4",
+            "base_revision": "472767dc",
             "running_source": {
                 "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
                 "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
                 "executable_sha256": executable_sha256,
-                "source_file_sha256": sources,
+                "source_file_sha256": sources.clone(),
             },
             "inputs": {"E": E_SHA, "local_query_artifact": S_SHA, "tokenizer": {"source": TOKENIZER_SHA, "derived": derived}},
             "baseline": "z_local(v) = z_E(v) + u_S(b) for i >= 2, else z_E, through one shared function",
             "mechanism": {
                 "shared_path": "read_step + predict_next; no target, sentinel or supervised record enters them",
-                "descriptor_initialisation": "palette.elements[a_codes[t]]: the actual S write element, named explicitly (the old run copied slot labels as group IDs)",
+                "descriptor_initialisation": "palette.elements[a_codes[t]]: the actual S write element",
                 "relation": "inverse(q)*k through the single relation_index function used by fit, inference, export and reload",
-                "artifact": "RLR2 v3 carries the mode, the code map and the bounded causal contextual interaction; an independent loader is exercised for every arm",
+                "artifact": "RLR2 v3 carries the mode, the code map and the contextual interaction; an independent loader is exercised for every arm and the reloaded selectors drive evaluation, generation, interventions and timing",
                 "strengths": {"amp_shifts": AMP_SHIFTS.to_vec()},
                 "ring_cap": RING_CAP, "max_candidates": MAX_CAND,
                 "arm_reload_parity_failures": arm_parity_failures,
-                "contextual_interaction": "ctx[bucket][slot], slot 0 = NoRead offset, slots 1..=ACTS = strength offsets; each entry a signed 4-bit integer added by the same integer kernel as sb[a]; bucket is frozen from the ctx-free source scores and the candidate exact-context class",
+                "reloaded_contextual_equals_fitted": reload_matches_ctx,
+                "contextual_interaction": "ctx[bucket][slot], slot 0 = NoRead offset, slots 1..=ACTS = strength offsets; signed 4-bit integers added by the same integer kernel as sb[a]; bucket frozen from the ctx-free source scores and the candidate exact-context class",
+                "optimisation": "bounded alternating scalar fit, descriptor refinement, scalar refit, descriptor refinement, with the exported development decision quality selecting the phase; identical schedule and selection for every learned arm",
+                "decomposition": "ranking + gate + dose == actual - lpool per position",
             },
             "fit": arm_report,
             "contextual_fit": ctx_report,
             "panels": panel,
             "hard_action_ce_relational_minus_exact_fresh": hard_diff,
             "hard_action_ce_contextual_minus_global_fresh": ctx_diff,
-            "opportunity_diagnostic": opportunity,
+            "hard_action_ce_contextual_minus_global_final_present": ctx_diff_present,
+            "hard_action_ce_contextual_minus_global_final_absent": ctx_diff_absent,
+            "hard_action_ce_categorical_ctx_minus_relational_ctx": cat_ctx_vs_rel_ctx,
+            "hard_action_ce_categorical_ctx_minus_relational_ctx_final_present": cat_ctx_vs_rel_ctx_present,
+            "hard_action_ce_categorical_ctx_minus_categorical": cat_ctx_vs_cat,
+            "hard_action_ce_relational_ctx_minus_lesion": rel_ctx_vs_lesion,
+            "regret_decomposition": decomposition,
             "natural_text": text_rows,
+            "text_split": text_split_report.clone(),
             "controls": controls,
             "generation": gen_rows,
-            "cost": {
-                "timings": timings,
-                "serialized_bytes": {"parent_E": pb.len(), "local_query_artifact": sb.len(), "relational_artifact": bytes.len(), "contextual_artifact": ctx_bytes.len()},
-                "resident_bytes": {"local_row_table": 120 * parent.cfg.vocab * 4, "parent_scratch": parent.cfg.vocab * 4, "descriptor_roots": relational.q_roots.len(), "rank_table": RANKS * 4, "contextual_table": ctx_sel.ctx.len() * (ACTS + 1)},
-                "energy": "UNAVAILABLE",
-            },
+            "cost": resident_and_serialized,
             "decision": {
                 "primary": "paired-by-sequence hard-action CE difference, contextual minus frozen global-strength baseline, fresh construction",
-                "secondary": "paired-by-sequence hard-action CE difference, relational minus exact-recurrence, fresh construction",
+                "endpoints": {
+                    "all_positions": ctx_diff,
+                    "final_present_queries": ctx_diff_present,
+                    "final_absent_queries": ctx_diff_absent,
+                    "matched_categorical_ctx_minus_relational_ctx": cat_ctx_vs_rel_ctx,
+                    "matched_categorical_ctx_minus_relational_ctx_final_present": cat_ctx_vs_rel_ctx_present,
+                    "relation_channel_lesion_of_the_contextual_arm": rel_ctx_vs_lesion,
+                    "relational_minus_exact": hard_diff,
+                },
+                "counts": {
+                    "relational_ctx_correct_emitted_next_tokens_all_positions": get("relational_ctx")["emitted_next_token_correct"].clone(),
+                    "relational_correct_emitted_next_tokens_all_positions": get("relational")["emitted_next_token_correct"].clone(),
+                    "categorical_ctx_correct_emitted_next_tokens_all_positions": get("categorical_ctx")["emitted_next_token_correct"].clone(),
+                    "relational_ctx_correct_payload_reads_all_positions": get("relational_ctx")["correct_reads"].clone(),
+                    "relational_correct_payload_reads_all_positions": get("relational")["correct_reads"].clone(),
+                },
+                "text": {
+                    "held_out_relational_bits_per_token": held_out_rel,
+                    "held_out_relational_ctx_bits_per_token": held_out_ctx,
+                    "held_out_categorical_ctx_bits_per_token": held_out_cat_ctx,
+                    "held_out_document_cluster_interval_relational_ctx": text_row("held_out_documents", "relational_ctx").map(|r| r["document_cluster_interval"].clone()),
+                },
                 "margin_bits": MARGIN_CTX_BITS,
                 "text_margin_bits": MARGIN_TEXT_BITS,
-                "contextual_vs_global": ctx_diff,
-                "relational_vs_exact": hard_diff,
-                "contextual_hard_ce": get("relational_ctx")["hard_action_ce_bits"].clone(),
-                "relational_hard_ce": get("relational")["hard_action_ce_bits"].clone(),
-                "exact_hard_ce": get("exact")["hard_action_ce_bits"].clone(),
-                "local_hard_ce": get("local")["hard_action_ce_bits"].clone(),
-                "query_blind_hard_ce": get("relational_query_blind")["hard_action_ce_bits"].clone(),
                 "instrument_checks_pass": instrument_ok,
                 "contextual_instrument_checks_pass": ctx_instrument_ok,
                 "contextual_keeps_reading": ctx_keeps_reading,
                 "contextual_language_tradeoff_ok": lang_ok,
                 "contextual_emitted_margin_ok": emitted_ok_margin,
-                "ctx_zero_recovers_global_baseline": ctx_baseline_identical,
-                "positive": ctx_positive,
+                "all_noread_collapse": all_noread_collapse,
+                "retained_component_positive": ctx_positive,
                 "historical_relational_vs_exact_positive": positive,
-                "historical": "the old 0.15 precision margin, the old -2.4956 bits/sequence figure and the old positive=false remain historical and are not re-applied",
+                "unique_geometric_benefit_over_matched_categorical": unique_geometric_benefit,
+                "historical": "the parent positive=true for the strength comparison, the old 0.15 precision margin, the -2.4956 bits/sequence figure and the old positive=false remain historical at their own scope and are not re-applied",
             },
             "phases": marks.iter().fold((0.0f64, Vec::new()), |(prev, mut out), (n, t)| {
                 out.push(json!({"phase": n, "seconds": t - prev, "cumulative_s": t}));
@@ -1951,10 +2529,63 @@ fn run() -> Result<ExitCode, String> {
             "elapsed_s": started.elapsed().as_secs_f64(),
         }),
     )?;
+    // ---- cryptographically bound manifest: complete inputs, splits, versions and seeds ------
+    let full_binding = binding_digest(&fit_obs, &text_obs, &tune_obs, &fresh_obs);
+    write_json(
+        &root,
+        "binding.json",
+        &json!({
+            "schema": "uor-r4.relational-learning-binding/1",
+            "base_revision": "472767dc",
+            "inputs": {
+                "E_sha256": E_SHA,
+                "local_query_artifact_sha256": S_SHA,
+                "tokenizer_source_sha256": TOKENIZER_SHA,
+                "tokenizer_derived_sha256": DERIVED_SHA,
+                "group_table": "ExactGroupTable::build()",
+                "parent_digest": hex_of(&parent_digest),
+            },
+            "observations": {
+                "full_binding_digest": hex_of(&full_binding),
+                "fit_sequences": fit.len(),
+                "fit_candidate_positions": constructed_fit_positions,
+                "text_fit_documents": text_fit_docs.len(),
+                "text_fit_candidate_positions": text_fit_n,
+                "text_fit_tokens": text_fit_tokens,
+                "tune_sequences": tune.len(),
+                "tune_candidate_positions": tune_n,
+                "fresh_sequences": fresh.len(),
+                "fresh_candidate_positions": fresh_n,
+                "scope": "candidate payloads, references, exact-context features and targets for every fitted or scored position, including the natural-text fit documents",
+            },
+            "text_split": text_split_report.clone(),
+            "configuration": {
+                "ring_cap": RING_CAP, "max_candidates": MAX_CAND,
+                "act_shifts": AMP_SHIFTS.to_vec(),
+                "steps": STEPS, "steps_refit": STEPS_REFIT, "batch": BATCH, "lr": LR,
+                "descriptor_rounds": ROUNDS, "ctx_rounds": CTX_ROUNDS, "ctx_buckets": N_CTX_BUCKETS,
+                "seeds": {"fit": SEED_FIT, "tune": SEED_TUNE, "fresh": SEED_FRESH},
+                "config_identity": hex_of(&cfg_id),
+                "optimisation": "scalar fit, descriptor refinement, scalar refit, descriptor refinement; phase selected by exported development decision quality",
+                "selection_data": "SEED_TUNE construction on the fit payload bank; disjoint from the fit and fresh draws",
+            },
+            "export": {
+                "format": "RLR2 v3",
+                "artifacts": export_bytes.keys().collect::<Vec<_>>(),
+                "semantics": "signed 4-bit selector entries, integer add/compare/table-read only; ctx slot 0 is the NoRead offset",
+            },
+            "source_files": sources,
+            "limitations": [
+                "The frozen local prior E was trained on this pinned corpus; the document split separates the new reader's fit from its held-out reader text but does not remove that historical exposure.",
+                "The soft training objective is a surrogate; the exported integer decision quality is reported separately.",
+                "Physical energy is UNAVAILABLE without measurement.",
+            ],
+        }),
+    )?;
     seal(&root).map_err(|e| format!("seal: {e}"))?;
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
-        "fresh: ctx {:.6} vs global {:.6} vs exact {:.6} vs local {:.6} bits; ctx-global {:?} [{:?},{:?}]; text global {:.4} ctx {:.4}; ctx_ok {ctx_positive}; instrument {ctx_instrument_ok}; sealed {} unlisted; elapsed {:.1}s",
+        "fresh all-pos: ctx {:.6} vs global {:.6} vs exact {:.6} vs local {:.6}; ctx-global {:?} [{:?},{:?}]; present {:?} [{:?},{:?}]; absent {:?}; cat_ctx-rel_ctx {:?} [{:?},{:?}]; heldout text global {:.4} ctx {:.4} cat_ctx {:.4}; reading {}; unique_geom {}; ctx_ok {ctx_positive}; instrument {ctx_instrument_ok}; sealed {} unlisted; elapsed {:.1}s",
         get("relational_ctx")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
         get("relational")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
         get("exact")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
@@ -1962,8 +2593,18 @@ fn run() -> Result<ExitCode, String> {
         ctx_point,
         ctx_diff["lo"].as_f64().unwrap_or(f64::NAN),
         ctx_hi,
-        global_text_delta,
-        ctx_text_delta,
+        present_point,
+        ctx_diff_present["lo"].as_f64().unwrap_or(f64::NAN),
+        present_hi,
+        absent_point,
+        cat_ctx_minus_rel_ctx,
+        cat_ctx_lo,
+        cat_ctx_hi,
+        held_out_rel,
+        held_out_ctx,
+        held_out_cat_ctx,
+        read_rate("relational_ctx"),
+        unique_geometric_benefit,
         unlisted.len(),
         started.elapsed().as_secs_f32()
     );
@@ -2033,6 +2674,7 @@ fn ring_before_current(prefix: &[u32]) -> OccurrenceRing {
     ring
 }
 
+#[allow(dead_code)]
 fn prediction_count(tokens: usize) -> usize {
     // Query positions 2..tokens-1 each have the two-token context and a next-token target.
     tokens.saturating_sub(3)
@@ -2075,85 +2717,6 @@ fn generate_step(
     ring.observe(tokens[i]);
     tokens.push(next);
     Ok(result)
-}
-
-fn run_probe(
-    parent: &PriorCore,
-    local: &QueryHard,
-    u: &[Vec<i32>],
-    sel: &RelationalSelector,
-    table: &ExactGroupTable,
-    probe: &[u32],
-    use_reader: bool,
-) -> u32 {
-    let mut last = 0u32;
-    if !use_reader {
-        // The matched local baseline does no memory allocation, update, admission or feature work.
-        for k in 2..probe.len().saturating_sub(1) {
-            let z = local_logits(
-                parent,
-                local,
-                u,
-                probe[k],
-                probe[k - 1] as usize,
-                probe[k - 2],
-                k as u32,
-            );
-            last = black_box(argmax_low(&z)) as u32;
-        }
-        return last;
-    }
-    let mut ring = OccurrenceRing::new(RING_CAP);
-    for k in 0..probe.len() {
-        let cur = probe[k];
-        let prev = if k >= 1 {
-            probe[k - 1] as usize
-        } else {
-            parent.cfg.pad_row()
-        };
-        let prev2 = if k >= 2 { probe[k - 2] } else { NO_TOKEN };
-        if k >= 2 && k + 1 < probe.len() {
-            let (z, _) = predict_next(
-                &ring, cur, prev, prev2, sel, table, parent, local, u, use_reader,
-            );
-            last = black_box(argmax_low(&z)) as u32;
-        }
-        ring.observe(cur);
-    }
-    last
-}
-
-fn run_probe_counts(
-    parent: &PriorCore,
-    local: &QueryHard,
-    u: &[Vec<i32>],
-    sel: &RelationalSelector,
-    table: &ExactGroupTable,
-    probe: &[u32],
-    use_reader: bool,
-) -> (usize, usize) {
-    if !use_reader {
-        return (0, 0);
-    }
-    let mut ring = OccurrenceRing::new(RING_CAP);
-    let (mut scanned, mut admitted) = (0usize, 0usize);
-    for k in 0..probe.len() {
-        let cur = probe[k];
-        let prev = if k >= 1 {
-            probe[k - 1] as usize
-        } else {
-            parent.cfg.pad_row()
-        };
-        let prev2 = if k >= 2 { probe[k - 2] } else { NO_TOKEN };
-        if k >= 2 && k + 1 < probe.len() {
-            let r = read_step(&ring, cur, prev as u32, prev2, sel, table, true);
-            scanned += r.scanned;
-            admitted += r.admitted;
-            let _ = local_logits(parent, local, u, cur, prev, prev2, ring.written());
-        }
-        ring.observe(cur);
-    }
-    (scanned, admitted)
 }
 
 #[cfg(test)]
@@ -2285,6 +2848,78 @@ mod tests {
             base.bucket_of(&o.cands, &rel),
             "the bucket key is unchanged by the interaction it keys"
         );
+    }
+
+    #[test]
+    fn the_regret_identity_holds_on_real_constructed_observations() {
+        let b = banks();
+        let table = ExactGroupTable::build().expect("exact table");
+        let mut seed = 4242u64;
+        let sel = RelationalSelector {
+            q_roots: vec![3u8; 256],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [1, 0, 2, 0, -1, 3],
+            rank: std::array::from_fn(|k| (k as i32 % 7) - 3),
+            bias: 1,
+            sb: [2, -1, 3],
+            noread: 0,
+            ctx: Vec::new(),
+        };
+        let mut checked = 0usize;
+        let mut checked_absent = 0usize;
+        for absent in [false, true] {
+            for _ in 0..12 {
+                let seq = make_seq(&b, &mut seed, &b.values_held, absent);
+                for o in observe(&seq).iter() {
+                    let delta: Vec<[f64; ACTS]> = o
+                        .cands
+                        .iter()
+                        .enumerate()
+                        .map(|(k, c)| {
+                            let p = 0.002 * (k as f64 + 1.0);
+                            let correct = c.payload == o.target;
+                            std::array::from_fn(|a| {
+                                let boost = (1i64 << AMP_SHIFTS[a]) as f64 / 1024.0;
+                                action_loss(p, boost, correct)
+                            })
+                        })
+                        .collect();
+                    let p = TrainPos {
+                        cands: cand_list(&o.cands),
+                        q_role: o.prev as usize,
+                        k_role: o
+                            .cands
+                            .iter()
+                            .map(|c| {
+                                if c.x_prev == NO_TOKEN {
+                                    usize::MAX
+                                } else {
+                                    c.x_prev as usize
+                                }
+                            })
+                            .collect(),
+                        delta,
+                        group: o.group,
+                    };
+                    let r = regret_decomposition(&sel, &table, &p);
+                    assert!(
+                        (r.ranking + r.gate + r.dose - (r.actual - r.lpool)).abs() < 1e-9,
+                        "the decomposition must be exact on observed positions"
+                    );
+                    assert!(r.ranking >= -1e-12 && r.gate >= -1e-12 && r.dose >= -1e-12);
+                    assert!(
+                        r.served_matches_ungated,
+                        "the served source must be the ungated top source"
+                    );
+                    checked += 1;
+                    if absent {
+                        checked_absent += 1;
+                    }
+                }
+            }
+        }
+        assert!(checked > 0 && checked_absent > 0);
     }
 
     #[test]

@@ -1,0 +1,143 @@
+UOR-R4 Geometric Language Model - evidence receipt
+Experiment: matched relational learning (alternating refit; matched categorical+contextual; document-separated reader text)
+Date: 2026-09-21
+Base revision: 472767dc (PR #1324 merged). Worktree: .worktrees/geometric-query-read, branch codex/relational-learning
+Owning issues: #973, #820, #963, #964 (all remain open)
+
+PURPOSE
+Test the hypothesis that the present signed 120-element relation can learn useful source selection once the
+optimisation schedule stops fitting scalars against stale descriptors, with the contextual utility controller
+retained and fairly re-fitted, a matched categorical+contextual arm, and real document-separated reader text.
+
+PINNED INPUTS
+E  .uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2
+   sha256 565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+S  .uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3
+   sha256 ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad
+tokenizer source sha256 9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c
+derived tokenizer sha256 a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f
+text corpus .uor-models/realtext-prior-2026-09-20/inputs/docs (Dev split, sorted by content hash)
+
+SOURCE CHANGED
+crates/uor-r4-core/src/native_geometric/learner/relational.rs
+  + ungated_top_source / decision_detail / exported_loss / exported_objective
+  + Regret + regret_decomposition (exact ranking/gate/dose decomposition)
+  + 3 new tests: centre+antipodal relation, the signed present/absent expressivity witness, the regret identity
+crates/uor-r4-core/src/bin/competitive-reader.rs
+  + alternating fit (scalar -> descriptor -> SCALAR REFIT -> descriptor) with exported-objective phase selection
+  + SEED_TUNE development construction for phase selection
+  + contextual procedure applied identically to BOTH learned source arms (relational_ctx, categorical_ctx)
+  + document-separated reader text: disjoint fit vs held-out documents by path and content hash
+  + per-position exported detail (ungated top source, exact reference, payload, bucket, action, emitted)
+  + duplicate-aware correctness everywhere; no first-matching occurrence index
+  + selected-source intervention outside the query context, with unrelated-source and read-disabled controls
+  + active-candidate cost probe with a matched no-reader-work baseline, plus resident vs serialized bytes
+  + binding.json: full observation digest, splits, seeds, configuration, geometry, parent and format versions
+  + 1 new runner test: the regret identity on real constructed observations
+  + retired the global-arm "ranking dominance" diagnostic it replaced
+
+TEST RESULTS (executed)
+cargo test -p uor-r4-core --lib native_geometric::learner::relational -> 23 passed (3 new)
+cargo test -p uor-r4-core --bin competitive-reader -> 5 passed, 1 ignored
+cargo test -p uor-r4-core --bin competitive-reader -- --ignored  (skipped this run; the retained-artifact smoke
+  path is unchanged by this PR and the reloaded artifacts are exercised directly in the run)
+cargo fmt --check clean; cargo check --offline clean; python3 scripts/check_claim_wording.py passed
+
+EXECUTED RUN
+Report root .uor-models/realtext-prior-2026-09-20/relational-learning-4 (claimed, sealed, verified; 27 files,
+0 unlisted). Superseded attempts 1..3 preserved and never resealed, each with one documented reporting/control
+defect and NO measurement difference (identical to the last decimal):
+  1: the one-shared-path control compared the contextual arm's predict_next against the global arm's choose
+  2: the cost timings vector was dropped from result.json
+  3: the no-reader-work local baseline was on a text window rather than the matched construction stream
+Elapsed 202.6 s. Fit 6.63 s. ctx fit both arms 0.082 s. Controls + text 193.30 s. Generation + cost 2.48 s.
+
+CONSTRUCTION
+fit 2,969 candidate-bearing positions (1,005 covered, 2,230 multi-candidate); tune 60 sequences / 777 positions
+(SEED_TUNE, fit payload bank); fresh 1,813 (646 covered, 1,328 multi-candidate), 21 absent queries.
+
+ALTERNATING FIT - EXPORTED DEVELOPMENT LOSS (nats) AND SELECTED PHASE
+exact       -1044.84 / -1044.84 / -1044.84 / -1044.84   selected scalar_fit,       0 moved,      0 evaluations
+categorical -1135.65 / -1220.80 / -1343.94 / -1408.89   selected descriptor_refine_2, 162 moved, 91392 evaluations
+relational  -1079.49 / -1040.77 / -1354.60 / -1403.16   selected descriptor_refine_2, 150 moved, 91392 evaluations
+Descriptor refinement alone WORSENED the geometric arm's exported quality (-1079.49 -> -1040.77); the scalar
+refit repaired and surpassed it (-1354.60). The review's optimisation gap is real and material.
+
+FRESH HARD-ACTION CE (bits per candidate-bearing position, reloaded artifacts)
+local 12.684457 | exact 10.728625 | categorical 10.064396 | categorical_ctx 10.067415
+relational 10.203657 | relational_ctx 10.191564 | relational_ctx lesion 10.728625
+
+PAIRED FRESH COMPARISONS (sequence cluster, 2000 draws)
+relational - exact                          -0.524968 [-0.654447, -0.396747]
+relational_ctx - relational (all)           -0.012093 [-0.023107, +0.003536]
+relational_ctx - relational (final present)  0.0      [0.0, 0.0]        <- zero decision changes
+relational_ctx - relational (final absent)  -0.002299 [-0.005914, 0.0]
+relational_ctx - relation-channel lesion    -0.537061 [-0.658622, -0.405202]
+categorical_ctx - relational_ctx            -0.124149 [-0.227536, -0.022590]
+categorical_ctx - relational_ctx (present)  -0.890533 [-1.683652, -0.070554]
+categorical_ctx - categorical               +0.003019 [-0.024293, +0.027357]
+
+STRATA, relational_ctx (positions / covered / correct reads / emitted correct / hard bits per position)
+final_present   119 / 119 / 103 /  83 /  4.0912
+final_absent     21 /   0 /   0 /   0 / 14.1860
+query_key       126 / 126 /  88 /  74 /  5.8757
+intermediate_key    431 / 305 / 245 / 194 /  7.6621
+intermediate_role   562 /  15 /   0 /   1 / 10.9308
+intermediate_value  554 /  81 /  11 /   7 / 13.5501
+
+REGRET DECOMPOSITION (nats per position; ranking + gate + dose == actual - Lpool, verified per position)
+relational      ranking 0.5999  gate 0.2092  dose 0.1212  actual -1.7196  Lpool -2.6500  covered 646
+relational_ctx  ranking 0.5999  gate 0.2136  dose 0.1086  actual -1.7279  Lpool -2.6500  covered 646
+categorical_ctx ranking 0.5379  gate 0.1997  dose 0.0984  actual -1.8140  Lpool -2.6500  covered 646
+Read actions where the served source differed from the ungated top source: 0 of 1813 (factorized ordering holds).
+Only 646 / 1813 positions admit the correct payload: coverage, not ordering, is the largest single loss.
+
+DOCUMENT-SEPARATED READER TEXT (8 disjoint documents per side, one 64-token window each)
+fit documents (512 fit tokens, 214 candidate positions): native_geometric_hamming_policy_973.md,
+  r4_zoology_exact_transfer_1053.md, skipmix_gap_diagnostic_904.md, w33_geometry_qualification_spec_845.md,
+  geometry_ablation_434.md, segment_lane_886_spotcheck.md, context_horizon_424.md,
+  native_geometric_literal_selection_1139.md
+held-out documents: integration/handoff-2026-09-07.md, integration/review-2026-09-16/04-mathematics-audit.md,
+  integration/model-direction-2026-09.md, native_geometric_role_read_1137.md,
+  native_geometric_query_owner_selection_973.md, octeract_attention_661.md,
+  native_geometric_tied_learning_973.md, formal_vocabulary.md
+held out (488 positions):  relational +0.2709 [0.1695, 0.4048] | relational_ctx +0.2742 [0.1747, 0.4060]
+                           categorical_ctx +0.2422 [0.1197, 0.3809]
+fit-document regression:  categorical_ctx +0.0577 [-0.0167, 0.1239]
+All held-out deltas are harmful and above the 0.05 tolerance. The frozen prior's exposure to this corpus is
+disclosed separately and is not removed; this is a reader-held-out local evaluation, not externally unseen.
+
+CONTROLS (all passed)
+one_shared_inference_path (reloaded relational_ctx), 203 positions      true
+independent_s_query_only_check, 1813 positions, 0 mismatches            true
+future_token_intervention, 876 compared incl. 131 changed-token preds   true
+stale_reference_after_reset                                             resolved after = false
+per-arm reload parity failures                                          0
+zero-table behaviourally equals baseline (both arms)                    true
+selected_source_intervention: 113 attempted, 112 selected the new payload, 95 emitted it,
+  0 lost support, 0 NoRead, unrelated-source control 1/102, read-disabled changed 90/113
+
+COST (active candidates present; real total path, uncached local E)
+local, no reader work, same construction stream  15 preds  22.10 ms  1473.3 us/pred  0.00 admitted/pred  0 reads
+reader global strength                           15 preds  20.41 ms  1360.7 us/pred  1.67 admitted/pred  5 reads
+reader contextual                                15 preds  20.86 ms  1390.8 us/pred  1.67 admitted/pred  5 reads
+reader categorical+contextual                    15 preds  20.67 ms  1378.0 us/pred  1.67 admitted/pred  7 reads
+local, no reader work, text window               29 preds  44.98 ms  1551.1 us/pred  0.00 admitted/pred  0 reads
+The reader increment is NOT resolved: the uncached local path dominates, the spread is within repeat noise,
+and the reader rows measured slightly faster than the matched local row, which cannot be a real saving.
+Serialized per arm: exact 4344, relational 4344, relational_ctx 4408, categorical 8440, categorical_ctx 8504.
+Resident: contextual table 256 entry bytes (16 [i32;4] rows) + Vec metadata vs 64 serialized bytes.
+Physical energy UNAVAILABLE.
+
+ARTIFACTS AND BINDING
+binding.json carries a full observation digest over fit, text-fit, tune and fresh positions (candidate
+payloads, references, exact-context features, targets), the text split identities, all seeds, the
+optimisation/contextual configuration, the group table, the parent digest and the RLR2 v3 export semantics.
+full_binding_digest 24140b70278fb4ef53e0774d5a179031426f2db5212f9d92e78f053467a33590
+Preserved untouched: contextual-utility-1/2, competitive-reader-1, relational-reader-1, occurrence-reader-1..4,
+s-attribution-1..3, query-read-1..2 and all other retained roots, including known historical unlisted helpers.
+
+NOT RUN / UNAVAILABLE
+ring, memory or candidate-bound widening; width/precision sweeps; S attribution replay; schedulers;
+reset/write, capacity, projection or corpus campaigns: NOT STARTED
+optimized serving latency, physical energy, general prose/chat/reasoning, absent-query correctness: UNAVAILABLE

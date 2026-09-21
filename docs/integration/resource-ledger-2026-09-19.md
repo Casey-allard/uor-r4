@@ -1155,6 +1155,25 @@ self-check, and the repaired run reproduced the measurement bit-for-bit. Preserv
 incremental cost and physical energy remain UNAVAILABLE (the cost probe admitted zero candidates).
 No paid/external compute and no deletion of unique material.
 
+## Charges recorded - matched relational learning step (2026-09-21)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-21 | `learner/relational.rs`: `ungated_top_source`/`decision_detail`/`exported_loss`/`exported_objective`, `Regret` + `regret_decomposition`, 3 new focused tests (centre/antipodal relation, the signed present/absent expressivity witness, the regret identity); `bin/competitive-reader.rs`: alternating fit with exported-objective phase selection, `SEED_TUNE` development construction, the contextual procedure applied to both source arms, document-separated reader text, per-position exported detail, duplicate-aware counters, selected-source intervention, matched active-candidate cost probe, `binding.json`, 1 new runner test; 4 complete runs (210.8 / 213.5 / 204.3 / 202.7 s) and the build/test cycles | 2530000 ms | **Measured:** four complete runs 831.3 s; release builds 122 s; test-build-and-run cycles ~224 s; `cargo check`/fmt/claim-wording cycles ~50 s. **Estimated:** ~1,200 s documentation/delivery allocation. Superseded attempts, failed builds and superseded compile cycles are charged. |
+
+**New cumulative: 189266749 ms.** Remaining: 194900000 - 189266749 = **5633251 ms (~94 min)**. Projection
+fitted the live balance, so **no new extension was taken**; all prior charges and the recorded limit stand.
+
+Delivered under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/relational-learning-4` (27 files, 0 unlisted, ~25 MiB). Superseded
+attempts `relational-learning-1..3` are retained and never resealed; each had one reporting/control defect
+and the measurement was bit-identical across all four runs. Preserved untouched: `contextual-utility-1/2`,
+`competitive-reader-1`, `relational-reader-1`, `occurrence-reader-1..4`, `s-attribution-1..3`,
+`query-read-1..2` and all other retained roots, including known historical unlisted helpers. Free space
+**40 GiB**; the 128 MiB model-storage stop margin is intact. Serve-side compliance is claimed only for the
+served selector arithmetic; whole-path D0-b compliance is not claimed, reader incremental cost is unresolved
+and physical energy is UNAVAILABLE. No paid/external compute and no deletion of unique material.
+
 
 ## Principal PR #1323 reconciliation — September 21, 2026
 
