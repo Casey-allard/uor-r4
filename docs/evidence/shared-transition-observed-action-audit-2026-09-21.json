@@ -1,0 +1,256 @@
+{
+  "schema": "uor-r4.pr1339-observed-action-audit/1",
+  "scope": "Saved development labels only; no generator, model parameters, held-out labels, fitting or inference. Finite permutation composition is mathematical analysis of observed transition records.",
+  "input": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/shared-transition-6/rows.jsonl",
+  "rows_sha256": "e9e56bd5f77a9f0858194e281c74439f3ca30fe5daa04f72a232d561ffdfe9a2",
+  "development_items": 288,
+  "development_rows": 672,
+  "first_transition_keys": 32,
+  "recurrent_transition_keys": 64,
+  "conflicting_first_keys": [],
+  "conflicting_recurrent_keys": [],
+  "typed_outcome_labels": [
+    4088,
+    4089,
+    4090,
+    4091,
+    4092,
+    4093,
+    4094,
+    4095
+  ],
+  "observed_primitive_tokens": [
+    489,
+    491,
+    500,
+    507,
+    513,
+    515,
+    516,
+    517
+  ],
+  "primitive_permutations": {
+    "489": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "491": [
+      6,
+      7,
+      4,
+      5,
+      3,
+      2,
+      1,
+      0
+    ],
+    "500": [
+      3,
+      2,
+      0,
+      1,
+      7,
+      6,
+      4,
+      5
+    ],
+    "507": [
+      1,
+      0,
+      3,
+      2,
+      5,
+      4,
+      7,
+      6
+    ],
+    "513": [
+      4,
+      5,
+      7,
+      6,
+      1,
+      0,
+      2,
+      3
+    ],
+    "515": [
+      2,
+      3,
+      1,
+      0,
+      6,
+      7,
+      5,
+      4
+    ],
+    "516": [
+      7,
+      6,
+      5,
+      4,
+      2,
+      3,
+      0,
+      1
+    ],
+    "517": [
+      5,
+      4,
+      6,
+      7,
+      0,
+      1,
+      3,
+      2
+    ]
+  },
+  "distinct_permutations": 8,
+  "all_actions_bijective": true,
+  "closed_under_composition": true,
+  "identity_primitive": 489,
+  "element_orders": {
+    "489": 1,
+    "491": 4,
+    "500": 4,
+    "507": 2,
+    "513": 4,
+    "515": 4,
+    "516": 4,
+    "517": 4
+  },
+  "order_spectrum": {
+    "1": 1,
+    "2": 1,
+    "4": 6
+  },
+  "noncommuting_primitive_witness": [
+    491,
+    500
+  ],
+  "orbits": {
+    "4088": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4089": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4090": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4091": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4092": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4093": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4094": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "4095": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ]
+  },
+  "stabilizers": {
+    "4088": [
+      489
+    ],
+    "4089": [
+      489
+    ],
+    "4090": [
+      489
+    ],
+    "4091": [
+      489
+    ],
+    "4092": [
+      489
+    ],
+    "4093": [
+      489
+    ],
+    "4094": [
+      489
+    ],
+    "4095": [
+      489
+    ]
+  },
+  "regular_action": true,
+  "classification": "The observed closed eight-element permutation group has one identity, one order-two element and six order-four elements, hence is isomorphic to Q8. Its action on the eight observed outcome labels is regular. This identifies an exact geometric factorization from development transitions; it is not a model-quality result or an inference of unseen transition rules.",
+  "gauge_anchor_typed_outcome": 4088,
+  "initial_payload_embedding_consistent_across_primitives": true,
+  "initial_payload_observed_state_identification": {
+    "485": 4095,
+    "486": 4092,
+    "487": 4089,
+    "488": 4094
+  },
+  "gauge_note": "State codes are the unique observed permutations carrying the fixed anchor to each outcome. This is right-gauge normalization; initial code consistency is checked using inverse(primitive permutation) composed with target state permutation."
+}

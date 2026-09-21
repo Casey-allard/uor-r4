@@ -1,0 +1,3309 @@
+{
+  "schema": "uor-r4.pr1339-independent-evidence-audit/1",
+  "scope": "Read-only saved event recount, serialized-parameter inspection, source review, hashes and development-transition support audit. No training, model inference, Rust build or sealed-root mutation.",
+  "submitted_head": "832c1c33",
+  "roots": {
+    "shared-transition-1": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "retained_bytes": 274427,
+      "result_sha256": "4493c68313cea5d83e79547e0da8a098b071b088c15d87b067b2d993a0f34d03",
+      "rows_sha256": "8fe3f7bf7d7d421eb7c9ac42ed17d1045d4a25af2f1a7b552e5ea6a022b58ab2",
+      "elapsed_s": 4.87524525,
+      "claimed_at": "1790022055",
+      "sealed_at": "1790022059",
+      "source_receipt": {
+        "executable_sha256": "346e6787a74b0630bfe7b7139c12a2813365c048ae1ceab6e77dc2da37c83388",
+        "git_dirty": "false",
+        "git_rev": "86623138e50c4710614109f947f0e04c784aa4d9",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "3f27acdef568413468a0a27afdbb32748b64a8932230748055a60b61b8b39873"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "05ade6667910b64db3d3ea8f817e97967cd1b9ce2620205ba48979084b261b91"
+          }
+        ]
+      },
+      "actual_source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes_match": {
+        "shared_transition_h4": true,
+        "shared_transition_c120": true,
+        "value_only_lexical": true
+      },
+      "reported_arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 160,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 220,
+          "token_hits": 544,
+          "token_total": 672
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 151,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 197,
+          "token_hits": 519,
+          "token_total": 672
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 0,
+          "token_total": 672
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 164,
+          "token_total": 672
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 34,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 67,
+          "token_hits": 362,
+          "token_total": 512
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 26,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 31,
+          "token_hits": 352,
+          "token_total": 512
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 512
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 23,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 43,
+          "token_hits": 71,
+          "token_total": 128
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 27,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 38,
+          "token_hits": 75,
+          "token_total": 128
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 32,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 32,
+          "token_hits": 64,
+          "token_total": 128
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 16,
+          "token_total": 128
+        }
+      ],
+      "reported_recount": {
+        "complete_from_saved_rows": 10,
+        "rows": 1312
+      },
+      "independent_h4_counts": "NOT_RECONSTRUCTED: original rows lack unique item id"
+    },
+    "shared-transition-2": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "retained_bytes": 292634,
+      "result_sha256": "7ed5b046b5ada3b95f7aea5b8cae0d259bca38cad5530c9681ff880f15ebcca9",
+      "rows_sha256": "ccea187670aca59aef1fbf2d8d8454fbafecbb188abfc67ccb473e00edbe172e",
+      "elapsed_s": 8.425919667,
+      "claimed_at": "1790022329",
+      "sealed_at": "1790022337",
+      "source_receipt": {
+        "executable_sha256": "b988c5742056538725a07dd6d16f4b6aae903329181b769236b1a765f56910af",
+        "git_dirty": "false",
+        "git_rev": "86623138e50c4710614109f947f0e04c784aa4d9",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "863f7614d9e20a444568dedd8dde2a92a747defc6ad20c13a0908e4ef650220b"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "9c6979232a4617a418060413d8a10bc076a71bed11dad1c4754ecb1f0b460132"
+          }
+        ]
+      },
+      "actual_source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes_match": {
+        "shared_transition_h4": true,
+        "shared_transition_c120": true,
+        "value_only_lexical": true
+      },
+      "reported_arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 160,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 220,
+          "token_hits": 544,
+          "token_total": 672
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 152,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 184,
+          "token_hits": 536,
+          "token_total": 672
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 0,
+          "token_total": 672
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 164,
+          "token_total": 672
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 34,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 67,
+          "token_hits": 362,
+          "token_total": 512
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 16,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 21,
+          "token_hits": 319,
+          "token_total": 512
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 512
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 8,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 33,
+          "token_hits": 32,
+          "token_total": 128
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 11,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 14,
+          "token_hits": 27,
+          "token_total": 128
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        }
+      ],
+      "reported_recount": {
+        "complete_from_saved_rows": 202,
+        "rows": 1312
+      },
+      "independent_h4_counts": {
+        "dev": {
+          "items": 288,
+          "unique_primitive_sequences": 72,
+          "complete": 160,
+          "token_hits": 544,
+          "token_total": 672,
+          "stopped_correct_length": 220,
+          "correct_source_and_value": 288,
+          "complete_with_correct_source": 160,
+          "complete_with_wrong_source": 0,
+          "reads": 288,
+          "source_abs_counts": {
+            "1": 288
+          },
+          "step_kind_counts": {
+            "Emit": 604,
+            "NoGrounding": 68
+          },
+          "sequences_complete_for_all_four_values": 28,
+          "sequence_complete_count_histogram": {
+            "2": 13,
+            "4": 28,
+            "0": 9,
+            "1": 22
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "1": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "2": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 72,
+              "complete": 39
+            },
+            "486": {
+              "items": 72,
+              "complete": 44
+            },
+            "487": {
+              "items": 72,
+              "complete": 40
+            },
+            "488": {
+              "items": 72,
+              "complete": 37
+            }
+          }
+        },
+        "held_out_length4": {
+          "items": 128,
+          "unique_primitive_sequences": 32,
+          "complete": 34,
+          "token_hits": 362,
+          "token_total": 512,
+          "stopped_correct_length": 67,
+          "correct_source_and_value": 124,
+          "complete_with_correct_source": 34,
+          "complete_with_wrong_source": 0,
+          "reads": 128,
+          "source_abs_counts": {
+            "1": 124,
+            "6": 4
+          },
+          "step_kind_counts": {
+            "Emit": 407,
+            "NoGrounding": 57,
+            "None": 44,
+            "UnknownValue": 4
+          },
+          "sequences_complete_for_all_four_values": 3,
+          "sequence_complete_count_histogram": {
+            "4": 3,
+            "2": 9,
+            "0": 16,
+            "1": 4
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              507
+            ],
+            "1": [
+              516
+            ],
+            "2": [
+              491,
+              507,
+              515,
+              517
+            ],
+            "3": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 32,
+              "complete": 8
+            },
+            "486": {
+              "items": 32,
+              "complete": 7
+            },
+            "487": {
+              "items": 32,
+              "complete": 16
+            },
+            "488": {
+              "items": 32,
+              "complete": 3
+            }
+          }
+        },
+        "held_out_reversal": {
+          "items": 64,
+          "unique_primitive_sequences": 16,
+          "complete": 8,
+          "token_hits": 32,
+          "token_total": 128,
+          "stopped_correct_length": 33,
+          "correct_source_and_value": 64,
+          "complete_with_correct_source": 8,
+          "complete_with_wrong_source": 0,
+          "reads": 64,
+          "source_abs_counts": {
+            "1": 64
+          },
+          "step_kind_counts": {
+            "Emit": 81,
+            "NoGrounding": 31,
+            "None": 16
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "2": 4,
+            "0": 12
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              500,
+              513,
+              516
+            ],
+            "1": [
+              491,
+              507,
+              515,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 16,
+              "complete": 4
+            },
+            "486": {
+              "items": 16,
+              "complete": 0
+            },
+            "487": {
+              "items": 16,
+              "complete": 0
+            },
+            "488": {
+              "items": 16,
+              "complete": 4
+            }
+          }
+        }
+      }
+    },
+    "shared-transition-3": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "retained_bytes": 291194,
+      "result_sha256": "c28e654ba1aabbc4819993475d0421f9c8e017d844cc555fbd530a14868abba2",
+      "rows_sha256": "e9e56bd5f77a9f0858194e281c74439f3ca30fe5daa04f72a232d561ffdfe9a2",
+      "elapsed_s": 7.099681208,
+      "claimed_at": "1790022598",
+      "sealed_at": "1790022605",
+      "source_receipt": {
+        "executable_sha256": "48a53b7986d86f0546ddd7e1fa4a7da35dce1e4dabd0adfd56332229fa74ac79",
+        "git_dirty": "false",
+        "git_rev": "86623138e50c4710614109f947f0e04c784aa4d9",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "646cdd0a6fb7943347ed89dab4b0cd7369245c7ff788a45126aae20ce8fe4a29"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "5b6439ef5d49041b3e127e48c5d1b6cfa0753bae5a01132665ac73eb6fdc47b8"
+          }
+        ]
+      },
+      "actual_source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes_match": {
+        "shared_transition_h4": true,
+        "shared_transition_c120": true,
+        "value_only_lexical": true
+      },
+      "reported_arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 186,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 556,
+          "token_total": 672
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 153,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 211,
+          "token_hits": 527,
+          "token_total": 672
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 0,
+          "token_total": 672
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 164,
+          "token_total": 672
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 48,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 397,
+          "token_total": 512
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 24,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 38,
+          "token_hits": 312,
+          "token_total": 512
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 512
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 10,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 42,
+          "token_total": 128
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 15,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 27,
+          "token_hits": 41,
+          "token_total": 128
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        }
+      ],
+      "reported_recount": {
+        "complete_from_saved_rows": 244,
+        "rows": 1312
+      },
+      "independent_h4_counts": {
+        "dev": {
+          "items": 288,
+          "unique_primitive_sequences": 72,
+          "complete": 186,
+          "token_hits": 556,
+          "token_total": 672,
+          "stopped_correct_length": 288,
+          "correct_source_and_value": 288,
+          "complete_with_correct_source": 186,
+          "complete_with_wrong_source": 0,
+          "reads": 288,
+          "source_abs_counts": {
+            "1": 288
+          },
+          "step_kind_counts": {
+            "Emit": 672
+          },
+          "sequences_complete_for_all_four_values": 14,
+          "sequence_complete_count_histogram": {
+            "2": 12,
+            "3": 31,
+            "1": 13,
+            "4": 14,
+            "0": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "1": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "2": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 72,
+              "complete": 51
+            },
+            "486": {
+              "items": 72,
+              "complete": 51
+            },
+            "487": {
+              "items": 72,
+              "complete": 55
+            },
+            "488": {
+              "items": 72,
+              "complete": 29
+            }
+          }
+        },
+        "held_out_length4": {
+          "items": 128,
+          "unique_primitive_sequences": 32,
+          "complete": 48,
+          "token_hits": 397,
+          "token_total": 512,
+          "stopped_correct_length": 124,
+          "correct_source_and_value": 124,
+          "complete_with_correct_source": 48,
+          "complete_with_wrong_source": 0,
+          "reads": 128,
+          "source_abs_counts": {
+            "1": 124,
+            "6": 4
+          },
+          "step_kind_counts": {
+            "Emit": 496,
+            "UnknownValue": 4,
+            "None": 12
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "3": 7,
+            "1": 7,
+            "2": 10,
+            "0": 8
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              507
+            ],
+            "1": [
+              516
+            ],
+            "2": [
+              491,
+              507,
+              515,
+              517
+            ],
+            "3": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 32,
+              "complete": 9
+            },
+            "486": {
+              "items": 32,
+              "complete": 17
+            },
+            "487": {
+              "items": 32,
+              "complete": 22
+            },
+            "488": {
+              "items": 32,
+              "complete": 0
+            }
+          }
+        },
+        "held_out_reversal": {
+          "items": 64,
+          "unique_primitive_sequences": 16,
+          "complete": 10,
+          "token_hits": 42,
+          "token_total": 128,
+          "stopped_correct_length": 64,
+          "correct_source_and_value": 64,
+          "complete_with_correct_source": 10,
+          "complete_with_wrong_source": 0,
+          "reads": 64,
+          "source_abs_counts": {
+            "1": 64
+          },
+          "step_kind_counts": {
+            "Emit": 128
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "2": 4,
+            "0": 10,
+            "1": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              500,
+              513,
+              516
+            ],
+            "1": [
+              491,
+              507,
+              515,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 16,
+              "complete": 6
+            },
+            "486": {
+              "items": 16,
+              "complete": 4
+            },
+            "487": {
+              "items": 16,
+              "complete": 0
+            },
+            "488": {
+              "items": 16,
+              "complete": 0
+            }
+          }
+        }
+      }
+    },
+    "shared-transition-4": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "retained_bytes": 291809,
+      "result_sha256": "f1c2e3ccd0459b55da92b16b780b7d74293068895170f44c9af3edf6deb0afe7",
+      "rows_sha256": "e9e56bd5f77a9f0858194e281c74439f3ca30fe5daa04f72a232d561ffdfe9a2",
+      "elapsed_s": 7.16859375,
+      "claimed_at": "1790022644",
+      "sealed_at": "1790022651",
+      "source_receipt": {
+        "executable_sha256": "ec4b2d8303d84d3b2fda774253266c2f9eb69b5a77daa004223f408a891c4ae6",
+        "git_dirty": "false",
+        "git_rev": "86623138e50c4710614109f947f0e04c784aa4d9",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "646cdd0a6fb7943347ed89dab4b0cd7369245c7ff788a45126aae20ce8fe4a29"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "3df475ddc9a0927ad5cadc704bbab2866dbdbcff77f4593b25756a07c53ee6c3"
+          }
+        ]
+      },
+      "actual_source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes_match": {
+        "shared_transition_h4": true,
+        "shared_transition_c120": true,
+        "value_only_lexical": true
+      },
+      "reported_arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 186,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 556,
+          "token_total": 672
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 153,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 211,
+          "token_hits": 527,
+          "token_total": 672
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 0,
+          "token_total": 672
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 164,
+          "token_total": 672
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 48,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 397,
+          "token_total": 512
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 24,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 38,
+          "token_hits": 312,
+          "token_total": 512
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 512
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 10,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 42,
+          "token_total": 128
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 15,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 27,
+          "token_hits": 41,
+          "token_total": 128
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        }
+      ],
+      "reported_recount": {
+        "complete_from_saved_rows": 244,
+        "rows": 1312
+      },
+      "independent_h4_counts": {
+        "dev": {
+          "items": 288,
+          "unique_primitive_sequences": 72,
+          "complete": 186,
+          "token_hits": 556,
+          "token_total": 672,
+          "stopped_correct_length": 288,
+          "correct_source_and_value": 288,
+          "complete_with_correct_source": 186,
+          "complete_with_wrong_source": 0,
+          "reads": 288,
+          "source_abs_counts": {
+            "1": 288
+          },
+          "step_kind_counts": {
+            "Emit": 672
+          },
+          "sequences_complete_for_all_four_values": 14,
+          "sequence_complete_count_histogram": {
+            "2": 12,
+            "3": 31,
+            "1": 13,
+            "4": 14,
+            "0": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "1": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "2": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 72,
+              "complete": 51
+            },
+            "486": {
+              "items": 72,
+              "complete": 51
+            },
+            "487": {
+              "items": 72,
+              "complete": 55
+            },
+            "488": {
+              "items": 72,
+              "complete": 29
+            }
+          }
+        },
+        "held_out_length4": {
+          "items": 128,
+          "unique_primitive_sequences": 32,
+          "complete": 48,
+          "token_hits": 397,
+          "token_total": 512,
+          "stopped_correct_length": 124,
+          "correct_source_and_value": 124,
+          "complete_with_correct_source": 48,
+          "complete_with_wrong_source": 0,
+          "reads": 128,
+          "source_abs_counts": {
+            "1": 124,
+            "6": 4
+          },
+          "step_kind_counts": {
+            "Emit": 496,
+            "UnknownValue": 4,
+            "None": 12
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "3": 7,
+            "1": 7,
+            "2": 10,
+            "0": 8
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              507
+            ],
+            "1": [
+              516
+            ],
+            "2": [
+              491,
+              507,
+              515,
+              517
+            ],
+            "3": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 32,
+              "complete": 9
+            },
+            "486": {
+              "items": 32,
+              "complete": 17
+            },
+            "487": {
+              "items": 32,
+              "complete": 22
+            },
+            "488": {
+              "items": 32,
+              "complete": 0
+            }
+          }
+        },
+        "held_out_reversal": {
+          "items": 64,
+          "unique_primitive_sequences": 16,
+          "complete": 10,
+          "token_hits": 42,
+          "token_total": 128,
+          "stopped_correct_length": 64,
+          "correct_source_and_value": 64,
+          "complete_with_correct_source": 10,
+          "complete_with_wrong_source": 0,
+          "reads": 64,
+          "source_abs_counts": {
+            "1": 64
+          },
+          "step_kind_counts": {
+            "Emit": 128
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "2": 4,
+            "0": 10,
+            "1": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              500,
+              513,
+              516
+            ],
+            "1": [
+              491,
+              507,
+              515,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 16,
+              "complete": 6
+            },
+            "486": {
+              "items": 16,
+              "complete": 4
+            },
+            "487": {
+              "items": 16,
+              "complete": 0
+            },
+            "488": {
+              "items": 16,
+              "complete": 0
+            }
+          }
+        }
+      }
+    },
+    "shared-transition-5": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "retained_bytes": 292549,
+      "result_sha256": "d84f3c92e85f5846c720ad3852418b43876a4ad17ca34d0adba2a18779538caa",
+      "rows_sha256": "e9e56bd5f77a9f0858194e281c74439f3ca30fe5daa04f72a232d561ffdfe9a2",
+      "elapsed_s": 6.968544833,
+      "claimed_at": "1790022687",
+      "sealed_at": "1790022694",
+      "source_receipt": {
+        "executable_sha256": "049fd141fd4cdcb0eaab07d6f216648107153a5705297bdc73c16c52744a91fc",
+        "git_dirty": "false",
+        "git_rev": "86623138e50c4710614109f947f0e04c784aa4d9",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "646cdd0a6fb7943347ed89dab4b0cd7369245c7ff788a45126aae20ce8fe4a29"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "4ac08d0e218eecd92d21dc4b1261fecbcd056c19a78aa1b3eb5cc1a949e797ec"
+          }
+        ]
+      },
+      "actual_source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes_match": {
+        "shared_transition_h4": true,
+        "shared_transition_c120": true,
+        "value_only_lexical": true
+      },
+      "reported_arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 186,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 556,
+          "token_total": 672
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 153,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 211,
+          "token_hits": 527,
+          "token_total": 672
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 0,
+          "token_total": 672
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 164,
+          "token_total": 672
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 48,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 397,
+          "token_total": 512
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 24,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 38,
+          "token_hits": 312,
+          "token_total": 512
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 512
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 10,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 42,
+          "token_total": 128
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 15,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 27,
+          "token_hits": 41,
+          "token_total": 128
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        }
+      ],
+      "reported_recount": {
+        "complete_from_saved_rows": 244,
+        "rows": 1312
+      },
+      "independent_h4_counts": {
+        "dev": {
+          "items": 288,
+          "unique_primitive_sequences": 72,
+          "complete": 186,
+          "token_hits": 556,
+          "token_total": 672,
+          "stopped_correct_length": 288,
+          "correct_source_and_value": 288,
+          "complete_with_correct_source": 186,
+          "complete_with_wrong_source": 0,
+          "reads": 288,
+          "source_abs_counts": {
+            "1": 288
+          },
+          "step_kind_counts": {
+            "Emit": 672
+          },
+          "sequences_complete_for_all_four_values": 14,
+          "sequence_complete_count_histogram": {
+            "2": 12,
+            "3": 31,
+            "1": 13,
+            "4": 14,
+            "0": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "1": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "2": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 72,
+              "complete": 51
+            },
+            "486": {
+              "items": 72,
+              "complete": 51
+            },
+            "487": {
+              "items": 72,
+              "complete": 55
+            },
+            "488": {
+              "items": 72,
+              "complete": 29
+            }
+          }
+        },
+        "held_out_length4": {
+          "items": 128,
+          "unique_primitive_sequences": 32,
+          "complete": 48,
+          "token_hits": 397,
+          "token_total": 512,
+          "stopped_correct_length": 124,
+          "correct_source_and_value": 124,
+          "complete_with_correct_source": 48,
+          "complete_with_wrong_source": 0,
+          "reads": 128,
+          "source_abs_counts": {
+            "1": 124,
+            "6": 4
+          },
+          "step_kind_counts": {
+            "Emit": 496,
+            "UnknownValue": 4,
+            "None": 12
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "3": 7,
+            "1": 7,
+            "2": 10,
+            "0": 8
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              507
+            ],
+            "1": [
+              516
+            ],
+            "2": [
+              491,
+              507,
+              515,
+              517
+            ],
+            "3": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 32,
+              "complete": 9
+            },
+            "486": {
+              "items": 32,
+              "complete": 17
+            },
+            "487": {
+              "items": 32,
+              "complete": 22
+            },
+            "488": {
+              "items": 32,
+              "complete": 0
+            }
+          }
+        },
+        "held_out_reversal": {
+          "items": 64,
+          "unique_primitive_sequences": 16,
+          "complete": 10,
+          "token_hits": 42,
+          "token_total": 128,
+          "stopped_correct_length": 64,
+          "correct_source_and_value": 64,
+          "complete_with_correct_source": 10,
+          "complete_with_wrong_source": 0,
+          "reads": 64,
+          "source_abs_counts": {
+            "1": 64
+          },
+          "step_kind_counts": {
+            "Emit": 128
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "2": 4,
+            "0": 10,
+            "1": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              500,
+              513,
+              516
+            ],
+            "1": [
+              491,
+              507,
+              515,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 16,
+              "complete": 6
+            },
+            "486": {
+              "items": 16,
+              "complete": 4
+            },
+            "487": {
+              "items": 16,
+              "complete": 0
+            },
+            "488": {
+              "items": 16,
+              "complete": 0
+            }
+          }
+        }
+      }
+    },
+    "shared-transition-6": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "retained_bytes": 292549,
+      "result_sha256": "6fc4eeb68109c2a8b3b6d496fbec98440713d508a363a4df01a978f6374517c0",
+      "rows_sha256": "e9e56bd5f77a9f0858194e281c74439f3ca30fe5daa04f72a232d561ffdfe9a2",
+      "elapsed_s": 7.138871792,
+      "claimed_at": "1790022813",
+      "sealed_at": "1790022820",
+      "source_receipt": {
+        "executable_sha256": "8f82e17cf78f4ea2edec707c1fb82abbda114d622686a64634be27e10fd36586",
+        "git_dirty": "false",
+        "git_rev": "86623138e50c4710614109f947f0e04c784aa4d9",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "2bcb2ac9d4266d220dc0915459be5a5dda53c4e4a3e944b9afdc957def08cf23"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "ca333f3cae8e0f961a5ffadada343577d7b8a5c1ee9103a089bb144927609bc3"
+          }
+        ]
+      },
+      "actual_source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "artifact_hashes_match": {
+        "shared_transition_h4": true,
+        "shared_transition_c120": true,
+        "value_only_lexical": true
+      },
+      "reported_arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 186,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 556,
+          "token_total": 672
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 153,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 211,
+          "token_hits": 527,
+          "token_total": 672
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 0,
+          "token_total": 672
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 32,
+          "token_hits": 164,
+          "token_total": 672
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 48,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 397,
+          "token_total": 512
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 24,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 38,
+          "token_hits": 312,
+          "token_total": 512
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 512
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 0,
+          "token_hits": 124,
+          "token_total": 512
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 10,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 42,
+          "token_total": 128
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 15,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 27,
+          "token_hits": 41,
+          "token_total": 128
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "transition_dictionary",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 0,
+          "token_hits": 0,
+          "token_total": 128
+        }
+      ],
+      "reported_recount": {
+        "complete_from_saved_rows": 244,
+        "rows": 1312
+      },
+      "independent_h4_counts": {
+        "dev": {
+          "items": 288,
+          "unique_primitive_sequences": 72,
+          "complete": 186,
+          "token_hits": 556,
+          "token_total": 672,
+          "stopped_correct_length": 288,
+          "correct_source_and_value": 288,
+          "complete_with_correct_source": 186,
+          "complete_with_wrong_source": 0,
+          "reads": 288,
+          "source_abs_counts": {
+            "1": 288
+          },
+          "step_kind_counts": {
+            "Emit": 672
+          },
+          "sequences_complete_for_all_four_values": 14,
+          "sequence_complete_count_histogram": {
+            "2": 12,
+            "3": 31,
+            "1": 13,
+            "4": 14,
+            "0": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "1": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ],
+            "2": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 72,
+              "complete": 51
+            },
+            "486": {
+              "items": 72,
+              "complete": 51
+            },
+            "487": {
+              "items": 72,
+              "complete": 55
+            },
+            "488": {
+              "items": 72,
+              "complete": 29
+            }
+          }
+        },
+        "held_out_length4": {
+          "items": 128,
+          "unique_primitive_sequences": 32,
+          "complete": 48,
+          "token_hits": 397,
+          "token_total": 512,
+          "stopped_correct_length": 124,
+          "correct_source_and_value": 124,
+          "complete_with_correct_source": 48,
+          "complete_with_wrong_source": 0,
+          "reads": 128,
+          "source_abs_counts": {
+            "1": 124,
+            "6": 4
+          },
+          "step_kind_counts": {
+            "Emit": 496,
+            "UnknownValue": 4,
+            "None": 12
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "3": 7,
+            "1": 7,
+            "2": 10,
+            "0": 8
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              507
+            ],
+            "1": [
+              516
+            ],
+            "2": [
+              491,
+              507,
+              515,
+              517
+            ],
+            "3": [
+              489,
+              491,
+              500,
+              507,
+              513,
+              515,
+              516,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 32,
+              "complete": 9
+            },
+            "486": {
+              "items": 32,
+              "complete": 17
+            },
+            "487": {
+              "items": 32,
+              "complete": 22
+            },
+            "488": {
+              "items": 32,
+              "complete": 0
+            }
+          }
+        },
+        "held_out_reversal": {
+          "items": 64,
+          "unique_primitive_sequences": 16,
+          "complete": 10,
+          "token_hits": 42,
+          "token_total": 128,
+          "stopped_correct_length": 64,
+          "correct_source_and_value": 64,
+          "complete_with_correct_source": 10,
+          "complete_with_wrong_source": 0,
+          "reads": 64,
+          "source_abs_counts": {
+            "1": 64
+          },
+          "step_kind_counts": {
+            "Emit": 128
+          },
+          "sequences_complete_for_all_four_values": 0,
+          "sequence_complete_count_histogram": {
+            "2": 4,
+            "0": 10,
+            "1": 2
+          },
+          "primitive_domains_by_position": {
+            "0": [
+              489,
+              500,
+              513,
+              516
+            ],
+            "1": [
+              491,
+              507,
+              515,
+              517
+            ]
+          },
+          "by_value": {
+            "485": {
+              "items": 16,
+              "complete": 6
+            },
+            "486": {
+              "items": 16,
+              "complete": 4
+            },
+            "487": {
+              "items": 16,
+              "complete": 0
+            },
+            "488": {
+              "items": 16,
+              "complete": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "counts": {
+    "dev": {
+      "items": 288,
+      "unique_primitive_sequences": 72,
+      "complete": 186,
+      "token_hits": 556,
+      "token_total": 672,
+      "stopped_correct_length": 288,
+      "correct_source_and_value": 288,
+      "complete_with_correct_source": 186,
+      "complete_with_wrong_source": 0,
+      "reads": 288,
+      "source_abs_counts": {
+        "1": 288
+      },
+      "step_kind_counts": {
+        "Emit": 672
+      },
+      "sequences_complete_for_all_four_values": 14,
+      "sequence_complete_count_histogram": {
+        "2": 12,
+        "3": 31,
+        "1": 13,
+        "4": 14,
+        "0": 2
+      },
+      "primitive_domains_by_position": {
+        "0": [
+          489,
+          491,
+          500,
+          507,
+          513,
+          515,
+          516,
+          517
+        ],
+        "1": [
+          489,
+          491,
+          500,
+          507,
+          513,
+          515,
+          516,
+          517
+        ],
+        "2": [
+          489,
+          491,
+          500,
+          507,
+          513,
+          515,
+          516,
+          517
+        ]
+      },
+      "by_value": {
+        "485": {
+          "items": 72,
+          "complete": 51
+        },
+        "486": {
+          "items": 72,
+          "complete": 51
+        },
+        "487": {
+          "items": 72,
+          "complete": 55
+        },
+        "488": {
+          "items": 72,
+          "complete": 29
+        }
+      }
+    },
+    "held_out_length4": {
+      "items": 128,
+      "unique_primitive_sequences": 32,
+      "complete": 48,
+      "token_hits": 397,
+      "token_total": 512,
+      "stopped_correct_length": 124,
+      "correct_source_and_value": 124,
+      "complete_with_correct_source": 48,
+      "complete_with_wrong_source": 0,
+      "reads": 128,
+      "source_abs_counts": {
+        "1": 124,
+        "6": 4
+      },
+      "step_kind_counts": {
+        "Emit": 496,
+        "UnknownValue": 4,
+        "None": 12
+      },
+      "sequences_complete_for_all_four_values": 0,
+      "sequence_complete_count_histogram": {
+        "3": 7,
+        "1": 7,
+        "2": 10,
+        "0": 8
+      },
+      "primitive_domains_by_position": {
+        "0": [
+          507
+        ],
+        "1": [
+          516
+        ],
+        "2": [
+          491,
+          507,
+          515,
+          517
+        ],
+        "3": [
+          489,
+          491,
+          500,
+          507,
+          513,
+          515,
+          516,
+          517
+        ]
+      },
+      "by_value": {
+        "485": {
+          "items": 32,
+          "complete": 9
+        },
+        "486": {
+          "items": 32,
+          "complete": 17
+        },
+        "487": {
+          "items": 32,
+          "complete": 22
+        },
+        "488": {
+          "items": 32,
+          "complete": 0
+        }
+      }
+    },
+    "held_out_reversal": {
+      "items": 64,
+      "unique_primitive_sequences": 16,
+      "complete": 10,
+      "token_hits": 42,
+      "token_total": 128,
+      "stopped_correct_length": 64,
+      "correct_source_and_value": 64,
+      "complete_with_correct_source": 10,
+      "complete_with_wrong_source": 0,
+      "reads": 64,
+      "source_abs_counts": {
+        "1": 64
+      },
+      "step_kind_counts": {
+        "Emit": 128
+      },
+      "sequences_complete_for_all_four_values": 0,
+      "sequence_complete_count_histogram": {
+        "2": 4,
+        "0": 10,
+        "1": 2
+      },
+      "primitive_domains_by_position": {
+        "0": [
+          489,
+          500,
+          513,
+          516
+        ],
+        "1": [
+          491,
+          507,
+          515,
+          517
+        ]
+      },
+      "by_value": {
+        "485": {
+          "items": 16,
+          "complete": 6
+        },
+        "486": {
+          "items": 16,
+          "complete": 4
+        },
+        "487": {
+          "items": 16,
+          "complete": 0
+        },
+        "488": {
+          "items": 16,
+          "complete": 0
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "shared_transition_h4": {
+      "sha256": "23dbbebce847cd2f9740e503246825f1cd3c03802beecfc25225a9bab982c254",
+      "bytes": 385,
+      "version": 1,
+      "cyclic": false,
+      "value_domain": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "action_domain": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "value_codes": [
+        115,
+        90,
+        98,
+        36
+      ],
+      "action_codes": [
+        1,
+        8,
+        42,
+        22,
+        29,
+        45,
+        22,
+        37
+      ],
+      "stop_table": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "decoder_states": [
+        {
+          "state": 35,
+          "valid": true,
+          "top_token": 4089,
+          "tokens": [
+            4089,
+            4095
+          ],
+          "scores": [
+            9,
+            4
+          ]
+        },
+        {
+          "state": 36,
+          "valid": true,
+          "top_token": 4088,
+          "tokens": [
+            4088,
+            4094,
+            4095
+          ],
+          "scores": [
+            107,
+            5,
+            3
+          ]
+        },
+        {
+          "state": 40,
+          "valid": true,
+          "top_token": 4092,
+          "tokens": [
+            4092,
+            4090,
+            4091
+          ],
+          "scores": [
+            47,
+            5,
+            3
+          ]
+        },
+        {
+          "state": 47,
+          "valid": true,
+          "top_token": 4093,
+          "tokens": [
+            4093,
+            4090
+          ],
+          "scores": [
+            70,
+            2
+          ]
+        },
+        {
+          "state": 72,
+          "valid": true,
+          "top_token": 4091,
+          "tokens": [
+            4091,
+            4092
+          ],
+          "scores": [
+            39,
+            4
+          ]
+        },
+        {
+          "state": 79,
+          "valid": true,
+          "top_token": 4090,
+          "tokens": [
+            4090,
+            4093
+          ],
+          "scores": [
+            35,
+            19
+          ]
+        },
+        {
+          "state": 90,
+          "valid": true,
+          "top_token": 4092,
+          "tokens": [
+            4092,
+            4090
+          ],
+          "scores": [
+            16,
+            10
+          ]
+        },
+        {
+          "state": 93,
+          "valid": true,
+          "top_token": 4091,
+          "tokens": [
+            4091,
+            4093,
+            4092
+          ],
+          "scores": [
+            42,
+            11,
+            1
+          ]
+        },
+        {
+          "state": 98,
+          "valid": true,
+          "top_token": 4094,
+          "tokens": [
+            4094,
+            4089
+          ],
+          "scores": [
+            75,
+            31
+          ]
+        },
+        {
+          "state": 101,
+          "valid": true,
+          "top_token": 4088,
+          "tokens": [
+            4088,
+            4095
+          ],
+          "scores": [
+            8,
+            5
+          ]
+        },
+        {
+          "state": 115,
+          "valid": true,
+          "top_token": 4095,
+          "tokens": [
+            4095,
+            4089,
+            4088
+          ],
+          "scores": [
+            88,
+            11,
+            1
+          ]
+        },
+        {
+          "state": 116,
+          "valid": true,
+          "top_token": 4094,
+          "tokens": [
+            4094,
+            4089
+          ],
+          "scores": [
+            20,
+            1
+          ]
+        }
+      ],
+      "actual_decoder_state_count": 12,
+      "action_aliases": {
+        "22": [
+          507,
+          516
+        ]
+      }
+    },
+    "shared_transition_c120": {
+      "sha256": "3ac8618fb2fb7830310d5d1debe7b158fb07296a27d8da5542b7f728d491951a",
+      "bytes": 377,
+      "version": 1,
+      "cyclic": true,
+      "value_domain": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "action_domain": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "value_codes": [
+        0,
+        60,
+        4,
+        45
+      ],
+      "action_codes": [
+        0,
+        116,
+        22,
+        75,
+        101,
+        97,
+        41,
+        56
+      ],
+      "stop_table": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "decoder_states": [
+        {
+          "state": 0,
+          "valid": true,
+          "top_token": 4095,
+          "tokens": [
+            4095
+          ],
+          "scores": [
+            73
+          ]
+        },
+        {
+          "state": 15,
+          "valid": true,
+          "top_token": 4093,
+          "tokens": [
+            4093
+          ],
+          "scores": [
+            55
+          ]
+        },
+        {
+          "state": 18,
+          "valid": true,
+          "top_token": 4090,
+          "tokens": [
+            4090,
+            4091
+          ],
+          "scores": [
+            6,
+            6
+          ]
+        },
+        {
+          "state": 22,
+          "valid": true,
+          "top_token": 4093,
+          "tokens": [
+            4093,
+            4092
+          ],
+          "scores": [
+            26,
+            4
+          ]
+        },
+        {
+          "state": 37,
+          "valid": true,
+          "top_token": 4094,
+          "tokens": [
+            4094,
+            4095
+          ],
+          "scores": [
+            25,
+            12
+          ]
+        },
+        {
+          "state": 41,
+          "valid": true,
+          "top_token": 4089,
+          "tokens": [
+            4089
+          ],
+          "scores": [
+            27
+          ]
+        },
+        {
+          "state": 52,
+          "valid": true,
+          "top_token": 4093,
+          "tokens": [
+            4093,
+            4092
+          ],
+          "scores": [
+            10,
+            2
+          ]
+        },
+        {
+          "state": 56,
+          "valid": true,
+          "top_token": 4090,
+          "tokens": [
+            4090,
+            4091
+          ],
+          "scores": [
+            31,
+            23
+          ]
+        },
+        {
+          "state": 60,
+          "valid": true,
+          "top_token": 4092,
+          "tokens": [
+            4092
+          ],
+          "scores": [
+            22
+          ]
+        },
+        {
+          "state": 75,
+          "valid": true,
+          "top_token": 4094,
+          "tokens": [
+            4094
+          ],
+          "scores": [
+            57
+          ]
+        },
+        {
+          "state": 78,
+          "valid": true,
+          "top_token": 4088,
+          "tokens": [
+            4088,
+            4089
+          ],
+          "scores": [
+            8,
+            6
+          ]
+        },
+        {
+          "state": 79,
+          "valid": true,
+          "top_token": 4088,
+          "tokens": [
+            4088
+          ],
+          "scores": [
+            51
+          ]
+        },
+        {
+          "state": 97,
+          "valid": true,
+          "top_token": 4092,
+          "tokens": [
+            4092,
+            4093
+          ],
+          "scores": [
+            35,
+            6
+          ]
+        },
+        {
+          "state": 101,
+          "valid": true,
+          "top_token": 4091,
+          "tokens": [
+            4091,
+            4090
+          ],
+          "scores": [
+            45,
+            3
+          ]
+        },
+        {
+          "state": 112,
+          "valid": true,
+          "top_token": 4094,
+          "tokens": [
+            4094,
+            4095
+          ],
+          "scores": [
+            6,
+            6
+          ]
+        },
+        {
+          "state": 116,
+          "valid": true,
+          "top_token": 4088,
+          "tokens": [
+            4088
+          ],
+          "scores": [
+            50
+          ]
+        }
+      ],
+      "actual_decoder_state_count": 16,
+      "action_aliases": {}
+    },
+    "value_only_lexical": {
+      "bytes": 336,
+      "sha256": "24684da20358cbbe53b5bf66b6e46856606c4084a0d17430556e74bc2113130c",
+      "reported_reload_identical": true
+    }
+  },
+  "all_h4_counts_match": true,
+  "event_quality": {
+    "rows": 1312,
+    "items": 480,
+    "all_primitive_indices_contiguous": true,
+    "all_item_fields_consistent": true,
+    "emitted_rows_match_saved_artifact_decoder": true,
+    "actual_emission_rows": 1296,
+    "synthetically_recomputed_state_rows_after_unknown_value": 16,
+    "comparison_arm_event_rows": 0,
+    "limits": [
+      "Only H4 saved events. No independent row-level C120, dictionary, value-only or local counts; cannot reconstruct paired intervals against comparators.",
+      "Rows omit full prefix, source sequence/version, actual pre-state, scores, learned control input/action, terminal Stop event.",
+      "State is recomputed separately with initial_state(...).unwrap_or(0) and apply(...).unwrap_or(state), including after actual serve stopped on UnknownValue; 16 state fields are counterfactual recomputation, not executed trajectory."
+    ]
+  },
+  "development_transition_support": {
+    "initial_pairs": 32,
+    "state_label_primitive_pairs": 64,
+    "initial_conflicts": 0,
+    "state_transition_conflicts": 0,
+    "output_labels": [
+      4088,
+      4089,
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095
+    ],
+    "heldout_support": {
+      "dev": {
+        "items": 288,
+        "all_steps_supported_by_consistent_dev_labels": 288,
+        "supported_steps": 672,
+        "total_steps": 672,
+        "supported_with_correct_actual_source": 288
+      },
+      "held_out_length4": {
+        "items": 128,
+        "all_steps_supported_by_consistent_dev_labels": 128,
+        "supported_steps": 512,
+        "total_steps": 512,
+        "supported_with_correct_actual_source": 124
+      },
+      "held_out_reversal": {
+        "items": 64,
+        "all_steps_supported_by_consistent_dev_labels": 64,
+        "supported_steps": 128,
+        "total_steps": 128,
+        "supported_with_correct_actual_source": 64
+      }
+    },
+    "interpretation": "A development-fitted ordinary finite-state transducer is identified by 32 input-value/first-primitive transitions plus 64 output-label/next-primitive transitions, all consistent. By induction it can reconstruct every authored gold-operand trajectory; through actual reader, potential exact support is124/128 length4 and64/64 reversal. This is a supervision-coverage argument, not a newly executed comparator or fresh performance result. The submitted whole-sequence dictionary cannot test this shared-state alternative."
+  },
+  "population_and_exposure": {
+    "calibration_items": 144,
+    "probe_items": 144,
+    "calibration_values": [
+      485,
+      487
+    ],
+    "probe_values": [
+      486,
+      488
+    ],
+    "calibration_unique_sequences": 72,
+    "probe_unique_sequences": 72,
+    "shared_calibration_probe_sequences": 72,
+    "is_sequence_disjoint": false,
+    "heldout_sequence_overlap_dev": {
+      "held_out_length4": 0,
+      "held_out_reversal": 0
+    },
+    "same_sealed_final_rows_sha_runs_3_through_6": true,
+    "scope": "Exact heldout primitive sequences do not appear in development, but all primitive transition supervision is covered. Fixed population was repeatedly exposed across design changes: NOT_FRESH_FINAL. The purported sequence-disjoint development probe is actually a value split with all72 sequences shared."
+  },
+  "generation": [
+    {
+      "value": 485,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4094,
+        4088,
+        4094,
+        4094
+      ],
+      "expected": [
+        4094,
+        4088,
+        4094,
+        4094
+      ],
+      "steps": [
+        "Emit",
+        "Emit",
+        "Emit",
+        "Emit",
+        "Stop"
+      ],
+      "complete_recounted": true,
+      "flag_matches": true,
+      "matches_saved_evaluation": true,
+      "all_states_match_saved_evaluation": true
+    },
+    {
+      "value": 486,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4093,
+        4091,
+        4093,
+        4093
+      ],
+      "expected": [
+        4093,
+        4091,
+        4093,
+        4093
+      ],
+      "steps": [
+        "Emit",
+        "Emit",
+        "Emit",
+        "Emit",
+        "Stop"
+      ],
+      "complete_recounted": true,
+      "flag_matches": true,
+      "matches_saved_evaluation": true,
+      "all_states_match_saved_evaluation": true
+    },
+    {
+      "value": 487,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4088,
+        4095,
+        4088,
+        4088
+      ],
+      "expected": [
+        4088,
+        4095,
+        4088,
+        4088
+      ],
+      "steps": [
+        "Emit",
+        "Emit",
+        "Emit",
+        "Emit",
+        "Stop"
+      ],
+      "complete_recounted": true,
+      "flag_matches": true,
+      "matches_saved_evaluation": true,
+      "all_states_match_saved_evaluation": true
+    },
+    {
+      "value": 488,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4095,
+        4094,
+        4095,
+        4095
+      ],
+      "expected": [
+        4095,
+        4089,
+        4095,
+        4095
+      ],
+      "steps": [
+        "Emit",
+        "Emit",
+        "Emit",
+        "Emit",
+        "Stop"
+      ],
+      "complete_recounted": false,
+      "flag_matches": true,
+      "matches_saved_evaluation": true,
+      "all_states_match_saved_evaluation": true
+    }
+  ],
+  "generation_scope": {
+    "examples": 4,
+    "unique_primitive_sequences": 1,
+    "complete_recounted": 3,
+    "lexical_text_not_retained": true,
+    "stop_token_is_emitted": false,
+    "note": "Four input values on one ordered primitive sequence. Typed response returned all tokens at once, no separate model-step lifecycle and no emitted-feedback perturbation."
+  },
+  "interventions_reported": {
+    "absent_source_is_noread": {
+      "read": false,
+      "response_stopped": false
+    },
+    "computation_only_order_comparison": {
+      "c120_forward": [
+        4088,
+        4088
+      ],
+      "c120_order_insensitive_on_the_learned_codes": false,
+      "c120_reversed": [
+        4095,
+        4088
+      ],
+      "expected_reversed_from_the_fixture": [
+        4095,
+        4088
+      ],
+      "h4_forward": [
+        4088,
+        4088
+      ],
+      "h4_order_sensitive_on_the_learned_codes": true,
+      "h4_reversed": [
+        4095,
+        4088
+      ],
+      "h4_reversed_matches_fixture": true,
+      "learned_h4_actions_noncommuting": true,
+      "selected_operand_held_fixed": 485
+    },
+    "noncommuting_final_state_witness": {
+      "c120_final_token_order_insensitive": true,
+      "c120_tokens_forward": [
+        4088,
+        4090
+      ],
+      "c120_tokens_reversed": [
+        4093,
+        4090
+      ],
+      "h4_final_state_forward": 72,
+      "h4_final_state_order_sensitive": true,
+      "h4_final_state_reversed": 90,
+      "h4_tokens_forward": [
+        4088,
+        4091
+      ],
+      "h4_tokens_reversed": [
+        4093,
+        4092
+      ],
+      "note": "the final result state is the order-sensitive quantity; an additive alternative maps every ordering of the same action multiset to one state",
+      "primitives": [
+        491,
+        500
+      ],
+      "selected_operand_held_fixed": 485
+    },
+    "payload_changed_same_query_and_primitives": {
+      "all_steps_as_expected": true,
+      "changed": true,
+      "emitted_a": [
+        4088,
+        4088
+      ],
+      "emitted_b": [
+        4091,
+        4091
+      ],
+      "expected_b": [
+        4091,
+        4091
+      ],
+      "value_a": 485,
+      "value_b": 486
+    },
+    "primitive_order_reversed_fixed_evidence": {
+      "c120_forward": [
+        4088,
+        4088
+      ],
+      "c120_order_insensitive": false,
+      "c120_reversed": [
+        4095,
+        4088
+      ],
+      "changed_under_h4": true,
+      "forward": [
+        491,
+        489
+      ],
+      "forward_emitted": [
+        4088,
+        4088
+      ],
+      "forward_expected": [
+        4088,
+        4088
+      ],
+      "noncommuting_primitive_pair": [
+        491,
+        500
+      ],
+      "reversed": [
+        489,
+        491
+      ],
+      "reversed_emitted": [
+        4095,
+        4088
+      ]
+    },
+    "retained_state_independent_of_emissions": {
+      "identical": true,
+      "note": "the served trajectory recomputes each state from the selected payload and the observed primitive prefix; emitted tokens are never re-read as a query",
+      "states_a": [
+        36,
+        36
+      ],
+      "states_b": [
+        36,
+        36
+      ]
+    },
+    "undefined_value_is_typed": {
+      "step_kind": "[UnknownValue]"
+    },
+    "unknown_primitive_is_typed": {
+      "step_kind": "Some(UnknownPrimitive)",
+      "unknown_primitive_token": 0
+    },
+    "variable_lengths_stop": {
+      "lengths": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "stopped": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "token_counts": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  },
+  "intervention_audit": {
+    "payload_changed": "Calls h4.serve on fixture gold values directly. Valid computation-only two-value control, bypasses actual reader/occurrence selection.",
+    "primitive_order": "Both named order controls use h4.serve directly with intended operand. Source-prefix repl constructed but unused. Population reversal all64 source-correct, so its low score is not explained by reader errors.",
+    "retained_state": "Two identical h4.serve calls; proves repeatability, not an intervention. Source confirms local state variable retained within a serve call and emissions unused as input.",
+    "absent_source": "Calls st_read_and_serve with use_reader=false on unchanged source-present prefix. ReadDisabled, not true source-removal or eviction.",
+    "learned_stop": "fit_stop_policy authors supervision with remaining==0, unobserved remaining defaults Continue, and serve hard-stops when j==n even if learned table did not stop. No learned scheduling/termination advantage can be inferred. All arms inherit this policy; differing stop counts arise from earlier missing-state/unknown exits.",
+    "noncommuting_witness": "Learned-code state72 versus90 supports representational order sensitivity. Saved comparison lacks fixture targets for this specifically chosen witness, so it is not standalone correct order-reversal generalization.",
+    "valid_identity": "No actual identity-versus-absence control in this run.",
+    "dependent_read": "NOT_RUN",
+    "irrelevant_distractor": "NOT_RUN",
+    "actual_read_disabled_full_local_logits": "NOT_RUN",
+    "unknown_value_and_primitive": "Direct computation typed outcomes recorded; no serialized event record for independent replay."
+  },
+  "primary_provenance": {
+    "executable_path": "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+    "executable_exists": true,
+    "actual_executable_sha256": "8f82e17cf78f4ea2edec707c1fb82abbda114d622686a64634be27e10fd36586",
+    "reported_executable_sha256": "8f82e17cf78f4ea2edec707c1fb82abbda114d622686a64634be27e10fd36586",
+    "executable_matches": true,
+    "all_source_files_match_submitted_head": true,
+    "stale_git_stamp": "All running git stamps claim clean86623138 although new files/changes are absent at that revision. Source-file hashes bind submitted832c1c33 for primary; old git stamp is not an honest complete source identity."
+  },
+  "input_hashes": {
+    "E_sha256": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2",
+      "actual_sha256": "565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf",
+      "matches": true
+    },
+    "S_sha256": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3",
+      "actual_sha256": "ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad",
+      "matches": true
+    },
+    "selector_sha256": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational_ctx.rlr2",
+      "actual_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55",
+      "matches": true
+    }
+  },
+  "resources": {
+    "live_ledger_at_audit": {
+      "cumulative_ms": 240399510,
+      "limit_ms": 243900000
+    },
+    "measured_six_run_elapsed_s": 41.6768565,
+    "retained_root_bytes": 1735162,
+    "reported_increment_ms": 10000000,
+    "reported_charge_ms": 9000000,
+    "ledger_arithmetic_note": "Approximate context, implementation, repair, documentation and build components sum9Mms, with41.6768565s model elapsed separately listed. Given approximate components, do not infer a definite undercharge; retain9M recorded debit and label mixed estimates.",
+    "live_filesystem_free_bytes": 44557668352,
+    "physical_reserve_bytes": 36766079385,
+    "stop_margin_bytes": 134217728,
+    "free_above_reserve_and_margin_bytes": 7657371239,
+    "scope": "Ledger charge combines estimated authoring/recovery/build work with ~42s measured model runs. Estimates are not measured model time, latency or energy; audit made no inference/build/deletion."
+  },
+  "decision_scope": [
+    "Useful artifact-bound learned shared-action recurrence and lexicalization exist; recorded H4 emits244 exact complete authored responses across480 fixed items.",
+    "Do not promote48vs24vs0 as geometry/ordinary-state advantage. C120 counts are report-only; whole-sequence cache is an incompetent comparator for shared-state transfer; development determines a fully supported ordinary transition table.",
+    "Do not blame reversed-order failure on reader selection in the saved primary population:64/64 correct sources,10/64 exact responses.",
+    "The bottleneck is not established as solely source ownership: length4 already124/128 correct sources and48 complete. Improve ordinary shared-state comparator plus action/state learning, while separating explicit source ownership from observed control is still necessary for general instruction interfaces.",
+    "Learned scheduler, dependent read, true missing-source test, emission perturbation, fresh independent final, ordinary language and energy remain NOT_RUN/UNAVAILABLE."
+  ],
+  "script_sha256": "52f5e7d38cdebf889478fc161ec565ca7061bcbc91223d79470e4c5e3c60305d"
+}

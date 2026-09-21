@@ -1,0 +1,796 @@
+{
+  "schema": "uor-r4.shared-transition-reviewed/2",
+  "at": "2026-09-21",
+  "scope": "bounded authored ordered-primitive fixture over a witnessed non-abelian action subgroup; no fresh language evaluation; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "86623138e50c4710614109f947f0e04c784aa4d9",
+    "pr": 1338,
+    "verified_merged_head_equal": true,
+    "worktree": ".worktrees/shared-transition",
+    "owner_checkout_untouched": true
+  },
+  "mechanism": {
+    "action_reuse": "one action code per observed primitive token, reused at every occurrence and every position",
+    "core": "s0 = E[selected payload]; s_j = A[observed primitive j] * s_{j-1}; token = D(s_j); supervised remaining-indexed explicit-program completion",
+    "noncommuting_witness": [
+      491,
+      500
+    ],
+    "q8_subgroup": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "state_retention": "A local result variable is updated across instructions inside one serve call. No external session snapshot, lease or dependent read.",
+    "typed_outcomes": "Emit, Stop, UnknownValue, UnknownPrimitive, NoGrounding are distinct"
+  },
+  "fixture": {
+    "dev_items": 288,
+    "held_out_length4_items": 128,
+    "held_out_reversal_items": 64,
+    "layout": "[source_role, key, value, primitive.., query_role, key] then the response",
+    "primitives": 8,
+    "seed": 3237150721,
+    "stop_token": 4031,
+    "values": 4,
+    "length4_unique_programs": 32,
+    "length4_first_two_primitives_fixed": [
+      507,
+      516
+    ]
+  },
+  "learning": {
+    "c120": {
+      "accepted_moves": 13,
+      "examples": 288,
+      "final_complete": 153,
+      "final_tokens": 527,
+      "grounded_states": 16,
+      "initial_complete": 18,
+      "token_total": 672
+    },
+    "development_probe": {
+      "calibration_examples": 144,
+      "note": "Supervised value-parity split: calibration values0/2, outer values1/3, all72 programs in both; both guide optimization; final decoder refits all development.",
+      "probe_examples": 144
+    },
+    "h4": {
+      "accepted_moves": 7,
+      "examples": 288,
+      "final_complete": 186,
+      "final_tokens": 556,
+      "grounded_states": 12,
+      "initial_complete": 45,
+      "token_total": 672
+    }
+  },
+  "arms": {
+    "dev": {
+      "h4_shared_transition": {
+        "complete": 186,
+        "items": 288,
+        "token_hits": 556,
+        "token_total": 672,
+        "stopped_correctly": 288
+      },
+      "c120_shared_transition": {
+        "complete": 153,
+        "items": 288,
+        "token_hits": 527,
+        "token_total": 672,
+        "stopped_correctly": 211
+      },
+      "local_noread": {
+        "complete": 0,
+        "items": 288,
+        "token_hits": 0,
+        "token_total": 672,
+        "stopped_correctly": 32
+      },
+      "transition_dictionary": {
+        "complete": 288,
+        "items": 288,
+        "token_hits": 672,
+        "token_total": 672,
+        "stopped_correctly": 288
+      },
+      "value_only_lexical": {
+        "complete": 4,
+        "items": 288,
+        "token_hits": 164,
+        "token_total": 672,
+        "stopped_correctly": 32
+      }
+    },
+    "held_out_length4": {
+      "h4_shared_transition": {
+        "complete": 48,
+        "items": 128,
+        "token_hits": 397,
+        "token_total": 512,
+        "stopped_correctly": 124
+      },
+      "c120_shared_transition": {
+        "complete": 24,
+        "items": 128,
+        "token_hits": 312,
+        "token_total": 512,
+        "stopped_correctly": 38
+      },
+      "local_noread": {
+        "complete": 0,
+        "items": 128,
+        "token_hits": 0,
+        "token_total": 512,
+        "stopped_correctly": 0
+      },
+      "transition_dictionary": {
+        "complete": 0,
+        "items": 128,
+        "token_hits": 124,
+        "token_total": 512,
+        "stopped_correctly": 0
+      },
+      "value_only_lexical": {
+        "complete": 0,
+        "items": 128,
+        "token_hits": 124,
+        "token_total": 512,
+        "stopped_correctly": 0
+      }
+    },
+    "held_out_reversal": {
+      "h4_shared_transition": {
+        "complete": 10,
+        "items": 64,
+        "token_hits": 42,
+        "token_total": 128,
+        "stopped_correctly": 64
+      },
+      "c120_shared_transition": {
+        "complete": 15,
+        "items": 64,
+        "token_hits": 41,
+        "token_total": 128,
+        "stopped_correctly": 27
+      },
+      "local_noread": {
+        "complete": 0,
+        "items": 64,
+        "token_hits": 0,
+        "token_total": 128,
+        "stopped_correctly": 0
+      },
+      "transition_dictionary": {
+        "complete": 0,
+        "items": 64,
+        "token_hits": 0,
+        "token_total": 128,
+        "stopped_correctly": 0
+      },
+      "value_only_lexical": {
+        "complete": 0,
+        "items": 64,
+        "token_hits": 0,
+        "token_total": 128,
+        "stopped_correctly": 0
+      }
+    }
+  },
+  "generated_complete_responses": {
+    "count": 4,
+    "complete_correct": [
+      true,
+      true,
+      true,
+      false
+    ],
+    "example": {
+      "complete_correct": true,
+      "emitted": [
+        4094,
+        4088,
+        4094,
+        4094
+      ],
+      "expected": [
+        4094,
+        4088,
+        4094,
+        4094
+      ],
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "split": "held_out_length4",
+      "states": [
+        98,
+        36,
+        98,
+        98
+      ],
+      "steps": [
+        "Emit",
+        "Emit",
+        "Emit",
+        "Emit",
+        "Stop"
+      ],
+      "stopped": true,
+      "value": 485
+    },
+    "unique_programs": 1
+  },
+  "recount": {
+    "complete_from_saved_rows": 244,
+    "rows": 1312
+  },
+  "artifacts": [
+    {
+      "algebra": "signed_h4",
+      "arm": "shared_transition_h4",
+      "artifact_sha256": "23dbbebce847cd2f9740e503246825f1cd3c03802beecfc25225a9bab982c254",
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "loaded_parity_items": 480,
+      "reload_identical": true,
+      "selector_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+    },
+    {
+      "algebra": "cyclic_c120",
+      "arm": "shared_transition_c120",
+      "artifact_sha256": "3ac8618fb2fb7830310d5d1debe7b158fb07296a27d8da5542b7f728d491951a",
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "loaded_parity_items": 480,
+      "reload_identical": true,
+      "selector_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+    },
+    {
+      "arm": "value_only_lexical",
+      "artifact_sha256": "24684da20358cbbe53b5bf66b6e46856606c4084a0d17430556e74bc2113130c",
+      "reload_identical": true,
+      "strict_operands": true,
+      "value_only": true
+    }
+  ],
+  "focused_tests": {
+    "shared_transition": [
+      "the_witness_subgroup_is_closed_and_non_abelian",
+      "a_shifted_value_cannot_reuse_the_local_prior_and_steps_retain_state",
+      "the_round_trip_preserves_every_learned_field"
+    ],
+    "touched_runner_tests_passed": 17,
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass"
+  },
+  "limitations": [
+    "authored finite fixture; a circuit result, not language capability or unique geometric advantage",
+    "no dependent second read was executed",
+    "the association and composition panels of the earlier derived-state mode are unchanged and not re-run here",
+    "Original unqualified intervention/readings fields are retained only as historical assertions; principal review and corrected receipt supersede them."
+  ],
+  "principal_status": "PARTIAL_RECURRENT_COMPONENT_NOT_PROMOTED",
+  "review": "docs/integration/shared-transition-review-2026-09-21.md",
+  "corrected_checks": "docs/evidence/shared-transition-principal-checks-2026-09-21.json",
+  "original_interventions_reported_unqualified": {
+    "absent_source_is_noread": {
+      "read": false,
+      "response_stopped": false
+    },
+    "computation_only_order_comparison": {
+      "c120_forward": [
+        4088,
+        4088
+      ],
+      "c120_order_insensitive_on_the_learned_codes": false,
+      "c120_reversed": [
+        4095,
+        4088
+      ],
+      "expected_reversed_from_the_fixture": [
+        4095,
+        4088
+      ],
+      "h4_forward": [
+        4088,
+        4088
+      ],
+      "h4_order_sensitive_on_the_learned_codes": true,
+      "h4_reversed": [
+        4095,
+        4088
+      ],
+      "h4_reversed_matches_fixture": true,
+      "learned_h4_actions_noncommuting": true,
+      "selected_operand_held_fixed": 485
+    },
+    "noncommuting_final_state_witness": {
+      "c120_final_token_order_insensitive": true,
+      "c120_tokens_forward": [
+        4088,
+        4090
+      ],
+      "c120_tokens_reversed": [
+        4093,
+        4090
+      ],
+      "h4_final_state_forward": 72,
+      "h4_final_state_order_sensitive": true,
+      "h4_final_state_reversed": 90,
+      "h4_tokens_forward": [
+        4088,
+        4091
+      ],
+      "h4_tokens_reversed": [
+        4093,
+        4092
+      ],
+      "note": "the final result state is the order-sensitive quantity; an additive alternative maps every ordering of the same action multiset to one state",
+      "primitives": [
+        491,
+        500
+      ],
+      "selected_operand_held_fixed": 485
+    },
+    "payload_changed_same_query_and_primitives": {
+      "all_steps_as_expected": true,
+      "changed": true,
+      "emitted_a": [
+        4088,
+        4088
+      ],
+      "emitted_b": [
+        4091,
+        4091
+      ],
+      "expected_b": [
+        4091,
+        4091
+      ],
+      "value_a": 485,
+      "value_b": 486
+    },
+    "primitive_order_reversed_fixed_evidence": {
+      "c120_forward": [
+        4088,
+        4088
+      ],
+      "c120_order_insensitive": false,
+      "c120_reversed": [
+        4095,
+        4088
+      ],
+      "changed_under_h4": true,
+      "forward": [
+        491,
+        489
+      ],
+      "forward_emitted": [
+        4088,
+        4088
+      ],
+      "forward_expected": [
+        4088,
+        4088
+      ],
+      "noncommuting_primitive_pair": [
+        491,
+        500
+      ],
+      "reversed": [
+        489,
+        491
+      ],
+      "reversed_emitted": [
+        4095,
+        4088
+      ]
+    },
+    "retained_state_independent_of_emissions": {
+      "identical": true,
+      "note": "the served trajectory recomputes each state from the selected payload and the observed primitive prefix; emitted tokens are never re-read as a query",
+      "states_a": [
+        36,
+        36
+      ],
+      "states_b": [
+        36,
+        36
+      ]
+    },
+    "undefined_value_is_typed": {
+      "step_kind": "[UnknownValue]"
+    },
+    "unknown_primitive_is_typed": {
+      "step_kind": "Some(UnknownPrimitive)",
+      "unknown_primitive_token": 0
+    },
+    "variable_lengths_stop": {
+      "lengths": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "stopped": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "token_counts": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  },
+  "original_screen_reported_superseded": {
+    "beats_controls": true,
+    "best_control_complete": 24,
+    "declared": "held-out unseen ordered combinations must be completed correctly and must exceed every matched control on the same items",
+    "h4_held_out_length4_complete": 48,
+    "held_out_length4_items": 128,
+    "met": true
+  },
+  "original_readings_withdrawn_or_narrowed": [
+    "the shared-transition model completes 48/128 unseen length-4 ordered combinations against 0 for a lookup dictionary and 24 for the best matched control; the structural claim (one shared action per primitive, reused at every occurrence) holds where an exact lookup cannot transfer",
+    "a rigorous noncommuting witness on the learned codes: H4's final result state differs under a single reversal (72 vs 90, final tokens 4091 vs 4092) while the additive alternative's final state and final token are invariant (4090 both ways), as the abelian algebra requires",
+    "changing the selected payload at an identical query and identical primitives changes every step to the expected label; the retained state trajectory is independent of emitted tokens",
+    "the learned stop policy transfers to the unseen length 4 because it is indexed by observed remaining primitives",
+    "the fit is not fully converged: development is 186/288 complete (556/672 tokens) and the reversal population is 10/64, so the learned codes approximate rather than equal the true action structure",
+    "the reversal *population* is confounded by the reader: the instruction order changes the decision-point predecessor, so the read can change; the computation-only comparison with a fixed selected operand is the decisive order test"
+  ],
+  "readings": [
+    "H4 original counts independently reconstruct186/288,48/128,10/64; corrected all-arm replay is separate exposed evidence.",
+    "All64 reversal sources are correct; reader confounding does not explain observed reversal failures.",
+    "The original dictionary caches whole programs; a shared finite transition control is required.",
+    "Remaining-indexed stopping is explicit-program exhaustion; no learned general continuation.",
+    "Development fit/probe halves share all programs and differ by value-index parity.",
+    "Observed development transition permutations form a regular Q8 action; constructive learning from this graph is next, not a measured new model."
+  ],
+  "corrected_exposed_replay": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/shared-transition-principal-1",
+    "scope": "bounded authored ordered-primitive fixture with a witness non-abelian action subgroup. An authored finite circuit is a circuit result, not language capability or unique geometric advantage. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+    "arms": [
+      {
+        "arm": "h4_shared_transition",
+        "complete": 186,
+        "items": 288,
+        "split": "dev",
+        "stopped_correctly": 288,
+        "token_hits": 556,
+        "token_total": 672
+      },
+      {
+        "arm": "c120_shared_transition",
+        "complete": 153,
+        "items": 288,
+        "split": "dev",
+        "stopped_correctly": 211,
+        "token_hits": 527,
+        "token_total": 672
+      },
+      {
+        "arm": "local_noread",
+        "complete": 0,
+        "items": 288,
+        "split": "dev",
+        "stopped_correctly": 32,
+        "token_hits": 0,
+        "token_total": 672
+      },
+      {
+        "arm": "whole_sequence_dictionary",
+        "complete": 288,
+        "items": 288,
+        "split": "dev",
+        "stopped_correctly": 288,
+        "token_hits": 672,
+        "token_total": 672
+      },
+      {
+        "arm": "value_only_lexical",
+        "complete": 4,
+        "items": 288,
+        "split": "dev",
+        "stopped_correctly": 32,
+        "token_hits": 164,
+        "token_total": 672
+      },
+      {
+        "arm": "finite_shared_transition",
+        "complete": 288,
+        "items": 288,
+        "split": "dev",
+        "stopped_correctly": 288,
+        "token_hits": 672,
+        "token_total": 672
+      },
+      {
+        "arm": "h4_shared_transition",
+        "complete": 48,
+        "items": 128,
+        "split": "held_out_length4",
+        "stopped_correctly": 124,
+        "token_hits": 397,
+        "token_total": 512
+      },
+      {
+        "arm": "c120_shared_transition",
+        "complete": 24,
+        "items": 128,
+        "split": "held_out_length4",
+        "stopped_correctly": 38,
+        "token_hits": 312,
+        "token_total": 512
+      },
+      {
+        "arm": "local_noread",
+        "complete": 0,
+        "items": 128,
+        "split": "held_out_length4",
+        "stopped_correctly": 0,
+        "token_hits": 0,
+        "token_total": 512
+      },
+      {
+        "arm": "whole_sequence_dictionary",
+        "complete": 0,
+        "items": 128,
+        "split": "held_out_length4",
+        "stopped_correctly": 0,
+        "token_hits": 124,
+        "token_total": 512
+      },
+      {
+        "arm": "value_only_lexical",
+        "complete": 0,
+        "items": 128,
+        "split": "held_out_length4",
+        "stopped_correctly": 0,
+        "token_hits": 124,
+        "token_total": 512
+      },
+      {
+        "arm": "finite_shared_transition",
+        "complete": 124,
+        "items": 128,
+        "split": "held_out_length4",
+        "stopped_correctly": 124,
+        "token_hits": 496,
+        "token_total": 512
+      },
+      {
+        "arm": "h4_shared_transition",
+        "complete": 10,
+        "items": 64,
+        "split": "held_out_reversal",
+        "stopped_correctly": 64,
+        "token_hits": 42,
+        "token_total": 128
+      },
+      {
+        "arm": "c120_shared_transition",
+        "complete": 15,
+        "items": 64,
+        "split": "held_out_reversal",
+        "stopped_correctly": 27,
+        "token_hits": 41,
+        "token_total": 128
+      },
+      {
+        "arm": "local_noread",
+        "complete": 0,
+        "items": 64,
+        "split": "held_out_reversal",
+        "stopped_correctly": 0,
+        "token_hits": 0,
+        "token_total": 128
+      },
+      {
+        "arm": "whole_sequence_dictionary",
+        "complete": 0,
+        "items": 64,
+        "split": "held_out_reversal",
+        "stopped_correctly": 0,
+        "token_hits": 0,
+        "token_total": 128
+      },
+      {
+        "arm": "value_only_lexical",
+        "complete": 0,
+        "items": 64,
+        "split": "held_out_reversal",
+        "stopped_correctly": 0,
+        "token_hits": 0,
+        "token_total": 128
+      },
+      {
+        "arm": "finite_shared_transition",
+        "complete": 64,
+        "items": 64,
+        "split": "held_out_reversal",
+        "stopped_correctly": 64,
+        "token_hits": 128,
+        "token_total": 128
+      }
+    ],
+    "screen": {
+      "beats_controls": false,
+      "best_control_complete": 124,
+      "competence_qualification": "NOT_RUN",
+      "declared": "held-out unseen ordered combinations must be completed correctly and must exceed every matched control on the same items",
+      "h4_held_out_length4_complete": 48,
+      "held_out_length4_items": 128,
+      "met": false,
+      "scope": "exposed regression with added shared finite transition comparator; learned general continuation and source-owned dependent computation not qualified"
+    },
+    "recount": {
+      "all_arm_counts_match": true,
+      "arms": [
+        {
+          "arm": "h4_shared_transition",
+          "complete": 186,
+          "items": 288,
+          "split": "dev"
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 153,
+          "items": 288,
+          "split": "dev"
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 288,
+          "split": "dev"
+        },
+        {
+          "arm": "whole_sequence_dictionary",
+          "complete": 288,
+          "items": 288,
+          "split": "dev"
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 4,
+          "items": 288,
+          "split": "dev"
+        },
+        {
+          "arm": "finite_shared_transition",
+          "complete": 288,
+          "items": 288,
+          "split": "dev"
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 48,
+          "items": 128,
+          "split": "held_out_length4"
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 24,
+          "items": 128,
+          "split": "held_out_length4"
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4"
+        },
+        {
+          "arm": "whole_sequence_dictionary",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4"
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 128,
+          "split": "held_out_length4"
+        },
+        {
+          "arm": "finite_shared_transition",
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4"
+        },
+        {
+          "arm": "h4_shared_transition",
+          "complete": 10,
+          "items": 64,
+          "split": "held_out_reversal"
+        },
+        {
+          "arm": "c120_shared_transition",
+          "complete": 15,
+          "items": 64,
+          "split": "held_out_reversal"
+        },
+        {
+          "arm": "local_noread",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal"
+        },
+        {
+          "arm": "whole_sequence_dictionary",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal"
+        },
+        {
+          "arm": "value_only_lexical",
+          "complete": 0,
+          "items": 64,
+          "split": "held_out_reversal"
+        },
+        {
+          "arm": "finite_shared_transition",
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal"
+        }
+      ],
+      "item_rows": 2880,
+      "step_events": 8316
+    },
+    "artifacts": [
+      {
+        "algebra": "signed_h4",
+        "arm": "shared_transition_h4",
+        "artifact_sha256": "f7fdceedc18b9cc578587aaced08533f0b9ce039cbe0cd9a0bb2230e5d4bd7ce",
+        "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+        "loaded_parity_items": 480,
+        "reload_identical": true,
+        "selector_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+      },
+      {
+        "algebra": "cyclic_c120",
+        "arm": "shared_transition_c120",
+        "artifact_sha256": "d8842238343b79f952bcf73e9341541c1886bc907eb30b15a4df8afffc52c851",
+        "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+        "loaded_parity_items": 480,
+        "reload_identical": true,
+        "selector_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+      },
+      {
+        "arm": "value_only_lexical",
+        "artifact_sha256": "24684da20358cbbe53b5bf66b6e46856606c4084a0d17430556e74bc2113130c",
+        "reload_identical": true,
+        "strict_operands": true,
+        "value_only": true
+      },
+      {
+        "arm": "finite_shared_transition",
+        "artifact_sha256": "199344da506a795c57eadde1d0202555726b45029432ea43e0211eca9a076393",
+        "bytes": 1668,
+        "fit_scope": "all declared development intermediate labels; shared initial and recurrent transitions",
+        "reload_identical": true,
+        "table_sizes_initial_recurrent": [
+          32,
+          64
+        ]
+      }
+    ],
+    "elapsed_s": 49.754301125,
+    "independent_audit": "docs/evidence/shared-transition-corrected-replay-audit-2026-09-21.json"
+  }
+}

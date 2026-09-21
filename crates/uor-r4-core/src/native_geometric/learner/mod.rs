@@ -25,6 +25,7 @@ pub mod read_conditioned;
 pub mod realtext_support;
 pub mod relational;
 pub mod result_decoder;
+pub mod shared_transition;
 pub mod transition_table;
 pub mod vsa_codes;
 

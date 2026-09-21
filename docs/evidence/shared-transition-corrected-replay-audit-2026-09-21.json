@@ -1,0 +1,1613 @@
+{
+  "schema": "uor-r4.pr1339-corrected-exposed-replay-independent-audit/1",
+  "scope": "Read-only artifact/hash/source verification and saved actual-prediction recount. No new model execution, fit or build. Corrected exposed regression, not fresh final qualification.",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/shared-transition-principal-1",
+  "integrity": {
+    "listed_files": 7,
+    "missing": [],
+    "unlisted": [],
+    "seal_errors": [],
+    "source_hash_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "executable_path": "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+    "executable_sha256": "08df75999379ae81bb72820dedaaf976ae01e1a683365c501ba90bc0ab4e85c8",
+    "executable_matches": true,
+    "result_sha256": "dda2aa0f5beee887044f7c771e6e02e2cea202f1525a33fea70146d2338abc84",
+    "rows_sha256": "ec9a328f6f513543d572b7bed3b0d02795bcde87ea285280e3585a5e0cbb36ae"
+  },
+  "counts": {
+    "h4_shared_transition/dev": {
+      "items": 288,
+      "complete": 186,
+      "token_hits": 556,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "reads": 288,
+      "correct_selected_sources": 288,
+      "correct_source_complete": 186,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "unique_sequences": 72,
+      "sequences_all_values_complete": 14,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": true,
+      "tokens_match_original_every_item": true
+    },
+    "c120_shared_transition/dev": {
+      "items": 288,
+      "complete": 153,
+      "token_hits": 527,
+      "token_total": 672,
+      "stopped_correctly": 211,
+      "reads": 288,
+      "correct_selected_sources": 288,
+      "correct_source_complete": 153,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 211,
+        "NoGrounding": 77
+      },
+      "unique_sequences": 72,
+      "sequences_all_values_complete": 13,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": true
+    },
+    "local_noread/dev": {
+      "items": 288,
+      "complete": 0,
+      "token_hits": 0,
+      "token_total": 672,
+      "stopped_correctly": 32,
+      "reads": 0,
+      "correct_selected_sources": 0,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "unique_sequences": 72,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "whole_sequence_dictionary/dev": {
+      "items": 288,
+      "complete": 288,
+      "token_hits": 672,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "reads": 288,
+      "correct_selected_sources": 288,
+      "correct_source_complete": 288,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "unique_sequences": 72,
+      "sequences_all_values_complete": 72,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "value_only_lexical/dev": {
+      "items": 288,
+      "complete": 4,
+      "token_hits": 164,
+      "token_total": 672,
+      "stopped_correctly": 32,
+      "reads": 288,
+      "correct_selected_sources": 288,
+      "correct_source_complete": 4,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "unique_sequences": 72,
+      "sequences_all_values_complete": 1,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "finite_shared_transition/dev": {
+      "items": 288,
+      "complete": 288,
+      "token_hits": 672,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "reads": 288,
+      "correct_selected_sources": 288,
+      "correct_source_complete": 288,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "unique_sequences": 72,
+      "sequences_all_values_complete": 72,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "h4_shared_transition/held_out_length4": {
+      "items": 128,
+      "complete": 48,
+      "token_hits": 397,
+      "token_total": 512,
+      "stopped_correctly": 124,
+      "reads": 128,
+      "correct_selected_sources": 124,
+      "correct_source_complete": 48,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 124,
+        "UnknownValue": 4
+      },
+      "unique_sequences": 32,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": true,
+      "tokens_match_original_every_item": true
+    },
+    "c120_shared_transition/held_out_length4": {
+      "items": 128,
+      "complete": 24,
+      "token_hits": 312,
+      "token_total": 512,
+      "stopped_correctly": 38,
+      "reads": 128,
+      "correct_selected_sources": 124,
+      "correct_source_complete": 24,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 38,
+        "NoGrounding": 86,
+        "UnknownValue": 4
+      },
+      "unique_sequences": 32,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": true
+    },
+    "local_noread/held_out_length4": {
+      "items": 128,
+      "complete": 0,
+      "token_hits": 0,
+      "token_total": 512,
+      "stopped_correctly": 0,
+      "reads": 0,
+      "correct_selected_sources": 0,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 128
+      },
+      "unique_sequences": 32,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "whole_sequence_dictionary/held_out_length4": {
+      "items": 128,
+      "complete": 0,
+      "token_hits": 124,
+      "token_total": 512,
+      "stopped_correctly": 0,
+      "reads": 128,
+      "correct_selected_sources": 124,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 124,
+        "NoGrounding": 4
+      },
+      "unique_sequences": 32,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "value_only_lexical/held_out_length4": {
+      "items": 128,
+      "complete": 0,
+      "token_hits": 124,
+      "token_total": 512,
+      "stopped_correctly": 0,
+      "reads": 128,
+      "correct_selected_sources": 124,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 124,
+        "NoGrounding": 4
+      },
+      "unique_sequences": 32,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "finite_shared_transition/held_out_length4": {
+      "items": 128,
+      "complete": 124,
+      "token_hits": 496,
+      "token_total": 512,
+      "stopped_correctly": 124,
+      "reads": 128,
+      "correct_selected_sources": 124,
+      "correct_source_complete": 124,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 124,
+        "UnknownValue": 4
+      },
+      "unique_sequences": 32,
+      "sequences_all_values_complete": 31,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "h4_shared_transition/held_out_reversal": {
+      "items": 64,
+      "complete": 10,
+      "token_hits": 42,
+      "token_total": 128,
+      "stopped_correctly": 64,
+      "reads": 64,
+      "correct_selected_sources": 64,
+      "correct_source_complete": 10,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "unique_sequences": 16,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": true,
+      "tokens_match_original_every_item": true
+    },
+    "c120_shared_transition/held_out_reversal": {
+      "items": 64,
+      "complete": 15,
+      "token_hits": 41,
+      "token_total": 128,
+      "stopped_correctly": 27,
+      "reads": 64,
+      "correct_selected_sources": 64,
+      "correct_source_complete": 15,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 27,
+        "NoGrounding": 37
+      },
+      "unique_sequences": 16,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": true
+    },
+    "local_noread/held_out_reversal": {
+      "items": 64,
+      "complete": 0,
+      "token_hits": 0,
+      "token_total": 128,
+      "stopped_correctly": 0,
+      "reads": 0,
+      "correct_selected_sources": 0,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "unique_sequences": 16,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "whole_sequence_dictionary/held_out_reversal": {
+      "items": 64,
+      "complete": 0,
+      "token_hits": 0,
+      "token_total": 128,
+      "stopped_correctly": 0,
+      "reads": 64,
+      "correct_selected_sources": 64,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "unique_sequences": 16,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "value_only_lexical/held_out_reversal": {
+      "items": 64,
+      "complete": 0,
+      "token_hits": 0,
+      "token_total": 128,
+      "stopped_correctly": 0,
+      "reads": 64,
+      "correct_selected_sources": 64,
+      "correct_source_complete": 0,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "unique_sequences": 16,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    },
+    "finite_shared_transition/held_out_reversal": {
+      "items": 64,
+      "complete": 64,
+      "token_hits": 128,
+      "token_total": 128,
+      "stopped_correctly": 64,
+      "reads": 64,
+      "correct_selected_sources": 64,
+      "correct_source_complete": 64,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "unique_sequences": 16,
+      "sequences_all_values_complete": 16,
+      "complete_flags_match": true,
+      "step_emissions_match_tokens": true,
+      "instruction_span_matches": true,
+      "expected_matches_original": true,
+      "read_occurrence_matches_prefix": true,
+      "decoder_tokens_match_artifact": null
+    }
+  },
+  "artifacts": {
+    "shared_transition_h4": {
+      "bytes": 386,
+      "sha256": "f7fdceedc18b9cc578587aaced08533f0b9ce039cbe0cd9a0bb2230e5d4bd7ce",
+      "version": 2,
+      "cyclic": false,
+      "legacy_exhaustion_stop": false,
+      "value_domain": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "action_domain": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "value_codes": [
+        115,
+        90,
+        98,
+        36
+      ],
+      "action_codes": [
+        1,
+        8,
+        42,
+        22,
+        29,
+        45,
+        22,
+        37
+      ],
+      "stop_table": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "decoder_state_count": 12,
+      "states": [
+        {
+          "state": 35,
+          "top_token": 4089
+        },
+        {
+          "state": 36,
+          "top_token": 4088
+        },
+        {
+          "state": 40,
+          "top_token": 4092
+        },
+        {
+          "state": 47,
+          "top_token": 4093
+        },
+        {
+          "state": 72,
+          "top_token": 4091
+        },
+        {
+          "state": 79,
+          "top_token": 4090
+        },
+        {
+          "state": 90,
+          "top_token": 4092
+        },
+        {
+          "state": 93,
+          "top_token": 4091
+        },
+        {
+          "state": 98,
+          "top_token": 4094
+        },
+        {
+          "state": 101,
+          "top_token": 4088
+        },
+        {
+          "state": 115,
+          "top_token": 4095
+        },
+        {
+          "state": 116,
+          "top_token": 4094
+        }
+      ],
+      "hash_matches": true
+    },
+    "shared_transition_c120": {
+      "bytes": 378,
+      "sha256": "d8842238343b79f952bcf73e9341541c1886bc907eb30b15a4df8afffc52c851",
+      "version": 2,
+      "cyclic": true,
+      "legacy_exhaustion_stop": false,
+      "value_domain": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "action_domain": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "value_codes": [
+        0,
+        60,
+        4,
+        45
+      ],
+      "action_codes": [
+        0,
+        116,
+        22,
+        75,
+        101,
+        97,
+        41,
+        56
+      ],
+      "stop_table": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "decoder_state_count": 16,
+      "states": [
+        {
+          "state": 0,
+          "top_token": 4095
+        },
+        {
+          "state": 15,
+          "top_token": 4093
+        },
+        {
+          "state": 18,
+          "top_token": 4090
+        },
+        {
+          "state": 22,
+          "top_token": 4093
+        },
+        {
+          "state": 37,
+          "top_token": 4094
+        },
+        {
+          "state": 41,
+          "top_token": 4089
+        },
+        {
+          "state": 52,
+          "top_token": 4093
+        },
+        {
+          "state": 56,
+          "top_token": 4090
+        },
+        {
+          "state": 60,
+          "top_token": 4092
+        },
+        {
+          "state": 75,
+          "top_token": 4094
+        },
+        {
+          "state": 78,
+          "top_token": 4088
+        },
+        {
+          "state": 79,
+          "top_token": 4088
+        },
+        {
+          "state": 97,
+          "top_token": 4092
+        },
+        {
+          "state": 101,
+          "top_token": 4091
+        },
+        {
+          "state": 112,
+          "top_token": 4094
+        },
+        {
+          "state": 116,
+          "top_token": 4088
+        }
+      ],
+      "hash_matches": true
+    },
+    "finite_shared_transition": {
+      "bytes": 1668,
+      "sha256": "199344da506a795c57eadde1d0202555726b45029432ea43e0211eca9a076393",
+      "initial_entries": 32,
+      "recurrent_entries": 64,
+      "values": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "actions": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "stop_table": [
+        [
+          0,
+          true
+        ],
+        [
+          1,
+          false
+        ],
+        [
+          2,
+          false
+        ],
+        [
+          3,
+          false
+        ]
+      ],
+      "hash_matches": true
+    },
+    "value_only_lexical": {
+      "bytes": 336,
+      "sha256": "24684da20358cbbe53b5bf66b6e46856606c4084a0d17430556e74bc2113130c",
+      "hash_matches": true
+    }
+  },
+  "report_count_checks": {
+    "h4_shared_transition/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "c120_shared_transition/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "local_noread/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "whole_sequence_dictionary/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "value_only_lexical/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_shared_transition/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "h4_shared_transition/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "c120_shared_transition/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "local_noread/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "whole_sequence_dictionary/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "value_only_lexical/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_shared_transition/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "h4_shared_transition/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "c120_shared_transition/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "local_noread/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "whole_sequence_dictionary/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "value_only_lexical/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_shared_transition/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    }
+  },
+  "all_report_counts_match": true,
+  "finite_training_audit": {
+    "all_initial_dev_labels_unique": true,
+    "all_recurrent_dev_labels_unique": true,
+    "initial_artifact_exactly_dev": true,
+    "recurrent_artifact_exactly_dev": true,
+    "no_heldout_labels_needed": true,
+    "footprint_note": "JSON table uses more bytes than RLST; outcome is a competent shared-state baseline, not an equal-byte efficiency comparison."
+  },
+  "paired_complete": {
+    "dev/c120_shared_transition": {
+      "both_correct": 115,
+      "h4_only": 71,
+      "control_only": 38,
+      "neither": 64,
+      "same_actual_selected_source": true
+    },
+    "dev/finite_shared_transition": {
+      "both_correct": 186,
+      "h4_only": 0,
+      "control_only": 102,
+      "neither": 0,
+      "same_actual_selected_source": true
+    },
+    "held_out_length4/c120_shared_transition": {
+      "both_correct": 13,
+      "h4_only": 35,
+      "control_only": 11,
+      "neither": 69,
+      "same_actual_selected_source": true
+    },
+    "held_out_length4/finite_shared_transition": {
+      "both_correct": 48,
+      "h4_only": 0,
+      "control_only": 76,
+      "neither": 4,
+      "same_actual_selected_source": true
+    },
+    "held_out_reversal/c120_shared_transition": {
+      "both_correct": 8,
+      "h4_only": 2,
+      "control_only": 7,
+      "neither": 47,
+      "same_actual_selected_source": true
+    },
+    "held_out_reversal/finite_shared_transition": {
+      "both_correct": 10,
+      "h4_only": 0,
+      "control_only": 54,
+      "neither": 0,
+      "same_actual_selected_source": true
+    }
+  },
+  "interventions": {
+    "absence_scope": "removal and read disabling are distinct; the component returns NoRead with no response and records the actual local token; it does not claim local-output parity or eviction",
+    "finite_no_read": {
+      "steps": [
+        "NoRead"
+      ]
+    },
+    "input_exhaustion_policy": {
+      "lengths": [
+        {
+          "emitted": [
+            4095
+          ],
+          "input_length": 1,
+          "stopped": true,
+          "terminal_kind": "Stop"
+        },
+        {
+          "emitted": [
+            4095,
+            4088
+          ],
+          "input_length": 2,
+          "stopped": true,
+          "terminal_kind": "Stop"
+        },
+        {
+          "emitted": [
+            4095,
+            4088,
+            4091
+          ],
+          "input_length": 3,
+          "stopped": true,
+          "terminal_kind": "Stop"
+        },
+        {
+          "emitted": [
+            4095,
+            4088,
+            4091,
+            4092
+          ],
+          "input_length": 4,
+          "stopped": true,
+          "terminal_kind": "Stop"
+        }
+      ],
+      "scope": "supervised table on observable remaining primitive count, with explicit Exhausted fallback; no learned general continuation"
+    },
+    "noncommuting_final_state_witness": {
+      "c120_final_state_forward": 18,
+      "c120_final_state_reversed": 18,
+      "c120_tokens_forward": [
+        4088,
+        4090
+      ],
+      "c120_tokens_reversed": [
+        4093,
+        4090
+      ],
+      "expected_forward": [
+        4088,
+        4091
+      ],
+      "expected_reversed": [
+        4093,
+        4090
+      ],
+      "forward_complete_correct": true,
+      "forward_final_correct": true,
+      "forward_first_correct": true,
+      "found": true,
+      "h4_final_state_forward": 72,
+      "h4_final_state_reversed": 90,
+      "h4_tokens_forward": [
+        4088,
+        4091
+      ],
+      "h4_tokens_reversed": [
+        4093,
+        4092
+      ],
+      "note": "additive final states commute; intermediate output trajectories need not be identical",
+      "primitives": [
+        491,
+        500
+      ],
+      "reversed_complete_correct": false,
+      "reversed_final_correct": false,
+      "reversed_first_correct": true,
+      "scope": "searched latent-order witness on one actual selected operand; correctness reported separately",
+      "selected_payload": 485
+    },
+    "order_changed_fixed_evidence_end_to_end": {
+      "both_complete_correct": true,
+      "forward": {
+        "arm": "h4_shared_transition",
+        "complete": true,
+        "expected": [
+          4088,
+          4088
+        ],
+        "instruction_start": 3,
+        "intended_payload": 485,
+        "intended_payload_abs": 2,
+        "item_id": 32,
+        "local_token": 28,
+        "observed_primitives": [
+          491,
+          489
+        ],
+        "payload_seq_abs": [
+          1,
+          2
+        ],
+        "prefix": [
+          374,
+          424,
+          485,
+          491,
+          489,
+          274,
+          424
+        ],
+        "read": true,
+        "selected_payload": 485,
+        "source_seq_abs": [
+          1,
+          1
+        ],
+        "split": "dev",
+        "state_scope": "actual served algebra states",
+        "steps": [
+          {
+            "emitted": 4088,
+            "expected": 4088,
+            "kind": "Emit",
+            "post_state": 36,
+            "pre_state": 115,
+            "primitive": 491,
+            "step": 0
+          },
+          {
+            "emitted": 4088,
+            "expected": 4088,
+            "kind": "Emit",
+            "post_state": 36,
+            "pre_state": 36,
+            "primitive": 489,
+            "step": 1
+          },
+          {
+            "emitted": null,
+            "expected": null,
+            "kind": "Stop",
+            "post_state": null,
+            "pre_state": 36,
+            "primitive": null,
+            "step": 2
+          }
+        ],
+        "stopped": true,
+        "tokens": [
+          4088,
+          4088
+        ]
+      },
+      "reversed": {
+        "arm": "h4_shared_transition",
+        "complete": true,
+        "expected": [
+          4095,
+          4088
+        ],
+        "instruction_start": 3,
+        "intended_payload": 485,
+        "intended_payload_abs": 2,
+        "item_id": 32,
+        "local_token": 28,
+        "observed_primitives": [
+          489,
+          491
+        ],
+        "payload_seq_abs": [
+          1,
+          2
+        ],
+        "prefix": [
+          374,
+          424,
+          485,
+          489,
+          491,
+          274,
+          424
+        ],
+        "read": true,
+        "selected_payload": 485,
+        "source_seq_abs": [
+          1,
+          1
+        ],
+        "split": "dev",
+        "state_scope": "actual served algebra states",
+        "steps": [
+          {
+            "emitted": 4095,
+            "expected": 4095,
+            "kind": "Emit",
+            "post_state": 115,
+            "pre_state": 115,
+            "primitive": 489,
+            "step": 0
+          },
+          {
+            "emitted": 4088,
+            "expected": 4088,
+            "kind": "Emit",
+            "post_state": 36,
+            "pre_state": 115,
+            "primitive": 491,
+            "step": 1
+          },
+          {
+            "emitted": null,
+            "expected": null,
+            "kind": "Stop",
+            "post_state": null,
+            "pre_state": 36,
+            "primitive": null,
+            "step": 2
+          }
+        ],
+        "stopped": true,
+        "tokens": [
+          4095,
+          4088
+        ]
+      },
+      "same_selected_source": true
+    },
+    "payload_changed_same_query_and_primitives": {
+      "a": {
+        "arm": "h4_shared_transition",
+        "complete": true,
+        "expected": [
+          4088,
+          4088
+        ],
+        "instruction_start": 3,
+        "intended_payload": 485,
+        "intended_payload_abs": 2,
+        "item_id": 32,
+        "local_token": 28,
+        "observed_primitives": [
+          491,
+          489
+        ],
+        "payload_seq_abs": [
+          1,
+          2
+        ],
+        "prefix": [
+          374,
+          424,
+          485,
+          491,
+          489,
+          274,
+          424
+        ],
+        "read": true,
+        "selected_payload": 485,
+        "source_seq_abs": [
+          1,
+          1
+        ],
+        "split": "dev",
+        "state_scope": "actual served algebra states",
+        "steps": [
+          {
+            "emitted": 4088,
+            "expected": 4088,
+            "kind": "Emit",
+            "post_state": 36,
+            "pre_state": 115,
+            "primitive": 491,
+            "step": 0
+          },
+          {
+            "emitted": 4088,
+            "expected": 4088,
+            "kind": "Emit",
+            "post_state": 36,
+            "pre_state": 36,
+            "primitive": 489,
+            "step": 1
+          },
+          {
+            "emitted": null,
+            "expected": null,
+            "kind": "Stop",
+            "post_state": null,
+            "pre_state": 36,
+            "primitive": null,
+            "step": 2
+          }
+        ],
+        "stopped": true,
+        "tokens": [
+          4088,
+          4088
+        ]
+      },
+      "b": {
+        "arm": "h4_shared_transition",
+        "complete": true,
+        "expected": [
+          4091,
+          4091
+        ],
+        "instruction_start": 3,
+        "intended_payload": 486,
+        "intended_payload_abs": 2,
+        "item_id": 33,
+        "local_token": 28,
+        "observed_primitives": [
+          491,
+          489
+        ],
+        "payload_seq_abs": [
+          1,
+          2
+        ],
+        "prefix": [
+          374,
+          424,
+          486,
+          491,
+          489,
+          274,
+          424
+        ],
+        "read": true,
+        "selected_payload": 486,
+        "source_seq_abs": [
+          1,
+          1
+        ],
+        "split": "dev",
+        "state_scope": "actual served algebra states",
+        "steps": [
+          {
+            "emitted": 4091,
+            "expected": 4091,
+            "kind": "Emit",
+            "post_state": 72,
+            "pre_state": 90,
+            "primitive": 491,
+            "step": 0
+          },
+          {
+            "emitted": 4091,
+            "expected": 4091,
+            "kind": "Emit",
+            "post_state": 72,
+            "pre_state": 72,
+            "primitive": 489,
+            "step": 1
+          },
+          {
+            "emitted": null,
+            "expected": null,
+            "kind": "Stop",
+            "post_state": null,
+            "pre_state": 72,
+            "primitive": null,
+            "step": 2
+          }
+        ],
+        "stopped": true,
+        "tokens": [
+          4091,
+          4091
+        ]
+      },
+      "both_complete_correct": true,
+      "changed": true,
+      "scope": "actual loaded read and compute; only the relevant payload token differs"
+    },
+    "read_disabled": {
+      "arm": "h4_read_disabled",
+      "complete": false,
+      "expected": [
+        4088,
+        4088
+      ],
+      "instruction_start": 3,
+      "intended_payload": 485,
+      "intended_payload_abs": 2,
+      "item_id": 32,
+      "local_token": 28,
+      "observed_primitives": [
+        491,
+        489
+      ],
+      "payload_seq_abs": null,
+      "prefix": [
+        374,
+        424,
+        485,
+        491,
+        489,
+        274,
+        424
+      ],
+      "read": false,
+      "selected_payload": null,
+      "source_seq_abs": null,
+      "split": "dev",
+      "state_scope": "not an algebra-state arm",
+      "steps": [
+        {
+          "emitted": null,
+          "expected": 4088,
+          "kind": "NoRead",
+          "post_state": null,
+          "pre_state": null,
+          "primitive": 491,
+          "step": 0
+        }
+      ],
+      "stopped": false,
+      "tokens": []
+    },
+    "retained_state_under_decoder_label_permutation": {
+      "emissions_changed": true,
+      "modified_states": [
+        36,
+        36
+      ],
+      "modified_tokens": [
+        4095,
+        4095
+      ],
+      "original_states": [
+        36,
+        36
+      ],
+      "original_tokens": [
+        4088,
+        4088
+      ],
+      "scope": "controlled permutation of the loaded decoder labels; selected operand and action codes fixed",
+      "selected_payload": 485,
+      "states_identical": true
+    },
+    "source_removed": {
+      "arm": "h4_source_removed",
+      "complete": false,
+      "expected": [
+        4088,
+        4088
+      ],
+      "instruction_start": 0,
+      "intended_payload": 485,
+      "intended_payload_abs": null,
+      "item_id": 32,
+      "local_token": 28,
+      "observed_primitives": [
+        491,
+        489
+      ],
+      "payload_seq_abs": null,
+      "prefix": [
+        491,
+        489,
+        274,
+        424
+      ],
+      "read": false,
+      "selected_payload": null,
+      "source_seq_abs": null,
+      "split": "dev",
+      "state_scope": "not an algebra-state arm",
+      "steps": [
+        {
+          "emitted": null,
+          "expected": 4088,
+          "kind": "NoRead",
+          "post_state": null,
+          "pre_state": null,
+          "primitive": 491,
+          "step": 0
+        }
+      ],
+      "stopped": false,
+      "tokens": []
+    },
+    "undefined_value_is_typed": {
+      "steps": [
+        "UnknownValue"
+      ]
+    },
+    "unknown_primitive_is_typed": {
+      "steps": [
+        "UnknownPrimitive"
+      ],
+      "token": 0
+    }
+  },
+  "control_recounts": {
+    "payload_changed_indices": [
+      2
+    ],
+    "payload_pair_complete": true,
+    "payload_pair_correct_sources": true,
+    "order_changed_indices": [
+      3,
+      4
+    ],
+    "order_evidence_unchanged": true,
+    "order_pair_complete": true,
+    "source_removal_actual_prefix": [
+      491,
+      489,
+      274,
+      424
+    ],
+    "source_removal_read": false,
+    "source_removal_selected_payload": null,
+    "source_removal_tokens": [],
+    "source_removal_terminal": "NoRead",
+    "read_disabled_read": false,
+    "read_disabled_tokens": [],
+    "emission_permutation_changed": true,
+    "emission_permutation_states_identical": true
+  },
+  "witness_recount": {
+    "primitives": [
+      491,
+      500
+    ],
+    "h4_final_state_changes": true,
+    "c120_final_state_same": true,
+    "h4_forward_complete": true,
+    "h4_reversed_complete": false,
+    "tokens_forward": [
+      4088,
+      4091
+    ],
+    "tokens_reversed": [
+      4093,
+      4092
+    ],
+    "expected_forward": [
+      4088,
+      4091
+    ],
+    "expected_reversed": [
+      4093,
+      4090
+    ]
+  },
+  "generation": [
+    {
+      "value": 485,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4094,
+        4088,
+        4094,
+        4094
+      ],
+      "expected": [
+        4094,
+        4088,
+        4094,
+        4094
+      ],
+      "complete": true,
+      "flag_matches": true
+    },
+    {
+      "value": 486,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4093,
+        4091,
+        4093,
+        4093
+      ],
+      "expected": [
+        4093,
+        4091,
+        4093,
+        4093
+      ],
+      "complete": true,
+      "flag_matches": true
+    },
+    {
+      "value": 487,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4088,
+        4095,
+        4088,
+        4088
+      ],
+      "expected": [
+        4088,
+        4095,
+        4088,
+        4088
+      ],
+      "complete": true,
+      "flag_matches": true
+    },
+    {
+      "value": 488,
+      "primitives": [
+        507,
+        516,
+        491,
+        489
+      ],
+      "emitted": [
+        4095,
+        4094,
+        4095,
+        4095
+      ],
+      "expected": [
+        4095,
+        4089,
+        4095,
+        4095
+      ],
+      "complete": false,
+      "flag_matches": true
+    }
+  ],
+  "source_receipt": {
+    "executable_sha256": "08df75999379ae81bb72820dedaaf976ae01e1a683365c501ba90bc0ab4e85c8",
+    "source_checkout_observed_before_fit": {
+      "caller_claimed_git_dirty": null,
+      "caller_claimed_git_rev": null,
+      "observed_dirty": true,
+      "observed_head": "832c1c33e25a9534d8fb4c73fbba5d2247ecd2c1",
+      "path": "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4",
+      "scope": "source checkout observed before fitting; binary-to-source build binding is not established by this observation"
+    },
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+        "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+        "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+        "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+        "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "31e66ec631a0b7afd3d473a4313558b44b9207aa21474ced2c865448888b1fb6"
+      }
+    ]
+  },
+  "screen": {
+    "beats_controls": false,
+    "best_control_complete": 124,
+    "competence_qualification": "NOT_RUN",
+    "declared": "held-out unseen ordered combinations must be completed correctly and must exceed every matched control on the same items",
+    "h4_held_out_length4_complete": 48,
+    "held_out_length4_items": 128,
+    "met": false,
+    "scope": "exposed regression with added shared finite transition comparator; learned general continuation and source-owned dependent computation not qualified"
+  },
+  "resources": {
+    "elapsed_s": 49.754301125,
+    "audit_model_execution": false,
+    "new_build": false,
+    "energy": "UNAVAILABLE"
+  },
+  "limits": [
+    "Exposed replay, no fresh final evaluation.",
+    "Fixture supplies instruction-span boundaries and expected intermediate labels for fitting.",
+    "Stop remains supervised input exhaustion; RLSTv2 now distinguishes absent-policy exhaustion. No learned general scheduler.",
+    "One local computed-state lifetime inside serve; persistent exact occurrence leases/session state and dependent read NOT_RUN.",
+    "Four generated examples are four values on one primitive sequence.",
+    "Independent recount verifies retained events/parameter tables, not a second predictor execution.",
+    "No whole-path latency/energy, natural prose, coding or general reasoning qualification."
+  ],
+  "script_sha256": "c3b19db1e8ff191f40f2111a01235630150529cf32bf79f73977e358270af92c"
+}
