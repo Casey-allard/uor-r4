@@ -14,6 +14,7 @@ use std::time::Instant;
 
 use serde_json::json;
 
+use uor_r4_core::native_geometric::learner::group_table::{group_table, GROUP_ORDER};
 use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
 use uor_r4_core::native_geometric::learner::policy_feasibility::*;
 use uor_r4_core::native_geometric::learner::prefix_artifact::{
@@ -21,6 +22,7 @@ use uor_r4_core::native_geometric::learner::prefix_artifact::{
 };
 use uor_r4_core::native_geometric::learner::prior_learning::PriorCore;
 use uor_r4_core::native_geometric::learner::query_read::QueryHard;
+use uor_r4_core::native_geometric::learner::read_conditioned::*;
 use uor_r4_core::native_geometric::learner::realtext_support::*;
 use uor_r4_core::native_geometric::learner::relational::*;
 use uor_r4_core::report_output::{claim, seal, verify};
@@ -3990,6 +3992,465 @@ fn witness_parity(
     }))
 }
 
+// ---------------------------------------------------------------------------
+// Read-conditioned geometric emission: instrument, oracle ceiling, learning
+// ---------------------------------------------------------------------------
+
+const N_RC_DEV: usize = 60;
+const N_RC_TUNE: usize = 30;
+const N_RC_FRESH: usize = 30;
+const SEED_RC_DEV: u64 = 0x5C0F_D001;
+const SEED_RC_TUNE: u64 = 0x5C0F_D002;
+const SEED_RC_FRESH: u64 = 0x5C0F_D003;
+
+/// Historical derived-role diagnostic. The answer is the fixed partner of the query role and is
+/// therefore determined by the recent suffix alone. This does not test whether older context is
+/// necessary. `tokens` is the complete observed prefix: it does not contain an answer sentinel.
+fn make_derive_seq(banks: &Banks, st: &mut u64) -> Seq {
+    let n_fam = 3 + (xorshift(st) as usize) % 2;
+    let mut fams: Vec<(u32, u32)> = Vec::new();
+    while fams.len() < n_fam {
+        let f = pick(&banks.pairs, st);
+        if !fams.contains(&f) {
+            fams.push(f);
+        }
+    }
+    let qkey = pick(&banks.keys, st);
+    let (a0, b0) = fams[0];
+    let (qrole, partner) = if xorshift(st) & 1 == 0 {
+        (a0, b0)
+    } else {
+        (b0, a0)
+    };
+    let mut blocks: Vec<(u32, u32, u32)> = Vec::new();
+    for (i, (a, b)) in fams.iter().enumerate() {
+        // The target family's block carries the query role; competitors use their own first role.
+        let role = if i == 0 { qrole } else { *a };
+        if role == partner {
+            // Keep the partner absent from every role in the prefix.
+            continue;
+        }
+        let mut v = pick(&banks.values_held, st);
+        let mut guard = 0;
+        while blocks.iter().any(|(_, _, x)| *x == v) && guard < 64 {
+            v = pick(&banks.values_held, st);
+            guard += 1;
+        }
+        blocks.push((role, qkey, v));
+    }
+    for i in (1..blocks.len()).rev() {
+        let j = (xorshift(st) as usize) % (i + 1);
+        blocks.swap(i, j);
+    }
+    let mut tokens = Vec::new();
+    for (r, k, v) in blocks.iter() {
+        tokens.push(*r);
+        tokens.push(*k);
+        tokens.push(*v);
+    }
+    tokens.extend_from_slice(&[qrole, qkey]);
+    Seq {
+        tokens,
+        group: 0,
+        answer: partner,
+        absent: false,
+        answer_source_abs: None,
+    }
+}
+
+fn make_rc_pop(banks: &Banks, n: usize, seed: u64) -> Vec<Seq> {
+    let mut st = seed;
+    let mut out = Vec::new();
+    for _ in 0..n {
+        out.push(make_derive_seq(banks, &mut st));
+    }
+    out
+}
+
+/// One instrument decision point with the frozen local base (the query row removed) so a candidate
+/// row can be evaluated in `O(vocab)`.
+struct RcPos {
+    z_base: Vec<i32>,
+    q0: usize,
+    rel: usize,
+    payload: u32,
+    read: bool,
+    answer: u32,
+    covered: bool,
+    cands: usize,
+}
+
+/// The target-free boundary for a complete observed prefix. Its final token remains the current
+/// input; no supervised next-token observation or last-nonempty-candidate search is involved.
+fn rc_prefix_boundary(prefix: &[u32]) -> Result<(OccurrenceRing, u32, u32, u32), String> {
+    if prefix.len() < 3 {
+        return Err("read-conditioned prefix needs two predecessors".into());
+    }
+    let i = prefix.len() - 1;
+    Ok((
+        ring_before_current(prefix),
+        prefix[i],
+        prefix[i - 1],
+        prefix[i - 2],
+    ))
+}
+
+fn first_continuation_token(tokens: &[u32], prefix_len: usize) -> Result<u32, String> {
+    tokens
+        .get(prefix_len)
+        .copied()
+        .ok_or_else(|| "rollout did not emit a first continuation token".into())
+}
+
+fn reload_read_conditioned(
+    bytes: &[u8],
+    expected: &ReadConditionedParams,
+) -> Result<ReadConditionedParams, String> {
+    let loaded = ReadConditionedParams::from_bytes(bytes)?;
+    if loaded != *expected {
+        return Err("read-conditioned reload changed the parameters".into());
+    }
+    Ok(loaded)
+}
+
+/// Build instrument positions under one frozen read rule. Returns the positions and validity counts.
+#[allow(clippy::too_many_arguments)]
+fn rc_positions(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    sel: &RelationalSelector,
+    seqs: &[Seq],
+) -> Result<(Vec<RcPos>, usize, usize, usize), String> {
+    let mut out = Vec::new();
+    let (mut covered_violations, mut decisive, mut no_read) = (0usize, 0usize, 0usize);
+    for seq in seqs.iter() {
+        let (ring, cur, prev, prev2) = rc_prefix_boundary(&seq.tokens)?;
+        let z = local_logits(parent, local, u, cur, prev as usize, prev2, ring.written());
+        let selected = read_step(&ring, cur, prev, prev2, sel, table, true, &z);
+        let (cands, _) = admit_mixed(&ring, ring.written(), cur, prev, prev2, MAX_CAND);
+        let read = selected.action.is_some();
+        let covered = cands.iter().any(|c| c.payload == seq.answer);
+        if covered {
+            covered_violations += 1;
+        }
+        let q0 = local.query_state(cur).min(u.len() - 1);
+        let z_base: Vec<i32> = z.iter().zip(u[q0].iter()).map(|(a, b)| a - b).collect();
+        let local_argmax = argmax_low(&z) as u32;
+        if local_argmax != seq.answer {
+            decisive += 1;
+        }
+        if !read {
+            no_read += 1;
+        }
+        out.push(RcPos {
+            z_base,
+            q0,
+            rel: selected.rel,
+            payload: selected.payload.unwrap_or(0),
+            read,
+            answer: seq.answer,
+            covered,
+            cands: cands.len(),
+        });
+    }
+    Ok((out, covered_violations, decisive, no_read))
+}
+
+#[inline]
+fn rc_argmax_row(z_base: &[i32], row: &[i32]) -> usize {
+    let mut best = 0usize;
+    let mut bv = z_base[0] + row[0];
+    for i in 1..z_base.len() {
+        let v = z_base[i] + row[i];
+        if v > bv {
+            bv = v;
+            best = i;
+        }
+    }
+    best
+}
+
+fn rc_argmax(params: &ReadConditionedParams, pos: &RcPos, u: &[Vec<i32>]) -> usize {
+    let q1 = if pos.read {
+        params.update(pos.q0, pos.rel, pos.payload)
+    } else {
+        pos.q0
+    };
+    rc_argmax_row(&pos.z_base, &u[q1.min(u.len() - 1)])
+}
+
+fn rc_accuracy(params: &ReadConditionedParams, positions: &[RcPos], u: &[Vec<i32>]) -> f64 {
+    if positions.is_empty() {
+        return f64::NAN;
+    }
+    let hit = positions
+        .iter()
+        .filter(|p| rc_argmax(params, p, u) as u32 == p.answer)
+        .count();
+    hit as f64 / positions.len() as f64
+}
+
+/// The oracle ceiling: the fraction of positions where *some* shared row emits the required answer.
+fn rc_oracle(positions: &[RcPos], u: &[Vec<i32>]) -> (usize, usize) {
+    let mut hit = 0usize;
+    for p in positions.iter() {
+        for q in 0..u.len() {
+            if rc_argmax_row(&p.z_base, &u[q]) as u32 == p.answer {
+                hit += 1;
+                break;
+            }
+        }
+    }
+    (hit, positions.len())
+}
+
+/// A different fixed initialization of the same H4 operator, not a categorical-state control.
+fn alternate_h4_value_seed(token: u32) -> usize {
+    ((token as usize) * 7 + 3) % GROUP_ORDER
+}
+
+/// Bounded discrete coordinate search over the transport and value-code maps under final-token
+/// accuracy on the development instrument. No gradients, no new readout parameters.
+fn rc_learn(
+    positions: &[RcPos],
+    u: &[Vec<i32>],
+    alternate_initialization: bool,
+) -> ReadConditionedParams {
+    let t = group_table();
+    let relations: Vec<usize> = {
+        let mut v: Vec<usize> = positions
+            .iter()
+            .filter(|p| p.read)
+            .map(|p| p.rel % GROUP_ORDER)
+            .collect();
+        v.sort_unstable();
+        v.dedup();
+        v
+    };
+    let domain: Vec<u32> = {
+        let mut v: Vec<u32> = positions
+            .iter()
+            .filter(|p| p.read)
+            .map(|p| p.payload)
+            .collect();
+        v.sort_unstable();
+        v.dedup();
+        v
+    };
+    let mut params = if alternate_initialization {
+        // Same H4 products, relation encoding and optimizer; only the initial value codes differ.
+        let mut p = ReadConditionedParams::identity();
+        p.value_domain = domain.clone();
+        p.value_code = domain
+            .iter()
+            .map(|tok| (alternate_h4_value_seed(*tok)) as u8)
+            .collect();
+        p
+    } else {
+        let mut p = ReadConditionedParams::identity();
+        p.value_domain = domain.clone();
+        p.value_code = vec![t.identity; domain.len()];
+        p
+    };
+    // Seed transport from the relation index itself so the start is not a dead no-op.
+    for r in relations.iter() {
+        params.transport[*r] = (*r % GROUP_ORDER) as u8;
+    }
+    let score = |p: &ReadConditionedParams| -> f64 {
+        positions
+            .iter()
+            .filter(|pos| rc_argmax(p, pos, u) as u32 == pos.answer)
+            .count() as f64
+    };
+    let mut best = score(&params);
+    for _pass in 0..3 {
+        let mut improved = false;
+        for r in relations.iter() {
+            let saved = params.transport[*r];
+            let mut local_best = best;
+            let mut local_val = saved;
+            for cand in 0..GROUP_ORDER {
+                params.transport[*r] = cand as u8;
+                let v = score(&params);
+                if v > local_best + 0.5 {
+                    local_best = v;
+                    local_val = cand as u8;
+                }
+            }
+            params.transport[*r] = local_val;
+            if local_best > best + 0.5 {
+                best = local_best;
+                improved = true;
+            }
+        }
+        for i in 0..params.value_code.len() {
+            let saved = params.value_code[i];
+            let mut local_best = best;
+            let mut local_val = saved;
+            for cand in 0..GROUP_ORDER {
+                params.value_code[i] = cand as u8;
+                let v = score(&params);
+                if v > local_best + 0.5 {
+                    local_best = v;
+                    local_val = cand as u8;
+                }
+            }
+            params.value_code[i] = local_val;
+            if local_best > best + 0.5 {
+                best = local_best;
+                improved = true;
+            }
+        }
+        if !improved {
+            break;
+        }
+    }
+    params
+}
+
+/// Autoregressive rollout recording the served action and exact selected occurrence per step.
+#[allow(clippy::too_many_arguments)]
+fn rollout_prefix(
+    prefix: &[u32],
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    use_reader: bool,
+    n: usize,
+) -> Result<(Vec<u32>, Vec<serde_json::Value>), String> {
+    let mut ring = ring_before_current(prefix);
+    let mut toks = prefix.to_vec();
+    let mut steps = Vec::new();
+    for s in 0..n {
+        let (z, r) = generate_step(
+            &mut ring, &mut toks, sel, table, parent, local, u, use_reader,
+        )?;
+        let next = *toks.last().unwrap_or(&0);
+        steps.push(json!({
+            "step": s,
+            "read": r.action.is_some(),
+            "action": r.action.map(|(_, a)| a),
+            "admitted": r.admitted,
+            "scanned": r.scanned,
+            "source_ref": r.source.map(|s| json!({"seq": s.seq, "abs": s.abs})),
+            "payload": r.payload,
+            "emitted": next,
+            "argmax": argmax_low(&z),
+        }));
+    }
+    Ok((toks, steps))
+}
+
+/// The read-conditioned prediction: the shared read selects a source, then one learned geometric
+/// update replaces the query row. `UpdateDisabled`/`NoRead` leave `q1 = q0`, so the residual is
+/// exactly zero.
+#[allow(clippy::too_many_arguments)]
+fn rc_predict_next(
+    ring: &OccurrenceRing,
+    cur: u32,
+    prev: usize,
+    prev2: u32,
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    params: &ReadConditionedParams,
+    use_update: bool,
+    allowed: bool,
+) -> (Vec<i32>, Read, usize, usize) {
+    let mut z = local_logits(parent, local, u, cur, prev, prev2, ring.written());
+    let r = read_step(ring, cur, prev as u32, prev2, sel, table, allowed, &z);
+    let q0 = local.query_state(cur).min(u.len() - 1);
+    let mut q1 = q0;
+    if use_update {
+        if let (Some(_), Some(p)) = (r.action, r.payload) {
+            q1 = params.update(q0, r.rel, p);
+        }
+    }
+    if q1 != q0 {
+        let (a, b) = (&u[q1.min(u.len() - 1)], &u[q0]);
+        for i in 0..z.len() {
+            z[i] = z[i].saturating_add(a[i]).saturating_sub(b[i]);
+        }
+    }
+    (z, r, q0, q1)
+}
+
+/// Read-conditioned rollout recording the served action, the update and the emitted tokens.
+#[allow(clippy::too_many_arguments)]
+fn rc_rollout(
+    prefix: &[u32],
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    params: &ReadConditionedParams,
+    use_update: bool,
+    allowed: bool,
+    n: usize,
+) -> Result<(Vec<u32>, Vec<serde_json::Value>), String> {
+    let (mut ring, _, _, _) = rc_prefix_boundary(prefix)?;
+    let mut toks = prefix.to_vec();
+    let mut steps = Vec::new();
+    for s in 0..n {
+        let i = toks
+            .len()
+            .checked_sub(1)
+            .ok_or("empty read-conditioned prefix")?;
+        if i < 2 || ring.written() as usize != i {
+            return Err("read-conditioned rollout needs two predecessors".into());
+        }
+        let (z, r, q0, q1) = rc_predict_next(
+            &ring,
+            toks[i],
+            toks[i - 1] as usize,
+            toks[i - 2],
+            sel,
+            table,
+            parent,
+            local,
+            u,
+            params,
+            use_update,
+            allowed,
+        );
+        let next = argmax_low(&z) as u32;
+        steps.push(json!({
+            "step": s, "read": r.action.is_some(), "updated": q1 != q0,
+            "q0": q0, "q1": q1, "admitted": r.admitted,
+            "source_ref": r.source.map(|source| json!({"seq": source.seq, "abs": source.abs})),
+            "payload_abs": r.payload_abs,
+            "payload": r.payload, "emitted": next,
+        }));
+        ring.observe(toks[i]);
+        toks.push(next);
+    }
+    Ok((toks, steps))
+}
+
+/// Teacher-forced CE of the required answer in bits under one read-conditioned table.
+fn rc_nll_bits(pos: &RcPos, params: &ReadConditionedParams, u: &[Vec<i32>], f_bits: u32) -> f64 {
+    let q1 = if pos.read {
+        params.update(pos.q0, pos.rel, pos.payload)
+    } else {
+        pos.q0
+    };
+    let row = &u[q1.min(u.len() - 1)];
+    let z: Vec<i32> = pos
+        .z_base
+        .iter()
+        .zip(row.iter())
+        .map(|(a, b)| a.saturating_add(*b))
+        .collect();
+    bits(&z, pos.answer, f_bits)
+}
+
 fn utility_transfer_run() -> Result<ExitCode, String> {
     // ---- arguments -------------------------------------------------------------
     let mut root = PathBuf::from(DEFAULT_UTIL_ROOT);
@@ -4057,6 +4518,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         Some(sr) => [
             "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
             "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
             "crates/uor-r4-core/src/bin/competitive-reader.rs",
         ]
         .iter()
@@ -5807,6 +6269,239 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         "note": "four matched conditions on the same prefix: enabled-original, enabled-changed, disabled-original, disabled-changed; the replacement payload is absent from the whole sequence and the query is fixed; the deliberately edited occurrence is excluded from neighbour-change counts; lost admission, missing rows and NoRead are counted separately",
     }));
 
+    // ---- frozen-confidence rollout: complete responses through the shared path -------------
+    let mut rollout_rows: Vec<serde_json::Value> = Vec::new();
+    {
+        let mut prompts: Vec<(&'static str, Vec<u32>)> = Vec::new();
+        for seq in conf_fresh_pop.iter().filter(|q| !q.absent).take(3) {
+            prompts.push((
+                "present_construction",
+                seq.tokens[..seq.tokens.len() - 1].to_vec(),
+            ));
+        }
+        for seq in conf_fresh_pop.iter().filter(|q| q.absent).take(2) {
+            prompts.push((
+                "absent_construction",
+                seq.tokens[..seq.tokens.len() - 1].to_vec(),
+            ));
+        }
+        for seq in conf_fresh_seqs.iter().take(2) {
+            if seq.tokens.len() > 8 {
+                prompts.push(("ordinary_text", seq.tokens[..seq.tokens.len() - 1].to_vec()));
+            }
+        }
+        let arms: Vec<(&'static str, &RelationalSelector, bool)> = vec![
+            ("local", &h4_load, false),
+            ("relational_ctx_parent", &relational_ctx_base, true),
+            ("h4_confidence", h4_confidence_load, true),
+            ("categorical_confidence", categorical_confidence_load, true),
+            ("h4_confidence_read_disabled", h4_confidence_load, false),
+        ];
+        for (pi, (kind, prefix)) in prompts.iter().enumerate() {
+            let mut rows = Vec::new();
+            for (name, sel, use_reader) in arms.iter() {
+                let (toks, steps) =
+                    rollout_prefix(prefix, sel, &table, &parent, &local, &u, *use_reader, 6)?;
+                rows.push(json!({
+                    "arm": name,
+                    "tokens": toks,
+                    "decoded": tokenizer.decode(&toks),
+                    "reads": steps.iter().filter(|x| x["read"] == json!(true)).count(),
+                    "steps": steps,
+                }));
+            }
+            rollout_rows.push(json!({
+                "prompt": kind, "index": pi, "prefix_len": prefix.len(), "arms": rows,
+            }));
+        }
+    }
+    mark("frozen-confidence rollout", &mut marks);
+
+    // ---- read-conditioned geometric emission --------------------------------------------------
+    // Historical suffix-solvable diagnostic. Corrected full-prefix/first-token semantics differ
+    // from read-conditioned-1; rerunning this block does not validate context-required attention.
+    let rc_t0 = Instant::now();
+    let rc_dev_seqs = make_rc_pop(&banks, N_RC_DEV, SEED_RC_DEV);
+    let rc_tune_seqs = make_rc_pop(&banks, N_RC_TUNE, SEED_RC_TUNE);
+    let rc_fresh_seqs = make_rc_pop(&banks, N_RC_FRESH, SEED_RC_FRESH);
+    let (rc_dev, rc_dev_cov, rc_dev_decisive, rc_dev_noread) = rc_positions(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &relational_ctx_base,
+        &rc_dev_seqs,
+    )?;
+    let (rc_tune, _, _, _) = rc_positions(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &relational_ctx_base,
+        &rc_tune_seqs,
+    )?;
+    let (rc_fresh, _, _, _) = rc_positions(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &relational_ctx_base,
+        &rc_fresh_seqs,
+    )?;
+    let (rc_oracle_hit, rc_oracle_total) = rc_oracle(&rc_dev, &u);
+    let rc_identity = ReadConditionedParams::identity();
+    let rc_h4 = rc_learn(&rc_dev, &u, false);
+    let rc_alt_h4 = rc_learn(&rc_dev, &u, true);
+    // Parameter serialization only: write, hash, independently reload and compare. RLRC v1 does
+    // not bind the parent/reader/tokenizer/fit identities; the successor must supply that contract.
+    let rc_h4_bytes = rc_h4.to_bytes();
+    write_checked(&root, "artifacts/h4_read_conditioned.rlrc", &rc_h4_bytes)?;
+    let rc_h4_hash = artifact_sha256(&rc_h4_bytes);
+    let rc_h4 = reload_read_conditioned(&rc_h4_bytes, &rc_h4)?;
+    let rc_alt_h4_bytes = rc_alt_h4.to_bytes();
+    write_checked(
+        &root,
+        "artifacts/h4_alternate_init_read_conditioned.rlrc",
+        &rc_alt_h4_bytes,
+    )?;
+    let rc_alt_h4 = reload_read_conditioned(&rc_alt_h4_bytes, &rc_alt_h4)?;
+    let acc = |p: &ReadConditionedParams, pos: &[RcPos]| rc_accuracy(p, pos, &u);
+    let nll = |p: &ReadConditionedParams, pos: &[RcPos]| -> f64 {
+        if pos.is_empty() {
+            return f64::NAN;
+        }
+        pos.iter()
+            .map(|q| rc_nll_bits(q, p, &u, parent.cfg.f_bits))
+            .sum::<f64>()
+            / pos.len() as f64
+    };
+    // Causal dependence of the emitted token on the update inputs.
+    let (mut upd_positions, mut v_causal, mut rel_causal) = (0usize, 0usize, 0usize);
+    for pos in rc_fresh.iter().filter(|q| q.read) {
+        let q1 = rc_h4.update(pos.q0, pos.rel, pos.payload);
+        if q1 == pos.q0 {
+            continue;
+        }
+        upd_positions += 1;
+        let base = rc_argmax_row(&pos.z_base, &u[q1]);
+        let alt_v = rc_h4
+            .value_domain
+            .iter()
+            .find(|t| **t != pos.payload)
+            .copied()
+            .unwrap_or(pos.payload);
+        let q_alt_v = rc_h4.update(pos.q0, pos.rel, alt_v);
+        if rc_argmax_row(&pos.z_base, &u[q_alt_v]) != base {
+            v_causal += 1;
+        }
+        let q_alt_r = rc_h4.update(pos.q0, (pos.rel + 1) % GROUP_ORDER, pos.payload);
+        if rc_argmax_row(&pos.z_base, &u[q_alt_r]) != base {
+            rel_causal += 1;
+        }
+    }
+    // Actual generated behavior on the instrument: does the first emitted token equal the answer?
+    let mut rc_gen_hit = 0usize;
+    let mut rc_gen_local_hit = 0usize;
+    let mut rc_gen_total = 0usize;
+    let mut rc_gen_samples: Vec<serde_json::Value> = Vec::new();
+    for seq in rc_fresh_seqs.iter().take(30) {
+        let prefix = &seq.tokens[..];
+        if prefix.len() < 3 {
+            continue;
+        }
+        rc_gen_total += 1;
+        let (toks, steps) = rc_rollout(
+            prefix,
+            &relational_ctx_base,
+            &table,
+            &parent,
+            &local,
+            &u,
+            &rc_h4,
+            true,
+            true,
+            4,
+        )?;
+        let emitted = first_continuation_token(&toks, prefix.len())?;
+        if emitted == seq.answer {
+            rc_gen_hit += 1;
+        }
+        let (local_toks, _) = rc_rollout(
+            prefix,
+            &relational_ctx_base,
+            &table,
+            &parent,
+            &local,
+            &u,
+            &rc_identity,
+            false,
+            true,
+            4,
+        )?;
+        if first_continuation_token(&local_toks, prefix.len())? == seq.answer {
+            rc_gen_local_hit += 1;
+        }
+        if rc_gen_samples.len() < 4 {
+            rc_gen_samples.push(json!({
+                "answer": seq.answer,
+                "prefix_len": prefix.len(),
+                "first_emitted": emitted,
+                "tokens": toks,
+                "decoded": tokenizer.decode(&toks),
+                "steps": steps,
+            }));
+        }
+    }
+    let rc_report = json!({
+        "instrument": "historical derived role-partner: answer is determined by the recent query role alone; not a context-required attention test",
+        "semantics": "full observed prefix retained; actual first continuation token; no last-nonempty fallback; principal-corrected diagnostic differs from read-conditioned-1",
+        "categorical_control": "NOT_RUN: the alternate arm changes initialization of the same H4 operator",
+        "populations": {"dev": rc_dev_seqs.len(), "tune": rc_tune_seqs.len(), "fresh": rc_fresh_seqs.len()},
+        "validity": {
+            "dev_positions": rc_dev.len(),
+            "dev_answer_covered_by_a_payload": rc_dev_cov,
+            "dev_local_argmax_wrong": rc_dev_decisive,
+            "dev_no_read": rc_dev_noread,
+        },
+        "oracle_ceiling": {"positions": rc_oracle_total, "some_row_emits_the_answer": rc_oracle_hit},
+        "accuracy": {
+            "local_no_update": {"dev": acc(&rc_identity, &rc_dev), "tune": acc(&rc_identity, &rc_tune), "fresh": acc(&rc_identity, &rc_fresh)},
+            "h4_read_conditioned": {"dev": acc(&rc_h4, &rc_dev), "tune": acc(&rc_h4, &rc_tune), "fresh": acc(&rc_h4, &rc_fresh)},
+            "h4_alternate_initialization": {"dev": acc(&rc_alt_h4, &rc_dev), "tune": acc(&rc_alt_h4, &rc_tune), "fresh": acc(&rc_alt_h4, &rc_fresh)},
+        },
+        "answer_nll_bits": {
+            "local_no_update": nll(&rc_identity, &rc_fresh),
+            "h4_read_conditioned": nll(&rc_h4, &rc_fresh),
+            "h4_alternate_initialization": nll(&rc_alt_h4, &rc_fresh),
+        },
+        "causal": {
+            "fresh_read_positions_updated": upd_positions,
+            "emitted_changes_when_value_code_input_changes": v_causal,
+            "emitted_changes_when_relation_changes": rel_causal,
+        },
+        "generated_first_token": {
+            "positions": rc_gen_total,
+            "h4_read_conditioned_hits": rc_gen_hit,
+            "local_no_update_hits": rc_gen_local_hit,
+            "samples": rc_gen_samples,
+        },
+        "artifact": {
+            "h4_sha256": rc_h4_hash, "bytes": rc_h4_bytes.len(),
+            "alternate_h4_sha256": artifact_sha256(&rc_alt_h4_bytes),
+            "binding_scope": "RLRC v1 parameters only; no parent/reader/tokenizer/fit identity validation",
+        },
+        "seconds": rc_t0.elapsed().as_secs_f64(),
+        "scope": "suffix-solvable diagnostic only; fixed-readout reachability at these prefixes cannot isolate admission, selection or geometric advantage; no context-required or broad language claim",
+    });
+    controls.push(json!({
+        "control": "read_conditioned_update",
+        "instrument": "derived_role_partner",
+        "update_disabled_residual_exact_zero": ReadConditionedParams::identity().update(7, 3, 100) == 7,
+        "h4_artifact_sha256": rc_h4_hash,
+        "note": "The reported boolean checks an identity parameter map only; actual NoRead/UpdateDisabled predictor parity requires its own executed control",
+    }));
+    mark("read-conditioned emission", &mut marks);
+
     // ---- generation from the reloaded artifacts --------------------------------
     let gen_arms: [(&str, &RelationalSelector); 4] = [
         ("relational_ctx_parent", &relational_ctx_base),
@@ -6125,6 +6820,8 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             "fit": fit_report,
             "feasibility": feasibility_report,
             "read_confidence": conf_report,
+            "confidence_rollout": rollout_rows,
+            "read_conditioned": rc_report,
             "panels": panels,
             "paired": paired,
             "text_intervals": text_intervals,
@@ -6220,6 +6917,8 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         "decision",
         "feasibility",
         "read_confidence",
+        "confidence_rollout",
+        "read_conditioned",
     ];
     let mut missing: Vec<&str> = Vec::new();
     for p in declared_paths {
@@ -6287,6 +6986,47 @@ fn main() -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::from(1)
         }
+    }
+}
+
+#[cfg(test)]
+mod read_conditioned_boundary_tests {
+    use super::*;
+
+    #[test]
+    fn complete_prefix_keeps_query_key_and_empty_pool_position() {
+        // The last two observed tokens are the role and key, not role and an answer sentinel.
+        let prefix = [10, 20, 30, 40, 50];
+        let (ring, cur, prev, prev2) = rc_prefix_boundary(&prefix).unwrap();
+        assert_eq!((cur, prev, prev2, ring.written()), (50, 40, 30, 4));
+        let (cands, _) = admit_mixed(&ring, ring.written(), cur, prev, prev2, MAX_CAND);
+        assert!(cands.is_empty());
+        // No candidate does not move the prediction back to an earlier token or drop the row.
+        assert_eq!(ring.written() as usize, prefix.len() - 1);
+        assert!(rc_prefix_boundary(&[]).is_err());
+        assert!(rc_prefix_boundary(&[10, 20]).is_err());
+    }
+
+    #[test]
+    fn continuation_accuracy_uses_first_emission_not_last() {
+        let tokens = [10, 20, 30, 41, 42, 43, 44];
+        assert_eq!(first_continuation_token(&tokens, 3).unwrap(), 41);
+        assert_ne!(first_continuation_token(&tokens, 3).unwrap(), tokens[6]);
+        assert!(first_continuation_token(&tokens[..3], 3).is_err());
+    }
+
+    #[test]
+    fn read_conditioned_reload_returns_validated_parameters_or_fails() {
+        let expected = ReadConditionedParams::identity();
+        let bytes = expected.to_bytes();
+        assert_eq!(
+            reload_read_conditioned(&bytes, &expected).unwrap(),
+            expected
+        );
+        assert!(reload_read_conditioned(&bytes[..4], &expected).is_err());
+        let mut changed = expected.clone();
+        changed.transport[0] = (changed.transport[0] + 1) % GROUP_ORDER as u8;
+        assert!(reload_read_conditioned(&changed.to_bytes(), &expected).is_err());
     }
 }
 

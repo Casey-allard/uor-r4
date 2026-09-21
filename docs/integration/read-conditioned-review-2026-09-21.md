@@ -1,0 +1,64 @@
+# Principal review: validate contextual transformation and learn shared emission
+
+September 21, 2026. Review of PR #1334 submitted at `bca3d224f1f4ece17d2c1ec9c69083d7e13cb3df`, based on PR #1333 merge `466043ebce1126a1258e921828739bb82b65af1d`. Independent source, saved-evidence and mathematical reviews agree on the corrections below. [Audit](../evidence/read-conditioned-principal-review-2026-09-21.json); [next comprehensive execution prompt](deepseek-contextual-emission-step-2026-09-21.md).
+
+## Decision
+
+**Retain actual frozen-confidence generation and the finite update implementation. Withdraw the claim that this run isolated a learned readout-only failure. Complete one genuinely context-required transformation together with a trainable shared low-bit emission residual.** This continues the Read -> geometric Update -> shared Emit direction; it is not another scalar-gate campaign or a new representation-scale search.
+
+The code now reaches a read-conditioned emission path and retains a negative candidate. However, the instrument's answer depends on the query alone, its extraction uses the wrong prefix, its optimizer cannot move at the recorded ceiling, and its supposed categorical arm uses the same H4 algebra. Adding a head without correcting these would risk obtaining a misleading positive from a suffix lookup. These are testable implementation issues, not evidence that geometric attention is impossible.
+
+## What survives independent review
+
+The frozen-confidence block contains seven development prompts, five arms and six generated tokens per arm. H4 confidence reads 23/42 steps and categorical confidence 22/42: the aggregate is 45/84 across the two arms. All 45 saved occurrence/payload references verify against the generated prefixes. ReadDisabled reproduces the local tokens on all seven prompts. This closes actual confidence dispatch/generation at that limited boundary. The saved continuations remain degenerate; six emitted tokens are short continuations, not demonstrated complete useful responses. Conflict/changed-source confidence interventions and comprehensive empty/tie/logit parity are not thereby qualified.
+
+The old construction/text panels and five RLR2 artifacts reproduce `reader-confidence-3`; those are exposed replays, not newly fresh acceptance data. The corrected own-parent criteria remain valid at their original scope: present CE increases +0.159790/+0.152981 bits/query, absent reads 11 versus 10 and 7 versus 6, and text deltas +0.037882/+0.020116. Both arms fail joint preservation.
+
+The 12-member report seal and declared artifact/executable hashes verify. The three listed source hashes match the submitted files. The new `read_conditioned.rs` is **not** listed in the original binding despite the four-module prose claim. A clean seal does not supply the missing source identity. The original report and artifacts remain unchanged; the audit records the submitted module separately without pretending that it was originally bound.
+
+## Four defects invalidate the stronger diagnosis
+
+1. **The answer does not require context.** `make_derive_seq` chooses `answer = partner(qrole)` and appends `[qrole,qkey]`. Older payloads are random and do not determine the answer. Changing an older value while preserving the query leaves the oracle answer unchanged. A learned suffix-to-partner map can solve this instrument without retrieval. A wrong frozen local argmax does not rule out that shortcut.
+2. **The extracted position precedes the intended query.** The sequence contains no answer token. `observe_full` only emits observations with a following token, and `rc_positions` takes the last nonempty one. This evaluates before the final query key, or earlier when that pool is empty. The rollout also removes the final key. The 22 saved value-domain tokens are query-key IDs rather than the intended source-value bank, consistent with the shifted boundary. A source-correct result at the intended query is unavailable.
+3. **The recorded maps have not learned.** The reported finite oracle returns zero reachable correct argmaxes at all 60 extracted development positions. The optimizer accepts only strict increases in integer correct-answer count. Every candidate therefore scores zero. Saved H4 maps equal their initialization, and the alternate arm has identical transport plus its initial `(7*token+3)%120` value codes. Reported CE changes and relation sensitivity characterize initialized state selections; they are not gains caused by fitting.
+4. **The categorical control is another H4 initialization.** Both arms call the same `ReadConditionedParams::update` using the same group table and the same H4 source selector. Different seeds do not create a nongeometric update or isolate H4 advantage. The control must be renamed and replaced in the next actual experiment.
+
+The report also labels the last of four generated update tokens as the first token, while comparing it with the first local token. Only four full update trajectories are retained, so a complete corrected first-token tally is not independently recoverable from saved trajectories alone. The reported zero must keep its actual indexing scope. The stored no-op boolean tests one identity parameter call, not disabled-path parity for the new learned predictor. The relation/value probes change internal inputs; they do not substitute for changing an actual source occurrence and recomputing the complete causal path.
+
+## Precise scope of the frozen-row ceiling
+
+For each extracted position let `b_i = z_local_i - u(q0_i)` and `Y_i = {argmax(b_i + u(q)): q in the 120 states}`. The recorded zero means `y_i` is outside this finite set for each of those 60 extracted positions. Even an unconstrained row selector cannot emit those targets there. This is a useful necessary restriction on that frozen row family at that boundary. Per-position oracle rows were not retained, so the principal audit verifies the algorithmic implication and unchanged maps, not an independent numerical reconstruction of the reported 60-row scan.
+
+It does not prove that the correctly indexed task has the same ceiling, that selection is sufficient, or that state/learning is otherwise adequate. The statement that the rows put “no mass” on unseen-prefix tokens is wrong: finite logits assign positive softmax probability, and the reported finite NLL demonstrates it. Failure to win argmax is distinct from zero probability. Nor is this a proof of the classical low-rank softmax bottleneck.
+
+The prior noncopy argument remains valid: a nonnegative single-payload boost cannot change relative odds between two uncopied tokens. That source-derived reason still supports a shared generative residual. The present defective instrument does not replace it with an emission-only causal diagnosis.
+
+## Constructive successor
+
+Make paired prefixes with identical query/recent suffix, source position and distractors, changing only the relevant older payload. Require different correct outputs, both absent from every prefix/admitted payload. A small learned mapping from selected value to a disjoint output bank is enough for the first useful contextual transformation. Train each value's mapping in development and hold out binding combinations, positions and distractors; do not demand inference of an arbitrary never-trained label mapping. An operation-dependent variant is welcome only if that operation survives actual causal input encoding. No gold source or operation enters serving.
+
+Use the same target-free full-prefix predictor for extraction, evaluation, interventions and generation. Retain zero-candidate/NoRead examples instead of silently choosing an earlier position. Record input-signature collisions before attributing failure to an optimizer or output head. The current query root is a coarse code of the final token; if a required distinction is erased, a new readout cannot recreate it.
+
+Learn a bounded shared residual such as `W_theta (R_theta(q1) - R_theta(q0))`, with signed-H4 transport/value maps and exact zero when disabled. Inspect `learner/query_read.rs::row_scores`, `QueryTrainer`'s seeded reader/zero-output initialization, hard export and loss gradients. Use NLL or a margin objective so useful partial progress exists before the answer becomes argmax. Check a finite learning signal and the residual's score range against the frozen local target margin before spending the fit. Do not keep an impossible fixed-row search running just because the code compiles.
+
+Match a genuinely different update operator. One concrete comparator is cyclic categorical C120 composition with the same state count, input information, transport/value maps, readout size and training effort. It is abelian, unlike binary-icosahedral composition. Because it can share the frozen H4 reader, its claim is the update algebra conditional on that reader; it is not a universal comparison against all nongeometric architectures.
+
+At V=4096 and width 16, two-bit packed coefficients for a 120x16 state embedding and 4096x16 output map take 16864 bytes before shifts/metadata. Materializing all 120 full-vocabulary i32 rows instead takes 1966080 bytes, plus construction work. Count the actual chosen layout, full-vocabulary accesses and startup cost. Neither lookup nor Rust alone proves low energy or cache residency.
+
+## Broader mathematical tools and research
+
+[Learning Associative Inference Using Fast Weight Memory](https://arxiv.org/abs/2011.07831) supports separating retrieval from transformed output; its dense memory implementation is not adopted. [Scalable MatMul-free Language Modeling](https://arxiv.org/abs/2406.02528) motivates learned ternary/recurrent computation, without validating this project's serving kernel or laptop costs. [Breaking the Softmax Bottleneck](https://arxiv.org/abs/1711.03953) distinguishes an output-family capacity issue; our finite argmax scan is much narrower. The July 2026 revision of [Lost in Backpropagation](https://arxiv.org/abs/2603.10145) also studies output-head learning-signal restrictions, but does not establish that its gradient diagnosis applies to this discrete search.
+
+A June 2026 [holographic-memory mechanistic study](https://arxiv.org/abs/2606.24948) reports that aggregate retrieval quality can hide failures on facts specifically needed by composition. This is a preprint on another system, useful for choosing conditional probes rather than claiming that superposition algebra guarantees reasoning. S7/E8, retained Hopf fibers and harmonic coefficients remain tools for a witnessed capacity/interference or structural-role need. None repairs a suffix-only target, an off-by-one observation or a flat learning objective.
+
+The sequence remains: useful single-read contextual transformation with shared emission; dependent reads and learned stopping; structural persistence whenever required distinctions/lifetimes demand it; broader prose/conversation/executed Rust; qualified scale and whole-path cost/energy. Structural memory is a supporting dependency, not a compulsory detour before every one-read experiment.
+
+## Principal corrections and resources
+
+The principal patch repairs full-prefix extraction, first-token scoring, misleading alternate-arm naming, source inventory and fail-closed loaded-parameter use; it bounds malformed loader allocations and rejects ambiguous domains. Focused tests qualify those interfaces. It does not turn the old instrument into a context-required task or create a new trained model result. The successor owns that substantive experiment, and old sealed evidence is retained.
+
+The live JSON still lacked the reported prior debit/extension. Reconciled 3200000 ms and the documented 4000000-ms allowance increment to 203037700/204900000 ms before principal checks. The component sum is 22500 ms below the charged conservative estimate; no second charge is added. The stated earlier 1 GiB+16MiB storage projection did not fit its stated 888260199-byte headroom, although actual free space stayed above reserve.
+
+Inventory found 37.75 GB free. Removed only 266 inactive Rust `.rlib`/`.rmeta` intermediates in an older worktree cache (871983953 logical bytes), recovering 871112704 bytes observed free space to 38.65 GB. Source, executables, dynamic libraries, models, sealed reports, research, worktrees and downloads remain. Principal checks have their own bounded prospective projection/debit in the [ledger](resource-ledger-2026-09-19.md). No paid compute; physical energy and whole-path serving qualification remain UNAVAILABLE.
+
+Principal validation completed: seven focused tests, formatting and the offline touched-runner check pass, costing **444175 ms**. Final live ledger **203481875/204900000 ms**; free space **38.59 GB** after checks. No new model execution or additional extension.

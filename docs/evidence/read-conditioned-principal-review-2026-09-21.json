@@ -1,0 +1,1656 @@
+{
+  "scope": "Read-only integrity and saved-data recomputation; no builds, training, inference or report mutations. Original RC per-position logits, oracle rows and full generated trajectories were not retained, so their aggregates cannot be independently numerically reproduced here.",
+  "review_revision": "bca3d224f1f4ece17d2c1ec9c69083d7e13cb3df",
+  "run_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/read-conditioned-1",
+  "integrity": {
+    "listed_files": 12,
+    "missing": [],
+    "unlisted": [],
+    "seal_errors": [],
+    "result_sha256": "caa74a9763d89296eb8dda98739b74ce3fdac871c75682fa9dcb9099e92d2cc0",
+    "binding_sha256": "1ea9df2604d90177f57e6f2be49d3c6f275eb65353969c36d5ce2bcf15534f84",
+    "running_source": {
+      "executable_sha256": "c7937d013c95b8d37754e270a6b2949b041c024c9a7a0ed2d3079fe58dc309ab",
+      "git_dirty": "true",
+      "git_rev": "466043eb",
+      "source_file_sha256": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+          "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs",
+          "sha256": "06f28d3ef06327b925bfc587ad7fb1bc88ef8bce432cc4f746de9b992d5472d5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "4489ab1c18882bb514d4d81a8eafb293582214f9192d2c9ff470a926c78c2d37"
+        }
+      ]
+    },
+    "submitted_source_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "new_read_conditioned_module_in_source_binding": false,
+    "artifact_sha256": {
+      "categorical_confidence.rlr2": "86e5b2d1a5e573e1c6aef8c1974fdc80e0a8f639b5cc64e0e53fb7588b9aa58a",
+      "categorical_policy.rlr2": "d1200a54a47349f702a3208a9f3f15651a94d449f699414488b9c49e4e718f7d",
+      "categorical_read_conditioned.rlrc": "996d8f739352dcfc7883433c8d9c5ec19a1773f76d3ab007eae20c5c0d6e3a55",
+      "h4_confidence.rlr2": "982c68374213757db18cd8027c03e2a35967d5a5436a853baf13271c9395e480",
+      "h4_one_nat.rlr2": "2ef2e49fba266868d0809b6302459fadddc4cb67ae7e71f3ad2e6d010c274d51",
+      "h4_policy.rlr2": "e93ac89b955fa2e184f5eeac65d83b75960da7b102ab71b5a7b11b7c054f4db8",
+      "h4_read_conditioned.rlrc": "7426ad8b45cbabe9ca885fcc06fc83157de4d9c6c475f271b13f0d0af7106bd3"
+    },
+    "declared_artifact_hashes_match": {
+      "categorical_confidence": true,
+      "categorical_policy": true,
+      "h4_confidence": true,
+      "h4_one_nat": true,
+      "h4_policy": true
+    },
+    "parent_hashes_match": {
+      "exact": true,
+      "relational": true,
+      "relational_ctx": true,
+      "categorical": true
+    },
+    "retained_executable_sha256": "c7937d013c95b8d37754e270a6b2949b041c024c9a7a0ed2d3079fe58dc309ab",
+    "retained_executable_matches": true,
+    "submitted_unbound_module": {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+      "sha256": "5d0aa05130adfd59d053558cd83f957f12ecdc4460233bb1c1373372b059f7a2",
+      "scope": "Principal hash of submitted source; not present in original executed-source inventory"
+    }
+  },
+  "reuse": {
+    "all_old_panels_identical_to_reader_confidence_3": true,
+    "old_artifacts_identical_to_reader_confidence_3": {
+      "h4_confidence.rlr2": true,
+      "categorical_policy.rlr2": true,
+      "h4_one_nat.rlr2": true,
+      "categorical_confidence.rlr2": true,
+      "h4_policy.rlr2": true
+    },
+    "scope": "Old confidence construction/text results repeat the already exposed population. Fresh terminology in the old block does not create a new draw. New RC seeds name new random draws from the same role, query-key and value banks, not disjoint held-out relation/content support."
+  },
+  "confidence_rollout": {
+    "per_arm": {
+      "local": {
+        "steps": 42,
+        "reads": 0,
+        "matches_local_tokens": 7,
+        "prompt_count": 7
+      },
+      "relational_ctx_parent": {
+        "steps": 42,
+        "reads": 23,
+        "matches_local_tokens": 2,
+        "prompt_count": 7,
+        "source_payload_checks": 23
+      },
+      "h4_confidence": {
+        "steps": 42,
+        "reads": 23,
+        "matches_local_tokens": 2,
+        "prompt_count": 7,
+        "source_payload_checks": 23
+      },
+      "categorical_confidence": {
+        "steps": 42,
+        "reads": 22,
+        "matches_local_tokens": 3,
+        "prompt_count": 7,
+        "source_payload_checks": 22
+      },
+      "h4_confidence_read_disabled": {
+        "steps": 42,
+        "reads": 0,
+        "matches_local_tokens": 7,
+        "prompt_count": 7
+      }
+    },
+    "row_errors": [],
+    "rows": [
+      {
+        "prompt": "present_construction",
+        "index": 0,
+        "prefix_len": 20,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              198,
+              198,
+              504,
+              260,
+              198,
+              29
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 3,
+            "continuation": [
+              198,
+              198,
+              461,
+              260,
+              198,
+              29
+            ],
+            "equals_local": false
+          },
+          "h4_confidence": {
+            "reads": 3,
+            "continuation": [
+              198,
+              198,
+              461,
+              260,
+              198,
+              29
+            ],
+            "equals_local": false
+          },
+          "categorical_confidence": {
+            "reads": 2,
+            "continuation": [
+              198,
+              198,
+              461,
+              260,
+              198,
+              29
+            ],
+            "equals_local": false
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              198,
+              198,
+              504,
+              260,
+              198,
+              29
+            ],
+            "equals_local": true
+          }
+        }
+      },
+      {
+        "prompt": "present_construction",
+        "index": 1,
+        "prefix_len": 17,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              28,
+              198,
+              29,
+              1903,
+              36,
+              33
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 3,
+            "continuation": [
+              556,
+              29,
+              99,
+              1314,
+              29,
+              86
+            ],
+            "equals_local": false
+          },
+          "h4_confidence": {
+            "reads": 2,
+            "continuation": [
+              556,
+              29,
+              99,
+              1314,
+              29,
+              86
+            ],
+            "equals_local": false
+          },
+          "categorical_confidence": {
+            "reads": 4,
+            "continuation": [
+              556,
+              29,
+              99,
+              1314,
+              29,
+              86
+            ],
+            "equals_local": false
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              28,
+              198,
+              29,
+              1903,
+              36,
+              33
+            ],
+            "equals_local": true
+          }
+        }
+      },
+      {
+        "prompt": "present_construction",
+        "index": 2,
+        "prefix_len": 17,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 3,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "h4_confidence": {
+            "reads": 2,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "categorical_confidence": {
+            "reads": 3,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          }
+        }
+      },
+      {
+        "prompt": "absent_construction",
+        "index": 3,
+        "prefix_len": 17,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              29,
+              257,
+              1373,
+              2095,
+              30,
+              198
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 3,
+            "continuation": [
+              561,
+              29,
+              257,
+              561,
+              29,
+              257
+            ],
+            "equals_local": false
+          },
+          "h4_confidence": {
+            "reads": 4,
+            "continuation": [
+              561,
+              29,
+              257,
+              561,
+              29,
+              257
+            ],
+            "equals_local": false
+          },
+          "categorical_confidence": {
+            "reads": 2,
+            "continuation": [
+              29,
+              257,
+              1373,
+              2095,
+              30,
+              198
+            ],
+            "equals_local": true
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              29,
+              257,
+              1373,
+              2095,
+              30,
+              198
+            ],
+            "equals_local": true
+          }
+        }
+      },
+      {
+        "prompt": "absent_construction",
+        "index": 4,
+        "prefix_len": 17,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 1,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "h4_confidence": {
+            "reads": 1,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "categorical_confidence": {
+            "reads": 1,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              30,
+              198,
+              198,
+              504,
+              260,
+              198
+            ],
+            "equals_local": true
+          }
+        }
+      },
+      {
+        "prompt": "ordinary_text",
+        "index": 5,
+        "prefix_len": 63,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              36,
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 4,
+            "continuation": [
+              36,
+              32,
+              198,
+              36,
+              1117,
+              67
+            ],
+            "equals_local": false
+          },
+          "h4_confidence": {
+            "reads": 5,
+            "continuation": [
+              36,
+              32,
+              198,
+              29,
+              1117,
+              3021
+            ],
+            "equals_local": false
+          },
+          "categorical_confidence": {
+            "reads": 5,
+            "continuation": [
+              39,
+              33,
+              32,
+              198,
+              29,
+              1903
+            ],
+            "equals_local": false
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              36,
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "equals_local": true
+          }
+        }
+      },
+      {
+        "prompt": "ordinary_text",
+        "index": 6,
+        "prefix_len": 63,
+        "arms": {
+          "local": {
+            "reads": 0,
+            "continuation": [
+              277,
+              29,
+              100,
+              640,
+              29,
+              100
+            ],
+            "equals_local": true
+          },
+          "relational_ctx_parent": {
+            "reads": 6,
+            "continuation": [
+              631,
+              29,
+              100,
+              3391,
+              29,
+              83
+            ],
+            "equals_local": false
+          },
+          "h4_confidence": {
+            "reads": 6,
+            "continuation": [
+              631,
+              29,
+              100,
+              3391,
+              277,
+              29
+            ],
+            "equals_local": false
+          },
+          "categorical_confidence": {
+            "reads": 5,
+            "continuation": [
+              277,
+              29,
+              100,
+              640,
+              3391,
+              285
+            ],
+            "equals_local": false
+          },
+          "h4_confidence_read_disabled": {
+            "reads": 0,
+            "continuation": [
+              277,
+              29,
+              100,
+              640,
+              29,
+              100
+            ],
+            "equals_local": true
+          }
+        }
+      }
+    ],
+    "scope": "Seven prompts, exactly six continuation tokens per arm. Both confidence arms total45 reads/84generated steps. Every saved read reference points to the reported payload in that arm's causal prefix. Disabled arm equals local token stream7/7. These are short generated continuations, not complete task responses or semantic accuracy tests; no new confidence intervention or per-arm inference timing."
+  },
+  "confidence_recomputed": {
+    "h4_confidence": {
+      "own_parent": "relational_ctx_parent",
+      "present_correct": 71,
+      "parent_present_correct": 73,
+      "present_CE_minus_parent_bits_per_query": 0.15978977345071144,
+      "absent_reads": 11,
+      "parent_absent_reads": 10,
+      "text_delta_bits_per_token": 0.03788208592213144,
+      "stream_emitted_correct": 178,
+      "parent_stream_emitted_correct": 364
+    },
+    "categorical_confidence": {
+      "own_parent": "categorical_parent",
+      "present_correct": 79,
+      "parent_present_correct": 81,
+      "present_CE_minus_parent_bits_per_query": 0.1529812446288754,
+      "absent_reads": 7,
+      "parent_absent_reads": 6,
+      "text_delta_bits_per_token": 0.020115785655669422,
+      "stream_emitted_correct": 184,
+      "parent_stream_emitted_correct": 378
+    }
+  },
+  "read_conditioned_artifacts": {
+    "h4": {
+      "bytes": 250,
+      "sha256": "7426ad8b45cbabe9ca885fcc06fc83157de4d9c6c475f271b13f0d0af7106bd3",
+      "magic": "RLRC",
+      "version": 1,
+      "consumed_bytes": 250,
+      "transport": [
+        1,
+        1,
+        2,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        38,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        56,
+        1,
+        1,
+        59,
+        60,
+        1,
+        1,
+        63,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        74,
+        1,
+        1,
+        1,
+        1,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        1,
+        1,
+        1,
+        90,
+        1,
+        1,
+        1,
+        1,
+        95,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "value_domain": [
+        424,
+        433,
+        434,
+        438,
+        445,
+        447,
+        449,
+        455,
+        456,
+        461,
+        462,
+        465,
+        467,
+        470,
+        471,
+        473,
+        474,
+        477,
+        478,
+        481,
+        482,
+        483
+      ],
+      "value_code": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "transport_all_identity_or_own_index": true,
+      "all_value_codes_identity": true,
+      "value_codes_match_categorical_seed": false
+    },
+    "categorical_seeded_H4": {
+      "bytes": 250,
+      "sha256": "996d8f739352dcfc7883433c8d9c5ec19a1773f76d3ab007eae20c5c0d6e3a55",
+      "magic": "RLRC",
+      "version": 1,
+      "consumed_bytes": 250,
+      "transport": [
+        1,
+        1,
+        2,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        38,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        56,
+        1,
+        1,
+        59,
+        60,
+        1,
+        1,
+        63,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        74,
+        1,
+        1,
+        1,
+        1,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        1,
+        1,
+        1,
+        90,
+        1,
+        1,
+        1,
+        1,
+        95,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "value_domain": [
+        424,
+        433,
+        434,
+        438,
+        445,
+        447,
+        449,
+        455,
+        456,
+        461,
+        462,
+        465,
+        467,
+        470,
+        471,
+        473,
+        474,
+        477,
+        478,
+        481,
+        482,
+        483
+      ],
+      "value_code": [
+        91,
+        34,
+        41,
+        69,
+        118,
+        12,
+        26,
+        68,
+        75,
+        110,
+        117,
+        18,
+        32,
+        53,
+        60,
+        74,
+        81,
+        102,
+        109,
+        10,
+        17,
+        24
+      ],
+      "transport_all_identity_or_own_index": true,
+      "all_value_codes_identity": false,
+      "value_codes_match_categorical_seed": true
+    },
+    "transport_maps_equal": true,
+    "scope": "Both saved transports equal source initialization on visited relations (index) and identity elsewhere; H4 value map is all identity, other value map exactly categorical_value_seed. Combined with strict hit-count optimization and reported0/60oracle, the observed NLL differences are initialization effects, not learned improvements. Both use the same H4 product law, so the latter is not a nongeometric control."
+  },
+  "read_conditioned_reported": {
+    "accuracy": {
+      "categorical_read_conditioned": {
+        "dev": 0.0,
+        "fresh": 0.0,
+        "tune": 0.0
+      },
+      "h4_read_conditioned": {
+        "dev": 0.0,
+        "fresh": 0.0,
+        "tune": 0.0
+      },
+      "local_no_update": {
+        "dev": 0.0,
+        "fresh": 0.0,
+        "tune": 0.0
+      }
+    },
+    "answer_nll_bits": {
+      "categorical_read_conditioned": 10.858179979303403,
+      "h4_read_conditioned": 10.904162501487109,
+      "local_no_update": 11.158288568979314
+    },
+    "artifact": {
+      "bytes": 250,
+      "h4_sha256": "7426ad8b45cbabe9ca885fcc06fc83157de4d9c6c475f271b13f0d0af7106bd3"
+    },
+    "causal": {
+      "emitted_changes_when_relation_changes": 9,
+      "emitted_changes_when_value_code_input_changes": 0,
+      "fresh_read_positions_updated": 28
+    },
+    "generated_first_token": {
+      "h4_read_conditioned_hits": 0,
+      "local_no_update_hits": 0,
+      "positions": 30,
+      "samples": [
+        {
+          "answer": 398,
+          "decoded": "terageiceessagecesateagereatistageileter\n\nThe the",
+          "steps": [
+            {
+              "admitted": 4,
+              "emitted": 198,
+              "payload": 473,
+              "q0": 85,
+              "q1": 95,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 198,
+              "payload": null,
+              "q0": 0,
+              "q1": 0,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 504,
+              "payload": 362,
+              "q0": 0,
+              "q1": 0,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 260,
+              "payload": null,
+              "q0": 84,
+              "q1": 84,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            352,
+            473,
+            569,
+            362,
+            473,
+            561,
+            368,
+            473,
+            548,
+            363,
+            473,
+            552,
+            352,
+            198,
+            198,
+            504,
+            260
+          ]
+        },
+        {
+          "answer": 366,
+          "decoded": "verellateriveellentsmentellileive\n\nThe the",
+          "steps": [
+            {
+              "admitted": 2,
+              "emitted": 198,
+              "payload": 478,
+              "q0": 0,
+              "q1": 63,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 198,
+              "payload": null,
+              "q0": 0,
+              "q1": 0,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 504,
+              "payload": 358,
+              "q0": 0,
+              "q1": 0,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 260,
+              "payload": null,
+              "q0": 84,
+              "q1": 84,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            331,
+            478,
+            571,
+            404,
+            478,
+            547,
+            358,
+            478,
+            552,
+            404,
+            198,
+            198,
+            504,
+            260
+          ]
+        },
+        {
+          "answer": 274,
+          "decoded": "ionardileersarditionectardachect-free,",
+          "steps": [
+            {
+              "admitted": 2,
+              "emitted": 29,
+              "payload": 477,
+              "q0": 1,
+              "q1": 38,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 86,
+              "payload": null,
+              "q0": 2,
+              "q1": 2,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 640,
+              "payload": 374,
+              "q0": 1,
+              "q1": 1,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 28,
+              "payload": null,
+              "q0": 56,
+              "q1": 56,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            285,
+            477,
+            552,
+            366,
+            477,
+            570,
+            374,
+            477,
+            554,
+            374,
+            29,
+            86,
+            640,
+            28
+          ]
+        },
+        {
+          "answer": 352,
+          "decoded": "ateostateriesostreatromostimeromed-tree",
+          "steps": [
+            {
+              "admitted": 2,
+              "emitted": 277,
+              "payload": 474,
+              "q0": 3,
+              "q1": 63,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 29,
+              "payload": null,
+              "q0": 2,
+              "q1": 2,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 100,
+              "payload": 398,
+              "q0": 2,
+              "q1": 2,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 640,
+              "payload": null,
+              "q0": 84,
+              "q1": 84,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            368,
+            474,
+            571,
+            370,
+            474,
+            548,
+            398,
+            474,
+            556,
+            398,
+            277,
+            29,
+            100,
+            640
+          ]
+        }
+      ]
+    },
+    "instrument": "derived role-partner: the query carries the role of one family; the required next token is that family's partner role, absent from the prefix and from every admitted payload",
+    "oracle_ceiling": {
+      "positions": 60,
+      "some_row_emits_the_answer": 0
+    },
+    "populations": {
+      "dev": 60,
+      "fresh": 30,
+      "tune": 30
+    },
+    "scope": "one read, one learned geometric update, shared emission readout; a bounded authored instrument, not general language or reasoning",
+    "seconds": 1.998356959,
+    "validity": {
+      "dev_answer_covered_by_a_payload": 0,
+      "dev_local_argmax_wrong": 60,
+      "dev_no_read": 0,
+      "dev_positions": 60
+    }
+  },
+  "read_conditioned_recomputable": {
+    "NLL_delta_bits_from_reported_aggregates": {
+      "categorical_read_conditioned": -0.3001085896759115,
+      "h4_read_conditioned": -0.254126067492205,
+      "local_no_update": 0.0
+    },
+    "retained_trajectory_sample_count": 4,
+    "trajectory_samples": [
+      {
+        "answer": 398,
+        "prefix_tokens": [
+          352,
+          473,
+          569,
+          362,
+          473,
+          561,
+          368,
+          473,
+          548,
+          363,
+          473,
+          552,
+          352
+        ],
+        "prefix_last_token": 352,
+        "first_emitted": 198,
+        "last_emitted": 260,
+        "first_hit": false,
+        "last_hit": false,
+        "answers_absent_from_saved_prefix": true,
+        "all_saved_step_emissions_match_tokens": true
+      },
+      {
+        "answer": 366,
+        "prefix_tokens": [
+          331,
+          478,
+          571,
+          404,
+          478,
+          547,
+          358,
+          478,
+          552,
+          404
+        ],
+        "prefix_last_token": 404,
+        "first_emitted": 198,
+        "last_emitted": 260,
+        "first_hit": false,
+        "last_hit": false,
+        "answers_absent_from_saved_prefix": true,
+        "all_saved_step_emissions_match_tokens": true
+      },
+      {
+        "answer": 274,
+        "prefix_tokens": [
+          285,
+          477,
+          552,
+          366,
+          477,
+          570,
+          374,
+          477,
+          554,
+          374
+        ],
+        "prefix_last_token": 374,
+        "first_emitted": 29,
+        "last_emitted": 28,
+        "first_hit": false,
+        "last_hit": false,
+        "answers_absent_from_saved_prefix": true,
+        "all_saved_step_emissions_match_tokens": true
+      },
+      {
+        "answer": 352,
+        "prefix_tokens": [
+          368,
+          474,
+          571,
+          370,
+          474,
+          548,
+          398,
+          474,
+          556,
+          398
+        ],
+        "prefix_last_token": 398,
+        "first_emitted": 277,
+        "last_emitted": 640,
+        "first_hit": false,
+        "last_hit": false,
+        "answers_absent_from_saved_prefix": true,
+        "all_saved_step_emissions_match_tokens": true
+      }
+    ],
+    "full_population_retained": false,
+    "oracle_row_scores_retained": false,
+    "teacher_forced_per_position_predictions_retained": false,
+    "per_position_source_correctness_retained": false,
+    "claim_limit": "Cannot independently numerically re-evaluate60-row oracle or60/30/30accuracy, or30generation hits without new model evaluation. Only4/30update trajectories retained, no corresponding local trajectories. All four saved sample first and fourth emissions are wrong."
+  },
+  "source_diagnoses": [
+    {
+      "finding": "RC decision is offset from the intended boundary",
+      "evidence": "make_derive_seq ends in[qrole,qkey], leaving answer only in metadata. observe_full requires i+1<len; rc_positions selects last candidate-bearing observation, excluding the final qkey. rc_rollout also truncates final token. Both operate before the intended complete query, or extraction can backtrack further.",
+      "consequence": "0/60oracle is scoped to extracted wrong-boundary positions, not proof of a ceiling for the intended query task."
+    },
+    {
+      "finding": "Generated first-token metric scores fourth H4 token versus first local token",
+      "evidence": "rc_rollout(...4) then toks.last() vs rc_rollout(...1) local_toks.last().",
+      "consequence": "Reported0/30is a fourth-token aggregate, not a validated matched first-token metric. Four saved examples happen to fail both."
+    },
+    {
+      "finding": "Instrument does not require retrieval",
+      "evidence": "answer is deterministic partner of qrole selected from fixed banks; qrole is in finalquery. Sourceblockvalues are independently sampled and do not determine partner.",
+      "consequence": "A direct learned query-role-to-partner map solves the authored function without source access. A future head win needs same-query/different-source counterfactuals, not only answer-absent-from-prefix."
+    },
+    {
+      "finding": "No learned update improvements",
+      "evidence": "rc_learn accepts only strict accuracy gains and oracle reports zero for all120sharedrows at eachdevposition. Saved parameters equal their initialization.",
+      "consequence": "Causal state movement and NLL shifts measure seeded maps; they do not validate learned transport/value semantics."
+    },
+    {
+      "finding": "Categorical comparator is seeded H4",
+      "evidence": "Both call ReadConditionedParams.update with same H4product table; only value initialization differs.",
+      "consequence": "No geometry-versus-nongeometric attribution."
+    },
+    {
+      "finding": "Causal controls intervene on extracted inputs rather than source observations",
+      "evidence": "The loop replaces payload id and increments relation index on RcPos, not actual source occurrence and re-admission; H4values allidentityyield0valuechanges.",
+      "consequence": "Nine relation changes prove sensitivity to an abstract index perturbation only; this does not establish relevant-source use or correct derived emission."
+    },
+    {
+      "finding": "New artifact round-trip not used as served predictor",
+      "evidence": "from_bytes comparison increments reload_failures then discards back; evaluations continue with original rc_h4 and rc_cat. The new artifact does not bind geometry, tokenizer, source parent, data, or training seed.",
+      "consequence": "Round-trip equality is measured; independently loaded full-predictor parity not measured."
+    },
+    {
+      "finding": "Frozen readout does not assign zero probability to uncopied tokens",
+      "evidence": "Reported finite answer NLL of 10.9 to 11.2 bits entails positive probability; the oracle checks argmax achievability under z_base + u(q), not zero support.",
+      "consequence": "Write: cannot win argmax in this observed finite family. Do not write: places no mass on tokens absent from the prefix."
+    }
+  ],
+  "behavior_cost_scope": {
+    "old_intervention_arms": [
+      "h4_policy (reloaded)"
+    ],
+    "new_RC_disabled_check": "single identity().update(7,3,100)==7 probe; not actual disabled-logit path parity",
+    "confidence_cost": "NOT_RUN",
+    "measured_cost_arm": "h4_policy (32-address coarse policy)",
+    "RC_operator_inference_timing": "NOT_RUN",
+    "confidence_rollout_wall_time_s": 24.171676750000017,
+    "RC_whole_block_wall_time_s": 1.9983591669999896,
+    "elapsed_s": 386.472155917,
+    "physical_energy": "UNAVAILABLE",
+    "scope": "The 1.998 second RC block includes construction, extraction, search, serialization, evaluation and generation. It is not inference throughput. Old coarse-policy cost cannot qualify the new operator."
+  },
+  "script_sha256": "daff03900aeb57ef169a52769eabdf27a5fa2495a132461ef9c6f00752f535d8",
+  "resources": {
+    "storage_before": {
+      "schema": "uor-storage-inventory-v1",
+      "collected_at": "2026-09-21T16:26:26.998479+00:00",
+      "disk": {
+        "total_bytes": 245107195904,
+        "used_bytes": 207357042688,
+        "free_bytes": 37750153216
+      },
+      "proposed_reserve_bytes": 36766079385,
+      "below_proposed_reserve": false,
+      "paths": [
+        {
+          "label": "model_assets",
+          "path": "/Users/casey.allard/uor-r4/.uor-models",
+          "status": "LOWER_BOUND_OR_UNAVAILABLE",
+          "allocated_bytes": 20991012864,
+          "diagnostic_lines": 3
+        },
+        {
+          "label": "local_target",
+          "path": "/Users/casey.allard/uor-r4/target",
+          "status": "MEASURED",
+          "allocated_bytes": 8904548352,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "codex_worktrees",
+          "path": "/Users/casey.allard/.codex/worktrees",
+          "status": "MEASURED",
+          "allocated_bytes": 495919104,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "knowledge",
+          "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+          "status": "MEASURED",
+          "allocated_bytes": 1972465664,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "tooling",
+          "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+          "status": "MEASURED",
+          "allocated_bytes": 1207754752,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "uv_tools",
+          "path": "/Users/casey.allard/.local/share/uv/tools",
+          "status": "MEASURED",
+          "allocated_bytes": 288870400,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "uv_cache",
+          "path": "/Users/casey.allard/.cache/uv",
+          "status": "MEASURED",
+          "allocated_bytes": 64475136,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "cargo_registry",
+          "path": "/Users/casey.allard/.cargo/registry",
+          "status": "MEASURED",
+          "allocated_bytes": 511242240,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "cargo_git",
+          "path": "/Users/casey.allard/.cargo/git",
+          "status": "MEASURED",
+          "allocated_bytes": 824213504,
+          "diagnostic_lines": 0
+        },
+        {
+          "label": "prior_worktree_target",
+          "path": "/Users/casey.allard/uor-r4/.worktrees/geometric-query-read/target",
+          "status": "MEASURED",
+          "allocated_bytes": 14520840192,
+          "diagnostic_lines": 0
+        }
+      ],
+      "deletions": 0,
+      "notes": [
+        "Rows can overlap; do not sum them as exclusive volume usage.",
+        "du allocated-byte estimates may share APFS clone data.",
+        "Permission errors remain errors; no sealed paths are opened or unlocked.",
+        "Size alone does not make a path disposable. Review changes, evidence and references first."
+      ]
+    },
+    "cleanup": {
+      "removed_count": 266,
+      "logical_bytes": 871983953,
+      "free_before": 37774331904,
+      "free_after": 38645444608,
+      "observed_free_gain": 871112704,
+      "root": "/Users/casey.allard/uor-r4/.worktrees/geometric-query-read/target/debug/deps",
+      "preserved": "source,worktrees,executables,dynamic libraries,models,sealed evidence,research,downloads"
+    },
+    "ledger_reconciliation": {
+      "before": {
+        "cumulative_ms": 199837700,
+        "limit_ms": 200900000
+      },
+      "after": {
+        "cumulative_ms": 203037700,
+        "limit_ms": 204900000
+      },
+      "basis": "Reconcile existing DeepSeek prose charge3200000 and documented extension4000000, not new authorization or extra charge. Component sum3177500 is22500 below charged estimate; retain conservative3200000. Live JSON not updated by original run."
+    },
+    "principal_check_ms": 444175,
+    "live_ledger_after_checks": {
+      "cumulative_ms": 203481875,
+      "limit_ms": 204900000
+    },
+    "free_bytes_after_checks": 38592483328
+  },
+  "principal_repairs": {
+    "model_rerun": "NOT_RUN",
+    "scope": "correct causal prefix and continuation indexing; truthful alternate-H4 label; consume fail-closed reloaded parameters; bound/canonicalize parser; include module in future source bindings",
+    "new_context_required_instrument": "NEXT_RUN",
+    "learned_shared_emission": "NEXT_RUN",
+    "validation": [
+      {
+        "command": [
+          "fmt",
+          "-p",
+          "uor-r4-core"
+        ],
+        "elapsed_ms": 3084,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1334-validation-0.log",
+        "free_bytes_after": 38649143296
+      },
+      {
+        "command": [
+          "fmt",
+          "-p",
+          "uor-r4-core",
+          "--",
+          "--check"
+        ],
+        "elapsed_ms": 3027,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1334-validation-1.log",
+        "free_bytes_after": 38649282560
+      },
+      {
+        "command": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "confidence_boundary_tests",
+          "--offline"
+        ],
+        "elapsed_ms": 185611,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1334-validation-2.log",
+        "free_bytes_after": 38611529728
+      },
+      {
+        "command": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "read_conditioned::tests",
+          "--offline"
+        ],
+        "elapsed_ms": 234052,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1334-validation-3.log",
+        "free_bytes_after": 38590603264
+      },
+      {
+        "command": [
+          "check",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "--offline"
+        ],
+        "elapsed_ms": 18200,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1334-validation-4.log",
+        "free_bytes_after": 38590537728
+      },
+      {
+        "command": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "read_conditioned_boundary_tests",
+          "--offline"
+        ],
+        "elapsed_ms": 201,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1334-validation-5.log",
+        "free_bytes_after": 38590337024
+      }
+    ]
+  }
+}

@@ -20,6 +20,7 @@ pub mod prefix_artifact;
 pub mod prefix_state;
 pub mod prior_learning;
 pub mod query_read;
+pub mod read_conditioned;
 pub mod realtext_support;
 pub mod relational;
 pub mod transition_table;

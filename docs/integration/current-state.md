@@ -1,6 +1,32 @@
 # Current native geometric AI work
 
-## Active: retain confidence access; learn a read-conditioned geometric emission update
+## Active: learn contextual transformation and shared emission at the correct boundary
+
+**PR #1334, independently reviewed and corrected:** short frozen-confidence generation is verified: H4 23/42 reads, categorical 22/42, valid exact references and disabled/local token parity 7/7. The new update result is a **seeded frozen-row diagnostic with an invalid contextual instrument**: target depends on the query suffix, extraction omits its last key, accuracy-only search makes no parameter changes, and the alleged categorical arm is the same H4 algebra. The reported 0/60 ceiling is limited to those extracted positions, not a sole-readout diagnosis. Original confidence preservation failures remain exposed replays. [Principal review](read-conditioned-review-2026-09-21.md); [audit](../evidence/read-conditioned-principal-review-2026-09-21.json).
+
+**Next:** [one genuinely context-required transformation with a learned shared low-bit emitter](deepseek-contextual-emission-step-2026-09-21.md). Use identical-query pairs with changed older payloads and different uncopied outputs, correct full-prefix serving, useful NLL/margin learning, a real matched alternate update algebra and actual changed-source/disabled generation. Retain admission/selection and exact ownership initially; dependent scheduling follows a useful one-read primitive. Structural/Hopf and conditional S7/E8/harmonic tools remain available for witnessed needs. No new trained model or broader language qualification is claimed by the principal repair.
+
+All 12 sealed files, five RLR2/four parent hashes and three declared source hashes verify. The new module was omitted from the original source binding. Both RLRC maps match initialization; reported answer-NLL reductions are not learned gains. Original new oracle/accuracy aggregates lack sufficient per-position rows for independent replay without inference; only four update trajectories remain. Six-token confidence continuations do not qualify conflict/source interventions or useful complete responses. Principal code repairs full-prefix extraction, first-token/equal-horizon scoring, loader use/bounds and future source inventory; focused checks do not rerun model evaluation.
+
+Use the absolute owner-checkout live resource JSON and latest ledger. Prior3200000-ms charge/+4000000-ms allowance were missing there and are reconciled; principal checks debit separately. Cache-only cleanup recovered 871112704 bytes observed free space, with all source/models/evidence/research preserved. Refresh physical headroom and reserve + 128 MiB before work.
+
+### Historical submission and earlier states (read with the active corrections)
+
+## Historical submission: read-conditioned rollout and originally claimed readout diagnosis
+
+**Frozen-confidence rollout executed.** The actual retained confidence artifacts now run through the shared target-free predictor: length-64 opcode dispatch after reload, 45 reads over 84 steps with exact selected occurrences and served actions, read-disabled reproducing local, degenerate text consistent with the retained whole-model negative. [Result](read-conditioned-result-2026-09-21.md); [evidence](../evidence/read-conditioned-2026-09-21.json).
+
+**Corrected confidence criteria preserved (own parents, CE included).** Fresh population: H4 confidence 71/117 present emitted (own parent 73), present CE **+0.159790 bits/query**, absent reads **11/10**, text +0.037882, tune +0.061316; categorical 79/117 (own parent 81), **+0.152981**, **7/6**, +0.020116, +0.061381; whole-stream 178 (parent 364) and 184 (parent 378). Both meet the emitted-count margin and the fresh text screen and **both fail own-parent present CE and absence**. Retain the fitted expressivity gain; no promotion.
+
+**One learned read-conditioned geometric update — bounded negative at a diagnosed ceiling.** `q1 = (q0*T[r])*V[payload]`, `z1 = z_local + u(q1) - u(q0)`, `NoRead`/`UpdateDisabled` exactly zero. Instrument (derived role-partner; answer absent from every admitted payload; 60/60 local-wrong; 0 coverage violations): the **oracle ceiling is 0/60** — no frozen readout row can emit the required uncopied answer — so accuracy is 0.000 on dev/tune/fresh for H4 and the matched categorical arm. The update is causally live (28/30 fresh positions change state; changing the relation changes the emitted token at 9; answer CE falls ~0.25–0.30 bits) but cannot reach the answer.
+
+**Next:** the limitation is the **shared emission readout**, not admission, selection or update expressivity. Add one **learned small shared low-bit output residual** so a read-conditioned state can place mass on a token absent from the prefix; keep the transport/value maps, the exact-zero disabled path and the artifacts. Dependent Read -> Update -> Read/Emit follows only after a useful causal transformation. Whole-model prose remains degenerate; energy UNAVAILABLE; whole-path D0-b not claimed.
+
+Delivered root `.uor-models/realtext-prior-2026-09-20/read-conditioned-1` (sealed, verified, 0 unlisted, manifest `99f7416b1f87a25e5e92996371251e50f353d56ff6dc1de9c7b6319333a73e19`); `reload_failures = 0`; source hashes cover four modules including `read_conditioned.rs`. Ledger and charges: [resource ledger](resource-ledger-2026-09-19.md).
+
+### Previous active (superseded by the section above)
+
+## Former active: retain confidence access; learn a read-conditioned geometric emission update
 
 **PR #1333, independently reviewed and corrected:** the confidence sign restores fitted policy expressivity; both selected tables meet development-fit constraints. Fresh joint preservation fails for both: H4 present 71/117 versus parent 73, categorical 79 versus its own parent 81; present CE worsens **+0.159790/+0.152981 bits/query** above +.05, and absent reads rise **11/10 and 7/6**. Text deltas remain **+0.037882/+0.020116 bits/token**; both tune text screens fail. Confidence generation/intervention/timing are NOT_RUN. Preserve this useful interface component without promotion. [Principal review](reader-confidence-review-2026-09-21.md); [audit](../evidence/reader-confidence-principal-review-2026-09-21.json).
 
@@ -904,7 +930,7 @@ Active worktree /Users/casey.allard/uor-r4-worktrees/shared-geometric-core; bran
 
 **PASS_HAMMING_REFINEMENT_PRIMITIVES.** [Executed result](../native_geometric_hamming_refinement_973.md) and [source-bound evidence](../evidence/native_geometric_hamming_refinement_973.json). Owner adopted Hamming-based relevance inside bounded repeated contextual refinement. New Rust kernel queries, reads exact records, exposes all four selected start-context roots and full owned payload, composes working state, then queries again for1..4hops. It preserves exact references and preceding-hop provenance. Five authored cases establish changed-fourth-root→changed-second-read; disabling update or restricting to first root loses the dependency. These are selected fixture payloads, not learned/generated language. Retain15baec48; old model gate remains failed; no promotion.
 
-All120geometric signatures are distinct. Single-root Hamming/angle ranking agrees across856800comparisons:727320strict,129480ties,zero reversals/tie changes. Independent summed two-lane ordering and softmax weights are not certified equivalent. Candidate admission remains a bounded256occurrence/eight-result scan. Learned policy/emission, full paired-H4/fiber integration and hierarchical routing remain explicit missing work. No fit or parameter update occurred.
+All 120geometric signatures are distinct. Single-root Hamming/angle ranking agrees across856800comparisons:727320strict,129480ties,zero reversals/tie changes. Independent summed two-lane ordering and softmax weights are not certified equivalent. Candidate admission remains a bounded256occurrence/eight-result scan. Learned policy/emission, full paired-H4/fiber integration and hierarchical routing remain explicit missing work. No fit or parameter update occurred.
 
 Seven focused release tests plus separate sealed report pass. Complete charge115442/240000ms; shared123490955/132950000ms; parent3740382/3870000ms after recorded140000ms local extension. Step96MiB,4GiB RAM,two build threads/one process,128MiB margin. Prior28sealed roots/873files and original dirty checkouts/retained model preserved. No paid compute, cleanup or V3–V7 replay.
 
@@ -2100,7 +2126,7 @@ record. The complete `c29ab982` parent and all learned numeric/source parameters
 remain unchanged; no session-state field or response provider is added.
 
 Exposed complete answers improve12/16 to14/16 and reserved changed-name/value
-answers14/16 to15/16. All12 new numeric answers and3/4 abstentions pass. The
+answers14/16 to15/16. All 12 new numeric answers and3/4 abstentions pass. The
 remaining new failure copies `coins` as a location answer. Complete three-turn
 computations stay16/16, identifier returns8/8, and the earlier independent set
 16/16. Preservation passes48/48 dependent cases,62/62 earlier responses,24/24

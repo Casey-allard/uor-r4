@@ -1,5 +1,7 @@
 # DeepSeek execution: learned read-conditioned geometric emission
 
+> **Executed in part; principal correction after PR #1334:** [review](read-conditioned-review-2026-09-21.md) distinguishes verified short confidence rollout from a suffix-solvable, misindexed frozen-row diagnostic with unchanged maps. The [new execution prompt](deepseek-contextual-emission-step-2026-09-21.md) owns scheduling. Original instructions/design below remain dated evidence, not completed claims.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Execute the next constructive step: characterize the frozen confidence operator through actual generation, then implement one bounded learned Read -> geometric Update -> shared Emit primitive. Preserve useful components and unfavorable evidence. Use your mathematical/engineering judgment; an equivalent smaller factorization is welcome if it answers the same causal question. Explain substantive choices before opening final outcomes. Do not reduce this to another gate-feature sweep or a documentation-only plan.
 
 ## Recover exact context and authority

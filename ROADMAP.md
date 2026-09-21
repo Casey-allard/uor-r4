@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**September 21, after PR #1333:** [principal review](docs/integration/reader-confidence-review-2026-09-21.md) retains the confidence interface but corrects fresh joint-preservation failures and missing generated-behavior qualification. [Next](docs/integration/deepseek-read-conditioned-state-step-2026-09-21.md): compact frozen-reader rollout, then one learned Read -> geometric Update -> shared Emit residual that can change nonpayload predictions. Follow with dependent reads/derived composition and structural persistence where needed, broader language/executed Rust, then qualified scale/energy. No automatic stream-label feature or dimensional expansion.
+**Current direction after PR #1334:** [principal review](docs/integration/read-conditioned-review-2026-09-21.md) retains verified short confidence generation and corrects the seeded/misindexed update diagnosis. [Next](docs/integration/deepseek-contextual-emission-step-2026-09-21.md): a genuinely context-required transformation plus learned shared low-bit emission, then dependent composition, needed structural persistence, broader language/executed Rust and qualified efficiency.
 
 ## Capability direction
 

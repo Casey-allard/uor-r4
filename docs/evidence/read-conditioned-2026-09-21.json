@@ -1,0 +1,431 @@
+{
+  "scope": "read-conditioned step: frozen-confidence rollout (completion evidence) + one learned read-conditioned geometric update (bounded negative)",
+  "run_root": ".uor-models/realtext-prior-2026-09-20/read-conditioned-1",
+  "base_revision": "466043eb",
+  "running_git_rev": "466043eb",
+  "git_dirty": "true",
+  "manifest_digest": "99f7416b1f87a25e5e92996371251e50f353d56ff6dc1de9c7b6319333a73e19",
+  "reload_failures": 0,
+  "source_files": [
+    "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs"
+  ],
+  "integrity": {
+    "result_sha256": "caa74a9763d89296eb8dda98739b74ce3fdac871c75682fa9dcb9099e92d2cc0",
+    "binding_sha256": "1ea9df2604d90177f57e6f2be49d3c6f275eb65353969c36d5ce2bcf15534f84",
+    "manifest_listed_file_count": 12
+  },
+  "corrected_confidence_outcome": {
+    "note": "each arm versus its OWN parent on the fresh acceptance population; present CE is the final-present stratum CE change",
+    "fresh_final_present": {
+      "local": {
+        "present_emitted": 0,
+        "present_delta_bpp": 0.0,
+        "absent_reads": 0,
+        "absent_delta_bpp": 0.0,
+        "stream_delta_bpp": 0.0,
+        "stream_emitted": 0,
+        "reads": 0
+      },
+      "relational_ctx_parent": {
+        "present_emitted": 73,
+        "present_delta_bpp": -8.578265,
+        "absent_reads": 10,
+        "absent_delta_bpp": 0.316326,
+        "stream_delta_bpp": -1.88257,
+        "stream_emitted": 364,
+        "reads": 839
+      },
+      "categorical_parent": {
+        "present_emitted": 81,
+        "present_delta_bpp": -9.987041,
+        "absent_reads": 6,
+        "absent_delta_bpp": 0.237256,
+        "stream_delta_bpp": -1.995912,
+        "stream_emitted": 378,
+        "reads": 755
+      },
+      "h4_confidence": {
+        "present_emitted": 71,
+        "present_delta_bpp": -8.418475,
+        "absent_reads": 11,
+        "absent_delta_bpp": 0.293274,
+        "stream_delta_bpp": -1.045082,
+        "stream_emitted": 178,
+        "reads": 703
+      },
+      "categorical_confidence": {
+        "present_emitted": 79,
+        "present_delta_bpp": -9.83406,
+        "absent_reads": 7,
+        "absent_delta_bpp": 0.157231,
+        "stream_delta_bpp": -1.16246,
+        "stream_emitted": 184,
+        "reads": 804
+      },
+      "h4_policy": {
+        "present_emitted": 57,
+        "present_delta_bpp": -7.460245,
+        "absent_reads": 23,
+        "absent_delta_bpp": 0.323591,
+        "stream_delta_bpp": -1.738493,
+        "stream_emitted": 322,
+        "reads": 1871
+      }
+    },
+    "fresh_text_delta_bits_per_token": {
+      "local": 0.0,
+      "relational_ctx_parent": 0.434614,
+      "categorical_parent": 0.448547,
+      "h4_confidence": 0.037882,
+      "categorical_confidence": 0.020116
+    },
+    "selected_tune_text_bits_per_token": {
+      "h4_confidence": 0.06131615742270432,
+      "categorical_confidence": 0.061381213938993734
+    },
+    "criteria": {
+      "present_count_margin": "2/121 translated",
+      "present_ce_margin_bits_per_query": 0.05,
+      "absent_reads": "no increase",
+      "text_screen_bits_per_token": 0.05
+    },
+    "verdict": "both confidence arms meet the emitted-count margin and the text screen, but both fail OWN-parent present CE (+0.1598/+0.1530) and absent-read preservation (11/10, 7/6); both tune text values exceed +0.05"
+  },
+  "read_conditioned": {
+    "instrument": "derived role-partner: the query carries the role of one family; the required next token is that family's partner role, absent from the prefix and from every admitted payload",
+    "populations": {
+      "dev": 60,
+      "fresh": 30,
+      "tune": 30
+    },
+    "validity": {
+      "dev_answer_covered_by_a_payload": 0,
+      "dev_local_argmax_wrong": 60,
+      "dev_no_read": 0,
+      "dev_positions": 60
+    },
+    "oracle_ceiling": {
+      "positions": 60,
+      "some_row_emits_the_answer": 0
+    },
+    "accuracy": {
+      "categorical_read_conditioned": {
+        "dev": 0.0,
+        "fresh": 0.0,
+        "tune": 0.0
+      },
+      "h4_read_conditioned": {
+        "dev": 0.0,
+        "fresh": 0.0,
+        "tune": 0.0
+      },
+      "local_no_update": {
+        "dev": 0.0,
+        "fresh": 0.0,
+        "tune": 0.0
+      }
+    },
+    "answer_nll_bits": {
+      "categorical_read_conditioned": 10.858179979303403,
+      "h4_read_conditioned": 10.904162501487109,
+      "local_no_update": 11.158288568979314
+    },
+    "causal": {
+      "emitted_changes_when_relation_changes": 9,
+      "emitted_changes_when_value_code_input_changes": 0,
+      "fresh_read_positions_updated": 28
+    },
+    "generated_first_token": {
+      "h4_read_conditioned_hits": 0,
+      "local_no_update_hits": 0,
+      "positions": 30,
+      "samples": [
+        {
+          "answer": 398,
+          "decoded": "terageiceessagecesateagereatistageileter\n\nThe the",
+          "steps": [
+            {
+              "admitted": 4,
+              "emitted": 198,
+              "payload": 473,
+              "q0": 85,
+              "q1": 95,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 198,
+              "payload": null,
+              "q0": 0,
+              "q1": 0,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 504,
+              "payload": 362,
+              "q0": 0,
+              "q1": 0,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 260,
+              "payload": null,
+              "q0": 84,
+              "q1": 84,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            352,
+            473,
+            569,
+            362,
+            473,
+            561,
+            368,
+            473,
+            548,
+            363,
+            473,
+            552,
+            352,
+            198,
+            198,
+            504,
+            260
+          ]
+        },
+        {
+          "answer": 366,
+          "decoded": "verellateriveellentsmentellileive\n\nThe the",
+          "steps": [
+            {
+              "admitted": 2,
+              "emitted": 198,
+              "payload": 478,
+              "q0": 0,
+              "q1": 63,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 198,
+              "payload": null,
+              "q0": 0,
+              "q1": 0,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 504,
+              "payload": 358,
+              "q0": 0,
+              "q1": 0,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 260,
+              "payload": null,
+              "q0": 84,
+              "q1": 84,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            331,
+            478,
+            571,
+            404,
+            478,
+            547,
+            358,
+            478,
+            552,
+            404,
+            198,
+            198,
+            504,
+            260
+          ]
+        },
+        {
+          "answer": 274,
+          "decoded": "ionardileersarditionectardachect-free,",
+          "steps": [
+            {
+              "admitted": 2,
+              "emitted": 29,
+              "payload": 477,
+              "q0": 1,
+              "q1": 38,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 86,
+              "payload": null,
+              "q0": 2,
+              "q1": 2,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 640,
+              "payload": 374,
+              "q0": 1,
+              "q1": 1,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 28,
+              "payload": null,
+              "q0": 56,
+              "q1": 56,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            285,
+            477,
+            552,
+            366,
+            477,
+            570,
+            374,
+            477,
+            554,
+            374,
+            29,
+            86,
+            640,
+            28
+          ]
+        },
+        {
+          "answer": 352,
+          "decoded": "ateostateriesostreatromostimeromed-tree",
+          "steps": [
+            {
+              "admitted": 2,
+              "emitted": 277,
+              "payload": 474,
+              "q0": 3,
+              "q1": 63,
+              "read": true,
+              "step": 0,
+              "updated": true
+            },
+            {
+              "admitted": 1,
+              "emitted": 29,
+              "payload": null,
+              "q0": 2,
+              "q1": 2,
+              "read": false,
+              "step": 1,
+              "updated": false
+            },
+            {
+              "admitted": 1,
+              "emitted": 100,
+              "payload": 398,
+              "q0": 2,
+              "q1": 2,
+              "read": true,
+              "step": 2,
+              "updated": false
+            },
+            {
+              "admitted": 0,
+              "emitted": 640,
+              "payload": null,
+              "q0": 84,
+              "q1": 84,
+              "read": false,
+              "step": 3,
+              "updated": false
+            }
+          ],
+          "tokens": [
+            368,
+            474,
+            571,
+            370,
+            474,
+            548,
+            398,
+            474,
+            556,
+            398,
+            277,
+            29,
+            100,
+            640
+          ]
+        }
+      ]
+    },
+    "artifact": {
+      "bytes": 250,
+      "h4_sha256": "7426ad8b45cbabe9ca885fcc06fc83157de4d9c6c475f271b13f0d0af7106bd3"
+    },
+    "scope": "one read, one learned geometric update, shared emission readout; a bounded authored instrument, not general language or reasoning"
+  },
+  "confidence_rollout": {
+    "prompts": 7,
+    "note": "actual confidence artifacts run through the shared target-free predictor with complete emitted tokens and exact selected occurrences",
+    "confidence_read_steps": 45
+  },
+  "limitations": [
+    "bounded authored instrument, not general language or reasoning",
+    "whole-model prose remains degenerate",
+    "physical energy UNAVAILABLE",
+    "whole-path D0-b not claimed",
+    "no positive read-conditioned capability: oracle ceiling zero"
+  ],
+  "successor": "a learned small shared low-bit output residual so a read-conditioned state can place mass on an uncopied token",
+  "principal_correction": {
+    "review": "docs/integration/read-conditioned-review-2026-09-21.md",
+    "audit": "docs/evidence/read-conditioned-principal-review-2026-09-21.json",
+    "retained": "verified short confidence rollout; old panels are exposed replays; seeded finite-row diagnostic on earlier prefixes",
+    "not_established": [
+      "context-required instrument",
+      "learned update improvement",
+      "nongeometric comparator",
+      "readout-only diagnosis",
+      "new model promotion"
+    ],
+    "code_repairs": "full prefix, first token, fail-closed returned loader, future source inventory; model rerun NOT_RUN",
+    "next": "genuine paired older-context transformation plus learned shared low-bit emission"
+  }
+}
