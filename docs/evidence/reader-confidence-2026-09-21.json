@@ -1,0 +1,365 @@
+{
+  "scope": "development selection plus one declared fresh evaluation of the read-confidence influence interface; not generalization",
+  "run_root": ".uor-models/realtext-prior-2026-09-20/reader-confidence-3",
+  "base_revision": "e0d6296c",
+  "running_git_rev": "e0d6296c",
+  "git_dirty": "true",
+  "manifest_digest": "d81bda9e3dbff98a69ba5020631527698fbad83f3359611c1a15c5f3d6b0255f",
+  "reload_failures": 0,
+  "source_files": [
+    "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs"
+  ],
+  "integrity": {
+    "result_sha256": "5ae3ec57f2118813857a1d72812dd50e8de4e612070f3ece8e4095cd06c1d6e9",
+    "binding_sha256": "d5ba6fd0199d97a64628d545ab153b1d00e9305671bf4e864f8a8f4a13e27f4c",
+    "manifest_listed_file_count": 10
+  },
+  "witness_parity": {
+    "h4_confidence": {
+      "checked_positions": 2969,
+      "mismatches": 0,
+      "parent_reads": 1336
+    },
+    "categorical_confidence": {
+      "checked_positions": 2969,
+      "mismatches": 0,
+      "parent_reads": 1184
+    }
+  },
+  "development_selected": {
+    "h4_confidence": {
+      "solve_status": "OPTIMAL",
+      "exhaustive": true,
+      "supported_addresses": 28,
+      "text_bits_per_token": 0.022779966081993296,
+      "present_emitted_correct": 148.0,
+      "present_delta_bits": -1926.6357306245227,
+      "absent_reads": 7.0,
+      "absent_delta_bits": 3.4970738323129975,
+      "meets_text_screen": true,
+      "improves_over_local": false,
+      "tune_text_bits_per_token": 0.06131615742270432,
+      "tune_present_emitted_correct": 35.0,
+      "tune_absent_reads": 4.0,
+      "witness_table_text_bits_per_token": 0.5723799937824762
+    },
+    "categorical_confidence": {
+      "solve_status": "OPTIMAL",
+      "exhaustive": true,
+      "supported_addresses": 27,
+      "text_bits_per_token": 0.0035902669675637847,
+      "present_emitted_correct": 158.0,
+      "present_delta_bits": -2032.8929227862639,
+      "absent_reads": 5.0,
+      "absent_delta_bits": 1.4162403542533486,
+      "meets_text_screen": true,
+      "improves_over_local": false,
+      "tune_text_bits_per_token": 0.061381213938993734,
+      "tune_present_emitted_correct": 39.0,
+      "tune_absent_reads": 1.0,
+      "witness_table_text_bits_per_token": 0.47155651252451514
+    }
+  },
+  "fresh": {
+    "construction_seed": 1544536286,
+    "construction_sequences": 140,
+    "text_documents": 4
+  },
+  "intervention": {
+    "arm": "h4_policy (reloaded)",
+    "attempted": 140,
+    "candidate_pool_size_changed": 16,
+    "control": "selected_source_intervention_four_conditions",
+    "enabled_emission_changed_by_the_intervention": 116,
+    "enabled_emitted_the_new_payload": 93,
+    "enabled_selected_the_new_payload": 138,
+    "invariant_disabled_before_equals_disabled_after": 140,
+    "lost_support_after_intervention": 0,
+    "neighbor_payload_or_feature_changed": 20,
+    "neighbors_added": 0,
+    "neighbors_removed": 16,
+    "no_read_after_intervention": 0,
+    "note": "four matched conditions on the same prefix: enabled-original, enabled-changed, disabled-original, disabled-changed; the replacement payload is absent from the whole sequence and the query is fixed; the deliberately edited occurrence is excluded from neighbour-change counts; lost admission, missing rows and NoRead are counted separately",
+    "original_occurrence_lost_admission": 0,
+    "original_occurrence_still_admitted": 140,
+    "original_source_reference_still_served": 138
+  },
+  "loader_control": {
+    "arms": [
+      "h4_policy",
+      "categorical_policy",
+      "h4_one_nat"
+    ],
+    "checks": [
+      "artifact byte hash",
+      "fit-input identity",
+      "configured feature contract",
+      "vocabulary"
+    ],
+    "control": "expected_manifest_loader",
+    "failures": 0,
+    "note": "the consumer verifies bytes, fit-input identity and the feature contract before returning a predictor; all four rejections are exercised through that consumer",
+    "rejection_probes": [
+      "drifted gap thresholds",
+      "wrong expected byte hash",
+      "wrong expected fit-input identity",
+      "truncated artifact bytes"
+    ]
+  },
+  "limitations": [
+    "development feasibility only; teacher-forced additivity does not extend to rollout",
+    "the fresh text population is four remaining Dev documents (976 positions)",
+    "physical energy UNAVAILABLE",
+    "whole-path D0-b not claimed",
+    "no useful (negative) text gain was obtained; no positive influence claim is made"
+  ],
+  "panels": {
+    "construction_confidence_fresh:local": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": 0.0,
+      "reads": 0,
+      "emitted_correct_reader": 0,
+      "final_present_emitted": 0,
+      "final_present_delta_bpp": 0.0,
+      "final_absent_reads": 0,
+      "final_absent_delta_bpp": 0.0
+    },
+    "construction_confidence_fresh:relational_ctx_parent": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": -1.882569943720506,
+      "reads": 839,
+      "emitted_correct_reader": 364,
+      "final_present_emitted": 73,
+      "final_present_delta_bpp": -8.578265076029837,
+      "final_absent_reads": 10,
+      "final_absent_delta_bpp": 0.3163260107995168
+    },
+    "construction_confidence_fresh:h4_policy": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": -1.73849290697391,
+      "reads": 1871,
+      "emitted_correct_reader": 322,
+      "final_present_emitted": 57,
+      "final_present_delta_bpp": -7.460244530698517,
+      "final_absent_reads": 23,
+      "final_absent_delta_bpp": 0.3235909604958994
+    },
+    "construction_confidence_fresh:categorical_policy": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": -1.890168778796854,
+      "reads": 1871,
+      "emitted_correct_reader": 362,
+      "final_present_emitted": 80,
+      "final_present_delta_bpp": -9.906639297405048,
+      "final_absent_reads": 23,
+      "final_absent_delta_bpp": 0.878174568241728
+    },
+    "construction_confidence_fresh:h4_one_nat_fixed": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": -0.3058465643107422,
+      "reads": 1871,
+      "emitted_correct_reader": 0,
+      "final_present_emitted": 0,
+      "final_present_delta_bpp": -1.1461745051214336,
+      "final_absent_reads": 23,
+      "final_absent_delta_bpp": 0.0004879341916757371
+    },
+    "construction_confidence_fresh:h4_confidence": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": -1.0450818717206916,
+      "reads": 703,
+      "emitted_correct_reader": 178,
+      "final_present_emitted": 71,
+      "final_present_delta_bpp": -8.418475302579125,
+      "final_absent_reads": 11,
+      "final_absent_delta_bpp": 0.29327400468731246
+    },
+    "construction_confidence_fresh:categorical_confidence": {
+      "positions": 2463,
+      "candidate_bearing": 1871,
+      "delta_bits_per_position": -1.162460457668847,
+      "reads": 804,
+      "emitted_correct_reader": 184,
+      "final_present_emitted": 79,
+      "final_present_delta_bpp": -9.834059713127015,
+      "final_absent_reads": 7,
+      "final_absent_delta_bpp": 0.15723085128016742
+    },
+    "text_confidence_fresh:local": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": 0.0,
+      "reads": 0,
+      "emitted_correct_reader": 188,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "text_confidence_fresh:relational_ctx_parent": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": 0.4346142332244169,
+      "reads": 152,
+      "emitted_correct_reader": 176,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "text_confidence_fresh:h4_policy": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": 0.08845348420297461,
+      "reads": 350,
+      "emitted_correct_reader": 172,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "text_confidence_fresh:categorical_policy": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": 0.1251175962889884,
+      "reads": 350,
+      "emitted_correct_reader": 170,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "text_confidence_fresh:h4_one_nat_fixed": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": -0.011468591773793422,
+      "reads": 350,
+      "emitted_correct_reader": 187,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "text_confidence_fresh:h4_confidence": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": 0.03788208592213144,
+      "reads": 184,
+      "emitted_correct_reader": 182,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "text_confidence_fresh:categorical_confidence": {
+      "positions": 976,
+      "candidate_bearing": 350,
+      "delta_bits_per_position": 0.020115785655669422,
+      "reads": 251,
+      "emitted_correct_reader": 181,
+      "final_present_emitted": null,
+      "final_present_delta_bpp": null,
+      "final_absent_reads": null,
+      "final_absent_delta_bpp": null
+    },
+    "construction_final:local": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": 0.0,
+      "reads": 0,
+      "emitted_correct_reader": 0,
+      "final_present_emitted": 0,
+      "final_present_delta_bpp": 0.0,
+      "final_absent_reads": 0,
+      "final_absent_delta_bpp": 0.0
+    },
+    "construction_final:relational_ctx_parent": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": -1.8553060471196428,
+      "reads": 806,
+      "emitted_correct_reader": 355,
+      "final_present_emitted": 77,
+      "final_present_delta_bpp": -8.675927148779842,
+      "final_absent_reads": 5,
+      "final_absent_delta_bpp": 0.13785360313719247
+    },
+    "construction_final:h4_policy": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": -1.72550039810501,
+      "reads": 1810,
+      "emitted_correct_reader": 319,
+      "final_present_emitted": 56,
+      "final_present_delta_bpp": -7.218002821904017,
+      "final_absent_reads": 19,
+      "final_absent_delta_bpp": 0.29693354629681545
+    },
+    "construction_final:categorical_policy": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": -1.8463760202642034,
+      "reads": 1810,
+      "emitted_correct_reader": 352,
+      "final_present_emitted": 86,
+      "final_present_delta_bpp": -9.769721877884912,
+      "final_absent_reads": 19,
+      "final_absent_delta_bpp": 0.5161386109588701
+    },
+    "construction_final:h4_one_nat_fixed": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": -0.3066112631785569,
+      "reads": 1810,
+      "emitted_correct_reader": 1,
+      "final_present_emitted": 0,
+      "final_present_delta_bpp": -1.1678230158010015,
+      "final_absent_reads": 19,
+      "final_absent_delta_bpp": 0.0004830186512139646
+    },
+    "construction_final:h4_confidence": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": -1.0639485689831363,
+      "reads": 702,
+      "emitted_correct_reader": 178,
+      "final_present_emitted": 76,
+      "final_present_delta_bpp": -8.64011077691963,
+      "final_absent_reads": 5,
+      "final_absent_delta_bpp": 0.13785360313719247
+    },
+    "construction_final:categorical_confidence": {
+      "positions": 2418,
+      "candidate_bearing": 1810,
+      "delta_bits_per_position": -1.1198779794107068,
+      "reads": 801,
+      "emitted_correct_reader": 182,
+      "final_present_emitted": 87,
+      "final_present_delta_bpp": -9.890603963251884,
+      "final_absent_reads": 1,
+      "final_absent_delta_bpp": 3.6363226217274226e-05
+    }
+  },
+  "principal_correction": {
+    "review": "docs/integration/reader-confidence-review-2026-09-21.md",
+    "audit": "docs/evidence/reader-confidence-principal-review-2026-09-21.json",
+    "fresh_joint_preservation": "FAIL_BOTH_OWN_PARENT_PRESENT_CE_AND_ABSENT_COUNTS",
+    "categorical_parent_fresh": {
+      "present_correct": 81,
+      "absent_reads": 6
+    },
+    "new_confidence_rollout_interventions_timing": "NOT_RUN",
+    "repeat_scope": "one new population first exposed inattempt1, replayed2/3",
+    "source_hashes": "all three submitted source hashes match",
+    "stream_mixing_diagnosis": "UNPROVEN",
+    "next": "Frozen confidence rollout and one learned read-conditioned geometric update/shared emission residual"
+  }
+}

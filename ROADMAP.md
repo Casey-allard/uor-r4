@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**September 21, after PR #1332:** the [principal review](docs/integration/policy-obstruction-review-2026-09-21.md) independently certifies the coarse influence obstruction: at most 74/71 correct answers versus 145 required under the absence limit. [Next](docs/integration/deepseek-reader-confidence-step-2026-09-21.md), retain the existing learned Read–NoRead advantage and verify a parent-preserving interface before learning dose. This is a specific lost-information repair, not a new dimensional claim. Structural persistence, dependent composition, broader language/executed Rust and qualified scale remain the [canonical sequence](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up); higher geometry remains available for measured needs.
+**September 21, after PR #1333:** [principal review](docs/integration/reader-confidence-review-2026-09-21.md) retains the confidence interface but corrects fresh joint-preservation failures and missing generated-behavior qualification. [Next](docs/integration/deepseek-read-conditioned-state-step-2026-09-21.md): compact frozen-reader rollout, then one learned Read -> geometric Update -> shared Emit residual that can change nonpayload predictions. Follow with dependent reads/derived composition and structural persistence where needed, broader language/executed Rust, then qualified scale/energy. No automatic stream-label feature or dimensional expansion.
 
 ## Capability direction
 

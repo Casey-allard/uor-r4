@@ -1,5 +1,7 @@
 # DeepSeek execution: restore learned read confidence and test useful influence
 
+**Executed by PR #1333.** The [principal review](reader-confidence-review-2026-09-21.md) retains fit expressivity but corrects fresh criterion/control scope. The [read-conditioned emission prompt](deepseek-read-conditioned-state-step-2026-09-21.md) supersedes this historical task specification.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Implement and evaluate the next information-preserving influence interface, deliver through a protected PR, and synchronize the project. Use your own mathematical and engineering judgment. Challenge the proposed representation if a smaller, sounder construction answers the same question, explain the choice before opening new final outcomes, and retain all unfavorable evidence. This is substantive model work, not another documentation-only audit or an instruction to tune the old policy indefinitely.
 
 ## Recover authority, context and the exact parent

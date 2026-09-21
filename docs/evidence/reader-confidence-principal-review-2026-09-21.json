@@ -1,0 +1,854 @@
+{
+  "scope": "Read-only aggregate recomputation, exact empirical document bootstrap and artifact integrity audit. No model passes, builds, fitting, repository mutations or ledger debits. No confidence-address matrices were retained, preventing independent optimizer/causal-diagnosis reproduction.",
+  "review_head": "51470ea99fb32ba7060e2657c1b661e95fd7844d",
+  "run_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/reader-confidence-3",
+  "integrity": {
+    "1": {
+      "listed_file_count": 10,
+      "size_or_blake3_mismatches": [],
+      "unlisted": [],
+      "missing": [],
+      "result_sha256": "5151c12873eb94358d047b3db89a38a28a9a9340d66404cd203f11afaaa35741",
+      "binding_sha256": "ec78ee607cccef5c30eb21c4e024c4b244603a778e25260f0df83cff1188c678",
+      "sealed_at": "1790003411"
+    },
+    "2": {
+      "listed_file_count": 10,
+      "size_or_blake3_mismatches": [],
+      "unlisted": [],
+      "missing": [],
+      "result_sha256": "580b04d5b14f9aa42680afa13cdcb82704ced4674604ab50cb383dcffd3e368f",
+      "binding_sha256": "115e66cb8fac9990f5d367a35f4bc80aed1bc1ed890c948265754d7a8e2cf91b",
+      "sealed_at": "1790003876"
+    },
+    "3": {
+      "listed_file_count": 10,
+      "size_or_blake3_mismatches": [],
+      "unlisted": [],
+      "missing": [],
+      "result_sha256": "5ae3ec57f2118813857a1d72812dd50e8de4e612070f3ece8e4095cd06c1d6e9",
+      "binding_sha256": "d5ba6fd0199d97a64628d545ab153b1d00e9305671bf4e864f8a8f4a13e27f4c",
+      "sealed_at": "1790004293"
+    },
+    "artifact_sha256_matches": {
+      "categorical_confidence": true,
+      "categorical_policy": true,
+      "h4_confidence": true,
+      "h4_one_nat": true,
+      "h4_policy": true
+    },
+    "parent_sha256_matches": {
+      "exact": true,
+      "relational": true,
+      "relational_ctx": true,
+      "categorical": true
+    },
+    "current_source_sha256_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "running_source": {
+      "executable_sha256": "67c15d0c0894c0fa4d51f060332a0ba270df8ddbea84e551f51d33df00f0ecee",
+      "git_dirty": "true",
+      "git_rev": "e0d6296c",
+      "source_file_sha256": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+          "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/policy_feasibility.rs",
+          "sha256": "06f28d3ef06327b925bfc587ad7fb1bc88ef8bce432cc4f746de9b992d5472d5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "d28d054ff7fc84fe0145f77aeccff25d1c60209502d0004a48576092d4780b8f"
+        }
+      ]
+    },
+    "base_revisions": {
+      "result": "e0d6296c",
+      "binding": "e0d6296c"
+    }
+  },
+  "documents": {
+    "reconstructed_unique_corpus_documents": 429,
+    "eligible_dev_count": 36,
+    "fresh_indices_from_executed_source_rule": [
+      259,
+      323,
+      218,
+      327
+    ],
+    "saved_fresh_doc_indices": [
+      218,
+      259,
+      323,
+      327
+    ],
+    "indices_match": true,
+    "fresh_identities_recovered_now": [
+      {
+        "document": 259,
+        "path": "native_geometric_truncated_history_abstention_973.md",
+        "sha256": "effcf2ad8cbc37bce67f8275daeca06bef5e1deefa8ac12d46d8aa955a4895de",
+        "bytes": 10205
+      },
+      {
+        "document": 323,
+        "path": "r4_quaternion_cube_fit_973.md",
+        "sha256": "f916276a27925156b3f3568c00ac03f1f21874e386747528c8477329f4b80d1a",
+        "bytes": 5944
+      },
+      {
+        "document": 218,
+        "path": "native_geometric_occurrence_973.md",
+        "sha256": "f91a15c63a6ea48edba7bc831e03f205fc423fb7f5063a0d69f49778b45e4b10",
+        "bytes": 11551
+      },
+      {
+        "document": 327,
+        "path": "r4_retained_assembly_1094_review.md",
+        "sha256": "f98039f902680263b40e23513f131040301a204cd076111b963dafb434252146",
+        "bytes": 12011
+      }
+    ],
+    "fresh_paths_hashes_explicit_in_original_binding": false,
+    "original_fit_tune_final_hash_mismatches": [],
+    "first32_dev_hashes_disjoint_from_remaining": true,
+    "scope": "Four remaining Dev documents were first scored in reader-confidence-1, then replayed unchanged in2 and3; local prior corpus exposure remains. Original fresh receipt stores count and aggregate doc indices, not fresh paths/hashes."
+  },
+  "replay": {
+    "1": {
+      "all_panels_equal_to3": true,
+      "generation_equal_to3": true,
+      "selected_confidence_outcomes_equal_to3": true,
+      "confidence_artifact_bytes_equal_to3": {
+        "h4_confidence": true,
+        "categorical_confidence": true
+      }
+    },
+    "2": {
+      "all_panels_equal_to3": true,
+      "generation_equal_to3": true,
+      "selected_confidence_outcomes_equal_to3": true,
+      "confidence_artifact_bytes_equal_to3": {
+        "h4_confidence": true,
+        "categorical_confidence": true
+      }
+    }
+  },
+  "constraints": {
+    "h4_confidence": {
+      "fit": {
+        "parent_arm": "relational_ctx_parent",
+        "present_positions": 197,
+        "absent_positions": 23,
+        "present_emitted_correct": 148,
+        "parent_present_emitted_correct": 149,
+        "allowed_present_count_loss": 4,
+        "present_count_pass": true,
+        "present_CE_minus_parent_bits_per_query": 0.02378101250684761,
+        "present_CE_margin_bits_per_query": 0.05,
+        "present_CE_pass": true,
+        "absent_reads": 7,
+        "parent_absent_reads": 7,
+        "absent_count_pass": true,
+        "absent_CE_minus_parent_bits_per_query": 0.0,
+        "absent_CE_pass": true,
+        "all_four_behavior_constraints_pass": true,
+        "complete_construction_CE_minus_parent_bits_per_position": 0.8806529655133026,
+        "complete_construction_emitted_correct": 356,
+        "parent_complete_construction_emitted_correct": 670
+      },
+      "fresh": {
+        "parent_arm": "relational_ctx_parent",
+        "present_positions": 117,
+        "absent_positions": 23,
+        "present_emitted_correct": 71,
+        "parent_present_emitted_correct": 73,
+        "allowed_present_count_loss": 2,
+        "present_count_pass": true,
+        "present_CE_minus_parent_bits_per_query": 0.15978977345071144,
+        "present_CE_margin_bits_per_query": 0.05,
+        "present_CE_pass": false,
+        "absent_reads": 11,
+        "parent_absent_reads": 10,
+        "absent_count_pass": false,
+        "absent_CE_minus_parent_bits_per_query": -0.023052006112203927,
+        "absent_CE_pass": true,
+        "all_four_behavior_constraints_pass": false,
+        "complete_construction_CE_minus_parent_bits_per_position": 0.8374880719998146,
+        "complete_construction_emitted_correct": 178,
+        "parent_complete_construction_emitted_correct": 364
+      },
+      "tune": {
+        "present_count": 35.0,
+        "parent_present_count": 36.0,
+        "present_positions": 49,
+        "margin_count": 1,
+        "present_count_pass": true,
+        "absent_reads": 4.0,
+        "parent_absent_reads": 4.0,
+        "absent_count_pass": true,
+        "text_delta_bits_per_token": 0.06131615742270432,
+        "text_screen_pass": false,
+        "present_and_absent_CE_comparisons": "UNAVAILABLE: selected deltas retained, corresponding tune parent CE deltas omitted and no tune panel/matrices serialized."
+      },
+      "text": {
+        "text_fit": {
+          "delta_bits_per_token": 0.022779966081994556,
+          "screen_pass": true,
+          "useful_negative_gain": false,
+          "correct_emissions": 343,
+          "local_correct_emissions": 349
+        },
+        "text_confidence_fresh": {
+          "delta_bits_per_token": 0.03788208592213144,
+          "screen_pass": true,
+          "useful_negative_gain": false,
+          "correct_emissions": 182,
+          "local_correct_emissions": 188
+        }
+      }
+    },
+    "categorical_confidence": {
+      "fit": {
+        "parent_arm": "categorical_parent",
+        "present_positions": 197,
+        "absent_positions": 23,
+        "present_emitted_correct": 158,
+        "parent_present_emitted_correct": 159,
+        "allowed_present_count_loss": 4,
+        "present_count_pass": true,
+        "present_CE_minus_parent_bits_per_query": 0.02791491753613906,
+        "present_CE_margin_bits_per_query": 0.05,
+        "present_CE_pass": true,
+        "absent_reads": 5,
+        "parent_absent_reads": 5,
+        "absent_count_pass": true,
+        "absent_CE_minus_parent_bits_per_query": -0.12404363280396069,
+        "absent_CE_pass": true,
+        "all_four_behavior_constraints_pass": true,
+        "complete_construction_CE_minus_parent_bits_per_position": 0.8780704537101904,
+        "complete_construction_emitted_correct": 357,
+        "parent_complete_construction_emitted_correct": 679
+      },
+      "fresh": {
+        "parent_arm": "categorical_parent",
+        "present_positions": 117,
+        "absent_positions": 23,
+        "present_emitted_correct": 79,
+        "parent_present_emitted_correct": 81,
+        "allowed_present_count_loss": 2,
+        "present_count_pass": true,
+        "present_CE_minus_parent_bits_per_query": 0.1529812446288754,
+        "present_CE_margin_bits_per_query": 0.05,
+        "present_CE_pass": false,
+        "absent_reads": 7,
+        "parent_absent_reads": 6,
+        "absent_count_pass": false,
+        "absent_CE_minus_parent_bits_per_query": -0.08002538088788214,
+        "absent_CE_pass": true,
+        "all_four_behavior_constraints_pass": false,
+        "complete_construction_CE_minus_parent_bits_per_position": 0.83345188711011,
+        "complete_construction_emitted_correct": 184,
+        "parent_complete_construction_emitted_correct": 378
+      },
+      "tune": {
+        "present_count": 39.0,
+        "parent_present_count": 39.0,
+        "present_positions": 49,
+        "margin_count": 1,
+        "present_count_pass": true,
+        "absent_reads": 1.0,
+        "parent_absent_reads": 0.0,
+        "absent_count_pass": false,
+        "text_delta_bits_per_token": 0.061381213938993734,
+        "text_screen_pass": false,
+        "present_and_absent_CE_comparisons": "UNAVAILABLE: selected deltas retained, corresponding tune parent CE deltas omitted and no tune panel/matrices serialized."
+      },
+      "text": {
+        "text_fit": {
+          "delta_bits_per_token": 0.0035902669675631277,
+          "screen_pass": true,
+          "useful_negative_gain": false,
+          "correct_emissions": 345,
+          "local_correct_emissions": 349
+        },
+        "text_confidence_fresh": {
+          "delta_bits_per_token": 0.020115785655669422,
+          "screen_pass": true,
+          "useful_negative_gain": false,
+          "correct_emissions": 181,
+          "local_correct_emissions": 188
+        }
+      }
+    }
+  },
+  "fresh_document_intervals": {
+    "h4_confidence_minus_local": {
+      "point": 0.037882085922140527,
+      "lo": 0.010567536711940167,
+      "hi": 0.07477046002948967,
+      "groups": 4,
+      "draws": 256,
+      "rows": [
+        {
+          "document": 218,
+          "positions": 244,
+          "difference_bits": 1.244050962026904,
+          "difference_bits_per_token": 0.005098569516503705
+        },
+        {
+          "document": 259,
+          "positions": 244,
+          "difference_bits": 3.9129069533998972,
+          "difference_bits_per_token": 0.01603650390737663
+        },
+        {
+          "document": 323,
+          "positions": 244,
+          "difference_bits": 8.794937266121678,
+          "difference_bits_per_token": 0.03604482486115442
+        },
+        {
+          "document": 327,
+          "positions": 244,
+          "difference_bits": 23.021020678460673,
+          "difference_bits_per_token": 0.09434844540352735
+        }
+      ],
+      "scope": "Posthoc exact empirical document bootstrap over all4^4 ordered resamples of four documents; descriptive uncertainty only, not a new preregistered inference or calibrated small-sample guarantee.",
+      "unit": "bits/token"
+    },
+    "categorical_confidence_minus_local": {
+      "point": 0.02011578565567874,
+      "lo": 0.0024788663057220164,
+      "hi": 0.04393885263384241,
+      "groups": 4,
+      "draws": 256,
+      "rows": [
+        {
+          "document": 218,
+          "positions": 244,
+          "difference_bits": 2.959871851245225,
+          "difference_bits_per_token": 0.012130622341168955
+        },
+        {
+          "document": 259,
+          "positions": 244,
+          "difference_bits": 13.308149439794988,
+          "difference_bits_per_token": 0.05454159606473356
+        },
+        {
+          "document": 323,
+          "positions": 244,
+          "difference_bits": 3.837791506161011,
+          "difference_bits_per_token": 0.015728653713774635
+        },
+        {
+          "document": 327,
+          "positions": 244,
+          "difference_bits": -0.47280599725877437,
+          "difference_bits_per_token": -0.00193772949696219
+        }
+      ],
+      "scope": "Posthoc exact empirical document bootstrap over all4^4 ordered resamples of four documents; descriptive uncertainty only, not a new preregistered inference or calibrated small-sample guarantee.",
+      "unit": "bits/token"
+    },
+    "h4_confidence_minus_relational_ctx_parent": {
+      "point": -0.3967321473022845,
+      "lo": -0.5441895551929721,
+      "hi": -0.2839687740287022,
+      "groups": 4,
+      "draws": 256,
+      "rows": [
+        {
+          "document": 218,
+          "positions": 244,
+          "difference_bits": -72.1941353220293,
+          "difference_bits_per_token": -0.2958776037788086
+        },
+        {
+          "document": 259,
+          "positions": 244,
+          "difference_bits": -66.38262640397738,
+          "difference_bits_per_token": -0.2720599442785958
+        },
+        {
+          "document": 323,
+          "positions": 244,
+          "difference_bits": -152.97829018210382,
+          "difference_bits_per_token": -0.62696020566436
+        },
+        {
+          "document": 327,
+          "positions": 244,
+          "difference_bits": -95.6555238589192,
+          "difference_bits_per_token": -0.3920308354873738
+        }
+      ],
+      "scope": "Posthoc exact empirical document bootstrap over all4^4 ordered resamples of four documents; descriptive uncertainty only, not a new preregistered inference or calibrated small-sample guarantee.",
+      "unit": "bits/token"
+    },
+    "categorical_confidence_minus_categorical_parent": {
+      "point": -0.4284315814938144,
+      "lo": -0.5917889696320477,
+      "hi": -0.2490524946129011,
+      "groups": 4,
+      "draws": 256,
+      "rows": [
+        {
+          "document": 218,
+          "positions": 244,
+          "difference_bits": -116.59732634978081,
+          "difference_bits_per_token": -0.4778578948761509
+        },
+        {
+          "document": 259,
+          "positions": 244,
+          "difference_bits": -42.15930279747022,
+          "difference_bits_per_token": -0.1727840278584845
+        },
+        {
+          "document": 323,
+          "positions": 244,
+          "difference_bits": -159.09671998508338,
+          "difference_bits_per_token": -0.6520357376437843
+        },
+        {
+          "document": 327,
+          "positions": 244,
+          "difference_bits": -100.29587440562841,
+          "difference_bits_per_token": -0.4110486655968377
+        }
+      ],
+      "scope": "Posthoc exact empirical document bootstrap over all4^4 ordered resamples of four documents; descriptive uncertainty only, not a new preregistered inference or calibrated small-sample guarantee.",
+      "unit": "bits/token"
+    },
+    "h4_confidence_minus_categorical_confidence": {
+      "point": 0.017766300266461785,
+      "lo": -0.02379977633117275,
+      "hi": 0.07045661796920084,
+      "groups": 4,
+      "draws": 256,
+      "rows": [
+        {
+          "document": 218,
+          "positions": 244,
+          "difference_bits": -1.715820889218321,
+          "difference_bits_per_token": -0.007032052824665251
+        },
+        {
+          "document": 259,
+          "positions": 244,
+          "difference_bits": -9.395242486395091,
+          "difference_bits_per_token": -0.03850509215735693
+        },
+        {
+          "document": 323,
+          "positions": 244,
+          "difference_bits": 4.957145759960667,
+          "difference_bits_per_token": 0.020316171147379783
+        },
+        {
+          "document": 327,
+          "positions": 244,
+          "difference_bits": 23.493826675719447,
+          "difference_bits_per_token": 0.09628617490048953
+        }
+      ],
+      "scope": "Posthoc exact empirical document bootstrap over all4^4 ordered resamples of four documents; descriptive uncertainty only, not a new preregistered inference or calibrated small-sample guarantee.",
+      "unit": "bits/token"
+    },
+    "h4_one_nat_fixed_minus_local": {
+      "point": -0.0114685917737862,
+      "lo": -0.019384296114431616,
+      "hi": -0.005850443026845397,
+      "groups": 4,
+      "draws": 256,
+      "rows": [
+        {
+          "document": 218,
+          "positions": 244,
+          "difference_bits": -5.647752765869427,
+          "difference_bits_per_token": -0.023146527728973063
+        },
+        {
+          "document": 259,
+          "positions": 244,
+          "difference_bits": -1.9758147100769747,
+          "difference_bits_per_token": -0.008097601270807274
+        },
+        {
+          "document": 323,
+          "positions": 244,
+          "difference_bits": -2.4996509458028413,
+          "difference_bits_per_token": -0.010244471089355906
+        },
+        {
+          "document": 327,
+          "positions": 244,
+          "difference_bits": -1.0701271494660887,
+          "difference_bits_per_token": -0.0043857670060085605
+        }
+      ],
+      "scope": "Posthoc exact empirical document bootstrap over all4^4 ordered resamples of four documents; descriptive uncertainty only, not a new preregistered inference or calibrated small-sample guarantee.",
+      "unit": "bits/token"
+    }
+  },
+  "reported_new_confidence_paired_intervals": [],
+  "missing_intervals": "Serialized paired/text_intervals entries concern old h4_policy/categorical_policy and old panels. No new confidence construction intervals or per-sequence differences; cannot independently derive paired construction uncertainty.",
+  "residual_text_partition": {
+    "text_fit": {
+      "h4_confidence": {
+        "total_delta_bits": 44.46649379205337,
+        "positions": 1952,
+        "strength_counts": [
+          124,
+          260,
+          120
+        ],
+        "strata": [
+          {
+            "stratum": "text_copy_available",
+            "positions": 166,
+            "reads": 120,
+            "correct_payload_reads": 64,
+            "strength_counts": [
+              25,
+              70,
+              25
+            ],
+            "delta_bits_per_position": -0.4206695626227688,
+            "total_delta_bits": -69.83114739537962
+          },
+          {
+            "stratum": "text_copy_unavailable",
+            "positions": 1786,
+            "reads": 384,
+            "correct_payload_reads": 0,
+            "strength_counts": [
+              99,
+              190,
+              95
+            ],
+            "delta_bits_per_position": 0.06399643963462112,
+            "total_delta_bits": 114.29764118743333
+          }
+        ]
+      },
+      "categorical_confidence": {
+        "total_delta_bits": 7.008201120683225,
+        "positions": 1952,
+        "strength_counts": [
+          48,
+          468,
+          119
+        ],
+        "strata": [
+          {
+            "stratum": "text_copy_available",
+            "positions": 166,
+            "reads": 138,
+            "correct_payload_reads": 73,
+            "strength_counts": [
+              7,
+              103,
+              28
+            ],
+            "delta_bits_per_position": -0.48793610653426955,
+            "total_delta_bits": -80.99739368468875
+          },
+          {
+            "stratum": "text_copy_unavailable",
+            "positions": 1786,
+            "reads": 497,
+            "correct_payload_reads": 0,
+            "strength_counts": [
+              41,
+              365,
+              91
+            ],
+            "delta_bits_per_position": 0.049275249051164385,
+            "total_delta_bits": 88.00559480537959
+          }
+        ]
+      }
+    },
+    "text_confidence_fresh": {
+      "h4_confidence": {
+        "total_delta_bits": 36.972915860000285,
+        "positions": 976,
+        "strength_counts": [
+          52,
+          94,
+          38
+        ],
+        "strata": [
+          {
+            "stratum": "text_copy_available",
+            "positions": 37,
+            "reads": 23,
+            "correct_payload_reads": 13,
+            "strength_counts": [
+              9,
+              13,
+              1
+            ],
+            "delta_bits_per_position": -0.3282400038666998,
+            "total_delta_bits": -12.144880143067894
+          },
+          {
+            "stratum": "text_copy_unavailable",
+            "positions": 939,
+            "reads": 161,
+            "correct_payload_reads": 0,
+            "strength_counts": [
+              43,
+              81,
+              37
+            ],
+            "delta_bits_per_position": 0.05230862194150547,
+            "total_delta_bits": 49.117796003073636
+          }
+        ]
+      },
+      "categorical_confidence": {
+        "total_delta_bits": 19.633006799933355,
+        "positions": 976,
+        "strength_counts": [
+          21,
+          193,
+          37
+        ],
+        "strata": [
+          {
+            "stratum": "text_copy_available",
+            "positions": 37,
+            "reads": 28,
+            "correct_payload_reads": 17,
+            "strength_counts": [
+              3,
+              19,
+              6
+            ],
+            "delta_bits_per_position": -0.5972788825269765,
+            "total_delta_bits": -22.09931865349813
+          },
+          {
+            "stratum": "text_copy_unavailable",
+            "positions": 939,
+            "reads": 223,
+            "correct_payload_reads": 0,
+            "strength_counts": [
+              18,
+              174,
+              31
+            ],
+            "delta_bits_per_position": 0.044443371089921954,
+            "total_delta_bits": 41.732325453436715
+          }
+        ]
+      }
+    }
+  },
+  "confidence_table_diagnostics": {
+    "h4_confidence": {
+      "negative_D_read_addresses": [
+        32,
+        42,
+        50,
+        56,
+        58
+      ],
+      "negative_D_read_actions": {
+        "32": 2,
+        "42": 2,
+        "50": 2,
+        "56": 2,
+        "58": 2
+      },
+      "all_eight_nat_addresses_have_positive_D": true,
+      "supported_addresses_reported": 28,
+      "selected_fit_objective_total_bits": 44.46649379205091,
+      "reported_solver": {
+        "exhaustive": true,
+        "feasible": true,
+        "lower_bound_bits": 36.33482806005518,
+        "nodes": 1684481,
+        "seconds": 0.23104075,
+        "status": "OPTIMAL"
+      },
+      "optimizer_independently_reconstructible": false
+    },
+    "categorical_confidence": {
+      "negative_D_read_addresses": [
+        32,
+        40,
+        48,
+        50,
+        56,
+        58
+      ],
+      "negative_D_read_actions": {
+        "32": 2,
+        "40": 2,
+        "48": 2,
+        "50": 2,
+        "56": 2,
+        "58": 2
+      },
+      "all_eight_nat_addresses_have_positive_D": true,
+      "supported_addresses_reported": 27,
+      "selected_fit_objective_total_bits": 7.008201120684507,
+      "reported_solver": {
+        "exhaustive": true,
+        "feasible": true,
+        "lower_bound_bits": 1.1232097974578483,
+        "nodes": 2592129,
+        "seconds": 0.343188333,
+        "status": "OPTIMAL"
+      },
+      "optimizer_independently_reconstructible": false
+    }
+  },
+  "veto_diagnostic": {
+    "status": "source/table-derived candidate, NOT_RUN",
+    "description": "All even-address reads are one-nat, all eight-nat addresses odd. A strict D<=0 NoRead veto makes reads a subset of the same scored parent on identical prefixes if source parity holds. The retained fixed-one-nat comparator uses H4 source and has0correct fresh present answers, so for H4 removing these weak reads cannot remove a correct fresh present answer on these observed prefixes if source parity holds. This count argument does NOT establish categorical parity: its one fresh present one-nat read has no action-specific correctness recorded. CE/text effects remain unmeasured without per-position outcomes. Do not promote a veto as learned reliable probability or unseen generalization."
+  },
+  "missing_reusable_statistics": {
+    "confidence64x4_fit_matrices": true,
+    "confidence64x4_tune_matrices": true,
+    "per_position_D_source_logits_action_outcomes": true,
+    "per_document_counterfactual_outcomes": true,
+    "confidence_address_support_counts": true,
+    "consequence": "No independent optimality/forced-dose/address-level residual-harm proof, no full-D calibration/local-probability/stream-separation diagnosis from saved arrays. Old feasibility32x4 matrices must not be mistaken for current64x4 coefficients."
+  },
+  "behavior_and_cost_scope": {
+    "generation_arms": [
+      "categorical_parent",
+      "categorical_policy",
+      "h4_policy",
+      "local",
+      "relational_ctx_parent"
+    ],
+    "new_confidence_generation_present": false,
+    "intervention_arms": [
+      "h4_policy (reloaded)"
+    ],
+    "new_confidence_intervention_present": false,
+    "confidence_timing_present": false,
+    "physical_energy": "UNAVAILABLE",
+    "witness_parity_scope": "Reported0mismatches on2969 candidate-bearing fit construction positions for both parents; no retained per-position parity rows. Does not establish empty-pool, all tie/extreme cases or new confidence generated behavior."
+  },
+  "corrections": [
+    "Both arms pass selected fit constraints, but both fail new final present CE(+.159790H4,+.152981categorical versus own parent, limit+.05) and absent counts(+1each).",
+    "Categorical fresh parent is categorical_parent81present/6absent; comparing79/7 against H4parent73/10 changes the preregistered own-parent comparison.",
+    "Both tune text screens fail(+.061316H4,+.061381categorical); categorical tune absent1vsparent0 also fails. Tune parent CE missing.",
+    "All3runs repeat identical learned artifacts/panels; final first exposed inrun1, not3 independent fresh tests.",
+    "No confidence generation/intervention/timing or paired construction intervals retained; old controls cannot qualify new64-entry operator.",
+    "Fresh whole-construction emissions178vs364H4 and184vs378categorical, CE+.837488/+.833452 versus own parents; selected finalquery preservation is not whole-model preservation.",
+    "Exclusive forced-eight-nat/stream-mixing diagnosis unproven: current coefficients and per-position causal observations are not serialized. Consider discarded D magnitude, local probability, abstention reuse, support/fallback and local generator effects as unresolved alternatives.",
+    "Fresh reader paths/hashes absent from binding; recovered here from pinned source selection rule and snapshot.",
+    "Current3modifiedsourcehashes match reviewedHEAD, fixing previous source-file discrepancy, but does not by itself prove complete dependency binding."
+  ],
+  "script_sha256": "d0d6ddee690e5795c2f41388e8544bf86d88425c64c46cd8f44691891b0f8615",
+  "principal_resource_reconciliation": {
+    "before": {
+      "cumulative_ms": 195884105,
+      "limit_ms": 198900000
+    },
+    "reported_charge_ms": 3440000,
+    "components_ms": [
+      1129800,
+      90000,
+      420000,
+      900000,
+      1200000
+    ],
+    "component_total_ms": 3739800,
+    "rounding_undercharge_ms": 299800,
+    "recorded_limit_increment_ms": 2000000,
+    "reconciliation": "Standing owner local-extension authority; JSON had not applied the reported run. Preserve component estimates and distinguish projection before main inference from earlier compilation.",
+    "after": {
+      "cumulative_ms": 199623905,
+      "limit_ms": 200900000
+    }
+  },
+  "principal_cleanup": {
+    "root": "/Users/casey.allard/uor-r4/.worktrees/geometric-query-read/target/debug/incremental",
+    "before_free": 35423698944,
+    "reason": "Owner-authorized removal of inactive reproducible Rust incremental cache only; source and compiled artifacts outside incremental retained",
+    "allocated_bytes_before": 5801652224,
+    "after_free": 39781400576,
+    "deleted_dirs": 32,
+    "observed_free_gain": 4357701632
+  },
+  "principal_validation": {
+    "checks": [
+      {
+        "command": [
+          "fmt",
+          "-p",
+          "uor-r4-core"
+        ],
+        "elapsed_ms": 3217,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1333-validation-0.log",
+        "free_bytes_after": 39800537088
+      },
+      {
+        "command": [
+          "fmt",
+          "-p",
+          "uor-r4-core",
+          "--",
+          "--check"
+        ],
+        "elapsed_ms": 3054,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1333-validation-1.log",
+        "free_bytes_after": 39800512512
+      },
+      {
+        "command": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "confidence_boundary_tests",
+          "--offline"
+        ],
+        "elapsed_ms": 189423,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1333-validation-2.log",
+        "free_bytes_after": 39032381440
+      },
+      {
+        "command": [
+          "check",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "--offline"
+        ],
+        "elapsed_ms": 18101,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1333-validation-3.log",
+        "free_bytes_after": 39034613760
+      }
+    ],
+    "principal_model_replay": "NOT_RUN",
+    "source_scope": "Original submitted source hashes verify at51470ea9; later principal runner error-path/metadata repairs have focused checks only",
+    "ledger_after_checks": {
+      "cumulative_ms": 199837700,
+      "limit_ms": 200900000
+    },
+    "free_bytes_after_checks": 39045300224
+  }
+}

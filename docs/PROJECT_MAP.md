@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current execution pointer after PR #1332:** [principal review](integration/policy-obstruction-review-2026-09-21.md) certifies the retained coarse-policy obstruction and corrects solver/reporting defects. [Next](integration/deepseek-reader-confidence-step-2026-09-21.md): preserve the existing scored reader’s integer Read–NoRead advantage, establish actual parent parity, and test one compact influence operator with matched controls. Exact occurrence identity and the parent bucket/ties are part of that interface. No new model promotion; unchanged 32-address policy tuning is finished.
+**Current execution pointer after PR #1333:** [principal review](integration/reader-confidence-review-2026-09-21.md) corrects own-parent fresh CE/absence criteria, source/control scope and the proposed stream-mixing diagnosis. [Next](integration/deepseek-read-conditioned-state-step-2026-09-21.md) reuses actual confidence access plus a learned geometric state update/shared emission residual to change noncopy predictions. Frozen confidence rollout is the first bounded measurement in that substantive run; no new model qualification is claimed.
 
 This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an

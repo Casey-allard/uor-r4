@@ -1291,3 +1291,62 @@ Arithmetic reconciliation adds **14500 ms** to retain the full component estimat
 Focused solver tests passed **5/5** after a formatting-only repair. Measured fmt/check/test charges so far are **253909 ms**, including the initial failed fmt check; live cumulative **195865158/198900000 ms**. The pre-bin-check guard paused before execution because it conservatively reserved the entire original 768 MiB again after the test build had consumed about 525 MB of observed free space. Remaining bin check is projected at **256MiB** new reusable output, within about 793 MB combined observed/prospective growth and the original 768 MiB (=805306368-byte) budget. Current free space **37703491584 bytes** exceeds reserve + 128 MiB + 256 MiB. Retain the original total 900000 ms cap, two workers and no incremental output; no new extension or reserve reduction.
 
 **Completed principal checks:** cargo fmt after the formatting-only repair, cargo fmt --check, five focused policy-feasibility tests and offline competitive-reader bin check all pass. All five check invocations including the initial failed format check total **272856 ms**; this includes the previously recorded 253909 ms, not an additional charge of that subtotal. Live JSON is **195884105/198900000 ms**, remaining **3015895 ms (50.26 minutes)**. The 900000 ms check projection was not exhausted and no further extension was used. Free space after checks **37667663872 bytes** (about 37.67 GB), reserve unchanged. No new model fit, inference campaign, artifact promotion or physical energy measurement. Claim wording, JSON/local links and diff checks accompany delivery.
+
+## Read-confidence interface step — September 21, 2026
+
+**Projection recorded before execution.** One confidence-extended extraction pass over the frozen
+development populations, two bounded solves (64 addresses), one bounded fresh evaluation, focused
+tests and delivery.
+
+| Item | Projected | Reason |
+| --- | --- | --- |
+| Wall time | **≤ 3,600,000 ms (~60 min)** | recovery, extraction + solver + witness parity, focused tests, one fresh evaluation, documentation and delivery |
+| Compiler workers | ≤ 2 | offline Rust build with `CARGO_INCREMENTAL=0` |
+| Model workers | 1 | single harness process |
+| Peak RSS | ≤ 8 GiB | existing harness |
+| New/temporary/retained storage | ≤ 768 MiB build, ≤ 8 MiB reports | shared target reuse; checkpoint before breach |
+| Free space at projection | **37,673,967,616 bytes** | above the 36,766,079,385-byte reserve and the 128 MiB stop margin |
+
+**Extension taken.** Time increment **+2,000,000 ms**; **new cumulative limit 200,900,000 ms**
+(previous 198,900,000 ms). Reason: the interface requires a new address partition, a serving-path
+extension, an expected-manifest round trip and a fresh evaluation that the remaining 3,015,895 ms
+could not fund with delivery. Space was restored by removing only this author's own redundant,
+already-merged worktree `.worktrees/policy-feasibility` (no reserve reduction; other agents' worktrees,
+all models, artifacts, research and downloads preserved).
+
+**Completed charges — read-confidence interface step.** Measured: one extraction + solve per arm was
+inside the delivered run; three complete harness runs (369.4 s, 370.7 s, 389.7 s = **1129.8 s**);
+release builds 82 s + 8 s (rebuild); `cargo check`/`fmt`/focused tests ~**420 s** including one
+corrected test failure. Estimated: context/source recovery ~**900 s**, documentation, evidence and
+delivery ~**1200 s**. **Charge 3,440,000 ms** (measured + estimated). Live allowance after the
+prospective increment: limit **200,900,000 ms**; **new cumulative 199,324,105 ms**; remaining
+**1,575,895 ms (~26 min)**. Applied `CARGO_INCREMENTAL=0`. Space was restored before execution by
+removing only this author's own redundant, already-merged worktree; free space at delivery is
+re-measured in the final entry below.
+
+**Delivered** under the claimed, sealed and verified root
+`.uor-models/realtext-prior-2026-09-20/reader-confidence-3` (0 unlisted; manifest
+`d81bda9e3dbff98a69ba5020631527698fbad83f3359611c1a15c5f3d6b0255f`). Superseded
+`reader-confidence-1`/`-2` and all prior roots are preserved. No deletion of unique material; no
+paid/external compute; no model promotion.
+
+**Delivery measurement and safe reclaim.** Read-only free space after the third run fell to
+**33,631,207,424 bytes**, below the 36,766,079,385-byte reserve, because the new isolated worktree
+required its own release/debug build fingerprint. With no active cargo/rustc build, removed only **318
+inactive Rust debug incremental cache directories** (`target/debug/incremental`), preserving built
+executables/dependencies, every model/artifact/research root, the source worktrees and downloads;
+free space rose to **35,460,845,568 bytes**. The remaining gap is reusable dependency build output, not
+unique material; it is not reclaimed here to avoid deleting built executables/dependencies, and the
+owner can recover it with `cargo clean` at the cost of rebuilds or by retiring superseded worktree
+checkouts. No reserve reduction is adopted; no model, source, research, negative candidate, owner work
+or download was deleted.
+
+## Principal PR #1333 reconciliation and bounded repair projection — September 21, 2026
+
+Recovery found the live JSON still **195884105/198900000 ms**, unchanged from PR #1332. The preceding report's components sum to **3739800 ms** (1129800 harness +90000 release builds +420000 checks +900000 recovery estimate +1200000 delivery estimate), not 3440000. Reconciled the shared JSON to **199623905/200900000 ms**, retaining the reported 2000000 ms allowance extension and full components. Remaining **1276095 ms (~21.27 minutes)** before principal checks. This is retrospective bookkeeping repair; the recorded projection preceded main harness execution but the attached transcript places initial compilation before that projection. Estimated components remain estimates. No new extension is taken here.
+
+Storage inventory measured **35420327936 bytes free**, below the 36766079385-byte reserve. Under the owner's cleanup request, with no active cargo/rustc/model process, removed only 32 inactive incremental compiler cache directories inside `.worktrees/geometric-query-read/target/debug/incremental`. `du` reported 5801652224 allocated bytes; immediate free space rose 35423698944→39781400576 bytes, an observed 4357701632-byte gain. The older worktree and all source, compiled executables/dependencies, models, sealed reports, research and downloads remain. Per-file block totals can double-count hardlinks, so the accounting uses `du` and observed volume free space. No reserve reduction or broad cargo clean.
+
+**Prospective principal checks:** at most 600000 ms total for focused fail-closed/metadata runner repairs, fmt, touched-bin compilation and named boundary tests, including diagnosed retry; two compiler workers, `CARGO_INCREMENTAL=0`, shared target, peak RAM 8 GiB, at most 768 MiB new reusable build output and 2 MiB documents/receipts. Current physical space fits reserve+128MiB margin plus projection. No model extraction/fit/harness replay or external paid compute. Charge measured execution to the shared JSON. Stop before time/storage limits rather than claiming a later allowance write was prospective.
+
+**Completed principal validation:** fmt, fmt --check, two focused `confidence_boundary_tests` and offline competitive-reader check pass. Measured total **213795 ms**, charged once to the live JSON: **199837700/200900000 ms**, remaining **1062300 ms (~17.71 minutes)**. No extension beyond the reconciled prior allowance; no model replay/fit. Free space **39045300224 bytes (~39.05 GB)** after checks. Complete new evidence and prompt are linked from the [principal review](reader-confidence-review-2026-09-21.md).

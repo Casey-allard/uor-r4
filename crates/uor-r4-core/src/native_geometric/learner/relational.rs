@@ -31,6 +31,9 @@ pub const CTX_BUCKETS: usize = 16;
 pub const UTIL_BUCKETS: usize = 32;
 /// Number of quantized selected-payload/top-logit gap bins (3 declared integer thresholds).
 pub const UTIL_GAP_BINS: usize = 4;
+/// Confidence-extended influence addresses: the five-bit utility bucket plus the sign of the parent's
+/// learned causal integer advantage `D`. The same `policy` field carries either partition.
+pub const CONF_ADDRESSES: usize = UTIL_BUCKETS * 2;
 /// Declared minimum total fit weight for a bucket to carry its own action; below it the global action
 /// is used, which is also the explicit unseen-bucket fallback.
 pub const UTIL_MIN_SUPPORT: f64 = 20.0;
@@ -287,7 +290,8 @@ pub struct RelationalSelector {
     /// The small causal action-dependent interaction. Empty disables it (the factorised baseline).
     /// Otherwise `CTX_BUCKETS` rows of `[noread_offset, strength_0, strength_1, ...]`.
     pub ctx: Vec<[i32; ACTS + 1]>,
-    /// Direct hard-action utility opcodes: `UTIL_BUCKETS` entries, `0` = NoRead and `a > 0` = strength
+    /// Direct hard-action utility opcodes: `UTIL_BUCKETS` (coarse) or `CONF_ADDRESSES`
+    /// (confidence-extended) entries, `0` = NoRead and `a > 0` = strength
     /// `a - 1`. Empty keeps the scored `choose` path. This is an integer opcode table, not a score.
     pub policy: Vec<u8>,
     /// The three declared integer gap thresholds (in `f_bits` logit units) for `gap_bin`.
@@ -368,7 +372,7 @@ impl RelationalSelector {
             }
         }
         if !self.policy.is_empty() {
-            if self.policy.len() != UTIL_BUCKETS {
+            if self.policy.len() != UTIL_BUCKETS && self.policy.len() != CONF_ADDRESSES {
                 return Err("direct-action policy has the wrong bucket count".into());
             }
             if self.policy.iter().any(|c| *c as usize > ACTS) {
@@ -603,8 +607,53 @@ impl RelationalSelector {
             return self.choose_scored(cands, rel);
         }
         match local_z {
-            Some(z) => self.choose_policy(cands, rel, z),
+            Some(z) => {
+                if self.policy.len() == CONF_ADDRESSES {
+                    self.choose_confidence(cands, rel, z)
+                } else {
+                    self.choose_policy(cands, rel, z)
+                }
+            }
             None => None,
+        }
+    }
+
+    /// The confidence-extended address of one position: the five-bit utility bucket plus the sign of
+    /// the parent's learned causal integer advantage `D`. Returns `(ungated top source, address, D)`.
+    ///
+    /// `D = max_strength strength_score(top, relation, strength, parent_bucket) - noread_score(parent_bucket)`
+    /// in widened `i64`. It is a learned score difference, **not** a calibrated probability. The
+    /// parent bucket is the selector's own `bucket_of` (exact-context class + newest bit + its own
+    /// margin convention), never the utility bucket.
+    pub fn confidence_address(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: &[i32],
+    ) -> Option<(usize, usize, i64)> {
+        let (top, ub) = self.policy_bucket(cands, rel, local_z)?;
+        let bpar = self.bucket_of(cands, rel);
+        let r = rel.get(top).copied().unwrap_or(0);
+        let best = (0..ACTS)
+            .map(|a| self.strength_score(&cands[top], r, a, bpar))
+            .max()
+            .unwrap_or(i32::MIN);
+        let d = i64::from(best) - i64::from(self.noread_score(bpar));
+        Some((top, ub.min(UTIL_BUCKETS - 1) * 2 + usize::from(d > 0), d))
+    }
+
+    /// The direct **confidence-extended** decision: address `2*bucket + 1[D>0]`, one of 64 opcodes.
+    /// The source is always the ungated top source; the action is the learned opcode.
+    pub fn choose_confidence(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: &[i32],
+    ) -> Option<(usize, usize)> {
+        let (top, addr, _d) = self.confidence_address(cands, rel, local_z)?;
+        match *self.policy.get(addr).unwrap_or(&0) {
+            0 => None,
+            code => Some((top, (code - 1) as usize)),
         }
     }
 
@@ -737,7 +786,7 @@ impl RelationalSelector {
                 self.gap_thresholds, cfg.gap_thresholds
             ));
         }
-        if self.policy.len() != UTIL_BUCKETS {
+        if self.policy.len() != UTIL_BUCKETS && self.policy.len() != CONF_ADDRESSES {
             return Err("policy opcode table has the wrong bucket count".into());
         }
         Ok(())
@@ -1821,7 +1870,7 @@ impl RelationalArtifact {
         let mut gap_thresholds = [0i32; UTIL_GAP_BINS - 1];
         if art_version >= 4 {
             let n_policy = u32_at(&mut c)? as usize;
-            if n_policy != 0 && n_policy != UTIL_BUCKETS {
+            if n_policy != 0 && n_policy != UTIL_BUCKETS && n_policy != CONF_ADDRESSES {
                 return Err("direct-action policy has the wrong bucket count".into());
             }
             policy = take(&mut c, n_policy)?.to_vec();
@@ -3233,5 +3282,52 @@ mod tests {
             gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         assert_eq!(regret_decomposition(&sel, &t, &empty), Regret::default());
+    }
+
+    #[test]
+    fn the_confidence_interface_round_trips_and_rejects_malformed_tables() {
+        // A 64-address confidence table is a legal opcode partition and survives the artifact format.
+        let base = RelationalSelector {
+            q_roots: vec![0, 1, 2, 3],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank: [0; RANKS],
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+            policy: vec![2u8; UTIL_BUCKETS],
+            gap_thresholds: [-8, -4, -1],
+        };
+        let art = |s: RelationalSelector| RelationalArtifact {
+            selector: s,
+            local_artifact_digest: [1u8; 32],
+            tokenizer_digest: [2u8; 32],
+            data_digest: [3u8; 32],
+        };
+        let mut conf = base.clone();
+        conf.policy = (0..CONF_ADDRESSES).map(|b| (b % 4) as u8).collect();
+        conf.validate().expect("a 64-address table is legal");
+        let back =
+            RelationalArtifact::from_bytes(&art(conf.clone()).to_bytes(), &[1u8; 32], &[2u8; 32])
+                .unwrap();
+        assert_eq!(back.selector, conf);
+        assert_eq!(back.selector.policy.len(), CONF_ADDRESSES);
+        // A malformed length and an out-of-range opcode are rejected, not silently loaded.
+        let mut bad = conf.clone();
+        bad.policy = vec![0u8; CONF_ADDRESSES - 1];
+        assert!(bad.validate().is_err());
+        let mut bad = conf.clone();
+        bad.policy[0] = (ACTS + 1) as u8;
+        assert!(bad.validate().is_err());
+        assert!(
+            RelationalArtifact::from_bytes(&art(bad).to_bytes(), &[1u8; 32], &[2u8; 32]).is_err()
+        );
+        // A 32-address table still round-trips unchanged.
+        let back =
+            RelationalArtifact::from_bytes(&art(base.clone()).to_bytes(), &[1u8; 32], &[2u8; 32])
+                .unwrap();
+        assert_eq!(back.selector.policy.len(), UTIL_BUCKETS);
     }
 }
