@@ -1,0 +1,302 @@
+{
+  "schema": "uor-r4.geometric-computation/1",
+  "at": "2026-09-21",
+  "scope": "bounded authored instruments; exposed regression populations; no fresh final evaluation; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "036e9c4310ca3d8d2440ac367c577a1df7edf58f",
+    "pr": 1336,
+    "verified_merged_head_equal": true,
+    "worktree": ".worktrees/geometric-computation-step",
+    "owner_checkout_untouched": true
+  },
+  "runs": {
+    "association_regression_geometric_computation_1": {
+      "mode": "--mode=contextual-emission",
+      "root": ".uor-models/realtext-prior-2026-09-20/geometric-computation-1",
+      "unlisted_files": 0,
+      "elapsed_s": 141.5,
+      "note": "first end-to-end execution of the principal's repaired learner",
+      "arms": {
+        "local_noread": {
+          "dev": 0,
+          "tune": 0,
+          "final": 0,
+          "final_pairs_both": 0
+        },
+        "h4_read_conditioned": {
+          "dev": 61,
+          "tune": 41,
+          "final": 33,
+          "dev_pairs_both": 12,
+          "final_pairs_both": 7
+        },
+        "h4_update_disabled": {
+          "dev": 0,
+          "final": 0
+        },
+        "h4_read_disabled": {
+          "dev": 0,
+          "final": 0
+        },
+        "cyclic_c120_read_conditioned": {
+          "dev": 54,
+          "tune": 25,
+          "final": 21,
+          "dev_pairs_both": 8,
+          "final_pairs_both": 2
+        },
+        "scalar_copy_parent": {
+          "dev": 0,
+          "final": 0
+        },
+        "development_constant": {
+          "dev": 32,
+          "tune": 13,
+          "final": 15,
+          "final_pairs_both": 0
+        },
+        "categorical_selected_value": {
+          "dev": 164,
+          "tune": 112,
+          "final": 108,
+          "dev_pairs_both": 81,
+          "final_pairs_both": 54
+        }
+      },
+      "positions": {
+        "dev": 180,
+        "tune": 120,
+        "final": 120
+      },
+      "stage_loss_bits": {
+        "h4": {
+          "initial": 19.8629,
+          "served_output_before_map_search": 10.8529,
+          "served_after_map_search": 9.3995,
+          "post_map_refit_incumbent": 9.3995,
+          "served_final": 7.8697
+        },
+        "cyclic_c120": {
+          "initial": 19.8629,
+          "served_output_before_map_search": 10.2985,
+          "served_after_map_search": 9.2976,
+          "post_map_refit_incumbent": 9.2976,
+          "served_final": 8.2947
+        }
+      },
+      "output_rows": 64,
+      "nonzero_ternary_coefficients": 691,
+      "accepted_ternary_flips": {
+        "before_maps": 592,
+        "after_maps": 488
+      },
+      "accepted_map_changes": 7,
+      "post_map_output_refit_executed": true,
+      "distinct_payload_alias_pairs": {
+        "dev_before": 0,
+        "dev_after": 0,
+        "final_after": 0
+      },
+      "reader_localisation": {
+        "dev_correct_occurrence": 163,
+        "tune": 111,
+        "final": 108
+      },
+      "frozen_row_ceiling": {
+        "positions": 180,
+        "some_row_emits_target": 0
+      },
+      "generated_three_token_continuations": {
+        "traces": 3,
+        "first_answers_correct": 1,
+        "decoded": [
+          "info-f",
+          "-review",
+          "user-s"
+        ]
+      },
+      "screen": {
+        "declared_minimum_final_pairs_fraction": 0.5,
+        "h4_final_pairs_both": 7,
+        "h4_final_pairs": 60,
+        "best_control_pairs_both": 54,
+        "met": false
+      }
+    },
+    "association_regression_geometric_computation_2": {
+      "mode": "--mode=contextual-emission",
+      "root": ".uor-models/realtext-prior-2026-09-20/geometric-computation-2",
+      "unlisted_files": 0,
+      "elapsed_s": 157.1,
+      "note": "repeat with the added served-feature diagnostic; identical arm results, confirming determinism",
+      "h4_dev": 61,
+      "h4_final": 33,
+      "h4_final_pairs_both": 7,
+      "served_feature_separability": {
+        "dev": {
+          "source_correct_positions": 163,
+          "distinct_service_features": 50,
+          "features_with_conflicting_targets": 0,
+          "positions_on_conflicting_features": 0,
+          "table_on_feature_ceiling": 163
+        },
+        "final": {
+          "source_correct_positions": 108,
+          "distinct_service_features": 46,
+          "features_with_conflicting_targets": 0,
+          "positions_on_conflicting_features": 0,
+          "table_on_feature_ceiling": 108
+        }
+      },
+      "distinct_update_signatures": {
+        "dev": {
+          "signatures": 78,
+          "ambiguous": 8,
+          "targets_on_ambiguous": 21,
+          "positions": 180
+        },
+        "final": {
+          "signatures": 65,
+          "ambiguous": 6,
+          "targets_on_ambiguous": 17,
+          "positions": 120
+        }
+      },
+      "historical_interpretation_withdrawn": "the served feature is fully separating on source-correct positions; the association gap is a readout-family (linear ternary residual vs required feature->target function) limitation, plus a smaller reader/input ambiguity",
+      "interpretation": "No observed feature aliases on the reported source-correct subsets; no linear infeasibility or trained-table transfer established. Full predictor includes local logits."
+    },
+    "relation_composition_1": {
+      "mode": "--mode=relation-composition",
+      "root": ".uor-models/realtext-prior-2026-09-20/relation-composition-1",
+      "unlisted_files": 0,
+      "elapsed_s": 34.6,
+      "note": "eight declared operations collapsed to two reader relations; retained as the feature-alias witness",
+      "declared_ops": 8,
+      "distinct_relations_observed": 2,
+      "dev_positions": 48,
+      "held_out_positions": 16,
+      "h4_dev": 12,
+      "h4_held_out": 2,
+      "best_control_held_out": 1,
+      "served_feature_separability_dev": {
+        "source_correct_positions": 44,
+        "distinct_service_features": 10,
+        "features_with_conflicting_targets": 10,
+        "positions_on_conflicting_features": 44,
+        "table_on_feature_ceiling": 12
+      }
+    },
+    "relation_composition_5": {
+      "mode": "--mode=relation-composition",
+      "root": ".uor-models/realtext-prior-2026-09-20/relation-composition-5",
+      "unlisted_files": 0,
+      "elapsed_s": 31.3,
+      "note": "adaptive two-operation budget, class modulus 7, four repeated contexts per cell",
+      "ops": 2,
+      "available_relations": 2,
+      "relation_budget_saturating": true,
+      "class_modulus": 7,
+      "dev_positions": 48,
+      "held_out_positions": 16,
+      "arms": {
+        "local_noread": {
+          "dev": 0,
+          "held_out": 0
+        },
+        "h4_composition": {
+          "dev": 15,
+          "held_out": 0
+        },
+        "h4_update_disabled": {
+          "dev": 0,
+          "held_out": 0
+        },
+        "h4_read_disabled": {
+          "dev": 0,
+          "held_out": 0
+        },
+        "cyclic_c120_composition": {
+          "dev": 15,
+          "held_out": 0
+        },
+        "development_constant": {
+          "dev": 8,
+          "held_out": 4
+        },
+        "payload_only_table": {
+          "dev": 24,
+          "held_out": 4
+        },
+        "relation_and_payload_table": {
+          "dev": 48,
+          "held_out": 4
+        }
+      },
+      "held_out_states_already_reached_in_dev": 0,
+      "served_feature_separability": {
+        "dev": {
+          "source_correct_positions": 46,
+          "distinct_service_features": 11,
+          "table_on_feature_ceiling": 42
+        },
+        "held_out": {
+          "source_correct_positions": 16,
+          "distinct_service_features": 4,
+          "table_on_feature_ceiling": 16
+        }
+      },
+      "screen_met": false
+    }
+  },
+  "obstruction": {
+    "finding": "the served geometric relation interface exposes two distinct directed relative elements across all fourteen declared role pairs",
+    "mode": "Geometric",
+    "relation_exposure_pairs": 14,
+    "distinct_relative_elements": [
+      80,
+      85
+    ],
+    "recorded_in": ".uor-models/realtext-prior-2026-09-20/relation-composition-5/result.json instrument.relation_exposure",
+    "historical_consequence_withdrawn": "an operation cannot be routed into the served update through T[rel]; a multi-operation composition is not representable at this interface",
+    "consequence": "The two enumerated intended relation IDs constrain T[rel] only; local logits retain query-role information. Separate learned operation input can preserve further needed distinctions."
+  },
+  "changed_source": [
+    "crates/uor-r4-core/src/bin/competitive-reader.rs"
+  ],
+  "focused_tests": {
+    "relation_composition_tests": [
+      "declared_class_merges_only_the_shared_residue",
+      "the_rule_is_realisable_by_the_served_group",
+      "held_out_cells_share_a_class_with_development"
+    ],
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass",
+    "touched_package_check": "pass"
+  },
+  "empty_claim_directories": [
+    "relation-composition-diag",
+    "relation-composition-diag2",
+    "relation-composition-3",
+    "relation-composition-4"
+  ],
+  "principal_correction": {
+    "review": "docs/integration/geometric-computation-review-2026-09-21.md",
+    "audit": "docs/evidence/geometric-computation-principal-review-2026-09-21.json",
+    "original_numeric_results_preserved": true,
+    "linear_impossibility": "NOT_ESTABLISHED",
+    "composition_witness": "INVALID_FOR_EXECUTED_MODULO_7_RULE",
+    "original_split": "withheld operand meanings under all operations; not familiar-primitive cell transfer",
+    "ambiguous_update_positions": {
+      "dev": 30,
+      "final": 23
+    },
+    "composition_heldout_feature_dev_overlap": 0,
+    "development_fitted_feature_table_heldout_hits": 4,
+    "new_repaired_fixture_fit": "NOT_RUN",
+    "composition_generation": "NOT_RUN",
+    "git_parent_stamp": "cached clean036e9c43 is not actual changed experiment source; use explicit source/executable hashes"
+  }
+}

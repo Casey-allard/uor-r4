@@ -15,7 +15,7 @@ use std::time::Instant;
 use serde_json::json;
 
 use uor_r4_core::native_geometric::learner::contextual_emission::*;
-use uor_r4_core::native_geometric::learner::group_table::{group_table, GROUP_ORDER};
+use uor_r4_core::native_geometric::learner::group_table::{group_table, GROUP_ORDER, ROW_STRIDE};
 use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
 use uor_r4_core::native_geometric::learner::policy_feasibility::*;
 use uor_r4_core::native_geometric::learner::prefix_artifact::{
@@ -7370,6 +7370,75 @@ fn ce_predict(
     (z, r, q0, q1)
 }
 
+/// An evaluation receipt made only after target-free inference has returned its actual scores.
+/// Targets/intended references are scoring metadata and never enter the predictor.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+struct CePredictionRecord {
+    prediction: u32,
+    target: u32,
+    target_logit: i32,
+    strongest_competitor: u32,
+    strongest_competitor_logit: i32,
+    loss_bits: f64,
+    f_bits: u32,
+    q0: usize,
+    q1: usize,
+    read: bool,
+    relation: usize,
+    selected_payload: Option<u32>,
+    selected_source_seq_abs: Option<[u32; 2]>,
+    selected_payload_seq_abs: Option<[u32; 2]>,
+    intended_source_seq_abs: [u32; 2],
+    intended_payload_seq_abs: [u32; 2],
+}
+
+#[allow(clippy::too_many_arguments)]
+fn ce_prediction_record(
+    z: &[i32],
+    read: &Read,
+    q0: usize,
+    q1: usize,
+    target: u32,
+    f_bits: u32,
+    seq: u32,
+    expected_payload_abs: u32,
+) -> Result<CePredictionRecord, String> {
+    if z.len() < 2 || target as usize >= z.len() || expected_payload_abs == 0 {
+        return Err("invalid prediction receipt target, vocabulary or intended occurrence".into());
+    }
+    let mut competitor = if target == 0 { 1 } else { 0 };
+    for i in 0..z.len() {
+        if i != target as usize && z[i] > z[competitor] {
+            competitor = i;
+        }
+    }
+    Ok(CePredictionRecord {
+        prediction: argmax_low(z) as u32,
+        target,
+        target_logit: z[target as usize],
+        strongest_competitor: competitor as u32,
+        strongest_competitor_logit: z[competitor],
+        loss_bits: bits(z, target, f_bits),
+        f_bits,
+        q0,
+        q1,
+        read: read.action.is_some(),
+        relation: read.rel,
+        selected_payload: read.payload,
+        selected_source_seq_abs: read.source.map(|r| [r.seq, r.abs]),
+        selected_payload_seq_abs: read.payload_abs.map(|abs| [seq, abs]),
+        intended_source_seq_abs: [seq, expected_payload_abs - 1],
+        intended_payload_seq_abs: [seq, expected_payload_abs],
+    })
+}
+
+fn ce_prediction_counts(records: &[CePredictionRecord]) -> (usize, usize) {
+    (
+        records.iter().filter(|r| r.prediction == r.target).count(),
+        records.iter().filter(|r| r.read).count(),
+    )
+}
+
 /// Input-signature collision report for the update: how many `(q0, relation, payload)` signatures
 /// demand more than one distinct target.
 fn ce_signature_report(examples: &[CeExample]) -> serde_json::Value {
@@ -7381,16 +7450,102 @@ fn ce_signature_report(examples: &[CeExample]) -> serde_json::Value {
             .insert(ex.target);
     }
     let ambiguous = m.values().filter(|t| t.len() > 1).count();
-    let ambiguous_examples = m
+    let ambiguous_targets = m
         .values()
         .filter(|t| t.len() > 1)
         .map(|t| t.len())
         .sum::<usize>();
+    let ambiguous_positions = examples
+        .iter()
+        .filter(|ex| {
+            ex.read
+                && m.get(&(ex.q0, ex.r % GROUP_ORDER, ex.payload))
+                    .is_some_and(|t| t.len() > 1)
+        })
+        .count();
     json!({
         "positions": examples.iter().filter(|e| e.read).count(),
         "distinct_signatures": m.len(),
         "ambiguous_signatures": ambiguous,
-        "targets_on_ambiguous_signatures": ambiguous_examples,
+        "targets_on_ambiguous_signatures": ambiguous_targets,
+        "positions_on_ambiguous_signatures": ambiguous_positions,
+    })
+}
+
+/// Runtime source checkout observation, distinct from caller-supplied build provenance. The
+/// executable digest and source-file digests remain authoritative identities; observing a checkout
+/// does not by itself prove that this binary was built from it.
+fn ce_source_checkout(source_root: Option<&std::path::Path>) -> serde_json::Value {
+    let Some(root) = source_root else {
+        return json!({"status": "UNAVAILABLE", "reason": "--source-root absent"});
+    };
+    let git = |args: &[&str]| -> Option<String> {
+        let out = std::process::Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(args)
+            .output()
+            .ok()?;
+        if !out.status.success() {
+            return None;
+        }
+        String::from_utf8(out.stdout)
+            .ok()
+            .map(|s| s.trim().to_string())
+    };
+    let head = git(&["rev-parse", "HEAD"]);
+    let changes = git(&["status", "--porcelain"]);
+    json!({"path": root, "observed_head": head, "observed_dirty": changes.as_ref().map(|s| !s.is_empty()),
+        "scope": "source checkout observed before fitting; binary-to-source build binding is not established by this observation",
+        "caller_claimed_git_rev": std::env::var("UOR_GIT_REV").ok(),
+        "caller_claimed_git_dirty": std::env::var("UOR_GIT_DIRTY").ok()})
+}
+
+/// **Observed served-feature aliases.** Test the real feature
+/// used by the emission readout, `R(q0*T[r]*V[v]) - R(q0)`, not the injectivity of the value codes.
+/// Among positions whose intended source was selected, how many demand different targets while
+/// sharing an identical integer service feature? Distinct state ids and injective value maps are
+/// insufficient: two different `q1` can still yield the same `R` difference. The majority-vote
+/// ceiling is descriptive on these labelled examples, not a trained decoder or a certificate
+/// that a linear decoder is feasible/infeasible. Local logits are not inputs to this grouping.
+fn ce_feature_alias_report(
+    examples: &[CeExample],
+    eligible: &[bool],
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+) -> serde_json::Value {
+    let mut m: BTreeMap<Vec<i32>, BTreeMap<u32, usize>> = BTreeMap::new();
+    let mut considered = 0usize;
+    for (i, ex) in examples.iter().enumerate() {
+        if !ex.read || !eligible.get(i).copied().unwrap_or(false) {
+            continue;
+        }
+        let q1 = ex.q1(params, cyclic);
+        *m.entry(res.delta(ex.q0, q1).to_vec())
+            .or_default()
+            .entry(ex.target)
+            .or_default() += 1;
+        considered += 1;
+    }
+    let conflicting = m.values().filter(|t| t.len() > 1).count();
+    let on_conflict = m
+        .values()
+        .filter(|t| t.len() > 1)
+        .map(|t| t.values().sum::<usize>())
+        .sum::<usize>();
+    let best_case = m
+        .values()
+        .map(|t| t.values().copied().max().unwrap_or(0))
+        .sum::<usize>();
+    json!({
+        "source_correct_positions": considered,
+        "distinct_service_features": m.len(),
+        "features_with_conflicting_targets": conflicting,
+        "positions_on_conflicting_features": on_conflict,
+        "best_case_from_features_alone": best_case,
+        "feature_only_ceiling_fraction": if considered == 0 { serde_json::Value::Null } else { json!(best_case as f64 / considered as f64) },
+        "note": "feature = integer R(q1)-R(q0) of the deployed residual; descriptive majority-vote ceiling on the labelled source-correct subset only. Not a development-fitted decoder, held-out generalization result, or linear-feasibility certificate; the full predictor also receives local logits.",
     })
 }
 
@@ -7440,6 +7595,7 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
     let table = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
     let group_digest = group_table_digest(&table);
     let banks = build_banks(&tokenizer, parent.cfg.vocab)?;
+    let source_checkout = ce_source_checkout(source_root.as_deref());
     let source_files: Vec<serde_json::Value> = match &source_root {
         Some(sr) => [
             "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
@@ -7810,49 +7966,54 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
     let artifacts = vec![h4_artifact, c120_artifact];
     let artifact_ok = true;
 
-    let eval_arm = |params: &ReadConditionedParams,
-                    res: &EmissionResidual,
-                    rows: &[usize],
-                    cyclic: bool,
-                    use_update: bool,
-                    allowed: bool,
-                    items: &[CeItem]|
-     -> Result<(usize, usize, Vec<(usize, bool)>), String> {
-        let mut hits = 0usize;
-        let mut reads = 0usize;
-        let mut per_pair = Vec::new();
-        for it in items.iter() {
-            let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
-            let ring = ring_before_current(prefix);
-            let i = prefix.len() - 1;
-            let (z, r, _q0, _q1) = ce_predict(
-                &ring,
-                prefix[i],
-                prefix[i - 1] as usize,
-                prefix[i - 2],
-                &sel,
-                &table,
-                &parent,
-                &local,
-                &u,
-                params,
-                res,
-                rows,
-                cyclic,
-                use_update,
-                allowed,
-            );
-            if r.action.is_some() {
-                reads += 1;
+    let eval_arm =
+        |params: &ReadConditionedParams,
+         res: &EmissionResidual,
+         rows: &[usize],
+         cyclic: bool,
+         use_update: bool,
+         allowed: bool,
+         items: &[CeItem]|
+         -> Result<(usize, usize, Vec<(usize, bool)>, Vec<CePredictionRecord>), String> {
+            let mut records = Vec::new();
+            let mut per_pair = Vec::new();
+            for it in items.iter() {
+                let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+                let ring = ring_before_current(prefix);
+                let i = prefix.len() - 1;
+                let (z, r, q0, q1) = ce_predict(
+                    &ring,
+                    prefix[i],
+                    prefix[i - 1] as usize,
+                    prefix[i - 2],
+                    &sel,
+                    &table,
+                    &parent,
+                    &local,
+                    &u,
+                    params,
+                    res,
+                    rows,
+                    cyclic,
+                    use_update,
+                    allowed,
+                );
+                let record = ce_prediction_record(
+                    &z,
+                    &r,
+                    q0,
+                    q1,
+                    it.seq.answer,
+                    parent.cfg.f_bits,
+                    ring.seq(),
+                    it.expected_payload_abs,
+                )?;
+                per_pair.push((it.pair_id, record.prediction == record.target));
+                records.push(record);
             }
-            let ok = argmax_low(&z) as u32 == it.seq.answer;
-            if ok {
-                hits += 1;
-            }
-            per_pair.push((it.pair_id, ok));
-        }
-        Ok((hits, reads, per_pair))
-    };
+            let (hits, reads) = ce_prediction_counts(&records);
+            Ok((hits, reads, per_pair, records))
+        };
     let both = |per_pair: &[(usize, bool)]| -> usize {
         let mut m: std::collections::BTreeMap<usize, Vec<bool>> = std::collections::BTreeMap::new();
         for (pid, ok) in per_pair.iter() {
@@ -7862,35 +8023,46 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
             .filter(|v| v.len() == 2 && v.iter().all(|x| *x))
             .count()
     };
-    let copy_arm = |items: &[CeItem]| -> Result<(usize, Vec<(usize, bool)>), String> {
-        let mut hits = 0usize;
-        let mut per_pair = Vec::new();
-        for it in items.iter() {
-            let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
-            let ring = ring_before_current(prefix);
-            let i = prefix.len() - 1;
-            let (z, _r) = predict_next(
-                &ring,
-                prefix[i],
-                prefix[i - 1] as usize,
-                prefix[i - 2],
-                &sel,
-                &table,
-                &parent,
-                &local,
-                &u,
-                true,
-            );
-            let ok = argmax_low(&z) as u32 == it.seq.answer;
-            if ok {
-                hits += 1;
+    let copy_arm =
+        |items: &[CeItem]| -> Result<(usize, Vec<(usize, bool)>, Vec<CePredictionRecord>), String> {
+            let mut records = Vec::new();
+            let mut per_pair = Vec::new();
+            for it in items.iter() {
+                let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+                let ring = ring_before_current(prefix);
+                let i = prefix.len() - 1;
+                let (z, r) = predict_next(
+                    &ring,
+                    prefix[i],
+                    prefix[i - 1] as usize,
+                    prefix[i - 2],
+                    &sel,
+                    &table,
+                    &parent,
+                    &local,
+                    &u,
+                    true,
+                );
+                let q0 = local.query_state(prefix[i]).min(u.len() - 1);
+                let record = ce_prediction_record(
+                    &z,
+                    &r,
+                    q0,
+                    q0,
+                    it.seq.answer,
+                    parent.cfg.f_bits,
+                    ring.seq(),
+                    it.expected_payload_abs,
+                )?;
+                per_pair.push((it.pair_id, record.prediction == record.target));
+                records.push(record);
             }
-            per_pair.push((it.pair_id, ok));
-        }
-        Ok((hits, per_pair))
-    };
+            let (hits, _) = ce_prediction_counts(&records);
+            Ok((hits, per_pair, records))
+        };
 
     let mut comparisons: Vec<serde_json::Value> = Vec::new();
+    let mut prediction_records: BTreeMap<(&str, &str), Vec<CePredictionRecord>> = BTreeMap::new();
     for (label, params, res, rows, cyclic, use_update, allowed) in [
         (
             "local_noread",
@@ -7938,9 +8110,14 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
             true,
         ),
     ] {
-        let (dh, dr, dp) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_dev)?;
-        let (th, _, _) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_tune)?;
-        let (fh, fr, fp) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_fresh)?;
+        let (dh, dr, dp, de) =
+            eval_arm(params, res, rows, cyclic, use_update, allowed, &items_dev)?;
+        let (th, _, _, te) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_tune)?;
+        let (fh, fr, fp, fe) =
+            eval_arm(params, res, rows, cyclic, use_update, allowed, &items_fresh)?;
+        prediction_records.insert(("dev", label), de);
+        prediction_records.insert(("tune", label), te);
+        prediction_records.insert(("final", label), fe);
         comparisons.push(json!({
             "arm": label,
             "dev_hits": dh, "dev_positions": dev_pos.len(), "dev_reads": dr,
@@ -7950,8 +8127,10 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
             "fresh_pairs_both_correct": both(&fp),
         }));
     }
-    let (copy_dev, copy_dp) = copy_arm(&items_dev)?;
-    let (copy_fresh, copy_fp) = copy_arm(&items_fresh)?;
+    let (copy_dev, copy_dp, copy_de) = copy_arm(&items_dev)?;
+    let (copy_fresh, copy_fp, copy_fe) = copy_arm(&items_fresh)?;
+    prediction_records.insert(("dev", "scalar_copy_parent"), copy_de);
+    prediction_records.insert(("final", "scalar_copy_parent"), copy_fe);
     comparisons.push(json!({
         "arm": "scalar_copy_parent",
         "dev_hits": copy_dev, "dev_positions": dev_pos.len(),
@@ -8117,21 +8296,41 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         })
     };
 
-    // Compact row file: one line per position with the exact served references and outcomes.
+    // One row per actual prefix; arm receipts come from the same predictions counted above.
     let mut rows_text = String::new();
-    let mut push_rows = |split: &str, poss: &[CePos], items: &[CeItem]| {
-        for (i, p) in poss.iter().enumerate() {
-            let it = items.get(i);
-            rows_text.push_str(&format!(
-                "{{\"split\":\"{split}\",\"pair\":{},\"value\":{},\"target\":{},\"selected_payload\":{},\"read\":{},\"correct_exact_occurrence\":{},\"correct_payload_value\":{},\"q0\":{},\"relation\":{},\"target_margin\":{}}}\n",
-                it.map(|x| x.pair_id).unwrap_or(0), it.map(|x| x.value).unwrap_or(0), p.target, p.payload,
-                p.read, p.correct_source, p.correct_value, p.q0, p.r, p.target_margin
-            ));
+    let mut push_rows = |split: &str, poss: &[CePos], items: &[CeItem]| -> Result<(), String> {
+        if poss.len() != items.len() {
+            return Err("association row population length differs".into());
         }
+        for (i, (p, it)) in poss.iter().zip(items).enumerate() {
+            let mut arms = serde_json::Map::new();
+            for ((record_split, arm), records) in &prediction_records {
+                if *record_split == split {
+                    let record = records
+                        .get(i)
+                        .ok_or("association prediction receipt missing")?;
+                    arms.insert(
+                        (*arm).into(),
+                        serde_json::to_value(record).map_err(|e| e.to_string())?,
+                    );
+                }
+            }
+            let row = json!({"split": split, "position": i, "pair": it.pair_id,
+                "prefix": &it.seq.tokens[..it.seq.tokens.len()-1], "value": it.value,
+                "target": p.target, "selected_payload": p.payload, "read": p.read,
+                "correct_exact_occurrence": p.correct_source, "correct_payload_value": p.correct_value,
+                "q0": p.q0, "relation": p.r, "target_margin": p.target_margin, "arms": arms,
+                "direct_decoder_predictions": {"development_constant": const_target,
+                    "categorical_selected_value": cat_of(p)},
+                "direct_decoder_note": "direct label decisions have no logit/loss or update state; copy parent is recorded only where evaluated"});
+            rows_text.push_str(&serde_json::to_string(&row).map_err(|e| e.to_string())?);
+            rows_text.push('\n');
+        }
+        Ok(())
     };
-    push_rows("dev", &dev_pos, &items_dev);
-    push_rows("tune", &tune_pos, &items_tune);
-    push_rows("final", &fresh_pos, &items_fresh);
+    push_rows("dev", &dev_pos, &items_dev)?;
+    push_rows("tune", &tune_pos, &items_tune)?;
+    push_rows("final", &fresh_pos, &items_fresh)?;
     write_checked(&root, "rows.jsonl", rows_text.as_bytes())?;
 
     let h4_final = comparisons
@@ -8169,15 +8368,14 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         "best_control_pairs_both_correct": controls_max,
         "beats_controls": final_pairs > controls_max,
         "met": fraction >= 0.5 && final_pairs > controls_max,
-        "note": "engineering screen, not a theorem or alpha threshold; a partial mechanism below it is retained with explicit limitations",
+        "note": "historical strict association comparison retained for continuity, not a requirement that geometry outperform an appropriate learned lexical dictionary and not a capability promotion criterion",
     });
 
     let result = json!({
         "schema": "uor-r4.contextual-emission/2",
-        "base_revision": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+        "parent_review_revision": "036e9c4310ca3d8d2440ac367c577a1df7edf58f",
         "running_source": {
-            "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
-            "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
+            "source_checkout_observed_before_fit": source_checkout,
             "executable_sha256": executable_sha256,
             "source_files": source_files,
         },
@@ -8203,7 +8401,9 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         "diagnostics": {
             "distinct_update_signatures_dev": ce_signature_report(&dev_ex),
             "distinct_update_signatures_fresh": ce_signature_report(&fresh_ex),
-            "note": "signature = (q0, relation, selected payload). Ambiguous signatures demand different targets from an identical update input; the update cannot separate them without help from the unchanged local logits.",
+            "served_feature_separability_dev": ce_feature_alias_report(&dev_ex, &dev_pos.iter().map(|p| p.correct_source).collect::<Vec<_>>(), &h4_params, &h4_res, false),
+            "served_feature_separability_fresh": ce_feature_alias_report(&fresh_ex, &fresh_pos.iter().map(|p| p.correct_source).collect::<Vec<_>>(), &h4_params, &h4_res, false),
+            "note": "signature = (q0, relation, selected payload). Ambiguous signatures demand different targets from an identical update input; the update cannot separate them without help from the unchanged local logits. The served_feature report tests the actual R(q1)-R(q0) the readout consumes.",
         },
         "learning": {"h4": h4_rep, "cyclic_c120": c120_rep},
         "comparisons": comparisons,
@@ -8233,10 +8433,1062 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+// ---------------------------------------------------------------------------
+// Relation composition: a derived answer from a query operation and retrieved content
+// ---------------------------------------------------------------------------
+//
+// The association instrument answers `out = label(value)`. A payload-only table is the natural
+// sufficient mechanism there, so it cannot measure a geometric contribution. This instrument
+// instead makes the answer a function of the **query operation composed with the retrieved
+// content**: `class = (op + vi) mod 10`, where `op` is the directed relation between the query role
+// and the selected source role, and `vi` is the selected value. Selected operation/value cells are
+// withheld; every evaluated primitive and output class occurs in development. The declared rule is
+// realisable by the served H4 update: `2I` contains an element `h` of order 10, so with
+// `T[rel(op)] = h^op` and `V[value(vi)] = h^vi` the served state is `q0 * h^((op+vi) mod 10)`.
+// Two cells that share a class therefore share one served state under this witness. Both H4 and
+// C120 contain an order-10 subgroup: this cyclic task tests composition, not H4-specific advantage.
+
+const RC2_N_OPS: usize = 8;
+const RC2_N_VALUES_DEV: usize = 6;
+const RC2_N_VALUES_TEST: usize = 2;
+const RC2_DISTRACTORS: usize = 2;
+const RC2_CLASS_MODULUS: usize = 10;
+/// Repeated contexts per `(op, vi)` cell: the query key, query role and source role are held fixed,
+/// so the frozen query state is constant and only the distractor context and placement vary.
+const RC2_REPEATS: usize = 4;
+const RC2_MAX_W_ROWS: usize = 64;
+const RC2_EPOCHS: usize = 600;
+const RC2_LR: f64 = 1.0;
+/// Fixture v2 repairs the old modulus/split contract. The old roots remain exposed diagnostics.
+const RC2_SEED: u64 = 0xC0F1_0002;
+
+#[derive(Clone)]
+struct Rc2Item {
+    tokens: Vec<u32>,
+    answer: u32,
+    op: usize,
+    vi: usize,
+    test: bool,
+    source_value: u32,
+    expected_payload_abs: u32,
+}
+
+struct Rc2Pos {
+    q0: usize,
+    r: usize,
+    payload: u32,
+    read: bool,
+    target: u32,
+    op: usize,
+    vi: usize,
+    test: bool,
+    correct_source: bool,
+    correct_value: bool,
+    target_margin: i32,
+}
+
+/// The declared composition rule. `op` and `vi` are the two independent inputs; the class merges
+/// cells whose operation and value indices sum to the same residue.
+fn rc2_class(op: usize, vi: usize, k: usize) -> usize {
+    (op + vi) % k
+}
+
+/// Keep the modulus identical to the witnessed subgroup order. Class coverage is supplied by
+/// the cell split rather than by changing the task to an unwitnessed modulus.
+fn rc2_choose_modulus(n_ops: usize) -> Result<usize, String> {
+    if !(2..=RC2_N_OPS).contains(&n_ops) {
+        return Err("composition requires 2..=8 observed operation descriptors".into());
+    }
+    rc2_validate_split(n_ops, RC2_CLASS_MODULUS)?;
+    Ok(RC2_CLASS_MODULUS)
+}
+
+/// Two held-out cells per operation. Alternating masks keep every value familiar elsewhere.
+fn rc2_test_cell(op: usize, vi: usize) -> bool {
+    match op % 2 {
+        0 => vi == 1 || vi == 4,
+        _ => vi == 2 || vi == 5,
+    }
+}
+
+/// Check the actual evaluated cell population, not merely coverage of hypothetical residues.
+fn rc2_validate_split(n_ops: usize, k: usize) -> Result<(), String> {
+    if !(2..=RC2_N_OPS).contains(&n_ops) || k != RC2_CLASS_MODULUS {
+        return Err(
+            "composition split needs a supported operation count and witnessed modulus 10".into(),
+        );
+    }
+    let n_values = RC2_N_VALUES_DEV + RC2_N_VALUES_TEST;
+    let mut dev_ops = std::collections::BTreeSet::new();
+    let mut dev_values = std::collections::BTreeSet::new();
+    let mut dev_classes = std::collections::BTreeSet::new();
+    for op in 0..n_ops {
+        for vi in 0..n_values {
+            if !rc2_test_cell(op, vi) {
+                dev_ops.insert(op);
+                dev_values.insert(vi);
+                dev_classes.insert(rc2_class(op, vi, k));
+            }
+        }
+    }
+    for op in 0..n_ops {
+        let held_out = (0..n_values).filter(|vi| rc2_test_cell(op, *vi)).count();
+        if held_out != RC2_N_VALUES_TEST {
+            return Err("composition split has the wrong held-out cell count".into());
+        }
+        for vi in 0..n_values {
+            if !dev_ops.contains(&op)
+                || !dev_values.contains(&vi)
+                || !dev_classes.contains(&rc2_class(op, vi, k))
+            {
+                return Err(format!(
+                    "composition cell ({op},{vi}) contains an unseen primitive or output class"
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Witness that `2I` contains the order-10 element the declared rule needs, and that power
+/// composition reproduces it for every reachable exponent pair. This makes the rule an *exact*
+/// property of the served algebra rather than an aspiration, so the instrument is realisable.
+fn rc2_order_ten_witness() -> Result<usize, String> {
+    let t = group_table();
+    let identity = t.identity as usize;
+    let mul = |a: usize, b: usize| t.product[a * ROW_STRIDE + b] as usize;
+    let pow = |g: usize, e: usize| -> usize {
+        let mut x = identity;
+        for _ in 0..e {
+            x = mul(x, g);
+        }
+        x
+    };
+    let mut found = None;
+    for g in 0..GROUP_ORDER {
+        let mut x = identity;
+        let mut order = 0usize;
+        for k in 1..=RC2_CLASS_MODULUS + 1 {
+            x = mul(x, g);
+            if x == identity {
+                order = k;
+                break;
+            }
+        }
+        if order == RC2_CLASS_MODULUS {
+            found = Some(g);
+            break;
+        }
+    }
+    let g = found.ok_or("2I has no order-10 element")?;
+    for a in 0..RC2_CLASS_MODULUS {
+        for b in 0..RC2_CLASS_MODULUS {
+            if mul(pow(g, a), pow(g, b)) != pow(g, (a + b) % RC2_CLASS_MODULUS) {
+                return Err("order-10 powers do not realise the declared class".into());
+            }
+        }
+    }
+    Ok(g)
+}
+
+/// Exercise the actual update functions over the selected modulus and every fixture cell.
+/// This is a constructed state-representation witness, never learner initialization or serving
+/// supervision. It proves neither successful fitting nor successful residual lexical emission.
+fn rc2_validate_algebra(
+    relations: &[usize],
+    values: &[u32],
+    k: usize,
+    witness: usize,
+    q0: usize,
+) -> Result<(), String> {
+    rc2_validate_split(relations.len(), k)?;
+    if values.len() != RC2_N_VALUES_DEV + RC2_N_VALUES_TEST
+        || relations.iter().any(|r| *r >= GROUP_ORDER)
+        || relations
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+            != relations.len()
+        || GROUP_ORDER % k != 0
+    {
+        return Err("composition witness has an invalid value/relation domain".into());
+    }
+    let t = group_table();
+    let mul = |a: usize, b: usize| t.product[a * ROW_STRIDE + b] as usize;
+    let pow = |e: usize| (0..e).fold(t.identity as usize, |x, _| mul(x, witness));
+    let mut h4 = ReadConditionedParams::identity();
+    h4.value_domain = values.to_vec();
+    h4.value_code = (0..values.len()).map(|vi| pow(vi) as u8).collect();
+    let mut cyclic = h4.clone();
+    let stride = GROUP_ORDER / k;
+    cyclic.value_code = (0..values.len())
+        .map(|vi| (vi * stride % GROUP_ORDER) as u8)
+        .collect();
+    for (op, &rel) in relations.iter().enumerate() {
+        h4.transport[rel] = pow(op) as u8;
+        cyclic.transport[rel] = (op * stride % GROUP_ORDER) as u8;
+    }
+    for (op, &rel) in relations.iter().enumerate() {
+        for (vi, &value) in values.iter().enumerate() {
+            let class = rc2_class(op, vi, k);
+            if h4.update(q0, rel, value) != mul(q0, pow(class))
+                || cyclic.update_cyclic(q0, rel, value) != (q0 + class * stride) % GROUP_ORDER
+            {
+                return Err(format!(
+                    "actual update does not realize declared cell ({op},{vi}) modulo {k}"
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Both population members for every `(op, vi)` cell with a fixed query key, so the frozen query
+/// state `q0` is constant and the only varying inputs are the operation and the value. Distractor
+/// blocks share the key and use other operations' source roles, so the reader faces a genuine
+/// competing-source pool.
+fn make_rc2_items(
+    banks: &Banks,
+    op_pairs: &[(u32, u32)],
+    n_ops: usize,
+    values: &[u32],
+    out_bank: &[u32],
+    k: usize,
+    seed: u64,
+) -> Result<Vec<Rc2Item>, String> {
+    rc2_validate_split(n_ops, k)?;
+    if op_pairs.len() < n_ops
+        || values.len() < RC2_N_VALUES_DEV + RC2_N_VALUES_TEST
+        || out_bank.len() < k
+    {
+        return Err("insufficient bank for the composition instrument".into());
+    }
+    let key = banks.keys[0];
+    let mut st = seed | 1;
+    let mut items = Vec::new();
+    for op in 0..n_ops {
+        let (qrole, source_role) = op_pairs[op];
+        for vi in 0..(RC2_N_VALUES_DEV + RC2_N_VALUES_TEST) {
+            let test = rc2_test_cell(op, vi);
+            for _rep in 0..RC2_REPEATS {
+                let mut blocks: Vec<(u32, u32, u32)> = Vec::new();
+                for _ in 0..RC2_DISTRACTORS {
+                    let other = (op + 1 + (xorshift(&mut st) as usize) % (n_ops - 1)) % n_ops;
+                    let role = op_pairs[other].1;
+                    let v = values[(xorshift(&mut st) as usize) % values.len()];
+                    blocks.push((role, key, v));
+                }
+                let pos = (xorshift(&mut st) as usize) % (blocks.len() + 1);
+                let mut seq_blocks = blocks.clone();
+                seq_blocks.insert(pos, (source_role, key, values[vi]));
+                let mut tokens = Vec::new();
+                let mut expected_payload_abs = 0u32;
+                for (i, (r, k, v)) in seq_blocks.iter().enumerate() {
+                    if i == pos {
+                        expected_payload_abs = (i * 3 + 2) as u32;
+                    }
+                    tokens.push(*r);
+                    tokens.push(*k);
+                    tokens.push(*v);
+                }
+                tokens.push(qrole);
+                tokens.push(key);
+                let answer = out_bank[rc2_class(op, vi, k)];
+                tokens.push(answer);
+                items.push(Rc2Item {
+                    tokens,
+                    answer,
+                    op,
+                    vi,
+                    test,
+                    source_value: values[vi],
+                    expected_payload_abs,
+                });
+            }
+        }
+    }
+    Ok(items)
+}
+
+fn rc2_extract(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    sel: &RelationalSelector,
+    items: &[Rc2Item],
+) -> Result<(Vec<Rc2Pos>, Vec<CeExample>), String> {
+    let mut positions = Vec::new();
+    let mut examples = Vec::new();
+    for it in items.iter() {
+        let seq = Seq {
+            tokens: it.tokens.clone(),
+            group: 0,
+            answer: it.answer,
+            absent: false,
+            answer_source_abs: None,
+        };
+        let obs = observe_full(&seq);
+        let want = it.tokens.len() - 2;
+        let o = obs
+            .iter()
+            .find(|o| o.ring.written() as usize == want)
+            .ok_or("composition decision point is missing")?;
+        let z = local_logits(
+            parent,
+            local,
+            u,
+            o.cur,
+            o.prev as usize,
+            o.prev2,
+            o.ring.written(),
+        );
+        let selected = read_step(&o.ring, o.cur, o.prev, o.prev2, sel, table, true, &z);
+        let q0 = local.query_state(o.cur).min(u.len() - 1);
+        let t = (it.answer as usize).min(z.len() - 1);
+        let best_other = z
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != t)
+            .map(|(_, v)| *v)
+            .max()
+            .unwrap_or(i32::MIN);
+        positions.push(Rc2Pos {
+            q0,
+            r: selected.rel,
+            payload: selected.payload.unwrap_or(0),
+            read: selected.action.is_some(),
+            target: it.answer,
+            op: it.op,
+            vi: it.vi,
+            test: it.test,
+            correct_source: selected.payload_abs == Some(it.expected_payload_abs),
+            correct_value: selected.payload == Some(it.source_value),
+            target_margin: z[t] - best_other,
+        });
+        examples.push(CeExample {
+            z_local: z,
+            q0,
+            r: selected.rel,
+            payload: selected.payload.unwrap_or(0),
+            read: selected.action.is_some(),
+            target: it.answer,
+        });
+    }
+    Ok((positions, examples))
+}
+
+fn rc2_run() -> Result<ExitCode, String> {
+    let mut root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relation-composition-v2-1",
+    );
+    let mut source_root: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+
+    let pb = std::fs::read(E_PATH).map_err(|e| format!("E: {e}"))?;
+    if sha256_hex(&pb) != E_SHA {
+        return Err("E sha mismatch".into());
+    }
+    let parent = PriorCore::from_bytes(&pb).map_err(|e| format!("load E: {e}"))?;
+    parent.validate()?;
+    let (parent_digest, _) = parent_hash_convention(&pb);
+    let sb = std::fs::read(S_PATH).map_err(|e| format!("S: {e}"))?;
+    if sha256_hex(&sb) != S_SHA {
+        return Err("S sha mismatch".into());
+    }
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let derived = sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?);
+    if derived != DERIVED_SHA {
+        return Err("derived tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let raw_tok: [u8; 32] = hex_to_bytes(&derived)?.try_into().unwrap();
+    let local = QueryHard::from_bytes(&sb, &parent, &parent_digest, &raw_tok)
+        .map_err(|e| format!("load S: {e}"))?;
+    let u: Vec<Vec<i32>> = (0..120).map(|s| local.row_scores(s)).collect();
+    let table = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
+    let group_digest = group_table_digest(&table);
+    let banks = build_banks(&tokenizer, parent.cfg.vocab)?;
+    let source_checkout = ce_source_checkout(source_root.as_deref());
+    let source_files: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+    let executable_sha256 = hex_of(&sha256_bytes(
+        &std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+            .unwrap_or_default(),
+    ));
+
+    let parent_root = PathBuf::from(PARENT_ROOT);
+    let selector_bytes = std::fs::read(parent_root.join("artifacts/relational_ctx.rlr2"))
+        .map_err(|e| format!("parent artifact: {e}"))?;
+    let selector_sha256 = sha256_hex(&selector_bytes);
+    if selector_sha256 != PARENT_SHA_RELATIONAL_CTX {
+        return Err("contextual selector hash mismatch".into());
+    }
+    let sel =
+        RelationalArtifact::from_bytes(&selector_bytes, &sha256_bytes(&sb), &raw_tok)?.selector;
+
+    // Measure the frozen selector's relation projection on these declared pairs. This is not a
+    // universal operation capacity: local logits still observe the query role, and a separate
+    // learned operation operand could preserve distinctions unnecessary for source selection.
+    let rel_of = |qrole: u32, source_role: u32| -> usize {
+        relation_index(
+            &table,
+            sel.mode,
+            &sel.code_of,
+            *sel.q_roots.get(qrole as usize).unwrap_or(&0),
+            *sel.q_roots.get(source_role as usize).unwrap_or(&0),
+            qrole as usize,
+            source_role as usize,
+        )
+    };
+    let mut op_pairs: Vec<(u32, u32)> = Vec::new();
+    let mut seen_rel: std::collections::BTreeSet<usize> = std::collections::BTreeSet::new();
+    let mut all_rels: Vec<(u32, u32, usize, u8, u8)> = Vec::new();
+    for &(a, b) in banks.pairs.iter() {
+        let r = rel_of(a, b) % GROUP_ORDER;
+        all_rels.push((
+            a,
+            b,
+            r,
+            *sel.q_roots.get(a as usize).unwrap_or(&0),
+            *sel.q_roots.get(b as usize).unwrap_or(&0),
+        ));
+        if seen_rel.insert(r) && op_pairs.len() < RC2_N_OPS {
+            op_pairs.push((a, b));
+        }
+    }
+    let available_relations = seen_rel.len();
+    let n_ops = op_pairs.len().min(RC2_N_OPS);
+    if n_ops < 2 {
+        return Err(format!(
+            "the served relation interface exposes {available_relations} distinct relative element(s); an operation-conditioned composition needs at least two"
+        ));
+    }
+    let k = rc2_choose_modulus(n_ops)?;
+
+    let witness = rc2_order_ten_witness()?;
+    let values: Vec<u32> = banks.values_fit.iter().copied().take(8).collect();
+    let mut used: std::collections::BTreeSet<u32> = values.iter().copied().collect();
+    used.insert(banks.keys[0]);
+    for (a, b) in op_pairs.iter() {
+        used.insert(*a);
+        used.insert(*b);
+    }
+    let out_bank: Vec<u32> = (0..parent.cfg.vocab as u32)
+        .rev()
+        .filter(|t| !used.contains(t))
+        .take(k)
+        .collect();
+    if out_bank.len() < k {
+        return Err("no disjoint composition output bank".into());
+    }
+    let items = make_rc2_items(&banks, &op_pairs, n_ops, &values, &out_bank, k, RC2_SEED)?;
+    let dev_items: Vec<Rc2Item> = items.iter().filter(|i| !i.test).cloned().collect();
+    let test_items: Vec<Rc2Item> = items.iter().filter(|i| i.test).cloned().collect();
+
+    let relation_exposure: Vec<serde_json::Value> = all_rels
+        .iter()
+        .map(|(a, b, r, qr, kr)| json!({"qrole": a, "source_role": b, "relation": r, "q_root": qr, "source_root": kr}))
+        .collect();
+
+    let (dev_pos, dev_ex) = rc2_extract(&parent, &local, &u, &table, &sel, &dev_items)?;
+    let (test_pos, test_ex) = rc2_extract(&parent, &local, &u, &table, &sel, &test_items)?;
+    if dev_pos.len() != dev_items.len() || test_pos.len() != test_items.len() {
+        return Err("composition extraction lost a declared position".into());
+    }
+    let all_read = dev_pos.iter().chain(test_pos.iter()).all(|p| p.read);
+    let all_source = dev_pos
+        .iter()
+        .chain(test_pos.iter())
+        .all(|p| p.correct_source);
+    let q0_values: std::collections::BTreeSet<usize> = dev_pos
+        .iter()
+        .chain(test_pos.iter())
+        .map(|p| p.q0)
+        .collect();
+    let rels: std::collections::BTreeSet<usize> =
+        dev_pos.iter().map(|p| p.r % GROUP_ORDER).collect();
+    if q0_values.len() != 1 {
+        return Err("composition instrument does not hold a single frozen query state".into());
+    }
+    let witness_relations: Vec<usize> = op_pairs
+        .iter()
+        .map(|&(a, b)| rel_of(a, b) % GROUP_ORDER)
+        .collect();
+    rc2_validate_algebra(
+        &witness_relations,
+        &values,
+        k,
+        witness,
+        *q0_values.first().ok_or("composition query state absent")?,
+    )?;
+    // The reader may expose a relation outside the declared operation budget (a distractor or an
+    // empty-predecessor candidate). Record the exposure rather than asserting it away.
+    let relations_observed = rels.len();
+
+    let deficit = dev_pos
+        .iter()
+        .map(|p| (-p.target_margin).max(0) as i64)
+        .max()
+        .unwrap_or(0);
+    let mut shift = 0u32;
+    while shift < 12 && (CE_WIDTH as i64) * 2 * (1i64 << shift) < deficit {
+        shift += 1;
+    }
+    let base_params = {
+        let mut p = ReadConditionedParams::identity();
+        p.value_domain = values.clone();
+        p.value_code = (0..values.len()).map(|i| (i % GROUP_ORDER) as u8).collect();
+        for r in 0..GROUP_ORDER {
+            p.transport[r] = (r % GROUP_ORDER) as u8;
+        }
+        p
+    };
+    let learn = |cyclic: bool| -> Result<
+        (
+            serde_json::Value,
+            ReadConditionedParams,
+            EmissionResidual,
+            Vec<usize>,
+        ),
+        String,
+    > {
+        let params0 = base_params.clone();
+        let mut res0 = EmissionResidual::seeded(parent.cfg.vocab, 0x51E5_0000);
+        res0.shift = shift;
+        let (res_before_maps, nll_initial, nll_before_maps, flips_before_maps) = fit_output_block(
+            &dev_ex,
+            &params0,
+            &res0,
+            cyclic,
+            RC2_EPOCHS,
+            RC2_LR,
+            parent.cfg.f_bits,
+            RC2_MAX_W_ROWS,
+            5,
+        );
+        let rows_before_maps = res_before_maps.active_rows();
+        let (params, accepted) = ce_search_maps(
+            &dev_ex,
+            &params0,
+            &res_before_maps,
+            cyclic,
+            &rows_before_maps,
+            4,
+            parent.cfg.f_bits,
+        );
+        let nll_after_maps = served_nll_bits(
+            &dev_ex,
+            &params,
+            &res_before_maps,
+            cyclic,
+            &rows_before_maps,
+            parent.cfg.f_bits,
+        );
+        let (res, refit_initial, nll_final, flips_after_maps) = fit_output_block(
+            &dev_ex,
+            &params,
+            &res_before_maps,
+            cyclic,
+            RC2_EPOCHS,
+            RC2_LR,
+            parent.cfg.f_bits,
+            RC2_MAX_W_ROWS,
+            5,
+        );
+        if (refit_initial - nll_after_maps).abs() > 1e-12 || nll_final > refit_initial + 1e-12 {
+            return Err(
+                "composition post-map output refit violated the incumbent CE contract".into(),
+            );
+        }
+        let rows = res.active_rows();
+        let report = json!({
+            "algebra": if cyclic { "cyclic_c120" } else { "signed_h4" },
+            "shift": shift,
+            "f_bits": parent.cfg.f_bits,
+            "loss_units": "bits after fixed-point normalization",
+            "output_rows": rows.len(),
+            "nll_bits": {
+                "initial": nll_initial, "served_output_before_map_search": nll_before_maps,
+                "served_after_map_search": nll_after_maps, "post_map_refit_incumbent": refit_initial,
+                "served_final": nll_final,
+            },
+            "distinct_payload_alias_pairs_dev_before": ce_collisions(&dev_ex, &params0),
+            "distinct_payload_alias_pairs_dev_after": ce_collisions(&dev_ex, &params),
+            "accepted_ternary_flips": flips_before_maps + flips_after_maps,
+            "accepted_map_changes": accepted,
+            "post_map_output_refit_executed": true,
+            "dev_hits": ce_hits(&dev_ex, &params, &res, cyclic, &rows),
+            "output_after_maps_refit_sha256": sha256_hex(&res.to_bytes()),
+        });
+        Ok((report, params, res, rows))
+    };
+    let (h4_rep, h4_params0, h4_res0, _h4_rows0) = learn(false)?;
+    let (c120_rep, c120_params0, c120_res0, _c120_rows0) = learn(true)?;
+
+    let reload = |name: &str,
+                  params: ReadConditionedParams,
+                  res: EmissionResidual,
+                  cyclic: bool|
+     -> Result<
+        (
+            ReadConditionedParams,
+            EmissionResidual,
+            Vec<usize>,
+            serde_json::Value,
+        ),
+        String,
+    > {
+        let pbytes = params.to_bytes();
+        let rbytes = res.to_bytes();
+        let pp = format!("artifacts/{name}.rlrc");
+        let rp = format!("artifacts/{name}.rlce");
+        write_checked(&root, &pp, &pbytes)?;
+        write_checked(&root, &rp, &rbytes)?;
+        let loaded_p = ReadConditionedParams::from_bytes(
+            &std::fs::read(root.join(&pp)).map_err(|e| e.to_string())?,
+        )?;
+        let loaded_r = EmissionResidual::from_bytes(
+            &std::fs::read(root.join(&rp)).map_err(|e| e.to_string())?,
+            parent.cfg.vocab,
+        )?;
+        if params != loaded_p || res != loaded_r || loaded_r.w.len() != parent.cfg.vocab {
+            return Err("composition independent artifact load mismatch".into());
+        }
+        let loaded_rows = loaded_r.active_rows();
+        let unloaded_rows = res.active_rows();
+        let mut parity = 0usize;
+        for it in items.iter() {
+            let prefix = &it.tokens[..it.tokens.len() - 1];
+            let ring = ring_before_current(prefix);
+            let i = prefix.len() - 1;
+            let before = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                &params,
+                &res,
+                &unloaded_rows,
+                cyclic,
+                true,
+                true,
+            );
+            let after = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                &loaded_p,
+                &loaded_r,
+                &loaded_rows,
+                cyclic,
+                true,
+                true,
+            );
+            if before != after {
+                return Err("composition loaded predictor parity failure".into());
+            }
+            parity += 1;
+        }
+        let receipt = json!({"arm": name, "params_sha256": sha256_hex(&pbytes), "residual_sha256": sha256_hex(&rbytes),
+            "params_reload_identical": true, "residual_reload_identical": true,
+            "loaded_full_predictor_parity_positions": parity,
+            "loaded_objects_used_for_evaluation": true,
+            "algebra": if cyclic {"cyclic_c120"} else {"signed_h4"}, "f_bits": parent.cfg.f_bits,
+            "selector_sha256": selector_sha256, "group_digest": group_digest});
+        Ok((loaded_p, loaded_r, loaded_rows, receipt))
+    };
+    let (h4_params, h4_res, h4_rows, h4_artifact) =
+        reload("h4_composition", h4_params0, h4_res0, false)?;
+    let (c120_params, c120_res, c120_rows, c120_artifact) =
+        reload("cyclic_c120_composition", c120_params0, c120_res0, true)?;
+    let artifacts = vec![h4_artifact, c120_artifact];
+
+    let eval_arm = |params: &ReadConditionedParams,
+                    res: &EmissionResidual,
+                    rows: &[usize],
+                    cyclic: bool,
+                    use_update: bool,
+                    allowed: bool,
+                    items: &[Rc2Item]|
+     -> Result<(usize, usize, Vec<CePredictionRecord>), String> {
+        let mut records = Vec::new();
+        for it in items.iter() {
+            let prefix = &it.tokens[..it.tokens.len() - 1];
+            let ring = ring_before_current(prefix);
+            let i = prefix.len() - 1;
+            let (z, r, q0, q1) = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                params,
+                res,
+                rows,
+                cyclic,
+                use_update,
+                allowed,
+            );
+            records.push(ce_prediction_record(
+                &z,
+                &r,
+                q0,
+                q1,
+                it.answer,
+                parent.cfg.f_bits,
+                ring.seq(),
+                it.expected_payload_abs,
+            )?);
+        }
+        let (hits, reads) = ce_prediction_counts(&records);
+        Ok((hits, reads, records))
+    };
+
+    let mut comparisons: Vec<serde_json::Value> = Vec::new();
+    let mut prediction_records: BTreeMap<(&str, &str), Vec<CePredictionRecord>> = BTreeMap::new();
+    for (label, params, res, rows, cyclic, use_update, allowed) in [
+        (
+            "local_noread",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            false,
+            false,
+        ),
+        (
+            "h4_composition",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            true,
+            true,
+        ),
+        (
+            "h4_update_disabled",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            false,
+            true,
+        ),
+        (
+            "h4_read_disabled",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            true,
+            false,
+        ),
+        (
+            "cyclic_c120_composition",
+            &c120_params,
+            &c120_res,
+            &c120_rows,
+            true,
+            true,
+            true,
+        ),
+    ] {
+        let (dh, dr, de) = eval_arm(params, res, rows, cyclic, use_update, allowed, &dev_items)?;
+        let (th, tr, te) = eval_arm(params, res, rows, cyclic, use_update, allowed, &test_items)?;
+        prediction_records.insert(("dev", label), de);
+        prediction_records.insert(("held_out_cells", label), te);
+        comparisons.push(json!({
+            "arm": label,
+            "dev_hits": dh, "dev_positions": dev_items.len(), "dev_reads": dr,
+            "test_hits": th, "test_positions": test_items.len(), "test_reads": tr,
+        }));
+    }
+
+    // Fair comparators fitted on development only and given the same observable inputs.
+    let mut const_counts: BTreeMap<u32, usize> = BTreeMap::new();
+    let mut pay: BTreeMap<u32, BTreeMap<u32, usize>> = BTreeMap::new();
+    let mut two: BTreeMap<(usize, u32), BTreeMap<u32, usize>> = BTreeMap::new();
+    for p in dev_pos.iter() {
+        *const_counts.entry(p.target).or_default() += 1;
+        *pay.entry(p.payload)
+            .or_default()
+            .entry(p.target)
+            .or_default() += 1;
+        *two.entry((p.r % GROUP_ORDER, p.payload))
+            .or_default()
+            .entry(p.target)
+            .or_default() += 1;
+    }
+    let const_target = const_counts
+        .iter()
+        .max_by_key(|(_, c)| **c)
+        .map(|(t, _)| *t)
+        .unwrap_or(0);
+    let majority = |m: &BTreeMap<u32, usize>| -> u32 {
+        m.iter()
+            .max_by_key(|(_, c)| **c)
+            .map(|(t, _)| *t)
+            .unwrap_or(const_target)
+    };
+    let pay_table: BTreeMap<u32, u32> = pay.iter().map(|(k, m)| (*k, majority(m))).collect();
+    let two_table: BTreeMap<(usize, u32), u32> =
+        two.iter().map(|(k, m)| (*k, majority(m))).collect();
+    let count_hits = |poss: &[Rc2Pos], f: &dyn Fn(&Rc2Pos) -> u32| -> usize {
+        poss.iter().filter(|p| f(p) == p.target).count()
+    };
+    for (label, f) in [
+        (
+            "development_constant",
+            &(|_: &Rc2Pos| const_target) as &dyn Fn(&Rc2Pos) -> u32,
+        ),
+        (
+            "payload_only_table",
+            &(|p: &Rc2Pos| pay_table.get(&p.payload).copied().unwrap_or(const_target)),
+        ),
+        (
+            "relation_and_payload_table",
+            &(|p: &Rc2Pos| {
+                two_table
+                    .get(&(p.r % GROUP_ORDER, p.payload))
+                    .copied()
+                    .unwrap_or(const_target)
+            }),
+        ),
+    ] {
+        comparisons.push(json!({
+            "arm": label,
+            "dev_hits": count_hits(&dev_pos, f), "dev_positions": dev_pos.len(),
+            "test_hits": count_hits(&test_pos, f), "test_positions": test_pos.len(),
+            "blind_to_operation": label == "payload_only_table",
+        }));
+    }
+
+    // Diagnostic of exact state reuse, not a necessary condition for learned readout transfer.
+    // Honor NoRead exactly as the actual predictor does.
+    let state_of = |p: &Rc2Pos| -> usize {
+        if p.read {
+            h4_params.update(p.q0, p.r, p.payload)
+        } else {
+            p.q0
+        }
+    };
+    let dev_states: std::collections::BTreeSet<usize> = dev_pos.iter().map(&state_of).collect();
+    let test_shared = test_pos
+        .iter()
+        .filter(|p| dev_states.contains(&state_of(p)))
+        .count();
+    let test_classes: std::collections::BTreeSet<usize> =
+        test_pos.iter().map(|p| rc2_class(p.op, p.vi, k)).collect();
+    let dev_classes: std::collections::BTreeSet<usize> =
+        dev_pos.iter().map(|p| rc2_class(p.op, p.vi, k)).collect();
+    let feature_dev = ce_feature_alias_report(
+        &dev_ex,
+        &dev_pos.iter().map(|p| p.correct_source).collect::<Vec<_>>(),
+        &h4_params,
+        &h4_res,
+        false,
+    );
+    let feature_held_out = ce_feature_alias_report(
+        &test_ex,
+        &test_pos
+            .iter()
+            .map(|p| p.correct_source)
+            .collect::<Vec<_>>(),
+        &h4_params,
+        &h4_res,
+        false,
+    );
+
+    let mut rows_text = String::new();
+    for (split, poss, row_items) in [
+        ("dev", &dev_pos, &dev_items),
+        ("held_out_cells", &test_pos, &test_items),
+    ] {
+        for (i, (p, it)) in poss.iter().zip(row_items).enumerate() {
+            let q1 = state_of(p);
+            let mut arms = serde_json::Map::new();
+            for ((record_split, arm), records) in &prediction_records {
+                if *record_split == split {
+                    let record = records
+                        .get(i)
+                        .ok_or("composition prediction receipt missing")?;
+                    arms.insert(
+                        (*arm).into(),
+                        serde_json::to_value(record).map_err(|e| e.to_string())?,
+                    );
+                }
+            }
+            let row = json!({"split": split, "position": i, "op": p.op, "value_index": p.vi,
+                "class": rc2_class(p.op, p.vi, k), "test": p.test,
+                "prefix": &it.tokens[..it.tokens.len()-1], "target": p.target,
+                "selected_payload": p.payload, "read": p.read, "correct_source": p.correct_source,
+                "correct_value": p.correct_value, "q0": p.q0, "relation": p.r % GROUP_ORDER,
+                "q1": q1, "q1_state_seen_in_dev": dev_states.contains(&q1),
+                "target_margin": p.target_margin, "arms": arms,
+                "direct_decoder_predictions": {"development_constant": const_target,
+                    "payload_only_table": pay_table.get(&p.payload).copied().unwrap_or(const_target),
+                    "relation_and_payload_table": two_table.get(&(p.r % GROUP_ORDER, p.payload)).copied().unwrap_or(const_target)},
+                "direct_decoder_note": "direct label decisions have no logit/loss or update state"});
+            rows_text.push_str(&serde_json::to_string(&row).map_err(|e| e.to_string())?);
+            rows_text.push('\n');
+        }
+    }
+    write_checked(&root, "rows.jsonl", rows_text.as_bytes())?;
+
+    let find_h = |name: &str| -> u64 {
+        comparisons
+            .iter()
+            .find(|c| c["arm"] == json!(name))
+            .and_then(|c| c["test_hits"].as_u64())
+            .unwrap_or(0)
+    };
+    let h4_test = find_h("h4_composition");
+    let control_max = [
+        "local_noread",
+        "h4_update_disabled",
+        "h4_read_disabled",
+        "development_constant",
+        "payload_only_table",
+        "relation_and_payload_table",
+        "cyclic_c120_composition",
+    ]
+    .iter()
+    .map(|n| find_h(n))
+    .max()
+    .unwrap_or(0);
+    let noncompositional_control_max = [
+        "local_noread",
+        "h4_update_disabled",
+        "h4_read_disabled",
+        "development_constant",
+        "payload_only_table",
+        "relation_and_payload_table",
+    ]
+    .iter()
+    .map(|n| find_h(n))
+    .max()
+    .unwrap_or(0);
+    let screen = json!({
+        "comparison_scope": "exploratory familiar-primitive held-out cells on a cyclic task supported by both algebras",
+        "h4_test_hits": h4_test, "test_positions": test_items.len(),
+        "best_control_test_hits": control_max,
+        "best_noncompositional_control_test_hits": noncompositional_control_max,
+        "exceeds_noncompositional_controls": h4_test > noncompositional_control_max,
+        "cyclic_c120_test_hits": find_h("cyclic_c120_composition"),
+        "h4_exceeds_matched_cyclic_arm": h4_test > find_h("cyclic_c120_composition"),
+        "historical_strict_all_control_comparison": h4_test > control_max,
+        "met": false, "competence_qualification": "NOT_RUN",
+        "required_qualification": "complete generated answers and paired changed-source/changed-operation causal controls in addition to familiar-primitive cell transfer; these controls are not executed by this diagnostic mode",
+        "note": "H4 need not beat C120 to demonstrate cyclic computation competence. Unique algebra advantage is a separate claim; aggregate hits on this authored fixture do not qualify complete computation or language capability.",
+    });
+
+    let result = json!({
+        "schema": "uor-r4.relation-composition/2",
+        "parent_review_revision": "036e9c4310ca3d8d2440ac367c577a1df7edf58f",
+        "running_source": {
+            "source_checkout_observed_before_fit": source_checkout,
+            "executable_sha256": executable_sha256,
+            "source_files": source_files,
+        },
+        "inputs": {"E_sha256": E_SHA, "S_sha256": S_SHA, "tokenizer_derived": DERIVED_SHA, "group_digest": group_digest, "selector_sha256": selector_sha256, "f_bits": parent.cfg.f_bits},
+        "instrument": {
+            "fixture_version": 2, "seed": RC2_SEED,
+            "exposure": "new repaired fixture after exposed v1 diagnostics; generated held-out cells are not a sealed final language evaluation",
+            "design": "fixed query key, four contexts per operation/value cell; alternating held-out cell masks keep every evaluated operation, value and output class familiar in development; distractor blocks share the key and use other operations' source roles",
+            "declared_rule": "class = (op + vi) mod 10; the answer token is a disjoint output bank entry per class, absent from every prefix",
+            "order_ten_witness_element": witness,
+            "realisability": "constructed H4 order-10 and C120 stride-12 maps both pass the actual update function on every fixture cell modulo 10; this witnesses state representation only, not learning, reader correctness or residual output realizability",
+            "values": values, "output_bank": out_bank,
+            "ops": n_ops, "available_relations": available_relations, "relation_budget_saturating": available_relations < RC2_N_OPS,
+            "relation_budget_scope": "frozen selector projection on these enumerated role pairs only; query role still reaches local logits; not a whole-model operation limit",
+            "class_modulus": k, "distinct_values": values.len(),
+            "development_cells_per_operation": RC2_N_VALUES_DEV, "held_out_cells_per_operation": RC2_N_VALUES_TEST,
+            "held_out_cell_rule": "even operation indices withhold values 1 and 4; odd operation indices withhold values 2 and 5",
+            "relation_exposure": relation_exposure,
+        },
+        "validity": {
+            "dev_positions": dev_pos.len(), "held_out_positions": test_pos.len(),
+            "all_read": all_read, "all_source_selected": all_source,
+            "distinct_frozen_query_states": q0_values.len(), "distinct_relations": relations_observed,
+            "dev_classes": dev_classes.len(), "held_out_classes": test_classes.len(),
+            "held_out_states_already_reached_in_dev": test_shared,
+            "max_target_deficit_units": deficit, "declared_shift": shift,
+        },
+        "diagnostics": {"served_feature_separability_dev": feature_dev, "served_feature_separability_held_out": feature_held_out},
+        "learning": {"h4": h4_rep, "cyclic_c120": c120_rep},
+        "comparisons": comparisons,
+        "screen": screen,
+        "artifacts": artifacts,
+        "scope": "bounded authored cyclic-composition instrument, equally state-representable in H4 and C120. Not independent evidence that H4 is the best language geometry. Learned transfer and unique algebra advantage are separate questions. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+        "elapsed_s": started.elapsed().as_secs_f64(),
+    });
+    write_json(&root, "result.json", &result)?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "relation-composition: dev {} | held-out {} | all-read {} | all-source {} | frozen q0 {} | dev classes {} held-out classes {} | held-out states shared {} | H4 dev {} held-out {} | best control {} | sealed {} unlisted | {:.1}s",
+        dev_pos.len(), test_pos.len(), all_read, all_source, q0_values.len(),
+        dev_classes.len(), test_classes.len(), test_shared,
+        comparisons.iter().find(|c| c["arm"] == json!("h4_composition")).and_then(|c| c["dev_hits"].as_u64()).unwrap_or(0),
+        h4_test, control_max, unlisted.len(), started.elapsed().as_secs_f32()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let mode = std::env::args().any(|a| a == "--mode=utility-transfer");
     let ce = std::env::args().any(|a| a == "--mode=contextual-emission");
-    let result = if ce {
+    let comp = std::env::args().any(|a| a == "--mode=relation-composition");
+    let result = if comp {
+        rc2_run()
+    } else if ce {
         contextual_emission_run()
     } else if mode {
         utility_transfer_run()
@@ -8249,6 +9501,140 @@ fn main() -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::from(1)
         }
+    }
+}
+
+#[cfg(test)]
+mod relation_composition_tests {
+    use super::*;
+
+    #[test]
+    fn declared_class_merges_only_the_shared_residue() {
+        // Cells that share a residue must share a class; a value change must move it.
+        assert_eq!(
+            rc2_class(1, 4, RC2_CLASS_MODULUS),
+            rc2_class(5, 0, RC2_CLASS_MODULUS)
+        );
+        assert_eq!(
+            rc2_class(3, 7, RC2_CLASS_MODULUS),
+            rc2_class(0, 0, RC2_CLASS_MODULUS)
+        );
+        assert_ne!(
+            rc2_class(2, 1, RC2_CLASS_MODULUS),
+            rc2_class(2, 2, RC2_CLASS_MODULUS)
+        );
+        for op in 0..RC2_N_OPS {
+            for vi in 0..(RC2_N_VALUES_DEV + RC2_N_VALUES_TEST) {
+                assert!(rc2_class(op, vi, RC2_CLASS_MODULUS) < RC2_CLASS_MODULUS);
+            }
+        }
+    }
+
+    #[test]
+    fn the_rule_is_realisable_by_the_served_group() {
+        // A witnessed order-10 element whose powers compose exactly as the rule declares.
+        let g = rc2_order_ten_witness().expect("2I must contain an order-10 element");
+        let t = group_table();
+        let identity = t.identity as usize;
+        let mul = |a: usize, b: usize| t.product[a * ROW_STRIDE + b] as usize;
+        let pow = |e: usize| -> usize {
+            let mut x = identity;
+            for _ in 0..e {
+                x = mul(x, g);
+            }
+            x
+        };
+        assert_eq!(pow(RC2_CLASS_MODULUS), pow(0));
+        // Distinct residues 0..9 are distinct states, so the ten classes are separable.
+        let mut seen = std::collections::BTreeSet::new();
+        for e in 0..RC2_CLASS_MODULUS {
+            assert!(seen.insert(pow(e)), "residue {e} collides");
+        }
+        let values: Vec<u32> = (100..108).collect();
+        for n_ops in 2..=RC2_N_OPS {
+            let k = rc2_choose_modulus(n_ops).unwrap();
+            assert_eq!(k, 10);
+            let relations: Vec<usize> = (0..n_ops).collect();
+            for q0 in [identity, 7, 63, 119] {
+                rc2_validate_algebra(&relations, &values, k, g, q0).unwrap();
+            }
+        }
+        // This was the actual v1 defect: its reduced fixture labelled sum 7 as class 0
+        // although the witnessed order-10 state at exponent 7 is not the identity.
+        assert_ne!(pow(7), pow(rc2_class(1, 6, 7)));
+        assert!(rc2_validate_algebra(&[80, 85], &values, 7, g, identity).is_err());
+    }
+
+    #[test]
+    fn held_out_cells_share_a_class_with_development() {
+        // Every held-out residue must be covered by an all-operations development population, for
+        // the full operation budget and for the reduced budgets the served relation set may force.
+        for n_ops in 2..=RC2_N_OPS {
+            let k = rc2_choose_modulus(n_ops).expect("a covering modulus must exist");
+            let dev: std::collections::BTreeSet<usize> = (0..n_ops)
+                .flat_map(|op| {
+                    (0..(RC2_N_VALUES_DEV + RC2_N_VALUES_TEST))
+                        .filter(move |vi| !rc2_test_cell(op, *vi))
+                        .map(move |vi| rc2_class(op, vi, k))
+                })
+                .collect();
+            for op in 0..n_ops {
+                for vi in
+                    (0..(RC2_N_VALUES_DEV + RC2_N_VALUES_TEST)).filter(|vi| rc2_test_cell(op, *vi))
+                {
+                    assert!(
+                        dev.contains(&rc2_class(op, vi, k)),
+                        "held-out cell ({op},{vi}) has no development class at n_ops={n_ops}"
+                    );
+                }
+            }
+            rc2_validate_split(n_ops, k).unwrap();
+        }
+    }
+
+    #[test]
+    fn prediction_receipts_recount_actual_scores_and_preserve_occurrence_identity() {
+        let mut read = Read {
+            action: None,
+            source: None,
+            payload: None,
+            payload_abs: None,
+            rel: 0,
+            admitted: 0,
+            scanned: 0,
+        };
+        let first = ce_prediction_record(&[0, 0, 0], &read, 7, 7, 1, 1, 4, 8).unwrap();
+        assert_eq!(first.prediction, 0);
+        assert_eq!(first.strongest_competitor, 0);
+        assert!((first.loss_bits - 3f64.log2()).abs() < 1e-12);
+        read.action = Some((0, 1));
+        read.source = Some(OccurrenceRef { seq: 4, abs: 7 });
+        read.payload = Some(42);
+        read.payload_abs = Some(8);
+        let second = ce_prediction_record(&[2, 0, -2], &read, 7, 19, 0, 1, 4, 8).unwrap();
+        let expected = (1.0 + (-1f64).exp() + (-2f64).exp()).log2();
+        assert!((second.loss_bits - expected).abs() < 1e-12);
+        let encoded = serde_json::to_string(&vec![first, second]).unwrap();
+        let loaded: Vec<CePredictionRecord> = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(ce_prediction_counts(&loaded), (1, 1));
+        assert_eq!(loaded[1].selected_source_seq_abs, Some([4, 7]));
+        assert_eq!(loaded[1].intended_payload_seq_abs, [4, 8]);
+        assert_eq!(loaded[1].q1, 19);
+    }
+
+    #[test]
+    fn signature_report_counts_positions_separately_from_distinct_labels() {
+        let make = |target| CeExample {
+            z_local: vec![0; 2],
+            q0: 7,
+            r: 80,
+            payload: 42,
+            read: true,
+            target,
+        };
+        let report = ce_signature_report(&[make(0), make(0), make(0), make(1), make(1)]);
+        assert_eq!(report["targets_on_ambiguous_signatures"], 2);
+        assert_eq!(report["positions_on_ambiguous_signatures"], 5);
     }
 }
 

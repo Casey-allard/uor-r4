@@ -1,6 +1,30 @@
 # Current native geometric AI work
 
-## Active: coherent geometric computation and learned lexical emission
+## Active: learned derived-state decoding and valid composition transfer
+
+**PR #1337, independently reviewed:** the corrected learner now executes output → maps → output and improves H4 to **33/120 exposed-final answers and 7/60 complete pairs**, from 25/120 and 1/60. The learned selected-value lookup remains 108/120 and 54/60. Four report seals and artifact hashes verify; short association generation remains degenerate. **Zero observed feature aliases does not prove linear impossibility.** The composition negative used modulo 7 with an order-10 witness and withheld whole operand meanings; it does not test combinations of familiar primitives. [Principal review](geometric-computation-review-2026-09-21.md); [independent audit](../evidence/geometric-computation-principal-review-2026-09-21.json).
+
+**Next:** [learn to decode the actual geometric result and test familiar-component composition](deepseek-derived-state-decoder-step-2026-09-21.md). Use an artifact-bound learned result decoder with explicit validity: a computed identity is a legitimate result, distinct from NoRead. When necessary, separate learned observed-query operation from source-compatibility relation. The principal runner repairs the composition witness/split and retains actual per-arm predictions for recounting; no new fit on the repaired task is claimed. Establish useful read → computation → emission, then dependent Read/Emit/Stop; structural scope/retention, relative Hopf/H4 and finite spectral features remain tools for concrete needs, with paired-H4/E8/S7 conditional. A cyclic-task tie with C120 can establish competence, not unique H4 advantage.
+
+**Research leadership and autonomy:** Codex owns holistic architecture, mathematical/evidence interpretation and roadmap revision after every returned run. DeepSeek owns substantive implementation/diagnostic decisions within that direction and may pursue justified follow-ons and standing-authorized local allowance extensions with prospective accounting. No arbitrary short timer or retry quota replaces scientific judgment, preservation or physical machine limits.
+
+[Executed principal checks](../evidence/geometric-computation-principal-checks-2026-09-21.json) validate instrument/source repairs, not a new model fit. The original association and composition roots remain sealed. The [ledger](resource-ledger-2026-09-19.md) reconciles the prior component debit and records principal costs/storage. Whole-path D0-b, general language and energy advantage remain unqualified.
+
+## Historical PR #1337 submission (diagnoses corrected above): readout-limited association and the measured relation-interface obstruction
+
+**Executed the corrected lifecycle for the first time** (PR #1336 source at `036e9c43`). The repaired learner runs end to end; every stage improves one committed served objective (H4 19.86 -> 7.87 bits, C120 19.86 -> 8.29), the post-map refit executes and is consumed, 64 serving rows and reload parity hold. On the exposed regression populations the deployed predictor improves to H4 61/180 dev, 41/120 tune, 33/120 final and 7/60 pairs (pre-repair 50/36/25 and 1/60). The declared screen still fails against the 108/120 selected-value table; the seeds are exposed and no fresh evaluation is claimed.
+
+**New measured diagnosis.** On source-correct positions the **actual served feature does not alias**: dev 163 positions into 50 distinct `R(q1)-R(q0)` features with **zero** conflicting targets, final 108 into 46 with zero. The table-on-feature ceiling is 100 %, while the deployed **linear** ternary residual reaches 61/180 and 33/120. The association gap is a **readout-family** limitation, not feature aliasing or value-code injectivity; a smaller reader/input ambiguity covers 8 signatures / 21 dev positions.
+
+**Relation composition.** New `--mode=relation-composition` instrument (answer derived from the query operation composed with retrieved content, held-out value cells, fair two-input control). Measured obstruction: the served **relation interface exposes only two distinct relative elements across fourteen role pairs**, so an eight-operation composition is not representable through `T[rel]`. At the reduced two-operation budget H4 scores 15/48 dev and **0/16 held-out**, with no held-out state reached in development. Negative retained.
+
+**Next:** attach a **learned lexical decoder** to the actual selected/derived state (brief option B) -- the required feature-to-target function is not linear in the current 16 ternary features -- and expose a richer relation/operation signal in the update (brief option C) before retrying multi-operation composition. [Result](geometric-computation-result-2026-09-21.md); [evidence](../evidence/geometric-computation-2026-09-21.json).
+
+Sealed roots `geometric-computation-{1,2}` and `relation-composition-{1,5}` (0 unlisted each); Energy UNAVAILABLE; whole-path D0-b not claimed; charges in the [ledger](resource-ledger-2026-09-19.md).
+
+### Previous active (superseded by the section above)
+
+## Former active: coherent geometric computation and learned lexical emission
 
 **PR #1336, independently reviewed:** retain the repaired units, loaded-artifact execution and injective value codes, plus H4's reported 25/120 final answers (1/60 complete pairs). The learned selected-value lookup scores 108/120 and 54/60 pairs, exactly matching correct selected payloads. This is familiar-association performance in new contexts, not compositional transfer. Training still used 4,096 output rows before a 64-row serving projection; the required output refit after changed maps was omitted. The result does not isolate geometric expressivity. Both seven-file seals verify; short generation ran and remains degenerate. [Principal review](consistent-emission-review-2026-09-21.md); [audit](../evidence/consistent-emission-principal-review-2026-09-21.json).
 

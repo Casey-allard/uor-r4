@@ -1,0 +1,93 @@
+{
+  "schema": "uor-r4.geometric-computation-principal-checks/1",
+  "reviewed_submission": "b22ecb197f9b3cd54a64ff2be884cc8105cbd7f3",
+  "runner_sha256": "a01ee60120f6ba3fc065eb81040290415bb8b884a916bdde79783ef7f2feb12a",
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "elapsed_seconds": 6.0009091670000005,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1337-check-0.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "check",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "elapsed_seconds": 1.3818593749999994,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1337-check-1.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "fmt",
+        "--check"
+      ],
+      "elapsed_seconds": 6.633572040999999,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1337-check-2.log"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check_claim_wording.py"
+      ],
+      "elapsed_seconds": 0.3797254169999995,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1337-check-3.log"
+    }
+  ],
+  "runner_tests": {
+    "passed": 17,
+    "failed": 0,
+    "ignored": 1,
+    "ignored_scope": "older pinned retained-artifact smoke; not executed and not counted as pass"
+  },
+  "warnings": "3 pre-existing unused/dead-code warnings",
+  "new_focused_tests": 5,
+  "source_review": "Independent second review found no must-fix issue in prediction records, record-derived counts or actual fixture witness/split",
+  "changed_json_parsed": 3,
+  "relative_document_targets_checked": 934,
+  "missing_targets": [],
+  "new_complete_model_fit": "NOT_RUN",
+  "new_composition_generation": "NOT_RUN",
+  "resource": {
+    "at": "2026-09-21T19:01:28.538995+00:00",
+    "prior_reconciliation_ms": 155900,
+    "principal_elapsed_ms": 1001222,
+    "preprojection_estimate_ms": 180000,
+    "final_delivery_reserve_ms": 300000,
+    "principal_charge_ms": 1481222,
+    "before": {
+      "cumulative_ms": 219917150,
+      "limit_ms": 224900000
+    },
+    "after": {
+      "cumulative_ms": 221398372,
+      "limit_ms": 224900000
+    },
+    "remaining_ms": 3501628,
+    "allowance_extension_ms": 0,
+    "free_before_projection_bytes": 51214413824,
+    "free_after_checks_bytes": 51127488512,
+    "principal_deleted_bytes": 0,
+    "reserve_bytes": 36766079385,
+    "stop_margin_bytes": 134217728,
+    "paid_compute": false,
+    "idle_external_merge_queue_time": "not a new local model run"
+  }
+}
