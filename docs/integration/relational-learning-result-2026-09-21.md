@@ -1,5 +1,7 @@
 # Matched relational learning: the refit recovers the relation, the controller's margin does not
 
+> **Principal correction, September 21:** read the [review](relational-learning-review-2026-09-21.md) and [independent evidence](../evidence/relational-learning-principal-review-2026-09-21.json). The strong learned-source improvement survives. The construction is a replay; 646/1813 does not establish dominant admission loss, and the full stream has 608 omitted empty-pool positions. Thirty manifest files are verified. Refitting helped but is not isolated as the sole cause; earlier utility gains retain their scope. Control, artifact, continuation and text-interval limits are corrected in the review. The [active successor](deepseek-reader-utility-transfer-step-2026-09-21.md) is useful language read influence, with admission conditional on measured opportunity. Original design/outcome below is preserved.
+
 Executed September 21, 2026 from base revision `472767dc` (PR #1324 merged). Prospective design and frozen
 decision criteria: [relational-learning-design-2026-09-21.md](relational-learning-design-2026-09-21.md),
 recorded before implementation. Machine-readable receipt:

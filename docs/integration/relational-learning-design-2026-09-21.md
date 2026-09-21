@@ -1,5 +1,7 @@
 # Matched relational learning — prospective design (recorded before implementation and scoring)
 
+> **Principal correction, September 21:** read the [review](relational-learning-review-2026-09-21.md) and [independent evidence](../evidence/relational-learning-principal-review-2026-09-21.json). The strong learned-source improvement survives. The construction is a replay; 646/1813 does not establish dominant admission loss, and the full stream has 608 omitted empty-pool positions. Thirty manifest files are verified. Refitting helped but is not isolated as the sole cause; earlier utility gains retain their scope. Control, artifact, continuation and text-interval limits are corrected in the review. The [active successor](deepseek-reader-utility-transfer-step-2026-09-21.md) is useful language read influence, with admission conditional on measured opportunity. Original design/outcome below is preserved.
+
 Prepared September 21, 2026, before any code change, fit or held-out result. Execution prompt:
 [deepseek-relational-learning-step-2026-09-21.md](deepseek-relational-learning-step-2026-09-21.md). Principal review:
 [contextual-utility-review-2026-09-21.md](contextual-utility-review-2026-09-21.md). Reuse map:

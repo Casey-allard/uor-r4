@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**September 21, after PR #1323:** the [principal review](docs/integration/contextual-utility-review-2026-09-21.md) retains contextual utility and identifies a concrete signed-H4 expressivity witness. The [next learning task](docs/integration/deepseek-relational-learning-step-2026-09-21.md) improves source learning with matched contextual comparators and document holdout. The [five-stage plan](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up) retains structural persistence, dependent composition, language/executed Rust and qualified scale. Higher geometry supports a demonstrated distinction or retention need.
+**September 21, after PR #1325/#1326:** the [principal review](docs/integration/relational-learning-review-2026-09-21.md) retains stronger geometric source learning and corrects the admission-dominance/freshness claims. The [next task](docs/integration/deepseek-reader-utility-transfer-step-2026-09-21.md) learns direct finite read utility for language and true absence, with matched categorical controls and full-stream denominators. Structural persistence, dependent composition, broader language/executed Rust and qualified scale remain the [canonical sequence](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up).
 
 ## Capability direction
 

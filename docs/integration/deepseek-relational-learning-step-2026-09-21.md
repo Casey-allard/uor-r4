@@ -1,5 +1,7 @@
 # DeepSeek next task: learn the available geometric relation
 
+**Completed by PR #1325/#1326.** Read the [principal review](relational-learning-review-2026-09-21.md) for verified results/corrections and the [reader-utility transfer prompt](deepseek-reader-utility-transfer-step-2026-09-21.md) for the active successor. This remains the historical execution specification.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Read this prompt and the [principal PR #1323 review](contextual-utility-review-2026-09-21.md) completely, then the [mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md). Recover whatever additional repository, knowledge-store, history or primary research context helps your implementation. You have discretion over the learner and bounded tests. State material changes and their mathematical reason before final held-out evaluation. Deliver one constructive learning result, including the repairs needed to interpret it; do not spend the run only re-auditing the parent.
 
 ## Authority and recovery

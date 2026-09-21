@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current execution pointer after PR #1324:** the [matched relational learning result](integration/relational-learning-result-2026-09-21.md) is executed and unpromoted. Bounded scorer/descriptor/refit alternation recovers a significant relation-versus-recurrence advantage (relational − exact −0.524968 [−0.654447,−0.396747], where the pre-refit parent measured −0.010151 spanning zero on the same construction), while both preregistered margins fail: the contextual interaction no longer resolves over its well-fitted global baseline and the matched nongeometric categorical+contextual arm is significantly better, so unique-H4 benefit is not shown. Held-out reader text still harms. **Next:** a prospective matched comparison of one bounded broadening of the causal admission rule. No model promotion.
+**Current execution pointer after PR #1325/#1326:** the [review](integration/relational-learning-review-2026-09-21.md) retains 103/119 correct H4 source reads and 83/119 emitted final answers on the replayed construction, with reader-held-out text harm. [Next](integration/deepseek-reader-utility-transfer-step-2026-09-21.md): direct finite read utility with causal local-score observations and a fixed full stream; admission broadening is conditional on measured opportunity. No model promotion.
 
 This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an

@@ -1,0 +1,818 @@
+{
+  "schema": "uor-r4.pr1325-principal-evidence-review/1",
+  "method": "Read-only saved-data reconstruction; no model inference. Integer prefix reconstruction exactly matches all saved candidate counts and coverage. All costs below use saved predictions only.",
+  "source_revision": "44788008",
+  "input_sha256": {
+    "attempt.json": "70a689aca6693bb1eaf6c1e701883c06b78a239a31dea60ea83e81a208d773b1",
+    "binding.json": "8fca5dccac7853ff7b4a3a460577ea9cad33043a17f5ea44a4674f43e869b405",
+    "manifest.json": "7099db2e455fabc58d0a44193bb680d315ff83a3f70b4b8c208f5aa5cc5852f9",
+    "outcomes-fit-categorical.json": "b479f6c0fc605ecca9edbb4023cb3ccb79e0a773f6b25d03bf67f5ef7fb9d028",
+    "outcomes-fit-categorical_ctx.json": "b3fbf6986f22737337dad38dc965ca2ff50f59c68d2fef15ed72326969a21499",
+    "outcomes-fit-exact.json": "06d9382948569ecbf8f7da8ed7fd3e4b5f4ce929d326838f01ad5e2e949d42c3",
+    "outcomes-fit-local.json": "338c9b0c67aa2f050c6950d7918270a9a92813e6187157e039962998e938d769",
+    "outcomes-fit-relational.json": "64155c19257d2c9e81923c3908e9daa786157c95d107952656d76652e8c54444",
+    "outcomes-fit-relational_ctx.json": "53312960cff5de0fe98ac424dc660187ec5a865e73f961d2c82bf86b10cb04de",
+    "outcomes-fit-relational_ctx_lesion.json": "63918969d804b0b32e69ea736b4a394eced20166926b996ef1400c526c13f779",
+    "outcomes-fresh-categorical.json": "16b9464edc6203cd768110c06a433f1772e6bf325b00a0a00d3ed39c753160c4",
+    "outcomes-fresh-categorical_ctx.json": "e7c987b68bb204baa1b09450442094b07b735b16688d8ceb87d059db156046fa",
+    "outcomes-fresh-exact.json": "6913a1b78248ea7bb46deb8e154d544111d58d49d83043336ef2cdbe6f3af9f3",
+    "outcomes-fresh-local.json": "2b52ea1bf539fec00a88bf917f1c170dd05ac70d5b14ca83f8e16366c9dd65ec",
+    "outcomes-fresh-relational.json": "1a695e5ef42c1c846b4dbceacd55fe2b31a59cccfa13b45f12fe36e84d2bd313",
+    "outcomes-fresh-relational_ctx.json": "693678c95cc324b75877e8df081c2642d397bb660562f5b67ebf382d5e849352",
+    "outcomes-fresh-relational_ctx_lesion.json": "6913a1b78248ea7bb46deb8e154d544111d58d49d83043336ef2cdbe6f3af9f3",
+    "per-group-categorical.json": "d9ed38cde3c2e7042ecceca09c3028b880455314b2dce4e8c8795badfb4650aa",
+    "per-group-categorical_ctx.json": "b865eb7a47aff453dfd7dcf1e6beae9f8768060f7c20386516bac4a89dbb974b",
+    "per-group-exact.json": "760456b462de4a060706034cdac85d7c498af1e654cd8eeaef998bff22f7f55d",
+    "per-group-local.json": "e6443fe29177a49e4fcb6f3501a57bd39ad5e6edf8dd1cf61ed88d6299eaadd1",
+    "per-group-relational.json": "c58201492bb22f4f8beb826bdc3d5ae8926a646c28e95d7a6ea459c7694bcd8e",
+    "per-group-relational_ctx.json": "531d83a19c0df97aa086d37c724e686cc05ada534158347ef5c2a1a815188884",
+    "per-group-relational_ctx_lesion.json": "760456b462de4a060706034cdac85d7c498af1e654cd8eeaef998bff22f7f55d",
+    "population.json": "a796d61f64dba2dc710556f030958b2be0acd151eb28a44d66e7656edb32bb75",
+    "result.json": "ee84502afcb3e32d564c815a8ae76a7ff3cf4f91c150c4f432a2269b682a5108"
+  },
+  "comparisons": {
+    "relational-minus-exact": {
+      "point": -0.52496784302343,
+      "lo": -0.6544471614576948,
+      "hi": -0.39674690298281,
+      "groups": 140,
+      "positions": 1813,
+      "seed": 305419896,
+      "draws": 2000,
+      "unit": "bits_per_reported_position",
+      "resampling_unit": "sequence"
+    },
+    "relational_ctx-minus-relational": {
+      "point": -0.012093470753077776,
+      "lo": -0.02310744209192597,
+      "hi": 0.003535935505812633,
+      "groups": 140,
+      "positions": 1813,
+      "seed": 209329687,
+      "draws": 2000,
+      "unit": "bits_per_reported_position",
+      "resampling_unit": "sequence"
+    },
+    "relational_ctx-minus-relational-final_present": {
+      "point": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "groups": 119,
+      "positions": 119,
+      "seed": 209329688,
+      "draws": 2000,
+      "unit": "bits_per_reported_position",
+      "resampling_unit": "sequence"
+    },
+    "relational_ctx-minus-relational-final_absent": {
+      "point": -0.002298777780386071,
+      "lo": -0.00591449611601562,
+      "hi": 0.0,
+      "groups": 21,
+      "positions": 21,
+      "seed": 209329689,
+      "draws": 2000,
+      "unit": "bits_per_reported_position",
+      "resampling_unit": "sequence"
+    },
+    "categorical_ctx-minus-relational_ctx": {
+      "point": -0.12414851965562301,
+      "lo": -0.2275363696582246,
+      "hi": -0.022589227355602967,
+      "groups": 140,
+      "positions": 1813,
+      "seed": 209329690,
+      "draws": 2000,
+      "unit": "bits_per_reported_position",
+      "resampling_unit": "sequence"
+    },
+    "categorical_ctx-minus-relational_ctx-final_present": {
+      "point": -0.8905331357740152,
+      "lo": -1.6836518276372978,
+      "hi": -0.07055382268265623,
+      "groups": 119,
+      "positions": 119,
+      "seed": 209329691,
+      "draws": 2000,
+      "unit": "bits_per_reported_position",
+      "resampling_unit": "sequence"
+    }
+  },
+  "strata": {
+    "local": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 7541.334590775883,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.612517311869825
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6100.995814945424,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.85586443940467
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 5810.364217554176,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 13.481123474603658
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 1654.0167204923453,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 13.127116829304327
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 1597.9362343202067,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 13.428035582522746
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 292.2724582320266,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 13.917736106286982
+      }
+    },
+    "exact": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 86,
+        "correct_reads": 9,
+        "emitted_correct": 5,
+        "hard_sum_bits": 7496.374072638383,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.53136114194654
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6143.102912336117,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.9307881002422
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 400,
+        "correct_reads": 238,
+        "emitted_correct": 187,
+        "hard_sum_bits": 3368.2725473893793,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 7.8150175113442675
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 120,
+        "correct_reads": 96,
+        "emitted_correct": 79,
+        "hard_sum_bits": 642.1327459422984,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 5.096291634462685
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 35,
+        "correct_reads": 10,
+        "emitted_correct": 8,
+        "hard_sum_bits": 1506.2882623465664,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 12.657884557534171
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 5,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 294.8263153156159,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 14.039348348362662
+      }
+    },
+    "categorical": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 79,
+        "correct_reads": 9,
+        "emitted_correct": 6,
+        "hard_sum_bits": 7489.501709109019,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.51895615362639
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 20,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6131.881008661974,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.910820300110274
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 400,
+        "correct_reads": 244,
+        "emitted_correct": 193,
+        "hard_sum_bits": 3314.2349770491264,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 7.6896403179794115
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 121,
+        "correct_reads": 96,
+        "emitted_correct": 79,
+        "hard_sum_bits": 645.2481845851338,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 5.121017337977253
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 119,
+        "correct_reads": 113,
+        "emitted_correct": 92,
+        "hard_sum_bits": 371.16020645414034,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 3.1189933315473977
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 3,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 294.7239080594863,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 14.03447181235649
+      }
+    },
+    "categorical_ctx": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 141,
+        "correct_reads": 11,
+        "emitted_correct": 7,
+        "hard_sum_bits": 7495.634745815367,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.530026616995247
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 21,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6131.885539073701,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.910828361341105
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 404,
+        "correct_reads": 246,
+        "emitted_correct": 194,
+        "hard_sum_bits": 3293.265651213388,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 7.640987589822246
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 120,
+        "correct_reads": 95,
+        "emitted_correct": 77,
+        "hard_sum_bits": 654.0540418740189,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 5.1909050942382455
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 119,
+        "correct_reads": 113,
+        "emitted_correct": 91,
+        "hard_sum_bits": 380.8763603059619,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 3.200641683243377
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 6,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 296.5070896734674,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 14.119385222546068
+      }
+    },
+    "relational": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 180,
+        "correct_reads": 12,
+        "emitted_correct": 8,
+        "hard_sum_bits": 7528.626033343677,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.589577677515662
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6143.102912336117,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.9307881002422
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 400,
+        "correct_reads": 245,
+        "emitted_correct": 194,
+        "hard_sum_bits": 3302.360099833804,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 7.66208839868632
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 120,
+        "correct_reads": 88,
+        "emitted_correct": 74,
+        "hard_sum_bits": 740.3365810294367,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 5.875687151027275
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 119,
+        "correct_reads": 103,
+        "emitted_correct": 83,
+        "hard_sum_bits": 486.8498034630698,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 4.091174819017393
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 11,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 297.95472656077857,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 14.188320312418027
+      }
+    },
+    "relational_ctx": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 136,
+        "correct_reads": 11,
+        "emitted_correct": 7,
+        "hard_sum_bits": 7506.7488452017315,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.550088168234172
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6143.102912336117,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.9307881002422
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 400,
+        "correct_reads": 245,
+        "emitted_correct": 194,
+        "hard_sum_bits": 3302.360099833804,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 7.66208839868632
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 120,
+        "correct_reads": 88,
+        "emitted_correct": 74,
+        "hard_sum_bits": 740.3365810294367,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 5.875687151027275
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 119,
+        "correct_reads": 103,
+        "emitted_correct": 83,
+        "hard_sum_bits": 486.8498034630698,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 4.091174819017393
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 9,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 297.9064522273905,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 14.186021534637643
+      }
+    },
+    "relational_ctx_lesion": {
+      "intermediate_value": {
+        "positions": 554,
+        "covered": 81,
+        "reads": 86,
+        "correct_reads": 9,
+        "emitted_correct": 5,
+        "hard_sum_bits": 7496.374072638383,
+        "local_sum_bits": 7541.334590775883,
+        "mean_hard_bits": 13.53136114194654
+      },
+      "intermediate_role": {
+        "positions": 562,
+        "covered": 15,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum_bits": 6143.102912336117,
+        "local_sum_bits": 6100.995814945424,
+        "mean_hard_bits": 10.9307881002422
+      },
+      "intermediate_key": {
+        "positions": 431,
+        "covered": 305,
+        "reads": 400,
+        "correct_reads": 238,
+        "emitted_correct": 187,
+        "hard_sum_bits": 3368.2725473893793,
+        "local_sum_bits": 5810.364217554176,
+        "mean_hard_bits": 7.8150175113442675
+      },
+      "query_key": {
+        "positions": 126,
+        "covered": 126,
+        "reads": 120,
+        "correct_reads": 96,
+        "emitted_correct": 79,
+        "hard_sum_bits": 642.1327459422984,
+        "local_sum_bits": 1654.0167204923453,
+        "mean_hard_bits": 5.096291634462685
+      },
+      "final_present": {
+        "positions": 119,
+        "covered": 119,
+        "reads": 35,
+        "correct_reads": 10,
+        "emitted_correct": 8,
+        "hard_sum_bits": 1506.2882623465664,
+        "local_sum_bits": 1597.9362343202067,
+        "mean_hard_bits": 12.657884557534171
+      },
+      "final_absent": {
+        "positions": 21,
+        "covered": 0,
+        "reads": 5,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum_bits": 294.8263153156159,
+        "local_sum_bits": 292.2724582320266,
+        "mean_hard_bits": 14.039348348362662
+      }
+    }
+  },
+  "availability": {
+    "by_stratum": {
+      "intermediate_role": {
+        "all_positions": 807,
+        "scored_positions": 562,
+        "eligible_ring_correct": 17,
+        "admitted_correct": 15,
+        "recoverable_excluded": 2,
+        "no_candidate_recoverable": 2,
+        "target_not_eligible_past_payload": 790,
+        "scored_recoverable": 0
+      },
+      "intermediate_key": {
+        "all_positions": 667,
+        "scored_positions": 431,
+        "eligible_ring_correct": 527,
+        "admitted_correct": 305,
+        "recoverable_excluded": 222,
+        "no_candidate_recoverable": 183,
+        "target_not_eligible_past_payload": 140,
+        "scored_recoverable": 39
+      },
+      "intermediate_value": {
+        "all_positions": 667,
+        "scored_positions": 554,
+        "eligible_ring_correct": 126,
+        "admitted_correct": 81,
+        "recoverable_excluded": 45,
+        "no_candidate_recoverable": 18,
+        "target_not_eligible_past_payload": 541,
+        "scored_recoverable": 27
+      },
+      "query_key": {
+        "all_positions": 140,
+        "scored_positions": 126,
+        "eligible_ring_correct": 140,
+        "admitted_correct": 126,
+        "recoverable_excluded": 14,
+        "no_candidate_recoverable": 14,
+        "target_not_eligible_past_payload": 0,
+        "scored_recoverable": 0
+      },
+      "final_present": {
+        "all_positions": 119,
+        "scored_positions": 119,
+        "eligible_ring_correct": 119,
+        "admitted_correct": 119,
+        "recoverable_excluded": 0,
+        "no_candidate_recoverable": 0,
+        "target_not_eligible_past_payload": 0,
+        "scored_recoverable": 0
+      },
+      "final_absent": {
+        "all_positions": 21,
+        "scored_positions": 21,
+        "eligible_ring_correct": 0,
+        "admitted_correct": 0,
+        "recoverable_excluded": 0,
+        "no_candidate_recoverable": 0,
+        "target_not_eligible_past_payload": 21,
+        "scored_recoverable": 0
+      }
+    },
+    "totals": {
+      "all_positions": 2421,
+      "scored_positions": 1813,
+      "eligible_ring_correct": 929,
+      "admitted_correct": 646,
+      "recoverable_excluded": 283,
+      "no_candidate_recoverable": 217,
+      "target_not_eligible_past_payload": 1492,
+      "scored_recoverable": 66
+    },
+    "first_occurrences": {
+      "first_occurrence_in_observed_prefix": 1481,
+      "present_only_as_current_or_initial_token_without_observed_predecessor": 11
+    },
+    "max_sequence_tokens": 24,
+    "max_candidates": 7,
+    "reconstructed_pool_matches_all_saved_positions": true,
+    "exact_scored_admission_oracle_headroom_nats_per_1813": 0.2713286886415433,
+    "exact_scored_admission_oracle_gain_nats_sum": 491.91891250711797,
+    "full_2421_admission_oracle_gain_upper_bound_nats_per_position": 0.9202473822829896,
+    "full_position_oracle_caveat": "217 recoverable zero-candidate positions have no saved local logits/loss; contribution is bounded by maximum 8nat boost, not independently measured. Availability is not learnability. Every present final query is already covered."
+  },
+  "regret_verification": {
+    "categorical_ctx": {
+      "max_identity_error": 1.7763568394002505e-15,
+      "served_differs_from_ungated": 0,
+      "means": {
+        "ranking_regret_nats": 0.5379415480454212,
+        "gate_regret_nats": 0.19967253265045143,
+        "dose_regret_nats": 0.09838020879446248,
+        "actual_nats": -1.813995078157724,
+        "lpool_nats": -2.649989367648062
+      }
+    },
+    "relational": {
+      "max_identity_error": 8.881784197001252e-16,
+      "served_differs_from_ungated": 0,
+      "means": {
+        "ranking_regret_nats": 0.5999459861828885,
+        "gate_regret_nats": 0.2092431535891021,
+        "dose_regret_nats": 0.12124090124401038,
+        "actual_nats": -1.71955932663206,
+        "lpool_nats": -2.649989367648062
+      }
+    },
+    "relational_ctx": {
+      "max_identity_error": 8.881784197001252e-16,
+      "served_differs_from_ungated": 0,
+      "means": {
+        "ranking_regret_nats": 0.5999459861828885,
+        "gate_regret_nats": 0.21355026799004492,
+        "dose_regret_nats": 0.10855123168738769,
+        "actual_nats": -1.7279418817877386,
+        "lpool_nats": -2.649989367648062
+      }
+    }
+  },
+  "text": {
+    "fit_heldout_path_disjoint": true,
+    "fit_heldout_hash_disjoint": true,
+    "all16_document_hashes_match": true,
+    "rows": [
+      {
+        "arm": "relational",
+        "delta_bits": 0.2709152156254523,
+        "document_cluster_interval": {
+          "draws": 2000,
+          "groups": 8,
+          "hi": 0.40477448954081807,
+          "lo": 0.16946359575473305,
+          "point": 0.2709152156254538,
+          "positions": 488,
+          "resampling_unit": "sequence",
+          "unit": "bits_per_candidate_bearing_position"
+        },
+        "documents": 8,
+        "local_bits_per_token": 6.479562263257265,
+        "panel": "held_out_documents",
+        "positions": 488,
+        "reader_bits_per_token": 6.7504774788827175,
+        "reader_emitted_correct": 99,
+        "reader_reads": 80,
+        "scope": "Documents the new reader never fitted. The frozen local prior E was trained on this pinned corpus, so its older exposure is disclosed separately and is not removed; this is a reader-held-out local evaluation, not an externally unseen claim. Harmful NoRead and uncovered positions are not filtered out."
+      },
+      {
+        "arm": "relational_ctx",
+        "delta_bits": 0.2742425385539705,
+        "document_cluster_interval": {
+          "draws": 2000,
+          "groups": 8,
+          "hi": 0.40604128560228897,
+          "lo": 0.17473484841596099,
+          "point": 0.2742425385539721,
+          "positions": 488,
+          "resampling_unit": "sequence",
+          "unit": "bits_per_candidate_bearing_position"
+        },
+        "documents": 8,
+        "local_bits_per_token": 6.479562263257265,
+        "panel": "held_out_documents",
+        "positions": 488,
+        "reader_bits_per_token": 6.753804801811236,
+        "reader_emitted_correct": 101,
+        "reader_reads": 76,
+        "scope": "Documents the new reader never fitted. The frozen local prior E was trained on this pinned corpus, so its older exposure is disclosed separately and is not removed; this is a reader-held-out local evaluation, not an externally unseen claim. Harmful NoRead and uncovered positions are not filtered out."
+      },
+      {
+        "arm": "categorical_ctx",
+        "delta_bits": 0.24221052982554123,
+        "document_cluster_interval": {
+          "draws": 2000,
+          "groups": 8,
+          "hi": 0.38093914526674494,
+          "lo": 0.11967910856492776,
+          "point": 0.24221052982554264,
+          "positions": 488,
+          "resampling_unit": "sequence",
+          "unit": "bits_per_candidate_bearing_position"
+        },
+        "documents": 8,
+        "local_bits_per_token": 6.479562263257265,
+        "panel": "held_out_documents",
+        "positions": 488,
+        "reader_bits_per_token": 6.721772793082807,
+        "reader_emitted_correct": 103,
+        "reader_reads": 73,
+        "scope": "Documents the new reader never fitted. The frozen local prior E was trained on this pinned corpus, so its older exposure is disclosed separately and is not removed; this is a reader-held-out local evaluation, not an externally unseen claim. Harmful NoRead and uncovered positions are not filtered out."
+      },
+      {
+        "arm": "relational",
+        "delta_bits": 0.2718132045381117,
+        "document_cluster_interval": {
+          "draws": 2000,
+          "groups": 8,
+          "hi": 0.3545032410377662,
+          "lo": 0.19319895593123926,
+          "point": 0.27181320453811253,
+          "positions": 488,
+          "resampling_unit": "sequence",
+          "unit": "bits_per_candidate_bearing_position"
+        },
+        "documents": 8,
+        "local_bits_per_token": 6.444381487220182,
+        "panel": "fit_documents_regression",
+        "positions": 488,
+        "reader_bits_per_token": 6.716194691758294,
+        "reader_emitted_correct": 81,
+        "reader_reads": 85,
+        "scope": "The same documents used for the reader text fit: an in-sample regression row, never transfer evidence."
+      },
+      {
+        "arm": "relational_ctx",
+        "delta_bits": 0.2735694667469432,
+        "document_cluster_interval": {
+          "draws": 2000,
+          "groups": 8,
+          "hi": 0.36045860908729144,
+          "lo": 0.1863521765241598,
+          "point": 0.27356946674694277,
+          "positions": 488,
+          "resampling_unit": "sequence",
+          "unit": "bits_per_candidate_bearing_position"
+        },
+        "documents": 8,
+        "local_bits_per_token": 6.444381487220182,
+        "panel": "fit_documents_regression",
+        "positions": 488,
+        "reader_bits_per_token": 6.717950953967126,
+        "reader_emitted_correct": 80,
+        "reader_reads": 83,
+        "scope": "The same documents used for the reader text fit: an in-sample regression row, never transfer evidence."
+      },
+      {
+        "arm": "categorical_ctx",
+        "delta_bits": 0.05774311436454127,
+        "document_cluster_interval": {
+          "draws": 2000,
+          "groups": 8,
+          "hi": 0.12385552603982516,
+          "lo": -0.01667161013303378,
+          "point": 0.05774311436454127,
+          "positions": 488,
+          "resampling_unit": "sequence",
+          "unit": "bits_per_candidate_bearing_position"
+        },
+        "documents": 8,
+        "local_bits_per_token": 6.444381487220182,
+        "panel": "fit_documents_regression",
+        "positions": 488,
+        "reader_bits_per_token": 6.502124601584724,
+        "reader_emitted_correct": 82,
+        "reader_reads": 62,
+        "scope": "The same documents used for the reader text fit: an in-sample regression row, never transfer evidence."
+      }
+    ],
+    "delta_arithmetic_max_error": 4.718447854656915e-16,
+    "independent_document_bootstrap_recomputation": "UNAVAILABLE: per-document sums/outcomes were not serialized; result.json stores aggregated rows and interval only. Source loop visits every 61 eligible prediction positions per 64-token doc."
+  },
+  "integrity": {
+    "listed_files": 30,
+    "failures": [],
+    "unlisted_files": [],
+    "source_file_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    }
+  },
+  "freshness": {
+    "population_byte_identical_to_contextual_utility_2": true,
+    "construction_claim": "Previously inspected construction; development replay, not a new final fresh draw. Seeds differ across fit/tune/eval within run, but eval was reused from parent.",
+    "attempts_1_to_3_outcomes_byte_identical_to_4": {
+      "1": true,
+      "2": true,
+      "3": true
+    }
+  },
+  "review_source_revision": "44788008a53001f8fe28849c51e6f7fe9fe11d66",
+  "no_new_model_execution": true
+}

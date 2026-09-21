@@ -1180,3 +1180,10 @@ and physical energy is UNAVAILABLE. No paid/external compute and no deletion of 
 Accounting correction: **90 minutes fits 106 minutes**. The stated necessity for the prior +3,600,000 ms extension was arithmetically incorrect. Preserve its standing-authorized recorded limit **194900000 ms** and cumulative charges **186736749 ms**; this correction does not silently undo either. Remaining **8163251 ms (~136.05 min)**. No new allowance extension or model debit in this review: documentation, source inspection and saved-outcome analysis only; no build, fit, inference or model replay. Future work must project its own complete cost before use.
 
 Read-only storage inventory `uor-storage-inventory-v1`, collected 2026-09-21T03:36:27Z: **43057942528 bytes free**, reserve **36766079385 bytes**, reserve not breached. Target 8780234752 allocated bytes; knowledge 1954230272; models at least 20862111744 (three sealed-path diagnostics; no permissions changed). Rows can overlap and APFS allocations are not exclusive physical usage. **Zero deletions**; preserve research/artifacts and Downloads. [Review](contextual-utility-review-2026-09-21.md) and [saved-data evidence](../evidence/contextual-utility-principal-review-2026-09-21.json).
+
+
+## Principal PR #1325/#1326 reconciliation — September 21, 2026
+
+Authoritative live snapshot **189266749/194900000 ms**, remaining **5633251 ms (~93.89 min)**. The earlier principal PR #1323 snapshot above is historical; all charges remain. This review adds no build/model debit: source/literature/document review and saved-data reconstruction only, no model fit/inference. No extension or paid compute.
+
+Read-only inventory at 2026-09-21T04:44:31Z: **42465247232 bytes free**, reserve **36766079385 bytes**, reserve not breached. Target 8780763136 allocated bytes, knowledge 1955487744, models at least 20970913792 (three sealed-path diagnostics, permissions unchanged). Overlapping/APFS allocations must not be summed as exclusive physical usage. **Zero deletions**. [Review](relational-learning-review-2026-09-21.md) and [saved-data evidence](../evidence/relational-learning-principal-review-2026-09-21.json).
