@@ -1,0 +1,3143 @@
+{
+  "schema": "uor-r4.derived-state-decoder-principal-evidence-audit/1",
+  "review_revision": "16b7148e0db64e823309675e213e696cbcba79dd",
+  "scope": "Retained seal/hash/parameter and saved-row inspection, comparator recounts, source-derived fixture reconstruction. No model predictions, builds, fitting, optimization or sealed-root mutations.",
+  "integrity": {
+    "derived-state-decoder-1": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "40aa8ce1538e33061c0e7947a11b9089d46e2a9a741177a162e50b25105f27ee",
+      "rows_sha256": "74ad02f6b02f380b8cd0e6587ba9559c789b4b7bb0993e03050a3648c05ba9ff",
+      "artifact_hashes_match": {
+        "association_derived_state": true,
+        "composition_derived_state_h4": true,
+        "composition_derived_state_c120": true
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_source": {
+        "executable_sha256": "e9b2a9e88df81b1e5e623f8e6f9d86c0bb19be47fd3f27c9e491b0c23cf683ae",
+        "git_dirty": "false",
+        "git_rev": "fdc1607fcb61ba30bf58f9cfd7c08c23db7a550b",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+            "sha256": "d162ba8d957bd407904674ae84aed95baecad8d26478a373e5f95a3f1456c949"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "173a799e34399a32fef1c04ea09915a31ee8890e5d932f6f27e9026b9b1d96ab"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "90d028bfe2d1dec9833c897fa8da007453fc8f73b869ec64974447cc0e70dccd"
+          }
+        ]
+      },
+      "current_executable_sha256": "69b6a14c6861750ddbdcd929c474c19694dc3512118f46abafa701a9eab09cb3",
+      "current_executable_matches": false,
+      "claimed_at": "1790018492",
+      "sealed_at": "1790018496"
+    },
+    "derived-state-decoder-2": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "9d6a4b4f483c4b638b4a02e8575f08f7f738290eee00fb919b0a1344536c0fdf",
+      "rows_sha256": "37d9f6235721c7b401cd2779bc9348f9475a43710fce664adef403f444cc06b8",
+      "artifact_hashes_match": {
+        "association_derived_state": true,
+        "composition_derived_state_h4": true,
+        "composition_derived_state_c120": true
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_source": {
+        "executable_sha256": "201904f4cc8adbb1379249a333933779553dd9453019e38b023c4225a901588d",
+        "git_dirty": "false",
+        "git_rev": "fdc1607fcb61ba30bf58f9cfd7c08c23db7a550b",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+            "sha256": "d162ba8d957bd407904674ae84aed95baecad8d26478a373e5f95a3f1456c949"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d12b00cf16ba2c23242d6070e3973959f2ae9f5168378408b8971c7013a4d06e"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "93f2336992943e17504907710f5c0d30f1d3864eb0a51ccab684a60c09cd6312"
+          }
+        ]
+      },
+      "current_executable_sha256": "69b6a14c6861750ddbdcd929c474c19694dc3512118f46abafa701a9eab09cb3",
+      "current_executable_matches": false,
+      "claimed_at": "1790018763",
+      "sealed_at": "1790018766"
+    },
+    "derived-state-decoder-3": {
+      "status": "INCOMPLETE_UNSEALED",
+      "files": [
+        "artifacts/association_derived_state.rlds",
+        "attempt.json"
+      ],
+      "file_hashes": {
+        "artifacts/association_derived_state.rlds": "5313493d563e4651e7e2f941c1b3c2dbe669187e49396f46fd68422ece11cabe",
+        "attempt.json": "8443c1c0d262887a3c9c38a8c8859799faf491ab1b41129add1b543236cd1d5a"
+      },
+      "quality_evidence": "No result/rows/seal, not a completed run"
+    },
+    "derived-state-decoder-4": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "c8f1a032539cc69ce1a16d94299b477376a75c0d78683bab0ea5c2a6a50585ec",
+      "rows_sha256": "264a01e7379c5446e68ba7978f9c1153f97dc1fb5493735a34a40dd0db0c74d8",
+      "artifact_hashes_match": {
+        "association_derived_state": true,
+        "composition_derived_state_h4": true,
+        "composition_derived_state_c120": true
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_source": {
+        "executable_sha256": "a5d08adb55a8fcd123779fc5753aa39accf0525dc45e22281b2ee07e7cde1080",
+        "git_dirty": "false",
+        "git_rev": "fdc1607fcb61ba30bf58f9cfd7c08c23db7a550b",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+            "sha256": "d162ba8d957bd407904674ae84aed95baecad8d26478a373e5f95a3f1456c949"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d12b00cf16ba2c23242d6070e3973959f2ae9f5168378408b8971c7013a4d06e"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "c03295033a4e830aa405c1f86b3ee69d9f6e5dee50948f0d08e01d950e9d222b"
+          }
+        ]
+      },
+      "current_executable_sha256": "69b6a14c6861750ddbdcd929c474c19694dc3512118f46abafa701a9eab09cb3",
+      "current_executable_matches": false,
+      "claimed_at": "1790018853",
+      "sealed_at": "1790018859"
+    },
+    "derived-state-decoder-5": {
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "81d9f8f5bb2bf8cd2dd7ebbb13ea382c38035c50565c041dd84cb0b6b434eaf3",
+      "rows_sha256": "54f10ca8169251af21a5eead313b78d7ef5d5a7150e0d96388dafb6b77479029",
+      "artifact_hashes_match": {
+        "association_derived_state": true,
+        "composition_derived_state_h4": true,
+        "composition_derived_state_c120": true
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_source": {
+        "executable_sha256": "69b6a14c6861750ddbdcd929c474c19694dc3512118f46abafa701a9eab09cb3",
+        "git_dirty": "false",
+        "git_rev": "fdc1607fcb61ba30bf58f9cfd7c08c23db7a550b",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+            "sha256": "d162ba8d957bd407904674ae84aed95baecad8d26478a373e5f95a3f1456c949"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "b7a16c92bd107e0cdecf37af456d7abb363c1ed8bf08805adf8bc41dd50eb8a2"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "c03295033a4e830aa405c1f86b3ee69d9f6e5dee50948f0d08e01d950e9d222b"
+          }
+        ]
+      },
+      "current_executable_sha256": "69b6a14c6861750ddbdcd929c474c19694dc3512118f46abafa701a9eab09cb3",
+      "current_executable_matches": true,
+      "claimed_at": "1790018969",
+      "sealed_at": "1790018976"
+    }
+  },
+  "artifacts": {
+    "derived-state-decoder-1": {
+      "association_derived_state": {
+        "sha256": "5313493d563e4651e7e2f941c1b3c2dbe669187e49396f46fd68422ece11cabe",
+        "bytes": 527,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343,
+          349,
+          352,
+          358,
+          362,
+          363,
+          366,
+          368,
+          370,
+          374,
+          375,
+          381,
+          383,
+          390,
+          397,
+          398,
+          402,
+          403,
+          404,
+          405,
+          409
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          74,
+          35,
+          106,
+          29,
+          106,
+          35,
+          106,
+          35,
+          106,
+          35,
+          106,
+          106,
+          106,
+          106,
+          85,
+          106,
+          35,
+          35,
+          106,
+          35,
+          106,
+          52,
+          35,
+          35,
+          35,
+          35
+        ],
+        "value_codes": [
+          11,
+          26,
+          32,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "80": 60,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "c002b80ab2592710a82e9c89063f8eb0af400392930ad7f00491ac8e37981d57",
+        "decoder_top_entries": [
+          [
+            7,
+            4088,
+            1
+          ],
+          [
+            10,
+            4095,
+            10
+          ],
+          [
+            32,
+            4095,
+            1
+          ],
+          [
+            38,
+            4092,
+            1
+          ],
+          [
+            44,
+            4093,
+            19
+          ],
+          [
+            54,
+            4091,
+            22
+          ],
+          [
+            60,
+            4092,
+            22
+          ],
+          [
+            63,
+            4090,
+            2
+          ],
+          [
+            70,
+            4095,
+            1
+          ],
+          [
+            71,
+            4094,
+            20
+          ],
+          [
+            72,
+            4093,
+            3
+          ],
+          [
+            81,
+            4092,
+            1
+          ],
+          [
+            93,
+            4090,
+            16
+          ],
+          [
+            96,
+            4089,
+            15
+          ],
+          [
+            101,
+            4095,
+            2
+          ],
+          [
+            116,
+            4088,
+            23
+          ]
+        ]
+      },
+      "composition_derived_state_c120": {
+        "sha256": "d20d81b5ae48b09f32aa9cc0667ad7ab4e10835b733776ad2dab700b032d0f81",
+        "bytes": 323,
+        "version": 1,
+        "cyclic": true,
+        "op_domain": [
+          274,
+          293
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          1,
+          8
+        ],
+        "value_codes": [
+          3,
+          101,
+          112,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 9,
+        "transport_nonidentity_rows": {
+          "14": 30,
+          "80": 81,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "f5c45c0e40fb688b01d14a9e5d324ec11d8b6c343ba23758c451ee0fb19a9a50",
+        "decoder_top_entries": [
+          [
+            9,
+            4091,
+            4
+          ],
+          [
+            20,
+            4090,
+            7
+          ],
+          [
+            31,
+            4089,
+            4
+          ],
+          [
+            42,
+            4088,
+            8
+          ],
+          [
+            53,
+            4087,
+            4
+          ],
+          [
+            74,
+            4093,
+            7
+          ],
+          [
+            85,
+            4095,
+            4
+          ],
+          [
+            96,
+            4094,
+            3
+          ],
+          [
+            118,
+            4092,
+            4
+          ]
+        ]
+      },
+      "composition_derived_state_h4": {
+        "sha256": "1161c5c82eb1eab7b54252196c28583877baf1cfeab92bb17f28722e8212d06a",
+        "bytes": 335,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          293
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          1,
+          8
+        ],
+        "value_codes": [
+          3,
+          104,
+          25,
+          36,
+          47,
+          58,
+          26,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 10,
+        "transport_nonidentity_rows": {
+          "14": 46,
+          "80": 11,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "af11cacafa8916f3064aa33d063c43f2757decb9c8f3dce64331d80c95973385",
+        "decoder_top_entries": [
+          [
+            18,
+            4095,
+            4
+          ],
+          [
+            22,
+            4090,
+            3
+          ],
+          [
+            32,
+            4093,
+            7
+          ],
+          [
+            35,
+            4094,
+            3
+          ],
+          [
+            42,
+            4091,
+            4
+          ],
+          [
+            60,
+            4092,
+            4
+          ],
+          [
+            64,
+            4087,
+            4
+          ],
+          [
+            71,
+            4089,
+            4
+          ],
+          [
+            93,
+            4090,
+            4
+          ],
+          [
+            116,
+            4088,
+            8
+          ]
+        ]
+      }
+    },
+    "derived-state-decoder-2": {
+      "association_derived_state": {
+        "sha256": "5313493d563e4651e7e2f941c1b3c2dbe669187e49396f46fd68422ece11cabe",
+        "bytes": 527,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343,
+          349,
+          352,
+          358,
+          362,
+          363,
+          366,
+          368,
+          370,
+          374,
+          375,
+          381,
+          383,
+          390,
+          397,
+          398,
+          402,
+          403,
+          404,
+          405,
+          409
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          74,
+          35,
+          106,
+          29,
+          106,
+          35,
+          106,
+          35,
+          106,
+          35,
+          106,
+          106,
+          106,
+          106,
+          85,
+          106,
+          35,
+          35,
+          106,
+          35,
+          106,
+          52,
+          35,
+          35,
+          35,
+          35
+        ],
+        "value_codes": [
+          11,
+          26,
+          32,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "80": 60,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "c002b80ab2592710a82e9c89063f8eb0af400392930ad7f00491ac8e37981d57",
+        "decoder_top_entries": [
+          [
+            7,
+            4088,
+            1
+          ],
+          [
+            10,
+            4095,
+            10
+          ],
+          [
+            32,
+            4095,
+            1
+          ],
+          [
+            38,
+            4092,
+            1
+          ],
+          [
+            44,
+            4093,
+            19
+          ],
+          [
+            54,
+            4091,
+            22
+          ],
+          [
+            60,
+            4092,
+            22
+          ],
+          [
+            63,
+            4090,
+            2
+          ],
+          [
+            70,
+            4095,
+            1
+          ],
+          [
+            71,
+            4094,
+            20
+          ],
+          [
+            72,
+            4093,
+            3
+          ],
+          [
+            81,
+            4092,
+            1
+          ],
+          [
+            93,
+            4090,
+            16
+          ],
+          [
+            96,
+            4089,
+            15
+          ],
+          [
+            101,
+            4095,
+            2
+          ],
+          [
+            116,
+            4088,
+            23
+          ]
+        ]
+      },
+      "composition_derived_state_c120": {
+        "sha256": "a688e9953b91ff0ede40ceed0d7ae68c7cc7e38dcc05618e56453cde15c7d8b4",
+        "bytes": 313,
+        "version": 1,
+        "cyclic": true,
+        "op_domain": [
+          274,
+          293
+        ],
+        "value_domain": [
+          485,
+          487,
+          488,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          1,
+          8
+        ],
+        "value_codes": [
+          3,
+          27,
+          25,
+          36,
+          23,
+          58
+        ],
+        "decoder_version": 1,
+        "state_count": 9,
+        "transport_nonidentity_rows": {
+          "14": 52,
+          "80": 57,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "c0ea763964c1e864eca9d084ac76385be54af9366a92436cf134bc5ff3c43eb7",
+        "decoder_top_entries": [
+          [
+            31,
+            4087,
+            4
+          ],
+          [
+            61,
+            4095,
+            4
+          ],
+          [
+            81,
+            4089,
+            4
+          ],
+          [
+            83,
+            4092,
+            4
+          ],
+          [
+            85,
+            4093,
+            4
+          ],
+          [
+            94,
+            4090,
+            4
+          ],
+          [
+            96,
+            4094,
+            3
+          ],
+          [
+            116,
+            4088,
+            4
+          ],
+          [
+            118,
+            4091,
+            4
+          ]
+        ]
+      },
+      "composition_derived_state_h4": {
+        "sha256": "cde30231639e856ffad8c8e9570ca0d3185232eee4fbe8315314f29b91848633",
+        "bytes": 313,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          293
+        ],
+        "value_domain": [
+          485,
+          487,
+          488,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          1,
+          8
+        ],
+        "value_codes": [
+          3,
+          5,
+          72,
+          36,
+          47,
+          58
+        ],
+        "decoder_version": 1,
+        "state_count": 9,
+        "transport_nonidentity_rows": {
+          "14": 9,
+          "80": 69,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "cde1ffcb1bc553d83e7d54829e40107f790aa2c1f0e82eeefc80cf6c9dc9fe4c",
+        "decoder_top_entries": [
+          [
+            22,
+            4088,
+            4
+          ],
+          [
+            32,
+            4090,
+            4
+          ],
+          [
+            35,
+            4094,
+            3
+          ],
+          [
+            76,
+            4092,
+            4
+          ],
+          [
+            79,
+            4093,
+            4
+          ],
+          [
+            96,
+            4091,
+            4
+          ],
+          [
+            107,
+            4089,
+            4
+          ],
+          [
+            108,
+            4087,
+            4
+          ],
+          [
+            110,
+            4095,
+            4
+          ]
+        ]
+      }
+    },
+    "derived-state-decoder-3": {
+      "association_derived_state": {
+        "sha256": "5313493d563e4651e7e2f941c1b3c2dbe669187e49396f46fd68422ece11cabe",
+        "bytes": 527,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343,
+          349,
+          352,
+          358,
+          362,
+          363,
+          366,
+          368,
+          370,
+          374,
+          375,
+          381,
+          383,
+          390,
+          397,
+          398,
+          402,
+          403,
+          404,
+          405,
+          409
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          74,
+          35,
+          106,
+          29,
+          106,
+          35,
+          106,
+          35,
+          106,
+          35,
+          106,
+          106,
+          106,
+          106,
+          85,
+          106,
+          35,
+          35,
+          106,
+          35,
+          106,
+          52,
+          35,
+          35,
+          35,
+          35
+        ],
+        "value_codes": [
+          11,
+          26,
+          32,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "80": 60,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "c002b80ab2592710a82e9c89063f8eb0af400392930ad7f00491ac8e37981d57",
+        "decoder_top_entries": [
+          [
+            7,
+            4088,
+            1
+          ],
+          [
+            10,
+            4095,
+            10
+          ],
+          [
+            32,
+            4095,
+            1
+          ],
+          [
+            38,
+            4092,
+            1
+          ],
+          [
+            44,
+            4093,
+            19
+          ],
+          [
+            54,
+            4091,
+            22
+          ],
+          [
+            60,
+            4092,
+            22
+          ],
+          [
+            63,
+            4090,
+            2
+          ],
+          [
+            70,
+            4095,
+            1
+          ],
+          [
+            71,
+            4094,
+            20
+          ],
+          [
+            72,
+            4093,
+            3
+          ],
+          [
+            81,
+            4092,
+            1
+          ],
+          [
+            93,
+            4090,
+            16
+          ],
+          [
+            96,
+            4089,
+            15
+          ],
+          [
+            101,
+            4095,
+            2
+          ],
+          [
+            116,
+            4088,
+            23
+          ]
+        ]
+      }
+    },
+    "derived-state-decoder-4": {
+      "association_derived_state": {
+        "sha256": "5313493d563e4651e7e2f941c1b3c2dbe669187e49396f46fd68422ece11cabe",
+        "bytes": 527,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343,
+          349,
+          352,
+          358,
+          362,
+          363,
+          366,
+          368,
+          370,
+          374,
+          375,
+          381,
+          383,
+          390,
+          397,
+          398,
+          402,
+          403,
+          404,
+          405,
+          409
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          74,
+          35,
+          106,
+          29,
+          106,
+          35,
+          106,
+          35,
+          106,
+          35,
+          106,
+          106,
+          106,
+          106,
+          85,
+          106,
+          35,
+          35,
+          106,
+          35,
+          106,
+          52,
+          35,
+          35,
+          35,
+          35
+        ],
+        "value_codes": [
+          11,
+          26,
+          32,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "80": 60,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "c002b80ab2592710a82e9c89063f8eb0af400392930ad7f00491ac8e37981d57",
+        "decoder_top_entries": [
+          [
+            7,
+            4088,
+            1
+          ],
+          [
+            10,
+            4095,
+            10
+          ],
+          [
+            32,
+            4095,
+            1
+          ],
+          [
+            38,
+            4092,
+            1
+          ],
+          [
+            44,
+            4093,
+            19
+          ],
+          [
+            54,
+            4091,
+            22
+          ],
+          [
+            60,
+            4092,
+            22
+          ],
+          [
+            63,
+            4090,
+            2
+          ],
+          [
+            70,
+            4095,
+            1
+          ],
+          [
+            71,
+            4094,
+            20
+          ],
+          [
+            72,
+            4093,
+            3
+          ],
+          [
+            81,
+            4092,
+            1
+          ],
+          [
+            93,
+            4090,
+            16
+          ],
+          [
+            96,
+            4089,
+            15
+          ],
+          [
+            101,
+            4095,
+            2
+          ],
+          [
+            116,
+            4088,
+            23
+          ]
+        ]
+      },
+      "composition_derived_state_c120": {
+        "sha256": "6893f5f572dabbe295ef879d8b1f02df7a215167ebef8e1fd1b00a6c6afae154",
+        "bytes": 427,
+        "version": 1,
+        "cyclic": true,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          117,
+          8,
+          15,
+          26,
+          37,
+          52
+        ],
+        "value_codes": [
+          43,
+          14,
+          25,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "14": 111,
+          "80": 81,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "bd4628c8e9392cbac0cfd460145b207f9a97a8ab54151d3d5855f272fb8695f5",
+        "decoder_top_entries": [
+          [
+            1,
+            4095,
+            4
+          ],
+          [
+            5,
+            4091,
+            11
+          ],
+          [
+            12,
+            4094,
+            4
+          ],
+          [
+            16,
+            4090,
+            12
+          ],
+          [
+            23,
+            4093,
+            4
+          ],
+          [
+            27,
+            4089,
+            12
+          ],
+          [
+            38,
+            4088,
+            16
+          ],
+          [
+            45,
+            4091,
+            2
+          ],
+          [
+            49,
+            4087,
+            11
+          ],
+          [
+            56,
+            4090,
+            4
+          ],
+          [
+            60,
+            4086,
+            14
+          ],
+          [
+            71,
+            4095,
+            6
+          ],
+          [
+            82,
+            4094,
+            8
+          ],
+          [
+            93,
+            4093,
+            4
+          ],
+          [
+            103,
+            4093,
+            8
+          ],
+          [
+            114,
+            4092,
+            4
+          ]
+        ]
+      },
+      "composition_derived_state_h4": {
+        "sha256": "5f3fe2c5d4fc3ce72f1ae2648758c0d4042765dd6999e96a890df4ebcf8c88a1",
+        "bytes": 427,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          1,
+          4,
+          15,
+          9,
+          29,
+          88
+        ],
+        "value_codes": [
+          3,
+          14,
+          23,
+          42,
+          58,
+          47,
+          101,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "14": 38,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "ffdca9121aedb996f9a010bc86f859051c7509501344832adc67ac9aa4ee2b66",
+        "decoder_top_entries": [
+          [
+            3,
+            4095,
+            4
+          ],
+          [
+            7,
+            4094,
+            8
+          ],
+          [
+            14,
+            4090,
+            4
+          ],
+          [
+            17,
+            4086,
+            4
+          ],
+          [
+            23,
+            4093,
+            12
+          ],
+          [
+            26,
+            4094,
+            4
+          ],
+          [
+            42,
+            4092,
+            4
+          ],
+          [
+            47,
+            4090,
+            8
+          ],
+          [
+            56,
+            4091,
+            11
+          ],
+          [
+            62,
+            4086,
+            10
+          ],
+          [
+            80,
+            4088,
+            8
+          ],
+          [
+            98,
+            4087,
+            4
+          ],
+          [
+            99,
+            4087,
+            4
+          ],
+          [
+            101,
+            4089,
+            7
+          ],
+          [
+            104,
+            4088,
+            6
+          ],
+          [
+            113,
+            4090,
+            4
+          ]
+        ]
+      }
+    },
+    "derived-state-decoder-5": {
+      "association_derived_state": {
+        "sha256": "5313493d563e4651e7e2f941c1b3c2dbe669187e49396f46fd68422ece11cabe",
+        "bytes": 527,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343,
+          349,
+          352,
+          358,
+          362,
+          363,
+          366,
+          368,
+          370,
+          374,
+          375,
+          381,
+          383,
+          390,
+          397,
+          398,
+          402,
+          403,
+          404,
+          405,
+          409
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          74,
+          35,
+          106,
+          29,
+          106,
+          35,
+          106,
+          35,
+          106,
+          35,
+          106,
+          106,
+          106,
+          106,
+          85,
+          106,
+          35,
+          35,
+          106,
+          35,
+          106,
+          52,
+          35,
+          35,
+          35,
+          35
+        ],
+        "value_codes": [
+          11,
+          26,
+          32,
+          36,
+          47,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "80": 60,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "c002b80ab2592710a82e9c89063f8eb0af400392930ad7f00491ac8e37981d57",
+        "decoder_top_entries": [
+          [
+            7,
+            4088,
+            1
+          ],
+          [
+            10,
+            4095,
+            10
+          ],
+          [
+            32,
+            4095,
+            1
+          ],
+          [
+            38,
+            4092,
+            1
+          ],
+          [
+            44,
+            4093,
+            19
+          ],
+          [
+            54,
+            4091,
+            22
+          ],
+          [
+            60,
+            4092,
+            22
+          ],
+          [
+            63,
+            4090,
+            2
+          ],
+          [
+            70,
+            4095,
+            1
+          ],
+          [
+            71,
+            4094,
+            20
+          ],
+          [
+            72,
+            4093,
+            3
+          ],
+          [
+            81,
+            4092,
+            1
+          ],
+          [
+            93,
+            4090,
+            16
+          ],
+          [
+            96,
+            4089,
+            15
+          ],
+          [
+            101,
+            4095,
+            2
+          ],
+          [
+            116,
+            4088,
+            23
+          ]
+        ]
+      },
+      "composition_derived_state_c120": {
+        "sha256": "d6ae2c6fbc076a1e7072f1a85848262e62f1b1ad744bd7699d652a67e408a290",
+        "bytes": 427,
+        "version": 1,
+        "cyclic": true,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          91,
+          55,
+          77,
+          21,
+          99,
+          36
+        ],
+        "value_codes": [
+          3,
+          14,
+          25,
+          36,
+          104,
+          58,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "14": 31,
+          "80": 39,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "e5db5779eee1661a1b8b34724ee852f606fd18de5d3e915c7e32ff0869fa0713",
+        "decoder_top_entries": [
+          [
+            0,
+            4091,
+            4
+          ],
+          [
+            2,
+            4086,
+            8
+          ],
+          [
+            13,
+            4095,
+            7
+          ],
+          [
+            24,
+            4094,
+            8
+          ],
+          [
+            35,
+            4093,
+            8
+          ],
+          [
+            43,
+            4088,
+            4
+          ],
+          [
+            45,
+            4093,
+            4
+          ],
+          [
+            46,
+            4092,
+            4
+          ],
+          [
+            54,
+            4087,
+            4
+          ],
+          [
+            59,
+            4086,
+            4
+          ],
+          [
+            67,
+            4091,
+            6
+          ],
+          [
+            78,
+            4090,
+            12
+          ],
+          [
+            89,
+            4089,
+            5
+          ],
+          [
+            90,
+            4088,
+            6
+          ],
+          [
+            100,
+            4088,
+            6
+          ],
+          [
+            111,
+            4087,
+            7
+          ]
+        ]
+      },
+      "composition_derived_state_h4": {
+        "sha256": "02d7586a6bd65b6af354842b605e64aa4e88d35982c1c23db9e15b6f619f6706",
+        "bytes": 459,
+        "version": 1,
+        "cyclic": false,
+        "op_domain": [
+          274,
+          285,
+          293,
+          309,
+          331,
+          343
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "op_codes": [
+          1,
+          111,
+          15,
+          114,
+          90,
+          119
+        ],
+        "value_codes": [
+          3,
+          40,
+          91,
+          36,
+          47,
+          92,
+          69,
+          80
+        ],
+        "decoder_version": 1,
+        "state_count": 16,
+        "transport_nonidentity_rows": {
+          "14": 28,
+          "80": 48,
+          "85": 85
+        },
+        "decoder_parameter_sha256": "7e769d5d946f499a16adf3a306bf9854b90b7927aa902f1510ac707254e86d77",
+        "decoder_top_entries": [
+          [
+            7,
+            4090,
+            4
+          ],
+          [
+            16,
+            4091,
+            4
+          ],
+          [
+            19,
+            4094,
+            4
+          ],
+          [
+            25,
+            4088,
+            4
+          ],
+          [
+            56,
+            4089,
+            4
+          ],
+          [
+            58,
+            4090,
+            4
+          ],
+          [
+            61,
+            4086,
+            6
+          ],
+          [
+            62,
+            4086,
+            4
+          ],
+          [
+            72,
+            4093,
+            8
+          ],
+          [
+            73,
+            4094,
+            4
+          ],
+          [
+            74,
+            4094,
+            4
+          ],
+          [
+            77,
+            4087,
+            4
+          ],
+          [
+            79,
+            4090,
+            8
+          ],
+          [
+            97,
+            4086,
+            4
+          ],
+          [
+            98,
+            4093,
+            4
+          ],
+          [
+            102,
+            4089,
+            5
+          ]
+        ]
+      }
+    }
+  },
+  "recount": {
+    "derived-state-decoder-1": {
+      "panels": {
+        "dev_cells": {
+          "positions": 48,
+          "unique_cells": 12,
+          "h4_emitted_hits": 47,
+          "h4_decoder_hits": 47,
+          "h4_reads": 48,
+          "h4_decoder_noread": 0,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 31,
+          "operation_payload_table_hits": 46,
+          "constant_hits": 8,
+          "slices": {
+            "all": {
+              "positions": 48,
+              "h4_emitted_hits": 47,
+              "decoder_noread": 0,
+              "correct_occurrences": 45,
+              "correct_values": 45
+            },
+            "known_operation": {
+              "positions": 48,
+              "h4_emitted_hits": 47,
+              "decoder_noread": 0,
+              "correct_occurrences": 45,
+              "correct_values": 45
+            },
+            "unknown_operation": {
+              "positions": 0,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 0,
+              "correct_occurrences": 0,
+              "correct_values": 0
+            }
+          },
+          "class_zero_states": [
+            18
+          ],
+          "all_distinct_states": 10,
+          "distinct_cells_with_all_four_members_correct": 11,
+          "missing_rows_for_other_arms": true
+        },
+        "held_out_cells": {
+          "positions": 16,
+          "unique_cells": 4,
+          "h4_emitted_hits": 0,
+          "h4_decoder_hits": 0,
+          "h4_reads": 16,
+          "h4_decoder_noread": 16,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 1,
+          "operation_payload_table_hits": 0,
+          "constant_hits": 0,
+          "slices": {
+            "all": {
+              "positions": 16,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 16,
+              "correct_occurrences": 15,
+              "correct_values": 15
+            },
+            "known_operation": {
+              "positions": 16,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 16,
+              "correct_occurrences": 15,
+              "correct_values": 15
+            },
+            "unknown_operation": {
+              "positions": 0,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 0,
+              "correct_occurrences": 0,
+              "correct_values": 0
+            }
+          },
+          "class_zero_states": [],
+          "all_distinct_states": 5,
+          "distinct_cells_with_all_four_members_correct": 0,
+          "missing_rows_for_other_arms": true
+        }
+      },
+      "operation_domain_missing": {},
+      "all_cells_primitive_coverage": {
+        "dev_operations": [
+          0,
+          1
+        ],
+        "dev_values": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "test_operations": [
+          0,
+          1
+        ],
+        "test_values": [
+          1,
+          2,
+          4,
+          5
+        ]
+      },
+      "saved_row_fields": [
+        "class",
+        "correct_source",
+        "correct_value",
+        "decoder_score",
+        "decoder_token",
+        "emitted",
+        "intended_payload",
+        "intended_payload_abs",
+        "op",
+        "panel",
+        "q0",
+        "query_role",
+        "read",
+        "relation",
+        "s",
+        "selected_payload",
+        "selected_payload_abs",
+        "selected_source_abs",
+        "split",
+        "target",
+        "value_index"
+      ],
+      "state_intersection": 0,
+      "reported_h4_counts_match": true,
+      "retained_generated": [
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": ",\n-",
+          "emitted": [
+            28,
+            198,
+            29
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": ",\n-",
+          "emitted": [
+            28,
+            198,
+            29
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": ",\n-",
+          "emitted": [
+            28,
+            198,
+            29
+          ],
+          "first_correct": false
+        }
+      ],
+      "retained_interventions": {
+        "composed_identity_versus_absence": {
+          "absent_read_noread": true,
+          "identity_cell": [
+            0,
+            0
+          ],
+          "identity_class": 0,
+          "identity_correct": true,
+          "identity_emitted": 4095,
+          "identity_expected": 4095,
+          "identity_is_emit_not_noread": true
+        },
+        "irrelevant_distractor_changed": {
+          "emitted_a": 4093,
+          "emitted_b": 4092,
+          "matches_clean": false,
+          "preserved": false
+        },
+        "operation_changed_fixed_evidence": {
+          "both_expected": true,
+          "changed": true,
+          "emitted_a": 4095,
+          "emitted_b": 4094,
+          "expected_a": 4095,
+          "expected_b": 4094
+        },
+        "payload_changed_identical_query": {
+          "both_expected": false,
+          "changed": true,
+          "emitted_a": 4095,
+          "emitted_b": 28,
+          "expected_a": 4095,
+          "expected_b": 4094,
+          "selected_a": 485,
+          "selected_b": 486
+        },
+        "read_disabled": {
+          "decoder_noread": true,
+          "read": false
+        },
+        "required_source_removed": {
+          "decoder_noread": true,
+          "emitted": 28,
+          "equals_local": true,
+          "read": false
+        },
+        "update_disabled": {
+          "decoder_noread": true,
+          "read": true
+        }
+      }
+    },
+    "derived-state-decoder-2": {
+      "panels": {
+        "dev_cells": {
+          "positions": 48,
+          "unique_cells": 12,
+          "h4_emitted_hits": 44,
+          "h4_decoder_hits": 44,
+          "h4_reads": 48,
+          "h4_decoder_noread": 0,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 31,
+          "operation_payload_table_hits": 46,
+          "constant_hits": 8,
+          "slices": {
+            "all": {
+              "positions": 48,
+              "h4_emitted_hits": 44,
+              "decoder_noread": 0,
+              "correct_occurrences": 45,
+              "correct_values": 45
+            },
+            "known_operation": {
+              "positions": 48,
+              "h4_emitted_hits": 44,
+              "decoder_noread": 0,
+              "correct_occurrences": 45,
+              "correct_values": 45
+            },
+            "unknown_operation": {
+              "positions": 0,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 0,
+              "correct_occurrences": 0,
+              "correct_values": 0
+            }
+          },
+          "class_zero_states": [
+            110
+          ],
+          "all_distinct_states": 9,
+          "distinct_cells_with_all_four_members_correct": 11,
+          "missing_rows_for_other_arms": true
+        },
+        "held_out_cells": {
+          "positions": 16,
+          "unique_cells": 4,
+          "h4_emitted_hits": 0,
+          "h4_decoder_hits": 0,
+          "h4_reads": 16,
+          "h4_decoder_noread": 16,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 1,
+          "operation_payload_table_hits": 0,
+          "constant_hits": 0,
+          "slices": {
+            "all": {
+              "positions": 16,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 16,
+              "correct_occurrences": 15,
+              "correct_values": 15
+            },
+            "known_operation": {
+              "positions": 16,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 16,
+              "correct_occurrences": 15,
+              "correct_values": 15
+            },
+            "unknown_operation": {
+              "positions": 0,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 0,
+              "correct_occurrences": 0,
+              "correct_values": 0
+            }
+          },
+          "class_zero_states": [],
+          "all_distinct_states": 4,
+          "distinct_cells_with_all_four_members_correct": 0,
+          "missing_rows_for_other_arms": true
+        }
+      },
+      "operation_domain_missing": {},
+      "all_cells_primitive_coverage": {
+        "dev_operations": [
+          0,
+          1
+        ],
+        "dev_values": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "test_operations": [
+          0,
+          1
+        ],
+        "test_values": [
+          1,
+          2,
+          4,
+          5
+        ]
+      },
+      "saved_row_fields": [
+        "class",
+        "correct_source",
+        "correct_value",
+        "decoder_score",
+        "decoder_token",
+        "emitted",
+        "intended_payload",
+        "intended_payload_abs",
+        "op",
+        "panel",
+        "q0",
+        "query_role",
+        "read",
+        "relation",
+        "s",
+        "selected_payload",
+        "selected_payload_abs",
+        "selected_source_abs",
+        "split",
+        "target",
+        "value_index"
+      ],
+      "state_intersection": 0,
+      "reported_h4_counts_match": true,
+      "retained_generated": [
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": ",\n-",
+          "emitted": [
+            28,
+            198,
+            29
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": ",\n-",
+          "emitted": [
+            28,
+            198,
+            29
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": ",\n-",
+          "emitted": [
+            28,
+            198,
+            29
+          ],
+          "first_correct": false
+        }
+      ],
+      "retained_interventions": {
+        "composed_identity_versus_absence": {
+          "absent_read_noread": true,
+          "identity_cell": [
+            0,
+            0
+          ],
+          "identity_class": 0,
+          "identity_correct": true,
+          "identity_emitted": 4095,
+          "identity_expected": 4095,
+          "identity_is_emit_not_noread": true
+        },
+        "irrelevant_distractor_changed": {
+          "emitted_a": 4093,
+          "emitted_b": 4092,
+          "matches_clean": false,
+          "preserved": false
+        },
+        "operation_changed_fixed_evidence": {
+          "both_expected": true,
+          "changed": true,
+          "emitted_a": 4095,
+          "emitted_b": 4094,
+          "expected_a": 4095,
+          "expected_b": 4094
+        },
+        "payload_changed_identical_query": {
+          "both_expected": false,
+          "changed": true,
+          "emitted_a": 4095,
+          "emitted_b": 28,
+          "expected_a": 4095,
+          "expected_b": 4094,
+          "selected_a": 485,
+          "selected_b": 486
+        },
+        "read_disabled": {
+          "decoder_noread": true,
+          "read": false
+        },
+        "required_source_removed": {
+          "decoder_noread": true,
+          "emitted": 28,
+          "equals_local": true,
+          "read": false
+        },
+        "update_disabled": {
+          "decoder_noread": true,
+          "read": true
+        }
+      }
+    },
+    "derived-state-decoder-4": {
+      "panels": {
+        "dev_cells": {
+          "positions": 192,
+          "unique_cells": 48,
+          "h4_emitted_hits": 104,
+          "h4_decoder_hits": 104,
+          "h4_reads": 192,
+          "h4_decoder_noread": 63,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 38,
+          "operation_payload_table_hits": 172,
+          "constant_hits": 24,
+          "slices": {
+            "all": {
+              "positions": 192,
+              "h4_emitted_hits": 104,
+              "decoder_noread": 63,
+              "correct_occurrences": 165,
+              "correct_values": 167
+            },
+            "known_operation": {
+              "positions": 144,
+              "h4_emitted_hits": 104,
+              "decoder_noread": 39,
+              "correct_occurrences": 125,
+              "correct_values": 127
+            },
+            "unknown_operation": {
+              "positions": 48,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 24,
+              "correct_occurrences": 40,
+              "correct_values": 40
+            }
+          },
+          "class_zero_states": [
+            3,
+            42,
+            68,
+            83
+          ],
+          "all_distinct_states": 39,
+          "distinct_cells_with_all_four_members_correct": 23,
+          "missing_rows_for_other_arms": true
+        },
+        "held_out_cells": {
+          "positions": 64,
+          "unique_cells": 16,
+          "h4_emitted_hits": 0,
+          "h4_decoder_hits": 0,
+          "h4_reads": 64,
+          "h4_decoder_noread": 46,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 1,
+          "operation_payload_table_hits": 8,
+          "constant_hits": 8,
+          "slices": {
+            "all": {
+              "positions": 64,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 46,
+              "correct_occurrences": 58,
+              "correct_values": 58
+            },
+            "known_operation": {
+              "positions": 48,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 39,
+              "correct_occurrences": 43,
+              "correct_values": 43
+            },
+            "unknown_operation": {
+              "positions": 16,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 7,
+              "correct_occurrences": 15,
+              "correct_values": 15
+            }
+          },
+          "class_zero_states": [
+            2,
+            52
+          ],
+          "all_distinct_states": 20,
+          "distinct_cells_with_all_four_members_correct": 0,
+          "missing_rows_for_other_arms": true
+        }
+      },
+      "operation_domain_missing": {
+        "6": 349,
+        "7": 352
+      },
+      "all_cells_primitive_coverage": {
+        "dev_operations": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "dev_values": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "test_operations": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "test_values": [
+          1,
+          2,
+          4,
+          5
+        ]
+      },
+      "saved_row_fields": [
+        "class",
+        "correct_source",
+        "correct_value",
+        "decoder_score",
+        "decoder_token",
+        "emitted",
+        "intended_payload",
+        "intended_payload_abs",
+        "op",
+        "panel",
+        "q0",
+        "query_role",
+        "read",
+        "relation",
+        "s",
+        "selected_payload",
+        "selected_payload_abs",
+        "selected_source_abs",
+        "split",
+        "target",
+        "value_index"
+      ],
+      "state_intersection": 11,
+      "reported_h4_counts_match": true,
+      "retained_generated": [
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": " fully-re",
+          "emitted": [
+            4090,
+            29,
+            257
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": " fully-re",
+          "emitted": [
+            4090,
+            29,
+            257
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": " fully-re",
+          "emitted": [
+            4090,
+            29,
+            257
+          ],
+          "first_correct": false
+        }
+      ],
+      "retained_interventions": {
+        "composed_identity_versus_absence": {
+          "absent_read_noread": true,
+          "identity_cell": [
+            0,
+            0
+          ],
+          "identity_class": 0,
+          "identity_correct": true,
+          "identity_emitted": 4095,
+          "identity_expected": 4095,
+          "identity_is_emit_not_noread": true
+        },
+        "irrelevant_distractor_changed": {
+          "emitted_a": 4095,
+          "emitted_b": 4095,
+          "matches_clean": true,
+          "preserved": true
+        },
+        "operation_changed_fixed_evidence": {
+          "both_expected": true,
+          "changed": true,
+          "emitted_a": 4095,
+          "emitted_b": 4094,
+          "expected_a": 4095,
+          "expected_b": 4094
+        },
+        "payload_changed_identical_query": {
+          "both_expected": false,
+          "changed": true,
+          "emitted_a": 4095,
+          "emitted_b": 4090,
+          "expected_a": 4095,
+          "expected_b": 4094,
+          "selected_a": 485,
+          "selected_b": 486
+        },
+        "read_disabled": {
+          "decoder_noread": true,
+          "read": false
+        },
+        "required_source_removed": {
+          "decoder_noread": true,
+          "emitted": 28,
+          "equals_local": true,
+          "read": false
+        },
+        "update_disabled": {
+          "decoder_noread": true,
+          "read": true
+        }
+      }
+    },
+    "derived-state-decoder-5": {
+      "panels": {
+        "dev_cells": {
+          "positions": 192,
+          "unique_cells": 48,
+          "h4_emitted_hits": 103,
+          "h4_decoder_hits": 103,
+          "h4_reads": 192,
+          "h4_decoder_noread": 59,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 38,
+          "operation_payload_table_hits": 172,
+          "constant_hits": 24,
+          "slices": {
+            "all": {
+              "positions": 192,
+              "h4_emitted_hits": 103,
+              "decoder_noread": 59,
+              "correct_occurrences": 165,
+              "correct_values": 167
+            },
+            "known_operation": {
+              "positions": 144,
+              "h4_emitted_hits": 76,
+              "decoder_noread": 47,
+              "correct_occurrences": 125,
+              "correct_values": 127
+            },
+            "unknown_operation": {
+              "positions": 48,
+              "h4_emitted_hits": 27,
+              "decoder_noread": 12,
+              "correct_occurrences": 40,
+              "correct_values": 40
+            }
+          },
+          "class_zero_states": [
+            25,
+            30,
+            99,
+            110
+          ],
+          "all_distinct_states": 34,
+          "distinct_cells_with_all_four_members_correct": 21,
+          "missing_rows_for_other_arms": true
+        },
+        "held_out_cells": {
+          "positions": 64,
+          "unique_cells": 16,
+          "h4_emitted_hits": 8,
+          "h4_decoder_hits": 8,
+          "h4_reads": 64,
+          "h4_decoder_noread": 30,
+          "exact_source_flags_match": true,
+          "value_flags_match": true,
+          "source_is_payload_predecessor": true,
+          "decoder_table_matches_saved_token": true,
+          "decoder_table_matches_saved_score": true,
+          "payload_table_hits": 1,
+          "operation_payload_table_hits": 8,
+          "constant_hits": 8,
+          "slices": {
+            "all": {
+              "positions": 64,
+              "h4_emitted_hits": 8,
+              "decoder_noread": 30,
+              "correct_occurrences": 58,
+              "correct_values": 58
+            },
+            "known_operation": {
+              "positions": 48,
+              "h4_emitted_hits": 8,
+              "decoder_noread": 23,
+              "correct_occurrences": 43,
+              "correct_values": 43
+            },
+            "unknown_operation": {
+              "positions": 16,
+              "h4_emitted_hits": 0,
+              "decoder_noread": 7,
+              "correct_occurrences": 15,
+              "correct_values": 15
+            }
+          },
+          "class_zero_states": [
+            26,
+            96
+          ],
+          "all_distinct_states": 18,
+          "distinct_cells_with_all_four_members_correct": 2,
+          "missing_rows_for_other_arms": true
+        }
+      },
+      "operation_domain_missing": {
+        "6": 349,
+        "7": 352
+      },
+      "all_cells_primitive_coverage": {
+        "dev_operations": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "dev_values": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "test_operations": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "test_values": [
+          1,
+          2,
+          4,
+          5
+        ]
+      },
+      "saved_row_fields": [
+        "class",
+        "correct_source",
+        "correct_value",
+        "decoder_score",
+        "decoder_token",
+        "emitted",
+        "intended_payload",
+        "intended_payload_abs",
+        "op",
+        "panel",
+        "q0",
+        "query_role",
+        "read",
+        "relation",
+        "s",
+        "selected_payload",
+        "selected_payload_abs",
+        "selected_source_abs",
+        "split",
+        "target",
+        "value_index"
+      ],
+      "state_intersection": 13,
+      "reported_h4_counts_match": true,
+      "retained_generated": [
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": " detect-f",
+          "emitted": [
+            4087,
+            29,
+            86
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": " detect-f",
+          "emitted": [
+            4087,
+            29,
+            86
+          ],
+          "first_correct": false
+        },
+        {
+          "answer": 4094,
+          "class": 1,
+          "decoded": " detect-f",
+          "emitted": [
+            4087,
+            29,
+            86
+          ],
+          "first_correct": false
+        }
+      ],
+      "retained_interventions": {
+        "composed_identity_versus_absence": {
+          "absent_read_noread": true,
+          "identity_cell": [
+            0,
+            0
+          ],
+          "identity_class": 0,
+          "identity_correct": false,
+          "identity_emitted": 4088,
+          "identity_expected": 4095,
+          "identity_is_emit_not_noread": true
+        },
+        "irrelevant_distractor_changed": {
+          "emitted_a": 4088,
+          "emitted_b": 4088,
+          "matches_clean": false,
+          "preserved": true
+        },
+        "operation_changed_fixed_evidence": {
+          "both_expected": false,
+          "changed": true,
+          "emitted_a": 4088,
+          "emitted_b": 4094,
+          "expected_a": 4095,
+          "expected_b": 4094
+        },
+        "payload_changed_identical_query": {
+          "both_expected": false,
+          "changed": true,
+          "emitted_a": 4088,
+          "emitted_b": 4087,
+          "expected_a": 4095,
+          "expected_b": 4094,
+          "selected_a": 485,
+          "selected_b": 486
+        },
+        "read_disabled": {
+          "decoder_noread": true,
+          "read": false
+        },
+        "required_source_removed": {
+          "decoder_noread": true,
+          "emitted": 28,
+          "equals_local": true,
+          "read": false
+        },
+        "update_disabled": {
+          "decoder_noread": true,
+          "read": true
+        }
+      }
+    }
+  },
+  "composition_fixture": {
+    "source_seed": 3237019650,
+    "report_seed": 3237019650,
+    "repository_evidence_json_seed": 3220177410,
+    "labels_refs_match_saved_rows": true,
+    "all_answers_absent": true,
+    "dev_test_exact_prefix_overlap": 0,
+    "unique_dev_cells": 48,
+    "unique_test_cells": 16,
+    "first_three_generation_cells": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        2
+      ]
+    ],
+    "every_test_primitive_seen_in_dev": {
+      "op": true,
+      "vi": true,
+      "target": true
+    },
+    "canonical_sha256": "a02eeee472abd33d2efccc9fb8c0e4c76313c37a77de6ed8f464a9b7dec58838"
+  },
+  "association_population": {
+    "seeds_hex": [
+      "0xC0F20011",
+      "0xC0F20012",
+      "0xC0F20021"
+    ],
+    "old_seeds_hex": [
+      "0xC0F00011",
+      "0xC0F00012",
+      "0xC0F00021"
+    ],
+    "same_ordered_panel_as_prior": {
+      "dev": false,
+      "tune": false,
+      "final": false
+    },
+    "exact_prefix_overlap_against_prior_same_split": {
+      "dev": 0,
+      "tune": 0,
+      "final": 0
+    },
+    "answers_absent": true,
+    "label_mapping_same_as_prior": true,
+    "value_only_artifact_retained": false,
+    "association_prediction_rows_retained": 0,
+    "claimed_new_vs_old_numbers_are_unpaired": true,
+    "counts_scope": "161/108/104 dictionary/value-only counts are report-only. No association rows or value-only artifact retained. Full-factor association artifact exists; loaded parity420 runs, but headline counts use model_hits rather than saved dsd_step prediction records."
+  },
+  "intervention_audit": {
+    "operation_named_fixed_evidence": {
+      "prefix_a": [
+        374,
+        424,
+        485,
+        274,
+        424
+      ],
+      "prefix_b": [
+        375,
+        424,
+        485,
+        285,
+        424
+      ],
+      "changed_positions": [
+        0,
+        3
+      ],
+      "both_source_role_and_query_role_change": true
+    },
+    "payload_pair": {
+      "prefix_a": [
+        374,
+        424,
+        485,
+        274,
+        424
+      ],
+      "prefix_b": [
+        374,
+        424,
+        486,
+        274,
+        424
+      ],
+      "changed_positions": [
+        2
+      ],
+      "expected_targets": [
+        4095,
+        4094
+      ]
+    },
+    "distractor_pair": {
+      "prefix_a": [
+        381,
+        424,
+        487,
+        374,
+        424,
+        485,
+        274,
+        424
+      ],
+      "prefix_b": [
+        381,
+        424,
+        488,
+        374,
+        424,
+        485,
+        274,
+        424
+      ],
+      "changed_positions": [
+        2
+      ]
+    },
+    "absent_fixture": [
+      381,
+      433,
+      485,
+      274,
+      424
+    ],
+    "equals_local_not_independently_evaluated": true,
+    "identity_check": "Uses class(op,vi)==0 and tests decoder_token.is_some(), not computed s == actual group identity. Source canonical identity is1; saved correct-source class0 cell(0,0) emits from state25 in primary run.",
+    "read_update_disabled_scope": "Only one prefix; checks booleans, no full-logit parity against corresponding local baseline."
+  },
+  "comparability": {
+    "association_artifacts_equal_across_completed_roots": true,
+    "composition_4_5_same_inputs": true,
+    "source_changes_between4and5": [
+      "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs"
+    ],
+    "attempt4_heldout_was_exposed_before_objective_order_changed": true
+  },
+  "input_hashes": {
+    "E": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2",
+      "sha256": "565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf",
+      "matches": true
+    },
+    "S": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3",
+      "sha256": "ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad",
+      "matches": true
+    },
+    "selector": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational_ctx.rlr2",
+      "sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55",
+      "matches": true
+    }
+  },
+  "findings": [
+    "Completed roots1,2,4,5 are sealed, six listed files each. Root3 is partial and unsealed with association artifact only; preserve it as an incomplete attempt, not an empty directory or model result.",
+    "The useful value-only104/120 claim is a report-only association decoder-count result on new seeds, not a paired improvement over old residual33/120. Neither association rows nor the value-only artifact is retained.",
+    "The primary H4 composition103/192 development and8/64 heldout are independently recounted from actual saved emitted-token rows. These rows save only H4; C120 totals are reported, while ordinary dictionary controls can be reconstructed from shared saved read data.",
+    "Artifact op_domain contains only6 fit operation tokens in roots4/5. Probe operations6/7 are absent and both map to the same identity fallback. Probe labels participate directly in coordinate-search scoring, so probe27/48 is training/selection performance, not out-of-sample generalization.",
+    "The final heldout cells were evaluated before changing objective ordering from attempt4 to5. They remain exploratory/exposed across the investigation even though each individual fit uses development labels only.",
+    "The operation intervention changes the source role as well as query role, so fixed evidence is false. The primary changed-source and changed-operation pairs each fail both_expected. Preserving a wrong answer on a distractor change is sensitivity evidence only.",
+    "The identity intervention mistakes target class0 for actual computed group identity. Primary saved class0 at operation0,value0 has state25; group identity is1 by canonical root construction. Unit testing decode(0) is not an actual identity test either.",
+    "The absence equals_local flag is tautologically true whenever !rem.read; it is not a separately measured full-logit equality. The served branch structure supports fallback, but its diagnostic assertion is weaker than claimed.",
+    "Three generated prompts are repeated contexts for the same heldout cell(operation0,value1), all emit4087 rather than target4094 in the primary run. No complete answer+EOS, broad prose, language preservation, energy or matched cost evidence.",
+    "The learned decoder uses intended-source correctness only in offline supervision, which is allowed but must be declared. Serving knows only whether any read occurred and whether the resulting state has an entry; a valid decoder state does not certify the selected source was correct.",
+    "Whole heldout cells are not independent free parameters: operation and value maps are shared. An identifiability impossibility claim needs a concrete pair of observationally equivalent parameterizations or another proof, not poor optimization alone. The missing probe operation domains are a direct implementation obstruction to address first.",
+    "The screen text requires paired intervention correctness but met computes only h4_test > control_max. It also reintroduces requiring H4 to beat C120 on a cyclic task, contrary to the prior principal competence/advantage separation."
+  ],
+  "not_run_or_unavailable": [
+    "New paired residual-vs-decoder comparison on identical association prefixes",
+    "Retained value-only artifact and serving/export parity for that arm",
+    "Association emitted-token prediction rows and changed-source pair accuracy",
+    "Independent final selection-free evaluation after objective choice",
+    "Operation-only intervention with fixed evidence",
+    "Actual learned identity-state intervention",
+    "Full-logit NoRead/UpdateDisabled/local parity",
+    "Complete generated answer+EOS",
+    "Natural text/ordinary language preservation",
+    "Measured serving latency and physical energy"
+  ],
+  "cost_scope": {
+    "retained_complete_run_seconds": {
+      "derived-state-decoder-1": 3.9657794170000003,
+      "derived-state-decoder-2": 3.572743875,
+      "derived-state-decoder-4": 6.732384292,
+      "derived-state-decoder-5": 6.7847244159999995
+    },
+    "total_complete_run_seconds": 21.055632,
+    "incomplete_run3_seconds": "UNAVAILABLE",
+    "new_inference_or_build": false
+  },
+  "script_sha256": "16c9f313757a8466424c2b04012e13fafc4203ef7f3f44ee927f16d15802e9d2"
+}

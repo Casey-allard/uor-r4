@@ -1,0 +1,1918 @@
+{
+  "schema": "uor-r4.derived-state-decoder-corrected-principal-replay-audit/1",
+  "scope": "Independent read-only saved prediction-event recount, artifact byte inspection and seal/hash verification. No new inference, fitting or builds. This is a corrected exposed replay, not fresh final evaluation.",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/derived-state-decoder-principal-1",
+  "result_sha256": "19715232a2f0415ee3d6749c24034f220cb6b9928ec4c3db92d0f362b58e2b48",
+  "rows_sha256": "e66ca59011497d341294c1d5fbb79b68ba1d92211dc428004ec3520e07c8d89e",
+  "integrity": {
+    "listed_files": 7,
+    "missing": [],
+    "unlisted": [],
+    "seal_errors": [],
+    "observed_source_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "executable": "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+    "executable_matches_receipt": true,
+    "executable_sha256": "49f3a4bab1e28281c5974100db23fb820d83a09dceffef0cc4a5ca3d4cd24845",
+    "claimed_at": "1790020831",
+    "sealed_at": "1790020887"
+  },
+  "artifacts": {
+    "association_derived_state": {
+      "sha256": "7b1ec2fd558280312a14fad9caab0e802906b19b28c3cc3178259a50a52a2ac1",
+      "bytes": 529,
+      "version": 2,
+      "cyclic": false,
+      "value_only": false,
+      "strict_operands": true,
+      "op_domain": [
+        274,
+        285,
+        293,
+        309,
+        331,
+        343,
+        349,
+        352,
+        358,
+        362,
+        363,
+        366,
+        368,
+        370,
+        374,
+        375,
+        381,
+        383,
+        390,
+        397,
+        398,
+        402,
+        403,
+        404,
+        405,
+        409
+      ],
+      "value_domain": [
+        485,
+        486,
+        487,
+        488,
+        489,
+        491,
+        500,
+        507
+      ],
+      "op_codes": [
+        74,
+        35,
+        106,
+        29,
+        106,
+        35,
+        106,
+        35,
+        106,
+        35,
+        106,
+        106,
+        106,
+        106,
+        85,
+        106,
+        35,
+        35,
+        106,
+        35,
+        106,
+        52,
+        35,
+        35,
+        35,
+        35
+      ],
+      "value_codes": [
+        11,
+        26,
+        32,
+        36,
+        47,
+        58,
+        69,
+        80
+      ],
+      "decoder_state_count": 16,
+      "hash_matches_report": true,
+      "reported_full_loaded_parity_positions": 420,
+      "reported_loaded_object_used": true
+    },
+    "association_value_only": {
+      "sha256": "2c2689af4f7d4094624138921b5ff34cd4cd12957ac53d9524733dbd20175be7",
+      "bytes": 433,
+      "version": 2,
+      "cyclic": false,
+      "value_only": true,
+      "strict_operands": true,
+      "op_domain": [
+        274,
+        285,
+        293,
+        309,
+        331,
+        343,
+        349,
+        352,
+        358,
+        362,
+        363,
+        366,
+        368,
+        370,
+        374,
+        375,
+        381,
+        383,
+        390,
+        397,
+        398,
+        402,
+        403,
+        404,
+        405,
+        409
+      ],
+      "value_domain": [
+        485,
+        486,
+        487,
+        488,
+        489,
+        491,
+        500,
+        507
+      ],
+      "op_codes": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "value_codes": [
+        3,
+        14,
+        25,
+        36,
+        47,
+        58,
+        69,
+        80
+      ],
+      "decoder_state_count": 8,
+      "hash_matches_report": true,
+      "reported_full_loaded_parity_positions": 420,
+      "reported_loaded_object_used": true
+    },
+    "composition_derived_state_h4": {
+      "sha256": "139c9c9dff7c4d40194815ec9b5dc81220c7588c7f299c2fc4dd31ad6149415c",
+      "bytes": 471,
+      "version": 2,
+      "cyclic": false,
+      "value_only": false,
+      "strict_operands": true,
+      "op_domain": [
+        274,
+        285,
+        293,
+        309,
+        331,
+        343,
+        349,
+        352
+      ],
+      "value_domain": [
+        485,
+        486,
+        487,
+        488,
+        489,
+        491,
+        500,
+        507
+      ],
+      "op_codes": [
+        42,
+        8,
+        89,
+        101,
+        39,
+        38,
+        43,
+        50
+      ],
+      "value_codes": [
+        3,
+        14,
+        39,
+        36,
+        47,
+        58,
+        69,
+        80
+      ],
+      "decoder_state_count": 16,
+      "hash_matches_report": true,
+      "reported_full_loaded_parity_positions": 256,
+      "reported_loaded_object_used": true
+    },
+    "composition_derived_state_c120": {
+      "sha256": "5e41c98951d82fdd9e2b2d07aec4014188aa9c8f8336b6351a3c2f5b62d3d5e6",
+      "bytes": 487,
+      "version": 2,
+      "cyclic": true,
+      "value_only": false,
+      "strict_operands": true,
+      "op_domain": [
+        274,
+        285,
+        293,
+        309,
+        331,
+        343,
+        349,
+        352
+      ],
+      "value_domain": [
+        485,
+        486,
+        487,
+        488,
+        489,
+        491,
+        500,
+        507
+      ],
+      "op_codes": [
+        19,
+        8,
+        15,
+        112,
+        13,
+        36,
+        43,
+        50
+      ],
+      "value_codes": [
+        3,
+        14,
+        25,
+        36,
+        47,
+        58,
+        69,
+        80
+      ],
+      "decoder_state_count": 16,
+      "hash_matches_report": true,
+      "reported_full_loaded_parity_positions": 256,
+      "reported_loaded_object_used": true
+    }
+  },
+  "counts": {
+    "association/dev/association_derived_state": {
+      "positions": 180,
+      "emitted_hits": 166,
+      "decoder_hits": 166,
+      "local_hits": 0,
+      "reads": 180,
+      "decoder_noread": 2,
+      "correct_occurrences": 159,
+      "correct_values": 161,
+      "correct_source_hits": 159,
+      "wrong_source_hits": 7,
+      "correct_source_outcomes": {
+        "Emit": 159
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 178,
+        "MissingDecoderState": 2
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "pairs_both_correct": 80,
+      "dictionary_hits": 161,
+      "matches_dictionary_every_position": false
+    },
+    "association/dev/association_value_only": {
+      "positions": 180,
+      "emitted_hits": 161,
+      "decoder_hits": 161,
+      "local_hits": 0,
+      "reads": 180,
+      "decoder_noread": 0,
+      "correct_occurrences": 159,
+      "correct_values": 161,
+      "correct_source_hits": 159,
+      "wrong_source_hits": 2,
+      "correct_source_outcomes": {
+        "Emit": 159
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 180
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "pairs_both_correct": 80,
+      "dictionary_hits": 161,
+      "matches_dictionary_every_position": true
+    },
+    "association/tune/association_derived_state": {
+      "positions": 120,
+      "emitted_hits": 80,
+      "decoder_hits": 80,
+      "local_hits": 0,
+      "reads": 120,
+      "decoder_noread": 28,
+      "correct_occurrences": 106,
+      "correct_values": 108,
+      "correct_source_hits": 80,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {
+        "Emit": 84,
+        "MissingDecoderState": 12,
+        "UnknownOperation": 10
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 92,
+        "MissingDecoderState": 18,
+        "UnknownOperation": 10
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": false,
+      "pairs_both_correct": 36,
+      "dictionary_hits": 108,
+      "matches_dictionary_every_position": false
+    },
+    "association/tune/association_value_only": {
+      "positions": 120,
+      "emitted_hits": 108,
+      "decoder_hits": 108,
+      "local_hits": 0,
+      "reads": 120,
+      "decoder_noread": 0,
+      "correct_occurrences": 106,
+      "correct_values": 108,
+      "correct_source_hits": 106,
+      "wrong_source_hits": 2,
+      "correct_source_outcomes": {
+        "Emit": 106
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 120
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "pairs_both_correct": 53,
+      "dictionary_hits": 108,
+      "matches_dictionary_every_position": true
+    },
+    "association/final/association_derived_state": {
+      "positions": 120,
+      "emitted_hits": 91,
+      "decoder_hits": 91,
+      "local_hits": 0,
+      "reads": 120,
+      "decoder_noread": 19,
+      "correct_occurrences": 104,
+      "correct_values": 104,
+      "correct_source_hits": 89,
+      "wrong_source_hits": 2,
+      "correct_source_outcomes": {
+        "Emit": 91,
+        "UnknownOperation": 10,
+        "MissingDecoderState": 3
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 101,
+        "UnknownOperation": 12,
+        "MissingDecoderState": 7
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": false,
+      "pairs_both_correct": 43,
+      "dictionary_hits": 104,
+      "matches_dictionary_every_position": false
+    },
+    "association/final/association_value_only": {
+      "positions": 120,
+      "emitted_hits": 104,
+      "decoder_hits": 104,
+      "local_hits": 0,
+      "reads": 120,
+      "decoder_noread": 0,
+      "correct_occurrences": 104,
+      "correct_values": 104,
+      "correct_source_hits": 104,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {
+        "Emit": 104
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 120
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "pairs_both_correct": 52,
+      "dictionary_hits": 104,
+      "matches_dictionary_every_position": true
+    },
+    "composition/dev_cells/local_noread": {
+      "positions": 192,
+      "emitted_hits": 0,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 0,
+      "decoder_noread": null,
+      "correct_occurrences": 0,
+      "correct_values": 0,
+      "correct_source_hits": 0,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {},
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "NoRead": 192
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 48,
+      "cells_all_contexts_correct": 0,
+      "by_operation": {
+        "0": {
+          "positions": 24,
+          "hits": 0
+        },
+        "1": {
+          "positions": 24,
+          "hits": 0
+        },
+        "2": {
+          "positions": 24,
+          "hits": 0
+        },
+        "3": {
+          "positions": 24,
+          "hits": 0
+        },
+        "4": {
+          "positions": 24,
+          "hits": 0
+        },
+        "5": {
+          "positions": 24,
+          "hits": 0
+        },
+        "6": {
+          "positions": 24,
+          "hits": 0
+        },
+        "7": {
+          "positions": 24,
+          "hits": 0
+        }
+      }
+    },
+    "composition/dev_cells/h4_derived_state": {
+      "positions": 192,
+      "emitted_hits": 92,
+      "decoder_hits": 92,
+      "local_hits": 0,
+      "reads": 192,
+      "decoder_noread": 79,
+      "correct_occurrences": 165,
+      "correct_values": 167,
+      "correct_source_hits": 91,
+      "wrong_source_hits": 1,
+      "correct_source_outcomes": {
+        "Emit": 105,
+        "MissingDecoderState": 60
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 113,
+        "MissingDecoderState": 79
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "unique_cells": 48,
+      "cells_all_contexts_correct": 20,
+      "by_operation": {
+        "0": {
+          "positions": 24,
+          "hits": 20
+        },
+        "1": {
+          "positions": 24,
+          "hits": 16
+        },
+        "2": {
+          "positions": 24,
+          "hits": 5
+        },
+        "3": {
+          "positions": 24,
+          "hits": 4
+        },
+        "4": {
+          "positions": 24,
+          "hits": 10
+        },
+        "5": {
+          "positions": 24,
+          "hits": 12
+        },
+        "6": {
+          "positions": 24,
+          "hits": 14
+        },
+        "7": {
+          "positions": 24,
+          "hits": 11
+        }
+      }
+    },
+    "composition/dev_cells/c120_derived_state": {
+      "positions": 192,
+      "emitted_hits": 106,
+      "decoder_hits": 106,
+      "local_hits": 0,
+      "reads": 192,
+      "decoder_noread": 54,
+      "correct_occurrences": 165,
+      "correct_values": 167,
+      "correct_source_hits": 105,
+      "wrong_source_hits": 1,
+      "correct_source_outcomes": {
+        "Emit": 129,
+        "MissingDecoderState": 36
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 138,
+        "MissingDecoderState": 54
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "unique_cells": 48,
+      "cells_all_contexts_correct": 22,
+      "by_operation": {
+        "0": {
+          "positions": 24,
+          "hits": 0
+        },
+        "1": {
+          "positions": 24,
+          "hits": 23
+        },
+        "2": {
+          "positions": 24,
+          "hits": 24
+        },
+        "3": {
+          "positions": 24,
+          "hits": 4
+        },
+        "4": {
+          "positions": 24,
+          "hits": 8
+        },
+        "5": {
+          "positions": 24,
+          "hits": 23
+        },
+        "6": {
+          "positions": 24,
+          "hits": 17
+        },
+        "7": {
+          "positions": 24,
+          "hits": 7
+        }
+      }
+    },
+    "composition/dev_cells/payload_only_table": {
+      "positions": 192,
+      "emitted_hits": 38,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 192,
+      "decoder_noread": null,
+      "correct_occurrences": 165,
+      "correct_values": 167,
+      "correct_source_hits": 32,
+      "wrong_source_hits": 6,
+      "correct_source_outcomes": {
+        "Emit": 105,
+        "MissingDecoderState": 60
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 113,
+        "MissingDecoderState": 79
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 48,
+      "cells_all_contexts_correct": 8,
+      "by_operation": {
+        "0": {
+          "positions": 24,
+          "hits": 4
+        },
+        "1": {
+          "positions": 24,
+          "hits": 4
+        },
+        "2": {
+          "positions": 24,
+          "hits": 4
+        },
+        "3": {
+          "positions": 24,
+          "hits": 6
+        },
+        "4": {
+          "positions": 24,
+          "hits": 6
+        },
+        "5": {
+          "positions": 24,
+          "hits": 4
+        },
+        "6": {
+          "positions": 24,
+          "hits": 5
+        },
+        "7": {
+          "positions": 24,
+          "hits": 5
+        }
+      }
+    },
+    "composition/dev_cells/operation_and_payload_table": {
+      "positions": 192,
+      "emitted_hits": 172,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 192,
+      "decoder_noread": null,
+      "correct_occurrences": 165,
+      "correct_values": 167,
+      "correct_source_hits": 165,
+      "wrong_source_hits": 7,
+      "correct_source_outcomes": {
+        "Emit": 105,
+        "MissingDecoderState": 60
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 113,
+        "MissingDecoderState": 79
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 48,
+      "cells_all_contexts_correct": 32,
+      "by_operation": {
+        "0": {
+          "positions": 24,
+          "hits": 24
+        },
+        "1": {
+          "positions": 24,
+          "hits": 24
+        },
+        "2": {
+          "positions": 24,
+          "hits": 23
+        },
+        "3": {
+          "positions": 24,
+          "hits": 18
+        },
+        "4": {
+          "positions": 24,
+          "hits": 19
+        },
+        "5": {
+          "positions": 24,
+          "hits": 23
+        },
+        "6": {
+          "positions": 24,
+          "hits": 21
+        },
+        "7": {
+          "positions": 24,
+          "hits": 20
+        }
+      }
+    },
+    "composition/dev_cells/development_constant": {
+      "positions": 192,
+      "emitted_hits": 24,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 192,
+      "decoder_noread": null,
+      "correct_occurrences": 165,
+      "correct_values": 167,
+      "correct_source_hits": 20,
+      "wrong_source_hits": 4,
+      "correct_source_outcomes": {
+        "Emit": 105,
+        "MissingDecoderState": 60
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "Emit": 113,
+        "MissingDecoderState": 79
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 48,
+      "cells_all_contexts_correct": 6,
+      "by_operation": {
+        "0": {
+          "positions": 24,
+          "hits": 4
+        },
+        "1": {
+          "positions": 24,
+          "hits": 4
+        },
+        "2": {
+          "positions": 24,
+          "hits": 4
+        },
+        "3": {
+          "positions": 24,
+          "hits": 4
+        },
+        "4": {
+          "positions": 24,
+          "hits": 4
+        },
+        "5": {
+          "positions": 24,
+          "hits": 0
+        },
+        "6": {
+          "positions": 24,
+          "hits": 0
+        },
+        "7": {
+          "positions": 24,
+          "hits": 4
+        }
+      }
+    },
+    "composition/held_out_cells/local_noread": {
+      "positions": 64,
+      "emitted_hits": 0,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 0,
+      "decoder_noread": null,
+      "correct_occurrences": 0,
+      "correct_values": 0,
+      "correct_source_hits": 0,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {},
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "NoRead": 64
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 16,
+      "cells_all_contexts_correct": 0,
+      "by_operation": {
+        "0": {
+          "positions": 8,
+          "hits": 0
+        },
+        "1": {
+          "positions": 8,
+          "hits": 0
+        },
+        "2": {
+          "positions": 8,
+          "hits": 0
+        },
+        "3": {
+          "positions": 8,
+          "hits": 0
+        },
+        "4": {
+          "positions": 8,
+          "hits": 0
+        },
+        "5": {
+          "positions": 8,
+          "hits": 0
+        },
+        "6": {
+          "positions": 8,
+          "hits": 0
+        },
+        "7": {
+          "positions": 8,
+          "hits": 0
+        }
+      }
+    },
+    "composition/held_out_cells/h4_derived_state": {
+      "positions": 64,
+      "emitted_hits": 3,
+      "decoder_hits": 3,
+      "local_hits": 0,
+      "reads": 64,
+      "decoder_noread": 60,
+      "correct_occurrences": 58,
+      "correct_values": 58,
+      "correct_source_hits": 2,
+      "wrong_source_hits": 1,
+      "correct_source_outcomes": {
+        "MissingDecoderState": 56,
+        "Emit": 2
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "MissingDecoderState": 60,
+        "Emit": 4
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "unique_cells": 16,
+      "cells_all_contexts_correct": 0,
+      "by_operation": {
+        "0": {
+          "positions": 8,
+          "hits": 0
+        },
+        "1": {
+          "positions": 8,
+          "hits": 0
+        },
+        "2": {
+          "positions": 8,
+          "hits": 0
+        },
+        "3": {
+          "positions": 8,
+          "hits": 3
+        },
+        "4": {
+          "positions": 8,
+          "hits": 0
+        },
+        "5": {
+          "positions": 8,
+          "hits": 0
+        },
+        "6": {
+          "positions": 8,
+          "hits": 0
+        },
+        "7": {
+          "positions": 8,
+          "hits": 0
+        }
+      }
+    },
+    "composition/held_out_cells/c120_derived_state": {
+      "positions": 64,
+      "emitted_hits": 4,
+      "decoder_hits": 4,
+      "local_hits": 0,
+      "reads": 64,
+      "decoder_noread": 58,
+      "correct_occurrences": 58,
+      "correct_values": 58,
+      "correct_source_hits": 4,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {
+        "MissingDecoderState": 54,
+        "Emit": 4
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "MissingDecoderState": 58,
+        "Emit": 6
+      },
+      "all_fallbacks_preserve_local_logits": true,
+      "decoder_token_matches_artifact": true,
+      "decoder_score_matches_artifact": true,
+      "all_read_query_roles_in_declared_domain": true,
+      "unique_cells": 16,
+      "cells_all_contexts_correct": 1,
+      "by_operation": {
+        "0": {
+          "positions": 8,
+          "hits": 0
+        },
+        "1": {
+          "positions": 8,
+          "hits": 0
+        },
+        "2": {
+          "positions": 8,
+          "hits": 0
+        },
+        "3": {
+          "positions": 8,
+          "hits": 0
+        },
+        "4": {
+          "positions": 8,
+          "hits": 0
+        },
+        "5": {
+          "positions": 8,
+          "hits": 0
+        },
+        "6": {
+          "positions": 8,
+          "hits": 0
+        },
+        "7": {
+          "positions": 8,
+          "hits": 4
+        }
+      }
+    },
+    "composition/held_out_cells/payload_only_table": {
+      "positions": 64,
+      "emitted_hits": 1,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 64,
+      "decoder_noread": null,
+      "correct_occurrences": 58,
+      "correct_values": 58,
+      "correct_source_hits": 0,
+      "wrong_source_hits": 1,
+      "correct_source_outcomes": {
+        "MissingDecoderState": 56,
+        "Emit": 2
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "MissingDecoderState": 60,
+        "Emit": 4
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 16,
+      "cells_all_contexts_correct": 0,
+      "by_operation": {
+        "0": {
+          "positions": 8,
+          "hits": 0
+        },
+        "1": {
+          "positions": 8,
+          "hits": 0
+        },
+        "2": {
+          "positions": 8,
+          "hits": 0
+        },
+        "3": {
+          "positions": 8,
+          "hits": 0
+        },
+        "4": {
+          "positions": 8,
+          "hits": 0
+        },
+        "5": {
+          "positions": 8,
+          "hits": 0
+        },
+        "6": {
+          "positions": 8,
+          "hits": 1
+        },
+        "7": {
+          "positions": 8,
+          "hits": 0
+        }
+      }
+    },
+    "composition/held_out_cells/operation_and_payload_table": {
+      "positions": 64,
+      "emitted_hits": 8,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 64,
+      "decoder_noread": null,
+      "correct_occurrences": 58,
+      "correct_values": 58,
+      "correct_source_hits": 8,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {
+        "MissingDecoderState": 56,
+        "Emit": 2
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "MissingDecoderState": 60,
+        "Emit": 4
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 16,
+      "cells_all_contexts_correct": 2,
+      "by_operation": {
+        "0": {
+          "positions": 8,
+          "hits": 0
+        },
+        "1": {
+          "positions": 8,
+          "hits": 0
+        },
+        "2": {
+          "positions": 8,
+          "hits": 0
+        },
+        "3": {
+          "positions": 8,
+          "hits": 0
+        },
+        "4": {
+          "positions": 8,
+          "hits": 0
+        },
+        "5": {
+          "positions": 8,
+          "hits": 4
+        },
+        "6": {
+          "positions": 8,
+          "hits": 4
+        },
+        "7": {
+          "positions": 8,
+          "hits": 0
+        }
+      }
+    },
+    "composition/held_out_cells/development_constant": {
+      "positions": 64,
+      "emitted_hits": 8,
+      "decoder_hits": null,
+      "local_hits": 0,
+      "reads": 64,
+      "decoder_noread": null,
+      "correct_occurrences": 58,
+      "correct_values": 58,
+      "correct_source_hits": 8,
+      "wrong_source_hits": 0,
+      "correct_source_outcomes": {
+        "MissingDecoderState": 56,
+        "Emit": 2
+      },
+      "selected_ref_flags_match": true,
+      "selected_value_flags_match": true,
+      "source_is_payload_predecessor": true,
+      "outcome_counts": {
+        "MissingDecoderState": 60,
+        "Emit": 4
+      },
+      "all_fallbacks_preserve_local_logits": null,
+      "decoder_token_matches_artifact": null,
+      "decoder_score_matches_artifact": null,
+      "all_read_query_roles_in_declared_domain": null,
+      "unique_cells": 16,
+      "cells_all_contexts_correct": 2,
+      "by_operation": {
+        "0": {
+          "positions": 8,
+          "hits": 0
+        },
+        "1": {
+          "positions": 8,
+          "hits": 0
+        },
+        "2": {
+          "positions": 8,
+          "hits": 0
+        },
+        "3": {
+          "positions": 8,
+          "hits": 0
+        },
+        "4": {
+          "positions": 8,
+          "hits": 0
+        },
+        "5": {
+          "positions": 8,
+          "hits": 4
+        },
+        "6": {
+          "positions": 8,
+          "hits": 4
+        },
+        "7": {
+          "positions": 8,
+          "hits": 0
+        }
+      }
+    }
+  },
+  "report_count_checks": {
+    "association/dev": {
+      "full_decoder": true,
+      "full_emitted": true,
+      "value_decoder": true,
+      "value_emitted": true,
+      "dictionary": true,
+      "noread": true
+    },
+    "association/tune": {
+      "full_decoder": true,
+      "full_emitted": true,
+      "value_decoder": true,
+      "value_emitted": true,
+      "dictionary": true,
+      "noread": true
+    },
+    "association/final": {
+      "full_decoder": true,
+      "full_emitted": true,
+      "value_decoder": true,
+      "value_emitted": true,
+      "dictionary": true,
+      "noread": true
+    },
+    "composition/dev_cells/local_noread": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/dev_cells/h4_derived_state": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/dev_cells/c120_derived_state": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/dev_cells/payload_only_table": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/dev_cells/operation_and_payload_table": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/dev_cells/development_constant": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/held_out_cells/local_noread": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/held_out_cells/h4_derived_state": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/held_out_cells/c120_derived_state": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/held_out_cells/payload_only_table": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/held_out_cells/operation_and_payload_table": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    },
+    "composition/held_out_cells/development_constant": {
+      "hits": true,
+      "reads": true,
+      "positions": true
+    }
+  },
+  "interventions": {
+    "fixture_class_zero_versus_absence": {
+      "absent_read_noread": true,
+      "actual_computed_state": 11,
+      "actual_group_identity": 1,
+      "identity_cell": [
+        0,
+        0
+      ],
+      "identity_class": 0,
+      "identity_correct": true,
+      "identity_emitted": 4095,
+      "identity_expected": 4095,
+      "identity_is_emit_not_noread": true,
+      "is_actual_group_identity": false,
+      "scope": "fixture class zero does not guarantee the learned latent state is the group identity; actual identity contract is separately unit tested"
+    },
+    "irrelevant_distractor_changed": {
+      "emitted_a": 4095,
+      "emitted_b": 4095,
+      "matches_clean": true,
+      "preserved": true
+    },
+    "operation_changed_fixed_evidence": {
+      "both_expected": false,
+      "changed": true,
+      "emitted_a": 4095,
+      "emitted_b": 28,
+      "expected_a": 4095,
+      "expected_b": 4094,
+      "expected_payload_abs": 2,
+      "expected_source_abs": 1,
+      "only_query_operation_changes": true,
+      "outcome_a": "Emit",
+      "outcome_b": "NoRead",
+      "prefix_a": [
+        374,
+        424,
+        485,
+        274,
+        424
+      ],
+      "prefix_b": [
+        374,
+        424,
+        485,
+        285,
+        424
+      ],
+      "selected_payload_a": 485,
+      "selected_payload_b": null,
+      "selected_source_abs_a": 1,
+      "selected_source_abs_b": null
+    },
+    "operation_changed_fixed_selected_computation": {
+      "both_expected": true,
+      "emitted_a": 4095,
+      "emitted_b": 4094,
+      "expected_a": 4095,
+      "expected_b": 4094,
+      "fixed_payload": 485,
+      "fixed_relation": 80,
+      "scope": "decoder computation only; binding relation and actually selected payload are held fixed, source selection is not rerun"
+    },
+    "payload_changed_identical_query": {
+      "both_expected": false,
+      "changed": true,
+      "emitted_a": 4095,
+      "emitted_b": 28,
+      "expected_a": 4095,
+      "expected_b": 4094,
+      "selected_a": 485,
+      "selected_b": 486
+    },
+    "read_disabled": {
+      "decoder_noread": true,
+      "equals_local": true,
+      "outcome": "NoRead",
+      "read": false
+    },
+    "required_source_removed": {
+      "decoder_noread": true,
+      "emitted": 28,
+      "equals_local": true,
+      "outcome": "NoRead",
+      "read": false
+    },
+    "update_disabled": {
+      "decoder_noread": true,
+      "equals_local": true,
+      "outcome": "UpdateDisabled",
+      "read": true
+    }
+  },
+  "intervention_recount": {
+    "operation_changed_indices": [
+      3
+    ],
+    "operation_evidence_identical": true,
+    "operation_expected_recount": false,
+    "payload_expected_recount": false,
+    "distractor_preserved_recount": true,
+    "identity_flag_correct": true,
+    "local_logit_equalities": "Reported actual vector comparisons; vectors not stored in intervention result. Source-reviewed, not independently recomputed here."
+  },
+  "generation": [
+    {
+      "panel": "association",
+      "arm": "value_only",
+      "answer": 4088,
+      "emitted": [
+        4088,
+        260,
+        198
+      ],
+      "decoded": "iding the\n",
+      "first_correct_recomputed": true,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 4088,
+          "outcome": "Emit",
+          "read": true,
+          "s": 80,
+          "selected_payload": 507,
+          "selected_source_seq_abs": [
+            1,
+            7
+          ]
+        },
+        {
+          "emitted": 260,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 198,
+          "outcome": "UnknownValue",
+          "read": true,
+          "s": null,
+          "selected_payload": 474,
+          "selected_source_seq_abs": [
+            1,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "association",
+      "arm": "value_only",
+      "answer": 4092,
+      "emitted": [
+        4092,
+        29,
+        86
+      ],
+      "decoded": "info-f",
+      "first_correct_recomputed": true,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 4092,
+          "outcome": "Emit",
+          "read": true,
+          "s": 36,
+          "selected_payload": 488,
+          "selected_source_seq_abs": [
+            1,
+            7
+          ]
+        },
+        {
+          "emitted": 29,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 86,
+          "outcome": "UnknownValue",
+          "read": true,
+          "s": null,
+          "selected_payload": 474,
+          "selected_source_seq_abs": [
+            1,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "association",
+      "arm": "value_only",
+      "answer": 4094,
+      "emitted": [
+        4094,
+        29,
+        32
+      ],
+      "decoded": " Dav-0",
+      "first_correct_recomputed": true,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 4094,
+          "outcome": "Emit",
+          "read": true,
+          "s": 14,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            4
+          ]
+        },
+        {
+          "emitted": 29,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 32,
+          "outcome": "UnknownValue",
+          "read": true,
+          "s": null,
+          "selected_payload": 455,
+          "selected_source_seq_abs": [
+            1,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "composition",
+      "arm": "h4",
+      "answer": 4094,
+      "emitted": [
+        28,
+        198,
+        29
+      ],
+      "decoded": ",\n-",
+      "first_correct_recomputed": false,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 28,
+          "outcome": "MissingDecoderState",
+          "read": true,
+          "s": 10,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            1
+          ]
+        },
+        {
+          "emitted": 198,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 29,
+          "outcome": "UnknownOperation",
+          "read": true,
+          "s": null,
+          "selected_payload": 424,
+          "selected_source_seq_abs": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "composition",
+      "arm": "h4",
+      "answer": 4094,
+      "emitted": [
+        28,
+        198,
+        29
+      ],
+      "decoded": ",\n-",
+      "first_correct_recomputed": false,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 28,
+          "outcome": "MissingDecoderState",
+          "read": true,
+          "s": 10,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            1
+          ]
+        },
+        {
+          "emitted": 198,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 29,
+          "outcome": "UnknownOperation",
+          "read": true,
+          "s": null,
+          "selected_payload": 424,
+          "selected_source_seq_abs": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "composition",
+      "arm": "h4",
+      "answer": 4094,
+      "emitted": [
+        28,
+        198,
+        29
+      ],
+      "decoded": ",\n-",
+      "first_correct_recomputed": false,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 28,
+          "outcome": "MissingDecoderState",
+          "read": true,
+          "s": 10,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            1
+          ]
+        },
+        {
+          "emitted": 198,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 29,
+          "outcome": "UnknownOperation",
+          "read": true,
+          "s": null,
+          "selected_payload": 424,
+          "selected_source_seq_abs": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "composition",
+      "arm": "c120",
+      "answer": 4094,
+      "emitted": [
+        28,
+        198,
+        29
+      ],
+      "decoded": ",\n-",
+      "first_correct_recomputed": false,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 28,
+          "outcome": "MissingDecoderState",
+          "read": true,
+          "s": 114,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            1
+          ]
+        },
+        {
+          "emitted": 198,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 29,
+          "outcome": "UnknownOperation",
+          "read": true,
+          "s": null,
+          "selected_payload": 424,
+          "selected_source_seq_abs": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "composition",
+      "arm": "c120",
+      "answer": 4094,
+      "emitted": [
+        28,
+        198,
+        29
+      ],
+      "decoded": ",\n-",
+      "first_correct_recomputed": false,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 28,
+          "outcome": "MissingDecoderState",
+          "read": true,
+          "s": 114,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            1
+          ]
+        },
+        {
+          "emitted": 198,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 29,
+          "outcome": "UnknownOperation",
+          "read": true,
+          "s": null,
+          "selected_payload": 424,
+          "selected_source_seq_abs": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "composition",
+      "arm": "c120",
+      "answer": 4094,
+      "emitted": [
+        28,
+        198,
+        29
+      ],
+      "decoded": ",\n-",
+      "first_correct_recomputed": false,
+      "first_correct_flag_matches": true,
+      "steps_match_emissions": true,
+      "first_matches_saved_evaluation": true,
+      "steps": [
+        {
+          "emitted": 28,
+          "outcome": "MissingDecoderState",
+          "read": true,
+          "s": 114,
+          "selected_payload": 486,
+          "selected_source_seq_abs": [
+            1,
+            1
+          ]
+        },
+        {
+          "emitted": 198,
+          "outcome": "NoRead",
+          "read": false,
+          "s": null,
+          "selected_payload": null,
+          "selected_source_seq_abs": null
+        },
+        {
+          "emitted": 29,
+          "outcome": "UnknownOperation",
+          "read": true,
+          "s": null,
+          "selected_payload": 424,
+          "selected_source_seq_abs": [
+            1,
+            6
+          ]
+        }
+      ]
+    }
+  ],
+  "screen": {
+    "best_control_held_out_hits": 8,
+    "comparison_scope": "exposed cyclic-fixture comparisons; computation competence and unique algebra advantage are separate",
+    "competence_qualification": "NOT_RUN",
+    "cyclic_c120_hits": 4,
+    "exceeds_noncompositional_controls": false,
+    "h4_held_out_hits": 3,
+    "held_out_positions": 64,
+    "historical_exceeds_all_controls": false,
+    "met": false,
+    "required_qualification": "prospectively selected familiar-primitive transfer criterion plus correct source/operation causal pairs and complete generated output; changed tokens or score superiority alone are insufficient"
+  },
+  "interpretation": [
+    "The value-only artifact is now retained, independently loaded and evaluated through the actual step; all420 served decisions equal the development-fitted dictionary decisions, including104/120 reused-final answers and52/60 pairs.",
+    "The corrected composition failure persists with all8 operation tokens in both model domains. H4 has56/58 correct-source heldout positions missing decoder states and only2 correct-source hits; its third hit comes from a wrong source. C120 has54/58 correct-source positions missing states and4 correct-source hits.",
+    "H4 heldout hits occupy one cell(op3,value2) and no cell has all4 contexts correct. C120 gets all4 contexts of one cell(op7,value2). Both trail the8/64 constant/table reference.",
+    "Operation-only end-to-end change loses source selection and fails, while a separately scoped fixed-selected-computation probe answers both operations correctly. This localizes a binding/operation interface issue on that example without proving general computation.",
+    "Association generation has3/3 correct first tokens, then local/unknown-value fallback. Composition has0/3 correct first tokens for each algebra, all from repeated contexts of the same cell. No complete prose or response claim."
+  ],
+  "all_report_counts_match": true,
+  "source_receipt": {
+    "executable_sha256": "49f3a4bab1e28281c5974100db23fb820d83a09dceffef0cc4a5ca3d4cd24845",
+    "source_checkout_observed_before_fit": {
+      "caller_claimed_git_dirty": null,
+      "caller_claimed_git_rev": null,
+      "observed_dirty": true,
+      "observed_head": "16b7148e0db64e823309675e213e696cbcba79dd",
+      "path": "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4",
+      "scope": "source checkout observed before fitting; binary-to-source build binding is not established by this observation"
+    },
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+        "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+        "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+        "sha256": "d162ba8d957bd407904674ae84aed95baecad8d26478a373e5f95a3f1456c949"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+        "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "ce8450584d8c9280b4a58f11753d3ed9170984a9aa76478c095f3ab6e154fc2d"
+      }
+    ]
+  },
+  "resource_scope": {
+    "saved_elapsed_s": 56.727792667,
+    "audit_runs_model": false,
+    "inference_timing": "NOT_MEASURED",
+    "physical_energy": "UNAVAILABLE"
+  },
+  "limits": [
+    "Corrected exposed-population replay; no fresh final model selection evidence.",
+    "Short three-token rollouts; no learned stop, complete answer+EOS, ordinary prose or coding qualification.",
+    "Direct decoder forcibly selects its label over local argmax; count score is not calibrated probability.",
+    "Comparator fitting scopes differ: table uses full development, model decoder uses grounded fit subset with supervised outer map objective.",
+    "Independent recount confirms recorded predictions and parameter-table consistency; it is not a second predictor execution or full-logit inference replay.",
+    "Operation intervention and fixed-selected-computation probe have different scopes; evaluate reported correct outputs, not mere token change."
+  ],
+  "script_sha256": "7a7e9b889c59a6c9fefa5a1d586385c963a2c262fbe6e6c6b093ab6e77f5d50f"
+}

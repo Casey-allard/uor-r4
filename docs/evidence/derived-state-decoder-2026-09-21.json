@@ -1,0 +1,414 @@
+{
+  "schema": "uor-r4.derived-state-decoder/1",
+  "at": "2026-09-21",
+  "scope": "bounded authored instruments; exposed association regression seeds; no fresh language evaluation; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "fdc1607fcb61ba30bf58f9cfd7c08c23db7a550b",
+    "pr": 1337,
+    "verified_merged_head_equal": true,
+    "worktree": ".worktrees/derived-state-decoder",
+    "owner_checkout_untouched": true
+  },
+  "mechanism": {
+    "relative_result": "s = inverse(q0) * ((q0 * T_bind[r]) * U_op[observed query role] * V[value]) = T_bind[r] * U_op[query] * V[value]",
+    "operation_input": "the observed query role token of the actual causal prefix; the fixture's hidden operation index is never read",
+    "decoder": "bounded learned per-state token shortlist (<= 16 grounded states, shortlist k=4)",
+    "valid_identity_vs_noread": "a computed identity is an ordinary emittable state; NoRead is the absence of a grounded read or a learned state and preserves the frozen local prior"
+  },
+  "panels": {
+    "association": {
+      "note": "Same panel family, different seeds from PR1337: no paired residual-to-decoder improvement. Original winner was decoder-only and not exported; corrected replay later exports and serves it.",
+      "split_arms": {
+        "dev": {
+          "positions": 180,
+          "decoder_hits": 166,
+          "value_only_decoder_hits": 161,
+          "selected_value_dictionary_hits": 161,
+          "local_hits": 0,
+          "decoder_no_read": 2,
+          "grounded": 159,
+          "correct_source": 159
+        },
+        "tune": {
+          "positions": 120,
+          "decoder_hits": 80,
+          "value_only_decoder_hits": 108,
+          "selected_value_dictionary_hits": 108,
+          "local_hits": 0,
+          "decoder_no_read": 24,
+          "grounded": 106,
+          "correct_source": 106
+        },
+        "final": {
+          "positions": 120,
+          "decoder_hits": 91,
+          "value_only_decoder_hits": 104,
+          "selected_value_dictionary_hits": 104,
+          "local_hits": 0,
+          "decoder_no_read": 14,
+          "grounded": 104,
+          "correct_source": 104
+        }
+      },
+      "full_factor_fit": {
+        "accepted_moves": 32,
+        "examples": 180,
+        "final_hits": 166,
+        "grounded_states": 16,
+        "initial_hits": 38
+      },
+      "value_only_fit": {
+        "accepted_moves": 0,
+        "examples": 180,
+        "final_hits": 161,
+        "grounded_states": 8,
+        "initial_hits": 161
+      },
+      "reading": "Original reported value-only decoder counts match its own dictionary at161/108/104 with8 grounded states. Full-factor166/80/91 suggests unnecessary distinctions at this scope. Prior residual61/41/33 uses different seeds."
+    },
+    "composition": {
+      "fixture_version": 2,
+      "seed": 3237019650,
+      "ops": 8,
+      "class_modulus": 10,
+      "binding_relation_budget": 2,
+      "order_ten_witness_element": 74,
+      "dev_cells": 48,
+      "held_out_cells": 16,
+      "development_probe_split": {
+        "probe_operations": [
+          6,
+          7
+        ],
+        "fit_examples": 144,
+        "probe_examples": 48,
+        "reading": "Supervised outer development objective: probe labels guide each map choice. Both probe operations were absent from the original model domain and received identity fallback; original negative is not a generalization impossibility."
+      },
+      "probe_first_primary": {
+        "root": ".uor-models/realtext-prior-2026-09-20/derived-state-decoder-5",
+        "fit_h4": {
+          "accepted_moves": 14,
+          "examples": 144,
+          "final_hits": 76,
+          "grounded_states": 16,
+          "initial_hits": 65
+        },
+        "fit_c120": {
+          "accepted_moves": 9,
+          "examples": 144,
+          "final_hits": 98,
+          "grounded_states": 16,
+          "initial_hits": 65
+        },
+        "states": {
+          "c120_grounded_states": 16,
+          "dev_distinct": 34,
+          "h4_grounded_states": 16,
+          "held_out_distinct": 18,
+          "held_out_states_shared_with_dev": 13
+        },
+        "dev_arms": {
+          "local_noread": 0,
+          "h4_derived_state": 103,
+          "c120_derived_state": 132,
+          "payload_only_table": 38,
+          "operation_and_payload_table": 172,
+          "development_constant": 24
+        },
+        "held_out_arms": {
+          "local_noread": 0,
+          "h4_derived_state": 8,
+          "c120_derived_state": 20,
+          "payload_only_table": 1,
+          "operation_and_payload_table": 8,
+          "development_constant": 8
+        },
+        "decoder_only_hits": {
+          "dev": {
+            "c120": 132,
+            "h4": 103,
+            "total": 192
+          },
+          "held_out": {
+            "c120": 20,
+            "h4": 8,
+            "total": 64
+          }
+        },
+        "interventions": {
+          "composed_identity_versus_absence": {
+            "absent_read_noread": true,
+            "identity_cell": [
+              0,
+              0
+            ],
+            "identity_class": 0,
+            "identity_correct": false,
+            "identity_emitted": 4088,
+            "identity_expected": 4095,
+            "identity_is_emit_not_noread": true
+          },
+          "irrelevant_distractor_changed": {
+            "emitted_a": 4088,
+            "emitted_b": 4088,
+            "matches_clean": false,
+            "preserved": true
+          },
+          "operation_changed_fixed_evidence": {
+            "both_expected": false,
+            "changed": true,
+            "emitted_a": 4088,
+            "emitted_b": 4094,
+            "expected_a": 4095,
+            "expected_b": 4094
+          },
+          "payload_changed_identical_query": {
+            "both_expected": false,
+            "changed": true,
+            "emitted_a": 4088,
+            "emitted_b": 4087,
+            "expected_a": 4095,
+            "expected_b": 4094,
+            "selected_a": 485,
+            "selected_b": 486
+          },
+          "read_disabled": {
+            "decoder_noread": true,
+            "read": false
+          },
+          "required_source_removed": {
+            "decoder_noread": true,
+            "emitted": 28,
+            "equals_local": true,
+            "read": false
+          },
+          "update_disabled": {
+            "decoder_noread": true,
+            "read": true
+          }
+        },
+        "generated": [
+          {
+            "answer": 4094,
+            "class": 1,
+            "decoded": " detect-f",
+            "emitted": [
+              4087,
+              29,
+              86
+            ],
+            "first_correct": false
+          },
+          {
+            "answer": 4094,
+            "class": 1,
+            "decoded": " detect-f",
+            "emitted": [
+              4087,
+              29,
+              86
+            ],
+            "first_correct": false
+          },
+          {
+            "answer": 4094,
+            "class": 1,
+            "decoded": " detect-f",
+            "emitted": [
+              4087,
+              29,
+              86
+            ],
+            "first_correct": false
+          }
+        ],
+        "screen": {
+          "beats_controls": false,
+          "best_control_held_out_hits": 20,
+          "declared": "held-out operation x value cells must exceed every matched control on the same cells, and the paired intervention suite must show the expected change or preservation",
+          "h4_held_out_hits": 8,
+          "held_out_positions": 64,
+          "met": false
+        },
+        "intervention_scope_correction": "Original operation intervention changes both source and query roles; target class zero is not proof of latent group identity; equals_local is not a measured full-logit comparison. Actual numerical outputs are preserved. See principal review and corrected replay."
+      },
+      "fit_first_diagnostic": {
+        "root": ".uor-models/realtext-prior-2026-09-20/derived-state-decoder-4",
+        "fit_h4": {
+          "accepted_moves": 16,
+          "examples": 144,
+          "final_hits": 104,
+          "grounded_states": 16,
+          "initial_hits": 65
+        },
+        "fit_c120": {
+          "accepted_moves": 7,
+          "examples": 144,
+          "final_hits": 126,
+          "grounded_states": 16,
+          "initial_hits": 65
+        },
+        "states": {
+          "c120_grounded_states": 16,
+          "dev_distinct": 39,
+          "h4_grounded_states": 16,
+          "held_out_distinct": 20,
+          "held_out_states_shared_with_dev": 11
+        },
+        "held_out_arms": {
+          "local_noread": 0,
+          "h4_derived_state": 0,
+          "c120_derived_state": 39,
+          "payload_only_table": 1,
+          "operation_and_payload_table": 8,
+          "development_constant": 8
+        },
+        "interventions": {
+          "composed_identity_versus_absence": {
+            "absent_read_noread": true,
+            "identity_cell": [
+              0,
+              0
+            ],
+            "identity_class": 0,
+            "identity_correct": true,
+            "identity_emitted": 4095,
+            "identity_expected": 4095,
+            "identity_is_emit_not_noread": true
+          },
+          "irrelevant_distractor_changed": {
+            "emitted_a": 4095,
+            "emitted_b": 4095,
+            "matches_clean": true,
+            "preserved": true
+          },
+          "operation_changed_fixed_evidence": {
+            "both_expected": true,
+            "changed": true,
+            "emitted_a": 4095,
+            "emitted_b": 4094,
+            "expected_a": 4095,
+            "expected_b": 4094
+          },
+          "payload_changed_identical_query": {
+            "both_expected": false,
+            "changed": true,
+            "emitted_a": 4095,
+            "emitted_b": 4090,
+            "expected_a": 4095,
+            "expected_b": 4094,
+            "selected_a": 485,
+            "selected_b": 486
+          },
+          "read_disabled": {
+            "decoder_noread": true,
+            "read": false
+          },
+          "required_source_removed": {
+            "decoder_noread": true,
+            "emitted": 28,
+            "equals_local": true,
+            "read": false
+          },
+          "update_disabled": {
+            "decoder_noread": true,
+            "read": true
+          }
+        },
+        "screen": {
+          "beats_controls": false,
+          "best_control_held_out_hits": 39,
+          "declared": "held-out operation x value cells must exceed every matched control on the same cells, and the paired intervention suite must show the expected change or preservation",
+          "h4_held_out_hits": 0,
+          "held_out_positions": 64,
+          "met": false
+        },
+        "intervention_scope_correction": "Original operation intervention changes both source and query roles; target class zero is not proof of latent group identity; equals_local is not a measured full-logit comparison. Actual numerical outputs are preserved. See principal review and corrected replay."
+      },
+      "reading": "Original screen negative under both objective orderings, but supervised outer operation domains were incomplete. H4 primary103/192 and8/64 reconstruct; original C120132/192 and20/64 remain reported. The factor family constrains missing products; these results do not establish independent free cells, impossibility or unique algebra advantage.",
+      "structural_results_that_hold": [
+        "a computed identity is emitted rather than silenced, while an absent required source returns NoRead and the local prior",
+        "read-disabled and update-disabled both return NoRead",
+        "changing the observed operation at fixed evidence changes the emitted token",
+        "changing an irrelevant distractor leaves the emitted token unchanged",
+        "changing the relevant payload at an identical query changes the emitted token"
+      ],
+      "original_reported_seed": 3220177410,
+      "dev_positions": 192,
+      "held_out_positions": 64
+    }
+  },
+  "changed_source": [
+    "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/mod.rs",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs"
+  ],
+  "focused_tests": {
+    "result_decoder": [
+      "decoder_round_trips_and_separates_identity_from_noread",
+      "relative_result_is_the_frame_free_ordered_product",
+      "the_state_bound_and_fit_improve_development_hits"
+    ],
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass",
+    "touched_package_build": "pass"
+  },
+  "limitations": [
+    "the association final split is an exposed regression population",
+    "the composition rule was constructed to be realisable by the served algebra, so a pass would be a composition-circuit result, not unique geometric advantage",
+    "The claim of independent free unseen operation-value cells is withdrawn. Connected shared factors constrain latent products; unknown lexical decoding and incomplete fitting require separate diagnosis.",
+    "generated completions are three tokens; useful prose is not qualified"
+  ],
+  "principal_correction": {
+    "review": "docs/integration/derived-state-decoder-review-2026-09-21.md",
+    "audit": "docs/evidence/derived-state-decoder-principal-review-2026-09-21.json",
+    "original_outcomes_preserved": true,
+    "interpretation_precedence": "Principal review supersedes original free-cell/loaded-winner/identity/causal claims",
+    "association_winner": "reported decoder-only104/120; no original winner artifact or association rows; old33/120 is differentpopulation",
+    "composition_probe": "supervised outer map-fitting labels, but two operationcodes absent from modeldomain",
+    "original_modulo10_seed_correct": 3237019650,
+    "original_modulo10_seed_misreported": 3220177410,
+    "completed_roots": [
+      1,
+      2,
+      4,
+      5
+    ],
+    "partial_unsealed_roots": [
+      3
+    ],
+    "source_equality": "two new source hashes do not match submitted16b7148e; no exact binding claimed"
+  },
+  "principal_corrected_replay": {
+    "root": "derived-state-decoder-principal-1",
+    "scope": "exposed diagnostic, independent final qualification NOT_RUN",
+    "value_only_emitted_hits": [
+      161,
+      108,
+      104
+    ],
+    "h4_composition": [
+      92,
+      3
+    ],
+    "c120_composition": [
+      106,
+      4
+    ],
+    "composition_positions": [
+      192,
+      64
+    ],
+    "composition_unique_cells": [
+      48,
+      16
+    ],
+    "h4_heldout_missing_decoder_state": 60,
+    "c120_heldout_missing_decoder_state": 58,
+    "actual_loaded_candidate_parity_positions": 1352
+  },
+  "panels_status": "Historical submitted-run numerical outcomes preserved; corrected source replay is separately identified under principal_corrected_replay. Original intervention labels are not validated control claims."
+}

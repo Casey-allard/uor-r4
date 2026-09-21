@@ -1,0 +1,200 @@
+{
+  "schema": "uor-r4.derived-state-decoder-principal-checks/1",
+  "reviewed_submission": "16b7148e0db64e823309675e213e696cbcba79dd",
+  "final_source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "ce8450584d8c9280b4a58f11753d3ed9170984a9aa76478c095f3ab6e154fc2d"
+  },
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::result_decoder::tests"
+      ],
+      "elapsed_ms": 231171,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-check-0.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "elapsed_ms": 189692,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-check-1.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "elapsed_ms": 61950,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-check-2.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "elapsed_ms": 4929,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-final-check-0.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "elapsed_ms": 3885,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-final-check-1.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "fmt",
+        "--check"
+      ],
+      "elapsed_ms": 5299,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-doccheck-0.log"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check_claim_wording.py"
+      ],
+      "elapsed_ms": 355,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-doccheck-1.log"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "elapsed_ms": 36,
+      "exit_code": 0,
+      "log": "/tmp/uor-pr1338-doccheck-2.log"
+    }
+  ],
+  "library_tests": {
+    "passed": 5,
+    "failed": 0
+  },
+  "runner_tests": {
+    "passed": 17,
+    "failed": 0,
+    "ignored": 1,
+    "ignored_scope": "older pinned artifact smoke; not counted as pass"
+  },
+  "source_review": "Independent review of domain, v1/v2 artifact semantics, actual-loaded evaluation, event-derived scoring and causal/local controls found no blocker. Two final diagnostic edits distinguish valid factual-read states and positions vs unique cells.",
+  "warnings": "Existing library unused variable/mutability and runner unused/dead-code warnings; no warning cleanup bundled.",
+  "scope": "One corrected exposed replay, not new final qualification; debug execution is functional evidence, not optimized serving performance.",
+  "replay": {
+    "command": [
+      "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+      "--mode=derived-state-decoder",
+      "--root",
+      "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/derived-state-decoder-principal-1",
+      "--source-root",
+      "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+    ],
+    "elapsed_ms": 57022,
+    "exit_code": 0,
+    "log": "/tmp/uor-pr1338-replay.log",
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/derived-state-decoder-principal-1",
+    "scope": "Corrected exposed diagnostic replay, not a fresh final evaluation",
+    "binary_sha256": "49f3a4bab1e28281c5974100db23fb820d83a09dceffef0cc4a5ca3d4cd24845",
+    "source_sha256": {
+      "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c",
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": "ce8450584d8c9280b4a58f11753d3ed9170984a9aa76478c095f3ab6e154fc2d"
+    },
+    "independent_audit": "docs/evidence/derived-state-decoder-corrected-replay-audit-2026-09-21.json"
+  },
+  "resource": {
+    "at": "2026-09-21T20:04:29.525667+00:00",
+    "projection": {
+      "at": "2026-09-21T19:39:08.387839+00:00",
+      "before": {
+        "cumulative_ms": 229398372,
+        "limit_ms": 233900000
+      },
+      "principal_projection_ms": 2700000,
+      "preprojection_preparation_estimate_ms": 180000,
+      "compiler_workers": 2,
+      "ram_limit_gib": 8,
+      "temporary_build_bytes": 3221225472,
+      "report_bytes": 67108864,
+      "reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_bytes": 48757575680,
+      "full_model_runs_planned": 1,
+      "planned_deletions": [],
+      "model_run_scope": "One corrected replay on already-exposed populations, after source/domain/artifact/control repair; diagnostic not fresh qualification. Shared debug binary to preserve original release executable; <=180000ms execution allowance within the existing 2700000ms full review projection. Model workers1, RAM8GiB; no new external compute.",
+      "storage_projection_revision": {
+        "at": "2026-09-21T19:52:10.833981+00:00",
+        "old_bytes": 536870912,
+        "new_bytes": 3221225472,
+        "observed_free_bytes": 47693672448,
+        "reason": "Core test compilation shows free-space decrease beyond the initial512MiB estimate; reproject total temporary build headroom before subsequent runner builds. Free delta is not attributed exclusively to compiler. Physical reserve unchanged; standing owner local allowance applies."
+      }
+    },
+    "elapsed_ms": 1521138,
+    "preprojection_preparation_estimate_ms": 180000,
+    "final_delivery_reserve_ms": 300000,
+    "principal_charge_ms": 2001138,
+    "before": {
+      "cumulative_ms": 229398372,
+      "limit_ms": 233900000
+    },
+    "after": {
+      "cumulative_ms": 231399510,
+      "limit_ms": 233900000
+    },
+    "remaining_ms": 2500490,
+    "allowance_extension_ms": 0,
+    "free_after_checks_bytes": 46594277376,
+    "principal_deleted_bytes": 0,
+    "paid_compute": false,
+    "idle_external_merge_queue_time": "not a new local model run"
+  },
+  "document_checks": {
+    "json_parsed": [
+      "docs/evidence/derived-state-decoder-2026-09-21.json",
+      "docs/evidence/derived-state-decoder-corrected-replay-audit-2026-09-21.json",
+      "docs/evidence/derived-state-decoder-principal-checks-2026-09-21.json",
+      "docs/evidence/derived-state-decoder-principal-review-2026-09-21.json"
+    ],
+    "relative_document_targets_checked": 953,
+    "missing_targets": []
+  }
+}

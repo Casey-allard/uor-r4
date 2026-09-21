@@ -1653,3 +1653,74 @@ readback: **221398372 / 224900000 ms**; remaining
 **51127488512 bytes** (projection: 51214413824); principal deleted **0 bytes**.
 The reserve plus 128 MiB margin remains intact. Idle external merge-queue waiting
 is not a new local model run. [Complete receipt](../evidence/geometric-computation-principal-checks-2026-09-21.json).
+
+## Derived-state decoder step — September 21, 2026
+
+**Projection recorded before implementation and execution.** One learned result decoder on the
+relative computed state, an explicit validity/NoRead interface, the repaired composition fixture with
+a development-internal operation probe, both-input comparators, interventions, loaded generation,
+focused tests, evidence and delivery.
+
+| Item | Projected | Reason |
+| --- | --- | --- |
+| Wall time | **<= 9,000,000 ms (~150 min)** | context recovery, decoder module + runner modes, compile cycles, four model runs, controls, interventions, evidence, delivery |
+| Compiler workers | <= 2, `CARGO_INCREMENTAL=0` | offline Rust build, shared owner target |
+| Model workers | 1 | single harness process |
+| Peak RSS | <= 8 GiB | existing loaders plus the 4096x16 latent map |
+| New/temporary/retained storage | <= 512 MiB build, <= 32 MiB reports | shared target reuse, bounded row files |
+| Free space at projection | `48888545280` bytes | above the 36,766,079,385-byte reserve plus the 128 MiB stop margin by 11,988,248,167 bytes |
+
+**Extension taken.** Time increment **+9,000,000 ms**; **new cumulative limit 233,900,000 ms**
+(previous 224,900,000 ms; live 221,398,372 ms). Reason: a new decoder module and mode, a repaired
+composition instrument, four executed model runs and protected delivery cannot be funded by the
+remaining 3,501,628 ms. Recorded **before** the work. No reserve reduction and no paid/external
+compute.
+
+**Completed charges — derived-state decoder step.** Measured: four targeted model runs (**4.0 s**,
+**3.6 s**, **6.7 s**, **6.8 s**) plus superseded attempts; release builds and compile/fmt/test cycles
+(~**900 s**). Estimated: context/source/literature recovery ~**1200 s**; decoder module and runner
+mode implementation ~**3000 s**; diagnosed iteration and instrument repair ~**1200 s**; documentation,
+evidence, delivery and knowledge ~**1500 s**. **Charge 8,000,000 ms** (measured + estimated). Live
+allowance limit **233,900,000 ms**; **new cumulative 229,398,372 ms**; remaining **4,501,628 ms**.
+`CARGO_INCREMENTAL=0` throughout; no reserve reduction, no deletion of unique material, no
+paid/external compute.
+
+**Delivered** under the claimed, sealed and verified roots
+`.uor-models/realtext-prior-2026-09-20/derived-state-decoder-{1,4,5}` (0 unlisted each), with `-5` the
+primary probe-first model and `-4` the fit-first diagnostic. Superseded attempts `-2` and `-3` are
+sealed and retained unchanged.
+
+## PR #1338 principal review projection
+
+Live absolute JSON is **229398372 / 233900000 ms**; the prior +9000000-ms
+allowance and 8000000-ms charge are already present. Do not repeat them.
+The listed component estimates plus named runs total approximately 7821100 ms
+before superseded attempts, so no additional missing debit is established.
+The handoff places first module compilation before the projection; the old
+claim that the entire implementation followed projection is not independently
+verified. Preserve complete charges rather than asserting uninterrupted ordering.
+
+Prospective principal allowance: at most **2700000 ms** including 180000-ms
+preprojection recovery estimate, source/evidence/math review, repairs, focused
+checks, one corrected exposed diagnostic replay, documentation and delivery.
+Two compiler workers, no incremental compilation, one model worker, peak 8 GiB;
+512 MiB build plus 64 MiB reports. Replay execution allowance 180000 ms is included
+in the full projection. Use the shared debug target to preserve the prior
+release executable; debug timing is not optimized serving performance.
+Free at projection 48757575680 bytes, reserve 36766079385 plus 128 MiB. No deletion
+or paid compute planned. The existing remaining 4501628 ms covers the projection;
+no local extension is currently necessary.
+
+During core test compilation, observed free space fell to47693672448bytes from
+48757575680, exceeding the initial512MiB temporary estimate. The free delta
+is not attributed exclusively to compilation. Before subsequent runner builds,
+revise total temporary build allowance to**3GiB** under standing local
+authorization; preserve the same physical reserve plus128MiB. No deletion
+or time-limit increase is needed. This revision does not claim the original
+temporary estimate held throughout the first compile.
+
+### PR #1338 principal completion debit and corrected replay
+
+At 2026-09-21T20:04:29.525667+00:00, the principal review charges **2,001,138 ms**: 1,521,138 ms elapsed since its projection, 180,000 ms estimated preceding preparation, and 300,000 ms final-delivery reserve. This includes source repair, both runner build/check sets, independent saved-data audits and the 57,022 ms debug replay; do not debit them again. Live absolute JSON moves from 229,398,372 to **231,399,510 / 233,900,000 ms**, leaving 2,500,490 ms. No cumulative allowance increase was needed. Standing authorization still permits a necessary prospectively recorded local extension for later work.
+
+The original 512 MiB temporary-build estimate was exceeded; the documented 3 GiB revision preceded subsequent runner builds. Free space after checks is **46,594,277,376 bytes** (projection start 48,757,575,680); filesystem change is not attributed exclusively to this task. Preserve 36,766,079,385 bytes plus 134,217,728-byte stop margin. Deleted **0 bytes**; no paid/external compute. The new seven-file report is sealed with no unlisted files; all five recorded source hashes, the debug executable and four RLDSv2 artifacts match. Original reports/source freezes and the owner checkout remain untouched.
