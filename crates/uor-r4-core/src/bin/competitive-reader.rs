@@ -2746,6 +2746,33 @@ fn generate_step(
 mod tests {
     use super::*;
 
+    #[test]
+    fn contextual_map_search_uses_lexicographic_alias_priority() {
+        assert!(!ce_objective_better((1, 0.0), (0, 1.0e12)));
+        assert!(ce_objective_better((0, 1.0e12), (1, 0.0)));
+        assert!(ce_objective_better((0, 1.0), (0, 2.0)));
+        assert!(!ce_objective_better((0, 2.0), (0, 2.0)));
+        let mut p = ReadConditionedParams::identity();
+        p.value_domain = vec![10, 11];
+        p.value_code = vec![3, 3];
+        let ex = |payload, target| CeExample {
+            z_local: vec![0; 2],
+            q0: 0,
+            r: 0,
+            payload,
+            read: true,
+            target,
+        };
+        assert_eq!(
+            ce_collisions(&[ex(10, 0), ex(10, 1)], &p),
+            0,
+            "contradictory targets for the same selected payload are not a value-code alias"
+        );
+        assert_eq!(ce_collisions(&[ex(10, 0), ex(11, 1)], &p), 1);
+        p.value_code[1] = 4;
+        assert_eq!(ce_collisions(&[ex(10, 0), ex(11, 1)], &p), 0);
+    }
+
     fn banks() -> Banks {
         Banks {
             pairs: (0..14).map(|i| (10 + i, 30 + i)).collect(),
@@ -6986,9 +7013,10 @@ const CE_N_DEV: usize = 90;
 const CE_N_TUNE: usize = 60;
 const CE_N_FRESH: usize = 60;
 const CE_DISTRACTORS: usize = 3;
-const CE_SEED_DEV: u64 = 0xC0F0_0001;
-const CE_SEED_TUNE: u64 = 0xC0F0_0002;
-const CE_SEED_FRESH: u64 = 0xC0F0_0003;
+const CE_SEED_DEV: u64 = 0xC0F0_0011;
+const CE_SEED_TUNE: u64 = 0xC0F0_0012;
+/// Untouched final draw: seeds 0xC0F00001..03 are the exposed regression populations.
+const CE_SEED_FINAL: u64 = 0xC0F0_0021;
 const CE_MAX_W_ROWS: usize = 64;
 const CE_EPOCHS: usize = 600;
 const CE_LR: f64 = 1.0;
@@ -7173,42 +7201,6 @@ fn ce_logits(
     z
 }
 
-fn ce_margin(
-    ex: &CeExample,
-    params: &ReadConditionedParams,
-    res: &EmissionResidual,
-    cyclic: bool,
-    rows: &[usize],
-) -> f64 {
-    let z = ce_logits(ex, params, res, cyclic, rows);
-    let t = (ex.target as usize).min(z.len() - 1);
-    let best_other = z
-        .iter()
-        .enumerate()
-        .filter(|(i, _)| *i != t)
-        .map(|(_, v)| *v)
-        .max()
-        .unwrap_or(i32::MIN);
-    (z[t] - best_other) as f64
-}
-
-fn ce_mean_margin(
-    examples: &[CeExample],
-    params: &ReadConditionedParams,
-    res: &EmissionResidual,
-    cyclic: bool,
-    rows: &[usize],
-) -> f64 {
-    if examples.is_empty() {
-        return f64::NAN;
-    }
-    examples
-        .iter()
-        .map(|ex| ce_margin(ex, params, res, cyclic, rows))
-        .sum::<f64>()
-        / examples.len() as f64
-}
-
 fn ce_hits(
     examples: &[CeExample],
     params: &ReadConditionedParams,
@@ -7222,7 +7214,57 @@ fn ce_hits(
         .count()
 }
 
-/// Discrete search over the transport and value maps on the mean-margin objective (strict gains).
+/// Incompatible-output collisions: for the same `(q0, relation)`, distinct payloads that must
+/// produce different targets but share the same value state collapse the update. This is the
+/// diagnosed information loss, and it is a property of the value map, not of readout width.
+fn ce_collisions(examples: &[CeExample], params: &ReadConditionedParams) -> usize {
+    let mut m: std::collections::BTreeMap<(usize, usize), Vec<(u32, u32)>> =
+        std::collections::BTreeMap::new();
+    for ex in examples.iter().filter(|e| e.read) {
+        m.entry((ex.q0, ex.r % GROUP_ORDER))
+            .or_default()
+            .push((ex.payload, ex.target));
+    }
+    let mut c = 0usize;
+    for v in m.values() {
+        for i in 0..v.len() {
+            for j in (i + 1)..v.len() {
+                if v[i].0 != v[j].0
+                    && v[i].1 != v[j].1
+                    && params.value_state(v[i].0) == params.value_state(v[j].0)
+                {
+                    c += 1;
+                }
+            }
+        }
+    }
+    c
+}
+
+/// Map search minimizes a lexicographic pair: first observed distinct-payload aliases, then the
+/// exact calibrated served CE. Same selected-payload contradictory targets are reader/input
+/// ambiguity, not a value-code alias. This is not universal injectivity or a full feature test.
+fn ce_objective(
+    examples: &[CeExample],
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+    rows: &[usize],
+    f_bits: u32,
+) -> (usize, f64) {
+    (
+        ce_collisions(examples, params),
+        served_nll_bits(examples, params, res, cyclic, rows, f_bits),
+    )
+}
+
+fn ce_objective_better(candidate: (usize, f64), incumbent: (usize, f64)) -> bool {
+    candidate.1.is_finite()
+        && (candidate.0 < incumbent.0
+            || (candidate.0 == incumbent.0 && candidate.1 < incumbent.1 - 1e-12))
+}
+
+/// Discrete search over update maps, preserving observed distinctions before minimizing served CE.
 fn ce_search_maps(
     examples: &[CeExample],
     params: &ReadConditionedParams,
@@ -7230,9 +7272,10 @@ fn ce_search_maps(
     cyclic: bool,
     rows: &[usize],
     passes: usize,
+    f_bits: u32,
 ) -> (ReadConditionedParams, usize) {
     let mut p = params.clone();
-    let mut best = ce_mean_margin(examples, &p, res, cyclic, rows);
+    let mut best = ce_objective(examples, &p, res, cyclic, rows, f_bits);
     let mut accepted = 0usize;
     let relations: Vec<usize> = {
         let mut v: Vec<usize> = examples
@@ -7252,15 +7295,15 @@ fn ce_search_maps(
             let mut local_val = saved;
             for cand in 0..GROUP_ORDER {
                 p.transport[*r] = cand as u8;
-                let m = ce_mean_margin(examples, &p, res, cyclic, rows);
-                if m > local_best + 1e-9 {
+                let m = ce_objective(examples, &p, res, cyclic, rows, f_bits);
+                if ce_objective_better(m, local_best) {
                     local_best = m;
                     local_val = cand as u8;
                 }
             }
             p.transport[*r] = local_val;
-            if local_best > best + 1e-9 {
-                best = local_best;
+            if ce_objective_better(local_best, best) {
+                best = ce_objective(examples, &p, res, cyclic, rows, f_bits);
                 accepted += 1;
                 improved = true;
             }
@@ -7271,15 +7314,15 @@ fn ce_search_maps(
             let mut local_val = saved;
             for cand in 0..GROUP_ORDER {
                 p.value_code[i] = cand as u8;
-                let m = ce_mean_margin(examples, &p, res, cyclic, rows);
-                if m > local_best + 1e-9 {
+                let m = ce_objective(examples, &p, res, cyclic, rows, f_bits);
+                if ce_objective_better(m, local_best) {
                     local_best = m;
                     local_val = cand as u8;
                 }
             }
             p.value_code[i] = local_val;
-            if local_best > best + 1e-9 {
-                best = local_best;
+            if ce_objective_better(local_best, best) {
+                best = ce_objective(examples, &p, res, cyclic, rows, f_bits);
                 accepted += 1;
                 improved = true;
             }
@@ -7289,38 +7332,6 @@ fn ce_search_maps(
         }
     }
     (p, accepted)
-}
-
-/// Keep the `max_rows` largest-norm output rows as ternary coefficients; zero the rest.
-fn ce_quantize_sparse(
-    w_f: &[[f32; CE_WIDTH]],
-    max_rows: usize,
-) -> (Vec<[i8; CE_WIDTH]>, Vec<usize>) {
-    let mut norms: Vec<(f64, usize)> = w_f
-        .iter()
-        .enumerate()
-        .map(|(o, row)| (row.iter().map(|v| f64::from(*v).abs()).sum::<f64>(), o))
-        .collect();
-    norms.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-    let keep: Vec<usize> = norms
-        .iter()
-        .take(max_rows)
-        .filter(|(n, _)| *n > 0.0)
-        .map(|(_, o)| *o)
-        .collect();
-    let mut w = vec![[0i8; CE_WIDTH]; w_f.len()];
-    for o in keep.iter() {
-        for j in 0..CE_WIDTH {
-            w[*o][j] = if w_f[*o][j] > 0.0 {
-                1
-            } else if w_f[*o][j] < 0.0 {
-                -1
-            } else {
-                0
-            };
-        }
-    }
-    (w, keep)
 }
 
 /// The one shared read -> update -> emit step used by evaluation, interventions and generation.
@@ -7454,7 +7465,7 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
     let values: Vec<u32> = banks.values_fit.iter().copied().take(8).collect();
     let specs_dev = make_ce_specs(&banks, CE_N_DEV, CE_SEED_DEV, &values);
     let specs_tune = make_ce_specs(&banks, CE_N_TUNE, CE_SEED_TUNE, &values);
-    let specs_fresh = make_ce_specs(&banks, CE_N_FRESH, CE_SEED_FRESH, &values);
+    let specs_fresh = make_ce_specs(&banks, CE_N_FRESH, CE_SEED_FINAL, &values);
     let mut used: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
     for spec in specs_dev
         .iter()
@@ -7519,7 +7530,8 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         RelationalArtifact::from_bytes(&selector_bytes, &sha256_bytes(&sb), &raw_tok)?.selector;
 
     let (dev_pos, dev_ex, dev_pairs) = ce_extract(&parent, &local, &u, &table, &sel, &items_dev)?;
-    let (tune_pos, tune_ex, _) = ce_extract(&parent, &local, &u, &table, &sel, &items_tune)?;
+    let (tune_pos, tune_ex, tune_pairs) =
+        ce_extract(&parent, &local, &u, &table, &sel, &items_tune)?;
     let (fresh_pos, fresh_ex, fresh_pairs) =
         ce_extract(&parent, &local, &u, &table, &sel, &items_fresh)?;
 
@@ -7621,7 +7633,8 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         let params0 = base_params.clone();
         let mut res0 = EmissionResidual::seeded(parent.cfg.vocab, 0x51E5_0000);
         res0.shift = shift;
-        let (w_f, nll_initial, nll_float) = train_output_map(
+        // One serving-support projection and exact CE are used by every output-fitting forward.
+        let (res_before_maps, nll_initial, nll_before_maps, flips_before_maps) = fit_output_block(
             &dev_ex,
             &params0,
             &res0,
@@ -7629,18 +7642,44 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
             CE_EPOCHS,
             CE_LR,
             parent.cfg.f_bits,
+            CE_MAX_W_ROWS,
+            5,
         );
-        let (w_q, rows) = ce_quantize_sparse(&w_f, CE_MAX_W_ROWS);
-        let mut res = res0.clone();
-        res.w = w_q;
-        res.shift = shift;
-        let nll_quantized =
-            served_nll_bits(&dev_ex, &params0, &res, cyclic, &rows, parent.cfg.f_bits);
-        let flips = refine_ternary_map(&dev_ex, &params0, &mut res, cyclic, &rows, 5);
-        let nll_refined =
-            served_nll_bits(&dev_ex, &params0, &res, cyclic, &rows, parent.cfg.f_bits);
-        let (params, accepted) = ce_search_maps(&dev_ex, &params0, &res, cyclic, &rows, 4);
-        let nll_final = served_nll_bits(&dev_ex, &params, &res, cyclic, &rows, parent.cfg.f_bits);
+        let rows_before_maps = res_before_maps.active_rows();
+        let (params, accepted) = ce_search_maps(
+            &dev_ex,
+            &params0,
+            &res_before_maps,
+            cyclic,
+            &rows_before_maps,
+            4,
+            parent.cfg.f_bits,
+        );
+        let nll_after_maps = served_nll_bits(
+            &dev_ex,
+            &params,
+            &res_before_maps,
+            cyclic,
+            &rows_before_maps,
+            parent.cfg.f_bits,
+        );
+        // Consume the changed map and retain its incumbent output unless exact served CE improves.
+        // The final fitted residual below, rather than the stale pre-map residual, is serialized.
+        let (res, refit_initial, nll_final, flips_after_maps) = fit_output_block(
+            &dev_ex,
+            &params,
+            &res_before_maps,
+            cyclic,
+            CE_EPOCHS,
+            CE_LR,
+            parent.cfg.f_bits,
+            CE_MAX_W_ROWS,
+            5,
+        );
+        if (refit_initial - nll_after_maps).abs() > 1e-12 || nll_final > refit_initial + 1e-12 {
+            return Err("post-map output refit violated incumbent CE contract".into());
+        }
+        let rows = res.active_rows();
         let report = json!({
             "algebra": if cyclic { "cyclic_c120" } else { "signed_h4" },
             "shift": shift,
@@ -7652,12 +7691,20 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
             "nonzero_coefficients": rows.iter().map(|o| res.w[*o].iter().filter(|v| **v != 0).count()).sum::<usize>(),
             "residual_range_bound": res.range_bound(),
             "nll_bits": {
-                "initial": nll_initial, "float_after_gradient_fit": nll_float,
-                "served_after_quantization": nll_quantized,
-                "served_after_discrete_refinement": nll_refined,
+                "initial": nll_initial, "served_output_before_map_search": nll_before_maps,
+                "served_after_map_search": nll_after_maps, "post_map_refit_incumbent": refit_initial,
                 "served_final": nll_final,
             },
-            "accepted_ternary_flips": flips,
+            "distinct_payload_alias_pairs_dev_before": ce_collisions(&dev_ex, &params0),
+            "distinct_payload_alias_pairs_dev_after": ce_collisions(&dev_ex, &params),
+            "distinct_payload_alias_pairs_final_after": ce_collisions(&fresh_ex, &params),
+            "accepted_ternary_flips": flips_before_maps + flips_after_maps,
+            "accepted_ternary_flips_before_maps": flips_before_maps,
+            "accepted_ternary_flips_after_maps": flips_after_maps,
+            "post_map_output_refit_executed": true,
+            "output_before_maps_sha256": sha256_hex(&res_before_maps.to_bytes()),
+            "output_after_maps_refit_sha256": sha256_hex(&res.to_bytes()),
+            "optimization": "shared top-k ternary support; surrogate nats gradients; exact served bits for incumbent retention and coordinate search; observed alias count then CE for map search",
             "accepted_map_changes": accepted,
             "dev_hits": ce_hits(&dev_ex, &params, &res, cyclic, &rows),
             "tune_hits": ce_hits(&tune_ex, &params, &res, cyclic, &rows),
@@ -7992,6 +8039,139 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         }));
     }
 
+    // Required controls: a development-fitted constant and a categorical selected-value emitter that
+    // uses only the observed selected payload (no intended value reaches serving).
+    let mut const_counts: std::collections::BTreeMap<u32, usize> =
+        std::collections::BTreeMap::new();
+    let mut cat_counts: std::collections::BTreeMap<u32, std::collections::BTreeMap<u32, usize>> =
+        std::collections::BTreeMap::new();
+    for p in dev_pos.iter() {
+        *const_counts.entry(p.target).or_default() += 1;
+        *cat_counts
+            .entry(p.payload)
+            .or_default()
+            .entry(p.target)
+            .or_default() += 1;
+    }
+    let const_target = const_counts
+        .iter()
+        .max_by_key(|(_, c)| **c)
+        .map(|(t, _)| *t)
+        .unwrap_or(0);
+    let cat_table: std::collections::BTreeMap<u32, u32> = cat_counts
+        .iter()
+        .map(|(payload, m)| {
+            (
+                *payload,
+                m.iter()
+                    .max_by_key(|(_, c)| **c)
+                    .map(|(t, _)| *t)
+                    .unwrap_or(const_target),
+            )
+        })
+        .collect();
+    let count_hits =
+        |poss: &[CePos], ids: &[usize], f: &dyn Fn(&CePos) -> u32| -> (usize, Vec<(usize, bool)>) {
+            let mut hits = 0usize;
+            let mut pp = Vec::new();
+            for (p, id) in poss.iter().zip(ids.iter()) {
+                let ok = f(p) == p.target;
+                if ok {
+                    hits += 1;
+                }
+                pp.push((*id, ok));
+            }
+            (hits, pp)
+        };
+    let (const_dev, const_dp) = count_hits(&dev_pos, &dev_pairs, &|_| const_target);
+    let (const_tune, _) = count_hits(&tune_pos, &tune_pairs, &|_| const_target);
+    let (const_final, const_fp) = count_hits(&fresh_pos, &fresh_pairs, &|_| const_target);
+    let cat_of = |p: &CePos| cat_table.get(&p.payload).copied().unwrap_or(const_target);
+    let (cat_dev, cat_dp) = count_hits(&dev_pos, &dev_pairs, &cat_of);
+    let (cat_tune, _) = count_hits(&tune_pos, &tune_pairs, &cat_of);
+    let (cat_final, cat_fp) = count_hits(&fresh_pos, &fresh_pairs, &cat_of);
+    comparisons.push(json!({
+        "arm": "development_constant",
+        "dev_hits": const_dev, "dev_positions": dev_pos.len(), "dev_pairs_both_correct": both(&const_dp),
+        "tune_hits": const_tune, "tune_positions": tune_pos.len(),
+        "fresh_hits": const_final, "fresh_positions": fresh_pos.len(),
+        "fresh_pairs_both_correct": both(&const_fp),
+        "learned_target": const_target,
+    }));
+    comparisons.push(json!({
+        "arm": "categorical_selected_value",
+        "dev_hits": cat_dev, "dev_positions": dev_pos.len(), "dev_pairs_both_correct": both(&cat_dp),
+        "tune_hits": cat_tune, "tune_positions": tune_pos.len(),
+        "fresh_hits": cat_final, "fresh_positions": fresh_pos.len(),
+        "fresh_pairs_both_correct": both(&cat_fp),
+        "table_entries": cat_table.len(),
+    }));
+
+    // Reader-localization: correct exact occurrence and correct payload value, per split.
+    let source_stratum = |poss: &[CePos]| -> serde_json::Value {
+        json!({
+            "positions": poss.len(),
+            "reads": poss.iter().filter(|p| p.read).count(),
+            "correct_exact_occurrence": poss.iter().filter(|p| p.correct_source).count(),
+            "correct_payload_value": poss.iter().filter(|p| p.correct_value).count(),
+        })
+    };
+
+    // Compact row file: one line per position with the exact served references and outcomes.
+    let mut rows_text = String::new();
+    let mut push_rows = |split: &str, poss: &[CePos], items: &[CeItem]| {
+        for (i, p) in poss.iter().enumerate() {
+            let it = items.get(i);
+            rows_text.push_str(&format!(
+                "{{\"split\":\"{split}\",\"pair\":{},\"value\":{},\"target\":{},\"selected_payload\":{},\"read\":{},\"correct_exact_occurrence\":{},\"correct_payload_value\":{},\"q0\":{},\"relation\":{},\"target_margin\":{}}}\n",
+                it.map(|x| x.pair_id).unwrap_or(0), it.map(|x| x.value).unwrap_or(0), p.target, p.payload,
+                p.read, p.correct_source, p.correct_value, p.q0, p.r, p.target_margin
+            ));
+        }
+    };
+    push_rows("dev", &dev_pos, &items_dev);
+    push_rows("tune", &tune_pos, &items_tune);
+    push_rows("final", &fresh_pos, &items_fresh);
+    write_checked(&root, "rows.jsonl", rows_text.as_bytes())?;
+
+    let h4_final = comparisons
+        .iter()
+        .find(|c| c["arm"] == json!("h4_read_conditioned"))
+        .cloned()
+        .unwrap_or(json!(null));
+    let final_pairs = h4_final["fresh_pairs_both_correct"].as_u64().unwrap_or(0);
+    let final_total_pairs = (fresh_pos.len() / 2).max(1) as u64;
+    let ctrl_pairs = |name: &str| -> u64 {
+        comparisons
+            .iter()
+            .find(|c| c["arm"] == json!(name))
+            .and_then(|c| c["fresh_pairs_both_correct"].as_u64())
+            .unwrap_or(0)
+    };
+    let controls_max = [
+        "local_noread",
+        "scalar_copy_parent",
+        "development_constant",
+        "categorical_selected_value",
+        "cyclic_c120_read_conditioned",
+    ]
+    .iter()
+    .map(|n| ctrl_pairs(n))
+    .max()
+    .unwrap_or(0);
+    let fraction = final_pairs as f64 / final_total_pairs as f64;
+    let screen = json!({
+        "declared_before_final": {"minimum_both_members_correct_fraction": 0.5,
+            "must_exceed": ["local_noread", "scalar_copy_parent", "development_constant", "categorical_selected_value", "cyclic_c120_read_conditioned"]},
+        "h4_final_pairs_both_correct": final_pairs,
+        "h4_final_pairs": final_total_pairs,
+        "h4_final_fraction": fraction,
+        "best_control_pairs_both_correct": controls_max,
+        "beats_controls": final_pairs > controls_max,
+        "met": fraction >= 0.5 && final_pairs > controls_max,
+        "note": "engineering screen, not a theorem or alpha threshold; a partial mechanism below it is retained with explicit limitations",
+    });
+
     let result = json!({
         "schema": "uor-r4.contextual-emission/2",
         "base_revision": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
@@ -8027,6 +8207,8 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         },
         "learning": {"h4": h4_rep, "cyclic_c120": c120_rep},
         "comparisons": comparisons,
+        "correct_source_stratum": {"dev": source_stratum(&dev_pos), "tune": source_stratum(&tune_pos), "final": source_stratum(&fresh_pos)},
+        "screen": screen,
         "changed_source_pairs_fresh": pair_rows,
         "generated": gen_rows,
         "artifacts": artifacts,

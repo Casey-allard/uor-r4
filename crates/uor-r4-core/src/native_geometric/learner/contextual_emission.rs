@@ -236,8 +236,38 @@ impl EmissionResidual {
     }
 }
 
-/// Full-batch gradient training of the output map `W` under NLL with the state maps fixed.
-/// Returns the float map and the initial/final NLL so the run can show that learning occurred.
+/// One deterministic projection for training forwards and export: keep at most `max_rows`
+/// largest L1 latent rows, break norm ties by token id, then take coefficient signs.
+/// Row admission is learned from development gradients; inference consumes only the projected map.
+pub fn project_ternary_support(w: &[[f32; CE_WIDTH]], max_rows: usize) -> Vec<[i8; CE_WIDTH]> {
+    let mut norms: Vec<(f64, usize)> = w
+        .iter()
+        .enumerate()
+        .map(|(o, row)| (row.iter().map(|v| f64::from(*v).abs()).sum::<f64>(), o))
+        .collect();
+    norms.sort_by(|a, b| b.0.total_cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    let mut projected = vec![[0; CE_WIDTH]; w.len()];
+    for (norm, o) in norms.into_iter().filter(|(n, _)| *n > 0.0).take(max_rows) {
+        let _ = norm;
+        projected[o] = std::array::from_fn(|j| {
+            if w[o][j] > 0.0 {
+                1
+            } else if w[o][j] < 0.0 {
+                -1
+            } else {
+                0
+            }
+        });
+    }
+    projected
+}
+
+/// Full-batch surrogate-gradient fitting with the exact sparse ternary serving forward.
+/// The surrogate differentiates nats through signs and row admission as identity; reported losses
+/// are bits. It is not a derivative of the discontinuous projector. The supplied output map is the
+/// incumbent, and only strictly better exact served CE checkpoints can replace it. The returned
+/// latent map must be exported through `project_ternary_support` with the same row budget.
+#[allow(clippy::too_many_arguments)]
 pub fn train_output_map(
     examples: &[CeExample],
     params: &ReadConditionedParams,
@@ -246,14 +276,19 @@ pub fn train_output_map(
     epochs: usize,
     lr: f64,
     f_bits: u32,
+    max_rows: usize,
 ) -> (Vec<[f32; CE_WIDTH]>, f64, f64) {
     let vocab = res.w.len();
+    let mut w: Vec<[f32; CE_WIDTH]> = res
+        .w
+        .iter()
+        .map(|row| std::array::from_fn(|j| f32::from(row[j])))
+        .collect();
     if examples.is_empty() || vocab == 0 {
-        return (vec![[0.0f32; CE_WIDTH]; vocab], f64::NAN, f64::NAN);
+        return (w, f64::NAN, f64::NAN);
     }
     let logit_unit = (-(f_bits as f64)).exp2();
     let scale = (1i64 << res.shift.min(20)) as f64 * logit_unit;
-    // Precompute the feature vector per example (it does not depend on W).
     let feats: Vec<[f32; CE_WIDTH]> = examples
         .iter()
         .map(|ex| {
@@ -261,74 +296,93 @@ pub fn train_output_map(
             std::array::from_fn(|j| d[j] as f32 * scale as f32)
         })
         .collect();
-    let mut w = vec![[0.0f32; CE_WIDTH]; vocab];
-    let nll = |w: &[[f32; CE_WIDTH]]| -> f64 {
-        let mut total = 0.0f64;
-        for (ex, f) in examples.iter().zip(feats.iter()) {
-            let t = (ex.target as usize).min(vocab - 1);
-            let mut max = f64::NEG_INFINITY;
-            let mut logits = vec![0.0f64; vocab];
-            for o in 0..vocab {
-                let mut s = 0.0f64;
-                for j in 0..CE_WIDTH {
-                    s += f64::from(w[o][j]) * f64::from(f[j]);
-                }
-                logits[o] = ex.z_local[o] as f64 * logit_unit + s;
-                max = max.max(logits[o]);
-            }
-            let mut sum = 0.0f64;
-            for v in logits.iter() {
-                sum += (v - max).exp();
-            }
-            total += (max + sum.ln() - logits[t]) / std::f64::consts::LN_2;
-        }
-        total / examples.len() as f64
-    };
-    let initial = nll(&w);
+    let fscale = (feats
+        .iter()
+        .map(|f| f.iter().map(|v| f64::from(*v).abs()).sum::<f64>())
+        .sum::<f64>()
+        / examples.len() as f64)
+        .max(1.0);
+    let step = (lr / (examples.len() as f64 * fscale)) as f32;
+    let mut served = res.clone();
+    served.w = project_ternary_support(&w, max_rows);
+    let mut rows = served.active_rows();
+    let initial = served_nll_bits(examples, params, &served, cyclic, &rows, f_bits);
+    let mut best = initial;
+    let mut best_w = w.clone();
     for _ in 0..epochs {
         let mut grad = vec![[0.0f32; CE_WIDTH]; vocab];
         for (ex, f) in examples.iter().zip(feats.iter()) {
             let t = (ex.target as usize).min(vocab - 1);
-            let mut max = f64::NEG_INFINITY;
-            let mut logits = vec![0.0f64; vocab];
-            for o in 0..vocab {
-                let mut s = 0.0f64;
-                for j in 0..CE_WIDTH {
-                    s += f64::from(w[o][j]) * f64::from(f[j]);
-                }
-                logits[o] = ex.z_local[o] as f64 * logit_unit + s;
-                max = max.max(logits[o]);
-            }
-            let mut sum = 0.0f64;
-            for v in logits.iter() {
-                sum += (v - max).exp();
-            }
+            let mut hard_logits = ex.z_local.clone();
+            served.add_to_logits(ex.q0, ex.q1(params, cyclic), &rows, &mut hard_logits);
+            let logits: Vec<f64> = hard_logits
+                .iter()
+                .map(|z| f64::from(*z) * logit_unit)
+                .collect();
+            let max = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            let sum: f64 = logits.iter().map(|v| (v - max).exp()).sum();
             for o in 0..vocab {
                 let p = (logits[o] - max).exp() / sum;
-                let y = if o == t { 1.0f64 } else { 0.0f64 };
-                let g = (p - y) as f32;
+                let g = (p - if o == t { 1.0 } else { 0.0 }) as f32;
                 for j in 0..CE_WIDTH {
                     grad[o][j] += g * f[j];
                 }
             }
         }
-        // The features carry the declared shift, so the step must be scaled by their magnitude or
-        // the fit diverges. This is the diagnosed defect from the first pass.
-        let fscale = (feats
-            .iter()
-            .map(|f| f.iter().map(|v| f64::from(*v).abs()).sum::<f64>())
-            .sum::<f64>()
-            / examples.len() as f64)
-            .max(1.0);
-        let step = (lr / (examples.len() as f64 * fscale)) as f32;
         for o in 0..vocab {
             for j in 0..CE_WIDTH {
                 w[o][j] -= step * grad[o][j];
             }
         }
+        served.w = project_ternary_support(&w, max_rows);
+        rows = served.active_rows();
+        let candidate = served_nll_bits(examples, params, &served, cyclic, &rows, f_bits);
+        if candidate < best - 1e-12 {
+            best_w = w.clone();
+            best = candidate;
+        }
     }
-    let final_nll = nll(&w);
-    (w, initial, final_nll)
+    (best_w, initial, best)
+}
+
+/// The actual bounded output-learning block used both before and after update-map search.
+/// Refitting starts from the supplied incumbent and returns the model that serving will consume.
+#[allow(clippy::too_many_arguments)]
+pub fn fit_output_block(
+    examples: &[CeExample],
+    params: &ReadConditionedParams,
+    incumbent: &EmissionResidual,
+    cyclic: bool,
+    epochs: usize,
+    lr: f64,
+    f_bits: u32,
+    max_rows: usize,
+    refinement_passes: usize,
+) -> (EmissionResidual, f64, f64, usize) {
+    let (latent, before, _) = train_output_map(
+        examples, params, incumbent, cyclic, epochs, lr, f_bits, max_rows,
+    );
+    let mut fitted = incumbent.clone();
+    fitted.w = project_ternary_support(&latent, max_rows);
+    let rows = fitted.active_rows();
+    let flips = refine_ternary_map(
+        examples,
+        params,
+        &mut fitted,
+        cyclic,
+        &rows,
+        refinement_passes,
+        f_bits,
+    );
+    let after = served_nll_bits(
+        examples,
+        params,
+        &fitted,
+        cyclic,
+        &fitted.active_rows(),
+        f_bits,
+    );
+    (fitted, before, after, flips)
 }
 
 /// Teacher-forced NLL in bits of the **served** (quantized, sparse) residual.
@@ -361,8 +415,8 @@ pub fn served_nll_bits(
     total / examples.len() as f64
 }
 
-/// Bounded discrete refinement of the ternary output map: flip single coefficients while the mean
-/// margin strictly improves. This is what makes a quantized map trainable.
+/// Bounded coordinate refinement using the same calibrated served CE as gradient checkpoint
+/// selection and map search. Retain the incumbent on ties and recompute each committed score.
 pub fn refine_ternary_map(
     examples: &[CeExample],
     params: &ReadConditionedParams,
@@ -370,25 +424,10 @@ pub fn refine_ternary_map(
     cyclic: bool,
     rows: &[usize],
     passes: usize,
+    f_bits: u32,
 ) -> usize {
-    let score = |res: &EmissionResidual| -> f64 {
-        let mut total = 0.0f64;
-        for ex in examples.iter() {
-            let q1 = ex.q1(params, cyclic);
-            let mut z = ex.z_local.clone();
-            res.add_to_logits(ex.q0, q1, rows, &mut z);
-            let t = (ex.target as usize).min(z.len() - 1);
-            let best_other = z
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| *i != t)
-                .map(|(_, v)| *v)
-                .max()
-                .unwrap_or(i32::MIN);
-            total += (i64::from(z[t]) - i64::from(best_other)) as f64;
-        }
-        total / examples.len() as f64
-    };
+    let score =
+        |res: &EmissionResidual| served_nll_bits(examples, params, res, cyclic, rows, f_bits);
     let mut best = score(res);
     let mut accepted = 0usize;
     for _ in 0..passes {
@@ -404,14 +443,14 @@ pub fn refine_ternary_map(
                     }
                     res.w[o][j] = cand;
                     let m = score(res);
-                    if m > selected_score + 1e-9 {
+                    if m < selected_score - 1e-12 {
                         selected_score = m;
                         selected = cand;
                     }
                 }
                 res.w[o][j] = selected;
-                if selected_score > best + 1e-9 {
-                    best = selected_score;
+                if selected_score < best - 1e-12 {
+                    best = score(res);
                     accepted += 1;
                     improved = true;
                 }
@@ -444,6 +483,135 @@ pub fn quantize_ternary(w_f: &[[f32; CE_WIDTH]]) -> Vec<[i8; CE_WIDTH]> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sparse_training_forward_and_export_agree_above_the_row_budget() {
+        let mut params = ReadConditionedParams::identity();
+        params.transport[0] = 1;
+        params.value_domain = vec![42];
+        params.value_code = vec![0];
+        let mut res = EmissionResidual::seeded(70, 3);
+        res.shift = 10;
+        res.r_embed = vec![[0; CE_WIDTH]; GROUP_ORDER];
+        res.r_embed[1][0] = 1;
+        // Seventy tied nonzero latent rows would exceed the serving budget. Token id breaks ties.
+        for row in &mut res.w {
+            row[0] = 1;
+        }
+        let ex = CeExample {
+            z_local: vec![0; 70],
+            q0: 0,
+            r: 0,
+            payload: 42,
+            read: true,
+            target: 69,
+        };
+        let (latent, initial, final_loss) = train_output_map(
+            std::slice::from_ref(&ex),
+            &params,
+            &res,
+            true,
+            0,
+            0.5,
+            10,
+            64,
+        );
+        res.w = project_ternary_support(&latent, 64);
+        assert_eq!(res.active_rows(), (0..64).collect::<Vec<_>>());
+        let loaded = EmissionResidual::from_bytes(&res.to_bytes(), 70).unwrap();
+        let delta = loaded.residual_i32(0, 1);
+        assert_eq!(&delta[..64], &[1024; 64]);
+        assert_eq!(&delta[64..], &[0; 6]);
+        let expected = (64.0 * std::f64::consts::E + 6.0).ln() / std::f64::consts::LN_2;
+        let served = served_nll_bits(&[ex], &params, &loaded, true, &loaded.active_rows(), 10);
+        assert!((initial - expected).abs() < 1e-12);
+        assert!((final_loss - served).abs() < 1e-12);
+    }
+
+    #[test]
+    fn zero_map_can_admit_a_target_row_and_retains_best_served_ce() {
+        let mut params = ReadConditionedParams::identity();
+        params.transport[0] = 1;
+        params.value_domain = vec![42];
+        params.value_code = vec![0];
+        let mut res = EmissionResidual::seeded(70, 3);
+        res.r_embed = vec![[0; CE_WIDTH]; GROUP_ORDER];
+        res.r_embed[1][0] = 1;
+        let ex = CeExample {
+            z_local: vec![0; 70],
+            q0: 0,
+            r: 0,
+            payload: 42,
+            read: true,
+            target: 69,
+        };
+        let (fitted, before, after, _) =
+            fit_output_block(&[ex], &params, &res, true, 4, 0.5, 0, 64, 0);
+        assert!(fitted.active_rows().contains(&69));
+        assert!(fitted.active_rows().len() <= 64);
+        assert!(after < before);
+    }
+
+    #[test]
+    fn post_map_output_refit_is_consumed_and_keeps_the_committed_incumbent() {
+        let mut params = ReadConditionedParams::identity();
+        params.transport[0] = 1;
+        params.value_domain = vec![42];
+        params.value_code = vec![0];
+        let mut res = EmissionResidual::seeded(2, 3);
+        res.r_embed = vec![[0; CE_WIDTH]; GROUP_ORDER];
+        res.r_embed[1][0] = 1;
+        res.r_embed[2][0] = -1;
+        res.w[0][0] = 1;
+        let ex = CeExample {
+            z_local: vec![0; 2],
+            q0: 0,
+            r: 0,
+            payload: 42,
+            read: true,
+            target: 0,
+        };
+        let (same, _, _, _) = fit_output_block(
+            std::slice::from_ref(&ex),
+            &params,
+            &res,
+            true,
+            0,
+            0.5,
+            0,
+            2,
+            0,
+        );
+        assert_eq!(
+            same, res,
+            "a no-work refit must retain the nonzero incumbent"
+        );
+        params.transport[0] = 2; // Changed map reverses the feature of the actual update.
+        let (fitted, before, after, flips) = fit_output_block(
+            std::slice::from_ref(&ex),
+            &params,
+            &res,
+            true,
+            0,
+            0.5,
+            0,
+            2,
+            1,
+        );
+        assert_eq!(flips, 1);
+        assert!(after < before);
+        assert_eq!(fitted.w[0][0], -1);
+        let loaded = EmissionResidual::from_bytes(&fitted.to_bytes(), 2).unwrap();
+        let q1 = ex.q1(&params, true);
+        assert_eq!(q1, 2);
+        assert_eq!(res.residual_i32(ex.q0, q1), vec![-1, 0]);
+        assert_eq!(loaded.residual_i32(ex.q0, q1), vec![1, 0]);
+        assert!(
+            (served_nll_bits(&[ex], &params, &loaded, true, &loaded.active_rows(), 0) - after)
+                .abs()
+                < 1e-12
+        );
+    }
 
     #[test]
     fn disabled_state_gives_an_exactly_zero_residual_and_round_trips() {
@@ -482,7 +650,7 @@ mod tests {
         let mut p = params.clone();
         p.value_domain = vec![11, 12];
         p.value_code = vec![1, 2];
-        let (w_f, before, after) = train_output_map(&examples, &p, &res, false, 40, 0.5, 0);
+        let (w_f, before, after) = train_output_map(&examples, &p, &res, false, 40, 0.5, 0, 8);
         assert!(after <= before + 1e-9, "training must not increase NLL");
         assert!(
             after < before - 1e-6,
@@ -510,7 +678,7 @@ mod tests {
         res.w[0][0] = 1;
         assert_eq!(res.residual_i32(0, 1)[0], -1);
         assert_eq!(
-            refine_ternary_map(&[ex], &params, &mut res, true, &[0], 2),
+            refine_ternary_map(&[ex], &params, &mut res, true, &[0], 2, 0),
             1
         );
         assert_eq!(res.w[0][0], -1);
@@ -532,7 +700,7 @@ mod tests {
         };
         let expected = (1.0 + (-1.0f64).exp()).ln() / std::f64::consts::LN_2;
         let observed = served_nll_bits(std::slice::from_ref(&ex), &params, &res, false, &[], 10);
-        let (_, initial, final_loss) = train_output_map(&[ex], &params, &res, false, 1, 0.5, 10);
+        let (_, initial, final_loss) = train_output_map(&[ex], &params, &res, false, 1, 0.5, 10, 2);
         assert!((observed - expected).abs() < 1e-12);
         assert!((initial - expected).abs() < 1e-12);
         assert!((final_loss - expected).abs() < 1e-12);

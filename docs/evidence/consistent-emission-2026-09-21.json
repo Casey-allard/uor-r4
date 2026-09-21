@@ -1,0 +1,295 @@
+{
+  "scope": "corrected, consistently-served geometric contextual emitter on a paired-prefix context-required instrument; bounded authored capability test, not general language",
+  "run_root": ".uor-models/realtext-prior-2026-09-20/consistent-emission-2",
+  "base_revision": "f07568f8",
+  "running_git_rev": "f07568f8",
+  "git_dirty": "true",
+  "source_files": [
+    "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs"
+  ],
+  "integrity": {
+    "result_sha256": "1abefdb81ac24a1824dda51748ae2bb5cf209c4d3f790cc25c615b5e132fd272",
+    "rows_sha256": "f6b6ce27dc6693731b640d003b545698daa89c4c0b5aa639ef0ff99b97c8438f",
+    "manifest_listed_file_count": 7
+  },
+  "population_boundaries": {
+    "dev_seed": "0xC0F00011",
+    "tune_seed": "0xC0F00012",
+    "final_seed": "0xC0F00021 (untouched)",
+    "exposed_regression_seeds": [
+      "0xC0F00001",
+      "0xC0F00002",
+      "0xC0F00003"
+    ]
+  },
+  "validity": {
+    "absent_targets_held": true,
+    "any_read": 180,
+    "decisive_local_positions": 180,
+    "declared_shift": 10,
+    "dev_positions": 180,
+    "max_target_deficit_units": 16512,
+    "pairs_with_identical_local_logits": 90,
+    "source_selection_by_split": [
+      {
+        "correct_occurrence": 163,
+        "correct_value": 164,
+        "positions": 180,
+        "split": "dev"
+      },
+      {
+        "correct_occurrence": 111,
+        "correct_value": 112,
+        "positions": 120,
+        "split": "tune"
+      },
+      {
+        "correct_occurrence": 108,
+        "correct_value": 108,
+        "positions": 120,
+        "split": "reused_acceptance"
+      }
+    ]
+  },
+  "correct_source_stratum": {
+    "dev": {
+      "correct_exact_occurrence": 163,
+      "correct_payload_value": 164,
+      "positions": 180,
+      "reads": 180
+    },
+    "final": {
+      "correct_exact_occurrence": 108,
+      "correct_payload_value": 108,
+      "positions": 120,
+      "reads": 120
+    },
+    "tune": {
+      "correct_exact_occurrence": 111,
+      "correct_payload_value": 112,
+      "positions": 120,
+      "reads": 120
+    }
+  },
+  "frozen_row_ceiling": {
+    "positions": 180,
+    "some_row_emits_target": 0
+  },
+  "learning": {
+    "cyclic_c120": {
+      "accepted_map_changes": 3,
+      "accepted_ternary_flips": 141,
+      "algebra": "cyclic_c120",
+      "coefficient_storage": "one byte per ternary coefficient in RLCE; not bit-packed",
+      "collisions_dev_after": 36,
+      "collisions_dev_before": 36,
+      "collisions_final_after": 28,
+      "dev_hits": 42,
+      "embedding_seed": 1373962240,
+      "f_bits": 10,
+      "loss_units": "bits after fixed-point normalization",
+      "nll_bits": {
+        "float_after_gradient_fit": 9.625529253000645,
+        "initial": 19.862904082535515,
+        "served_after_discrete_refinement": 11.177950568789893,
+        "served_after_quantization": 12.896118394935778,
+        "served_final": 10.989842224555657
+      },
+      "nonzero_coefficients": 940,
+      "output_rows": 64,
+      "residual_range_bound": 32768,
+      "shift": 10,
+      "tune_hits": 25
+    },
+    "h4": {
+      "accepted_map_changes": 7,
+      "accepted_ternary_flips": 128,
+      "algebra": "signed_h4",
+      "coefficient_storage": "one byte per ternary coefficient in RLCE; not bit-packed",
+      "collisions_dev_after": 36,
+      "collisions_dev_before": 36,
+      "collisions_final_after": 28,
+      "dev_hits": 50,
+      "embedding_seed": 1373962240,
+      "f_bits": 10,
+      "loss_units": "bits after fixed-point normalization",
+      "nll_bits": {
+        "float_after_gradient_fit": 9.321114957351233,
+        "initial": 19.862904082535515,
+        "served_after_discrete_refinement": 11.562766658507377,
+        "served_after_quantization": 12.868781555076257,
+        "served_final": 10.10812825328663
+      },
+      "nonzero_coefficients": 944,
+      "output_rows": 64,
+      "residual_range_bound": 32768,
+      "shift": 10,
+      "tune_hits": 36
+    }
+  },
+  "comparisons": [
+    {
+      "arm": "local_noread",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_conditioned",
+      "dev_hits": 50,
+      "dev_pairs_both_correct": 5,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 25,
+      "fresh_pairs_both_correct": 1,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 36,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_update_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "cyclic_c120_read_conditioned",
+      "dev_hits": 42,
+      "dev_pairs_both_correct": 6,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 20,
+      "fresh_pairs_both_correct": 4,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 25,
+      "tune_positions": 120
+    },
+    {
+      "arm": "scalar_copy_parent",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120
+    },
+    {
+      "arm": "development_constant",
+      "dev_hits": 32,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "fresh_hits": 15,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "learned_target": 4094,
+      "tune_hits": 13,
+      "tune_positions": 120
+    },
+    {
+      "arm": "categorical_selected_value",
+      "dev_hits": 164,
+      "dev_pairs_both_correct": 81,
+      "dev_positions": 180,
+      "fresh_hits": 108,
+      "fresh_pairs_both_correct": 54,
+      "fresh_positions": 120,
+      "table_entries": 8,
+      "tune_hits": 112,
+      "tune_positions": 120
+    }
+  ],
+  "screen": {
+    "beats_controls": false,
+    "best_control_pairs_both_correct": 54,
+    "declared_before_final": {
+      "minimum_both_members_correct_fraction": 0.5,
+      "must_exceed": [
+        "local_noread",
+        "scalar_copy_parent",
+        "development_constant",
+        "categorical_selected_value",
+        "cyclic_c120_read_conditioned"
+      ]
+    },
+    "h4_final_fraction": 0.016666666666666666,
+    "h4_final_pairs": 60,
+    "h4_final_pairs_both_correct": 1,
+    "met": false,
+    "note": "engineering screen, not a theorem or alpha threshold; a partial mechanism below it is retained with explicit limitations"
+  },
+  "artifacts": [
+    {
+      "algebra": "signed_h4",
+      "arm": "h4_emission",
+      "f_bits": 10,
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "loaded_full_predictor_parity_positions": 420,
+      "loaded_objects_used_for_evaluation_and_generation": true,
+      "params_reload_identical": true,
+      "params_sha256": "7651c0b8ac8a43b814bcda207676ae78c1fc69e041a835ec20af493f708d6aec",
+      "residual_reload_identical": true,
+      "residual_sha256": "337a58763fa9ca5b219368cbedc6a1eb5f7d73578c121f98f36341666d6e3ff7",
+      "selector_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+    },
+    {
+      "algebra": "cyclic_c120",
+      "arm": "cyclic_c120_emission",
+      "f_bits": 10,
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "loaded_full_predictor_parity_positions": 420,
+      "loaded_objects_used_for_evaluation_and_generation": true,
+      "params_reload_identical": true,
+      "params_sha256": "d1ec12ca2620a0cdcbf1433cc420a4cb436a282e3c49b55839fd36aa4975803e",
+      "residual_reload_identical": true,
+      "residual_sha256": "6fc9de2b678d73bd6f260e87a9a80dec4315dae6d0df654005b77e70f66c9885",
+      "selector_sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+    }
+  ],
+  "verdict": "learning contract repaired and value distinctions preserved; the geometric emitter does not solve the task while a plain development-fitted eight-entry categorical selected-value table does (final 108/120 and 54/60 pairs vs H4 25/120 and 1/60); geometry adds no transfer on an arbitrary per-value association",
+  "retained": [
+    "corrected fixed-point units, shift-before-fit, ternary straight-through training, one target-free reader, injective value codes with a collision-aware objective, independent artifact reload before evaluation",
+    "both algebra artifacts",
+    "development-constant and categorical comparators",
+    "per-position rows.jsonl (420 rows)",
+    "all failed criteria"
+  ],
+  "limitations": [
+    "bounded authored instrument",
+    "generated continuations and text integration NOT_RUN",
+    "physical energy UNAVAILABLE",
+    "whole-path D0-b not claimed"
+  ],
+  "successor": "test the geometric emitter on a composition task whose required output is determined by the query/retrieved relation or is a typed derived token absent from all payloads, since an arbitrary per-value association is already solved by a table; width expansion remains unjustified"
+}

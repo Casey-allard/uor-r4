@@ -1,0 +1,1080 @@
+{
+  "schema": "uor-r4.consistent-emission-principal-evidence-audit/1",
+  "scope": "Read-only sealed-report integrity, binary parameter inspection, saved-row reconstruction, source-derived fixture reconstruction. No builds, model inference, fitting or sealed-root mutation. Full H4/C120 hits and per-source conditional accuracy cannot be recomputed because rows omit emitted tokens and logits.",
+  "review_revision": "ce8d9340c0f5a22de97319decf8bc18dcba4d46d",
+  "integrity": {
+    "1": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consistent-emission-1",
+      "listed_files": 7,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "1f4ce805b743da74b418840ef2681509fc8e43947342e231189dd4efc12c879f",
+      "rows_sha256": "f6b6ce27dc6693731b640d003b545698daa89c4c0b5aa639ef0ff99b97c8438f",
+      "artifact_hashes_match": {
+        "h4_emission": {
+          "params": true,
+          "residual": true
+        },
+        "cyclic_c120_emission": {
+          "params": true,
+          "residual": true
+        }
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_executable_sha256": "ba1905d71a20d8680d962e404fa20861c7787a04a5bee32387ddc2bbd5e33291",
+      "retained_current_executable_sha256": "f64601e83c8f69692d3be5a7380613c04c5a6c02a0662ab57b60dbb892bd87f4",
+      "current_executable_matches": false
+    },
+    "2": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consistent-emission-2",
+      "listed_files": 7,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "1abefdb81ac24a1824dda51748ae2bb5cf209c4d3f790cc25c615b5e132fd272",
+      "rows_sha256": "f6b6ce27dc6693731b640d003b545698daa89c4c0b5aa639ef0ff99b97c8438f",
+      "artifact_hashes_match": {
+        "h4_emission": {
+          "params": true,
+          "residual": true
+        },
+        "cyclic_c120_emission": {
+          "params": true,
+          "residual": true
+        }
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "declared_executable_sha256": "f64601e83c8f69692d3be5a7380613c04c5a6c02a0662ab57b60dbb892bd87f4",
+      "retained_current_executable_sha256": "f64601e83c8f69692d3be5a7380613c04c5a6c02a0662ab57b60dbb892bd87f4",
+      "current_executable_matches": true
+    }
+  },
+  "attempt_comparison": {
+    "1": {
+      "same_as_attempt2": {
+        "instrument": true,
+        "validity": true,
+        "learning": false,
+        "comparisons": true,
+        "changed_source_pairs_fresh": true,
+        "generated": true,
+        "artifacts": true,
+        "screen": true,
+        "correct_source_stratum": true
+      },
+      "elapsed_s": 44.860463167,
+      "claimed_at": "1790012324",
+      "sealed_at": "1790012369",
+      "rows_identical_to_attempt2": true
+    },
+    "2": {
+      "same_as_attempt2": {
+        "instrument": true,
+        "validity": true,
+        "learning": true,
+        "comparisons": true,
+        "changed_source_pairs_fresh": true,
+        "generated": true,
+        "artifacts": true,
+        "screen": true,
+        "correct_source_stratum": true
+      },
+      "elapsed_s": 45.420865292,
+      "claimed_at": "1790012407",
+      "sealed_at": "1790012452",
+      "rows_identical_to_attempt2": true
+    }
+  },
+  "inputs": {
+    "E": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2",
+      "sha256": "565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf",
+      "matches_source_or_report_declared": true
+    },
+    "S": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3",
+      "sha256": "ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad",
+      "matches_source_or_report_declared": true
+    },
+    "raw_tokenizer": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct/tokenizer.json",
+      "sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+      "matches_source_or_report_declared": true
+    },
+    "reader_parent": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational_ctx.rlr2",
+      "sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55",
+      "matches_source_or_report_declared": true
+    }
+  },
+  "artifact_parameters": {
+    "h4_emission": {
+      "params": {
+        "sha256": "7651c0b8ac8a43b814bcda207676ae78c1fc69e041a835ec20af493f708d6aec",
+        "bytes": 180,
+        "consumed": 180,
+        "version": 1,
+        "transport_changes_from_index_initialization": [
+          {
+            "relation": 85,
+            "initial": 85,
+            "final": 80
+          }
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "value_codes": [
+          97,
+          68,
+          98,
+          51,
+          4,
+          5,
+          11,
+          29
+        ],
+        "injective": true,
+        "alias_groups": {}
+      },
+      "residual": {
+        "sha256": "337a58763fa9ca5b219368cbedc6a1eb5f7d73578c121f98f36341666d6e3ff7",
+        "bytes": 67480,
+        "consumed": 67480,
+        "version": 1,
+        "width": 16,
+        "shift": 10,
+        "r_rows": 120,
+        "output_rows_stored": 4096,
+        "active_output_rows": [
+          25,
+          28,
+          29,
+          30,
+          31,
+          42,
+          43,
+          79,
+          80,
+          81,
+          84,
+          93,
+          99,
+          198,
+          216,
+          253,
+          260,
+          262,
+          265,
+          266,
+          275,
+          277,
+          278,
+          280,
+          281,
+          282,
+          284,
+          285,
+          288,
+          298,
+          309,
+          314,
+          335,
+          351,
+          355,
+          359,
+          365,
+          368,
+          411,
+          418,
+          427,
+          436,
+          441,
+          503,
+          622,
+          651,
+          806,
+          828,
+          907,
+          1012,
+          1171,
+          1841,
+          2179,
+          2504,
+          3154,
+          3805,
+          4088,
+          4089,
+          4090,
+          4091,
+          4092,
+          4093,
+          4094,
+          4095
+        ],
+        "nonzero_coefficients": 944,
+        "embedding_sha256": "5b97d7bcedf176dc01f8177763590ace28462fae568fba7e96efd500d156ddf0",
+        "all_coefficients_ternary": true
+      }
+    },
+    "cyclic_c120_emission": {
+      "params": {
+        "sha256": "d1ec12ca2620a0cdcbf1433cc420a4cb436a282e3c49b55839fd36aa4975803e",
+        "bytes": 180,
+        "consumed": 180,
+        "version": 1,
+        "transport_changes_from_index_initialization": [],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "value_codes": [
+          56,
+          109,
+          2,
+          3,
+          4,
+          5,
+          6,
+          12
+        ],
+        "injective": true,
+        "alias_groups": {}
+      },
+      "residual": {
+        "sha256": "6fc9de2b678d73bd6f260e87a9a80dec4315dae6d0df654005b77e70f66c9885",
+        "bytes": 67480,
+        "consumed": 67480,
+        "version": 1,
+        "width": 16,
+        "shift": 10,
+        "r_rows": 120,
+        "output_rows_stored": 4096,
+        "active_output_rows": [
+          25,
+          28,
+          29,
+          30,
+          31,
+          42,
+          43,
+          60,
+          79,
+          80,
+          81,
+          84,
+          93,
+          96,
+          99,
+          198,
+          216,
+          253,
+          260,
+          262,
+          265,
+          266,
+          274,
+          275,
+          277,
+          278,
+          281,
+          282,
+          284,
+          288,
+          293,
+          298,
+          309,
+          314,
+          327,
+          342,
+          351,
+          355,
+          359,
+          365,
+          368,
+          383,
+          411,
+          418,
+          441,
+          503,
+          536,
+          651,
+          806,
+          828,
+          907,
+          1841,
+          1903,
+          2179,
+          2504,
+          3805,
+          4088,
+          4089,
+          4090,
+          4091,
+          4092,
+          4093,
+          4094,
+          4095
+        ],
+        "nonzero_coefficients": 940,
+        "embedding_sha256": "5b97d7bcedf176dc01f8177763590ace28462fae568fba7e96efd500d156ddf0",
+        "all_coefficients_ternary": true
+      }
+    }
+  },
+  "fixture_reconstruction": {
+    "scope": "Source-derived fixture reconstruction, not independently observed model outputs. Same-tokenizer role/key/value banks from sealed competitive-reader-1/population.json. No BPE, model logits or selection executed.",
+    "bank_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/competitive-reader-1/population.json",
+    "bank_sha256": "3cb489212684bf28f1050b7eea4b3c6ab87706e46281435f5e660b7d31d201a9",
+    "panels": {
+      "dev": {
+        "positions": 180,
+        "pairs": 90,
+        "rows_match_reconstructed_fixture": true,
+        "all_pairs_change_only_relevant_payload_and_keep_last5": true,
+        "all_targets_absent_from_prefix": true,
+        "target_counts": {
+          "4088": 16,
+          "4089": 16,
+          "4090": 18,
+          "4091": 27,
+          "4092": 30,
+          "4093": 22,
+          "4094": 32,
+          "4095": 19
+        },
+        "majority_answer_hits": 32,
+        "exact_prefix_duplicates": 0,
+        "canonical_items_sha256": "02fc006b64fdb93afaee1ffed3e001b69365c8c97094f014128728071250205c"
+      },
+      "tune": {
+        "positions": 120,
+        "pairs": 60,
+        "rows_match_reconstructed_fixture": true,
+        "all_pairs_change_only_relevant_payload_and_keep_last5": true,
+        "all_targets_absent_from_prefix": true,
+        "target_counts": {
+          "4088": 13,
+          "4089": 14,
+          "4090": 17,
+          "4091": 19,
+          "4092": 18,
+          "4093": 10,
+          "4094": 13,
+          "4095": 16
+        },
+        "majority_answer_hits": 19,
+        "exact_prefix_duplicates": 0,
+        "canonical_items_sha256": "d72e8cce6c02b7e36126aa0d1da6d333a40c91f445d487ca44e5ff7cadd3e5ca"
+      },
+      "final": {
+        "positions": 120,
+        "pairs": 60,
+        "rows_match_reconstructed_fixture": true,
+        "all_pairs_change_only_relevant_payload_and_keep_last5": true,
+        "all_targets_absent_from_prefix": true,
+        "target_counts": {
+          "4088": 13,
+          "4089": 18,
+          "4090": 13,
+          "4091": 20,
+          "4092": 12,
+          "4093": 16,
+          "4094": 15,
+          "4095": 13
+        },
+        "majority_answer_hits": 20,
+        "exact_prefix_duplicates": 0,
+        "canonical_items_sha256": "21e786956904aa45c20ab8fc033254d2dc5fd05c0d5f7d7b446b4158f852a148"
+      }
+    },
+    "split_overlap": {
+      "dev_vs_tune": {
+        "complete_prefix": {
+          "left_unique": 180,
+          "right_unique": 120,
+          "intersection": 0
+        },
+        "query_role_key": {
+          "left_unique": 86,
+          "right_unique": 56,
+          "intersection": 11
+        },
+        "query_role_relevant_value": {
+          "left_unique": 132,
+          "right_unique": 91,
+          "intersection": 51
+        },
+        "role_key_value": {
+          "left_unique": 177,
+          "right_unique": 117,
+          "intersection": 4
+        },
+        "relevant_value_target": {
+          "left_unique": 8,
+          "right_unique": 8,
+          "intersection": 8
+        }
+      },
+      "dev_vs_final": {
+        "complete_prefix": {
+          "left_unique": 180,
+          "right_unique": 120,
+          "intersection": 0
+        },
+        "query_role_key": {
+          "left_unique": 86,
+          "right_unique": 55,
+          "intersection": 9
+        },
+        "query_role_relevant_value": {
+          "left_unique": 132,
+          "right_unique": 98,
+          "intersection": 52
+        },
+        "role_key_value": {
+          "left_unique": 177,
+          "right_unique": 116,
+          "intersection": 7
+        },
+        "relevant_value_target": {
+          "left_unique": 8,
+          "right_unique": 8,
+          "intersection": 8
+        }
+      },
+      "tune_vs_final": {
+        "complete_prefix": {
+          "left_unique": 120,
+          "right_unique": 120,
+          "intersection": 0
+        },
+        "query_role_key": {
+          "left_unique": 56,
+          "right_unique": 55,
+          "intersection": 4
+        },
+        "query_role_relevant_value": {
+          "left_unique": 91,
+          "right_unique": 98,
+          "intersection": 41
+        },
+        "role_key_value": {
+          "left_unique": 117,
+          "right_unique": 116,
+          "intersection": 3
+        },
+        "relevant_value_target": {
+          "left_unique": 8,
+          "right_unique": 8,
+          "intersection": 8
+        }
+      }
+    },
+    "old_panel_exact_prefix_overlap": {
+      "dev": {
+        "dev": 0,
+        "tune": 0,
+        "final": 0
+      },
+      "tune": {
+        "dev": 0,
+        "tune": 0,
+        "final": 0
+      },
+      "final": {
+        "dev": 0,
+        "tune": 0,
+        "final": 0
+      }
+    }
+  },
+  "row_recomputation": {
+    "constant": 4094,
+    "categorical_table": {
+      "485": 4095,
+      "489": 4091,
+      "500": 4089,
+      "507": 4088,
+      "491": 4090,
+      "486": 4094,
+      "487": 4093,
+      "488": 4092
+    },
+    "categorical_fit_counts": {
+      "485": {
+        "4095": 18
+      },
+      "489": {
+        "4091": 26
+      },
+      "500": {
+        "4089": 14,
+        "4095": 1,
+        "4092": 1,
+        "4090": 1,
+        "4094": 1
+      },
+      "507": {
+        "4088": 16,
+        "4093": 1,
+        "4094": 1
+      },
+      "491": {
+        "4092": 2,
+        "4093": 2,
+        "4090": 16,
+        "4089": 2
+      },
+      "486": {
+        "4094": 29,
+        "4090": 1,
+        "4092": 1
+      },
+      "487": {
+        "4093": 19
+      },
+      "488": {
+        "4092": 26,
+        "4094": 1,
+        "4091": 1
+      }
+    },
+    "panels": {
+      "dev": {
+        "rows": 180,
+        "pairs": 90,
+        "any_read": 180,
+        "correct_exact_occurrence_booleans": 163,
+        "correct_value_recomputed": 164,
+        "correct_value_boolean_matches": true,
+        "source_counts_match_report": true,
+        "categorical": {
+          "hits": 164,
+          "pairs_both": 81,
+          "strata": {
+            "correct_exact_occurrence": {
+              "positions": 163,
+              "hits": 163
+            },
+            "correct_payload_value": {
+              "positions": 164,
+              "hits": 164
+            }
+          }
+        },
+        "constant": {
+          "hits": 32,
+          "pairs_both": 0,
+          "strata": {
+            "correct_exact_occurrence": {
+              "positions": 163,
+              "hits": 29
+            },
+            "correct_payload_value": {
+              "positions": 164,
+              "hits": 29
+            }
+          }
+        },
+        "initial_local_wrong_from_negative_margin": 180,
+        "signature_count": 78,
+        "ambiguous_signatures": 8,
+        "targets_in_ambiguous_signatures": 21,
+        "incompatible_output_collision_pairs": 36,
+        "collision_pairs_with_at_least_one_wrong_selected_value": 36
+      },
+      "tune": {
+        "rows": 120,
+        "pairs": 60,
+        "any_read": 120,
+        "correct_exact_occurrence_booleans": 111,
+        "correct_value_recomputed": 112,
+        "correct_value_boolean_matches": true,
+        "source_counts_match_report": true,
+        "categorical": {
+          "hits": 112,
+          "pairs_both": 56,
+          "strata": {
+            "correct_exact_occurrence": {
+              "positions": 111,
+              "hits": 111
+            },
+            "correct_payload_value": {
+              "positions": 112,
+              "hits": 112
+            }
+          }
+        },
+        "constant": {
+          "hits": 13,
+          "pairs_both": 0,
+          "strata": {
+            "correct_exact_occurrence": {
+              "positions": 111,
+              "hits": 13
+            },
+            "correct_payload_value": {
+              "positions": 112,
+              "hits": 13
+            }
+          }
+        },
+        "initial_local_wrong_from_negative_margin": 120,
+        "signature_count": 63,
+        "ambiguous_signatures": 4,
+        "targets_in_ambiguous_signatures": 11,
+        "incompatible_output_collision_pairs": 20,
+        "collision_pairs_with_at_least_one_wrong_selected_value": 20
+      },
+      "final": {
+        "rows": 120,
+        "pairs": 60,
+        "any_read": 120,
+        "correct_exact_occurrence_booleans": 108,
+        "correct_value_recomputed": 108,
+        "correct_value_boolean_matches": true,
+        "source_counts_match_report": true,
+        "categorical": {
+          "hits": 108,
+          "pairs_both": 54,
+          "strata": {
+            "correct_exact_occurrence": {
+              "positions": 108,
+              "hits": 108
+            },
+            "correct_payload_value": {
+              "positions": 108,
+              "hits": 108
+            }
+          }
+        },
+        "constant": {
+          "hits": 15,
+          "pairs_both": 0,
+          "strata": {
+            "correct_exact_occurrence": {
+              "positions": 108,
+              "hits": 14
+            },
+            "correct_payload_value": {
+              "positions": 108,
+              "hits": 14
+            }
+          }
+        },
+        "initial_local_wrong_from_negative_margin": 120,
+        "signature_count": 65,
+        "ambiguous_signatures": 6,
+        "targets_in_ambiguous_signatures": 17,
+        "incompatible_output_collision_pairs": 28,
+        "collision_pairs_with_at_least_one_wrong_selected_value": 28
+      }
+    },
+    "fields": [
+      "correct_exact_occurrence",
+      "correct_payload_value",
+      "pair",
+      "q0",
+      "read",
+      "relation",
+      "selected_payload",
+      "split",
+      "target",
+      "target_margin",
+      "value"
+    ],
+    "limitation": "Correct exact occurrence can only be recounted from saved booleans: selected seq/abs/payload_abs and intended abs are not saved. H4/C120 predictions, q1, selected refs, logits and final margins are absent, so model hits, pairs and conditional source accuracy remain reported-only. target_margin is the frozen local margin, not the learned emitter margin."
+  },
+  "retained_samples": {
+    "generation": [
+      {
+        "sample": 0,
+        "first_correct": false,
+        "emissions_match_steps": true,
+        "answer_matches_fixture": true,
+        "reported": {
+          "answer": 4092,
+          "decoded": "edia-f",
+          "emitted": [
+            4091,
+            29,
+            86
+          ],
+          "steps": [
+            {
+              "emitted": 4091,
+              "read": true,
+              "updated": true
+            },
+            {
+              "emitted": 29,
+              "read": false,
+              "updated": false
+            },
+            {
+              "emitted": 86,
+              "read": true,
+              "updated": true
+            }
+          ]
+        }
+      },
+      {
+        "sample": 1,
+        "first_correct": true,
+        "emissions_match_steps": true,
+        "answer_matches_fixture": true,
+        "reported": {
+          "answer": 4091,
+          "decoded": "edia-f",
+          "emitted": [
+            4091,
+            29,
+            86
+          ],
+          "steps": [
+            {
+              "emitted": 4091,
+              "read": true,
+              "updated": true
+            },
+            {
+              "emitted": 29,
+              "read": false,
+              "updated": false
+            },
+            {
+              "emitted": 86,
+              "read": true,
+              "updated": true
+            }
+          ]
+        }
+      },
+      {
+        "sample": 2,
+        "first_correct": false,
+        "emissions_match_steps": true,
+        "answer_matches_fixture": true,
+        "reported": {
+          "answer": 4095,
+          "decoded": "](..",
+          "emitted": [
+            77,
+            24,
+            950
+          ],
+          "steps": [
+            {
+              "emitted": 77,
+              "read": true,
+              "updated": true
+            },
+            {
+              "emitted": 24,
+              "read": false,
+              "updated": false
+            },
+            {
+              "emitted": 950,
+              "read": true,
+              "updated": true
+            }
+          ]
+        }
+      }
+    ],
+    "pair_samples": [
+      {
+        "pair": 0,
+        "both_correct_recomputed": false,
+        "emissions_change": false,
+        "reported": {
+          "answer_a": 4092,
+          "answer_b": 4091,
+          "both_correct": false,
+          "correct_a": false,
+          "correct_b": true,
+          "different_answers": true,
+          "emitted_a": 4091,
+          "emitted_b": 4091,
+          "identical_local_logits": true,
+          "pair": 0,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 488,
+          "value_b": 489
+        }
+      },
+      {
+        "pair": 1,
+        "both_correct_recomputed": false,
+        "emissions_change": false,
+        "reported": {
+          "answer_a": 4095,
+          "answer_b": 4088,
+          "both_correct": false,
+          "correct_a": false,
+          "correct_b": false,
+          "different_answers": true,
+          "emitted_a": 77,
+          "emitted_b": 77,
+          "identical_local_logits": true,
+          "pair": 1,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 485,
+          "value_b": 507
+        }
+      },
+      {
+        "pair": 2,
+        "both_correct_recomputed": false,
+        "emissions_change": true,
+        "reported": {
+          "answer_a": 4088,
+          "answer_b": 4089,
+          "both_correct": false,
+          "correct_a": false,
+          "correct_b": false,
+          "different_answers": true,
+          "emitted_a": 259,
+          "emitted_b": 309,
+          "identical_local_logits": true,
+          "pair": 2,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 507,
+          "value_b": 500
+        }
+      },
+      {
+        "pair": 3,
+        "both_correct_recomputed": true,
+        "emissions_change": true,
+        "reported": {
+          "answer_a": 4093,
+          "answer_b": 4091,
+          "both_correct": true,
+          "correct_a": true,
+          "correct_b": true,
+          "different_answers": true,
+          "emitted_a": 4093,
+          "emitted_b": 4091,
+          "identical_local_logits": true,
+          "pair": 3,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 487,
+          "value_b": 489
+        }
+      }
+    ]
+  },
+  "reported_model_counts_not_independently_recomputed": [
+    {
+      "arm": "local_noread",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_conditioned",
+      "dev_hits": 50,
+      "dev_pairs_both_correct": 5,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 25,
+      "fresh_pairs_both_correct": 1,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 36,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_update_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "cyclic_c120_read_conditioned",
+      "dev_hits": 42,
+      "dev_pairs_both_correct": 6,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 20,
+      "fresh_pairs_both_correct": 4,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 25,
+      "tune_positions": 120
+    },
+    {
+      "arm": "scalar_copy_parent",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120
+    },
+    {
+      "arm": "development_constant",
+      "dev_hits": 32,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "fresh_hits": 15,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "learned_target": 4094,
+      "tune_hits": 13,
+      "tune_positions": 120
+    },
+    {
+      "arm": "categorical_selected_value",
+      "dev_hits": 164,
+      "dev_pairs_both_correct": 81,
+      "dev_positions": 180,
+      "fresh_hits": 108,
+      "fresh_pairs_both_correct": 54,
+      "fresh_positions": 120,
+      "table_entries": 8,
+      "tune_hits": 112,
+      "tune_positions": 120
+    }
+  ],
+  "findings": [
+    "Both sealed roots valid, seven listed files each. Delivered-source hashes match submitted revision; attempt1 runner differs as expected. Attempt2 rows, artifacts, predictions and populations repeat attempt1 identically, with collision reporting added.",
+    "The final population was first evaluated in attempt1, then replayed unchanged in attempt2. No artifact/model selection change between attempts is evident. It is one new seed draw, not independent confirmation; docs should describe first measurement and replay rather than a second untouched final.",
+    "All eight value codes in each delivered artifact are distinct: prior payload aliasing is actually repaired in these artifacts. Penalty code alone is not a universal injectivity constraint, since it checks only observed conflicting examples. No proof of representational impossibility follows from current optimizer outcome.",
+    "Saved rows reproduce categorical 164/180,112/120,108/120 and 81/90,56/60,54/60 pairs. Categorical achieves all correct-payload positions, including occasional wrong occurrence with same value. This is a useful finite-label association control, not a cost/architecture-matched geometric baseline.",
+    "Categorical emits the table answer directly, without competing against fixed local logits. H4/C120 must overcome a local target deficit with a bounded residual. The result diagnoses a large task-level integration gap but does not isolate geometry or expressivity from optimization and output-interface differences.",
+    "All value-to-target associations recur across all splits; no unseen value or output-class transfer is tested. Exact prefixes differ. The task validates contextual retrieval followed by an eight-entry learned association, not unseen compositional generalization.",
+    "A count-only file is not sufficient to independently audit geometric per-position hits or paired wins: rows omit predictions and exact occurrence references. Preserve reported counts as such, and add required outputs/refs to the next runnable boundary.",
+    "Three loaded-artifact autoregressive traces of three tokens were generated and saved. One of three first answers is correct; continuations are edia-f, edia-f and ](.. . Generated continuations are therefore executed, not NOT_RUN; useful prose/text integration remains unqualified.",
+    "The design makes target a function of payload only. Beating the categorical control is neither necessary for a useful learned emission mechanism nor a clean attribution test. Testing relations later is sensible, but first fix acknowledged remaining learning mismatches and keep this negative panel as a regression."
+  ],
+  "cost_scope": {
+    "per_attempt_elapsed_s": {
+      "1": 44.860463167,
+      "2": 45.420865292
+    },
+    "total_retained_attempt_elapsed_s": 90.28132845900001,
+    "model_replay_in_this_audit": false,
+    "inference_timing": "NOT_RUN",
+    "physical_energy": "UNAVAILABLE",
+    "ordinary_text_preservation": "NOT_RUN"
+  },
+  "conditional_accuracy_bounds": {
+    "dev": {
+      "h4_read_conditioned": {
+        "correct_source_positions": 163,
+        "reported_total_hits": 50,
+        "minimum_possible_correct_source_hits": 33,
+        "maximum_possible_correct_source_hits": 50,
+        "scope": "Arithmetic bound from reported total hits and recounted source correctness flags; not actual per-source model evaluation."
+      },
+      "cyclic_c120_read_conditioned": {
+        "correct_source_positions": 163,
+        "reported_total_hits": 42,
+        "minimum_possible_correct_source_hits": 25,
+        "maximum_possible_correct_source_hits": 42,
+        "scope": "Arithmetic bound from reported total hits and recounted source correctness flags; not actual per-source model evaluation."
+      }
+    },
+    "tune": {
+      "h4_read_conditioned": {
+        "correct_source_positions": 111,
+        "reported_total_hits": 36,
+        "minimum_possible_correct_source_hits": 27,
+        "maximum_possible_correct_source_hits": 36,
+        "scope": "Arithmetic bound from reported total hits and recounted source correctness flags; not actual per-source model evaluation."
+      },
+      "cyclic_c120_read_conditioned": {
+        "correct_source_positions": 111,
+        "reported_total_hits": 25,
+        "minimum_possible_correct_source_hits": 16,
+        "maximum_possible_correct_source_hits": 25,
+        "scope": "Arithmetic bound from reported total hits and recounted source correctness flags; not actual per-source model evaluation."
+      }
+    },
+    "final": {
+      "h4_read_conditioned": {
+        "correct_source_positions": 108,
+        "reported_total_hits": 25,
+        "minimum_possible_correct_source_hits": 13,
+        "maximum_possible_correct_source_hits": 25,
+        "scope": "Arithmetic bound from reported total hits and recounted source correctness flags; not actual per-source model evaluation."
+      },
+      "cyclic_c120_read_conditioned": {
+        "correct_source_positions": 108,
+        "reported_total_hits": 20,
+        "minimum_possible_correct_source_hits": 8,
+        "maximum_possible_correct_source_hits": 20,
+        "scope": "Arithmetic bound from reported total hits and recounted source correctness flags; not actual per-source model evaluation."
+      }
+    }
+  },
+  "script_sha256": "f40b267955156c23bca403982e739471a8824668d6f87e658f799c4ecbedd726"
+}

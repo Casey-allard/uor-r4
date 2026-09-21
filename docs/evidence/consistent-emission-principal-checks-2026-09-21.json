@@ -1,0 +1,130 @@
+{
+  "schema": "uor-r4.consistent-emission-principal-checks/1",
+  "at": "2026-09-21T18:03:09.168672+00:00",
+  "submitted_head": "ce8d9340c0f5a22de97319decf8bc18dcba4d46d",
+  "checks": {
+    "module-tests": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::contextual_emission::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 244222,
+      "free_bytes": 37383483392,
+      "log": "/tmp/uor-pr1336-module-tests.log"
+    },
+    "read-conditioned-tests": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::read_conditioned::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 270,
+      "free_bytes": 37383335936,
+      "log": "/tmp/uor-pr1336-read-conditioned-tests.log"
+    },
+    "map-search-test": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader",
+        "contextual_map_search_uses_lexicographic_alias_priority"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 186379,
+      "free_bytes": 37349834752,
+      "log": "/tmp/uor-pr1336-map-search-test.log"
+    },
+    "runner-check": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "check",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 19971,
+      "free_bytes": 37357891584,
+      "log": "/tmp/uor-pr1336-runner-check.log"
+    }
+  },
+  "focused_tests_passed": 11,
+  "source_review": "independent audit and implementer read-only final review; no blocking defect found in validated runner path",
+  "model_refit": "NOT_RUN; small synthetic unit training only",
+  "fresh_evaluation": "NOT_RUN",
+  "projection": {
+    "at": "2026-09-21T17:47:45.172544+00:00",
+    "before": {
+      "cumulative_ms": 208457254,
+      "limit_ms": 216900000
+    },
+    "after_prior_reconciliation": {
+      "cumulative_ms": 212857254,
+      "limit_ms": 216900000
+    },
+    "prior_reported_debit_ms": 4400000,
+    "prior_component_sum_ms": 4360300,
+    "difference_conservative_ms": 39700,
+    "allowance_increment_already_applied": true,
+    "principal_projection_ms": 2400000,
+    "preprojection_preparation_estimate_ms": 480000,
+    "compiler_workers": 2,
+    "model_fit_workers": 0,
+    "ram_limit_gib": 8,
+    "temporary_build_bytes": 402653184,
+    "report_bytes": 16777216,
+    "reserve_bytes": 36766079385,
+    "stop_margin_bytes": 134217728,
+    "free_bytes": 37419188224,
+    "planned_deletions": []
+  },
+  "principal_charge": {
+    "charge_id": "pr1336-principal-review-2026-09-21",
+    "at": "2026-09-21T18:03:09.168672+00:00",
+    "before": {
+      "cumulative_ms": 212857254,
+      "limit_ms": 216900000
+    },
+    "preprojection_estimate_ms": 480000,
+    "elapsed_since_projection_ms": 923996,
+    "conservative_delivery_reserve_ms": 300000,
+    "debit_ms": 1703996,
+    "after": {
+      "cumulative_ms": 214561250,
+      "limit_ms": 216900000
+    },
+    "readback_verified": true
+  },
+  "free_before_audit_bytes": 37404250112,
+  "free_after_checks_bytes": 37355491328,
+  "principal_deleted_bytes": 0,
+  "principal_deletions": [],
+  "changed_source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": "d162ba8d957bd407904674ae84aed95baecad8d26478a373e5f95a3f1456c949",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "a7a5dd7d96b8fe85c6633e30e98e4493697d22b65fec1933242ee13477b5ace4"
+  },
+  "formatting": "PASS cargo fmt --check",
+  "claim_wording": "PASS scoped wording check, not scientific validation",
+  "diff_check": "PASS",
+  "local_links": {
+    "checked_local_links": 920,
+    "missing": []
+  }
+}

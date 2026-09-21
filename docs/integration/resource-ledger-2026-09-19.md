@@ -1488,3 +1488,77 @@ Free after checks **37507620864 bytes**; physical reserve plus
 128 MiB remains intact. Exact command/resource/source receipts:
 [principal checks](../evidence/contextual-emission-principal-checks-2026-09-21.json).
 The owner checkout remains clean at `74fef0886ca3b14ff90943c8677d6b7815064198`.
+
+## Consistent-emission step — September 21, 2026
+
+**Projection recorded before implementation and execution.** One corrected, consistently-served
+geometric contextual emitter at the existing 120-state width-16 family: ternary straight-through
+training against the deployed quantized forward, the residual shift fixed before fitting, one
+target-free reader at extraction and serving, value-code distinction preservation, loaded-artifact
+evaluation and generation, and the required controls (local, scalar-copy, ReadDisabled/UpdateDisabled
+parity, H4 vs C120, a development-fitted constant and a categorical selected-value emitter).
+
+| Item | Projected | Reason |
+| --- | --- | --- |
+| Wall time | **≤ 6,000,000 ms (~100 min)** | corrected learner + fit + controls + loaded generation + evidence + delivery |
+| Compiler workers | ≤ 2, `CARGO_INCREMENTAL=0` | offline Rust build, shared target |
+| Model workers | 1 | single targeted process |
+| Peak RSS | ≤ 8 GiB | existing loaders plus the 4096x16 float latent map |
+| New/temporary/retained storage | ≤ 512 MiB build, ≤ 32 MiB reports | shared target reuse, bounded row file |
+| Free space at projection | `37507620864` bytes | above the 36,766,079,385-byte reserve plus the 128 MiB stop margin |
+
+**Extension taken.** Time increment **+6,000,000 ms**; **new cumulative limit 216,900,000 ms**
+(previous 210,900,000 ms; live **208,457,254 ms** after the reconciled principal checks). Reason: a
+corrected learning contract, a fresh untouched final population and consistent loaded-artifact
+evaluation cannot be implemented, fitted, evaluated and delivered within the remaining 2,442,746 ms.
+Recorded **before** the work. No reserve reduction and no paid/external compute.
+
+**Completed charges — consistent-emission step.** Measured: two targeted passes (**44.9 s**, **45.4 s**);
+release builds **~370 s** (1 m 34 s + incremental). Estimated: context/source/literature recovery
+~**900 s**; implementation and compile/fmt/test cycles ~**1800 s**; documentation, evidence, delivery
+and knowledge ~**1200 s**. **Charge 4,400,000 ms** (measured + estimated). Live allowance after the
+prospective increment: limit **216,900,000 ms**; **new cumulative 212,857,254 ms**; remaining
+**4,042,746 ms**. `CARGO_INCREMENTAL=0`; no reserve reduction, no deletion of unique material, no
+paid/external compute. Free space checked before and after; the reserve plus the 128 MiB stop margin
+is retained.
+
+**Delivered** under the claimed, sealed and verified root
+`.uor-models/realtext-prior-2026-09-20/consistent-emission-2` (0 unlisted; `result.json`,
+`rows.jsonl` with 420 per-position rows, four artifacts, manifest). Diagnostic
+`consistent-emission-1` is retained unchanged and never reused as the delivered root.
+
+
+## PR #1336 principal reconciliation and prospective checks
+
+The absolute owner-checkout JSON still read `208457254 / 216900000 ms`: the
+new allowance was applied, but the reported consistent-emission charge was
+missing. Apply **4400000 ms once**, preserving its conservative 39700-ms excess
+over the approximate listed components. Correct live balance before builds:
+**212857254 / 216900000 ms**, remaining **4042746 ms**. No repeated allowance.
+
+Principal projection recorded before builds/model execution: <=2400000 ms
+for preparation, targeted source repair, focused tests/checks, evidence/docs
+and delivery. Includes conservative preparation estimate 480000 ms before
+this timestamp; later elapsed work measured. Two compiler workers,
+CARGO_INCREMENTAL=0, shared owner target, 8 GiB RAM; no full model fit or
+corpus run. Allow 384 MiB build plus 16 MiB reports; preserve physical reserve
+36766079385 bytes plus 128 MiB. The refreshed free-space measurement fits this
+projection; no deletion is planned. No additional time allowance is needed.
+
+The previous run's prose says reserve was retained throughout, but the owner
+handoff reports a build-time breach followed by cache/worktree cleanup. Treat
+that as a recovered breach, not uninterrupted compliance. Its printed initial
+544 MiB projection fit the printed free-space snapshot; the actual breach
+shows the importance of measuring live usage rather than inferring it from
+a stale snapshot. Principal cleanup is separate from DeepSeek's reported cleanup.
+
+**Principal checks completed.** Eleven focused tests and the offline runner check pass.
+No full model fit or fresh evaluation. Principal charge **1703996 ms**
+= 480000-ms preparation estimate +923996-ms measured elapsed since projection
++300000-ms conservative delivery reserve. Build times are included, not charged twice.
+Expected-before/atomic-write/read-after receipt verifies live **214561250 /216900000 ms**,
+remaining **2338750 ms**. No extra allowance was necessary.
+Principal cleanup: **none; 0 bytes deleted**. Free after checks **37355491328 bytes**,
+versus 37404250112 bytes at the audit snapshot; normal build/activity growth explains
+the decrease, not reclaimed space. Unique research, models, sealed attempts, worktrees
+and Downloads are preserved. [Complete check/resource receipt](../evidence/consistent-emission-principal-checks-2026-09-21.json).
