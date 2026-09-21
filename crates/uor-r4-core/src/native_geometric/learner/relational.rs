@@ -34,6 +34,65 @@ pub const UTIL_GAP_BINS: usize = 4;
 /// Declared minimum total fit weight for a bucket to carry its own action; below it the global action
 /// is used, which is also the explicit unseen-bucket fallback.
 pub const UTIL_MIN_SUPPORT: f64 = 20.0;
+
+/// **The immutable feature/action contract of the direct policy.** It is fixed *before* any fit event
+/// is created and carried unchanged through event extraction, fitting, export, reload and serving, so
+/// the fit-time and serve-time bucket partitions cannot drift apart. Exactly four actions are declared:
+/// opcode `0` = NoRead, `a > 0` = strength index `a - 1` in `AMP_SHIFTS`.
+pub const POLICY_BUCKET_FORMULA: &str = "gap_bin*8 + ctx_class*2 + margin_bit";
+pub const POLICY_GAP_UNITS: &str =
+    "integer local logits at f_bits scale; gap = z_local[payload] - max_v z_local[v] <= 0";
+pub const POLICY_COMPARISON: &str = "strict gap > threshold, widened i64 arithmetic";
+pub const POLICY_CONTEXT_BITS: &str = "bit0 = payload equals the current input token; bit1 = ordered two-neighbour agreement of the ungated top source";
+pub const POLICY_MARGIN_RULE: &str = "1 iff the ungated top source score strictly exceeds the runner-up's; 0 for a single-candidate pool";
+pub const POLICY_ACTION_ENCODING: &str =
+    "opcode 0 = NoRead; opcode a in 1..=ACTS = strength index a-1";
+
+/// The configured gap partition. `apply` returns a selector bound to it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PolicyConfig {
+    pub gap_thresholds: [i32; UTIL_GAP_BINS - 1],
+}
+
+impl PolicyConfig {
+    pub fn new(gap_thresholds: [i32; UTIL_GAP_BINS - 1]) -> Self {
+        Self { gap_thresholds }
+    }
+
+    /// Bind a selector to this contract. The stored thresholds and the configured thresholds are then
+    /// the same array, so `policy_bucket` and `policy_bucket_with(&cfg, ..)` agree by construction.
+    pub fn apply(&self, sel: &RelationalSelector) -> RelationalSelector {
+        let mut s = sel.clone();
+        s.gap_thresholds = self.gap_thresholds;
+        s
+    }
+
+    /// Canonical identity of the feature/action contract. It depends only on the declared semantics
+    /// and the thresholds, never on artifact bytes, so binding it into the artifact is acyclic.
+    pub fn digest(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(b"uor-r4.policy-config/1\n");
+        h.update(POLICY_BUCKET_FORMULA.as_bytes());
+        h.update(b"\n");
+        h.update(POLICY_GAP_UNITS.as_bytes());
+        h.update(b"\n");
+        h.update(POLICY_COMPARISON.as_bytes());
+        h.update(b"\n");
+        h.update(POLICY_CONTEXT_BITS.as_bytes());
+        h.update(b"\n");
+        h.update(POLICY_MARGIN_RULE.as_bytes());
+        h.update(b"\n");
+        h.update(POLICY_ACTION_ENCODING.as_bytes());
+        h.update(b"\n");
+        h.update(format!("buckets={UTIL_BUCKETS} gap_bins={UTIL_GAP_BINS} acts={ACTS} min_support={UTIL_MIN_SUPPORT}\n").as_bytes());
+        h.update(format!("shifts={:?}\n", AMP_SHIFTS).as_bytes());
+        for t in self.gap_thresholds.iter() {
+            h.update(t.to_le_bytes());
+        }
+        h.finalize().into()
+    }
+}
 /// Declared strength shifts (bits); the boost in nats is `2^(shift - f_bits)`.
 pub const AMP_SHIFTS: [u32; 3] = [6, 10, 13];
 /// Largest magnitude of a served coefficient (signed 4-bit).
@@ -584,31 +643,56 @@ impl RelationalSelector {
     }
 
     /// The integer local logit gap of the ungated top source's payload from the local argmax, in
-    /// `f_bits` units. This is a causal **observation**, never a probability estimate.
+    /// `f_bits` units. Widened subtraction: the difference of two `i32` logits cannot wrap here.
+    /// This is a causal **observation**, never a probability estimate.
     pub fn top_payload_gap(&self, cands: &[Cand], rel: &[usize], local_z: &[i32]) -> Option<i32> {
         let top = self.ungated_top_source(cands, rel)?;
+        Some(self.top_payload_gap_at(cands, local_z, top))
+    }
+
+    /// The same gap for an already known ungated top source, computed in `i64` and saturated once.
+    #[inline]
+    pub fn top_payload_gap_at(&self, cands: &[Cand], local_z: &[i32], top: usize) -> i32 {
         let payload = cands[top].payload as usize;
         let top_logit = local_z.iter().copied().max().unwrap_or(0);
         let payload_logit = local_z.get(payload).copied().unwrap_or(top_logit);
-        Some(payload_logit - top_logit)
+        let gap = i64::from(payload_logit) - i64::from(top_logit);
+        gap.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
     }
 
     /// The declared causal utility bucket of this position: quantized selected-payload local gap, the
     /// exact-context class of the ungated top source, and a strict source-margin bit. Target-free,
     /// label-free and future-free. Returns `(ungated top source, bucket)`.
-    pub fn policy_bucket(
+    ///
+    /// The **gap partition is supplied by the caller's [`PolicyConfig`]**, not read from `self`, so
+    /// the fit-time and serve-time partition cannot drift apart by construction.
+    pub fn policy_bucket_with(
         &self,
+        cfg: &PolicyConfig,
         cands: &[Cand],
         rel: &[usize],
         local_z: &[i32],
     ) -> Option<(usize, usize)> {
         let top = self.ungated_top_source(cands, rel)?;
+        Some((top, self.bucket_for(cands, rel, local_z, top, cfg)))
+    }
+
+    /// The bucket for an already known ungated top source under an explicit configuration.
+    /// The comparison is the declared strict `gap > threshold` in widened `i64` arithmetic.
+    pub fn bucket_for(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: &[i32],
+        top: usize,
+        cfg: &PolicyConfig,
+    ) -> usize {
         let c = &cands[top];
-        let gap = self.top_payload_gap(cands, rel, local_z)?;
-        let gap_bin = self
+        let gap = i64::from(self.top_payload_gap_at(cands, local_z, top));
+        let gap_bin = cfg
             .gap_thresholds
             .iter()
-            .filter(|t| gap > **t)
+            .filter(|t| gap > i64::from(**t))
             .count()
             .min(UTIL_GAP_BINS - 1);
         let ctx_class = (c.feats[3] as usize) | (((c.feats[1] | c.feats[2]) as usize) << 1);
@@ -627,7 +711,36 @@ impl RelationalSelector {
             }
             margin = usize::from(best > second);
         }
-        Some((top, (gap_bin << 3) | (ctx_class << 1) | margin))
+        (gap_bin << 3) | (ctx_class << 1) | margin
+    }
+
+    /// The bucket under this selector's own stored thresholds.
+    pub fn policy_bucket(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: &[i32],
+    ) -> Option<(usize, usize)> {
+        self.policy_bucket_with(&PolicyConfig::new(self.gap_thresholds), cands, rel, local_z)
+    }
+
+    /// **The loader contract for the direct policy.** A policy-bearing selector must be bound to the
+    /// exact feature configuration its events were extracted under; a mismatched gap partition is a
+    /// hard error rather than a silent re-indexing. Called by the consumer *before* any prediction.
+    pub fn verify_policy_contract(&self, cfg: &PolicyConfig) -> Result<(), String> {
+        if self.policy.is_empty() {
+            return Ok(());
+        }
+        if self.gap_thresholds != cfg.gap_thresholds {
+            return Err(format!(
+                "serving gap thresholds {:?} differ from the configured contract {:?}",
+                self.gap_thresholds, cfg.gap_thresholds
+            ));
+        }
+        if self.policy.len() != UTIL_BUCKETS {
+            return Err("policy opcode table has the wrong bucket count".into());
+        }
+        Ok(())
     }
 
     /// The **ungated top source**: the argmax of the ctx-free source score, i.e. the source ordering
@@ -743,9 +856,61 @@ pub fn regret_decomposition(sel: &RelationalSelector, t: &ExactGroupTable, p: &T
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PolicyEvent {
     pub bucket: usize,
+    /// Index of the selected occurrence inside the candidate pool, so the stored fit event can be
+    /// compared against what the independently reloaded selector actually serves.
+    pub source: usize,
     pub weight: f64,
     /// Individual action costs, index 0 = NoRead (exactly 0), 1.. = strength `a - 1`.
     pub cost: [f64; ACTS + 1],
+}
+
+/// Extract one fit event from one observation under a frozen source arm **and the configured feature
+/// contract**. The recorded bucket and source are exactly what `choose_policy` will address after
+/// reload, which is the property the contract test asserts.
+#[allow(clippy::too_many_arguments)]
+pub fn policy_event_for(
+    sel: &RelationalSelector,
+    cfg: &PolicyConfig,
+    cands: &[Cand],
+    rel: &[usize],
+    local_z: &[i32],
+    target: u32,
+    f_bits: u32,
+    weight: f64,
+) -> Option<PolicyEvent> {
+    if cands.is_empty() {
+        return None;
+    }
+    let (top, bucket) = sel.policy_bucket_with(cfg, cands, rel, local_z)?;
+    let payload = cands[top].payload;
+    let p = {
+        let scale = (-(f_bits as f64)).exp2();
+        let max = local_z
+            .iter()
+            .map(|v| *v as f64 * scale)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let mut sum = 0.0f64;
+        let mut want = 0.0f64;
+        for (k, v) in local_z.iter().enumerate() {
+            let e = (*v as f64 * scale - max).exp();
+            sum += e;
+            if k == payload as usize {
+                want = e;
+            }
+        }
+        want / sum
+    };
+    let mut cost = [0.0f64; ACTS + 1];
+    for a in 0..ACTS {
+        let boost = (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << f_bits) as f64;
+        cost[a + 1] = action_loss(p, boost, payload == target);
+    }
+    Some(PolicyEvent {
+        bucket,
+        source: top,
+        weight,
+        cost,
+    })
 }
 
 /// Receipt for the direct hard-action policy fit.
@@ -840,6 +1005,49 @@ pub fn choose_gap_thresholds(gaps: &mut [i32]) -> [i32; UTIL_GAP_BINS - 1] {
         t[2] = t[1] + 1;
     }
     t
+}
+
+/// Regret decomposition for the **actual served action** of a policy-bearing selector.
+///
+/// The scored `regret_decomposition` cannot be used here: `choose` returns `None` for a selector that
+/// carries a policy, so it would measure NoRead rather than the executed read. `served` must be the
+/// action the shared path really took. `ranking + gate + dose == actual - lpool` holds exactly.
+pub fn regret_decomposition_acted(
+    sel: &RelationalSelector,
+    t: &ExactGroupTable,
+    p: &TrainPos,
+    served: Option<(usize, usize)>,
+) -> Regret {
+    if p.cands.is_empty() {
+        return Regret::default();
+    }
+    let rel = sel.rels_of(t, p);
+    let cstar = sel.ungated_top_source(&p.cands, &rel);
+    let best_pos = |k: usize| p.delta[k].iter().cloned().fold(f64::INFINITY, f64::min);
+    let lplus = |k: usize| best_pos(k).min(0.0);
+    let lplus_star = cstar.map(best_pos).unwrap_or(0.0);
+    let lstar_star = lplus_star.min(0.0);
+    let lpool = (0..p.cands.len()).map(lplus).fold(0.0f64, f64::min);
+    let (actual, read) = match served {
+        Some((k, a)) if k < p.cands.len() && a < ACTS => (p.delta[k][a], true),
+        // A served source outside the pool index or an out-of-range action cannot be scored honestly.
+        Some(_) => (0.0, false),
+        None => (0.0, false),
+    };
+    let ranking = lstar_star - lpool;
+    let gate = (if read { lplus_star } else { 0.0 }) - lstar_star;
+    let dose = if read { actual - lplus_star } else { 0.0 };
+    Regret {
+        ranking,
+        gate,
+        dose,
+        actual,
+        lpool,
+        served_matches_ungated: match served {
+            Some((k, _)) => Some(k) == cstar,
+            None => true,
+        },
+    }
 }
 
 /// One training position: constants only, independent of the parameters being fitted.
@@ -2558,11 +2766,13 @@ mod tests {
             events.push(PolicyEvent {
                 bucket: 0,
                 weight: 1.0,
+                source: 0,
                 cost: [0.0, -0.02, -0.1, -0.5],
             });
             events.push(PolicyEvent {
                 bucket: 8,
                 weight: 1.0,
+                source: 0,
                 cost: [0.0, 0.01, 0.02, 0.03],
             });
         }
@@ -2570,6 +2780,7 @@ mod tests {
             events.push(PolicyEvent {
                 bucket: 16,
                 weight: 1.0,
+                source: 0,
                 cost: [0.0, -1.0, -1.0, -1.0],
             });
         }
@@ -2593,6 +2804,7 @@ mod tests {
         let tie = vec![PolicyEvent {
             bucket: 4,
             weight: 40.0,
+            source: 0,
             cost: [0.0, 0.0, 0.0, 0.0],
         }];
         let (policy, _) = fit_policy(&tie);
@@ -2650,6 +2862,123 @@ mod tests {
         let mut gaps = vec![-30, -12, -3, -1, 0, -40, -8, -2];
         let t = choose_gap_thresholds(&mut gaps);
         assert!(t[0] < t[1] && t[1] < t[2]);
+    }
+
+    /// The high-value contract test: on the **same observation and local logits**, the stored
+    /// fit-event bucket and selected occurrence must equal what the independently reloaded selector
+    /// addresses and serves. Covers legacy-v3 input (no policy, zero thresholds), several gap bands,
+    /// threshold ties, one and two candidates, empty pools and `i32` extremes.
+    #[test]
+    fn the_fit_event_bucket_and_source_equal_the_reloaded_selector_contract() {
+        let table = table();
+        let rel = vec![3usize, 9usize];
+        let mut rank = [0i32; RANKS];
+        rank[3] = 7;
+        rank[9] = -7;
+        // A legacy-v3-shaped selector: no policy and zero thresholds.
+        let legacy = RelationalSelector {
+            q_roots: vec![0; 4],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [1, 1, 1, 1, 1, 1],
+            rank,
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
+        };
+        assert!(legacy.policy.is_empty(), "legacy input carries no policy");
+        let cfg = PolicyConfig::new([-24, -8, -2]);
+        let mut acted = cfg.apply(&legacy);
+        acted.policy = vec![1u8; UTIL_BUCKETS];
+        acted.policy[31] = 3;
+        acted.validate().unwrap();
+        acted.verify_policy_contract(&cfg).unwrap();
+
+        let cands = vec![cand([1, 0, 0, 0, 0, 1], 40), cand([1, 1, 0, 0, 0, 0], 41)];
+        // Gaps spanning every band, plus exact threshold ties (strict comparison excludes a tie) and
+        // bounded extremes. All values are differences of i32 logits.
+        for (payload_logit, top_logit, expected_band) in [
+            (0i32, 0i32, 3usize),
+            (-1, 0, 3),
+            (-2, 0, 2),
+            (-8, 0, 1),
+            (-9, 0, 1),
+            (-24, 0, 0),
+            (-30, 0, 0),
+            (i32::MIN, i32::MAX, 0),
+        ] {
+            // Candidate 0 carries the payload in the local argmax position.
+            let mut z = vec![0i32; 64];
+            z[40] = payload_logit;
+            z[0] = top_logit;
+            if top_logit == i32::MAX {
+                z[0] = i32::MAX;
+                z[40] = i32::MIN;
+            }
+            let (top, bucket) = acted.policy_bucket_with(&cfg, &cands, &rel, &z).unwrap();
+            assert_eq!(top, 0, "the ungated top source is candidate 0");
+            let band = bucket >> 3;
+            let expected = if top_logit == i32::MAX && payload_logit == i32::MIN {
+                0
+            } else {
+                expected_band
+            };
+            assert_eq!(
+                band, expected,
+                "gap band for gap {payload_logit} - {top_logit}"
+            );
+            // The fit-time event and the served decision agree, field for field.
+            let ev = policy_event_for(&acted, &cfg, &cands, &rel, &z, 99, 10, 1.0).unwrap();
+            assert_eq!(ev.bucket, bucket);
+            assert_eq!(ev.source, top);
+            let served = acted.choose_policy(&cands, &rel, &z).unwrap();
+            assert_eq!(served, (ev.source, 0), "opcode 1 is strength index 0");
+            // The same position under the stored (legacy) thresholds is a different partition, which
+            // is exactly the defect this contract removes.
+            let legacy_bucket = legacy.policy_bucket_with(&cfg, &cands, &rel, &z).unwrap().1;
+            assert_eq!(
+                legacy_bucket, bucket,
+                "the configured selector uses cfg, not its own array"
+            );
+        }
+
+        // One candidate, then an empty pool.
+        let single = vec![cand([0, 0, 0, 0, 0, 0], 5)];
+        let z = vec![0i32; 64];
+        let (top, b) = acted.policy_bucket_with(&cfg, &single, &[0], &z).unwrap();
+        assert_eq!(top, 0);
+        assert_eq!(b & 1, 0, "a single-candidate pool has no strict margin");
+        assert!(policy_event_for(&acted, &cfg, &[], &[], &z, 0, 10, 1.0).is_none());
+        assert_eq!(acted.policy_bucket_with(&cfg, &[], &[], &z), None);
+
+        // Independent reload preserves the contract, and a drifted configuration is rejected.
+        let art = |s: RelationalSelector| RelationalArtifact {
+            selector: s,
+            local_artifact_digest: [1u8; 32],
+            tokenizer_digest: [2u8; 32],
+            data_digest: [3u8; 32],
+        };
+        let back =
+            RelationalArtifact::from_bytes(&art(acted.clone()).to_bytes(), &[1u8; 32], &[2u8; 32])
+                .unwrap()
+                .selector;
+        assert_eq!(back, acted);
+        back.verify_policy_contract(&cfg).unwrap();
+        let drifted = PolicyConfig::new([-64, -8, -2]);
+        assert!(back.verify_policy_contract(&drifted).is_err());
+        assert_ne!(
+            cfg.digest(),
+            drifted.digest(),
+            "a changed threshold changes the contract digest"
+        );
+        assert_eq!(cfg.digest(), PolicyConfig::new([-24, -8, -2]).digest());
+        // A swapped opcode table is a different served policy even though it still loads.
+        let mut swapped = acted.clone();
+        swapped.policy.swap(0, 31);
+        assert_ne!(art(swapped).to_bytes(), art(acted).to_bytes());
     }
 
     // ---- signed-geometry expressivity witness and regret identity -----------------

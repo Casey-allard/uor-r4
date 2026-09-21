@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current execution pointer after PR #1328:** the [principal review](integration/reader-utility-review-2026-09-21.md) verifies the small text-loss improvement while identifying a train/serve gap-threshold mismatch. [Next](integration/deepseek-reader-policy-contract-step-2026-09-21.md): implement one consistent feature contract and complete the direct-policy experiment with corrected diagnostics. Contextual role/scope state remains a later evidence-driven branch; no general language or model promotion.
+**Current execution pointer after PR #1329:** the [corrected reader-policy experiment](integration/reader-policy-contract-result-2026-09-21.md) is executed and unpromoted. One immutable feature contract now supplies fitting, export and serving, and the corrected fit is a **clean negative**: on 8 new disjoint reader documents the policy is +0.1193 bits/token where the frozen parent is +0.4532, while a constant one-nat boost gives -0.0148, so the earlier text gain came from a generic small boost rather than the fitted table. All four declared categories are false, and the remaining distinction is an **objective tradeoff**, not a representation limit. **Next:** a prospectively declared constrained/Pareto utility objective on the same features. No model promotion.
 
 This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an

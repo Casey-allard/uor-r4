@@ -1,0 +1,113 @@
+UOR-R4 Geometric Language Model - evidence receipt
+Experiment: corrected reader-policy feature contract (train/serve indexing repaired; metrics repaired)
+Date: 2026-09-21
+Base revision: 0492926d (PR #1329 merged). Worktree: .worktrees/geometric-query-read, branch codex/reader-policy-contract
+Owning issues: #973, #820, #963, #964 (all remain open)
+
+PURPOSE
+Complete the intended learned finite-influence experiment with ONE immutable feature contract from event
+extraction through fitting, export, reload and serving, and repair the attribution, endpoint and admission
+metrics that would otherwise decide the next architectural step.
+
+THE DEFECT REPAIRED
+PR #1328 computed tune-selected gap thresholds then built both fit-event streams from the unchanged legacy
+parent (thresholds [0,0,0]). Since gap <= 0 and the bucket counts strict gap > threshold, every fit event fell
+in gap band zero: buckets 0-7 only, while serving addressed 0-31. Twenty-four entries were never fitted at
+their served addresses. Repair: one immutable PolicyConfig created before any event exists supplies the
+fit-time selector, the events, the exported selector and the serving selector.
+
+SOURCE CHANGED
+learner/relational.rs:
+  + PolicyConfig (gap_thresholds, apply, digest over formula/units/comparison/context/margin/action encoding,
+    bucket+gap+action counts, shifts and thresholds); POLICY_* semantic constants
+  + verify_policy_contract (the verified loader contract the consumer calls before prediction)
+  + widened i64 gap subtraction (top_payload_gap_at / bucket_for); policy_bucket_with(cfg, ..)
+  + PolicyEvent.source; policy_event_for (the one extractor used by fit and asserted against serving)
+  + regret_decomposition_acted(.., served) for policy-bearing selectors
+  + 1 new contract test: fit-event bucket/source == reloaded serving bucket/source across legacy-v3 input,
+    every gap band, exact threshold ties, one and zero candidates, i32 extremes; plus reload acceptance and
+    drifted-config / swapped-table rejection
+bin/competitive-reader.rs:
+  + contract configured before event extraction; policy_event delegates to policy_event_for
+  + h4_one_nat_fixed constant comparator on the same ungated source and contract
+  + eval_stream uses the ACTUAL served action; asserts actual == emitted-logit delta (0 mismatches)
+  + per-stratum reads / no_read / correct payload / emitted correct / action counts
+  + admission regret for every position with candidate-only AND complete-stream denominators
+  + four-condition intervention extended with original-occurrence admission, pool-size and neighbour changes
+  + fit-input data digest in the artifact; binding manifest v2 with config digest and artifact byte hashes
+  + serialized-structure preflight before sealing
+
+TEST RESULTS (executed)
+cargo test -p uor-r4-core --lib native_geometric::learner::relational -> 27 passed (1 new contract test)
+cargo test -p uor-r4-core --bin competitive-reader -> 6 passed, 1 ignored
+cargo fmt --check clean; cargo check --offline clean; python3 scripts/check_claim_wording.py passed
+
+EXECUTED RUN
+Delivered root .uor-models/realtext-prior-2026-09-20/reader-utility-4 (claimed, sealed, verified; 0 unlisted).
+Elapsed 225.5 s; panels 164 s; prepared streams 27 s; controls + generation 24 s; fit 10.5 s.
+Superseded attempt reader-utility-3 is retained and never resealed: identical measurements, one bookkeeping
+defect in the new rejection probe (it swapped two equal opcodes, so the byte comparison was vacuous and
+reported reload_failures=1; the delivered run reports 0).
+reader-utility-2 stays sealed and byte-identical; reader-utility-1 stays unsealed.
+
+PROSPECTIVE DECLARATIONS (frozen before the corrected fit)
+new final construction seed SEED_FINAL2=0x5C0F_F2B2 (SEED_FINAL and SEED_FRESH retained as development
+panels); reader text documents disjoint by path and content hash: fit [0,8), tune [8,16), previous [16,24)
+development, FINAL [24,32) new; four 64-token windows per document with the declared 600-position minimum
+information target; frozen parents/E+S/ring 128/<=24 candidates/four actions/support rule/equal-weight
+mixture; categories and margins unchanged from the parent declaration.
+
+CORRECTED FIT
+2,969 construction events + 944 text events, declared text weight 3.145 (equal total weight)
+gap thresholds [-6784,-4992,-2944]; global action 1 nat; 16 buckets with their own action; 16 fallback
+opcode histogram [0 NoRead, 0 weak, 25 one-nat, 7 eight-nat]  (misindexed run: 4 own / 28 fallback, [0,0,31,1])
+
+HELD-OUT READER TEXT (8 NEW disjoint documents, 1952 positions, 782 candidate-bearing)
+local 6.9123 bits/token
+relational_ctx_parent (frozen)  +0.4532
+h4_policy (corrected fit)       +0.1193  [ +0.0702, +0.1679]
+categorical_policy             +0.1533  [ +0.0942, +0.2072]
+h4_one_nat_fixed (constant)    -0.0148
+h4_policy - relational_ctx_parent  -0.3339 [ -0.4872, -0.2005]
+On the PREVIOUSLY INSPECTED documents (development) the corrected policy gives +0.1469, where the misindexed
+policy recorded -0.0195: the PR #1328 text finding does not reproduce, and no representation claim is made.
+
+CONSTRUCTION (new seed SEED_FINAL2, 2418 positions, 1810 candidate-bearing)
+local 12.4821 hard bits/position
+relational_ctx_parent 10.6268  reads 806  corr 446  emitted 355
+h4_policy             10.7566  reads 1810 strengths 629/1181  corr 516  emitted 319
+categorical_policy    10.6358  reads 1810 strengths 479/1331  corr 530  emitted 352
+h4_one_nat_fixed      12.1755  reads 1810 strengths 1810/0     corr 516  emitted 1
+fitted_beats_one_nat_on_construction = true ; fitted_beats_one_nat_on_text = false
+
+CATEGORIES (declared prospectively)
+harm_containment FALSE | useful_transfer FALSE | relational_behaviour_preserved FALSE |
+absence_improved FALSE | all_noread_collapse FALSE | matched_categorical_reported true
+present queries: reads 121 vs parent 121; emitted correct 56 vs parent 77; loss margin fails
+absent queries: reads 19 vs parent 5; loss 0.2969 vs parent 0.1379 bits/absent query
+No payload-correctness term is used for the absence predicate: an unknowable absent answer is not expected to
+be guessed. Read counts and loss are reported separately.
+
+REPAIRED METRICS, VERIFIED
+policy-aware decomposition: ranking + gate + dose == actual - Lpool per position; actual == emitted-logit
+  delta with 0 mismatches on every arm and panel; 0 reads with a served source differing from the ungated
+  top source
+admission regret, candidate-only 0.1946 nats/candidate position and complete-stream 0.8316 nats/position on
+  the final construction (608 empty-pool positions included with Lpool = 0). These reproduce the principal
+  review's independent reconstruction (0.200636 / 0.831657) to within a different panel seed's rounding.
+four-condition intervention: 140 attempted; disabled-before == disabled-after 140/140; original occurrence
+  still admitted 140/140; pool size changed 16; neighbour payload/features changed 140; original source
+  reference still served 138; emitted the new payload 93; 0 lost support; 0 NoRead
+loading: reload_failures 0 including rejection of a drifted threshold config, a swapped opcode table and a
+  mismatched input identity; serialized-structure preflight validated the object actually written
+cost: 18 construction predictions at 1.94 candidates/prediction (13 reads) and 21 text predictions with zero
+  candidates; order fixed and short, paired medians negative: reader incremental cost UNAVAILABLE.
+  Whole-path D0-b compliance is not claimed; physical energy UNAVAILABLE.
+
+NOT RUN / UNAVAILABLE
+the one bounded extension (a constrained/Pareto utility objective on the same features) is NOT RUN: the
+remaining budget would not fund a defensible fit with a fresh final draw, and the prompt's instruction is to
+report the real distinction rather than sweep
+admission change; ring/memory/candidate widening; width/precision sweeps; S attribution replay; schedulers;
+corpus campaigns: NOT STARTED
+general prose/chat/reasoning capability, optimized serving latency, physical energy: UNAVAILABLE

@@ -68,7 +68,7 @@ const TEXT_DOCS: usize = 8;
 const PARENT_ROOT: &str =
     "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4";
 const DEFAULT_UTIL_ROOT: &str =
-    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/reader-utility-1";
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/reader-utility-3";
 const PARENT_SHA_EXACT: &str = "4795042636d57a360d7396c2f2939b79b1a28173c7228896a620cf53285a860d";
 const PARENT_SHA_RELATIONAL: &str =
     "8d33a48888af8d224533b3634a52a868313df41364ec2dde6e6f8da7bd3043d7";
@@ -78,6 +78,9 @@ const PARENT_SHA_CATEGORICAL: &str =
     "2a60d9376702126060d3f6c86a0358bde723b45dd419b4bb50dd8d6ee04296a3";
 /// New frozen construction seed for final assessment (declared in the design note).
 const SEED_FINAL: u64 = 0x5C0F_F1A1;
+/// The **new** frozen seed for this run's final assessment. `SEED_FINAL` was inspected by PR #1328 and
+/// is retained as development/regression evidence only.
+const SEED_FINAL2: u64 = 0x5C0F_F2B2;
 /// Declared window count per reader document before the preparation probe may extend it.
 const WINDOWS_PER_DOC: usize = 4;
 /// Declared minimum information target for natural-text fit positions.
@@ -3321,8 +3324,14 @@ struct ArmAgg {
     dose_regret: f64,
     lpool_sum: f64,
     admission_regret: f64,
+    admission_regret_cand: f64,
+    admission_regret_complete: f64,
+    actual_logit_mismatches: usize,
     per_doc: BTreeMap<usize, (f64, f64, usize)>,
     strata: BTreeMap<String, (usize, usize, usize, f64, f64)>,
+    /// Per stratum: reads, NoRead, correct payload, emitted correct, emitted correct (local), and
+    /// the action counts for the three strengths.
+    strata_detail: BTreeMap<String, [usize; 8]>,
 }
 
 fn agg_json(a: &ArmAgg) -> serde_json::Value {
@@ -3345,12 +3354,22 @@ fn agg_json(a: &ArmAgg) -> serde_json::Value {
         "mean_dose_regret_nats": a.dose_regret / a.positions.max(1) as f64,
         "mean_lpool_nats": a.lpool_sum / a.positions.max(1) as f64,
         "mean_admission_regret_nats": a.admission_regret / a.positions.max(1) as f64,
+        "mean_admission_regret_candidate_only_nats": a.admission_regret_cand / a.cand_bearing.max(1) as f64,
+        "mean_admission_regret_complete_stream_nats": a.admission_regret_complete / a.positions.max(1) as f64,
+        "actual_vs_emitted_logit_mismatches": a.actual_logit_mismatches,
         "read_actions_where_served_source_differs_from_ungated_top": a.served_ne_ungated,
-        "strata": a.strata.iter().map(|(k, (n, cov, corr, hb, lb))| json!({
-            "stratum": k, "positions": n, "covered_positions": cov, "correct_payload_reads": corr,
-            "hard_bits_per_position": hb / (*n).max(1) as f64,
-            "delta_bits_per_position": (hb - lb) / (*n).max(1) as f64,
-        })).collect::<Vec<_>>(),
+        "strata": a.strata.iter().map(|(k, (n, cov, corr, hb, lb))| {
+            let d = a.strata_detail.get(k).copied().unwrap_or([0; 8]);
+            json!({
+                "stratum": k, "positions": n, "covered_positions": cov,
+                "correct_payload_reads": corr,
+                "reads": d[0], "no_read": d[1], "correct_payload": d[2],
+                "emitted_correct": d[3], "emitted_correct_local": d[4],
+                "strength_counts": [d[5], d[6], d[7]],
+                "hard_bits_per_position": hb / (*n).max(1) as f64,
+                "delta_bits_per_position": (hb - lb) / (*n).max(1) as f64,
+            })
+        }).collect::<Vec<_>>(),
         "documents": a.per_doc.iter().map(|(d, (l, r, n))| json!({
             "document": d, "positions": n, "local_bits": l, "reader_bits": r,
         })).collect::<Vec<_>>(),
@@ -3432,14 +3451,42 @@ fn eval_stream(
                 a.correct_payload += 1;
             }
             if let (Some(s), Some(p)) = (sel, pp.pos.as_ref()) {
-                let reg = regret_decomposition(s, table, p);
+                // **The actual served action**, not `choose`: a policy-bearing selector returns `None`
+                // from `choose`, so the scored helper would measure NoRead for an executed read.
+                let reg = regret_decomposition_acted(s, table, p, r.action);
                 a.rank_regret += reg.ranking;
                 a.gate_regret += reg.gate;
                 a.dose_regret += reg.dose;
                 a.lpool_sum += reg.lpool;
-                a.admission_regret += reg.lpool - pp.ring.1;
+                // `actual` must equal the loss change implied by the actually emitted logits.
+                let served_delta_nats = (hb - lb) * std::f64::consts::LN_2;
+                if (reg.actual - served_delta_nats).abs() > 1e-6 {
+                    a.actual_logit_mismatches += 1;
+                }
                 if r.action.is_some() && !reg.served_matches_ungated {
                     a.served_ne_ungated += 1;
+                }
+            }
+            // Admission regret has two declared denominators: candidate-bearing and the complete
+            // stream. An empty pool has `Lpool = 0` and still contributes to the complete-stream mean.
+            if sel.is_some() {
+                let lpool_here = match pp.pos.as_ref() {
+                    Some(p) => (0..p.cands.len())
+                        .map(|k| {
+                            p.delta[k]
+                                .iter()
+                                .cloned()
+                                .fold(f64::INFINITY, f64::min)
+                                .min(0.0)
+                        })
+                        .fold(0.0f64, f64::min),
+                    None => 0.0,
+                };
+                let term = lpool_here - pp.ring.1;
+                a.admission_regret += term;
+                a.admission_regret_complete += term;
+                if !o.cands.is_empty() {
+                    a.admission_regret_cand += term;
                 }
             }
             let label: String = if kind == "construction" {
@@ -3449,12 +3496,25 @@ fn eval_stream(
             } else {
                 "text_copy_unavailable".into()
             };
-            let e = a.strata.entry(label).or_default();
+            let e = a.strata.entry(label.clone()).or_default();
             e.0 += 1;
             e.1 += usize::from(pp.covered);
             e.2 += usize::from(r.payload == Some(o.target));
             e.3 += hb;
             e.4 += lb;
+            let reads_here = usize::from(r.action.is_some());
+            let no_read_here = usize::from(r.action.is_none());
+            let emitted_ok_here = usize::from(emitted == o.target);
+            let correct_payload_here = usize::from(r.payload == Some(o.target));
+            let se = a.strata_detail.entry(label).or_insert([0usize; 8]);
+            se[0] += reads_here;
+            se[1] += no_read_here;
+            se[2] += correct_payload_here;
+            se[3] += emitted_ok_here;
+            se[4] += usize::from(emitted_local == o.target);
+            if let Some((_k, st)) = r.action {
+                se[5 + st.min(ACTS - 1)] += 1;
+            }
             if let Some(d) = doc_of {
                 if let Some(&doc) = d.get(idx) {
                     let de = a.per_doc.entry(doc).or_insert((0.0, 0.0, 0));
@@ -3469,13 +3529,15 @@ fn eval_stream(
     a
 }
 
-/// One direct-action fit event from one observation under one frozen source arm.
+/// One direct-action fit event from one observation under one frozen source arm **and the configured
+/// feature contract**. Delegates to the library extractor so the train/serve contract is one function.
 fn policy_event(
     parent: &PriorCore,
     local: &QueryHard,
     u: &[Vec<i32>],
     table: &ExactGroupTable,
     sel: &RelationalSelector,
+    cfg: &PolicyConfig,
     o: &Obs,
     weight: f64,
 ) -> Option<PolicyEvent> {
@@ -3492,19 +3554,16 @@ fn policy_event(
         o.ring.written(),
     );
     let rel = rels_for(sel, o, table, false);
-    let (top, bucket) = sel.policy_bucket(&o.cands, &rel, &z)?;
-    let payload = o.cands[top].payload;
-    let p = prob_of(&z, payload, parent.cfg.f_bits);
-    let mut cost = [0.0f64; ACTS + 1];
-    for a in 0..ACTS {
-        let boost = (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << parent.cfg.f_bits) as f64;
-        cost[a + 1] = action_loss(p, boost, payload == o.target);
-    }
-    Some(PolicyEvent {
-        bucket,
+    policy_event_for(
+        sel,
+        cfg,
+        &o.cands,
+        &rel,
+        &z,
+        o.target,
+        parent.cfg.f_bits,
         weight,
-        cost,
-    })
+    )
 }
 
 /// Greedy continuation from an observed prefix through the shared path.
@@ -3682,11 +3741,15 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let fit = make_pop(&banks, N_FIT, SEED_FIT, &banks.values_fit);
     let tune = make_pop(&banks, N_TUNE, SEED_TUNE, &banks.values_fit);
     let regression = make_pop(&banks, N_FRESH, SEED_FRESH, &banks.values_held);
-    let final_pop = make_pop(&banks, N_FRESH, SEED_FINAL, &banks.values_held);
+    // `prev_pop` is the population inspected by PR #1328: development/regression evidence only.
+    let prev_pop = make_pop(&banks, N_FRESH, SEED_FINAL, &banks.values_held);
+    // The **new** final draw for this run.
+    let final_pop = make_pop(&banks, N_FRESH, SEED_FINAL2, &banks.values_held);
     for s in fit
         .iter()
         .chain(tune.iter())
         .chain(regression.iter())
+        .chain(prev_pop.iter())
         .chain(final_pop.iter())
     {
         validate_fixture(s, &banks)?;
@@ -3694,6 +3757,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let fit_obs = observe_full_all(&fit);
     let tune_obs = observe_full_all(&tune);
     let regression_obs = observe_full_all(&regression);
+    let prev_obs = observe_full_all(&prev_pop);
     let final_obs = observe_full_all(&final_pop);
     let pop_counts = |obs: &[Vec<Obs>]| -> (usize, usize) {
         let n: usize = obs.iter().map(|v| v.len()).sum();
@@ -3705,6 +3769,8 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let _ = tune_cand;
     let (reg_n, reg_cand) = pop_counts(&regression_obs);
     let _ = reg_cand;
+    let (prev_n, prev_cand) = pop_counts(&prev_obs);
+    let _ = (prev_n, prev_cand);
     let (fin_n, fin_cand) = pop_counts(&final_obs);
     mark("construction", &mut marks);
 
@@ -3719,11 +3785,18 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     }
     let fit_docs: Vec<usize> = dev[0..TEXT_DOCS].to_vec();
     let tune_docs: Vec<usize> = dev[TEXT_DOCS..2 * TEXT_DOCS].to_vec();
-    let final_docs: Vec<usize> = dev[2 * TEXT_DOCS..3 * TEXT_DOCS].to_vec();
+    // The previously inspected reader text is development evidence; the new final documents are disjoint.
+    let prev_final_docs: Vec<usize> = dev[2 * TEXT_DOCS..3 * TEXT_DOCS].to_vec();
+    let final_docs: Vec<usize> = dev[3 * TEXT_DOCS..4 * TEXT_DOCS].to_vec();
+    if dev.len() < 4 * TEXT_DOCS {
+        return Err("not enough Dev documents for fit/tune/previous/final reader splits".into());
+    }
     for (a, b) in [
         (&fit_docs, &tune_docs),
         (&fit_docs, &final_docs),
         (&tune_docs, &final_docs),
+        (&fit_docs, &prev_final_docs),
+        (&prev_final_docs, &final_docs),
     ] {
         for x in a.iter() {
             for y in b.iter() {
@@ -3791,6 +3864,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let fit_streams = build_streams(&fit_docs, per_doc);
     let tune_streams = build_streams(&tune_docs, per_doc);
     let final_streams = build_streams(&final_docs, per_doc);
+    let prev_final_streams = build_streams(&prev_final_docs, per_doc);
     let to_seqs = |s: &[(usize, Vec<u32>)], group: u16| -> Vec<Seq> {
         s.iter()
             .map(|(_, t)| Seq {
@@ -3805,9 +3879,11 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let fit_text_seqs = to_seqs(&fit_streams, 0xF000);
     let tune_text_seqs = to_seqs(&tune_streams, 0xF100);
     let final_text_seqs = to_seqs(&final_streams, 0xF200);
+    let prev_final_seqs = to_seqs(&prev_final_streams, 0xF300);
     let fit_text_obs = observe_full_all(&fit_text_seqs);
     let tune_text_obs = observe_full_all(&tune_text_seqs);
     let final_text_obs = observe_full_all(&final_text_seqs);
+    let prev_final_obs = observe_full_all(&prev_final_seqs);
     // Per-*position* document index for document-cluster intervals (one document per window).
     let per_position_docs = |streams: &[(usize, Vec<u32>)], obs: &[Vec<Obs>]| -> Vec<usize> {
         streams
@@ -3818,6 +3894,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     };
     let fit_text_doc_pos = per_position_docs(&fit_streams, &fit_text_obs);
     let final_text_doc_pos = per_position_docs(&final_streams, &final_text_obs);
+    let prev_final_doc_pos = per_position_docs(&prev_final_streams, &prev_final_obs);
     let doc_of = |s: &[(usize, Vec<u32>)]| -> Vec<usize> { s.iter().map(|(d, _)| *d).collect() };
     let _fit_text_docs = doc_of(&fit_streams);
     let tune_text_docs = doc_of(&tune_streams);
@@ -3877,25 +3954,54 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         }
     }
     let gap_thresholds = choose_gap_thresholds(&mut tune_gaps);
-    mark("gap thresholds", &mut marks);
+    // **The feature contract is fixed before any event exists.** Both the fit-time and the serve-time
+    // bucket partition are this one configuration, so they cannot drift apart.
+    let policy_cfg = PolicyConfig::new(gap_thresholds);
+    let policy_cfg_digest = policy_cfg.digest();
+    mark("gap thresholds + feature contract", &mut marks);
 
     // ---- direct hard-action policy for each frozen source arm -------------------
     let mut fit_report: Vec<serde_json::Value> = Vec::new();
     let mut policies: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
+    let mut contract_buckets: BTreeMap<&'static str, serde_json::Value> = BTreeMap::new();
     for (name, base) in [
         ("h4_policy", &relational_base),
         ("categorical_policy", &categorical_base),
     ] {
         let t0 = Instant::now();
+        // The configured selector is used for event extraction, not the raw legacy parent.
+        let configured = policy_cfg.apply(base);
         let const_ev: Vec<PolicyEvent> = fit_obs
             .iter()
             .flatten()
-            .filter_map(|o| policy_event(&parent, &local, &u, &table, base, o, 1.0))
+            .filter_map(|o| {
+                policy_event(
+                    &parent,
+                    &local,
+                    &u,
+                    &table,
+                    &configured,
+                    &policy_cfg,
+                    o,
+                    1.0,
+                )
+            })
             .collect();
         let text_raw: Vec<PolicyEvent> = fit_text_obs
             .iter()
             .flatten()
-            .filter_map(|o| policy_event(&parent, &local, &u, &table, base, o, 1.0))
+            .filter_map(|o| {
+                policy_event(
+                    &parent,
+                    &local,
+                    &u,
+                    &table,
+                    &configured,
+                    &policy_cfg,
+                    o,
+                    1.0,
+                )
+            })
             .collect();
         // Declared weight: construction and natural text carry equal total weight.
         let w_text = if text_raw.is_empty() {
@@ -3909,28 +4015,53 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             events.push(e);
         }
         let (policy, fit) = fit_policy(&events);
-        let mut sel = base.clone();
+        let mut sel = configured.clone();
         sel.policy = policy.clone();
-        sel.gap_thresholds = gap_thresholds;
         sel.validate_for_vocab(parent.cfg.vocab)?;
+        sel.verify_policy_contract(&policy_cfg)?;
         let mut action_hist = [0usize; ACTS + 1];
         for code in policy.iter() {
             action_hist[*code as usize] += 1;
         }
+        // Per-bucket fit occupancy, and the occupancy the served addresses actually address.
+        let mut raw_examples = vec![0usize; UTIL_BUCKETS];
+        for e in events.iter() {
+            raw_examples[e.bucket.min(UTIL_BUCKETS - 1)] += 1;
+        }
+        contract_buckets.insert(
+            name,
+            json!({
+                "buckets_with_examples": (0..UTIL_BUCKETS).filter(|b| raw_examples[*b] > 0).count(),
+                "buckets_unobserved": (0..UTIL_BUCKETS).filter(|b| raw_examples[*b] == 0).count(),
+                "buckets_below_min_support": fit.support.iter().filter(|s| **s > 0.0 && **s < UTIL_MIN_SUPPORT).count(),
+                "buckets_supported": fit.support.iter().filter(|s| **s >= UTIL_MIN_SUPPORT).count(),
+                "raw_examples_per_bucket": raw_examples,
+                "weighted_support_per_bucket": fit.support.clone(),
+            }),
+        );
         fit_report.push(json!({
             "arm": name,
             "base_arm": if name == "h4_policy" { "relational" } else { "categorical" },
             "seconds": t0.elapsed().as_secs_f64(),
+            "feature_contract": {
+                "bucket_formula": POLICY_BUCKET_FORMULA,
+                "gap_units": POLICY_GAP_UNITS,
+                "comparison": POLICY_COMPARISON,
+                "context_bits": POLICY_CONTEXT_BITS,
+                "margin_rule": POLICY_MARGIN_RULE,
+                "action_encoding": POLICY_ACTION_ENCODING,
+                "gap_thresholds": gap_thresholds,
+                "config_digest": hex_of(&policy_cfg_digest),
+                "configured_before_events": true,
+            },
             "construction_events": const_ev.len(),
             "text_events": events.len() - const_ev.len(),
             "declared_text_weight": w_text,
             "total_declared_weight": fit.total_weight,
-            "gap_thresholds": gap_thresholds,
             "global_action": fit.global_action,
             "buckets_with_own_action": fit.buckets_with_own_action,
             "fallback_buckets": fit.fallback_buckets,
             "bucket_action_histogram": action_hist,
-            "bucket_support": fit.support,
             "bucket_mean_cost": fit.mean_cost,
             "policy_actions": policy,
         }));
@@ -3938,9 +4069,36 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     }
     let h4_policy = policies["h4_policy"].clone();
     let categorical_policy = policies["categorical_policy"].clone();
+    // The fixed generic comparator, on the same ungated source and the same configured contract:
+    // every bucket applies the one-nat strength (opcode 2). It tests whether the fitted table adds
+    // anything beyond a constant small boost.
+    let mut h4_one_nat = policy_cfg.apply(&relational_base);
+    h4_one_nat.policy = vec![2u8; UTIL_BUCKETS];
+    h4_one_nat.validate_for_vocab(parent.cfg.vocab)?;
+    h4_one_nat.verify_policy_contract(&policy_cfg)?;
     mark("direct policy fit", &mut marks);
 
     // ---- export, independent reload; the RELOADED arms are what get exercised ----
+    // Acyclic binding: the artifact carries the digest of the **fit inputs** it was produced from; the
+    // surrounding delivery manifest carries each artifact's byte hash. The config digest depends only
+    // on the declared feature semantics plus the thresholds, so no hash cycle exists.
+    let mut fit_input_bytes = Vec::new();
+    for o in fit_obs
+        .iter()
+        .flatten()
+        .chain(fit_text_obs.iter().flatten())
+    {
+        fit_input_bytes.extend_from_slice(&o.cur.to_le_bytes());
+        fit_input_bytes.extend_from_slice(&o.prev.to_le_bytes());
+        fit_input_bytes.extend_from_slice(&o.prev2.to_le_bytes());
+        fit_input_bytes.extend_from_slice(&o.target.to_le_bytes());
+        fit_input_bytes.extend_from_slice(&(o.cands.len() as u32).to_le_bytes());
+        for c in o.cands.iter() {
+            fit_input_bytes.extend_from_slice(&c.payload.to_le_bytes());
+            fit_input_bytes.extend_from_slice(&c.feats);
+        }
+    }
+    let fit_input_digest = sha256_bytes(&fit_input_bytes);
     let mut export_bytes: BTreeMap<&'static str, Vec<u8>> = BTreeMap::new();
     let mut reloaded: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
     let mut reload_failures = 0usize;
@@ -3952,13 +4110,53 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             selector: sel.clone(),
             local_artifact_digest: e_digest,
             tokenizer_digest: raw_tok,
-            data_digest: [0u8; 32],
+            data_digest: fit_input_digest,
         };
         let bytes = a.to_bytes();
         write_checked(&root, &format!("artifacts/{name}.rlr2"), &bytes)?;
+        // The verified loader contract, exercised **before any prediction**.
         match RelationalArtifact::from_bytes(&bytes, &e_digest, &raw_tok) {
             Ok(b) => {
-                if b.selector != *sel || b.selector.validate_for_vocab(parent.cfg.vocab).is_err() {
+                let mut ok = b.selector == *sel
+                    && b.selector.validate_for_vocab(parent.cfg.vocab).is_ok()
+                    && b.selector.verify_policy_contract(&policy_cfg).is_ok()
+                    && b.data_digest == fit_input_digest;
+                // Rejections the consumer must actually perform.
+                let changed_cfg = PolicyConfig::new([
+                    gap_thresholds[0] - 64,
+                    gap_thresholds[1],
+                    gap_thresholds[2],
+                ]);
+                if b.selector.verify_policy_contract(&changed_cfg).is_ok() {
+                    ok = false;
+                }
+                let mut swapped = b.selector.clone();
+                // Swap two entries that actually differ, so the byte comparison is meaningful.
+                if let Some(j) = (0..UTIL_BUCKETS).find(|j| swapped.policy[*j] != swapped.policy[0])
+                {
+                    swapped.policy.swap(0, j);
+                    let bytes_swapped = RelationalArtifact {
+                        selector: swapped,
+                        local_artifact_digest: e_digest,
+                        tokenizer_digest: raw_tok,
+                        data_digest: fit_input_digest,
+                    }
+                    .to_bytes();
+                    if bytes_swapped == bytes {
+                        ok = false;
+                    }
+                }
+                let mut wrong_data = sha256_bytes(b"not-the-fit-inputs");
+                if wrong_data == fit_input_digest {
+                    wrong_data[0] ^= 1;
+                }
+                if RelationalArtifact::from_bytes(&bytes, &e_digest, &raw_tok)
+                    .map(|x| x.data_digest == wrong_data)
+                    .unwrap_or(false)
+                {
+                    ok = false;
+                }
+                if !ok {
                     reload_failures += 1;
                 }
                 reloaded.insert(name, b.selector);
@@ -3969,14 +4167,32 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     }
     let h4_load = reloaded["h4_policy"].clone();
     let cat_load = reloaded["categorical_policy"].clone();
+    // Exercise the one-nat comparator through the same configured contract.
+    let one_nat_bytes = RelationalArtifact {
+        selector: h4_one_nat.clone(),
+        local_artifact_digest: e_digest,
+        tokenizer_digest: raw_tok,
+        data_digest: fit_input_digest,
+    }
+    .to_bytes();
+    write_checked(&root, "artifacts/h4_one_nat.rlr2", &one_nat_bytes)?;
+    let one_nat_load =
+        RelationalArtifact::from_bytes(&one_nat_bytes, &e_digest, &raw_tok)?.selector;
+    one_nat_load.verify_policy_contract(&policy_cfg)?;
+    if one_nat_load != h4_one_nat {
+        reload_failures += 1;
+    }
+    export_bytes.insert("h4_one_nat", one_nat_bytes);
     mark("export + reload", &mut marks);
 
     // ---- prepared streams, ring diagnostics, panels -----------------------------
     let prep_fit = prep_stream(&parent, &local, &u, &fit_obs);
     let prep_reg = prep_stream(&parent, &local, &u, &regression_obs);
     let prep_final = prep_stream(&parent, &local, &u, &final_obs);
+    let prep_prev = prep_stream(&parent, &local, &u, &prev_obs);
     let prep_fit_text = prep_stream(&parent, &local, &u, &fit_text_obs);
     let prep_final_text = prep_stream(&parent, &local, &u, &final_text_obs);
+    let prep_prev_text = prep_stream(&parent, &local, &u, &prev_final_obs);
     mark("prepared streams", &mut marks);
 
     let arms: Vec<(&'static str, Option<&RelationalSelector>)> = vec![
@@ -3987,6 +4203,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         ("categorical_parent", Some(&categorical_base)),
         ("h4_policy", Some(&h4_load)),
         ("categorical_policy", Some(&cat_load)),
+        ("h4_one_nat_fixed", Some(&one_nat_load)),
     ];
     let mut panels: Vec<serde_json::Value> = Vec::new();
     let mut agg_store: BTreeMap<(String, String), ArmAgg> = BTreeMap::new();
@@ -4008,6 +4225,14 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             None,
         ),
         (
+            "construction_previous_seed",
+            "construction",
+            &prev_pop,
+            &prev_obs,
+            &prep_prev,
+            None,
+        ),
+        (
             "construction_final",
             "construction",
             &final_pop,
@@ -4022,6 +4247,14 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             &fit_text_obs,
             &prep_fit_text,
             Some(&fit_text_doc_pos),
+        ),
+        (
+            "text_previous_documents",
+            "text",
+            &prev_final_seqs,
+            &prev_final_obs,
+            &prep_prev_text,
+            Some(&prev_final_doc_pos),
         ),
         (
             "text_final",
@@ -4070,29 +4303,41 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         ("construction_fit", &fit_obs, &prep_fit),
         ("construction_regression", &regression_obs, &prep_reg),
         ("construction_final", &final_obs, &prep_final),
+        ("construction_previous_seed", &prev_obs, &prep_prev),
         ("text_fit", &fit_text_obs, &prep_fit_text),
         ("text_final", &final_text_obs, &prep_final_text),
+        ("text_previous_documents", &prev_final_obs, &prep_prev_text),
     ] {
         ring_means.push(ring_row(label, obs, prep));
     }
-    let admission_regret = |panel: &str, arm: &str| -> f64 {
+    let admission_regret = |panel: &str, arm: &str| -> serde_json::Value {
         agg_store
             .get(&(panel.to_string(), arm.to_string()))
-            .map(|a| a.admission_regret / a.positions.max(1) as f64)
-            .unwrap_or(f64::NAN)
+            .map(|a| {
+                json!({
+                    "candidate_only_nats_per_candidate_position": a.admission_regret_cand
+                        / a.cand_bearing.max(1) as f64,
+                    "complete_stream_nats_per_position": a.admission_regret_complete
+                        / a.positions.max(1) as f64,
+                    "empty_pool_positions_included": a.empty_pool,
+                })
+            })
+            .unwrap_or(json!(null))
     };
     let ring_diagnostics = json!({
-        "unit": "nats_per_position; target-using bound, never a serving feature",
+        "unit": "nats; target-using oracle opportunity, never a serving observation or a promised gain",
         "streams": ring_means,
-        "admission_regret_definition": "Lpool - Lring >= 0 per position on the same stream",
+        "admission_regret_definition": "Lpool - Lring >= 0 for EVERY position; an empty admitted pool has Lpool = 0",
+        "declared_trigger_nats": ADMISSION_TRIGGER_NATS,
+        "declared_trigger_note": "the parent's 0.25 trigger was candidate-only; both denominators are now reported separately and no admission change is made in this run",
         "mean_admission_regret_by_arm": {
             "construction_final_h4_policy": admission_regret("construction_final", "h4_policy"),
+            "construction_final_h4_one_nat_fixed": admission_regret("construction_final", "h4_one_nat_fixed"),
             "construction_final_categorical_policy": admission_regret("construction_final", "categorical_policy"),
             "text_final_h4_policy": admission_regret("text_final", "h4_policy"),
+            "text_final_h4_one_nat_fixed": admission_regret("text_final", "h4_one_nat_fixed"),
             "text_final_categorical_policy": admission_regret("text_final", "categorical_policy"),
         },
-        "declared_trigger_nats": ADMISSION_TRIGGER_NATS,
-        "declared_trigger_note": "if the mean admission regret on candidate-bearing positions reaches the trigger, admission becomes the named successor candidate; no admission change is made in this run",
     });
     mark("ring diagnostics", &mut marks);
 
@@ -4204,6 +4449,9 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let mut iv_emitted_follows = 0usize;
     let mut iv_ref_identical = 0usize;
     let mut iv_enabled_changes_emission = 0usize;
+    let mut iv_original_still_admitted = 0usize;
+    let mut iv_pool_size_changed = 0usize;
+    let mut iv_neighbor_changed = 0usize;
     for (gi, seq) in final_pop.iter().enumerate() {
         let os = &final_obs[gi];
         let mut chosen: Option<(usize, usize)> = None;
@@ -4317,6 +4565,24 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         if r_ec.source == Some(o.cands[k].slot_ref) {
             iv_ref_identical += 1;
         }
+        // Support and neighborhood: an `observe_full` row does not prove the original occurrence is
+        // still admitted, and admission/features of neighboring records can change.
+        if o2.cands.iter().any(|c| c.slot_ref == o.cands[k].slot_ref) {
+            iv_original_still_admitted += 1;
+        }
+        if o2.cands.len() != o.cands.len() {
+            iv_pool_size_changed += 1;
+        }
+        let neighbor_changed =
+            o.cands
+                .iter()
+                .any(|c| match o2.cands.iter().find(|d| d.abs == c.abs) {
+                    Some(d) => d.feats != c.feats || d.payload != c.payload,
+                    None => true,
+                });
+        if neighbor_changed {
+            iv_neighbor_changed += 1;
+        }
         if argmax_low(&z_ec) as u32 == *alt {
             iv_emitted_follows += 1;
         }
@@ -4334,6 +4600,9 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         "enabled_selected_the_new_payload": iv_payload_follows,
         "enabled_emitted_the_new_payload": iv_emitted_follows,
         "original_source_reference_still_served": iv_ref_identical,
+        "original_occurrence_still_admitted": iv_original_still_admitted,
+        "candidate_pool_size_changed": iv_pool_size_changed,
+        "neighbor_payload_or_feature_changed": iv_neighbor_changed,
         "enabled_emission_changed_by_the_intervention": iv_enabled_changes_emission,
         "note": "four matched conditions on the same prefix: enabled-original, enabled-changed, disabled-original, disabled-changed; the replacement payload is absent from the whole sequence and the query is fixed; support loss and NoRead are counted rather than dropped",
     }));
@@ -4485,10 +4754,26 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     // ---- manifest with a digest the loader verifies -----------------------------
     let full_binding = binding_digest(&fit_obs, &fit_text_obs, &tune_obs, &final_obs);
     let mut manifest = json!({
-        "schema": "uor-r4.reader-utility-binding/1",
-        "base_revision": "31972e34",
+        "schema": "uor-r4.reader-utility-binding/2",
+        "base_revision": "0492926d",
         "parent_root": parent_root.display().to_string(),
         "parents": parents_meta,
+        "policy_config": {
+            "config_digest": hex_of(&policy_cfg_digest),
+            "gap_thresholds": gap_thresholds,
+            "bucket_formula": POLICY_BUCKET_FORMULA,
+            "gap_units": POLICY_GAP_UNITS,
+            "comparison": POLICY_COMPARISON,
+            "context_bits": POLICY_CONTEXT_BITS,
+            "margin_rule": POLICY_MARGIN_RULE,
+            "action_encoding": POLICY_ACTION_ENCODING,
+            "configured_before_event_extraction": true,
+        },
+        "fit_input_digest": hex_of(&fit_input_digest),
+        "artifact_bytes_sha256": export_bytes
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), json!(sha256_hex(v))))
+            .collect::<serde_json::Map<_, _>>(),
         "inputs": {
             "E_sha256": E_SHA, "local_query_artifact_sha256": S_SHA,
             "tokenizer_source_sha256": TOKENIZER_SHA, "tokenizer_derived_sha256": DERIVED_SHA,
@@ -4500,6 +4785,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             "construction_fit_positions": fit_n, "construction_fit_candidate_positions": fit_cand,
             "construction_tune_positions": tune_n, "construction_regression_positions": reg_n,
             "construction_final_positions": fin_n, "construction_final_candidate_positions": fin_cand,
+            "construction_previous_seed_positions": prev_n, "construction_previous_seed_candidate_positions": prev_cand,
             "text_fit_positions": fit_text_n, "text_fit_candidate_positions": fit_text_cand,
             "text_final_positions": final_text_n, "text_final_candidate_positions": final_text_cand,
         },
@@ -4512,10 +4798,11 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             "margin_bit": "1 iff the ungated top source score strictly exceeds the runner-up's",
             "gap_thresholds": gap_thresholds,
             "actions": {"0": "NoRead", "1": "0.0625 nats", "2": "1 nat", "3": "8 nats"},
+            "bucket_occupancy": contract_buckets,
         },
         "configuration": {
             "ring_cap": RING_CAP, "max_candidates": MAX_CAND,
-            "seeds": {"fit": SEED_FIT, "tune": SEED_TUNE, "regression": SEED_FRESH, "final": SEED_FINAL},
+            "seeds": {"fit": SEED_FIT, "tune": SEED_TUNE, "regression": SEED_FRESH, "previous_final": SEED_FINAL, "final": SEED_FINAL2},
             "min_support": UTIL_MIN_SUPPORT,
             "abstention": "a read is chosen only if its mean cost is strictly below NoRead's",
             "text_weight": "construction and natural text carry equal declared total weight",
@@ -4574,17 +4861,29 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let harm_containment = d_text_h4 <= MARGIN_TEXT_BITS;
     let useful_transfer =
         d_text_h4 < 0.0 && h4_text_interval["hi"].as_f64().unwrap_or(f64::NAN) < 0.0;
-    let present_ok = corpus(&present_h4, "hard_bits_per_position")
-        <= corpus(&present_parent, "hard_bits_per_position") + MARGIN_PRESENT_BITS
-        && present_h4["correct_payload_reads"].as_u64().unwrap_or(0) + 2
-            >= present_parent["correct_payload_reads"]
-                .as_u64()
-                .unwrap_or(0);
-    let absent_ok = absent_h4["positions"].as_u64().unwrap_or(0) > 0
-        && absent_h4["correct_payload_reads"].as_u64().unwrap_or(0)
-            >= absent_parent["correct_payload_reads"].as_u64().unwrap_or(0)
-        && corpus(&absent_h4, "delta_bits_per_position")
-            <= corpus(&absent_parent, "delta_bits_per_position") + MARGIN_PRESENT_BITS;
+    // Preservation uses final-present **emitted correctness** and loss, as declared.
+    let present_loss_ok = corpus(&present_h4, "hard_bits_per_position")
+        <= corpus(&present_parent, "hard_bits_per_position") + MARGIN_PRESENT_BITS;
+    let present_emitted_ok = present_h4["emitted_correct"].as_u64().unwrap_or(0) + 2
+        >= present_parent["emitted_correct"].as_u64().unwrap_or(0);
+    let present_ok = present_loss_ok && present_emitted_ok;
+    // Absence: actual read counts AND loss, reported separately. Unknown absent answers are not
+    // expected to be guessed, so payload correctness is not part of this predicate.
+    let absent_reads_h4 = absent_h4["reads"].as_u64().unwrap_or(0);
+    let absent_reads_parent = absent_parent["reads"].as_u64().unwrap_or(0);
+    let absent_reads_available = !absent_parent["reads"].is_null();
+    let absent_loss_h4 = corpus(&absent_h4, "delta_bits_per_position");
+    let absent_loss_parent = corpus(&absent_parent, "delta_bits_per_position");
+    let absent_loss_ok = absent_loss_h4 <= absent_loss_parent;
+    let absent_reads_ok = absent_reads_available && absent_reads_h4 <= absent_reads_parent;
+    let absent_ok = absent_loss_ok && absent_reads_ok;
+    // A generic one-nat boost over the same ungated source: does the fitted table add value?
+    let fin_one_nat = agg("construction_final", "h4_one_nat_fixed");
+    let txt_one_nat = agg("text_final", "h4_one_nat_fixed");
+    let fitted_beats_one_nat_construction =
+        corpus(&fin_h4, "hard_bits_per_position") < corpus(&fin_one_nat, "hard_bits_per_position");
+    let fitted_beats_one_nat_text = corpus(&txt_final_h4, "delta_bits_per_position")
+        < corpus(&txt_one_nat, "delta_bits_per_position");
     let read_rate_h4 =
         corpus(&fin_h4, "reads") / corpus(&fin_h4, "candidate_bearing_positions").max(1.0);
     let all_noread_collapse =
@@ -4639,6 +4938,31 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
                 },
                 "margins": {"text_bits_per_token": MARGIN_TEXT_BITS, "component_bits_per_position": MARGIN_PRESENT_BITS},
                 "read_rate_among_candidate_bearing_final_construction_h4_policy": read_rate_h4,
+                "present_query_detail": {
+                    "loss_margin_ok": present_loss_ok,
+                    "emitted_correctness_ok": present_emitted_ok,
+                    "h4_policy_emitted_correct": present_h4["emitted_correct"].clone(),
+                    "parent_emitted_correct": present_parent["emitted_correct"].clone(),
+                    "h4_policy_reads": present_h4["reads"].clone(),
+                    "parent_reads": present_parent["reads"].clone(),
+                },
+                "absence_detail": {
+                    "loss_ok": absent_loss_ok,
+                    "read_count_ok": absent_reads_ok,
+                    "read_count_check_available": absent_reads_available,
+                    "h4_policy_reads": absent_reads_h4,
+                    "parent_reads": absent_reads_parent,
+                    "h4_policy_loss_bits_per_absent_query": absent_loss_h4,
+                    "parent_loss_bits_per_absent_query": absent_loss_parent,
+                    "note": "payload correctness is deliberately NOT part of this predicate: an unknowable absent answer is not expected to be guessed",
+                },
+                "constant_comparator": {
+                    "arm": "h4_one_nat_fixed",
+                    "fitted_beats_one_nat_on_construction": fitted_beats_one_nat_construction,
+                    "fitted_beats_one_nat_on_text": fitted_beats_one_nat_text,
+                    "one_nat_construction_hard_bits_per_position": corpus(&fin_one_nat, "hard_bits_per_position"),
+                    "one_nat_text_delta_bits_per_token": corpus(&txt_one_nat, "delta_bits_per_position"),
+                },
                 "categories": {
                     "harm_containment": harm_containment,
                     "useful_transfer": useful_transfer,
@@ -4647,7 +4971,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
                     "all_noread_collapse": all_noread_collapse,
                     "matched_categorical_reported": true,
                 },
-                "historical": "PR #1323's narrow controller positive, PR #1325's retained_component_positive=false and unique_geometric_benefit=false all stand at their own scope and are not re-applied",
+                "historical": "PR #1323's narrow controller positive, PR #1325's retained_component_positive=false and unique_geometric_benefit=false all stand at their own scope and are not re-applied; PR #1328's useful_transfer=true is retained under its stated CE rule with the fit/serving indexing defect attached",
             },
             "phases": marks.iter().fold((0.0f64, Vec::new()), |(prev, mut out), (n, t)| {
                 out.push(json!({"phase": n, "seconds": t - prev, "cumulative_s": t}));
@@ -4656,16 +4980,79 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             "elapsed_s": started.elapsed().as_secs_f64(),
         }),
     )?;
+    // Preflight the **serialized** structure before the expensive public step ends: every declared
+    // path must exist in the object actually written, not in a hand-authored field list.
+    let written: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("result.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let declared_paths = [
+        "schema",
+        "parents",
+        "group_digest",
+        "text_split",
+        "preparation_probe",
+        "fit",
+        "panels",
+        "ring_diagnostics",
+        "controls",
+        "generation",
+        "cost",
+        "manifest_digest",
+        "decision",
+    ];
+    let mut missing: Vec<&str> = Vec::new();
+    for p in declared_paths {
+        if written.get(p).is_none() {
+            missing.push(p);
+        }
+    }
+    for (panel, arm) in [
+        ("construction_final", "h4_policy"),
+        ("construction_final", "h4_one_nat_fixed"),
+        ("text_final", "h4_policy"),
+    ] {
+        let found = written["panels"]
+            .as_array()
+            .map(|ps| {
+                ps.iter().any(|p| {
+                    p["panel"] == panel
+                        && p["arms"]
+                            .as_array()
+                            .map(|a| a.iter().any(|x| x["arm"] == arm))
+                            .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false);
+        if !found {
+            missing.push("panel/arm");
+        }
+    }
+    if !missing.is_empty() {
+        return Err(format!(
+            "serialized result is missing declared fields: {missing:?}"
+        ));
+    }
+    write_json(
+        &root,
+        "preflight.json",
+        &json!({
+            "declared_paths_present": true,
+            "declared_paths": declared_paths,
+            "panels_checked": [["construction_final", "h4_policy"], ["construction_final", "h4_one_nat_fixed"], ["text_final", "h4_policy"]],
+            "note": "validated against the object actually written, not against a second hand-authored list",
+        }),
+    )?;
     seal(&root).map_err(|e| format!("seal: {e}"))?;
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
-        "utility-transfer: text_final h4 {:.4} cat {:.4} parent {:.4} bits/token | final present reads h4 {} parent {} | absent reads h4 {} parent {} | rel_preserved {} absence_ok {} harm {} transfer {} | manifest {} | sealed {} unlisted | {:.1}s",
-        d_text_h4, d_text_cat, d_text_parent,
-        present_h4["correct_payload_reads"].as_u64().unwrap_or(0),
-        present_parent["correct_payload_reads"].as_u64().unwrap_or(0),
-        absent_h4["correct_payload_reads"].as_u64().unwrap_or(0),
-        absent_parent["correct_payload_reads"].as_u64().unwrap_or(0),
+        "utility-transfer: text_final h4 {:.4} cat {:.4} one_nat {:.4} parent {:.4} bits/token | present emitted h4 {} parent {} | absent reads h4 {} parent {} | rel_preserved {} absence_ok {} harm {} transfer {} | fitted>1nat c={} t={} | manifest {} | sealed {} unlisted | {:.1}s",
+        d_text_h4, d_text_cat, corpus(&txt_one_nat, "delta_bits_per_position"), d_text_parent,
+        present_h4["emitted_correct"].as_u64().unwrap_or(0),
+        present_parent["emitted_correct"].as_u64().unwrap_or(0),
+        absent_reads_h4, absent_reads_parent,
         present_ok, absent_ok, harm_containment, useful_transfer,
+        fitted_beats_one_nat_construction, fitted_beats_one_nat_text,
         verified_digest, unlisted.len(), started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
