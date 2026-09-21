@@ -1,12 +1,13 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction — query-dependent geometric access among competing sources
+## Active direction — competing sources: the query-dependent read works, the language tradeoff does not
 
-D0-b/D1/D2/D3 and geometric priority remain unchanged. PR #1319 delivers a learned finite-reader prototype with synthetic improvement over a simpler exact-context arm. Its [principal review](relational-reader-review-2026-09-20.md) withdraws unique-H4 attribution: the categorical comparator is evaluated at the wrong addresses, the task permits a source-bank shortcut, and runtime/generation/cost controls remain incomplete. Current state owns the corrected quantities. The original failed criterion remains historical; no model is promoted.
+D0-b/D1/D2/D3 and geometric priority remain unchanged. The [competitive-reader result](competitive-reader-result-2026-09-20.md) replaces the PR #1319 attribution with a fair test: one shared causal inference path, one relation encoding in fit/inference/export/reload for every arm, and a construction where several **plausible same-class sources** compete for the query key.
 
-**Selected next task:** [competitive query-dependent reading](deepseek-competitive-reader-step-2026-09-20.md). Build one shared causal current-prefix inference path, incorporate the named corrections and learn selection among several plausible same-key sources. Demonstrate that changing the query changes which source controls the emitted answer. Compare actual hard-action loss, useful generated behavior and a bounded natural-text/cost tradeoff; use a competent learned alternative for any claim specific to group structure. The old frozen panel is regression evidence, not a new prospective draw.
+**Established:** paired hard-action CE improves by **−2.4956 bits [−3.7642, −1.3010]** over a matched exact-recurrence fit on the same pool, dose and objective; the **query-blind** arm is worse than the exact reader, so the gain is query-dependent; and a **properly trained, independently reloaded categorical** arm with the same table size is indistinguishable from exact, so the group structure carries it here.
+**Failed:** natural text regresses **+1.2908 bits/token** against a declared +0.05 tolerance. `positive = false`.
 
-**Sequencing:** useful single-read discrimination precedes a dependent-read scheduler. Preserve exact reference/context/relative element in its result so composition has an interface. Structural persistence and higher geometry remain available when observations or retention impose a witnessed limit. Do not add scheduling and derived lexical computation merely to compensate for an unresolved first read; no unique-H4 victory is required before useful composition can advance.
+**Selected next dependency:** (1) one **contextual strength interaction** replacing the factorising global `sb`, over causal candidate/query/local-score observations only; (2) a **source-separated natural-text fit** so the construction gain does not silently harm the predictor. Then re-measure the same panels. Do not widen the ring or candidate bound, sweep widths, reopen the frozen S attribution, or start a reset-only campaign. CPQK remains required only before a fit that uses QueryTrainer.
 
 ## Research dependencies and exit conditions
 

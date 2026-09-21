@@ -1,18 +1,30 @@
 # Current native geometric AI work
 
-## Active: useful synthetic reader candidate; query dependence and runtime remain unresolved
+## Active: competing-source geometric read — working query-dependent read, severe text harm
 
-The completed PR #1319 is delivered as `bfa13a918e4909ce679bb852d6c0acfcbd288e0e`; its head/merge trees match. Read the [principal review](relational-reader-review-2026-09-20.md) with the [original result](relational-reader-result-2026-09-20.md) and [raw receipt](../evidence/native_geometric_relational_reader_2026-09-20.txt). The review changes interpretation and sequencing, not the retained artifact or original `positive=false` outcome.
+The [result record](competitive-reader-result-2026-09-20.md) and [receipt](../evidence/native_geometric_competitive_reader_2026-09-20.txt) report one complete constructive task from base `37bf2bd1`, sealed and verified at `.uor-models/realtext-prior-2026-09-20/competitive-reader-1`. The [principal review](relational-reader-review-2026-09-20.md) remains the interpretation layer for PR #1319.
 
-**What survives:** a real learned finite H4 relation improves a small synthetic candidate-bearing panel against an independently fitted exact-context reader. Correct selected payloads rise **176 to 199**; hard-action CE change relative to local is **-1.082268 / -1.499668 bits** over 940 candidate-bearing positions. There are 233 covered positions, 1,638 eligible predictions and 120 sequences. Both arms use the same candidate pool. This is a promising component result, not natural-text quality or unique-H4 evidence.
+**Structural change.** `read_step` + `predict_next` are one **shared causal inference path** operating on the actual observed prefix — no target, sentinel or supervised record — used by evaluation, generation, interventions and timing (220 positions verified identical). `relation_index` is the **single** relation encoding used by training, inference, export and reload; the `RLR2` artifact carries the mode and code map and an **independent** loader is exercised for every arm with 0 parity failures. Initialization is the actual S write element `palette.elements[a_codes[t]]`, named explicitly.
 
-**Metric correction:** conditional precision is 176/233 versus 199/228. The saved paired **+0.098712 [0.041841, 0.160338]** instead measures success over all 233 covered positions, counting NoRead as a failed retrieval. The **-0.217206 [-0.297617, -0.134239] nats** interval belongs to soft-policy expected action cost. The deterministic hard-action gap is **-0.417401 bits** without a paired interval. Natural-text CE/fit was not run. All positive read strengths are globally 8 nats, with contextual NoRead.
+**Competing-source construction** (blocks share the query key and all use roles from the *same* paired class, so no source-class or recency shortcut separates them; fresh uses held-out payloads): 1,946 positions, 761 covered, 1,453 with competitors.
 
-**Material corrections:** the categorical arm is evaluated with H4 addresses despite being trained with a different index, invalidating its attribution claim. Geometric answer roles come from one bank and all distractors from another, allowing a query-blind source-class shortcut. Generation uses stale observations and produces two empty outputs; cost still includes local ring work and divides 29 predictions by 31. Descriptor search duplicates affected positions; parity/causality/export checks remain incomplete. The [review](relational-reader-review-2026-09-20.md) names source locations and repairs. Runtime fixes and successor fit are **NOT_RUN** by this principal review.
+| arm | hard-action CE | covered reads | covered precision | emitted acc |
+| --- | ---: | ---: | ---: | ---: |
+| local (NoRead) | 12.6347 | 0/761 | 0.000 | 0.000 |
+| exact-recurrence | 10.1377 | 592/761 | 0.778 | 0.251 |
+| categorical (**learned** code map) | 10.1513 | 591/761 | 0.777 | 0.250 |
+| **relational (H4)** | **9.9582** | **623/761** | **0.819** | **0.261** |
+| relational, query blind | 10.2716 | 571/761 | 0.750 | 0.243 |
 
-**Next action:** [implement and learn a competitive query-dependent reader](deepseek-competitive-reader-step-2026-09-20.md). Share one target-free current-prefix inference function across fit hard-forward, evaluation, export, generation and timing; incorporate specific repairs, then train on plausible competing sources with a competent learned comparator, query counterfactuals, hard-action loss and bounded natural-text regression. Preserve the read result's exact reference and directed relation for later dependent reads. A parity-only replay plus immediate two-hop scheduler is superseded.
+Paired: **relational − exact = −2.4956 bits [−3.7642, −1.3010]**, whole interval below zero. The **query-blind** arm is worse than the exact reader, and the **learned categorical** arm is indistinguishable from it — so the gain is query-dependent and, on this panel, carried by the group structure rather than by a larger learned table.
 
-**Preservation/resources:** retained root `.uor-models/realtext-prior-2026-09-20/relational-reader-1`; its current inventory includes unlisted `summarize.py`, so zero-unlisted verification is not current. Preserve all files. Ledger **182138565 / 191300000 ms**, about 152.7 minutes remaining; keep the 900000-ms run charge once. This review adds no model/build debit, fit, deletion or paid compute. Refresh live receipts before execution; physical energy remains UNAVAILABLE. Broad issues remain open.
+**The failure.** Natural text regresses **+1.2908 bits/token** (6.8002 → 8.0910) against a declared +0.05 tolerance, with 178 reads on 488 positions. This is the PR #1314 failure mode, un-repaired. Named causes: strength is still **global** (`score = v(c) + sb[a]` factorises; `sb` again picks 8 nats in every arm) and the descriptor is a static single-token code with no natural-text fitting.
+
+**Decision: `positive = false`.** The primary hard-loss criterion passes decisively and both design controls confirm query- and geometry-dependent behaviour, but the declared natural-text tradeoff fails badly. Retained as a **partial** result with the language harm explicit. One control is mis-specified and diagnosed rather than hidden: the future-token intervention also compared `i == cut`, where the mutated token is the current input and a change is expected.
+
+**Next action:** add **one contextual strength interaction** (an action-specific finite table or low-bit term over causal candidate/query/local-score observations, never over coverage or correctness) and a **source-separated natural-text fit**, then re-measure the same construction and text panels. Do not widen the ring or candidate bound, sweep widths, or reopen the frozen S attribution. `#973`/`#820`/`#963`/`#964` stay open; physical energy UNAVAILABLE.
+
+**Resources:** no extension was required. This step charges 1400000 ms once. See [ledger](resource-ledger-2026-09-19.md).
 
 ## Preserved baseline: the corrected replay of the frozen step-512 prior
 

@@ -1,0 +1,84 @@
+UOR-R4 — RECEIPT: competing-source geometric read, one shared causal inference path
+===================================================================================
+
+Date            2026-09-20
+Base source     37bf2bd1  (merge of PR #1320)
+Worktree        .worktrees/geometric-query-read, branch codex/competitive-reader
+Source          crates/uor-r4-core/src/bin/competitive-reader.rs
+                crates/uor-r4-core/src/native_geometric/learner/relational.rs (RLR2 artifact,
+                single relation_index, repaired descriptor refinement)
+Result          docs/integration/competitive-reader-result-2026-09-20.md
+Root            .uor-models/realtext-prior-2026-09-20/competitive-reader-1 (sealed, verified, 0 unlisted)
+
+PINNED INPUTS
+  E                 565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+  local S artifact  ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad
+  tokenizer         9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c
+                    a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f
+
+ONE SHARED CAUSAL INFERENCE PATH
+  read_step + predict_next take the actual observed prefix; no target, sentinel or supervised
+  record enters them. Teacher-forced evaluation, generation, interventions and timing all call them.
+  Verified: 220 positions score identically whether called through the shared path or directly.
+  Generation emitted 48 tokens for all six prompts in both arms (the old empty-output defect is
+  fixed). Selected occurrences carry their real (seq, abs) reference and the payload's real
+  absolute position; no fabricated candidate index.
+
+ONE RELATION ENCODING EVERYWHERE
+  relation_index is the single function used by training, hard-forward inference, export and reload.
+  RLR2 carries the mode and the code map; an independent loader is exercised for every arm with 0
+  parity failures. Named initialization: palette.elements[a_codes[t]] (the actual S write element),
+  not slot labels as group IDs. Refinement deduplicates affected positions, keeps the incumbent,
+  preserves ties, accepts strict improvements with a declared tolerance and returns the exact
+  full-objective change: -4527.418 -> -5057.605, 52 roots moved.
+
+FRESH COMPETING-SOURCE CONSTRUCTION (1,946 positions, 761 covered, 1,453 with competitors)
+  hard-action CE bits; paired-by-sequence 2000 draws:
+    local                12.6347      covered reads 0/761    precision 0.000   emitted acc 0.000
+    exact-recurrence     10.1377      covered reads 592/761  precision 0.778   emitted acc 0.251
+    categorical (learned code map) 10.1513  591/761         precision 0.777   emitted acc 0.250
+    relational (H4)       9.9582      623/761                precision 0.819   emitted acc 0.261
+    relational query-blind 10.2716   571/761                precision 0.750   emitted acc 0.243
+  relational - exact = -2.4956 bits [-3.7642, -1.3010]; the whole interval is below zero.
+
+  The query-blind control is WORSE than the exact reader, so the gain is query-dependent and is not
+  a recency/source-class shortcut. The categorical arm - same table size, same pool, same dose, the
+  same chance to learn its code map, independently reloaded - is indistinguishable from the exact
+  reader and clearly worse than H4.
+
+NATURAL TEXT (development regression, pinned repository documentation, already inspected)
+  8 documents / 488 positions: local 6.8002 -> reader 8.0910 bits/token, delta +1.2908 against a
+  declared +0.05 tolerance. 178 reads. The reader HARMS the language predictor. This is the PR #1314
+  failure mode and it is NOT repaired. Named causes: the strength is still global (score = v(c) +
+  sb[a] factorises, so sb again selects 8 nats in every arm) and the descriptor is a static
+  single-token code with no natural-text fitting. Neither was attempted here.
+
+DECISION  positive = false. The primary hard-loss criterion passes decisively and both fit-design
+controls confirm query- and geometry-dependent behaviour, but the declared natural-text tradeoff
+fails badly. Retained as a PARTIAL result with the language harm explicit; not promoted.
+
+CONTROLS  shared-path identity pass (220 positions); independent S-query-only check pass (0/1946
+mismatches) using the retained scorer's declared absence behaviour with the identity row removed;
+stale reference rejected after reset pass; artifact reload parity pass for every arm (0 failures);
+altered source payload 535 changed / 273 selected the new payload / 246 emitted it; future-token
+intervention 1,053 positions compared, all positions with i < cut unchanged. MIS-SPECIFIED AND
+DIAGNOSED, NOT HIDDEN: the intervention control also compared i == cut, where the mutated token is
+the current input and a change is expected; those 28 changes make instrument_checks_pass false.
+Causality itself is not violated.
+
+COST  local with NO reader work at all: 30 predictions, 1,279.3 us/prediction, 0 ring records
+scanned. Full reader path: 30 predictions, 1,265.2 us/prediction, 464 ring records scanned.
+Serialized: parent E 454,788 + local artifact 53,555 + relational artifact 8,904 bytes.
+Resident: shared row table 1,966,080 B; parent scratch 16,384 B. Peak RSS 38,584,320 B;
+wall 237.4 s. Physical energy UNAVAILABLE.
+
+FOCUSED TESTS  11 relational module tests pass, including the new ones: the single relation function
+agrees with the trainer's own index and the arms differ on the same inputs; the RLR2 artifact
+round-trips the encoding, rejects identity mismatches, trailing bytes and a non-categorical arm
+carrying a code map; and the descriptor search is deduplicated, strict and never increases the
+objective, including a repeated-role example.
+
+BOUNDARIES  Synthetic binding panel, authored role families, answers defined by document position;
+no task family, coverage or answer label enters the serving policy. Fresh is held-out payloads and
+combinations of known roles, not unseen role-family inference and not natural language. Dependent
+reads, scheduling and derived lexical computation remain unrun.

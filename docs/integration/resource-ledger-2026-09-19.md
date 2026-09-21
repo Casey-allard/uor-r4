@@ -1084,3 +1084,17 @@ The [new prompt](deepseek-occurrence-reader-step-2026-09-20.md) proposes 1080000
 **New cumulative: 182138565 ms.** Remaining: 191300000 - 182138565 = **9161435 ms (~152.7 min)**.
 
 **No limit extension was required or recorded for this step**: the projection fit the existing limit, and the standing authorization does not require spending unused allowance. Retained under the claimed, sealed and verified report root `.uor-models/realtext-prior-2026-09-20/relational-reader-1`. Whole-run peak RSS **34471936 B**; the **128 MiB model-storage stop margin is intact**; no deletion, paid/external compute or corpus download. Physical energy UNAVAILABLE.
+
+## Charges recorded — competing-source reader step (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | `learner/relational.rs`: single `relation_index`, `RLR2` artifact with an independent loader, repaired deduplicated/strict descriptor refinement, 3 new focused tests; new `bin/competitive-reader.rs` (shared `read_step`/`predict_next`, competing-source construction, five arms, audit instrument repairs, controls, natural-text regression, generation, corrected cost); one complete 237.4 s run and the build/test cycles | 1400000 ms | **Mixed.** Measured: one complete 237.4 s harness run; roughly six debug/release compile and focused-test cycles at 60-120 s each ~550 s. Estimated: a ~300 s documentation/delivery allocation. Failed builds and superseded compile cycles are charged. |
+
+**New cumulative: 183538565 ms.** Remaining: 191300000 - 183538565 = **7761435 ms (~129.4 min)**.
+
+**No limit extension was required or recorded for this step.** Retained under the claimed, sealed and
+verified report root `.uor-models/realtext-prior-2026-09-20/competitive-reader-1`. Whole-run peak RSS
+**38584320 B**; the **128 MiB model-storage stop margin is intact**; no deletion or paid/external
+compute. The PR #1319 root `relational-reader-1` is preserved untouched, including its unlisted
+`summarize.py`, which the principal review recorded honestly. Physical energy UNAVAILABLE.

@@ -158,6 +158,29 @@ pub fn relation(t: &ExactGroupTable, a: usize, b: usize) -> usize {
     t.product[ia * ROW_STRIDE + b] as usize
 }
 
+/// **The one relation-index function.** Training, hard-forward inference, export and reload all call
+/// this with the same mode and code map, so no arm can be fitted at one address and read at another.
+#[inline]
+pub fn relation_index(
+    t: &ExactGroupTable,
+    mode: RelMode,
+    code_of: &[u8],
+    q_root: u8,
+    k_root: u8,
+    q_tok: usize,
+    k_tok: usize,
+) -> usize {
+    match mode {
+        RelMode::ExactOnly => 0,
+        RelMode::Geometric => relation(t, q_root as usize, k_root as usize),
+        RelMode::Categorical => {
+            let a = *code_of.get(q_tok).unwrap_or(&0) as usize;
+            let b = *code_of.get(k_tok).unwrap_or(&0) as usize;
+            (a * 7 + b) % RANKS
+        }
+    }
+}
+
 /// How the relation index is formed. The three modes are the matched comparison arms.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RelMode {
@@ -175,6 +198,10 @@ pub enum RelMode {
 pub struct RelationalSelector {
     /// Learned per-token descriptor root.
     pub q_roots: Vec<u8>,
+    /// The arm's relation encoding. Exported and reloaded, never reconstructed by the caller.
+    pub mode: RelMode,
+    /// The arm's per-token code map (learned for the categorical arm).
+    pub code_of: Vec<u8>,
     pub w: [i32; EXACT_FEATS],
     pub rank: [i32; RANKS],
     pub bias: i32,
@@ -189,6 +216,32 @@ impl RelationalSelector {
         let mut s = self.clone();
         s.rank = [0; RANKS];
         s
+    }
+
+    /// Relation index of one candidate under this selector's own declared encoding.
+    #[inline]
+    pub fn rel_of_tokens(&self, t: &ExactGroupTable, p: &TrainPos, k: usize) -> usize {
+        let qr = p.q_role;
+        let kr = p.k_role[k];
+        if qr == usize::MAX || kr == usize::MAX {
+            return 0;
+        }
+        relation_index(
+            t,
+            self.mode,
+            &self.code_of,
+            *self.q_roots.get(qr).unwrap_or(&0),
+            *self.q_roots.get(kr).unwrap_or(&0),
+            qr,
+            kr,
+        )
+    }
+
+    /// Relation indices for a whole position.
+    pub fn rels_of(&self, t: &ExactGroupTable, p: &TrainPos) -> Vec<usize> {
+        (0..p.k_role.len())
+            .map(|k| self.rel_of_tokens(t, p, k))
+            .collect()
     }
 
     pub fn validate(&self) -> Result<(), String> {
@@ -370,19 +423,15 @@ impl RelationalTrainer {
         if qr == usize::MAX || kr == usize::MAX {
             return 0;
         }
-        match self.mode {
-            RelMode::ExactOnly => 0,
-            RelMode::Geometric => relation(
-                &self.table,
-                self.roots[qr] as usize,
-                self.roots[kr] as usize,
-            ),
-            RelMode::Categorical => {
-                let a = *self.code_of.get(qr).unwrap_or(&0) as usize;
-                let b = *self.code_of.get(kr).unwrap_or(&0) as usize;
-                (a * 7 + b) % RANKS
-            }
-        }
+        relation_index(
+            &self.table,
+            self.mode,
+            &self.code_of,
+            self.roots[qr],
+            self.roots[kr],
+            qr,
+            kr,
+        )
     }
 
     fn score(&self, c: &Cand, rel: usize, a: usize) -> f64 {
@@ -532,40 +581,56 @@ impl RelationalTrainer {
     /// For each token in a deterministic order every one of the 120 roots is evaluated on the
     /// positions that reference that token as a role; the best strictly-improving root is kept.
     /// Positions are indexed by role token, so only affected positions are rescored.
+    /// Bounded discrete coordinate search on the descriptor map, against the same objective.
+    ///
+    /// Affected positions are **deduplicated** (a query-role and source-role occurrence of the same
+    /// token otherwise counts the position twice), the search starts from the current assignment as
+    /// its incumbent, ties are preserved, and only strictly improving moves beyond `tol` are
+    /// accepted. The returned value is the change in the exact full position objective.
     pub fn refine_descriptor(&mut self, positions: &[TrainPos], rounds: usize) -> f64 {
         if self.mode != RelMode::Geometric {
             return 0.0;
         }
-        let mut by_q: Vec<Vec<usize>> = vec![Vec::new(); self.vocab];
-        let mut by_k: Vec<Vec<usize>> = vec![Vec::new(); self.vocab];
+        let mut by_role: Vec<Vec<usize>> = vec![Vec::new(); self.vocab];
         for (i, p) in positions.iter().enumerate() {
             if p.q_role != usize::MAX {
-                by_q[p.q_role].push(i);
+                by_role[p.q_role].push(i);
             }
             for k in p.k_role.iter() {
                 if *k != usize::MAX && *k < self.vocab {
-                    by_k[*k].push(i);
+                    by_role[*k].push(i);
                 }
             }
         }
-        let before: f64 = positions.iter().map(|p| self.position_loss(p)).sum();
+        for v in by_role.iter_mut() {
+            v.sort_unstable();
+            v.dedup();
+        }
+        let objective = |tr: &Self| -> f64 { positions.iter().map(|p| tr.position_loss(p)).sum() };
+        let before = objective(self);
+        let tol = 1e-9f64;
         for _ in 0..rounds {
             for t in 0..self.vocab {
-                if by_q[t].is_empty() && by_k[t].is_empty() {
+                if by_role[t].is_empty() {
                     continue;
                 }
                 let cur = self.roots[t];
-                let mut best_loss = f64::INFINITY;
+                let mut best_loss: f64 = by_role[t]
+                    .iter()
+                    .map(|i| self.position_loss(&positions[*i]))
+                    .sum();
                 let mut best_root = cur;
-                let affected: Vec<usize> = by_q[t].iter().chain(by_k[t].iter()).copied().collect();
                 for r in 0..RANKS {
+                    if r == cur as usize {
+                        continue;
+                    }
                     self.roots[t] = r as u8;
                     self.descriptor_evaluations += 1;
-                    let mut l = 0.0f64;
-                    for &i in affected.iter() {
-                        l += self.position_loss(&positions[i]);
-                    }
-                    if l < best_loss {
+                    let l: f64 = by_role[t]
+                        .iter()
+                        .map(|i| self.position_loss(&positions[*i]))
+                        .sum();
+                    if l < best_loss - tol {
                         best_loss = l;
                         best_root = r as u8;
                     }
@@ -576,8 +641,7 @@ impl RelationalTrainer {
                 }
             }
         }
-        let after: f64 = positions.iter().map(|p| self.position_loss(p)).sum();
-        after - before
+        objective(self) - before
     }
 
     /// Quantize to the served signed ≤4-bit selector with one declared global scale.
@@ -598,6 +662,8 @@ impl RelationalTrainer {
         let q = |x: f64| ((x * scale).round() as i32).clamp(-WEIGHT_MAX, WEIGHT_MAX);
         RelationalSelector {
             q_roots: self.roots.clone(),
+            mode: self.mode,
+            code_of: self.code_of.clone(),
             w: std::array::from_fn(|k| q(self.w[k])),
             rank: std::array::from_fn(|k| q(self.rank[k])),
             bias: q(self.bias),
@@ -761,6 +827,154 @@ impl RelationalTrainer {
             self.rng = mix_rng(self.rng, self.epoch);
         }
         out
+    }
+}
+
+/// A versioned selector artifact. The arm's relation **encoding** travels with it, so a reloaded
+/// selector cannot be evaluated at a different address from the one it was trained at.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RelationalArtifact {
+    pub selector: RelationalSelector,
+    pub local_artifact_digest: [u8; 32],
+    pub tokenizer_digest: [u8; 32],
+    pub data_digest: [u8; 32],
+}
+
+impl RelationalArtifact {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut o = Vec::new();
+        o.extend_from_slice(b"RLR2");
+        o.extend_from_slice(&2u32.to_le_bytes());
+        o.push(match self.selector.mode {
+            RelMode::Geometric => 0,
+            RelMode::Categorical => 1,
+            RelMode::ExactOnly => 2,
+        });
+        o.extend_from_slice(&(self.selector.q_roots.len() as u32).to_le_bytes());
+        o.extend_from_slice(&self.selector.q_roots);
+        o.extend_from_slice(&(self.selector.code_of.len() as u32).to_le_bytes());
+        o.extend_from_slice(&self.selector.code_of);
+        for v in self.selector.w.iter() {
+            o.push(*v as i8 as u8);
+        }
+        for v in self.selector.rank.iter() {
+            o.push(*v as i8 as u8);
+        }
+        for v in self.selector.sb.iter() {
+            o.push(*v as i8 as u8);
+        }
+        o.push(self.selector.bias as i8 as u8);
+        o.push(self.selector.noread as i8 as u8);
+        o.extend_from_slice(&self.local_artifact_digest);
+        o.extend_from_slice(&self.tokenizer_digest);
+        o.extend_from_slice(&self.data_digest);
+        o
+    }
+
+    /// Independent load. Rejects a wrong magic/version, an out-of-range coefficient, a mode that
+    /// disagrees with the stored code map, and any identity mismatch.
+    pub fn from_bytes(
+        bytes: &[u8],
+        expect_local: &[u8; 32],
+        expect_tokenizer: &[u8; 32],
+    ) -> Result<Self, String> {
+        let mut c = 0usize;
+        let take = |c: &mut usize, n: usize| -> Result<&[u8], String> {
+            let end = c.checked_add(n).ok_or("size overflow")?;
+            if end > bytes.len() {
+                return Err("truncated relational artifact".into());
+            }
+            let s = &bytes[*c..end];
+            *c = end;
+            Ok(s)
+        };
+        if take(&mut c, 4)? != b"RLR2" {
+            return Err("bad relational artifact magic".into());
+        }
+        let u32_at = |c: &mut usize| -> Result<u32, String> {
+            Ok(u32::from_le_bytes(take(c, 4)?.try_into().unwrap()))
+        };
+        if u32_at(&mut c)? != 2 {
+            return Err("unsupported relational artifact version".into());
+        }
+        let mode = match take(&mut c, 1)?[0] {
+            0 => RelMode::Geometric,
+            1 => RelMode::Categorical,
+            2 => RelMode::ExactOnly,
+            _ => return Err("unknown relational mode".into()),
+        };
+        let vocab = u32_at(&mut c)? as usize;
+        if vocab == 0 || vocab > 1 << 20 {
+            return Err("relational artifact vocabulary out of range".into());
+        }
+        let q_roots = take(&mut c, vocab)?.to_vec();
+        let n_codes = u32_at(&mut c)? as usize;
+        let code_of = take(&mut c, n_codes)?.to_vec();
+        if mode == RelMode::Categorical && code_of.len() != vocab {
+            return Err("categorical arm requires a per-token code map".into());
+        }
+        if mode != RelMode::Categorical && !code_of.is_empty() {
+            return Err("a non-categorical arm must not carry a code map".into());
+        }
+        let mut w = [0i32; EXACT_FEATS];
+        for slot in w.iter_mut() {
+            let b = take(&mut c, 1)?[0] as i8 as i32;
+            if b.abs() > WEIGHT_MAX {
+                return Err("exact weight outside the declared bound".into());
+            }
+            *slot = b;
+        }
+        let mut rank = [0i32; RANKS];
+        for slot in rank.iter_mut() {
+            let b = take(&mut c, 1)?[0] as i8 as i32;
+            if b.abs() > WEIGHT_MAX {
+                return Err("rank outside the declared bound".into());
+            }
+            *slot = b;
+        }
+        let mut sb = [0i32; ACTS];
+        for slot in sb.iter_mut() {
+            let b = take(&mut c, 1)?[0] as i8 as i32;
+            if b.abs() > WEIGHT_MAX {
+                return Err("strength bias outside the declared bound".into());
+            }
+            *slot = b;
+        }
+        let bias = take(&mut c, 1)?[0] as i8 as i32;
+        let noread = take(&mut c, 1)?[0] as i8 as i32;
+        if bias.abs() > WEIGHT_MAX || noread.abs() > WEIGHT_MAX {
+            return Err("selector bias outside the declared bound".into());
+        }
+        let mut local_artifact_digest = [0u8; 32];
+        local_artifact_digest.copy_from_slice(take(&mut c, 32)?);
+        let mut tokenizer_digest = [0u8; 32];
+        tokenizer_digest.copy_from_slice(take(&mut c, 32)?);
+        let mut data_digest = [0u8; 32];
+        data_digest.copy_from_slice(take(&mut c, 32)?);
+        if c != bytes.len() {
+            return Err("trailing bytes in the relational artifact".into());
+        }
+        if &local_artifact_digest != expect_local {
+            return Err("relational artifact local-baseline digest differs".into());
+        }
+        if &tokenizer_digest != expect_tokenizer {
+            return Err("relational artifact tokenizer digest differs".into());
+        }
+        Ok(Self {
+            selector: RelationalSelector {
+                q_roots,
+                mode,
+                code_of,
+                w,
+                rank,
+                bias,
+                sb,
+                noread,
+            },
+            local_artifact_digest,
+            tokenizer_digest,
+            data_digest,
+        })
     }
 }
 
@@ -986,6 +1200,137 @@ mod tests {
         assert!(tr.descriptor_evaluations > 0);
         assert!(tr.descriptor_evaluations <= (vocab * RANKS * 2) as u64);
         assert_ne!(relation(&t, 1, 2), relation(&t, 2, 1));
+    }
+
+    #[test]
+    fn the_single_relation_function_agrees_with_the_trainers_own_index() {
+        let t = table();
+        let vocab = 8usize;
+        let mut tr = RelationalTrainer::new(
+            vocab,
+            t.clone(),
+            0.02,
+            3,
+            [1u8; 32],
+            [2u8; 32],
+            &(0..8u8).collect::<Vec<u8>>(),
+        )
+        .with_mode(
+            RelMode::Categorical,
+            (0..vocab).map(|k| (k * 5 + 1) as u8).collect(),
+        );
+        let p = TrainPos {
+            cands: vec![cand([0; EXACT_FEATS], 1)],
+            q_role: 2,
+            k_role: vec![5],
+            delta: vec![[0.1, 0.1, 0.1]],
+            group: 0,
+        };
+        let via_trainer = tr.rel_of(&p, 0);
+        let via_function = relation_index(
+            &t,
+            RelMode::Categorical,
+            &tr.code_of,
+            tr.roots[2],
+            tr.roots[5],
+            2,
+            5,
+        );
+        assert_eq!(via_trainer, via_function);
+        let mut g = tr.clone();
+        g.mode = RelMode::Geometric;
+        assert_ne!(
+            g.rel_of(&p, 0),
+            via_trainer,
+            "arm encodings differ on the same inputs"
+        );
+    }
+
+    #[test]
+    fn artifact_round_trips_the_encoding_and_rejects_mismatches() {
+        let t = table();
+        let mut tr = RelationalTrainer::new(
+            8,
+            t,
+            0.02,
+            3,
+            [1u8; 32],
+            [2u8; 32],
+            &(0..8u8).collect::<Vec<u8>>(),
+        )
+        .with_mode(
+            RelMode::Categorical,
+            (0..8).map(|k| (k * 3 + 2) as u8).collect(),
+        );
+        tr.rank[4] = 1.5;
+        let sel = tr.quantize();
+        let art = RelationalArtifact {
+            selector: sel.clone(),
+            local_artifact_digest: [7u8; 32],
+            tokenizer_digest: [9u8; 32],
+            data_digest: [3u8; 32],
+        };
+        let b = art.to_bytes();
+        let back = RelationalArtifact::from_bytes(&b, &[7u8; 32], &[9u8; 32]).expect("round trip");
+        assert_eq!(back, art);
+        assert_eq!(back.selector.mode, RelMode::Categorical);
+        assert_eq!(back.selector.code_of, sel.code_of);
+        assert!(RelationalArtifact::from_bytes(&b, &[8u8; 32], &[9u8; 32]).is_err());
+        assert!(RelationalArtifact::from_bytes(&b, &[7u8; 32], &[8u8; 32]).is_err());
+        assert!(RelationalArtifact::from_bytes(&b[..b.len() - 1], &[7u8; 32], &[9u8; 32]).is_err());
+        let mut trailing = b.clone();
+        trailing.push(0);
+        assert!(RelationalArtifact::from_bytes(&trailing, &[7u8; 32], &[9u8; 32]).is_err());
+        let mut g = art.clone();
+        g.selector.mode = RelMode::Geometric;
+        assert!(RelationalArtifact::from_bytes(&g.to_bytes(), &[7u8; 32], &[9u8; 32]).is_err());
+    }
+
+    #[test]
+    fn descriptor_search_is_deduplicated_strict_and_never_increases_the_objective() {
+        let t = table();
+        let vocab = 6usize;
+        let mut tr = RelationalTrainer::new(
+            vocab,
+            t,
+            0.05,
+            5,
+            [5u8; 32],
+            [6u8; 32],
+            &(0..vocab as u8).collect::<Vec<u8>>(),
+        );
+        let mk = |qr: usize, kr: usize, correct: bool| TrainPos {
+            cands: vec![cand([0, 0, 0, 0, 0, 1], 3)],
+            q_role: qr,
+            k_role: vec![kr],
+            delta: vec![[
+                action_loss(0.01, boost(0), correct),
+                action_loss(0.01, boost(1), correct),
+                action_loss(0.01, boost(2), correct),
+            ]],
+            group: 0,
+        };
+        // Position 0 references token 1 as both query and source role: a naive concatenation would
+        // count it twice for token 1.
+        let positions = vec![
+            mk(1, 1, true),
+            mk(1, 2, true),
+            mk(2, 1, true),
+            mk(1, 3, false),
+            mk(3, 1, false),
+        ];
+        let before: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
+        let change = tr.refine_descriptor(&positions, 2);
+        let after: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
+        assert!(
+            change <= 1e-12,
+            "search must not increase the objective: {change}"
+        );
+        assert!(
+            (after - before - change).abs() < 1e-9,
+            "the returned change must be the exact objective change"
+        );
+        assert!(tr.descriptor_evaluations <= (vocab * RANKS * 2) as u64);
     }
 
     #[test]
