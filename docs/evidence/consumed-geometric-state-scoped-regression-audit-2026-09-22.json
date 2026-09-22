@@ -1,0 +1,318 @@
+{
+  "schema": "uor-r4.consumed-scoped-regression-audit/1",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-4",
+  "method": "Read-only audit of report, raw authored assertions/questions, learned artifacts and source/executable bytes; no model execution",
+  "seals": [
+    {
+      "root": "scoped-memory-principal-2",
+      "listed_files": 10,
+      "bytes": 667178,
+      "errors": [],
+      "missing": [],
+      "unlisted": []
+    },
+    {
+      "root": "scoped-memory-principal-4",
+      "listed_files": 10,
+      "bytes": 857678,
+      "errors": [],
+      "missing": [],
+      "unlisted": []
+    }
+  ],
+  "provenance": {
+    "git_rev": "6be7f8fcfe6b029ee9ce01f07cda9b29f8e1f4b3",
+    "git_dirty": "true",
+    "source": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+        "recorded_sha256": "a4925b9514586bbf76b4c81e4547a5719821b0a9d6b8047fabc756bd164e7a67",
+        "commit_matches": true,
+        "working_file_matches": true
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+        "recorded_sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea",
+        "commit_matches": true,
+        "working_file_matches": true
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "recorded_sha256": "c9bc544c94b15dfae819277a999fbe782b8eb336513084c65f71bddbf4ea9785",
+        "commit_matches": true,
+        "working_file_matches": true
+      }
+    ],
+    "executable": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-delivery/competitive-reader-6be7f8fc",
+      "actual_sha256": "33967f0c908059b00b150fe27484f8425317ec8cdfbd6f74df356578eca924c7",
+      "matches": true
+    },
+    "root2_rows_identical": false,
+    "root2_caveat": "Caller git_dirty=false despite pending documentation edits; model source hashes match committed source. Root3 corrects caller flag to true, same binary/rows/artifacts, not another fresh evaluation."
+  },
+  "artifacts": {
+    "binder": {
+      "sha256": "a6cdbeca00a504aa68d8ae25fc7e39b57917fb945fe02bb9b403288d33ac0502",
+      "unchanged_from_submission": true
+    },
+    "intent": {
+      "sha256": "73265f5108dec5859e2c4faa6e063f076e269803a8fd85f5fae6d4438f65f7e1",
+      "unchanged_from_submission": false
+    }
+  },
+  "counts": {
+    "rows": 519,
+    "kinds": {
+      "ingest": 255,
+      "ask": 236,
+      "ask_view": 28
+    },
+    "events": 1095,
+    "reads": 305,
+    "selected_reads": 215,
+    "primary": {
+      "questions": 38,
+      "kinds": {
+        "ask": 34,
+        "ask_view": 4
+      },
+      "matches": 38,
+      "terminal_counts": {
+        "Complete": 36,
+        "NoHistory": 1,
+        "Unresolved": 1
+      }
+    }
+  },
+  "original_preservation": {
+    "compared_rows": 511,
+    "fields": [
+      "text",
+      "scope",
+      "expected",
+      "matched",
+      "answer",
+      "terminal",
+      "hop",
+      "wrote",
+      "learned_intent",
+      "learned_is_question",
+      "expected_write"
+    ],
+    "differences": []
+  },
+  "ownership": {
+    "checked_selected_reads": 215,
+    "checked_complete_captures": 174,
+    "errors": []
+  },
+  "independent_semantics": {
+    "query_expectations_checked": 264,
+    "match_flags_checked": 264,
+    "errors": []
+  },
+  "capacity": {
+    "paired_questions": 16,
+    "identical_inputs": true,
+    "differences": [
+      {
+        "turn": 17,
+        "text": "What was Ivo's office originally?",
+        "normal": [
+          "Complete",
+          "Fen"
+        ],
+        "capacity2": [
+          "Evicted",
+          ""
+        ]
+      },
+      {
+        "turn": 22,
+        "text": "What was Ivo's office originally?",
+        "normal": [
+          "Complete",
+          "Fen"
+        ],
+        "capacity2": [
+          "Evicted",
+          ""
+        ]
+      }
+    ],
+    "qualification": "These two existing questions distinguish retention-limited semantics from full history; capacity+2 eviction correctness is additionally covered by executed module/runner tests, not a new language panel."
+  },
+  "historical_dependent": [
+    {
+      "text": "What was Cedar's office before?",
+      "answer": "Cedar Annex",
+      "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+      "matched": true,
+      "pin_view": 5,
+      "read_commits": [
+        3,
+        5
+      ]
+    },
+    {
+      "text": "What was Cedar's office originally?",
+      "answer": "Cedar Annex",
+      "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+      "matched": true,
+      "pin_view": 5,
+      "read_commits": [
+        3,
+        5
+      ]
+    },
+    {
+      "text": "What is Cedar's office?",
+      "answer": "Office Park",
+      "expected": "Complete { value: \"Office Park\", hops: 2 }",
+      "matched": true,
+      "pin_view": 5,
+      "read_commits": [
+        4,
+        2
+      ]
+    }
+  ],
+  "restart": {
+    "child_status": 0,
+    "queries": 16,
+    "query_kinds": {
+      "ask": 14,
+      "ask_view": 2
+    },
+    "raw_query_semantic_fields": [],
+    "independent_child_answer_errors": [],
+    "checkpoint_count": 11,
+    "checkpoint_phases": {
+      "Read": 2,
+      "Continue": 1,
+      "Emit": 6,
+      "Stop": 2
+    },
+    "checkpoint_views": [
+      11
+    ],
+    "resumed_matches": 11,
+    "resumed_exact_answer_matches": true,
+    "post_restart_write": true,
+    "post_restart_answer": "Office Park",
+    "post_restart_view": 12,
+    "source_review": "scm_reload_check loads model/intent/store/tokenizer; raw ask calls runtime.ask, learned correction calls ingest, every saved session calls restore/run after the correction. No entity/relation/history fields route a raw ask. Expected checkpoint answers are compared only after inference."
+  },
+  "fractured_read": {
+    "pin": 11,
+    "pinned_answer": "Cedar Annex",
+    "unpinned_answer": "Office Park",
+    "all_committed_cedar_answers": [
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        0
+      ],
+      [
+        "Unresolved",
+        "",
+        1
+      ],
+      [
+        "Complete",
+        "Fen",
+        2
+      ],
+      [
+        "Complete",
+        "Cedar Annex",
+        2
+      ],
+      [
+        "Complete",
+        "Fen",
+        1
+      ],
+      [
+        "Complete",
+        "Fen",
+        1
+      ]
+    ],
+    "last_three_committed_answers": [
+      [
+        "Complete",
+        "Cedar Annex",
+        2
+      ],
+      [
+        "Complete",
+        "Fen",
+        1
+      ],
+      [
+        "Complete",
+        "Fen",
+        1
+      ]
+    ],
+    "unpinned_answer_absent_from_all_committed_cedar_views": true,
+    "source_review": "After captured Cedar->Oren, source genuinely commits Cedar->Fen first, then Oren->Office Park. Pinned continuation emits old Annex, unpinned consumes old link with new terminal. Office Park is never a committed Cedar answer."
+  },
+  "remaining_qualifications": [
+    "Corrected exposed replay, not fresh held-out draw; original final was lexical renaming with shared fitted forms and exposed event structure.",
+    "38/38 primary means 34 learned text asks and four explicit API calls, with two expected non-answer outcomes. Child is 14 learned text asks plus two API controls against the final serialized store.",
+    "Historical continuation convention is first-hop requested history and downstream Current at the answer pin, not reconstruction of the world at the historical assertion timestamp.",
+    "Immutable-history validation, owned capture and bounded payload retention do not bound total tombstone metadata or establish authenticated adversarial tamper resistance.",
+    "No H4 predictive advantage, broad language/reasoning, whole-path D0-b or energy qualification is established.",
+    "Scope comes from a host-authenticated tag. The finite authored language surface and training forms remain narrow."
+  ],
+  "pass": false,
+  "versioned_comparison": {
+    "old_intent_version": 1,
+    "new_intent_version": 2,
+    "new_statement_classes": 4,
+    "question_parameters_unchanged": true,
+    "statement_parameters_unchanged_with_zero_fourth_coordinate": true,
+    "session_format": 4,
+    "legacy_byte_identity_pass": false,
+    "interpretation": "The retained-mode replay has identical compared row behavior but explicitly different artifact/session formats. Old global pass predicate includes byte-identical old intent and serialized rows; it remains false. Semantic and provenance checks below are distinct."
+  },
+  "semantic_provenance_verified": true
+}

@@ -1,0 +1,928 @@
+{
+  "schema": "uor-r4.consumed-submission-independent-audit/1",
+  "method": "Saved artifact/receipt audit. Independent integer Hamilton products over explicitly declared signed-axis labels; no model execution. Source audit fixed at a94c9dec.",
+  "roots": [
+    {
+      "root": 1,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      }
+    },
+    {
+      "root": 2,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      }
+    },
+    {
+      "root": 3,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      }
+    },
+    {
+      "root": 4,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      }
+    },
+    {
+      "root": 5,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      }
+    },
+    {
+      "root": 6,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      }
+    },
+    {
+      "root": 7,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089416",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "088c6b661ce52c99adb318aed24717c73aee05e10dff5ac7ad337f6b35f45f77"
+      },
+      "rows": 320,
+      "rows_sha256": "d4dba34990687f22fd96a2231dfc9f501ca30a4b6bd9028d8ac6cd70b8e94642",
+      "final_rows_sha256": "a1c2273a0ff0cbb9a5300540cc21c64b62c4d5330e5e2c0b9b906e5d74a16c0b",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 40,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": false,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": false,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "2e7ce6b968fa47efc6b71dbfe947a8f31bc386f28aa4dd34961ed7aae6ac9f03",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "db86eac9c55d0100b8ea60a52704c6ec18e768ab830bfdc47dc74c4d0bf4c6de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "a3b439fc3588087a96389e99ab3eb085c232a8f514db6fa6658ef115c65f5c83"
+          }
+        ]
+      }
+    },
+    {
+      "root": 8,
+      "exists": true,
+      "sealed": false,
+      "artifact_sha256": {}
+    },
+    {
+      "root": 9,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089503",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 320,
+      "rows_sha256": "6f59e531deadc34e4f002ffce244646ed11730d9919e1c3139922d1260ae7df6",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "8d67f4e3716f4c18367acb563c730d8b486810fd4c115c26c9ac19221aea0635",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "db86eac9c55d0100b8ea60a52704c6ec18e768ab830bfdc47dc74c4d0bf4c6de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "c82076c900884f95259a2cdb73581fd8b220207dc591639d6e8ec7ef36205a62"
+          }
+        ]
+      }
+    },
+    {
+      "root": 10,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089555",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 320,
+      "rows_sha256": "c97d5a9fd2161597c974c9c1833b72091bf146241bb1388bf098b1394b4a20cc",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "47acdce667323008e2f109f6796dbb0e0a387787f270cd5fbf756e98434278c4",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "db86eac9c55d0100b8ea60a52704c6ec18e768ab830bfdc47dc74c4d0bf4c6de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "ca04b6c70b5a57a1b70818ac1e9d3bae679174248669ec7e99d7b471d5247e6f"
+          }
+        ]
+      }
+    },
+    {
+      "root": 11,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089592",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 320,
+      "rows_sha256": "e5ef3a866a3c04414be1bc2982da49fda4e146f0dddec094f55ddb04dde4bb4b",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "a826e73e9d74e676fb209ec6810441909992de5928c06c39d2a07e5da34cf8fc",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "db86eac9c55d0100b8ea60a52704c6ec18e768ab830bfdc47dc74c4d0bf4c6de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "ad6fbaaaf46ac5926cf634d9909702cd84a288e4f2af846e72fef1cdda3c2919"
+          }
+        ]
+      }
+    },
+    {
+      "root": 12,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089756",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 320,
+      "rows_sha256": "e5ef3a866a3c04414be1bc2982da49fda4e146f0dddec094f55ddb04dde4bb4b",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "a826e73e9d74e676fb209ec6810441909992de5928c06c39d2a07e5da34cf8fc",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "b7ef907a2c08eda13e3a389b85c00a4b22bd97c634ad37e9bc9c960ba61fd6e7"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "8f793ad0ff7bba45eba1c900be2d66ddafd3b01580436da3c47561d0bec67e55"
+          }
+        ]
+      }
+    },
+    {
+      "root": 13,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089766",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 320,
+      "rows_sha256": "e5ef3a866a3c04414be1bc2982da49fda4e146f0dddec094f55ddb04dde4bb4b",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "a826e73e9d74e676fb209ec6810441909992de5928c06c39d2a07e5da34cf8fc",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "b7ef907a2c08eda13e3a389b85c00a4b22bd97c634ad37e9bc9c960ba61fd6e7"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e61b98f0778d4b2fc492231e27262cad5978d09a8b4f52a5869e37f5d9beb02e"
+          }
+        ]
+      }
+    },
+    {
+      "root": 14,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089797",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 360,
+      "rows_sha256": "8263a315492d96ff362eafbebfb8c942b3be12496be2863e4ccdd2fdf71ce886",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "674a5b71cc8302565e146215f152efbb34c4218426e23a8950acd4a9287acc6e",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "b7ef907a2c08eda13e3a389b85c00a4b22bd97c634ad37e9bc9c960ba61fd6e7"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "2ecfdf112c863c2a25ce3ddb310b89c708f4942f168521ac1574357d72c27323"
+          }
+        ]
+      }
+    },
+    {
+      "root": 15,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790089949",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 360,
+      "rows_sha256": "01e187cd6fa744b1e3b2fc6e077210ff8d7d77f33f2136787ce8ca3bf08d2e3b",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "bab8636438ce38bf408c5a1066d5bb6823a52d67b1a375bdb5e9a0d7bfc352cb",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "99b79a3825b9c2627fdda5d989b7c3154c27cfe0e2366539a4c078e83764303b"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "2ecfdf112c863c2a25ce3ddb310b89c708f4942f168521ac1574357d72c27323"
+          }
+        ]
+      }
+    },
+    {
+      "root": 16,
+      "exists": true,
+      "sealed": true,
+      "bad_seals": [],
+      "missing": [],
+      "unlisted": [],
+      "sealed_at": "1790090396",
+      "artifact_sha256": {
+        "artifacts/intent.json": "3219e8dae3a1270fa0cda8c6b2e2efddaf6f2a6369ec25544cf30aa77dd20c35",
+        "artifacts/model.json": "5d84a8711bcab606f51fb9baaf26b3578ac5083e4dfe98704ec24a8332500785",
+        "artifacts/lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "artifacts/artifact.json": "fd53545c19fd99cef739f5b515fdde0a031f29be5748d32f1956759624f8d1ec"
+      },
+      "rows": 360,
+      "rows_sha256": "01e187cd6fa744b1e3b2fc6e077210ff8d7d77f33f2136787ce8ca3bf08d2e3b",
+      "final_rows_sha256": "f752c23faedff02111585d11519d191c3098bea7654911819cd1407b89af171d",
+      "panels": [
+        {
+          "arm": "primary_signed",
+          "complete": 56,
+          "panel": "development",
+          "requests": 56
+        },
+        {
+          "arm": "primary_signed",
+          "complete": 24,
+          "panel": "final",
+          "requests": 24
+        }
+      ],
+      "checks": {
+        "consume_disabled_changes_answer": true,
+        "consumption_necessary": true,
+        "development_complete": true,
+        "disk_reload_identical": true,
+        "final_complete": true,
+        "fold_loses_the_order_distinction": true,
+        "fresh_process_identical": true,
+        "identity_unchanged": true,
+        "order_changes_state": true,
+        "ordinary_lifecycle": true,
+        "owned_resume_identical": true
+      },
+      "running_source": {
+        "executable_sha256": "b25fcb13eee81696954fa10471e635961df490cfe99683c748fdc536438377ab",
+        "git_dirty": "false",
+        "git_rev": "a94c9dec",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "ef217e2dee04ff5c16c97884d83ee4e5acb5927b9ffec2d29cdf867239b34272"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e33c4d02f67ade49034cb47159b6b26d19c1bb42ad40e192bb7ce469f5afd9c4"
+          }
+        ]
+      }
+    }
+  ],
+  "source_bindings": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+      "recorded_sha256": "ef217e2dee04ff5c16c97884d83ee4e5acb5927b9ffec2d29cdf867239b34272",
+      "committed_matches": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+      "recorded_sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f",
+      "committed_matches": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+      "recorded_sha256": "e33c4d02f67ade49034cb47159b6b26d19c1bb42ad40e192bb7ce469f5afd9c4",
+      "committed_matches": true
+    }
+  ],
+  "executable": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-delivery/competitive-reader-submitted-a94c9dec",
+    "exists": true,
+    "recorded_sha256": "b25fcb13eee81696954fa10471e635961df490cfe99683c748fdc536438377ab",
+    "actual_sha256": "b25fcb13eee81696954fa10471e635961df490cfe99683c748fdc536438377ab",
+    "matches": true
+  },
+  "independent_audit": {
+    "rows": 360,
+    "expectations_checked": 360,
+    "match_flags_checked": 360,
+    "selected_reads_checked": 506,
+    "complete_owned_emissions_checked": 266,
+    "primary_computation_arithmetic_checked": 64,
+    "primary_consumed_addresses_checked": 64,
+    "errors": [],
+    "oracle_note": "Expected labels from signed-axis Hamilton arithmetic and authored world, not learned factorization or row.expected. Intermediate-state checks use only artifact initial gauge and integer products."
+  },
+  "arm_counts": [
+    {
+      "arm": "apply_disabled",
+      "rows": 40,
+      "matches": 12,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 4,
+      "read_depths_for_computation": {
+        "2": 32
+      },
+      "actual_primitive_apply_events": 0
+    },
+    {
+      "arm": "consume_disabled",
+      "rows": 40,
+      "matches": 12,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 4,
+      "read_depths_for_computation": {
+        "2": 32
+      },
+      "actual_primitive_apply_events": 60
+    },
+    {
+      "arm": "finite_transition",
+      "rows": 40,
+      "matches": 26,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 18,
+      "read_depths_for_computation": {
+        "2": 17,
+        "1": 14,
+        "3": 1
+      },
+      "actual_primitive_apply_events": 60
+    },
+    {
+      "arm": "folded_central_sign",
+      "rows": 40,
+      "matches": 24,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 16,
+      "read_depths_for_computation": {
+        "3": 8,
+        "2": 24
+      },
+      "actual_primitive_apply_events": 60
+    },
+    {
+      "arm": "no_read",
+      "rows": 40,
+      "matches": 0,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 0,
+      "read_depths_for_computation": {
+        "1": 32
+      },
+      "actual_primitive_apply_events": 0
+    },
+    {
+      "arm": "primary_signed",
+      "rows": 80,
+      "matches": 80,
+      "ordinary": 16,
+      "computation": 64,
+      "computation_matches": 64,
+      "read_depths_for_computation": {
+        "2": 59,
+        "3": 5
+      },
+      "actual_primitive_apply_events": 120
+    },
+    {
+      "arm": "tabulated_finite",
+      "rows": 40,
+      "matches": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 32,
+      "read_depths_for_computation": {
+        "2": 30,
+        "3": 2
+      },
+      "actual_primitive_apply_events": 60
+    },
+    {
+      "arm": "unscoped",
+      "rows": 40,
+      "matches": 0,
+      "ordinary": 8,
+      "computation": 32,
+      "computation_matches": 0,
+      "read_depths_for_computation": {
+        "1": 32
+      },
+      "actual_primitive_apply_events": 0
+    }
+  ],
+  "novelty": {
+    "first_recorded_final_root": 7,
+    "root7_final_complete": {
+      "arm": "primary_signed",
+      "complete": 24,
+      "panel": "final",
+      "requests": 24
+    },
+    "root7_development_complete": {
+      "arm": "primary_signed",
+      "complete": 40,
+      "panel": "development",
+      "requests": 56
+    },
+    "root15_root16_rows_byte_identical": true,
+    "whole_final_people_dests_disjoint": true,
+    "fitting_operation_orders": [
+      [
+        "i",
+        "j"
+      ],
+      [
+        "j",
+        "i"
+      ],
+      [
+        "i",
+        "e"
+      ]
+    ],
+    "final_operation_orders": [
+      [
+        "i",
+        "j",
+        "i"
+      ],
+      [
+        "j",
+        "i",
+        "j"
+      ]
+    ],
+    "qualification": "Unseen order combinations and length3 at first exposure root7; same final population was then repeatedly evaluated while identity and comparator changed. Root16 is exposed regression, not fresh post-selection acceptance."
+  },
+  "worlds": {
+    "assignments": {
+      "0": [
+        6,
+        1,
+        4,
+        3
+      ],
+      "1": [
+        6,
+        1,
+        4,
+        3
+      ],
+      "4": [
+        0,
+        5,
+        2,
+        7
+      ],
+      "5": [
+        6,
+        1,
+        4,
+        3
+      ]
+    },
+    "redirects": {
+      "0": 5,
+      "1": 2,
+      "4": 3,
+      "5": 6
+    },
+    "world_assignment_bug": "cgs_worlds tests people.len()==CGS_FINAL_PEOPLE.len(); both constants length4, so first assignment branch always overwritten. Development scopes share operand assignment; beta differs in redirect position."
+  },
+  "claims_requiring_qualification": [
+    {
+      "id": "same_artifact_preservation_missing",
+      "severity": "blocker_for_completion",
+      "finding": "Binder/intent refit from 48 Cgs forms, not preserved artifacts. cgs_ordinary is only two scoped assertions, one NonAsserting question and two asks. Corrections/history/same-value/initial/previous/capacity/in-flight pin lifecycle not exercised with this artifact."
+    },
+    {
+      "id": "raw_memory_bypass",
+      "severity": "blocker_for_completion",
+      "finding": "cgs_memory calls Memory.write directly with authored relation0 and continues booleans. Five primary third-hop cases demonstrate deterministic continuation over host-authored links, not learned interpretation of raw documents."
+    },
+    {
+      "id": "restart_scope",
+      "severity": "blocker_for_completion",
+      "finding": "One same-store in-memory snapshot after first Apply; disk reload restarts from request; fresh process restarts serialized Clause from beginning. No child phase restore, no before/after consumption restore, no origin mutation/eviction, no exact provenance comparison in child success gate."
+    },
+    {
+      "id": "exposed_final",
+      "severity": "qualification",
+      "finding": "Final24/24 first exposed root7 before dev16 failures were corrected; root16 exact replay of15. Retain score but call exposed composition panel."
+    },
+    {
+      "id": "control_gate",
+      "severity": "repair",
+      "finding": "consume_disabled_changes_answer only checks consumed=false; it does not compare answers or verify unchanged computed state. Saved witness does change answer, but predicate fails to enforce it."
+    },
+    {
+      "id": "unscoped_control",
+      "severity": "qualification",
+      "finding": "Control empties lookup scope while fixture records all have named scopes. 0/40 is missing-address behavior, not competitive cross-scope value selection."
+    },
+    {
+      "id": "comparator_persistence",
+      "severity": "qualification",
+      "finding": "Only signed artifact persisted/reloaded. Fitted, tabulated and folded arms use in-memory clones; no saved finite transition artifact/provenance permits standalone reproduction of their rows."
+    },
+    {
+      "id": "finite_decoder",
+      "severity": "qualification",
+      "finding": "Fitted shared-transition arm inverts value_state to decode instead of using its trained decoder. Source result acknowledges mismatch;26/40 cannot attribute the gap to lack of geometry. Tabulated finite32/32 computation control ties signed."
+    },
+    {
+      "id": "counts",
+      "severity": "qualification",
+      "finding": "Primary80 requests comprise16 ordinary and64 compute;40-row arms comprise8 ordinary and32 compute. Apply effect tally584 includes publication steps with no operator; actual primitive Apply events360 across all arms."
+    },
+    {
+      "id": "world_assignment",
+      "severity": "repair",
+      "finding": "All length4 people slices trigger final assignment branch, collapsing intended development world assignment diversity."
+    },
+    {
+      "id": "artifact_version",
+      "severity": "qualification",
+      "finding": "New Session version3 invalidates serialized version2 sessions even memory-only; old retained code unchanged does not establish persisted artifact compatibility."
+    }
+  ]
+}

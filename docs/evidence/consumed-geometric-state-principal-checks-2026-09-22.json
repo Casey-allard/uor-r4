@@ -1,0 +1,261 @@
+{
+  "schema": "uor-r4.consumed-state-principal-checks/1",
+  "recorded_at": "2026-09-22T15:57:42.239183+00:00",
+  "review_validation": "PASS",
+  "model_integration_complete": false,
+  "source_revision": "6be7f8fcfe6b029ee9ce01f07cda9b29f8e1f4b3",
+  "source_hashes": {
+    "executable_sha256": "33967f0c908059b00b150fe27484f8425317ec8cdfbd6f74df356578eca924c7",
+    "git_dirty": "true",
+    "git_rev": "6be7f8fcfe6b029ee9ce01f07cda9b29f8e1f4b3",
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+        "sha256": "a4925b9514586bbf76b4c81e4547a5719821b0a9d6b8047fabc756bd164e7a67"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+        "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "c9bc544c94b15dfae819277a999fbe782b8eb336513084c65f71bddbf4ea9785"
+      }
+    ]
+  },
+  "validation": {
+    "focused_module": {
+      "passed": 27,
+      "failed": 0
+    },
+    "runner": {
+      "passed": 25,
+      "failed": 0,
+      "ignored": 1,
+      "ignored_reason": "Legacy E/S/PR1321 artifact-dependent parity; not part of this computation change"
+    },
+    "release_build": "PASS",
+    "actual_computation_replay": "PASS_COMPONENT_PARTIAL_INTEGRATION",
+    "retained_scoped_replay": "PASS",
+    "format": "PASS",
+    "claim_wording": "PASS",
+    "warnings": "Existing warnings retained; no warning-free claim",
+    "logs": {
+      "module-tests-final": {
+        "path": "/tmp/uor-consumed-module-tests-final.log",
+        "sha256": "c510e058b26f68fad4a4738eb2c505c5fbba4c6c7288da9d9885c9e21c3e3783"
+      },
+      "runner-tests": {
+        "path": "/tmp/uor-consumed-runner-tests.log",
+        "sha256": "bbb539cd33b7a61f1275452b50d0af83a2a1e3f5dbad3f0cf6d56202337bdfc8"
+      },
+      "build": {
+        "path": "/tmp/uor-consumed-build.log",
+        "sha256": "0acee8523e3e0a0de11bfab9ed6a96df9590100834409057757b1abdc378063d"
+      },
+      "execution": {
+        "path": "/tmp/uor-consumed-execution.log",
+        "sha256": "5855615c8adf217c1e1dab68a6cff1e64f3401270ddd9da5a2618822327a7308"
+      },
+      "scoped-regression": {
+        "path": "/tmp/uor-consumed-scoped-regression.log",
+        "sha256": "13ed1ef1b222c6dcd58bd3c70ea4740ee751eac1125cd574bc746ce362de8d16"
+      },
+      "fmt": {
+        "path": "/tmp/uor-consumed-fmt.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "claims": {
+        "path": "/tmp/uor-consumed-claims.log",
+        "sha256": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+      },
+      "fmt-final": {
+        "path": "/tmp/uor-consumed-fmt-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "claims-final": {
+        "path": "/tmp/uor-consumed-claims-final.log",
+        "sha256": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+      }
+    },
+    "document_checks": {
+      "json_parsed": 5,
+      "relative_links_checked": 1074,
+      "bad": [],
+      "method": "Filesystem target validation; anchors and remote URLs not checked. Inline and fenced code excluded. Historical file URI made portable."
+    }
+  },
+  "computation": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-1",
+    "panels": [
+      {
+        "arm": "primary_signed",
+        "complete": 56,
+        "panel": "development",
+        "requests": 56
+      },
+      {
+        "arm": "primary_signed",
+        "complete": 24,
+        "panel": "final",
+        "requests": 24
+      }
+    ],
+    "checks": {
+      "consume_disabled_changes_answer": true,
+      "consumption_necessary": true,
+      "development_complete": true,
+      "disk_reload_identical": true,
+      "final_complete": true,
+      "fold_loses_the_order_distinction": true,
+      "fresh_process_identical": true,
+      "identity_unchanged": true,
+      "order_changes_state": true,
+      "ordinary_smoke": true,
+      "owned_resume_identical": true,
+      "prior_model_migration_preserves_lifecycle": true
+    },
+    "candidate_preservation": {
+      "candidate": {
+        "all_preserved": false,
+        "api_questions": 4,
+        "artifact": "new_computation_artifact",
+        "errors": 4,
+        "ingest_observation_and_write_correct": 22,
+        "ingest_total": 37,
+        "language_questions": 34,
+        "matched": 17,
+        "questions": 38
+      },
+      "prior_intent_sha256": "862387f728d5ce2101bab727e44c86c8ddf9de0fa13d3e7e6352f0ea054d0aa6",
+      "prior_migrated": {
+        "all_preserved": true,
+        "api_questions": 4,
+        "artifact": "prior_v1_intent_migrated",
+        "errors": 0,
+        "ingest_observation_and_write_correct": 37,
+        "ingest_total": 37,
+        "language_questions": 34,
+        "matched": 38,
+        "questions": 38
+      },
+      "prior_model_sha256": "a6cdbeca00a504aa68d8ae25fc7e39b57917fb945fe02bb9b403288d33ac0502"
+    },
+    "child_checkpoints": 10,
+    "seal_files": 19,
+    "all_original_behavior_rows_unchanged": 360,
+    "preservation_receipt": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-1/preservation.json",
+      "sha256": "c853e3719ed764cd25320d39857bf32461a64710bce74507410cd3139e8a3c64",
+      "full_rows": "Retained under sealed root; summarized here to avoid duplicating session records."
+    }
+  },
+  "retained_scoped": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-4",
+    "panels": {
+      "development": {
+        "complete": 16,
+        "questions": 16
+      },
+      "exposed_regression": {
+        "complete": 11,
+        "questions": 11
+      },
+      "final": {
+        "complete": 11,
+        "questions": 11
+      }
+    },
+    "checks": {
+      "binder_branch_exact": true,
+      "capacity_arm_agrees": true,
+      "changed_source_changes_answer": true,
+      "cycle_typed": true,
+      "development_complete": true,
+      "disk_reload_identical": true,
+      "exposed_reported": true,
+      "final_complete": true,
+      "fresh_process_identical": true,
+      "fresh_process_learned_update": true,
+      "fresh_process_phases_after_update": true,
+      "historical_dependent_first_hop": true,
+      "history_control_differs": true,
+      "intent_learned_exactly": true,
+      "nonasserting_writes_nothing": true,
+      "owned_capture_preserved": true,
+      "phase_and_controls_differ": true,
+      "pinned_view_matches_oracle": true,
+      "read_control_differs": true,
+      "reordered_storage_invariant": true,
+      "scope_control_contaminates": true,
+      "unpinned_control_splices": true,
+      "write_control_differs": true
+    },
+    "seal_files": 10,
+    "independent_expectations": 264,
+    "selected_record_checks": 215,
+    "owned_emissions": 174,
+    "original_behavior_rows_unchanged": 511,
+    "legacy_byte_identity_predicate": false,
+    "semantic_provenance_verified": true,
+    "reason": "Explicit Intentv2/ScopedSessionv4 serialization differs; binder identical and original3class intentweights/questionweights retained, newfourthcoordinatezero. See separate audit."
+  },
+  "evidence_scope": "Exposed repeated authored populations, not fresh final acceptance. New CGS learned artifact17/38 versus migratedprior38/38; same submitted weights. No general language, whole-path D0-b, geometry-superiority or energy claim.",
+  "resources": {
+    "projection": {
+      "started_at": "2026-09-22T15:26:26.719120+00:00",
+      "preparation_estimate_ms": 240000,
+      "projected_review_ms": 7200000,
+      "before": {
+        "cumulative_ms": 334715344,
+        "limit_ms": 337300000
+      },
+      "extension_ms": 7200000,
+      "reason": "Full principal source/evidence/architecture review, needed integrity/preservation repairs, focused release checks, actual corrected replay and protected delivery exceed remaining2584656ms. Standing owner authorization; prospective full projection.",
+      "threads_compile": 2,
+      "threads_model": 1,
+      "ram_bytes": 8589934592,
+      "temporary_bytes": 805306368,
+      "retained_bytes": 67108864,
+      "physical_reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_before": 33450590208,
+      "paid_compute": false,
+      "after": {
+        "cumulative_ms": 334715344,
+        "limit_ms": 344500000
+      },
+      "build_storage_refinement": {
+        "recorded_at": "2026-09-22T15:33:19.016445+00:00",
+        "temporary_bytes": 402653184,
+        "retained_bytes": 33554432,
+        "reason": "Reuse current consumed-state release target; preceding scoped-source test/build sequence showed under150MiB incremental peak.384MiB temporary plus32MiB retained provides margin; physical reserve monitored per command."
+      }
+    },
+    "charge_at": "2026-09-22T15:57:42.239183+00:00",
+    "elapsed_review_ms": 1875520,
+    "preparation_estimate_ms": 240000,
+    "delivery_reserve_estimate_ms": 600000,
+    "charge_ms": 2715520,
+    "before": {
+      "cumulative_ms": 334715344,
+      "limit_ms": 344500000
+    },
+    "after": {
+      "cumulative_ms": 337430864,
+      "limit_ms": 344500000
+    },
+    "parallel_work_counted_once": true,
+    "free_at_charge_bytes": 37277446144,
+    "paid_compute": false
+  },
+  "storage_receipt": "consumed-geometric-state-storage-2026-09-22.json",
+  "preserved_directory": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-delivery",
+  "submitted_executable_sha256": "b25fcb13eee81696954fa10471e635961df490cfe99683c748fdc536438377ab",
+  "corrected_executable_sha256": "33967f0c908059b00b150fe27484f8425317ec8cdfbd6f74df356578eca924c7",
+  "attempt_notes": [
+    "Preliminary26test build passed while final version-error test/final formatting changes were pending. Final27test source-bound run is authoritative. No failed model attempt in this review.",
+    "Submitted roots1-6and8partial;7and9-16sealed. All preserved.",
+    "Submitted ledger07:10Z projection timestamp is not independently reconciled with reviewed parent and actual15:03-15:19UTC seals. Preserve reported5400000ms debit; no unsupported duplicate or idle charge."
+  ]
+}

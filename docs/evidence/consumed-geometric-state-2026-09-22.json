@@ -1,0 +1,432 @@
+{
+ "base": "origin/main b5d36c9b8318e4fe2084ef49cc75cff55c1b2b6f (reviewed scoped-memory merge)",
+ "checks": {
+  "consume_disabled_changes_answer": true,
+  "consumption_necessary": true,
+  "development_complete": true,
+  "disk_reload_identical": true,
+  "final_complete": true,
+  "fold_loses_the_order_distinction": true,
+  "fresh_process_identical": true,
+  "identity_unchanged": true,
+  "order_changes_state": true,
+  "ordinary_lifecycle": true,
+  "owned_resume_identical": true
+ },
+ "checks_all_expected": true,
+ "consumption": {
+  "changed_operand": {
+   "base": "Bramble",
+   "base_key": "Alma",
+   "changed": "Quarry",
+   "changed_key": "Bert"
+  },
+  "changed_order": {
+   "folded_i_then_j": "Quarry",
+   "folded_ij_key": "Bert",
+   "folded_j_then_i": "Quarry",
+   "folded_ji_key": "Bert",
+   "i_then_j": "Bramble",
+   "ij_key": "Alma",
+   "j_then_i": "Quarry",
+   "ji_key": "Bert"
+  },
+  "consume_disabled": {
+   "answer": "Ridge",
+   "consumed": false,
+   "terminal": "Complete"
+  },
+  "identity": {
+   "key": "Gwen",
+   "operand_state": 7,
+   "state": 7
+  },
+  "reload": {
+   "child_status": 0,
+   "disk": true,
+   "fresh_process": true
+  },
+  "requests": 80,
+  "resume": {
+   "identical": true,
+   "mid": {
+    "applied": 1,
+    "artifact": "7447398aca321c9053a70cb5664d19267a115529ccba98b713828fd8de680d09",
+    "consumed": false,
+    "derived_key": [],
+    "derived_label": 0,
+    "operand_key": [
+     71,
+     119,
+     101,
+     110
+    ],
+    "operand_state": 7,
+    "source_commit": 1,
+    "source_entity": [
+     77,
+     97,
+     114,
+     97
+    ],
+    "source_key": [
+     5,
+     0,
+     0,
+     0,
+     97,
+     108,
+     112,
+     104,
+     97,
+     4,
+     0,
+     0,
+     0,
+     77,
+     97,
+     114,
+     97,
+     0
+    ],
+    "source_record": 1,
+    "source_scope": [
+     97,
+     108,
+     112,
+     104,
+     97
+    ],
+    "state": 5
+   }
+  },
+  "rows": 80
+ },
+ "controls": [
+  {
+   "arm": "no_read",
+   "complete": 0,
+   "requests": 40
+  },
+  {
+   "arm": "apply_disabled",
+   "complete": 12,
+   "requests": 40
+  },
+  {
+   "arm": "consume_disabled",
+   "complete": 12,
+   "requests": 40
+  },
+  {
+   "arm": "unscoped",
+   "complete": 0,
+   "requests": 40
+  },
+  {
+   "arm": "finite_transition",
+   "complete": 26,
+   "requests": 40
+  },
+  {
+   "arm": "tabulated_finite",
+   "complete": 40,
+   "requests": 40
+  },
+  {
+   "arm": "folded_central_sign",
+   "complete": 24,
+   "requests": 40
+  }
+ ],
+ "date_utc": "2026-09-22",
+ "learning": {
+  "binder": {
+   "candidate_updates": 8,
+   "clauses": 48,
+   "cue_role_correct": 48,
+   "epochs_run": 2,
+   "h4_enabled": false,
+   "h4_evaluations": 0,
+   "h4_moves": 0,
+   "policy_examples": 44,
+   "policy_final_correct": 44,
+   "policy_initial_correct": 36,
+   "role_final_correct": 48,
+   "role_initial_correct": 0,
+   "role_weights": 36,
+   "roles_observed": [
+    0,
+    1
+   ],
+   "segment_potentials": 164,
+   "span_final_correct": 48,
+   "span_initial_correct": 0
+  },
+  "factorization": {
+   "gauge_fixed": true,
+   "group_order": 8,
+   "identity_primitive": 300,
+   "initial_agreements": 8,
+   "initial_checks": 16,
+   "isomorphic_candidates_checked": 1033,
+   "noncommuting_witness": [
+    100,
+    200
+   ],
+   "order_spectrum": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     6
+    ]
+   ],
+   "outcomes": 8,
+   "primitives": 3,
+   "transitions_checked": 48,
+   "transitions_consistent": 48
+  },
+  "finite_control_fit": {
+   "accepted_moves": 10,
+   "examples": 48,
+   "final_complete": 32,
+   "final_tokens": 80,
+   "initial_complete": 1,
+   "states": 8,
+   "token_total": 96
+  },
+  "finite_control_shape": {
+   "actions": 3,
+   "values": 8
+  },
+  "intent": {
+   "epochs_run": 2,
+   "examples": 48,
+   "question_final_correct": 4,
+   "question_initial_correct": 4,
+   "question_weights": 0,
+   "statement_final_correct": 44,
+   "statement_initial_correct": 20,
+   "statement_weights": 11,
+   "updates": 2
+  }
+ },
+ "limitations": [
+  "Small authored state world: eight declared state labels, three observed primitives, four people per panel and one shared scope.",
+  "The operation and state vocabularies are familiar by design; the final population withholds ordered combinations and uses disjoint people and destinations, so it is lexical and composition novelty inside shared authored forms, not novel syntax.",
+  "The grounding lexicon is a learned supervised surface-key map; it is keyed by exact lexical bytes, so BPE differences cannot change an operand, but it is not learned from unlabeled text.",
+  "The project's fitted shared-transition comparator scores 26/40 on this consumption path with its own fit receipt at 32/48 complete; the directly tabulated finite control ties the signed arm exactly, so the comparison establishes competence and reuse rather than geometric superiority.",
+  "One deterministic process-local store; no replication. Energy UNAVAILABLE; whole-path D0-b unqualified."
+ ],
+ "ordinary_lifecycle": {
+  "alpha": "Alma",
+  "beta": "Bert",
+  "ok": true,
+  "question_writes_nothing": true,
+  "wrote": 2
+ },
+ "panels": [
+  {
+   "arm": "primary_signed",
+   "complete": 56,
+   "panel": "development",
+   "requests": 56
+  },
+  {
+   "arm": "primary_signed",
+   "complete": 24,
+   "panel": "final",
+   "requests": 24
+  }
+ ],
+ "report_files": [
+  {
+   "blake3": "d60d885bab5ecb3a64c35c8c8667bb8c6b2eb4f114809d0b59994aa3d24bb4bc",
+   "bytes": 458,
+   "path": "artifacts/artifact.json"
+  },
+  {
+   "blake3": "10d0cead62be0b72be0c552acfdf5001775638910598b2f8e6b643aa44e7fba1",
+   "bytes": 336,
+   "path": "artifacts/intent.json"
+  },
+  {
+   "blake3": "e1bdbc8f1c556722750cab7f3eb64b26243965a76bf262d5d4136d5863543728",
+   "bytes": 413,
+   "path": "artifacts/lexicon.json"
+  },
+  {
+   "blake3": "7c282214d91853fd2c2874f22b21caef4cde381a5e931e0df531b2f9e2c4c5ff",
+   "bytes": 6317,
+   "path": "artifacts/model.json"
+  },
+  {
+   "blake3": "b32a7fd3e60436ec42f90dc21c034d9ecac2d73f843bfcc6d50dbee5ae145d3a",
+   "bytes": 467,
+   "path": "attempt.json"
+  },
+  {
+   "blake3": "d60d885bab5ecb3a64c35c8c8667bb8c6b2eb4f114809d0b59994aa3d24bb4bc",
+   "bytes": 458,
+   "path": "reload/artifact.json"
+  },
+  {
+   "blake3": "10d0cead62be0b72be0c552acfdf5001775638910598b2f8e6b643aa44e7fba1",
+   "bytes": 336,
+   "path": "reload/intent.json"
+  },
+  {
+   "blake3": "e1bdbc8f1c556722750cab7f3eb64b26243965a76bf262d5d4136d5863543728",
+   "bytes": 413,
+   "path": "reload/lexicon.json"
+  },
+  {
+   "blake3": "7c282214d91853fd2c2874f22b21caef4cde381a5e931e0df531b2f9e2c4c5ff",
+   "bytes": 6317,
+   "path": "reload/model.json"
+  },
+  {
+   "blake3": "a6d8af1cc6d87393d8008e64f8fd4dbaf652d7c5f141c6e8809ed025ba139f8b",
+   "bytes": 303,
+   "path": "reload/request.json"
+  },
+  {
+   "blake3": "101ec100e36a24c64bff9cbed436d7ca62fa56ed1440d00a5baac5b79e90ebe4",
+   "bytes": 4779,
+   "path": "reload/store.json"
+  },
+  {
+   "blake3": "eac732373a075e286e65f0f672b045a22c368cb2978d80c1911679660966b4ea",
+   "bytes": 7765,
+   "path": "result.json"
+  },
+  {
+   "blake3": "810fe9949d70768f1756ec30c5ed4ce519af6115bdb55a9b973e87ac86f014ba",
+   "bytes": 1040570,
+   "path": "rows.jsonl"
+  }
+ ],
+ "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-16",
+ "row_summary": {
+  "apply_effects": 584,
+  "asks": 360,
+  "rows": 360
+ },
+ "running_source": {
+  "executable_sha256": "b25fcb13eee81696954fa10471e635961df490cfe99683c748fdc536438377ab",
+  "git_dirty": "false",
+  "git_rev": "a94c9dec",
+  "source_files": [
+   {
+    "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+    "sha256": "ef217e2dee04ff5c16c97884d83ee4e5acb5927b9ffec2d29cdf867239b34272"
+   },
+   {
+    "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+    "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+   },
+   {
+    "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+    "sha256": "e33c4d02f67ade49034cb47159b6b26d19c1bb42ad40e192bb7ce469f5afd9c4"
+   }
+  ]
+ },
+ "schema": "uor-r4.consumed-geometric-state-evidence/1",
+ "scope": "authored ordinary readable requests over a small declared state world; one loaded path consumes a shared finite computation whose grounded result selects the next exact read. Not broad language understanding, general reasoning, frontier capability or a whole-program dictionary. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+ "source_commit": "a94c9dec",
+ "step": "consume a shared geometric computation inside the scoped memory session",
+ "task": {
+  "development_dests": [
+   "Bramble",
+   "Quarry",
+   "Vale",
+   "Marsh",
+   "Tarn",
+   "Ledge",
+   "Ridge",
+   "Stone"
+  ],
+  "development_people": [
+   "Mara",
+   "Ivo",
+   "Cedar",
+   "Oren"
+  ],
+  "development_sequences": [
+   [
+    "i"
+   ],
+   [
+    "j"
+   ],
+   [
+    "i",
+    "j"
+   ],
+   [
+    "j",
+    "i"
+   ],
+   [
+    "e"
+   ],
+   [
+    "i",
+    "e"
+   ]
+  ],
+  "final_dests": [
+   "Cobalt",
+   "Mica",
+   "Dune",
+   "Basalt",
+   "Flint",
+   "Slate",
+   "Amber",
+   "Onyx"
+  ],
+  "final_people": [
+   "Una",
+   "Pia",
+   "Soren",
+   "Kestrel"
+  ],
+  "final_sequences": [
+   [
+    "i",
+    "j",
+    "i"
+   ],
+   [
+    "j",
+    "i",
+    "j"
+   ]
+  ],
+  "labels": [
+   "Alma",
+   "Bert",
+   "Cora",
+   "Dane",
+   "Elin",
+   "Frey",
+   "Gwen",
+   "Holt"
+  ],
+  "novelty": "the final people and destinations are disjoint from fitting and the withheld ordered combinations never appear in development; the label and operation vocabularies are familiar by design",
+  "operations": [
+   "i:100",
+   "j:200",
+   "e:300"
+  ],
+  "serving_input": "observed readable requests (an ordinary memory question or an observed operation sequence) over a scoped document; no gold operation, state, derived key or expected answer"
+ },
+ "unlisted_files": 0
+}

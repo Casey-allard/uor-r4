@@ -42,11 +42,13 @@
 //!   unfollowed link is never reported as absence.
 #![forbid(unsafe_code)]
 
+use super::grounded_session::GroundedFactorization;
+use super::group_table::{group_table, GROUP_ORDER, ROW_STRIDE};
 use super::observed_text_session::{
     candidate_features, lexical_key, observe_clause, Clause, Observation, ObservedTextModel,
 };
 use super::realtext_support::sha256_hex;
-use super::relational_session::RelAction;
+use super::shared_transition::{SharedTransitionModel, StExample};
 
 /// Classified failures at the scoped-memory boundary.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -57,6 +59,7 @@ pub enum ScopedMemoryError {
     Store(String),
     Session(String),
     Serialization(String),
+    Computation(String),
 }
 
 impl std::fmt::Display for ScopedMemoryError {
@@ -68,6 +71,7 @@ impl std::fmt::Display for ScopedMemoryError {
             Self::Store(detail) => ("store", detail),
             Self::Session(detail) => ("session", detail),
             Self::Serialization(detail) => ("serialization", detail),
+            Self::Computation(detail) => ("computation", detail),
         };
         write!(f, "scoped-memory {category}: {detail}")
     }
@@ -81,16 +85,33 @@ impl From<ScopedMemoryError> for String {
     }
 }
 
-/// The intent format is unchanged; store/session v2 adds immutable payload/history witnesses.
+/// The intent format is unchanged; store v2 adds immutable payload/history witnesses; session v3
+/// adds the typed computation phase and its owned result.
 pub const SCOPED_VERSION: u8 = 1;
 pub const SCOPED_STORE_VERSION: u8 = 2;
-pub const SCOPED_SESSION_VERSION: u8 = 2;
-/// Statement intents: assert, explicit correction, declared nonasserting.
-pub const N_STMT_INTENT: usize = 3;
+pub const SCOPED_SESSION_VERSION: u8 = 4;
+pub const SCOPED_INTENT_VERSION: u8 = 2;
+pub const SCOPED_MAX_OPERATIONS: usize = super::observed_text_session::OB_MAX_CLAUSE;
+
+/// The scoped session's action vocabulary: the retained memory actions plus one typed computation
+/// phase. `Apply` runs exactly one observed operation through the bound computation artifact.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SessionAction {
+    Read,
+    Apply,
+    Continue,
+    Emit,
+    Stop,
+}
+/// Statement intents: assert, explicit correction, declared nonasserting, computation request.
+pub const N_STMT_INTENT: usize = 4;
 /// Learned statement intent indices.
 pub const STMT_ASSERT: usize = 0;
 pub const STMT_CORRECT: usize = 1;
 pub const STMT_NONASSERTING: usize = 2;
+/// A request that applies observed operations to a scoped source and consumes the result. It writes
+/// nothing.
+pub const STMT_COMPUTE: usize = 3;
 /// Learned question intents: current, previous assertion, initial.
 pub const N_ASK_INTENT: usize = 3;
 pub const ASK_CURRENT: usize = 0;
@@ -144,6 +165,8 @@ pub enum Update {
 #[serde(deny_unknown_fields)]
 pub struct IntentModel {
     pub version: u8,
+    /// A migrated three-class artifact must never gain an unfitted fourth class at score zero.
+    pub statement_classes: usize,
     pub statement: Vec<(u64, [i32; N_STMT_INTENT])>,
     pub question: Vec<(u64, [i32; N_ASK_INTENT])>,
 }
@@ -151,7 +174,8 @@ pub struct IntentModel {
 impl IntentModel {
     pub fn uninformed() -> Self {
         IntentModel {
-            version: SCOPED_VERSION,
+            version: SCOPED_INTENT_VERSION,
+            statement_classes: N_STMT_INTENT,
             statement: Vec::new(),
             question: Vec::new(),
         }
@@ -186,7 +210,7 @@ impl IntentModel {
     /// The learned statement intent of an observed cue span.
     pub fn statement_intent(&self, tokens: &[u32], start: usize, len: usize) -> usize {
         let scores = self.wide_statement(tokens, start, len);
-        (0..N_STMT_INTENT)
+        (0..self.statement_classes)
             .max_by_key(|r| (scores[*r], std::cmp::Reverse(*r)))
             .unwrap_or(0)
     }
@@ -200,7 +224,7 @@ impl IntentModel {
     }
 
     pub fn validate(&self, max_vocab: usize) -> Result<(), ScopedMemoryError> {
-        if self.version != SCOPED_VERSION {
+        if self.version != SCOPED_INTENT_VERSION || !matches!(self.statement_classes, 3 | 4) {
             return Err(ScopedMemoryError::Intent(
                 "unsupported intent model version".into(),
             ));
@@ -210,27 +234,33 @@ impl IntentModel {
                 "vocabulary exceeds the 16-bit feature domain".into(),
             ));
         }
-        for table in [&self.statement, &self.question] {
-            if table.windows(2).any(|w| w[0].0 >= w[1].0) {
-                return Err(ScopedMemoryError::Intent(
-                    "intent weights must have unique sorted keys".into(),
-                ));
-            }
+        if self.statement.windows(2).any(|w| w[0].0 >= w[1].0)
+            || self.question.windows(2).any(|w| w[0].0 >= w[1].0)
+        {
+            return Err(ScopedMemoryError::Intent(
+                "intent weights must have unique sorted keys".into(),
+            ));
         }
-        for (key, _) in self.statement.iter().chain(self.question.iter()) {
+        let in_domain = |key: u64| -> bool {
             let kind = key >> 40;
             let value = key & ((1u64 << 40) - 1);
-            let ok = match kind {
+            match kind {
                 1..=6 => value < max_vocab as u64,
                 7 => value > 0 && value <= super::observed_text_session::OB_MAX_MARKER as u64,
                 8 | 9 => value == 0,
                 _ => false,
-            };
-            if !ok {
-                return Err(ScopedMemoryError::Intent(
-                    "intent feature is outside the retained extractor domain".into(),
-                ));
             }
+        };
+        if self
+            .statement
+            .iter()
+            .map(|(key, _)| *key)
+            .chain(self.question.iter().map(|(key, _)| *key))
+            .any(|key| !in_domain(key))
+        {
+            return Err(ScopedMemoryError::Intent(
+                "intent feature is outside the retained extractor domain".into(),
+            ));
         }
         Ok(())
     }
@@ -240,11 +270,712 @@ impl IntentModel {
     }
 
     pub fn from_bytes(bytes: &[u8], max_vocab: usize) -> Result<Self, ScopedMemoryError> {
-        let model: Self = serde_json::from_slice(bytes)
+        let mut value: serde_json::Value = serde_json::from_slice(bytes)
+            .map_err(|e| ScopedMemoryError::Serialization(e.to_string()))?;
+        if value["version"] == serde_json::json!(1) {
+            let rows = value["statement"].as_array_mut().ok_or_else(|| {
+                ScopedMemoryError::Intent("legacy intent has no statement rows".into())
+            })?;
+            for row in rows {
+                let weights = row
+                    .get_mut(1)
+                    .and_then(|v| v.as_array_mut())
+                    .ok_or_else(|| {
+                        ScopedMemoryError::Intent("invalid legacy statement row".into())
+                    })?;
+                if weights.len() != 3 {
+                    return Err(ScopedMemoryError::Intent(
+                        "v1 intent requires three classes; unversioned four-class artifact is unsupported".into(),
+                    ));
+                }
+                weights.push(serde_json::json!(0));
+            }
+            value["version"] = serde_json::json!(SCOPED_INTENT_VERSION);
+            value["statement_classes"] = serde_json::json!(3);
+        }
+        let model: Self = serde_json::from_value(value)
             .map_err(|e| ScopedMemoryError::Serialization(e.to_string()))?;
         model.validate(max_vocab)?;
         Ok(model)
     }
+}
+
+/// A learned, artifact-bound lexicon between exact lexical bytes and a computation artifact's
+/// opaque domain identifiers.
+///
+/// The identifiers carry **no positional meaning**: which group element each one denotes is recovered
+/// from observed development transitions by the constructive factorization, never from an index, a
+/// token id, a hidden semantic label or a keyword table. Serving looks a key up by its exact bytes, so
+/// a different BPE segmentation of the same label cannot silently become a different operand.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GroundingLexicon {
+    pub version: u8,
+    /// Observed surface key -> opaque domain identifier.
+    pub key_to_label: Vec<(Vec<u8>, u32)>,
+    /// Opaque identifier -> the canonical exact key of that label's own memory entity.
+    pub label_to_key: Vec<(u32, Vec<u8>)>,
+}
+
+impl GroundingLexicon {
+    /// The declared empty lexicon: it grounds nothing. Only valid when no computation artifact is
+    /// bound, so the ordinary memory lifecycle can load without one.
+    pub fn empty() -> Self {
+        GroundingLexicon {
+            version: SCOPED_VERSION,
+            key_to_label: Vec::new(),
+            label_to_key: Vec::new(),
+        }
+    }
+
+    /// Fit the lexicon from declared development surface observations. A surface key with two
+    /// identifiers, an identifier without a canonical entity key, or an empty key is rejected.
+    pub fn from_observations(
+        surface: &[(Vec<u8>, u32)],
+        canonical: &[(u32, Vec<u8>)],
+    ) -> Result<Self, ScopedMemoryError> {
+        let mut key_to_label = surface.to_vec();
+        key_to_label.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+        if key_to_label.iter().any(|(key, _)| key.is_empty()) {
+            return Err(ScopedMemoryError::Computation(
+                "lexicon surface key must be nonempty".into(),
+            ));
+        }
+        if key_to_label
+            .windows(2)
+            .any(|w| w[0].0 == w[1].0 && w[0].1 != w[1].1)
+        {
+            return Err(ScopedMemoryError::Computation(
+                "one surface key would denote two identifiers".into(),
+            ));
+        }
+        key_to_label.dedup();
+        let mut label_to_key = canonical.to_vec();
+        label_to_key.sort_by(|a, b| a.0.cmp(&b.0));
+        if label_to_key.iter().any(|(_, key)| key.is_empty())
+            || label_to_key.windows(2).any(|w| w[0].0 == w[1].0)
+        {
+            return Err(ScopedMemoryError::Computation(
+                "canonical label keys must be nonempty and unique per identifier".into(),
+            ));
+        }
+        let lexicon = GroundingLexicon {
+            version: SCOPED_VERSION,
+            key_to_label,
+            label_to_key,
+        };
+        lexicon.validate()?;
+        Ok(lexicon)
+    }
+
+    pub fn label_for(&self, key: &[u8]) -> Option<u32> {
+        self.key_to_label
+            .binary_search_by(|(k, _)| k.as_slice().cmp(key))
+            .ok()
+            .map(|i| self.key_to_label[i].1)
+    }
+
+    pub fn key_for_label(&self, label: u32) -> Option<&[u8]> {
+        self.label_to_key
+            .binary_search_by(|(l, _)| l.cmp(&label))
+            .ok()
+            .map(|i| self.label_to_key[i].1.as_slice())
+    }
+
+    pub fn labels(&self) -> impl Iterator<Item = u32> + '_ {
+        self.label_to_key.iter().map(|(label, _)| *label)
+    }
+
+    pub fn validate(&self) -> Result<(), ScopedMemoryError> {
+        let bad = |message: &str| ScopedMemoryError::Computation(format!("lexicon {message}"));
+        if self.version != SCOPED_VERSION {
+            return Err(bad("unsupported version"));
+        }
+        if self.key_to_label.is_empty() != self.label_to_key.is_empty() {
+            return Err(bad("half-empty"));
+        }
+        if self.key_to_label.is_empty() {
+            return Ok(());
+        }
+        if self.key_to_label.windows(2).any(|w| w[0].0 >= w[1].0)
+            || self.label_to_key.windows(2).any(|w| w[0].0 >= w[1].0)
+            || self.key_to_label.iter().any(|(key, _)| key.is_empty())
+        {
+            return Err(bad("entries are not unique and sorted"));
+        }
+        // Operation identifiers need no memory entity of their own; every *outcome* identifier that
+        // can address a derived read must ground back to its own canonical key.
+        for (label, key) in &self.label_to_key {
+            if key.is_empty() || self.label_for(key) != Some(*label) {
+                return Err(bad("canonical key does not ground to its own identifier"));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>, ScopedMemoryError> {
+        serde_json::to_vec(self).map_err(|e| ScopedMemoryError::Serialization(e.to_string()))
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ScopedMemoryError> {
+        let lexicon: Self = serde_json::from_slice(bytes)
+            .map_err(|e| ScopedMemoryError::Serialization(e.to_string()))?;
+        lexicon.validate()?;
+        Ok(lexicon)
+    }
+}
+
+/// The recovered action's central involution, used only by the topological-fold control.
+///
+/// `Q8/{+-1}` is commutative, so identifying `q` with `-q` cannot distinguish `ij` from `ji`. The
+/// projection is *computed* from the recovered tables: the unique non-identity element that is
+/// self-inverse and commutes with the whole recovered image.
+#[derive(Clone, Debug)]
+pub struct FoldedGroup {
+    project: Vec<usize>,
+}
+
+impl FoldedGroup {
+    pub fn recover(factorization: &GroundedFactorization) -> Result<Self, ScopedMemoryError> {
+        validate_factorization(factorization)?;
+        if factorization.cyclic {
+            return Err(ScopedMemoryError::Computation(
+                "the central-sign fold requires the exact group action".into(),
+            ));
+        }
+        let t = group_table();
+        let mut image: std::collections::BTreeSet<usize> = std::collections::BTreeSet::new();
+        for state in factorization
+            .payload_state
+            .iter()
+            .chain(factorization.outcome_state.iter())
+        {
+            image.insert(*state as usize);
+        }
+        let codes: Vec<usize> = factorization
+            .action_code
+            .iter()
+            .map(|c| *c as usize)
+            .collect();
+        let seeds: Vec<usize> = image.iter().copied().collect();
+        for a in seeds.iter() {
+            for b in &codes {
+                image.insert(t.product[*b * ROW_STRIDE + *a] as usize);
+            }
+        }
+        let elements: Vec<usize> = image.iter().copied().collect();
+        let identity = t.identity as usize;
+        let involutions: Vec<_> = elements
+            .iter()
+            .copied()
+            .filter(|candidate| {
+                *candidate != identity
+                    && t.product[*candidate * ROW_STRIDE + *candidate] as usize == identity
+            })
+            .collect();
+        if elements.len() != 8
+            || involutions.len() != 1
+            || !elements.iter().all(|a| {
+                elements
+                    .iter()
+                    .all(|b| image.contains(&(t.product[*a * ROW_STRIDE + *b] as usize)))
+            })
+            || elements.iter().all(|a| {
+                elements
+                    .iter()
+                    .all(|b| t.product[*a * ROW_STRIDE + *b] == t.product[*b * ROW_STRIDE + *a])
+            })
+        {
+            return Err(ScopedMemoryError::Computation(
+                "central-sign projection requires a recovered Q8 image".into(),
+            ));
+        }
+        let central = elements
+            .iter()
+            .copied()
+            .find(|candidate| {
+                *candidate != identity
+                    && t.product[*candidate * ROW_STRIDE + *candidate] as usize == identity
+                    && elements.iter().all(|x| {
+                        t.product[*candidate * ROW_STRIDE + *x]
+                            == t.product[*x * ROW_STRIDE + *candidate]
+                    })
+            })
+            .ok_or_else(|| {
+                ScopedMemoryError::Computation(
+                    "recovered action has no central involution to project".into(),
+                )
+            })?;
+        let mut project: Vec<usize> = (0..GROUP_ORDER).collect();
+        for element in elements {
+            let paired = t.product[central * ROW_STRIDE + element] as usize;
+            let representative = element.min(paired);
+            project[element] = representative;
+            project[paired] = representative;
+        }
+        Ok(FoldedGroup { project })
+    }
+}
+
+/// A directly tabulated finite control: one shared permutation per observed primitive plus one
+/// initial-state table, both read off the same development observations. It reuses familiar
+/// transitions across sequences, so it is a competent finite comparator rather than a whole-program
+/// dictionary.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TabulatedControl {
+    pub value_domain: Vec<u32>,
+    pub value_state: Vec<u8>,
+    pub action_domain: Vec<u32>,
+    /// `action_perm[p][state]` is the successor state.
+    pub action_perm: Vec<Vec<u8>>,
+}
+
+impl TabulatedControl {
+    pub fn fit(examples: &[StExample]) -> Result<Self, ScopedMemoryError> {
+        let mut labels: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+        let mut primitives: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+        for example in examples {
+            labels.insert(example.payload);
+            for target in &example.targets {
+                labels.insert(*target);
+            }
+            for primitive in &example.primitives {
+                primitives.insert(*primitive);
+            }
+        }
+        let value_domain: Vec<u32> = labels.into_iter().collect();
+        let action_domain: Vec<u32> = primitives.into_iter().collect();
+        if value_domain.is_empty()
+            || value_domain.len() > 256
+            || action_domain.is_empty()
+            || examples
+                .iter()
+                .any(|e| e.primitives.len() != e.targets.len())
+        {
+            return Err(ScopedMemoryError::Computation(
+                "invalid finite observation dimensions".into(),
+            ));
+        }
+        let index = |label: u32| {
+            value_domain
+                .iter()
+                .position(|l| *l == label)
+                .map(|i| i as u8)
+        };
+        let mut perms: Vec<Vec<Option<u8>>> =
+            vec![vec![None; value_domain.len()]; action_domain.len()];
+        for example in examples {
+            let Some(state) = index(example.payload) else {
+                continue;
+            };
+            let mut current = state;
+            for (j, primitive) in example.primitives.iter().enumerate() {
+                let Some(target) = example.targets.get(j).copied() else {
+                    break;
+                };
+                let Some(next) = index(target) else { break };
+                let p = action_domain
+                    .iter()
+                    .position(|q| q == primitive)
+                    .ok_or_else(|| {
+                        ScopedMemoryError::Computation("tabulated primitive is unknown".into())
+                    })?;
+                if let Some(existing) = perms[p][current as usize] {
+                    if existing != next {
+                        return Err(ScopedMemoryError::Computation(
+                            "tabulated observations disagree on one transition".into(),
+                        ));
+                    }
+                }
+                perms[p][current as usize] = Some(next);
+                current = next;
+            }
+        }
+        // Each lexical outcome is a state; every observed transition above is checked regardless
+        // of example ordering or which primitive happens to occur first in the observations.
+        let value_state: Vec<u8> = (0..value_domain.len()).map(|i| i as u8).collect();
+        let mut action_perm = Vec::with_capacity(action_domain.len());
+        for perm in perms {
+            let mut row = Vec::with_capacity(value_domain.len());
+            for entry in &perm {
+                row.push(entry.ok_or_else(|| {
+                    ScopedMemoryError::Computation(
+                        "a tabulated primitive does not ground every outcome".into(),
+                    )
+                })?);
+            }
+            let distinct: std::collections::BTreeSet<u8> = row.iter().copied().collect();
+            if distinct.len() != row.len() {
+                return Err(ScopedMemoryError::Computation(
+                    "a tabulated primitive is not bijective".into(),
+                ));
+            }
+            action_perm.push(row);
+        }
+        Ok(TabulatedControl {
+            value_domain,
+            value_state,
+            action_domain,
+            action_perm,
+        })
+    }
+
+    pub fn initial_state(&self, label: u32) -> Result<usize, ScopedMemoryError> {
+        self.value_domain
+            .iter()
+            .position(|l| *l == label)
+            .and_then(|i| self.value_state.get(i).map(|s| *s as usize))
+            .ok_or_else(|| ScopedMemoryError::Computation("unknown operand".into()))
+    }
+
+    pub fn apply(&self, state: usize, primitive: u32) -> Result<usize, ScopedMemoryError> {
+        let p = self
+            .action_domain
+            .iter()
+            .position(|q| *q == primitive)
+            .ok_or_else(|| ScopedMemoryError::Computation("unknown operation".into()))?;
+        self.action_perm
+            .get(p)
+            .and_then(|row| row.get(state))
+            .map(|s| *s as usize)
+            .ok_or_else(|| ScopedMemoryError::Computation("state outside the table".into()))
+    }
+
+    pub fn label_for_state(&self, state: usize) -> Option<u32> {
+        self.value_state
+            .iter()
+            .position(|s| *s as usize == state)
+            .and_then(|i| self.value_domain.get(i).copied())
+    }
+}
+
+/// The bound computation artifact. Every variant is fitted on the *same* observed development
+/// transitions; only the arithmetic differs, so a comparison is matched.
+#[derive(Clone, Debug)]
+pub enum ComputationBackend {
+    /// The constructive exact factorization of the observed action: retained signed state.
+    Signed(Box<GroundedFactorization>),
+    /// The same recovered action with the central sign projected away (topological-fold control).
+    Folded(Box<GroundedFactorization>, Box<FoldedGroup>),
+    /// The project's fitted shared-transition model, reported at its measured fit.
+    Finite(Box<SharedTransitionModel>),
+    /// The directly tabulated finite control, provably implementing the observed action.
+    Tabulated(Box<TabulatedControl>),
+    /// No computation artifact bound.
+    Absent,
+}
+
+fn valid_domain(domain: &[u32], states: usize) -> bool {
+    !domain.is_empty() && domain.len() == states && domain.windows(2).all(|w| w[0] < w[1])
+}
+
+fn is_permutation(row: &[u8], n: usize) -> bool {
+    row.len() == n
+        && row.iter().all(|s| (*s as usize) < n)
+        && row.iter().collect::<std::collections::BTreeSet<_>>().len() == n
+}
+
+fn checked_action(
+    cyclic: bool,
+    domain: &[u32],
+    codes: &[u8],
+    state: usize,
+    label: u32,
+) -> Option<usize> {
+    let code = *codes.get(domain.iter().position(|op| *op == label)?)? as usize;
+    if state >= GROUP_ORDER || code >= GROUP_ORDER {
+        return None;
+    }
+    if cyclic {
+        Some((state + code) % GROUP_ORDER)
+    } else {
+        group_table()
+            .product
+            .get(code * ROW_STRIDE + state)
+            .map(|next| *next as usize)
+    }
+}
+
+fn validate_factorization(f: &GroundedFactorization) -> Result<(), ScopedMemoryError> {
+    if !valid_domain(&f.payload_domain, f.payload_state.len())
+        || !valid_domain(&f.outcome_domain, f.outcome_state.len())
+        || !valid_domain(&f.action_domain, f.action_code.len())
+        || f.payload_state
+            .iter()
+            .chain(&f.outcome_state)
+            .chain(&f.action_code)
+            .any(|state| *state as usize >= GROUP_ORDER)
+        || f.outcome_state
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+            != f.outcome_state.len()
+        || !f.outcome_domain.contains(&f.reference_outcome)
+    {
+        return Err(ScopedMemoryError::Computation(
+            "invalid factorization dimensions or domains".into(),
+        ));
+    }
+    if f.payload_state.iter().chain(&f.outcome_state).any(|state| {
+        f.action_domain.iter().any(|op| {
+            f.apply(*state as usize, *op)
+                .is_none_or(|next| f.outcome_for_state(next).is_none())
+        })
+    }) {
+        return Err(ScopedMemoryError::Computation(
+            "factorized action leaves its grounded outcomes".into(),
+        ));
+    }
+    Ok(())
+}
+
+impl ComputationBackend {
+    /// Canonical execution identity, including every field that changes the served arithmetic.
+    pub fn identity_json(&self) -> serde_json::Value {
+        backend_identity(self)
+    }
+
+    /// Validated independent reconstruction. Numeric narrowing, mismatched vectors and unsupported
+    /// artifact versions return errors before any indexing or arithmetic occurs.
+    pub fn from_identity_json(value: &serde_json::Value) -> Result<Self, ScopedMemoryError> {
+        let bad = |detail: &str| ScopedMemoryError::Computation(detail.into());
+        if value["version"] != serde_json::json!(1) {
+            return Err(bad("unsupported computation identity version"));
+        }
+        let read_u32 = |key: &str| -> Result<Vec<u32>, ScopedMemoryError> {
+            serde_json::from_value(value[key].clone()).map_err(|e| bad(&format!("{key}: {e}")))
+        };
+        let read_u8 = |key: &str| -> Result<Vec<u8>, ScopedMemoryError> {
+            serde_json::from_value(value[key].clone()).map_err(|e| bad(&format!("{key}: {e}")))
+        };
+        let backend = match value["name"].as_str() {
+            Some("signed_factorization" | "folded_central_sign") => {
+                let f = GroundedFactorization {
+                    cyclic: value["cyclic"]
+                        .as_bool()
+                        .ok_or_else(|| bad("missing arithmetic mode"))?,
+                    action_domain: read_u32("action_domain")?,
+                    action_code: read_u8("action_code")?,
+                    outcome_domain: read_u32("outcome_domain")?,
+                    outcome_state: read_u8("outcome_state")?,
+                    payload_domain: read_u32("payload_domain")?,
+                    payload_state: read_u8("payload_state")?,
+                    reference_outcome: serde_json::from_value(value["reference_outcome"].clone())
+                        .map_err(|e| bad(&format!("reference outcome: {e}")))?,
+                };
+                validate_factorization(&f)?;
+                if value["name"] == "folded_central_sign" {
+                    let fold = FoldedGroup::recover(&f)?;
+                    if value["projection"] != serde_json::json!(fold.project) {
+                        return Err(bad("fold projection disagrees with recovered action"));
+                    }
+                    Self::Folded(Box::new(f), Box::new(fold))
+                } else {
+                    Self::Signed(Box::new(f))
+                }
+            }
+            Some("tabulated_finite") => Self::Tabulated(Box::new(TabulatedControl {
+                value_domain: read_u32("value_domain")?,
+                value_state: read_u8("value_state")?,
+                action_domain: read_u32("action_domain")?,
+                action_perm: serde_json::from_value(value["action_perm"].clone())
+                    .map_err(|e| bad(&format!("permutation: {e}")))?,
+            })),
+            Some("finite_transition") => {
+                let bytes: Vec<u8> = serde_json::from_value(value["model_bytes"].clone())
+                    .map_err(|e| bad(&format!("finite model: {e}")))?;
+                Self::Finite(Box::new(
+                    SharedTransitionModel::from_bytes(&bytes, usize::MAX)
+                        .map_err(|e| bad(&format!("finite model: {e:?}")))?,
+                ))
+            }
+            Some("absent") => Self::Absent,
+            _ => return Err(bad("unsupported computation backend")),
+        };
+        backend.validate()?;
+        if backend.identity_json() != *value {
+            return Err(bad(
+                "computation identity has unknown or noncanonical fields",
+            ));
+        }
+        Ok(backend)
+    }
+
+    pub fn validate(&self) -> Result<(), ScopedMemoryError> {
+        let bad =
+            || ScopedMemoryError::Computation("invalid computation dimensions or domains".into());
+        match self {
+            Self::Signed(f) => validate_factorization(f),
+            Self::Folded(f, fold) => {
+                if FoldedGroup::recover(f)?.project != fold.project {
+                    return Err(bad());
+                }
+                Ok(())
+            }
+            Self::Finite(m) => {
+                if !valid_domain(&m.value_domain, m.value_state.len())
+                    || !valid_domain(&m.action_domain, m.action_code.len())
+                    || m.value_state
+                        .iter()
+                        .chain(&m.action_code)
+                        .any(|s| *s as usize >= GROUP_ORDER)
+                {
+                    return Err(bad());
+                }
+                Ok(())
+            }
+            Self::Tabulated(t) => {
+                let n = t.value_domain.len();
+                if !valid_domain(&t.value_domain, t.value_state.len())
+                    || n > 256
+                    || !valid_domain(&t.action_domain, t.action_perm.len())
+                    || !is_permutation(&t.value_state, n)
+                    || t.action_perm.iter().any(|r| !is_permutation(r, n))
+                {
+                    return Err(bad());
+                }
+                Ok(())
+            }
+            Self::Absent => Ok(()),
+        }
+    }
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Signed(_) => "signed_factorization",
+            Self::Folded(_, _) => "folded_central_sign",
+            Self::Finite(_) => "finite_transition",
+            Self::Tabulated(_) => "tabulated_finite",
+            Self::Absent => "absent",
+        }
+    }
+
+    /// The retained element a grounded operand label denotes.
+    pub fn initial_state(&self, label: u32) -> Result<usize, ScopedMemoryError> {
+        let initial = |domain: &[u32], states: &[u8]| {
+            domain
+                .iter()
+                .position(|p| *p == label)
+                .and_then(|i| states.get(i))
+                .map(|s| *s as usize)
+                .filter(|s| *s < GROUP_ORDER)
+        };
+        match self {
+            Self::Signed(factorization) => initial(
+                &factorization.payload_domain,
+                &factorization.payload_state,
+            )
+            .ok_or_else(|| {
+                ScopedMemoryError::Computation("operand has no grounded initial state".into())
+            }),
+            Self::Folded(f, fold) => initial(&f.payload_domain, &f.payload_state)
+                .and_then(|s| fold.project.get(s).copied())
+                .ok_or_else(|| {
+                    ScopedMemoryError::Computation("operand has no projected initial state".into())
+                }),
+            Self::Finite(model) => {
+                initial(&model.value_domain, &model.value_state).ok_or_else(|| {
+                    ScopedMemoryError::Computation("unknown or invalid finite initial state".into())
+                })
+            }
+            Self::Tabulated(table) => table.initial_state(label),
+            Self::Absent => Err(ScopedMemoryError::Computation(
+                "no computation artifact is bound".into(),
+            )),
+        }
+    }
+
+    /// Apply one grounded operation label. Left action: `next = A[op] * state`.
+    pub fn apply(&self, state: usize, label: u32) -> Result<usize, ScopedMemoryError> {
+        match self {
+            Self::Signed(factorization) => checked_action(
+                factorization.cyclic,
+                &factorization.action_domain,
+                &factorization.action_code,
+                state,
+                label,
+            )
+            .ok_or_else(|| {
+                ScopedMemoryError::Computation("operation is not grounded by the artifact".into())
+            }),
+            Self::Folded(factorization, folded) => {
+                let next = checked_action(
+                    factorization.cyclic,
+                    &factorization.action_domain,
+                    &factorization.action_code,
+                    state,
+                    label,
+                )
+                .ok_or_else(|| {
+                    ScopedMemoryError::Computation(
+                        "operation is not grounded by the artifact".into(),
+                    )
+                })?;
+                folded
+                    .project
+                    .get(next)
+                    .copied()
+                    .ok_or_else(|| ScopedMemoryError::Computation("invalid fold projection".into()))
+            }
+            Self::Finite(model) => checked_action(
+                model.cyclic,
+                &model.action_domain,
+                &model.action_code,
+                state,
+                label,
+            )
+            .ok_or_else(|| {
+                ScopedMemoryError::Computation("unknown or invalid finite action".into())
+            }),
+            Self::Tabulated(table) => table.apply(state, label),
+            Self::Absent => Err(ScopedMemoryError::Computation(
+                "no computation artifact is bound".into(),
+            )),
+        }
+    }
+
+    /// The grounded label of a retained element, if the artifact grounds it.
+    pub fn label_for_state(&self, state: usize) -> Option<u32> {
+        match self {
+            Self::Signed(f) | Self::Folded(f, _) => f
+                .outcome_state
+                .iter()
+                .zip(&f.outcome_domain)
+                .find(|(s, _)| **s as usize == state)
+                .map(|(_, label)| *label),
+            Self::Finite(model) => model
+                .value_state
+                .iter()
+                .zip(&model.value_domain)
+                .find(|(s, _)| **s as usize == state)
+                .map(|(_, label)| *label),
+            Self::Tabulated(table) => table.label_for_state(state),
+            Self::Absent => None,
+        }
+    }
+}
+
+/// The owned result of one consumed computation inside an answer frame. It is deliberately not a
+/// stored user assertion: it records provenance, the artifact identity and the grounded key that the
+/// next read consumed.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ComputedState {
+    pub source_record: u64,
+    pub source_commit: u64,
+    pub source_scope: Vec<u8>,
+    pub source_entity: Vec<u8>,
+    pub source_key: Vec<u8>,
+    pub source_hop: u8,
+    pub operand_key: Vec<u8>,
+    pub operand_state: usize,
+    pub state: usize,
+    pub applied: usize,
+    pub artifact: String,
+    pub derived_label: u32,
+    pub derived_key: Vec<u8>,
+    /// The derived key was actually used as the next read address.
+    pub consumed: bool,
 }
 
 /// Declared supervision for one development cue span.
@@ -837,6 +1568,10 @@ pub enum MemoryControl {
     Unscoped,
     /// Choose the highest source parse score instead of the committed head.
     ParseScoreAuthority,
+    /// Skip the computation phase: the derived key stays the operand's own label.
+    ApplyDisabled,
+    /// Compute the retained state but do not consume it: the next read uses the operand label.
+    ConsumeDisabled,
 }
 
 /// Immutable identities prepared once from the loaded bytes and store.
@@ -845,6 +1580,9 @@ pub enum MemoryControl {
 pub struct MemoryBinding {
     pub model_sha256: String,
     pub intent_sha256: String,
+    pub lexicon_sha256: String,
+    pub artifact_sha256: String,
+    pub backend: String,
     pub lineage: u64,
     pub control_sha256: String,
     pub capacity: usize,
@@ -862,6 +1600,24 @@ pub struct MemoryCapture {
     pub value: Vec<u8>,
     pub payload: Vec<u32>,
     pub continues: bool,
+    /// The capture came from a read of the consumed computation result.
+    pub derived: bool,
+    /// The successful Read's position in this answer, independent of later query mutation.
+    pub read_hop: u8,
+}
+
+/// Immutable request interpretation retained alongside progress. A raw entry also retains the
+/// observed clause, so restore can re-derive its selected entity/intent/operations using the bound
+/// model. Exact API entries are explicitly distinguishable from language entries. This is causal
+/// consistency, not authentication against replacing both a request and its entire history.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SessionRequest {
+    pub entity: Vec<u8>,
+    pub relation: u8,
+    pub history: HistoryView,
+    pub ops: Vec<Vec<u8>>,
+    pub clause: Option<Clause>,
 }
 
 /// Typed terminal reason for one answer.
@@ -881,6 +1637,12 @@ pub enum ScopedTerminal {
     NoRead,
     /// A dependent read revisited an address it had already followed.
     Cycle,
+    /// The selected operand has no grounded initial state in the bound artifact.
+    UnknownOperand,
+    /// An observed operation has no grounded action in the bound artifact.
+    UnknownOperation,
+    /// The retained state has no grounded label in the bound artifact.
+    UngroundedResult,
 }
 
 /// One answer session, pinned to one committed view.
@@ -895,10 +1657,19 @@ pub struct ScopedSession {
     pub scope: Vec<u8>,
     pub relation: u8,
     pub history: HistoryView,
+    pub request: SessionRequest,
     pub hop: u8,
     pub query_entity: Vec<u8>,
+    /// The observed operations of a computation request, as exact lexical keys in request order.
+    pub ops: Vec<Vec<u8>>,
+    /// How many observed operations the retained state has consumed.
+    pub op_cursor: usize,
+    /// The owned computed result, present from the first Apply step.
+    pub computation: Option<ComputedState>,
+    /// The current query address came from the computation result rather than a stored value.
+    pub derived: bool,
     pub captured: Option<MemoryCapture>,
-    pub pending: RelAction,
+    pub pending: SessionAction,
     pub emitted: Vec<u32>,
     pub cursor: usize,
     pub visited: Vec<Vec<u8>>,
@@ -909,11 +1680,15 @@ pub struct ScopedSession {
 /// Performed action and its next phase, with the exact selected record.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ScopedStepEffect {
-    pub action: RelAction,
-    pub next_action: Option<RelAction>,
+    pub action: SessionAction,
+    pub next_action: Option<SessionAction>,
     pub selected_record: Option<u64>,
     pub selected_commit: Option<u64>,
     pub selected_value: Option<Vec<u8>>,
+    /// The grounded action label consumed by one Apply step.
+    pub op_label: Option<u32>,
+    /// The retained state after one Apply step.
+    pub computed_state: Option<usize>,
     pub hop: u8,
     pub emitted: Option<u32>,
     pub terminal: Option<ScopedTerminal>,
@@ -981,10 +1756,70 @@ pub struct IngestObservation {
 pub struct ScopedMemoryRuntime {
     model: ObservedTextModel,
     intent: IntentModel,
+    lexicon: GroundingLexicon,
+    backend: ComputationBackend,
     memory: Memory,
     binding: MemoryBinding,
     control: MemoryControl,
     max_vocab: usize,
+}
+
+/// The artifact identity actually consumed by a computation step.
+fn backend_identity(backend: &ComputationBackend) -> serde_json::Value {
+    match backend {
+        ComputationBackend::Signed(f) | ComputationBackend::Folded(f, _) => serde_json::json!({
+            "version": 1,
+            "name": backend.name(),
+            "cyclic": f.cyclic,
+            "reference_outcome": f.reference_outcome,
+            "projection": match backend { ComputationBackend::Folded(_, fold) => Some(&fold.project), _ => None },
+            "action_domain": f.action_domain,
+            "action_code": f.action_code,
+            "outcome_domain": f.outcome_domain,
+            "outcome_state": f.outcome_state,
+            "payload_domain": f.payload_domain,
+            "payload_state": f.payload_state,
+        }),
+        ComputationBackend::Finite(model) => serde_json::json!({
+            "version": 1,
+            "name": backend.name(),
+            "model_bytes": model.to_bytes(),
+            "value_domain": model.value_domain,
+            "value_state": model.value_state,
+            "action_domain": model.action_domain,
+            "action_code": model.action_code,
+        }),
+        ComputationBackend::Tabulated(table) => serde_json::json!({
+            "version": 1,
+            "name": backend.name(),
+            "value_domain": table.value_domain,
+            "value_state": table.value_state,
+            "action_domain": table.action_domain,
+            "action_perm": table.action_perm,
+        }),
+        ComputationBackend::Absent => serde_json::json!({"version": 1, "name": "absent"}),
+    }
+}
+
+/// The exact raw bytes of one observed span, computed from the verified byte alignment.
+fn span_bytes(clause: &Clause, start: u32, len: usize) -> Option<&[u8]> {
+    if len == 0 || clause.byte_lengths.len() != clause.tokens.len() {
+        return None;
+    }
+    let end = start
+        .checked_add(len as u32)
+        .filter(|end| *end as usize <= clause.tokens.len())?;
+    let sum = |lengths: &[u32]| {
+        lengths
+            .iter()
+            .try_fold(0usize, |n, b| n.checked_add(*b as usize))
+    };
+    let offset = sum(&clause.byte_lengths[..start as usize])?;
+    let span = sum(&clause.byte_lengths[start as usize..end as usize])?;
+    clause
+        .text
+        .as_bytes()
+        .get(offset..offset.checked_add(span)?)
 }
 
 fn raw_span_key(clause: &Clause, start: u32, len: usize) -> Result<Vec<u8>, ScopedMemoryError> {
@@ -1002,9 +1837,39 @@ fn raw_span_key(clause: &Clause, start: u32, len: usize) -> Result<Vec<u8>, Scop
 
 impl ScopedMemoryRuntime {
     #[allow(clippy::too_many_arguments)]
+    /// The retained memory-only constructor: no computation artifact is bound.
+    #[allow(clippy::too_many_arguments)]
     pub fn load(
         model_bytes: &[u8],
         intent_bytes: &[u8],
+        memory: Memory,
+        lineage: u64,
+        control: MemoryControl,
+        max_vocab: usize,
+        eos: Option<u32>,
+    ) -> Result<Self, ScopedMemoryError> {
+        Self::load_with_computation(
+            model_bytes,
+            intent_bytes,
+            None,
+            ComputationBackend::Absent,
+            memory,
+            lineage,
+            control,
+            max_vocab,
+            eos,
+        )
+    }
+
+    /// Load with a declared computation artifact and its learned grounding lexicon. A non-absent
+    /// artifact requires a nonempty lexicon: an operation or operand the artifact cannot ground must
+    /// stay typed rather than silently become an identity.
+    #[allow(clippy::too_many_arguments)]
+    pub fn load_with_computation(
+        model_bytes: &[u8],
+        intent_bytes: &[u8],
+        lexicon_bytes: Option<&[u8]>,
+        backend: ComputationBackend,
         memory: Memory,
         lineage: u64,
         control: MemoryControl,
@@ -1019,6 +1884,16 @@ impl ScopedMemoryRuntime {
         let model = ObservedTextModel::from_bytes(model_bytes, max_vocab)
             .map_err(|e| ScopedMemoryError::Model(e.to_string()))?;
         let intent = IntentModel::from_bytes(intent_bytes, max_vocab)?;
+        let lexicon = match lexicon_bytes {
+            Some(bytes) => GroundingLexicon::from_bytes(bytes)?,
+            None => GroundingLexicon::empty(),
+        };
+        backend.validate()?;
+        if !matches!(backend, ComputationBackend::Absent) && lexicon.key_to_label.is_empty() {
+            return Err(ScopedMemoryError::Computation(
+                "a bound computation artifact requires a nonempty lexicon".into(),
+            ));
+        }
         memory.validate()?;
         // EOS is an explicitly bound protocol terminator and may be outside the lexical vocabulary.
         // Owned source payloads must still consist entirely of valid lexical token IDs.
@@ -1034,6 +1909,12 @@ impl ScopedMemoryRuntime {
         let binding = MemoryBinding {
             model_sha256: sha256_hex(model_bytes),
             intent_sha256: sha256_hex(intent_bytes),
+            lexicon_sha256: sha256_hex(lexicon_bytes.unwrap_or(&[])),
+            artifact_sha256: sha256_hex(
+                &serde_json::to_vec(&backend_identity(&backend))
+                    .map_err(|e| ScopedMemoryError::Serialization(e.to_string()))?,
+            ),
+            backend: backend.name().to_string(),
             lineage,
             control_sha256: sha256_hex(
                 &serde_json::to_vec(&control)
@@ -1046,6 +1927,8 @@ impl ScopedMemoryRuntime {
         Ok(Self {
             model,
             intent,
+            lexicon,
+            backend,
             memory,
             binding,
             control,
@@ -1071,6 +1954,12 @@ impl ScopedMemoryRuntime {
     pub fn max_vocab(&self) -> usize {
         self.max_vocab
     }
+    pub fn lexicon(&self) -> &GroundingLexicon {
+        &self.lexicon
+    }
+    pub fn backend(&self) -> &ComputationBackend {
+        &self.backend
+    }
     /// The latest committed revision.
     pub fn revision(&self) -> u64 {
         self.memory.commit
@@ -1093,15 +1982,24 @@ impl ScopedMemoryRuntime {
             .to_bytes()
             .map_err(|e| ScopedMemoryError::Model(e.to_string()))?;
         let intent_bytes = self.intent.to_bytes()?;
-        Self::load(
+        let lexicon_bytes = self.lexicon.to_bytes()?;
+        let mut runtime = Self::load_with_computation(
             &model_bytes,
             &intent_bytes,
+            Some(&lexicon_bytes),
+            self.backend.clone(),
             memory,
             self.binding.lineage,
             control,
             self.max_vocab,
             self.binding.eos,
-        )
+        )?;
+        // Reserializing an already-loaded artifact (including a losslessly migrated v1 intent)
+        // does not change the immutable identity of the bytes originally supplied to this runtime.
+        runtime.binding.model_sha256 = self.binding.model_sha256.clone();
+        runtime.binding.intent_sha256 = self.binding.intent_sha256.clone();
+        runtime.binding.lexicon_sha256 = self.binding.lexicon_sha256.clone();
+        Ok(runtime)
     }
 
     fn address(&self, scope: &[u8], entity: &[u8], relation: u8) -> Vec<u8> {
@@ -1179,7 +2077,7 @@ impl ScopedMemoryRuntime {
         let action = match learned.intent {
             STMT_ASSERT => Update::Assert,
             STMT_CORRECT => Update::Correct,
-            STMT_NONASSERTING => {
+            STMT_NONASSERTING | STMT_COMPUTE => {
                 return Ok(IngestOutcome::NonAsserting {
                     reason: "learned nonasserting statement intent".into(),
                 })
@@ -1224,16 +2122,102 @@ impl ScopedMemoryRuntime {
 
     /// Start an answer. The read view is pinned to the commit current at this moment.
     pub fn ask(&self, clause: &Clause, scope: &[u8]) -> Result<ScopedSession, ScopedMemoryError> {
+        let request = self.interpret_request(clause)?;
+        let mut session =
+            self.ask_view(scope, request.relation, &request.entity, request.history)?;
+        session.ops = request.ops.clone();
+        session.request = request;
+        self.validate(&session)?;
+        Ok(session)
+    }
+
+    fn interpret_request(&self, clause: &Clause) -> Result<SessionRequest, ScopedMemoryError> {
         let observed = self.observe(clause)?;
-        if !observed.is_question {
-            return Err(ScopedMemoryError::Observation(
-                "observed clause is not a question".into(),
+        if observed.is_question {
+            let history = HistoryView::from_question_intent(observed.intent).ok_or_else(|| {
+                ScopedMemoryError::Intent("learned question intent is out of range".into())
+            })?;
+            return Ok(SessionRequest {
+                entity: observed.entity_key,
+                relation: observed.relation,
+                history,
+                ops: Vec::new(),
+                clause: Some(clause.clone()),
+            });
+        }
+        if observed.intent == STMT_COMPUTE {
+            // A computation request: the observed object span carries the ordered operations. The
+            // surface words are taken from the actual observed bytes, so a different BPE segmentation
+            // of the same label cannot become a different operand.
+            let observation = observe_clause(&self.model, clause)
+                .map_err(|e| ScopedMemoryError::Observation(e.to_string()))?;
+            let (start, len) = observation
+                .object_start
+                .zip(observation.object.as_ref().map(|o| o.len()))
+                .ok_or_else(|| {
+                    ScopedMemoryError::Observation(
+                        "computation request has no operation span".into(),
+                    )
+                })?;
+            let bytes = span_bytes(clause, start, len).ok_or_else(|| {
+                ScopedMemoryError::Observation(
+                    "computation request has no exact byte alignment".into(),
+                )
+            })?;
+            let ops: Vec<Vec<u8>> = bytes
+                .split(|b| b.is_ascii_whitespace())
+                .filter(|word| !word.is_empty())
+                .map(|word| word.to_vec())
+                .collect();
+            if ops.is_empty() {
+                return Err(ScopedMemoryError::Observation(
+                    "computation request observes no operation".into(),
+                ));
+            }
+            return Ok(SessionRequest {
+                entity: observed.entity_key,
+                relation: observed.relation,
+                history: HistoryView::Current,
+                ops,
+                clause: Some(clause.clone()),
+            });
+        }
+        Err(ScopedMemoryError::Observation(
+            "observed clause is not a request".into(),
+        ))
+    }
+
+    /// Start a computation request: read the source operand, apply the observed operations, then
+    /// consume the grounded result as the next exact read address, all at one pinned view.
+    pub fn ask_compute(
+        &self,
+        scope: &[u8],
+        relation: u8,
+        entity: &[u8],
+        ops: Vec<Vec<u8>>,
+    ) -> Result<ScopedSession, ScopedMemoryError> {
+        if matches!(self.backend, ComputationBackend::Absent) {
+            return Err(ScopedMemoryError::Computation(
+                "no computation artifact is bound".into(),
             ));
         }
-        let history = HistoryView::from_question_intent(observed.intent).ok_or_else(|| {
-            ScopedMemoryError::Intent("learned question intent is out of range".into())
-        })?;
-        self.ask_view(scope, observed.relation, &observed.entity_key, history)
+        if ops.is_empty() || ops.len() > SCOPED_MAX_OPERATIONS {
+            return Err(ScopedMemoryError::Computation(
+                "operation count is outside the declared bound".into(),
+            ));
+        }
+        for op in &ops {
+            if op.is_empty() {
+                return Err(ScopedMemoryError::Computation(
+                    "observed operation is empty".into(),
+                ));
+            }
+        }
+        let mut session = self.ask_view(scope, relation, entity, HistoryView::Current)?;
+        session.ops = ops.clone();
+        session.request.ops = ops;
+        self.validate(&session)?;
+        Ok(session)
     }
 
     /// Start an answer for an explicit exact view. Used by the harness for the historical semantics
@@ -1258,10 +2242,21 @@ impl ScopedMemoryRuntime {
             scope: scope.to_vec(),
             relation,
             history,
+            request: SessionRequest {
+                entity: entity.to_vec(),
+                relation,
+                history,
+                ops: Vec::new(),
+                clause: None,
+            },
             hop: 0,
             query_entity: entity.to_vec(),
+            ops: Vec::new(),
+            op_cursor: 0,
+            computation: None,
+            derived: false,
             captured: None,
-            pending: RelAction::Read,
+            pending: SessionAction::Read,
             emitted: Vec::new(),
             cursor: 0,
             visited: Vec::new(),
@@ -1289,6 +2284,26 @@ impl ScopedMemoryRuntime {
         if session.scope.is_empty() || session.query_entity.is_empty() {
             return Err(ScopedMemoryError::Session("empty session address".into()));
         }
+        if session.request.entity.is_empty()
+            || session.request.relation != session.relation
+            || session.request.history != session.history
+            || session.request.ops != session.ops
+            || session.ops.len() > SCOPED_MAX_OPERATIONS
+            || session.ops.iter().any(|op| op.is_empty())
+            || (!session.ops.is_empty() && matches!(self.backend, ComputationBackend::Absent))
+            || session.visited.first().unwrap_or(&session.query_entity) != &session.request.entity
+        {
+            return Err(ScopedMemoryError::Session(
+                "progress disagrees with the retained request".into(),
+            ));
+        }
+        if let Some(clause) = &session.request.clause {
+            if self.interpret_request(clause)? != session.request {
+                return Err(ScopedMemoryError::Session(
+                    "request interpretation differs from its observed clause".into(),
+                ));
+            }
+        }
         if session.hop > SCOPED_MAX_HOPS
             || session.cursor > session.captured_payload_len()
             || session.emitted.len() > SCOPED_MAX_ANSWER
@@ -1311,54 +2326,67 @@ impl ScopedMemoryRuntime {
                 })?;
                 let beyond_pin = capture.commit > session.view
                     && !matches!(self.control, MemoryControl::Unpinned);
-                let failure = session.terminal.is_some()
-                    && session.terminal != Some(ScopedTerminal::Complete);
-                let follows_capture = session.pending == RelAction::Read || failure;
-                let (captured_entity, capture_hop) = if follows_capture {
-                    let entity = session.visited.last().ok_or_else(|| {
-                        ScopedMemoryError::Session(
-                            "continued capture lacks a visited source".into(),
-                        )
-                    })?;
-                    if !capture.continues || session.query_entity != capture.value {
-                        return Err(ScopedMemoryError::Session(
-                            "continued capture/value disagree".into(),
-                        ));
-                    }
-                    (
-                        entity,
-                        session.hop.checked_sub(1).ok_or_else(|| {
-                            ScopedMemoryError::Session("continued capture has no hop".into())
-                        })?,
-                    )
+                let capture_hop = capture.read_hop;
+                let captured_entity = if capture_hop == session.hop {
+                    session.query_entity.as_slice()
+                } else if capture_hop.checked_add(1) == Some(session.hop) {
+                    session
+                        .visited
+                        .get(capture_hop as usize)
+                        .ok_or_else(|| {
+                            ScopedMemoryError::Session("capture has no visited origin".into())
+                        })?
+                        .as_slice()
                 } else {
-                    (&session.query_entity, session.hop)
-                };
-                if capture.payload.is_empty()
-                    || capture.payload.len() + usize::from(session.eos.is_some())
-                        > SCOPED_MAX_ANSWER
-                    || capture
-                        .payload
-                        .iter()
-                        .any(|token| *token as usize >= self.max_vocab)
-                    || capture.key
-                        != self.address(&session.scope, captured_entity, session.relation)
-                    || capture.key != encode_key(&record.scope, &record.entity, record.relation)
-                    || capture.commit != record.commit
-                    || beyond_pin
-                    || capture.value != record.value
-                    || capture.continues != record.continues
-                    || payload_sha256(&capture.payload) != record.payload_sha256
-                    || (!record.evicted && capture.payload != record.payload)
-                {
                     return Err(ScopedMemoryError::Session(
-                        "capture disagrees with its exact owned record".into(),
+                        "capture read position disagrees with progress".into(),
                     ));
+                };
+                let mut capture_fault: Option<&str> = None;
+                if capture.payload.is_empty() {
+                    capture_fault = Some("empty payload");
+                } else if capture.payload.len() + usize::from(session.eos.is_some())
+                    > SCOPED_MAX_ANSWER
+                {
+                    capture_fault = Some("answer bound");
+                } else if capture
+                    .payload
+                    .iter()
+                    .any(|token| *token as usize >= self.max_vocab)
+                {
+                    capture_fault = Some("out-of-vocabulary payload");
+                } else if capture.key
+                    != self.address(&session.scope, captured_entity, session.relation)
+                {
+                    capture_fault = Some("address");
+                } else if capture.key != encode_key(&record.scope, &record.entity, record.relation)
+                {
+                    capture_fault = Some("record address");
+                } else if capture.commit != record.commit {
+                    capture_fault = Some("commit");
+                } else if beyond_pin {
+                    capture_fault = Some("beyond pin");
+                } else if capture.value != record.value {
+                    capture_fault = Some("value");
+                } else if capture.continues != record.continues {
+                    capture_fault = Some("continuation flag");
+                } else if payload_sha256(&capture.payload) != record.payload_sha256 {
+                    capture_fault = Some("payload witness");
+                } else if !record.evicted && capture.payload != record.payload {
+                    capture_fault = Some("payload");
+                }
+                if let Some(fault) = capture_fault {
+                    return Err(ScopedMemoryError::Session(format!(
+                        "capture disagrees with its exact owned record: {fault} (entity {:?} hop {} derived {})",
+                        String::from_utf8_lossy(captured_entity),
+                        capture_hop,
+                        session.derived
+                    )));
                 }
                 // Pinned exact selection remains stable even when a payload was later evicted.
-                if matches!(
+                if !matches!(
                     self.control,
-                    MemoryControl::Normal | MemoryControl::UpdateDisabled | MemoryControl::Unscoped
+                    MemoryControl::Unpinned | MemoryControl::ParseScoreAuthority
                 ) {
                     let history = if capture_hop == 0 {
                         session.history
@@ -1393,12 +2421,248 @@ impl ScopedMemoryRuntime {
                 }
             }
         }
+        if session.op_cursor > session.ops.len() {
+            return Err(ScopedMemoryError::Session(
+                "operation cursor exceeds the observed operations".into(),
+            ));
+        }
+        if session.derived && session.computation.is_none() {
+            return Err(ScopedMemoryError::Session(
+                "derived address without a computation".into(),
+            ));
+        }
+        if let Some(computed) = &session.computation {
+            // The result is published by the finishing Apply step, which is one step after the last
+            // operation is applied; the interval between those two steps is a legal state.
+            let published = !computed.derived_key.is_empty();
+            if computed.applied != session.op_cursor
+                || computed.artifact != self.binding.artifact_sha256
+                || computed.source_scope != session.scope
+                || session.ops.is_empty()
+                || computed.source_hop > session.hop
+            {
+                return Err(ScopedMemoryError::Session(
+                    "computed result disagrees with its session, artifact or cursor".into(),
+                ));
+            }
+            if let Some(capture) = &session.captured {
+                // Once the derived read replaces the source capture, the source provenance lives in
+                // the computation itself; only the un-replaced source capture is compared here.
+                if session.hop == computed.source_hop
+                    && !capture.derived
+                    && (computed.source_record != capture.record_id
+                        || computed.source_commit != capture.commit
+                        || computed.source_key != capture.key
+                        || computed.operand_key != capture.value)
+                {
+                    return Err(ScopedMemoryError::Session(
+                        "computed operand disagrees with its captured source".into(),
+                    ));
+                }
+            } else {
+                return Err(ScopedMemoryError::Session(
+                    "computation without a captured operand".into(),
+                ));
+            }
+            let source = self
+                .memory
+                .record_ref(computed.source_record)
+                .ok_or_else(|| {
+                    ScopedMemoryError::Session("computed source record is missing".into())
+                })?;
+            if computed.source_commit != source.commit
+                || computed.source_entity != source.entity
+                || computed.source_key != encode_key(&source.scope, &source.entity, source.relation)
+                || computed.source_key
+                    != self.address(&session.scope, &computed.source_entity, session.relation)
+                || computed.operand_key != source.value
+                || source.continues
+                || (source.commit > session.view
+                    && !matches!(self.control, MemoryControl::Unpinned))
+                || (computed.source_hop < session.hop
+                    && session.visited.get(computed.source_hop as usize)
+                        != Some(&computed.source_entity))
+            {
+                return Err(ScopedMemoryError::Session(
+                    "computed provenance disagrees with its exact source".into(),
+                ));
+            }
+            if !matches!(
+                self.control,
+                MemoryControl::Unpinned | MemoryControl::ParseScoreAuthority
+            ) {
+                let history = if computed.source_hop == 0 {
+                    session.history
+                } else {
+                    HistoryView::Current
+                };
+                if !matches!(self.memory.lookup_identity(&computed.source_key, session.view, history),
+                    Lookup::Found(record) if record.id == source.id)
+                {
+                    return Err(ScopedMemoryError::Session(
+                        "computed source was not eligible at the pinned view".into(),
+                    ));
+                }
+            }
+            let operand_label = self
+                .lexicon
+                .label_for(&computed.operand_key)
+                .ok_or_else(|| {
+                    ScopedMemoryError::Session("computed operand is ungrounded".into())
+                })?;
+            if self.backend.initial_state(operand_label).ok() != Some(computed.operand_state) {
+                return Err(ScopedMemoryError::Session(
+                    "computed operand state disagrees with the bound artifact".into(),
+                ));
+            }
+            let skip = matches!(self.control, MemoryControl::ApplyDisabled);
+            if skip && computed.applied != 0 {
+                return Err(ScopedMemoryError::Session(
+                    "disabled Apply has operation progress".into(),
+                ));
+            }
+            let mut replayed = computed.operand_state;
+            for op in session.ops.iter().take(computed.applied) {
+                let label = self.lexicon.label_for(op).ok_or_else(|| {
+                    ScopedMemoryError::Session("applied operation is ungrounded".into())
+                })?;
+                replayed = self.backend.apply(replayed, label)?;
+            }
+            if computed.state != replayed {
+                return Err(ScopedMemoryError::Session(
+                    "retained state disagrees with replayed observed operations".into(),
+                ));
+            }
+            if published {
+                if (!skip && computed.applied != session.ops.len())
+                    || computed.consumed == matches!(self.control, MemoryControl::ConsumeDisabled)
+                    || session.pending == SessionAction::Apply
+                    || session.hop <= computed.source_hop
+                {
+                    return Err(ScopedMemoryError::Session(
+                        "published result disagrees with operation progress or control".into(),
+                    ));
+                }
+                let label = if skip {
+                    Some(operand_label)
+                } else {
+                    self.backend.label_for_state(computed.state)
+                }
+                .ok_or_else(|| ScopedMemoryError::Session("computed state is ungrounded".into()))?;
+                let key = self.lexicon.key_for_label(label).ok_or_else(|| {
+                    ScopedMemoryError::Session("computed label has no canonical key".into())
+                })?;
+                if computed.derived_label != label || computed.derived_key != key {
+                    return Err(ScopedMemoryError::Session(format!(
+                        "computed result disagrees with the published grounding: state {} label {} vs {} key {:?} vs {:?}",
+                        computed.state,
+                        computed.derived_label,
+                        label,
+                        String::from_utf8_lossy(&computed.derived_key),
+                        String::from_utf8_lossy(key)
+                    )));
+                }
+                // The consumed address is the derived key (or, when consumption is disabled, the
+                // operand's own label). The derived capture must own that exact address; a later hop
+                // may legitimately have moved the query on.
+                let consumed = if computed.consumed {
+                    computed.derived_key.as_slice()
+                } else {
+                    computed.operand_key.as_slice()
+                };
+                let consumed_address = self.address(&session.scope, consumed, session.relation);
+                if !session.derived {
+                    return Err(ScopedMemoryError::Session(
+                        "published computation is not being consumed".into(),
+                    ));
+                }
+                if session
+                    .visited
+                    .get(computed.source_hop as usize + 1)
+                    .map(Vec::as_slice)
+                    .unwrap_or(session.query_entity.as_slice())
+                    != consumed
+                {
+                    return Err(ScopedMemoryError::Session(
+                        "next query was not the consumed result".into(),
+                    ));
+                }
+                // Before the derived read completes, the retained capture is still the source operand;
+                // once it completes, it must own exactly the consumed address.
+                if let Some(capture) = &session.captured {
+                    if capture.derived != (capture.read_hop == computed.source_hop + 1)
+                        || (capture.derived && capture.key != consumed_address)
+                    {
+                        return Err(ScopedMemoryError::Session(format!(
+                            "derived read addressed {:?} instead of the consumed result {:?}",
+                            String::from_utf8_lossy(&capture.key),
+                            String::from_utf8_lossy(consumed)
+                        )));
+                    }
+                }
+            } else if computed.consumed
+                || session.derived
+                || computed.derived_label != 0
+                || (session.terminal.is_none() && session.pending != SessionAction::Apply)
+                || session.hop != computed.source_hop
+            {
+                return Err(ScopedMemoryError::Session(
+                    "unpublished computation already claims a consumed result".into(),
+                ));
+            }
+        } else if session.op_cursor != 0 || session.captured.as_ref().is_some_and(|c| c.derived) {
+            return Err(ScopedMemoryError::Session(
+                "operation cursor advanced without a computation".into(),
+            ));
+        }
+        // Every followed address must come from its selected record, except the one explicitly
+        // computed edge. Tombstones retain the immutable identity/value needed for this check.
+        if !matches!(
+            self.control,
+            MemoryControl::Unpinned | MemoryControl::ParseScoreAuthority
+        ) {
+            for (hop, entity) in session.visited.iter().enumerate() {
+                if session
+                    .computation
+                    .as_ref()
+                    .is_some_and(|c| c.source_hop as usize == hop)
+                {
+                    continue;
+                }
+                let history = if hop == 0 {
+                    session.history
+                } else {
+                    HistoryView::Current
+                };
+                let record = match self.memory.lookup_identity(
+                    &self.address(&session.scope, entity, session.relation),
+                    session.view,
+                    history,
+                ) {
+                    Lookup::Found(record) => record,
+                    _ => {
+                        return Err(ScopedMemoryError::Session(
+                            "followed record is not eligible".into(),
+                        ))
+                    }
+                };
+                let next = session
+                    .visited
+                    .get(hop + 1)
+                    .unwrap_or(&session.query_entity);
+                if !record.continues || &record.value != next {
+                    return Err(ScopedMemoryError::Session(
+                        "followed address disagrees with its source value".into(),
+                    ));
+                }
+            }
+        }
         let terminators = usize::from(
             session.terminal == Some(ScopedTerminal::Complete) && session.eos.is_some(),
         );
         match session.terminal {
             Some(ScopedTerminal::Complete) => {
-                if session.pending != RelAction::Stop
+                if session.pending != SessionAction::Stop
                     || !session.captured.as_ref().is_some_and(|c| !c.continues)
                     || session.cursor == 0
                     || session.cursor != session.captured_payload_len()
@@ -1410,22 +2674,24 @@ impl ScopedMemoryRuntime {
                 }
             }
             Some(_) => {
-                if session.pending != RelAction::Stop || !session.emitted.is_empty() {
+                if session.pending != SessionAction::Stop || !session.emitted.is_empty() {
                     return Err(ScopedMemoryError::Session(
                         "typed failure terminal must be silent".into(),
                     ));
                 }
             }
             None => match session.pending {
-                RelAction::Read if session.cursor == 0 && session.emitted.is_empty() => {}
-                RelAction::Continue
+                SessionAction::Read if session.cursor == 0 && session.emitted.is_empty() => {}
+                SessionAction::Apply
+                    if session.computation.is_some() && session.captured.is_some() => {}
+                SessionAction::Continue
                     if session.captured.as_ref().is_some_and(|c| c.continues)
                         && session.cursor == 0
                         && session.emitted.is_empty() => {}
-                RelAction::Emit
+                SessionAction::Emit
                     if session.captured.as_ref().is_some_and(|c| !c.continues)
                         && session.cursor < session.captured_payload_len() => {}
-                RelAction::Stop
+                SessionAction::Stop
                     if session.captured.as_ref().is_some_and(|c| !c.continues)
                         && session.cursor > 0
                         && session.cursor == session.captured_payload_len() => {}
@@ -1441,7 +2707,7 @@ impl ScopedMemoryRuntime {
 
     fn terminate(&self, session: &mut ScopedSession, reason: ScopedTerminal) {
         session.terminal = Some(reason);
-        session.pending = RelAction::Stop;
+        session.pending = SessionAction::Stop;
     }
 
     /// One causal step. Generation, resumption and the controls all use this single implementation.
@@ -1459,12 +2725,14 @@ impl ScopedMemoryRuntime {
             selected_record: None,
             selected_commit: None,
             selected_value: None,
+            op_label: None,
+            computed_state: None,
             hop: session.hop,
             emitted: None,
             terminal: None,
         };
         match performed {
-            RelAction::Read => {
+            SessionAction::Read => {
                 if matches!(self.control, MemoryControl::NoRead) {
                     self.terminate(session, ScopedTerminal::NoRead);
                 } else {
@@ -1496,21 +2764,85 @@ impl ScopedMemoryRuntime {
                                     effect.selected_record = Some(record.id);
                                     effect.selected_commit = Some(record.commit);
                                     effect.selected_value = Some(record.value.clone());
+                                    // Only the read of the consumed result is a *derived* capture.
+                                    // Later hops of the same answer are ordinary dependent reads,
+                                    // so the flag cannot be inherited by them.
+                                    let derived_capture = session.derived
+                                        && session.computation.as_ref().is_some_and(|c| {
+                                            let consumed = if c.consumed {
+                                                c.derived_key.as_slice()
+                                            } else {
+                                                c.operand_key.as_slice()
+                                            };
+                                            key == self.address(
+                                                &session.scope,
+                                                consumed,
+                                                session.relation,
+                                            )
+                                        });
                                     let capture = MemoryCapture {
-                                        key,
+                                        key: key.clone(),
                                         record_id: record.id,
                                         commit: record.commit,
                                         value: record.value.clone(),
                                         payload: record.payload.clone(),
                                         continues: record.continues,
+                                        derived: derived_capture,
+                                        read_hop: session.hop,
                                     };
                                     let continues = capture.continues;
+                                    let operand_key = capture.value.clone();
                                     session.captured = Some(capture);
-                                    session.pending = if continues {
-                                        RelAction::Continue
+                                    if session.ops.is_empty()
+                                        || session.computation.is_some()
+                                        || continues
+                                    {
+                                        session.pending = if continues {
+                                            SessionAction::Continue
+                                        } else {
+                                            SessionAction::Emit
+                                        };
                                     } else {
-                                        RelAction::Emit
-                                    };
+                                        // The source operand of a computation request starts the
+                                        // computation instead of a continuation or an emission.
+                                        match self.lexicon.label_for(&operand_key) {
+                                            Some(label) => {
+                                                match self.backend.initial_state(label) {
+                                                    Ok(state) => {
+                                                        session.computation = Some(ComputedState {
+                                                            source_record: record.id,
+                                                            source_commit: record.commit,
+                                                            source_scope: session.scope.clone(),
+                                                            source_entity: session
+                                                                .query_entity
+                                                                .clone(),
+                                                            source_key: key,
+                                                            source_hop: session.hop,
+                                                            operand_key,
+                                                            operand_state: state,
+                                                            state,
+                                                            applied: 0,
+                                                            artifact: self
+                                                                .binding
+                                                                .artifact_sha256
+                                                                .clone(),
+                                                            derived_label: 0,
+                                                            derived_key: Vec::new(),
+                                                            consumed: false,
+                                                        });
+                                                        session.op_cursor = 0;
+                                                        session.pending = SessionAction::Apply;
+                                                    }
+                                                    Err(_) => self.terminate(
+                                                        session,
+                                                        ScopedTerminal::UnknownOperand,
+                                                    ),
+                                                }
+                                            }
+                                            None => self
+                                                .terminate(session, ScopedTerminal::UnknownOperand),
+                                        }
+                                    }
                                 }
                             }
                             Lookup::Absent => self.terminate(session, ScopedTerminal::Unresolved),
@@ -1520,7 +2852,86 @@ impl ScopedMemoryRuntime {
                     }
                 }
             }
-            RelAction::Continue => {
+            SessionAction::Apply => {
+                let Some(mut computed) = session.computation.clone() else {
+                    return Err(ScopedMemoryError::Session(
+                        "apply without a computation".into(),
+                    ));
+                };
+                let skip = matches!(self.control, MemoryControl::ApplyDisabled);
+                if computed.applied < session.ops.len() && !skip {
+                    let op_key = session.ops[computed.applied].clone();
+                    let applied = self
+                        .lexicon
+                        .label_for(&op_key)
+                        .ok_or(ScopedTerminal::UnknownOperation)
+                        .and_then(|label| {
+                            self.backend
+                                .apply(computed.state, label)
+                                .map(|state| (label, state))
+                                .map_err(|_| ScopedTerminal::UnknownOperation)
+                        });
+                    match applied {
+                        Ok((label, state)) => {
+                            computed.state = state;
+                            computed.applied += 1;
+                            session.op_cursor = computed.applied;
+                            effect.op_label = Some(label);
+                            effect.computed_state = Some(state);
+                            session.computation = Some(computed);
+                            session.pending = SessionAction::Apply;
+                        }
+                        Err(reason) => {
+                            session.computation = Some(computed);
+                            self.terminate(session, reason);
+                        }
+                    }
+                } else {
+                    // Either every observed operation was applied, or the apply control skipped them.
+                    // Ground the retained state (or the operand label under the skip control) and
+                    // consume it as the next exact read address.
+                    let grounded = if skip {
+                        self.lexicon.label_for(&computed.operand_key).map(|label| {
+                            (label, computed.operand_state, computed.operand_key.clone())
+                        })
+                    } else {
+                        self.backend
+                            .label_for_state(computed.state)
+                            .and_then(|label| {
+                                self.lexicon
+                                    .key_for_label(label)
+                                    .map(|key| (label, computed.state, key.to_vec()))
+                            })
+                    };
+                    match grounded {
+                        Some((label, state, key)) => {
+                            computed.derived_label = label;
+                            computed.derived_key = key.clone();
+                            computed.state = state;
+                            let consumed = !matches!(self.control, MemoryControl::ConsumeDisabled);
+                            computed.consumed = consumed;
+                            let source_entity = computed.source_entity.clone();
+                            session.query_entity = if consumed {
+                                key
+                            } else {
+                                computed.operand_key.clone()
+                            };
+                            effect.computed_state = Some(state);
+                            effect.selected_value = Some(computed.derived_key.clone());
+                            session.computation = Some(computed);
+                            session.visited.push(source_entity);
+                            session.hop += 1;
+                            session.derived = true;
+                            session.pending = SessionAction::Read;
+                        }
+                        None => {
+                            session.computation = Some(computed);
+                            self.terminate(session, ScopedTerminal::UngroundedResult);
+                        }
+                    }
+                }
+            }
+            SessionAction::Continue => {
                 let (value, continues) = match &session.captured {
                     Some(capture) => (capture.value.clone(), capture.continues),
                     None => {
@@ -1539,9 +2950,9 @@ impl ScopedMemoryRuntime {
                 session.visited.push(session.query_entity.clone());
                 session.query_entity = value;
                 session.hop += 1;
-                session.pending = RelAction::Read;
+                session.pending = SessionAction::Read;
             }
-            RelAction::Emit => {
+            SessionAction::Emit => {
                 let (token, done) = match &session.captured {
                     Some(capture) => {
                         let token = *capture.payload.get(session.cursor).ok_or_else(|| {
@@ -1560,11 +2971,11 @@ impl ScopedMemoryRuntime {
                     session.cursor += 1;
                     effect.emitted = Some(token);
                     if done {
-                        session.pending = RelAction::Stop;
+                        session.pending = SessionAction::Stop;
                     }
                 }
             }
-            RelAction::Stop => {
+            SessionAction::Stop => {
                 let mut exhausted = false;
                 if let Some(eos) = session.eos {
                     if session.emitted.len() >= SCOPED_MAX_ANSWER {
@@ -1579,11 +2990,6 @@ impl ScopedMemoryRuntime {
                 } else {
                     self.terminate(session, ScopedTerminal::Complete);
                 }
-            }
-            _ => {
-                return Err(ScopedMemoryError::Session(
-                    "unsupported active scoped phase".into(),
-                ))
             }
         }
         self.validate(session)?;
@@ -1627,7 +3033,7 @@ impl ScopedMemoryRuntime {
         session: &mut ScopedSession,
     ) -> Result<Vec<ScopedStepEffect>, ScopedMemoryError> {
         self.validate(session)?;
-        let bound = SCOPED_MAX_HOPS as usize * 2 + SCOPED_MAX_ANSWER + 2;
+        let bound = SCOPED_MAX_HOPS as usize * 2 + SCOPED_MAX_ANSWER + session.ops.len() + 4;
         let mut effects = Vec::new();
         for _ in 0..bound {
             if session.terminal.is_some() {
@@ -1639,11 +3045,13 @@ impl ScopedMemoryRuntime {
             self.terminate(session, ScopedTerminal::Exhausted);
             self.validate(session)?;
             effects.push(ScopedStepEffect {
-                action: RelAction::Exhausted,
+                action: SessionAction::Stop,
                 next_action: None,
                 selected_record: None,
                 selected_commit: None,
                 selected_value: None,
+                op_label: None,
+                computed_state: None,
                 hop: session.hop,
                 emitted: None,
                 terminal: session.terminal,
@@ -1658,7 +3066,14 @@ impl ScopedMemoryRuntime {
     }
 
     pub fn restore(&self, bytes: &[u8]) -> Result<ScopedSession, ScopedMemoryError> {
-        let session: ScopedSession = serde_json::from_slice(bytes)
+        let value: serde_json::Value = serde_json::from_slice(bytes)
+            .map_err(|e| ScopedMemoryError::Serialization(e.to_string()))?;
+        if value["version"] != serde_json::json!(SCOPED_SESSION_VERSION) {
+            return Err(ScopedMemoryError::Session(
+                "unsupported session snapshot version".into(),
+            ));
+        }
+        let session: ScopedSession = serde_json::from_value(value)
             .map_err(|e| ScopedMemoryError::Serialization(e.to_string()))?;
         self.validate(&session)?;
         Ok(session)
@@ -1917,10 +3332,17 @@ mod tests {
         assert!(early.validate().is_err());
     }
 
+    /// A minimal valid lexicon for tests that exercise the memory phases without computation.
+    fn test_lexicon() -> GroundingLexicon {
+        GroundingLexicon::from_observations(&[(b"A".to_vec(), 1)], &[(1, b"A".to_vec())]).unwrap()
+    }
+
     fn runtime(memory: Memory, eos: Option<u32>) -> ScopedMemoryRuntime {
-        ScopedMemoryRuntime::load(
+        ScopedMemoryRuntime::load_with_computation(
             &ObservedTextModel::uninformed().to_bytes().unwrap(),
             &IntentModel::uninformed().to_bytes().unwrap(),
+            Some(&test_lexicon().to_bytes().unwrap()),
+            ComputationBackend::Absent,
             memory.clone(),
             memory.lineage,
             MemoryControl::Normal,
@@ -2007,6 +3429,612 @@ mod tests {
         assert!(Memory::from_bytes(&valid.to_bytes().unwrap()).is_ok());
     }
 
+    /// Q8 development observations over eight labels with two noncommuting generators. The
+    /// factorization recovers the action; the label/primitive identifiers are opaque.
+    fn q8_fixture() -> (GroundedFactorization, u32, u32, Vec<u32>) {
+        let witness = super::super::shared_transition::q8_witness().unwrap();
+        let t = group_table();
+        let product = |a: usize, b: usize| t.product[a * ROW_STRIDE + b] as usize;
+        let mut pair = None;
+        for a in witness.iter() {
+            for b in witness.iter() {
+                if product(*a as usize, *b as usize) != product(*b as usize, *a as usize) {
+                    pair = Some((*a as u32, *b as u32));
+                    break;
+                }
+            }
+            if pair.is_some() {
+                break;
+            }
+        }
+        let (gen_i, gen_j) = pair.unwrap();
+        let labels: Vec<u32> = (1..=8u32).collect();
+        let label_of = |element: usize| -> u32 {
+            let index = witness.iter().position(|w| *w as usize == element).unwrap();
+            labels[index]
+        };
+        let mut examples = Vec::new();
+        for (k, label) in labels.iter().enumerate() {
+            let state = witness[k] as usize;
+            // Both orders, so each primitive is observed in both positions over every outcome. The
+            // factorization needs that coverage; it is a property of the declared observations.
+            let after_i = product(gen_i as usize, state);
+            let after_ij = product(gen_j as usize, after_i);
+            let after_j = product(gen_j as usize, state);
+            let after_ji = product(gen_i as usize, after_j);
+            examples.push(super::super::shared_transition::StExample {
+                payload: *label,
+                primitives: vec![100, 200],
+                targets: vec![label_of(after_i), label_of(after_ij)],
+            });
+            examples.push(super::super::shared_transition::StExample {
+                payload: *label,
+                primitives: vec![200, 100],
+                targets: vec![label_of(after_j), label_of(after_ji)],
+            });
+        }
+        let (factorization, report) =
+            super::super::grounded_session::factor_observed_graph(&examples, false).unwrap();
+        assert_eq!(report.transitions_checked, report.transitions_consistent);
+        (factorization, gen_i, gen_j, labels)
+    }
+
+    #[test]
+    fn lexicon_rejects_ambiguous_and_ungrounded_entries() {
+        assert!(GroundingLexicon::from_observations(
+            &[(b"A".to_vec(), 1), (b"A".to_vec(), 2)],
+            &[(1, b"A".to_vec()), (2, b"B".to_vec())]
+        )
+        .is_err());
+        assert!(GroundingLexicon::from_observations(&[(b"A".to_vec(), 1)], &[]).is_err());
+        assert!(GroundingLexicon::from_observations(&[], &[(1, b"A".to_vec())]).is_err());
+        assert!(
+            GroundingLexicon::from_observations(&[(b"A".to_vec(), 1)], &[(2, b"B".to_vec())])
+                .is_err()
+        );
+        let ok = GroundingLexicon::from_observations(
+            &[(b"A".to_vec(), 1), (b"B".to_vec(), 2)],
+            &[(1, b"A".to_vec()), (2, b"B".to_vec())],
+        )
+        .unwrap();
+        assert_eq!(ok.label_for(b"A"), Some(1));
+        assert_eq!(ok.key_for_label(2), Some(&b"B"[..]));
+        assert_eq!(ok.label_for(b"Z"), None);
+        let mut forged = serde_json::to_value(&ok).unwrap();
+        forged["key_to_label"] = serde_json::json!([[b"A", 1], [b"A", 2], [b"B", 2]]);
+        assert!(GroundingLexicon::from_bytes(&serde_json::to_vec(&forged).unwrap()).is_err());
+    }
+
+    #[test]
+    fn old_three_class_intent_migrates_without_selecting_an_unfitted_fourth_class() {
+        let feature = candidate_features(&[11], 0, 1)[0];
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "version": 1, "statement": [[feature, [-3, -2, -1]]], "question": []
+        }))
+        .unwrap();
+        let migrated = IntentModel::from_bytes(&bytes, 4096).unwrap();
+        assert_eq!(migrated.statement_classes, 3);
+        assert_eq!(migrated.statement_intent(&[11], 0, 1), STMT_NONASSERTING);
+        assert_eq!(
+            IntentModel::from_bytes(&migrated.to_bytes().unwrap(), 4096).unwrap(),
+            migrated
+        );
+        let mut unversioned = serde_json::to_value(&migrated).unwrap();
+        unversioned["version"] = serde_json::json!(1);
+        assert!(IntentModel::from_bytes(&serde_json::to_vec(&unversioned).unwrap(), 4096).is_err());
+    }
+
+    #[test]
+    fn older_session_versions_report_explicit_incompatibility_before_field_decoding() {
+        let rt = runtime(Memory::new(71, 2), None);
+        for version in [1, 2, 3] {
+            let bytes = serde_json::to_vec(&serde_json::json!({"version": version})).unwrap();
+            assert!(
+                matches!(rt.restore(&bytes), Err(ScopedMemoryError::Session(message))
+                if message == "unsupported session snapshot version")
+            );
+        }
+    }
+
+    #[test]
+    fn computation_identity_validates_dimensions_numbers_modes_and_fold() {
+        let (f, _, _, _) = q8_fixture();
+        let signed = ComputationBackend::Signed(Box::new(f.clone()));
+        let identity = signed.identity_json();
+        assert_eq!(
+            ComputationBackend::from_identity_json(&identity)
+                .unwrap()
+                .identity_json(),
+            identity
+        );
+        for (field, bad) in [
+            ("action_code", serde_json::json!([])),
+            ("action_code", serde_json::json!([256, 0])),
+            ("payload_domain", serde_json::json!([4294967296u64])),
+            ("outcome_state", serde_json::json!([0, 0])),
+        ] {
+            let mut changed = identity.clone();
+            changed[field] = bad;
+            assert!(
+                ComputationBackend::from_identity_json(&changed).is_err(),
+                "{field}"
+            );
+        }
+        let mut mode = f.clone();
+        mode.cyclic = true;
+        assert_ne!(
+            signed.identity_json(),
+            ComputationBackend::Signed(Box::new(mode)).identity_json()
+        );
+        let folded = ComputationBackend::Folded(
+            Box::new(f.clone()),
+            Box::new(FoldedGroup::recover(&f).unwrap()),
+        );
+        let mut fold = folded.identity_json();
+        assert_eq!(
+            ComputationBackend::from_identity_json(&fold)
+                .unwrap()
+                .identity_json(),
+            fold
+        );
+        fold["projection"][0] = serde_json::json!(999);
+        assert!(ComputationBackend::from_identity_json(&fold).is_err());
+        let malformed = ComputationBackend::Signed(Box::new(GroundedFactorization {
+            payload_state: Vec::new(),
+            ..f
+        }));
+        assert!(malformed.validate().is_err());
+    }
+
+    fn computation_runtime(control: MemoryControl) -> ScopedMemoryRuntime {
+        let (f, _, _, labels) = q8_fixture();
+        let mut memory = Memory::new(71, 2);
+        memory
+            .write(
+                b"alpha",
+                b"Mara",
+                0,
+                b"L1",
+                &[11],
+                1,
+                Update::Assert,
+                false,
+                0,
+            )
+            .unwrap();
+        for label in &labels {
+            memory
+                .write(
+                    b"alpha",
+                    format!("L{label}").as_bytes(),
+                    0,
+                    format!("answer-{label}").as_bytes(),
+                    &[*label + 40],
+                    *label as u64 + 1,
+                    Update::Assert,
+                    false,
+                    0,
+                )
+                .unwrap();
+        }
+        let mut surfaces = vec![(b"i".to_vec(), 100), (b"j".to_vec(), 200)];
+        let canonical: Vec<_> = labels
+            .iter()
+            .map(|l| (*l, format!("L{l}").into_bytes()))
+            .collect();
+        surfaces.extend(canonical.iter().map(|(l, key)| (key.clone(), *l)));
+        let lexicon = GroundingLexicon::from_observations(&surfaces, &canonical).unwrap();
+        ScopedMemoryRuntime::load_with_computation(
+            &ObservedTextModel::uninformed().to_bytes().unwrap(),
+            &IntentModel::uninformed().to_bytes().unwrap(),
+            Some(&lexicon.to_bytes().unwrap()),
+            ComputationBackend::Signed(Box::new(f)),
+            memory,
+            71,
+            control,
+            4096,
+            Some(4095),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn computation_restore_rejects_operation_state_source_control_and_query_tampering() {
+        let rt = computation_runtime(MemoryControl::Normal);
+        let mut session = rt
+            .ask_compute(b"alpha", 0, b"Mara", vec![b"i".to_vec(), b"j".to_vec()])
+            .unwrap();
+        rt.step(&mut session).unwrap();
+        rt.step(&mut session).unwrap();
+        let mut changed = session.clone();
+        changed.ops.reverse();
+        assert!(rt.restore(&serde_json::to_vec(&changed).unwrap()).is_err());
+        let mut changed = session.clone();
+        changed.computation.as_mut().unwrap().state =
+            changed.computation.as_ref().unwrap().operand_state;
+        assert!(rt.validate(&changed).is_err());
+        rt.step(&mut session).unwrap();
+        rt.step(&mut session).unwrap(); // publish, before the dependent read
+        assert_eq!(session.pending, SessionAction::Read);
+        let mut changed = session.clone();
+        changed.query_entity = b"L1".to_vec();
+        if changed.query_entity == session.query_entity {
+            changed.query_entity = b"L2".to_vec();
+        }
+        assert!(rt.validate(&changed).is_err());
+        let mut changed = session.clone();
+        changed.computation.as_mut().unwrap().consumed = false;
+        assert!(rt.validate(&changed).is_err());
+        let mut changed = session.clone();
+        changed.pending = SessionAction::Apply;
+        assert!(rt.validate(&changed).is_err());
+        rt.step(&mut session).unwrap(); // result has replaced the source capture
+        for field in ["source_record", "source_commit"] {
+            let mut changed = serde_json::to_value(&session).unwrap();
+            changed["computation"][field] = serde_json::json!(999);
+            assert!(rt.restore(&serde_json::to_vec(&changed).unwrap()).is_err());
+        }
+        rt.run(&mut session).unwrap();
+        assert_eq!(session.terminal, Some(ScopedTerminal::Complete));
+    }
+
+    #[test]
+    fn raw_request_restore_rederives_observed_operations_and_compute_ingestion_writes_nothing() {
+        use super::super::observed_text_session::{fit_observed_text_model, ClauseLabel, Goal};
+        let clause = Clause {
+            seg: 0,
+            tokens: vec![11, 12, 13, 14],
+            text: "Mara do i j".into(),
+            byte_lengths: vec![4, 3, 2, 2],
+        };
+        let label = ClauseLabel {
+            seg: 0,
+            subject: (0, 1),
+            marker: (1, 1),
+            object: Some((2, 2)),
+            role: 0,
+            goal: Goal::Office,
+            action: super::super::relational_session::RelAction::Emit,
+        };
+        let (model, _) =
+            fit_observed_text_model(std::slice::from_ref(&clause), &[label], false).unwrap();
+        let mut intent = IntentModel::uninformed();
+        intent.statement = candidate_features(&clause.tokens, 1, 1)
+            .into_iter()
+            .map(|key| (key, [0, 0, 0, 5]))
+            .collect();
+        intent.statement.sort_by_key(|(key, _)| *key);
+        intent.statement.dedup_by_key(|(key, _)| *key);
+        let base = computation_runtime(MemoryControl::Normal);
+        let mut rt = ScopedMemoryRuntime::load_with_computation(
+            &model.to_bytes().unwrap(),
+            &intent.to_bytes().unwrap(),
+            Some(&base.lexicon.to_bytes().unwrap()),
+            base.backend.clone(),
+            base.memory.clone(),
+            71,
+            MemoryControl::Normal,
+            4096,
+            Some(4095),
+        )
+        .unwrap();
+        let mut session = rt.ask(&clause, b"alpha").unwrap();
+        assert_eq!(session.ops, vec![b"i".to_vec(), b"j".to_vec()]);
+        rt.step(&mut session).unwrap();
+        let mut changed = session.clone();
+        changed.ops.reverse();
+        changed.request.ops.reverse();
+        assert!(rt.restore(&serde_json::to_vec(&changed).unwrap()).is_err());
+        assert_eq!(
+            rt.restore(&rt.snapshot(&session).unwrap()).unwrap(),
+            session
+        );
+        let revision = rt.revision();
+        assert!(matches!(
+            rt.ingest(&clause, b"alpha", 99).unwrap(),
+            IngestOutcome::NonAsserting { .. }
+        ));
+        assert_eq!(rt.revision(), revision);
+    }
+
+    #[test]
+    fn tabulated_fit_is_independent_of_example_order_and_rejects_truncation() {
+        let (f, _, _, labels) = q8_fixture();
+        let factorization = &f;
+        let examples: Vec<_> = labels
+            .iter()
+            .flat_map(|label| {
+                [100, 200].into_iter().map(move |op| StExample {
+                    payload: *label,
+                    primitives: vec![op],
+                    targets: vec![factorization
+                        .outcome_for_state(
+                            factorization
+                                .apply(factorization.initial_state(*label).unwrap(), op)
+                                .unwrap(),
+                        )
+                        .unwrap()],
+                })
+            })
+            .collect();
+        let forward = TabulatedControl::fit(&examples).unwrap();
+        let mut reversed = examples.clone();
+        reversed.reverse();
+        assert_eq!(forward, TabulatedControl::fit(&reversed).unwrap());
+        let mut malformed = examples;
+        malformed[0].targets.clear();
+        assert!(TabulatedControl::fit(&malformed).is_err());
+        let backend = ComputationBackend::Tabulated(Box::new(forward));
+        assert_eq!(
+            ComputationBackend::from_identity_json(&backend.identity_json())
+                .unwrap()
+                .identity_json(),
+            backend.identity_json()
+        );
+    }
+
+    #[test]
+    fn computed_source_can_be_followed_and_two_result_redirects_resume_after_source_eviction() {
+        let mut rt = computation_runtime(MemoryControl::Normal);
+        let s = rt.backend.initial_state(1).unwrap();
+        let state = rt
+            .backend
+            .apply(rt.backend.apply(s, 100).unwrap(), 200)
+            .unwrap();
+        let result_key = rt
+            .lexicon
+            .key_for_label(rt.backend.label_for_state(state).unwrap())
+            .unwrap()
+            .to_vec();
+        rt.memory
+            .write(
+                b"alpha",
+                b"Origin",
+                0,
+                b"Mara",
+                &[20],
+                20,
+                Update::Assert,
+                true,
+                0,
+            )
+            .unwrap();
+        rt.memory
+            .write(
+                b"alpha",
+                &result_key,
+                0,
+                b"Hop1",
+                &[21],
+                21,
+                Update::Correct,
+                true,
+                0,
+            )
+            .unwrap();
+        rt.memory
+            .write(
+                b"alpha",
+                b"Hop1",
+                0,
+                b"Hop2",
+                &[22],
+                22,
+                Update::Assert,
+                true,
+                0,
+            )
+            .unwrap();
+        rt.memory
+            .write(
+                b"alpha",
+                b"Hop2",
+                0,
+                b"Answer",
+                &[23],
+                23,
+                Update::Assert,
+                false,
+                0,
+            )
+            .unwrap();
+        let mut session = rt
+            .ask_compute(b"alpha", 0, b"Origin", vec![b"i".to_vec(), b"j".to_vec()])
+            .unwrap();
+        while session.computation.as_ref().is_none_or(|c| c.applied != 1) {
+            rt.step(&mut session).unwrap();
+        }
+        let snap = rt.snapshot(&session).unwrap();
+        let source_id = session.computation.as_ref().unwrap().source_record;
+        rt.memory
+            .write(
+                b"alpha",
+                b"Mara",
+                0,
+                b"L2",
+                &[31],
+                30,
+                Update::Correct,
+                false,
+                0,
+            )
+            .unwrap();
+        rt.memory
+            .write(
+                b"alpha",
+                b"Mara",
+                0,
+                b"L3",
+                &[32],
+                31,
+                Update::Correct,
+                false,
+                0,
+            )
+            .unwrap();
+        assert!(rt.memory.record_ref(source_id).unwrap().evicted);
+        session = rt.restore(&snap).unwrap();
+        while session.terminal.is_none() {
+            rt.step(&mut session).unwrap();
+            session = rt.restore(&rt.snapshot(&session).unwrap()).unwrap();
+        }
+        assert_eq!(session.emitted, vec![23, 4095]);
+        assert_eq!(session.computation.as_ref().unwrap().source_hop, 1);
+        assert_eq!(session.hop, 4);
+    }
+
+    #[test]
+    fn central_sign_fold_identifies_opposites_that_the_signed_action_separates() {
+        let (factorization, _, _, labels) = q8_fixture();
+        let folded = FoldedGroup::recover(&factorization).unwrap();
+        let signed = ComputationBackend::Signed(Box::new(factorization.clone()));
+        let projected =
+            ComputationBackend::Folded(Box::new(factorization.clone()), Box::new(folded));
+        // 100 and 200 are the declared primitive identifiers; the recovered action domain grounds them.
+        let mut separated = 0;
+        for label in labels {
+            let state = signed.initial_state(label).unwrap();
+            let ij = signed
+                .apply(signed.apply(state, 100).unwrap(), 200)
+                .unwrap();
+            let ji = signed
+                .apply(signed.apply(state, 200).unwrap(), 100)
+                .unwrap();
+            if ij != ji {
+                separated += 1;
+                assert_ne!(
+                    signed.label_for_state(ij),
+                    signed.label_for_state(ji),
+                    "retained sign must distinguish the reversed order"
+                );
+                let p_ij = projected
+                    .apply(projected.apply(state, 100).unwrap(), 200)
+                    .unwrap();
+                let p_ji = projected
+                    .apply(projected.apply(state, 200).unwrap(), 100)
+                    .unwrap();
+                assert_eq!(p_ij, p_ji, "the central-sign fold must identify the pair");
+            }
+        }
+        assert!(
+            separated > 0,
+            "the fixture must contain an order-sensitive pair"
+        );
+    }
+
+    #[test]
+    fn computation_consumes_the_grounded_result_and_respects_its_controls() {
+        let (factorization, gen_i, gen_j, labels) = q8_fixture();
+        let mut memory = Memory::new(31, 8);
+        memory
+            .write(
+                b"alpha",
+                b"Mara",
+                0,
+                b"L1",
+                &[11],
+                1,
+                Update::Assert,
+                false,
+                0,
+            )
+            .unwrap();
+        // The derived read must find a record for the grounded result label's own entity.
+        let s1 = factorization.initial_state(1).unwrap();
+        let s_ij = factorization
+            .apply(factorization.apply(s1, 100).unwrap(), 200)
+            .unwrap();
+        let derived = factorization.outcome_for_state(s_ij).unwrap();
+        memory
+            .write(
+                b"alpha",
+                format!("L{derived}").as_bytes(),
+                0,
+                b"TARGET",
+                &[42, 43],
+                2,
+                Update::Assert,
+                false,
+                0,
+            )
+            .unwrap();
+        let model_bytes = ObservedTextModel::uninformed().to_bytes().unwrap();
+        let intent_bytes = IntentModel::uninformed().to_bytes().unwrap();
+        // The lexicon grounds the observed operation words "i"/"j" to the artifact's declared
+        // primitive identifiers 100/200, and each label word to its opaque domain identifier.
+        let mut surface: Vec<(Vec<u8>, u32)> = vec![(b"i".to_vec(), 100), (b"j".to_vec(), 200)];
+        surface.extend(labels.iter().map(|l| (format!("L{l}").into_bytes(), *l)));
+        let lexicon = GroundingLexicon::from_observations(
+            &surface,
+            &labels
+                .iter()
+                .map(|l| (*l, format!("L{l}").into_bytes()))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        let _ = (gen_i, gen_j);
+        let ops = vec![b"i".to_vec(), b"j".to_vec()];
+        let backend = ComputationBackend::Signed(Box::new(factorization.clone()));
+        let runtime = |control: MemoryControl| {
+            ScopedMemoryRuntime::load_with_computation(
+                &model_bytes,
+                &intent_bytes,
+                Some(&lexicon.to_bytes().unwrap()),
+                backend.clone(),
+                memory.clone(),
+                31,
+                control,
+                4096,
+                Some(4095),
+            )
+            .unwrap()
+        };
+        let run =
+            |control: MemoryControl| -> (Vec<u32>, Option<ScopedTerminal>, Option<ComputedState>) {
+                let rt = runtime(control.clone());
+                let mut session = rt.ask_compute(b"alpha", 0, b"Mara", ops.clone()).unwrap();
+                let effects = rt.run(&mut session).unwrap();
+                assert!(effects.iter().any(|e| e.action == SessionAction::Apply));
+                (
+                    session.emitted.clone(),
+                    session.terminal,
+                    session.computation.clone(),
+                )
+            };
+        let (emitted, terminal, computed) = run(MemoryControl::Normal);
+        assert_eq!(terminal, Some(ScopedTerminal::Complete));
+        assert_eq!(emitted, vec![42, 43, 4095]);
+        let computed = computed.unwrap();
+        assert!(computed.consumed && computed.applied == 2);
+        assert_eq!(computed.derived_key, format!("L{derived}").into_bytes());
+
+        // Consumption disabled: the state is computed and published, but the read uses the operand's
+        // own label, which addresses a different (here absent) entity, so the answer changes.
+        let (skip_emitted, terminal_skip, computed_skip) = run(MemoryControl::ConsumeDisabled);
+        assert_eq!(terminal_skip, Some(ScopedTerminal::Unresolved));
+        assert!(skip_emitted.is_empty());
+        let computed_skip = computed_skip.unwrap();
+        assert!(!computed_skip.consumed && computed_skip.applied == 2);
+        assert_eq!(
+            computed_skip.derived_key,
+            format!("L{derived}").into_bytes()
+        );
+
+        // Apply disabled: no operation is applied, so the operand label addresses the read.
+        let (_, terminal_off, computed_off) = run(MemoryControl::ApplyDisabled);
+        assert_eq!(terminal_off, Some(ScopedTerminal::Unresolved));
+        assert_eq!(computed_off.unwrap().applied, 0);
+
+        // An ungrounded operation is typed rather than silently dropped.
+        let rt = runtime(MemoryControl::Normal);
+        let mut session = rt
+            .ask_compute(b"alpha", 0, b"Mara", vec![b"nope".to_vec()])
+            .unwrap();
+        rt.run(&mut session).unwrap();
+        assert_eq!(session.terminal, Some(ScopedTerminal::UnknownOperation));
+        assert!(session.emitted.is_empty());
+    }
+
     #[test]
     fn snapshot_enforces_owned_prefix_eos_capture_and_phase_at_each_step() {
         let mut memory = Memory::new(13, 2);
@@ -2037,7 +4065,7 @@ mod tests {
         tampered.captured.as_mut().unwrap().key = encode_key(b"beta", b"Ova", 0);
         assert!(runtime.validate(&tampered).is_err());
         let mut tampered = session.clone();
-        tampered.pending = RelAction::Continue;
+        tampered.pending = SessionAction::Continue;
         assert!(runtime.validate(&tampered).is_err());
         let mut old = session.clone();
         old.version = 1;
@@ -2125,7 +4153,7 @@ mod tests {
                 .restore(&runtime.snapshot(&session).unwrap())
                 .unwrap();
         }
-        assert_eq!(session.pending, RelAction::Read);
+        assert_eq!(session.pending, SessionAction::Read);
         assert_eq!(session.query_entity, b"Rin");
         runtime
             .memory
@@ -2279,9 +4307,11 @@ mod tests {
 
         memory.records[0].payload = vec![4096];
         memory.records[0].payload_sha256 = payload_sha256(&memory.records[0].payload);
-        assert!(ScopedMemoryRuntime::load(
+        assert!(ScopedMemoryRuntime::load_with_computation(
             &ObservedTextModel::uninformed().to_bytes().unwrap(),
             &IntentModel::uninformed().to_bytes().unwrap(),
+            Some(&test_lexicon().to_bytes().unwrap()),
+            ComputationBackend::Absent,
             memory,
             21,
             MemoryControl::Normal,

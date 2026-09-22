@@ -16807,7 +16807,7 @@ fn scm_run() -> Result<ExitCode, String> {
             "cycle": {"complete": cycle.complete, "questions": cycle.questions},
             "save_reload": {"disk_reload_identical": disk_reload_identical,
                 "fresh_process_identical": fresh_process_identical,
-                "child_status": child.status.code()},
+                "child_status": child.status.code(),"raw_text_entry":true,"child":child_json},
         },
         "all_rows": all_rows.len(),
         "elapsed_s": started.elapsed().as_secs_f64(),
@@ -16849,6 +16849,1490 @@ fn scm_run() -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+// ---------------------------------------------------------------------------
+// Consumed geometric state: an observed request drives a shared computation whose
+// grounded result changes a later exact read and the complete answer
+// ---------------------------------------------------------------------------
+
+const CGS_EOS: u32 = u32::MAX - 1;
+/// The eight retained state labels. They double as entity names, so a grounded result can address a
+/// memory record. The vocabulary is familiar in development by design.
+const CGS_LABELS: [&str; 8] = [
+    "Alma", "Bert", "Cora", "Dane", "Elin", "Frey", "Gwen", "Holt",
+];
+/// The operation words and the opaque primitive identifiers they are declared with. The mapping
+/// from word to identifier is *learned* into the lexicon; the identifier's group element is
+/// recovered from observed transitions.
+const CGS_OPS: [(&str, u32); 3] = [("i", 100), ("j", 200), ("e", 300)];
+/// Development people and destinations (familiar strings).
+const CGS_DEV_PEOPLE: [&str; 4] = ["Mara", "Ivo", "Cedar", "Oren"];
+const CGS_DEV_DESTS: [&str; 8] = [
+    "Bramble", "Quarry", "Vale", "Marsh", "Tarn", "Ledge", "Ridge", "Stone",
+];
+/// Final people and destinations: disjoint strings, plus withheld ordered operation combinations.
+const CGS_FINAL_PEOPLE: [&str; 4] = ["Una", "Pia", "Soren", "Kestrel"];
+const CGS_FINAL_DESTS: [&str; 8] = [
+    "Cobalt", "Mica", "Dune", "Basalt", "Flint", "Slate", "Amber", "Onyx",
+];
+/// Operation sequences exercised in development.
+const CGS_DEV_SEQS: [&[&str]; 6] = [
+    &["i"],
+    &["j"],
+    &["i", "j"],
+    &["j", "i"],
+    &["e"],
+    &["i", "e"],
+];
+/// Withheld ordered combinations used only by the final population.
+const CGS_FINAL_SEQS: [&[&str]; 2] = [&["i", "j", "i"], &["j", "i", "j"]];
+
+/// The observed clause forms.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum CgsForm {
+    /// "What is {person}'s office?" - an ordinary memory question.
+    AskOffice,
+    /// "{person}'s office then {ops}" - a computation request whose object is the operation span.
+    Compute,
+    /// "{entity}'s office is {value}" - an assertion that builds the document.
+    AssertOffice,
+    /// "{entity} office follows {value}" - a redirect whose value is another entity key.
+    RedirectOffice,
+}
+
+impl CgsForm {
+    fn role(self) -> usize {
+        if self == CgsForm::RedirectOffice {
+            1
+        } else {
+            0
+        }
+    }
+    fn action(self) -> RelAction {
+        if self == CgsForm::RedirectOffice {
+            RelAction::Continue
+        } else {
+            RelAction::Emit
+        }
+    }
+}
+
+fn cgs_ob_form(form: CgsForm, entity: &str, tail: &str) -> ObForm {
+    let parts = match form {
+        CgsForm::AskOffice => vec![
+            (None, "What is".to_string()),
+            (Some(ObPart::Subject), format!(" {entity}")),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), " office".to_string()),
+            (None, "?".to_string()),
+        ],
+        CgsForm::Compute => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), " office then".to_string()),
+            (Some(ObPart::Object), format!(" {tail}")),
+        ],
+        CgsForm::AssertOffice => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), " office".to_string()),
+            (None, " is".to_string()),
+            (Some(ObPart::Object), format!(" {tail}")),
+        ],
+        CgsForm::RedirectOffice => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (Some(ObPart::Cue), " office follows".to_string()),
+            (Some(ObPart::Object), format!(" {tail}")),
+        ],
+    };
+    ObForm {
+        parts,
+        role: form.role(),
+        goal: Goal::Office,
+        action: form.action(),
+    }
+}
+
+fn cgs_clause(
+    tokenizer: &HfBpeTokenizer,
+    seg: u32,
+    form: CgsForm,
+    entity: &str,
+    tail: &str,
+) -> Result<(Clause, ClauseLabel), String> {
+    ob_build_clause(tokenizer, seg, &cgs_ob_form(form, entity, tail))
+}
+
+/// The declared Q8 action used to *generate* development observations. The constructive
+/// factorization never reads these codes: it recovers the action from the observed transitions, and
+/// this table is used only to build the fixture and to write independent expectations.
+struct CgsAction {
+    /// label -> element index
+    element: Vec<usize>,
+    /// primitive -> element index
+    code: Vec<(u32, usize)>,
+}
+
+impl CgsAction {
+    fn build() -> Result<Self, String> {
+        let witness = uor_r4_core::native_geometric::learner::shared_transition::q8_witness()
+            .map_err(|e| format!("q8 witness: {e}"))?;
+        let t = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
+        let product = |a: usize, b: usize| t.product[a * 128 + b] as usize;
+        // Two noncommuting generators plus the identity.
+        let mut pair = None;
+        for a in witness.iter() {
+            for b in witness.iter() {
+                if product(*a as usize, *b as usize) != product(*b as usize, *a as usize) {
+                    pair = Some((*a as u32, *b as u32));
+                    break;
+                }
+            }
+            if pair.is_some() {
+                break;
+            }
+        }
+        let (gi, gj) = pair.ok_or("q8 witness has no noncommuting pair")?;
+        let identity = t.identity;
+        Ok(CgsAction {
+            element: CGS_LABELS
+                .iter()
+                .enumerate()
+                .map(|(k, _)| witness[k] as usize)
+                .collect(),
+            code: vec![
+                (100, gi as usize),
+                (200, gj as usize),
+                (300, identity as usize),
+            ],
+        })
+    }
+
+    fn element_of_label(&self, label: u32) -> Option<usize> {
+        self.element.get(label as usize).copied()
+    }
+    fn label_of_element(&self, element: usize) -> Option<u32> {
+        self.element
+            .iter()
+            .position(|e| *e == element)
+            .map(|k| k as u32)
+    }
+    fn apply(&self, state: usize, primitive: u32) -> Option<usize> {
+        let t = ExactGroupTable::build().ok()?;
+        let code = self
+            .code
+            .iter()
+            .find(|(p, _)| *p == primitive)
+            .map(|(_, c)| *c)?;
+        Some(t.product[code * 128 + state] as usize)
+    }
+}
+
+/// The declared world: which label each person holds, and each label's own office record.
+#[derive(Clone)]
+struct CgsWorld {
+    id: u32,
+    version: u32,
+    people: &'static [&'static str],
+    dests: &'static [&'static str],
+    /// person index -> label index
+    assignment: Vec<usize>,
+    /// label index -> Some(dest index) for a terminal office, or None for a redirect to label k
+    office: Vec<Option<usize>>,
+    /// label index -> redirect target label index
+    redirect: Vec<usize>,
+    scope: &'static str,
+}
+
+/// An independently computed expectation for one request, using the declared action and world.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum CgsExpected {
+    /// A complete answer with its surface text and the exact selected record ids.
+    Answer {
+        text: String,
+        reads: usize,
+    },
+    Unresolved,
+    Exhausted,
+    UnknownOperation,
+    Ungrounded,
+}
+
+impl CgsExpected {
+    fn label(&self) -> String {
+        match self {
+            Self::Answer { text, .. } => format!("Answer({text})"),
+            other => format!("{other:?}"),
+        }
+    }
+}
+
+/// Evaluate one request independently: walk the declared world, apply the declared action and read
+/// the resulting record. This never consults the fitted artifact or the loaded runtime.
+fn cgs_expectation(
+    world: &CgsWorld,
+    action: &CgsAction,
+    person_index: usize,
+    ops: &[&str],
+) -> CgsExpected {
+    let mut entity = world.people[person_index].to_string();
+    let mut reads = 0usize;
+    let mut guard = 0;
+    loop {
+        guard += 1;
+        if guard > 8 {
+            return CgsExpected::Exhausted;
+        }
+        // Locate the record for this entity.
+        let (value, continues) = if let Some(p) = world
+            .people
+            .iter()
+            .position(|name| *name == entity.as_str())
+        {
+            (CGS_LABELS[world.assignment[p]].to_string(), false)
+        } else if let Some(l) = CGS_LABELS.iter().position(|name| *name == entity.as_str()) {
+            match world.office[l] {
+                Some(dest) => (world.dests[dest].to_string(), false),
+                None => (CGS_LABELS[world.redirect[l]].to_string(), true),
+            }
+        } else {
+            return CgsExpected::Unresolved;
+        };
+        reads += 1;
+        if reads == 1 {
+            if ops.is_empty() {
+                return CgsExpected::Answer { text: value, reads };
+            }
+            // The operand label grounds to a retained state; apply the observed operations in order.
+            let Some(label) = CGS_LABELS.iter().position(|name| *name == value.as_str()) else {
+                return CgsExpected::Ungrounded;
+            };
+            let Some(mut state) = action.element_of_label(label as u32) else {
+                return CgsExpected::Ungrounded;
+            };
+            for op in ops {
+                let Some(primitive) = CGS_OPS.iter().find(|(word, _)| word == op).map(|(_, p)| *p)
+                else {
+                    return CgsExpected::UnknownOperation;
+                };
+                match action.apply(state, primitive) {
+                    Some(next) => state = next,
+                    None => return CgsExpected::UnknownOperation,
+                }
+            }
+            let Some(derived) = action.label_of_element(state) else {
+                return CgsExpected::Ungrounded;
+            };
+            entity = CGS_LABELS[derived as usize].to_string();
+            continue;
+        }
+        if continues {
+            entity = value;
+            continue;
+        }
+        return CgsExpected::Answer { text: value, reads };
+    }
+}
+
+/// Development supervision for the binder and the intent tables, over the declared forms.
+struct CgsSupervision {
+    label: ClauseLabel,
+    question: bool,
+    intent: usize,
+}
+
+fn cgs_development_supervision(
+    tokenizer: &HfBpeTokenizer,
+) -> Result<(Vec<Clause>, Vec<CgsSupervision>), String> {
+    let mut clauses = Vec::new();
+    let mut supervision = Vec::new();
+    let mut seg = 0u32;
+    let mut push = |clauses: &mut Vec<Clause>,
+                    supervision: &mut Vec<CgsSupervision>,
+                    seg: &mut u32,
+                    form: CgsForm,
+                    entity: &str,
+                    tail: &str,
+                    question: bool,
+                    intent: usize|
+     -> Result<(), String> {
+        let (clause, label) = cgs_clause(tokenizer, *seg, form, entity, tail)?;
+        clauses.push(clause);
+        supervision.push(CgsSupervision {
+            label,
+            question,
+            intent,
+        });
+        *seg += 1;
+        Ok(())
+    };
+    for (index, person) in CGS_DEV_PEOPLE.iter().enumerate() {
+        push(
+            &mut clauses,
+            &mut supervision,
+            &mut seg,
+            CgsForm::AskOffice,
+            person,
+            "",
+            true,
+            ASK_CURRENT,
+        )?;
+        push(
+            &mut clauses,
+            &mut supervision,
+            &mut seg,
+            CgsForm::AssertOffice,
+            person,
+            CGS_LABELS[index],
+            false,
+            STMT_ASSERT,
+        )?;
+        for ops in CGS_DEV_SEQS.iter() {
+            push(
+                &mut clauses,
+                &mut supervision,
+                &mut seg,
+                CgsForm::Compute,
+                person,
+                &ops.join(" "),
+                false,
+                STMT_COMPUTE,
+            )?;
+        }
+    }
+    for label in CGS_LABELS.iter() {
+        push(
+            &mut clauses,
+            &mut supervision,
+            &mut seg,
+            CgsForm::AssertOffice,
+            label,
+            CGS_DEV_DESTS[0],
+            false,
+            STMT_ASSERT,
+        )?;
+        push(
+            &mut clauses,
+            &mut supervision,
+            &mut seg,
+            CgsForm::RedirectOffice,
+            label,
+            CGS_LABELS[0],
+            false,
+            STMT_ASSERT,
+        )?;
+    }
+    Ok((clauses, supervision))
+}
+
+/// Build Q8 development observations from the declared action. The factorization reads only these
+/// transitions, never the generator's codes.
+fn cgs_examples(action: &CgsAction) -> Result<Vec<StExample>, String> {
+    let t = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
+    let product = |a: usize, b: usize| t.product[a * 128 + b] as usize;
+    let mut examples = Vec::new();
+    for (k, element) in action.element.iter().enumerate() {
+        let label = k as u32;
+        for (a, b) in [(0usize, 1usize), (1, 0)] {
+            let (pa, pb) = (action.code[a].0, action.code[b].0);
+            let first = product(action.code[a].1, *element);
+            let second = product(action.code[b].1, first);
+            examples.push(StExample {
+                payload: label,
+                primitives: vec![pa, pb],
+                targets: vec![
+                    action
+                        .label_of_element(first)
+                        .ok_or("first element is unlabelled")?,
+                    action
+                        .label_of_element(second)
+                        .ok_or("second element is unlabelled")?,
+                ],
+            });
+        }
+        // The identity primitive is observed too, so the artifact grounds it. It must leave every
+        // outcome unchanged, which is the correct negative control for the apply phase.
+        let identity = action
+            .code
+            .iter()
+            .find(|(p, c)| *p == 300 && *c == t.identity as usize)
+            .map(|(p, _)| *p)
+            .ok_or("the declared action has no identity primitive")?;
+        let after_i = product(action.code[0].1, *element);
+        // The identity must appear in a non-initial position to ground its permutation.
+        let after_label = action.label_of_element(after_i).ok_or("unlabelled")?;
+        examples.push(StExample {
+            payload: label,
+            primitives: vec![action.code[0].0, identity],
+            targets: vec![after_label, after_label],
+        });
+    }
+    Ok(examples)
+}
+
+struct CgsPanel {
+    requests: usize,
+    complete: usize,
+    rows: Vec<serde_json::Value>,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn cgs_panel(
+    tokenizer: &HfBpeTokenizer,
+    runtime: &ScopedMemoryRuntime,
+    action: &CgsAction,
+    world: &CgsWorld,
+    seqs: &[&[&str]],
+    panel: &str,
+    arm: &str,
+) -> Result<CgsPanel, String> {
+    let mut out = CgsPanel {
+        requests: 0,
+        complete: 0,
+        rows: Vec::new(),
+    };
+    for (person_index, person) in world.people.iter().enumerate() {
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::AskOffice, person, "")?;
+        let mut session = runtime
+            .ask(&clause, world.scope.as_bytes())
+            .map_err(|e| format!("ask {person}: {e}"))?;
+        let effects = runtime
+            .run(&mut session)
+            .map_err(|e| format!("run {person}: {e}"))?;
+        let answer = cgs_text(tokenizer, &session);
+        let expected = cgs_expectation(world, action, person_index, &[]);
+        out.requests += 1;
+        let matched = matches!(&expected, CgsExpected::Answer { text, reads }
+                if *text == answer && *reads == (session.hop as usize) + 1)
+            && session.terminal == Some(ScopedTerminal::Complete);
+        if matched {
+            out.complete += 1;
+        }
+        out.rows.push(serde_json::json!({
+            "panel": panel, "arm": arm, "world": world.id, "scope": world.scope,
+            "person": person, "ops": Vec::<String>::new(), "request": clause.text,
+            "expected": expected.label(), "answer": answer, "terminal": session.terminal,
+            "reads": session.hop + 1, "matched": matched,
+            "effects": effects, "final_frame": session,
+        }));
+        for seq in seqs {
+            let text = seq.join(" ");
+            let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::Compute, person, &text)?;
+            let mut session = runtime
+                .ask(&clause, world.scope.as_bytes())
+                .map_err(|e| format!("ask compute {person}: {e}"))?;
+            let effects = runtime
+                .run(&mut session)
+                .map_err(|e| format!("run compute {person}: {e}"))?;
+            let answer = cgs_text(tokenizer, &session);
+            let expected = cgs_expectation(world, action, person_index, seq);
+            out.requests += 1;
+            let matched = match (&expected, session.terminal) {
+                (CgsExpected::Answer { text, reads }, Some(ScopedTerminal::Complete)) => {
+                    answer == *text && (session.hop as usize) + 1 == *reads
+                }
+                (CgsExpected::Unresolved, Some(ScopedTerminal::Unresolved)) => true,
+                (CgsExpected::Exhausted, Some(ScopedTerminal::Exhausted)) => true,
+                (CgsExpected::UnknownOperation, Some(ScopedTerminal::UnknownOperation)) => true,
+                (CgsExpected::Ungrounded, Some(ScopedTerminal::UngroundedResult)) => true,
+                _ => false,
+            };
+            if matched {
+                out.complete += 1;
+            }
+            out.rows.push(serde_json::json!({
+                "panel": panel, "arm": arm, "world": world.id, "scope": world.scope,
+                "person": person, "ops": seq, "request": clause.text,
+                "expected": expected.label(), "answer": answer, "terminal": session.terminal,
+                "reads": session.hop + 1, "matched": matched,
+                "computed": session.computation, "effects": effects, "final_frame": session,
+            }));
+        }
+    }
+    Ok(out)
+}
+
+fn cgs_text(tokenizer: &HfBpeTokenizer, session: &ScopedSession) -> String {
+    let tokens: Vec<u32> = session
+        .emitted
+        .iter()
+        .copied()
+        .filter(|t| Some(*t) != session.eos)
+        .collect();
+    tokenizer
+        .decode(&tokens)
+        .trim_matches(|c: char| c.is_ascii_whitespace())
+        .to_string()
+}
+
+/// Build the declared development worlds with a deterministic person->label assignment and a mix of
+/// terminal and redirect label records (so the same request form needs a content-dependent read path).
+fn cgs_worlds(
+    id_base: u32,
+    people: &'static [&'static str],
+    dests: &'static [&'static str],
+    scope: &'static str,
+    redirect_at: usize,
+) -> Vec<CgsWorld> {
+    // Preserve the actually evaluated worlds: the former equal-length test overrode
+    // both development assignments because both people arrays have length four.
+    let assignment = match id_base {
+        4 => vec![0, 5, 2, 7],
+        _ => vec![6, 1, 4, 3],
+    };
+    let mut office: Vec<Option<usize>> = (0..8).map(Some).collect();
+    // One label redirects to another label, so a derived read can require a second hop.
+    office[redirect_at] = None;
+    let mut redirect = vec![0usize; 8];
+    redirect[redirect_at] = (redirect_at + 1) % 8;
+    vec![CgsWorld {
+        id: id_base,
+        version: 1,
+        people,
+        dests,
+        assignment,
+        office,
+        redirect,
+        scope,
+    }]
+}
+
+/// Deterministic document construction from the declared world. This is document preparation, not a
+/// learned decision: the observed requests and their consumption are what the model must handle.
+fn cgs_memory(tokenizer: &HfBpeTokenizer, world: &CgsWorld) -> Result<Memory, String> {
+    let mut memory = Memory::new(world.id as u64, 16);
+    let mut commit = 0u64;
+    let payload = |text: &str| tokenizer.encode(&format!(" {text}"));
+    let mut write = |memory: &mut Memory,
+                     entity: &str,
+                     value: &str,
+                     continues: bool,
+                     tokens: Vec<u32>|
+     -> Result<(), String> {
+        commit += 1;
+        memory
+            .write(
+                world.scope.as_bytes(),
+                entity.as_bytes(),
+                0,
+                value.as_bytes(),
+                &tokens,
+                commit,
+                Update::Assert,
+                continues,
+                0,
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    };
+    for (person_index, label_index) in world.assignment.iter().enumerate() {
+        let label = CGS_LABELS[*label_index];
+        write(
+            &mut memory,
+            world.people[person_index],
+            label,
+            false,
+            payload(label),
+        )?;
+    }
+    for (label_index, office) in world.office.iter().enumerate() {
+        let label = CGS_LABELS[label_index];
+        match office {
+            Some(dest) => write(
+                &mut memory,
+                label,
+                world.dests[*dest],
+                false,
+                payload(world.dests[*dest]),
+            )?,
+            None => {
+                let target = CGS_LABELS[world.redirect[label_index]];
+                write(&mut memory, label, target, true, payload(target))?;
+            }
+        }
+    }
+    memory.validate().map_err(|e| e.to_string())?;
+    Ok(memory)
+}
+
+fn cgs_reload_check(dir: &std::path::Path) -> Result<ExitCode, String> {
+    let model_bytes = std::fs::read(dir.join("model.json")).map_err(|e| e.to_string())?;
+    let intent_bytes = std::fs::read(dir.join("intent.json")).map_err(|e| e.to_string())?;
+    let lexicon_bytes = std::fs::read(dir.join("lexicon.json")).map_err(|e| e.to_string())?;
+    let store_bytes = std::fs::read(dir.join("store.json")).map_err(|e| e.to_string())?;
+    let request: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(dir.join("request.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let artifact: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(dir.join("artifact.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let backend = cgs_backend_from_json(&artifact)?;
+    let memory = Memory::from_bytes(&store_bytes).map_err(|e| e.to_string())?;
+    let lineage = memory.lineage;
+    let runtime = ScopedMemoryRuntime::load_with_computation(
+        &model_bytes,
+        &intent_bytes,
+        Some(&lexicon_bytes),
+        backend,
+        memory,
+        lineage,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(CGS_EOS),
+    )
+    .map_err(|e| e.to_string())?;
+    let object = request.as_object().ok_or("request must be an object")?;
+    if object.keys().any(|k| k != "text" && k != "scope") {
+        return Err("raw request contains fields beyond text and scope".into());
+    }
+    let text = request["text"].as_str().ok_or("missing raw request text")?;
+    let scope = request["scope"].as_str().ok_or("missing request scope")?;
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| e.to_string())?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| e.to_string())?;
+    let clause = scm_raw_clause(&tokenizer, text)?;
+    let mut session = runtime
+        .ask(&clause, scope.as_bytes())
+        .map_err(|e| e.to_string())?;
+    runtime.run(&mut session).map_err(|e| e.to_string())?;
+    let snapshots: Vec<Vec<u8>> = serde_json::from_slice(
+        &std::fs::read(dir.join("checkpoints.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let mut resumed = Vec::new();
+    for bytes in snapshots {
+        let mut restored = runtime.restore(&bytes).map_err(|e| e.to_string())?;
+        let phase = restored.pending;
+        runtime.run(&mut restored).map_err(|e| e.to_string())?;
+        resumed.push(json!({"phase":phase,"matches":restored == session,
+            "emitted":restored.emitted,"terminal":restored.terminal,"computed":restored.computation,"final_frame":restored}));
+    }
+    println!(
+        "{}",
+        serde_json::to_string(&serde_json::json!({
+            "emitted": session.emitted, "terminal": session.terminal, "hop": session.hop,
+            "computed": session.computation, "resumed":resumed,"final_frame":session,
+        }))
+        .map_err(|e| e.to_string())?
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Rebuild a computation artifact from its serialized identity (used by the fresh-process reload).
+fn cgs_backend_from_json(value: &serde_json::Value) -> Result<ComputationBackend, String> {
+    ComputationBackend::from_identity_json(value).map_err(|e| e.to_string())
+}
+
+/// Exposed preservation audit: both artifacts receive the same raw prior conversation scripts.
+/// Errors are retained per turn; a failed parser cannot shorten the denominator.
+fn cgs_prior_lifecycle(
+    tokenizer: &HfBpeTokenizer,
+    model: &[u8],
+    intent: &[u8],
+    lexicon: &[u8],
+    backend: &ComputationBackend,
+    artifact: &str,
+) -> Result<serde_json::Value, String> {
+    let mut rows = Vec::new();
+    let (mut questions, mut matched, mut language_questions, mut api_questions) = (0, 0, 0, 0);
+    let (mut ingest_total, mut ingest_correct, mut errors) = (0, 0, 0);
+    for (name, script) in [
+        ("development", scm_development_script()),
+        ("exposed_regression", scm_exposed_script()),
+        ("final_lexical_exposed", scm_final_script()),
+    ] {
+        let mut runtime = ScopedMemoryRuntime::load_with_computation(
+            model,
+            intent,
+            Some(lexicon),
+            backend.clone(),
+            Memory::new(801, 8),
+            801,
+            MemoryControl::Normal,
+            VOCAB,
+            Some(CGS_EOS),
+        )
+        .map_err(|e| format!("preservation load {artifact}: {e}"))?;
+        let mut oracle = ScmOracle::new(8);
+        for (turn, op) in script.iter().enumerate() {
+            match *op {
+                ScmOp::Ingest {
+                    scope,
+                    form,
+                    entity,
+                    value,
+                } => {
+                    let text = scm_clause(tokenizer, turn as u32, form, entity, Some(value))?
+                        .0
+                        .text;
+                    let clause = scm_raw_clause(tokenizer, &text)?;
+                    let expected_write = oracle.declared(scope, form, entity, value);
+                    let declared_intent = if form.is_question() {
+                        form.declared_question_intent()
+                    } else {
+                        form.declared_statement_intent()
+                    };
+                    let observed = runtime.observe(&clause);
+                    let observation_ok = observed.as_ref().is_ok_and(|o| {
+                        o.is_question == form.is_question()
+                            && Some(o.intent) == declared_intent
+                            && o.relation == form.relation()
+                            && o.entity_key == entity.as_bytes()
+                            && o.continues == form.is_redirect()
+                            && (!expected_write || o.value_key.as_deref() == Some(value.as_bytes()))
+                    });
+                    let observed_json = match &observed {
+                        Ok(o) => json!({"entity":String::from_utf8_lossy(&o.entity_key),
+                            "value":o.value_key.as_ref().map(|v|String::from_utf8_lossy(v).into_owned()),
+                            "relation":o.relation,"intent":o.intent,"is_question":o.is_question,"continues":o.continues}),
+                        Err(e) => json!({"error":e.to_string()}),
+                    };
+                    let outcome =
+                        runtime.ingest(&clause, SCM_SCOPES[scope as usize].as_bytes(), turn as u64);
+                    let wrote = matches!(&outcome, Ok(IngestOutcome::Wrote(_)));
+                    let ok = observation_ok && outcome.is_ok() && wrote == expected_write;
+                    ingest_total += 1;
+                    ingest_correct += usize::from(ok);
+                    errors += usize::from(outcome.is_err());
+                    rows.push(json!({"artifact":artifact,"script":name,"turn":turn,"kind":"ingest",
+                        "text":text,"scope":SCM_SCOPES[scope as usize],"expected_write":expected_write,
+                        "observed":observed_json,"wrote":wrote,"observation_and_write_match":ok,
+                        "error":outcome.as_ref().err().map(|e|e.to_string())}));
+                }
+                _ => {
+                    let (scope, entity, relation, history, kind, text, start) = match *op {
+                        ScmOp::Ask {
+                            scope,
+                            form,
+                            entity,
+                        } => {
+                            let text = scm_clause(tokenizer, turn as u32, form, entity, None)?
+                                .0
+                                .text;
+                            let clause = scm_raw_clause(tokenizer, &text)?;
+                            let start = runtime.ask(&clause, SCM_SCOPES[scope as usize].as_bytes());
+                            language_questions += 1;
+                            (
+                                scope,
+                                entity,
+                                form.relation(),
+                                form.history().ok_or("history missing")?,
+                                "ask",
+                                text,
+                                start,
+                            )
+                        }
+                        ScmOp::AskView {
+                            scope,
+                            entity,
+                            relation,
+                            history,
+                        } => {
+                            api_questions += 1;
+                            let start = runtime.ask_view(
+                                SCM_SCOPES[scope as usize].as_bytes(),
+                                relation,
+                                entity.as_bytes(),
+                                history,
+                            );
+                            (
+                                scope,
+                                entity,
+                                relation,
+                                history,
+                                "ask_view",
+                                format!("exact {history:?} of {entity:?} relation {relation}"),
+                                start,
+                            )
+                        }
+                        ScmOp::Ingest { .. } => return Err("unexpected ingest branch".into()),
+                    };
+                    let expected = oracle.answer(scope, entity, relation, history, oracle.commit);
+                    let actual = start.and_then(|mut session| {
+                        let effects = runtime.run(&mut session)?;
+                        Ok((session, effects))
+                    });
+                    questions += 1;
+                    let (ok, answer, terminal, frame, effects, error) = match actual {
+                        Ok((session, effects)) => {
+                            let answer = cgs_text(tokenizer, &session);
+                            let ok = match (&expected, session.terminal) {
+                                (
+                                    ScmExpected::Complete { value, hops },
+                                    Some(ScopedTerminal::Complete),
+                                ) => answer == *value && session.hop + 1 == *hops,
+                                (_, Some(terminal)) => terminal == scm_terminal_of(&expected),
+                                _ => false,
+                            };
+                            (
+                                ok,
+                                answer,
+                                serde_json::to_value(session.terminal)
+                                    .map_err(|e| e.to_string())?,
+                                serde_json::to_value(session).map_err(|e| e.to_string())?,
+                                serde_json::to_value(effects).map_err(|e| e.to_string())?,
+                                None,
+                            )
+                        }
+                        Err(e) => {
+                            errors += 1;
+                            (
+                                false,
+                                String::new(),
+                                json!(null),
+                                json!(null),
+                                json!([]),
+                                Some(e.to_string()),
+                            )
+                        }
+                    };
+                    matched += usize::from(ok);
+                    rows.push(json!({"artifact":artifact,"script":name,"turn":turn,"kind":kind,
+                        "text":text,"scope":SCM_SCOPES[scope as usize],"expected":format!("{expected:?}"),
+                        "matched":ok,"answer":answer,"terminal":terminal,"final_frame":frame,
+                        "effects":effects,"error":error}));
+                }
+            }
+        }
+    }
+    Ok(
+        json!({"artifact":artifact,"questions":questions,"matched":matched,
+        "language_questions":language_questions,"api_questions":api_questions,
+        "ingest_total":ingest_total,"ingest_observation_and_write_correct":ingest_correct,
+        "errors":errors,"all_preserved":matched==questions && ingest_correct==ingest_total && errors==0,
+        "rows":rows}),
+    )
+}
+
+fn cgs_run() -> Result<ExitCode, String> {
+    let mut root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-1",
+    );
+    let mut source_root: Option<PathBuf> = None;
+    let mut reload_dir: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                "--reload-check" => reload_dir = Some(PathBuf::from(a.next().ok_or("value")?)),
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    if let Some(dir) = reload_dir {
+        return cgs_reload_check(&dir);
+    }
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let derived = sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?);
+    if derived != DERIVED_SHA {
+        return Err("derived tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let source_files: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => serde_json::json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => serde_json::json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![serde_json::json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+    let executable_sha256 = hex_of(&sha256_bytes(
+        &std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+            .unwrap_or_default(),
+    ));
+
+    // ---- the declared action, its constructive recovery and the matched comparator ----
+    let action = CgsAction::build()?;
+    let examples = cgs_examples(&action)?;
+    let (factorization, factor_report) =
+        factor_observed_graph(&examples, false).map_err(|e| format!("factorization: {e}"))?;
+    let folded_group = FoldedGroup::recover(&factorization).map_err(|e| format!("fold: {e}"))?;
+    // The matched comparator is fitted with the project's standard shared-transition recipe.
+    let (finite_model, finite_report) =
+        fit_shared_transition(&examples, &examples, 8, 12, false, 16, ST_SEED);
+    let finite_summary = serde_json::json!({
+        "initial_complete": finite_report.initial_complete,
+        "final_complete": finite_report.final_complete,
+        "final_tokens": finite_report.final_tokens,
+        "token_total": finite_report.token_total,
+        "examples": finite_report.examples,
+        "states": finite_report.states,
+        "accepted_moves": finite_report.accepted_moves,
+    });
+    let finite_shape = (
+        finite_model.value_domain.len(),
+        finite_model.action_domain.len(),
+    );
+    let signed = ComputationBackend::Signed(Box::new(factorization.clone()));
+    let folded =
+        ComputationBackend::Folded(Box::new(factorization.clone()), Box::new(folded_group));
+    let finite = ComputationBackend::Finite(Box::new(finite_model));
+    let tabulated = ComputationBackend::Tabulated(Box::new(
+        TabulatedControl::fit(&examples).map_err(|e| format!("tabulated control: {e}"))?,
+    ));
+
+    // Every compared computation backend is independently serialized and loaded below.
+    for backend in [&signed, &folded, &finite, &tabulated] {
+        write_json(
+            &root,
+            &format!("artifacts/backend-{}.json", backend.name()),
+            &backend.identity_json(),
+        )?;
+    }
+
+    // ---- the learned lexicon over exact lexical bytes ----
+    let mut surface: Vec<(Vec<u8>, u32)> = CGS_OPS
+        .iter()
+        .map(|(word, id)| (word.as_bytes().to_vec(), *id))
+        .collect();
+    for (index, label) in CGS_LABELS.iter().enumerate() {
+        surface.push((label.as_bytes().to_vec(), index as u32));
+    }
+    let canonical: Vec<(u32, Vec<u8>)> = CGS_LABELS
+        .iter()
+        .enumerate()
+        .map(|(index, label)| (index as u32, label.as_bytes().to_vec()))
+        .collect();
+    let lexicon = GroundingLexicon::from_observations(&surface, &canonical)
+        .map_err(|e| format!("lexicon: {e}"))?;
+
+    // ---- the learned binder and intent tables ----
+    let (dev_clauses, supervision) = cgs_development_supervision(&tokenizer)?;
+    let labels: Vec<ClauseLabel> = supervision.iter().map(|s| s.label.clone()).collect();
+    let (model, fit) = fit_observed_text_model(&dev_clauses, &labels, false)
+        .map_err(|e| format!("binder fit: {e}"))?;
+    let cue_spans: Vec<(usize, usize)> = supervision
+        .iter()
+        .map(|s| (s.label.marker.0 as usize, s.label.marker.1))
+        .collect();
+    let intent_examples: Vec<IntentExample> = supervision
+        .iter()
+        .map(|s| IntentExample {
+            question: s.question,
+            intent: s.intent,
+        })
+        .collect();
+    let (intent, intent_fit) = fit_intent_model(&dev_clauses, &cue_spans, &intent_examples, VOCAB)
+        .map_err(|e| format!("intent fit: {e}"))?;
+    let model_bytes = model.to_bytes().map_err(|e| format!("{e}"))?;
+    let intent_bytes = intent.to_bytes().map_err(|e| format!("{e}"))?;
+    let lexicon_bytes = lexicon.to_bytes().map_err(|e| format!("{e}"))?;
+    write_checked(&root, "artifacts/model.json", &model_bytes)?;
+    write_checked(&root, "artifacts/intent.json", &intent_bytes)?;
+    write_checked(&root, "artifacts/lexicon.json", &lexicon_bytes)?;
+    write_json(
+        &root,
+        "artifacts/artifact.json",
+        &backend_identity_json(&signed),
+    )?;
+    let model_reloaded = ObservedTextModel::from_bytes(
+        &std::fs::read(root.join("artifacts/model.json")).map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| format!("{e}"))?;
+    if model_reloaded != model {
+        return Err("model artifact reload mismatch".into());
+    }
+    let intent_reloaded = IntentModel::from_bytes(
+        &std::fs::read(root.join("artifacts/intent.json")).map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| format!("{e}"))?;
+    if intent_reloaded != intent {
+        return Err("intent artifact reload mismatch".into());
+    }
+
+    // ---- worlds ----
+    let dev_worlds = cgs_worlds(0, &CGS_DEV_PEOPLE, &CGS_DEV_DESTS, "alpha", 5);
+    let dev_world_beta = cgs_worlds(1, &CGS_DEV_PEOPLE, &CGS_DEV_DESTS, "beta", 2);
+    let final_worlds = cgs_worlds(4, &CGS_FINAL_PEOPLE, &CGS_FINAL_DESTS, "alpha", 3);
+    let final_world_beta = cgs_worlds(5, &CGS_FINAL_PEOPLE, &CGS_FINAL_DESTS, "beta", 6);
+
+    let load = |memory: Memory,
+                control: MemoryControl,
+                backend: &ComputationBackend|
+     -> Result<ScopedMemoryRuntime, String> {
+        let lineage = memory.lineage;
+        let serialized: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(root.join(format!("artifacts/backend-{}.json", backend.name())))
+                .map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        let loaded_backend = cgs_backend_from_json(&serialized)?;
+        ScopedMemoryRuntime::load_with_computation(
+            &model_bytes,
+            &intent_bytes,
+            Some(&lexicon_bytes),
+            loaded_backend,
+            memory,
+            lineage,
+            control,
+            VOCAB,
+            Some(CGS_EOS),
+        )
+        .map_err(|e| e.to_string())
+    };
+
+    let mut arms = Vec::<serde_json::Value>::new();
+    let mut all_rows = Vec::<serde_json::Value>::new();
+    let mut panels = Vec::<serde_json::Value>::new();
+    for (panel, worlds, seqs) in [
+        (
+            "development",
+            vec![&dev_worlds[0], &dev_world_beta[0]],
+            CGS_DEV_SEQS.to_vec(),
+        ),
+        (
+            "final",
+            vec![&final_worlds[0], &final_world_beta[0]],
+            CGS_FINAL_SEQS.to_vec(),
+        ),
+    ] {
+        let (mut requests, mut complete) = (0usize, 0usize);
+        for world in worlds {
+            let memory = cgs_memory(&tokenizer, world)?;
+            let runtime = load(memory, MemoryControl::Normal, &signed)?;
+            let result = cgs_panel(
+                &tokenizer,
+                &runtime,
+                &action,
+                world,
+                &seqs,
+                panel,
+                "primary_signed",
+            )?;
+            requests += result.requests;
+            complete += result.complete;
+            all_rows.extend(result.rows);
+        }
+        panels.push(serde_json::json!({
+            "panel": panel, "arm": "primary_signed",
+            "requests": requests, "complete": complete,
+        }));
+    }
+
+    // ---- matched controls and comparator arms on the same inputs ----
+    let mut controls = Vec::<serde_json::Value>::new();
+    for (name, control, backend) in [
+        ("no_read", MemoryControl::NoRead, &signed),
+        ("apply_disabled", MemoryControl::ApplyDisabled, &signed),
+        ("consume_disabled", MemoryControl::ConsumeDisabled, &signed),
+        ("unscoped", MemoryControl::Unscoped, &signed),
+        ("finite_transition", MemoryControl::Normal, &finite),
+        ("tabulated_finite", MemoryControl::Normal, &tabulated),
+        ("folded_central_sign", MemoryControl::Normal, &folded),
+    ] {
+        let mut requests = 0usize;
+        let mut complete = 0usize;
+        for world in [&dev_worlds[0], &final_worlds[0]] {
+            let memory = cgs_memory(&tokenizer, world)?;
+            let runtime = load(memory, control.clone(), backend)?;
+            let seqs: Vec<&[&str]> = if world.id >= 4 {
+                CGS_FINAL_SEQS.to_vec()
+            } else {
+                CGS_DEV_SEQS.to_vec()
+            };
+            let panel = cgs_panel(&tokenizer, &runtime, &action, world, &seqs, "control", name)?;
+            requests += panel.requests;
+            complete += panel.complete;
+            all_rows.extend(panel.rows);
+        }
+        controls.push(serde_json::json!({"arm": name, "requests": requests, "complete": complete}));
+    }
+
+    // ---- causal comparisons on one committed development world ----
+    let dev_world = &dev_worlds[0];
+    let dev_memory = cgs_memory(&tokenizer, dev_world)?;
+    let store_bytes = dev_memory.to_bytes().map_err(|e| e.to_string())?;
+    let rt = load(dev_memory.clone(), MemoryControl::Normal, &signed)?;
+    let person = dev_world.people[0];
+    let scope = dev_world.scope;
+    let q_ij = cgs_clause(&tokenizer, 0, CgsForm::Compute, person, "i j")?.0;
+    let q_ji = cgs_clause(&tokenizer, 0, CgsForm::Compute, person, "j i")?.0;
+    let q_e = cgs_clause(&tokenizer, 0, CgsForm::Compute, person, "e")?.0;
+    let (a_ij, t_ij, c_ij, s_ij) = cgs_ask(&tokenizer, &rt, &q_ij, scope)?;
+    let (a_ji, _, c_ji, _) = cgs_ask(&tokenizer, &rt, &q_ji, scope)?;
+    let (_, _, c_e, _) = cgs_ask(&tokenizer, &rt, &q_e, scope)?;
+
+    // (1) A changed operand changes the computed key and the complete answer.
+    let mut changed_world = dev_world.clone();
+    changed_world.assignment[0] = (changed_world.assignment[0] + 1) % 8;
+    let changed_rt = load(
+        cgs_memory(&tokenizer, &changed_world)?,
+        MemoryControl::Normal,
+        &signed,
+    )?;
+    let (a_changed, _, c_changed, _) = cgs_ask(&tokenizer, &changed_rt, &q_ij, scope)?;
+
+    // (2) A changed operation order changes the retained state; the central-sign fold does not.
+    let folded_rt = load(dev_memory.clone(), MemoryControl::Normal, &folded)?;
+    let (f_ij, _, fc_ij, _) = cgs_ask(&tokenizer, &folded_rt, &q_ij, scope)?;
+    let (f_ji, _, fc_ji, _) = cgs_ask(&tokenizer, &folded_rt, &q_ji, scope)?;
+
+    // (3) Identity is the correct negative control: the retained state is unchanged.
+    let identity_ok = c_e
+        .as_ref()
+        .is_some_and(|c| c.operand_state == c.state && c.derived_key == c.operand_key);
+
+    // (4) Consumption disabled keeps the computed state but does not use it.
+    let skip_rt = load(dev_memory.clone(), MemoryControl::ConsumeDisabled, &signed)?;
+    let (a_skip, t_skip, c_skip, _) = cgs_ask(&tokenizer, &skip_rt, &q_ij, scope)?;
+
+    // (5) Owned resume across the computation: snapshot after the first Apply and finish elsewhere.
+    let mut partial = rt
+        .ask(&q_ij, scope.as_bytes())
+        .map_err(|e| format!("resume ask: {e}"))?;
+    for _ in 0..8 {
+        let effect = rt
+            .step(&mut partial)
+            .map_err(|e| format!("resume step: {e}"))?;
+        if effect.action == SessionAction::Apply {
+            break;
+        }
+    }
+    let mid_state = partial.computation.clone();
+    let snapshot = rt
+        .snapshot(&partial)
+        .map_err(|e| format!("snapshot: {e}"))?;
+    let fresh_rt = load(
+        Memory::from_bytes(&store_bytes).map_err(|e| e.to_string())?,
+        MemoryControl::Normal,
+        &signed,
+    )?;
+    let mut restored = fresh_rt
+        .restore(&snapshot)
+        .map_err(|e| format!("restore: {e}"))?;
+    fresh_rt
+        .run(&mut restored)
+        .map_err(|e| format!("resume run: {e}"))?;
+    let resume_ok = restored == s_ij;
+
+    // (6) A real disk reload and a separate process reproduce the same answer.
+    let reload_dir = root.join("reload");
+    std::fs::create_dir_all(&reload_dir).map_err(|e| format!("{e}"))?;
+    write_checked(&root, "reload/model.json", &model_bytes)?;
+    write_checked(&root, "reload/intent.json", &intent_bytes)?;
+    write_checked(&root, "reload/lexicon.json", &lexicon_bytes)?;
+    write_checked(&root, "reload/store.json", &store_bytes)?;
+    write_json(
+        &root,
+        "reload/artifact.json",
+        &backend_identity_json(&signed),
+    )?;
+    write_json(
+        &root,
+        "reload/request.json",
+        &serde_json::json!({"text": q_ij.text, "scope": scope}),
+    )?;
+    let mut phase = rt.ask(&q_ij, scope.as_bytes()).map_err(|e| e.to_string())?;
+    let mut snapshots = Vec::<Vec<u8>>::new();
+    loop {
+        snapshots.push(rt.snapshot(&phase).map_err(|e| e.to_string())?);
+        if phase.terminal.is_some() {
+            break;
+        }
+        rt.step(&mut phase).map_err(|e| e.to_string())?;
+    }
+    write_json(&root, "reload/checkpoints.json", &json!(snapshots))?;
+    let disk_memory = Memory::from_bytes(
+        &std::fs::read(root.join("reload/store.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| format!("{e}"))?;
+    let disk_rt = load(disk_memory, MemoryControl::Normal, &signed)?;
+    let (a_disk, t_disk, c_disk, s_disk) = cgs_ask(&tokenizer, &disk_rt, &q_ij, scope)?;
+    let disk_ok = a_disk == a_ij && t_disk == t_ij && c_disk == c_ij && s_disk == s_ij;
+    let child = std::process::Command::new(
+        std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?,
+    )
+    .arg("--mode=consumed-geometric-state")
+    .arg("--reload-check")
+    .arg(&reload_dir)
+    .output()
+    .map_err(|e| format!("fresh process: {e}"))?;
+    let child_json: serde_json::Value =
+        serde_json::from_str(String::from_utf8_lossy(&child.stdout).trim())
+            .map_err(|e| format!("child json: {e}"))?;
+    let child_ok = child.status.success()
+        && child_json["emitted"] == serde_json::json!(s_ij.emitted)
+        && child_json["terminal"]
+            == serde_json::to_value(s_ij.terminal).map_err(|e| e.to_string())?
+        && child_json["final_frame"] == json!(s_ij)
+        && child_json["computed"] == json!(s_ij.computation)
+        && child_json["hop"] == json!(s_ij.hop)
+        && child_json["resumed"].as_array().is_some_and(|rs| {
+            rs.len() == snapshots.len() && rs.iter().all(|r| r["matches"] == json!(true))
+        });
+
+    // ---- ordinary memory lifecycle through the learned path (preservation panel) ----
+    let ordinary = cgs_ordinary(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        &lexicon_bytes,
+        &signed,
+    )?;
+
+    // Test the actual new artifact against every prior primary interaction, not the two-assertion smoke.
+    let preservation = cgs_prior_lifecycle(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        &lexicon_bytes,
+        &signed,
+        "new_computation_artifact",
+    )?;
+    let prior_root = PathBuf::from("/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-3");
+    let prior_model =
+        std::fs::read(prior_root.join("artifacts/binder.json")).map_err(|e| e.to_string())?;
+    let prior_intent =
+        std::fs::read(prior_root.join("artifacts/intent.json")).map_err(|e| e.to_string())?;
+    let prior_preservation = cgs_prior_lifecycle(
+        &tokenizer,
+        &prior_model,
+        &prior_intent,
+        &lexicon_bytes,
+        &signed,
+        "prior_v1_intent_migrated",
+    )?;
+    write_json(
+        &root,
+        "preservation.json",
+        &json!({"candidate":preservation,"prior_migrated":prior_preservation,
+        "prior_model_sha256":sha256_hex(&prior_model),"prior_intent_sha256":sha256_hex(&prior_intent)}),
+    )?;
+
+    let consumption = serde_json::json!({
+        "rows": panels.iter().map(|p| p["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        "requests": panels.iter().map(|p| p["requests"].as_u64().unwrap_or(0)).sum::<u64>(),
+        "changed_operand": {"base": a_ij, "changed": a_changed,
+            "base_key": c_ij.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned()),
+            "changed_key": c_changed.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned())},
+        "changed_order": {"i_then_j": a_ij, "j_then_i": a_ji,
+            "ij_key": c_ij.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned()),
+            "ji_key": c_ji.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned()),
+            "folded_i_then_j": f_ij, "folded_j_then_i": f_ji,
+            "folded_ij_key": fc_ij.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned()),
+            "folded_ji_key": fc_ji.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned())},
+        "identity": {"key": c_e.as_ref().map(|c| String::from_utf8_lossy(&c.derived_key).into_owned()),
+            "operand_state": c_e.as_ref().map(|c| c.operand_state),
+            "state": c_e.as_ref().map(|c| c.state)},
+        "consume_disabled": {"answer": a_skip, "terminal": t_skip,
+            "consumed": c_skip.as_ref().map(|c| c.consumed)},
+        "resume": {"mid": mid_state, "identical": resume_ok},
+        "reload": {"disk": disk_ok, "fresh_process": child_ok,
+            "child_status": child.status.code(),"raw_text_entry":true,"child":child_json},
+    });
+
+    let checks = serde_json::json!({
+        "development_complete": panels[0]["complete"] == panels[0]["requests"],
+        "final_complete": panels[1]["complete"] == panels[1]["requests"],
+        "consumption_necessary": a_changed != a_ij,
+        "order_changes_state": c_ij.as_ref().map(|c| c.derived_key.clone())
+            != c_ji.as_ref().map(|c| c.derived_key.clone()),
+        "fold_loses_the_order_distinction": fc_ij.as_ref().map(|c| c.derived_key.clone())
+            == fc_ji.as_ref().map(|c| c.derived_key.clone()),
+        "identity_unchanged": identity_ok,
+        "consume_disabled_changes_answer": a_skip != a_ij && t_skip == t_ij
+            && !c_skip.as_ref().is_some_and(|c| c.consumed)
+            && c_skip.as_ref().map(|c| c.state) == c_ij.as_ref().map(|c| c.state),
+        "owned_resume_identical": resume_ok,
+        "disk_reload_identical": disk_ok,
+        "fresh_process_identical": child_ok,
+        "ordinary_smoke": ordinary["ok"] == serde_json::json!(true),
+        "prior_model_migration_preserves_lifecycle": prior_preservation["all_preserved"] == json!(true),
+    });
+    let all_expected = checks
+        .as_object()
+        .map(|m| m.values().all(|v| v == &serde_json::json!(true)))
+        .unwrap_or(false);
+    let result = serde_json::json!({
+        "schema": "uor-r4.consumed-geometric-state/2",
+        "evaluation_scope": "Corrected exposed replay; selected final first appeared before design/comparator selection. Prior same-artifact lifecycle measured separately, not included in computation-component success.",
+        "same_artifact_lifecycle_preserved": preservation["all_preserved"],
+        "same_artifact_lifecycle_matches": preservation["matched"],
+        "integration_complete": all_expected && preservation["all_preserved"] == json!(true),
+        "base": "origin/main b5d36c9b8318e4fe2084ef49cc75cff55c1b2b6f",
+        "running_source": {
+            "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+            "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
+            "executable_sha256": executable_sha256,
+            "source_files": source_files,
+        },
+        "inputs": {"tokenizer_derived": DERIVED_SHA, "vocab": VOCAB, "eos": CGS_EOS},
+        "task": {
+            "serving_input": "observed readable requests (an ordinary memory question or an observed operation sequence) over a scoped document; no gold operation, state, derived key or expected answer",
+            "labels": CGS_LABELS,
+            "operations": CGS_OPS.iter().map(|(w, id)| format!("{w}:{id}")).collect::<Vec<_>>(),
+            "development_people": CGS_DEV_PEOPLE,
+            "development_dests": CGS_DEV_DESTS,
+            "final_people": CGS_FINAL_PEOPLE,
+            "final_dests": CGS_FINAL_DESTS,
+            "development_sequences": CGS_DEV_SEQS,
+            "final_sequences": CGS_FINAL_SEQS,
+            "novelty": "the final people and destinations are disjoint from fitting and the withheld ordered combinations never appear in development; the label and operation vocabularies are familiar by design",
+        },
+        "learning": {"binder": fit, "intent": intent_fit, "factorization": factor_report,
+            "finite_control_shape": {"values": finite_shape.0, "actions": finite_shape.1},
+            "finite_control_fit": finite_summary},
+        "panels": panels,
+        "controls": controls,
+        "consumption": consumption,
+        "ordinary_lifecycle": ordinary,
+        "all_backend_arms_loaded_from_saved_artifacts": true,
+        "checks": checks,
+        "checks_all_expected": all_expected,
+        "all_rows": all_rows.len(),
+        "elapsed_s": started.elapsed().as_secs_f64(),
+        "scope": "authored ordinary readable requests over a small declared state world; one loaded path consumes a shared finite computation whose grounded result selects the next exact read. Not broad language understanding, general reasoning, frontier capability or a whole-program dictionary. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+    });
+    write_checked(
+        &root,
+        "rows.jsonl",
+        all_rows
+            .iter()
+            .map(|r| serde_json::to_string(r).unwrap_or_default())
+            .collect::<Vec<_>>()
+            .join("\n")
+            .as_bytes(),
+    )?;
+    cgs_finish_run(&tokenizer, &root, started, result, all_expected)
+}
+
+fn backend_identity_json(backend: &ComputationBackend) -> serde_json::Value {
+    backend.identity_json()
+}
+
+/// Ask one request and return (emitted text, terminal, computed result).
+fn cgs_ask(
+    tokenizer: &HfBpeTokenizer,
+    runtime: &ScopedMemoryRuntime,
+    clause: &Clause,
+    scope: &str,
+) -> Result<
+    (
+        String,
+        Option<ScopedTerminal>,
+        Option<ComputedState>,
+        ScopedSession,
+    ),
+    String,
+> {
+    let mut session = runtime
+        .ask(clause, scope.as_bytes())
+        .map_err(|e| format!("ask: {e}"))?;
+    runtime.run(&mut session).map_err(|e| format!("run: {e}"))?;
+    Ok((
+        cgs_text(tokenizer, &session),
+        session.terminal,
+        session.computation.clone(),
+        session,
+    ))
+}
+
+fn cgs_finish_run(
+    tokenizer: &HfBpeTokenizer,
+    root: &std::path::Path,
+    started: Instant,
+    payload: serde_json::Value,
+    all_expected: bool,
+) -> Result<ExitCode, String> {
+    write_json(root, "result.json", &payload)?;
+    seal(root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(root).map_err(|e| format!("verify: {e}"))?;
+    if !all_expected {
+        return Err(format!("sealed contract failure: {}", payload["checks"]));
+    }
+    let panels = &payload["panels"];
+    println!(
+        "consumed-geometric-state: dev {}/{} final {}/{} | consumed {} | sealed {} unlisted | {:.1}s",
+        panels[0]["complete"], panels[0]["requests"],
+        panels[1]["complete"], panels[1]["requests"],
+        payload["consumption"]["rows"],
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
+    );
+    let _ = tokenizer;
+    Ok(ExitCode::SUCCESS)
+}
+
+/// The retained ordinary memory lifecycle through the same learned path: two scoped assertions, a
+/// question that must write nothing, and scope-independent answers.
+fn cgs_ordinary(
+    tokenizer: &HfBpeTokenizer,
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lexicon_bytes: &[u8],
+    backend: &ComputationBackend,
+) -> Result<serde_json::Value, String> {
+    let mut runtime = ScopedMemoryRuntime::load_with_computation(
+        model_bytes,
+        intent_bytes,
+        Some(lexicon_bytes),
+        backend.clone(),
+        Memory::new(77, 8),
+        77,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(CGS_EOS),
+    )
+    .map_err(|e| e.to_string())?;
+    let mut wrote = 0usize;
+    for (scope, label) in [("alpha", CGS_LABELS[0]), ("beta", CGS_LABELS[1])] {
+        let (clause, _) = cgs_clause(
+            tokenizer,
+            0,
+            CgsForm::AssertOffice,
+            CGS_DEV_PEOPLE[0],
+            label,
+        )?;
+        if matches!(
+            runtime
+                .ingest(&clause, scope.as_bytes(), 1)
+                .map_err(|e| e.to_string())?,
+            IngestOutcome::Wrote(_)
+        ) {
+            wrote += 1;
+        }
+    }
+    let (question, _) = cgs_clause(tokenizer, 0, CgsForm::AskOffice, CGS_DEV_PEOPLE[0], "")?;
+    let nowrite = matches!(
+        runtime
+            .ingest(&question, b"alpha", 2)
+            .map_err(|e| e.to_string())?,
+        IngestOutcome::NonAsserting { .. }
+    );
+    let (alpha, terminal, _, _) = cgs_ask(tokenizer, &runtime, &question, "alpha")?;
+    let (beta, _, _, _) = cgs_ask(tokenizer, &runtime, &question, "beta")?;
+    let ok = wrote == 2
+        && nowrite
+        && alpha == CGS_LABELS[0]
+        && beta == CGS_LABELS[1]
+        && terminal == Some(ScopedTerminal::Complete);
+    Ok(serde_json::json!({
+        "ok": ok, "wrote": wrote, "question_writes_nothing": nowrite,
+        "alpha": alpha, "beta": beta,
+    }))
+}
+
 fn main() -> ExitCode {
     let mode = std::env::args().any(|a| a == "--mode=utility-transfer");
     let ce = std::env::args().any(|a| a == "--mode=contextual-emission");
@@ -16859,7 +18343,10 @@ fn main() -> ExitCode {
     let rsm = std::env::args().any(|a| a == "--mode=relational-session");
     let obm = std::env::args().any(|a| a == "--mode=observed-text-session");
     let scm = std::env::args().any(|a| a == "--mode=scoped-correction-memory");
-    let result = if scm {
+    let cgs = std::env::args().any(|a| a == "--mode=consumed-geometric-state");
+    let result = if cgs {
+        cgs_run()
+    } else if scm {
         scm_run()
     } else if obm {
         ob_run()

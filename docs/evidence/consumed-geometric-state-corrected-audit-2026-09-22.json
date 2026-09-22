@@ -1,0 +1,726 @@
+{
+  "schema": "uor-r4.consumed-corrected-independent-audit/1",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-1",
+  "method": "Read-only saved records, independent integer Hamilton expectations, baseline row comparison, independent raw authored history oracle, artifact/source/executable/seal checks.",
+  "seal": {
+    "bad": [],
+    "missing": [],
+    "unlisted": [],
+    "files": 19
+  },
+  "source_bindings": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+      "recorded_sha256": "a4925b9514586bbf76b4c81e4547a5719821b0a9d6b8047fabc756bd164e7a67",
+      "committed_matches": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+      "recorded_sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f",
+      "committed_matches": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+      "recorded_sha256": "c9bc544c94b15dfae819277a999fbe782b8eb336513084c65f71bddbf4ea9785",
+      "committed_matches": true
+    }
+  ],
+  "executable": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/consumed-geometric-state-principal-delivery/competitive-reader-6be7f8fc",
+    "exists": true,
+    "recorded_sha256": "33967f0c908059b00b150fe27484f8425317ec8cdfbd6f74df356578eca924c7",
+    "actual_sha256": "33967f0c908059b00b150fe27484f8425317ec8cdfbd6f74df356578eca924c7",
+    "matches": true
+  },
+  "rows": {
+    "count": 360,
+    "expectations_and_match_flags_checked": 360,
+    "selected_reads_checked": 506,
+    "owned_emissions_checked": 266,
+    "primary_computations_checked": 64,
+    "errors": []
+  },
+  "saved_backends": {
+    "names": [
+      "finite_transition",
+      "folded_central_sign",
+      "signed_factorization",
+      "tabulated_finite"
+    ],
+    "session_bindings_checked": {
+      "signed_factorization": 240,
+      "finite_transition": 40,
+      "tabulated_finite": 40,
+      "folded_central_sign": 40
+    },
+    "canonical_sha256": {
+      "signed_factorization": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+      "tabulated_finite": "3be5446f4d16d156462e567951073a2764133f4695694be9b15a564a80813a2b",
+      "folded_central_sign": "bb8e9a4ee809f43b9447ee65dd7b8e815e62909f69620e41b2665d5cfdc4a7ed",
+      "finite_transition": "bc23f21095a3e388d67df467683046f1c650edffee47c9dfb3dd4fb63d06a30f"
+    }
+  },
+  "arm_counts": [
+    {
+      "arm": "apply_disabled",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 12,
+      "computation_matches": 4
+    },
+    {
+      "arm": "consume_disabled",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 12,
+      "computation_matches": 4
+    },
+    {
+      "arm": "finite_transition",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 26,
+      "computation_matches": 18
+    },
+    {
+      "arm": "folded_central_sign",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 24,
+      "computation_matches": 16
+    },
+    {
+      "arm": "no_read",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 0,
+      "computation_matches": 0
+    },
+    {
+      "arm": "primary_signed",
+      "rows": 80,
+      "ordinary": 16,
+      "computation": 64,
+      "matches": 80,
+      "computation_matches": 64
+    },
+    {
+      "arm": "tabulated_finite",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 40,
+      "computation_matches": 32
+    },
+    {
+      "arm": "unscoped",
+      "rows": 40,
+      "ordinary": 8,
+      "computation": 32,
+      "matches": 0,
+      "computation_matches": 0
+    }
+  ],
+  "submission_comparison": {
+    "identical_population_keys": true,
+    "behavior_changes": [],
+    "unchanged_behavior_rows": 360,
+    "interpretation": "Original exposed worlds retained. Source ownership/control fixes can legitimately alter control behavior; changes are not fresh evaluation."
+  },
+  "preservation": [
+    {
+      "artifact": "candidate",
+      "questions": 38,
+      "language": 34,
+      "api": 4,
+      "matched": 17,
+      "ingest_observation_and_write_matches": 22,
+      "reported_errors": 4,
+      "independent_oracle_errors": [],
+      "all38_retained": true,
+      "summary_agrees": true,
+      "failed_query_rows": [
+        {
+          "script": "development",
+          "turn": 6,
+          "text": "What is Mara's office?",
+          "answer": "Atlas",
+          "expected": "Complete { value: \"Cedar Annex\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "development",
+          "turn": 10,
+          "text": "What is Mara's office?",
+          "answer": "Atlas",
+          "expected": "Complete { value: \"Cedar Annex\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "development",
+          "turn": 13,
+          "text": "What was Ivo's office before?",
+          "answer": "",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "error": "scoped-memory observation: observed clause is not a request"
+        },
+        {
+          "script": "development",
+          "turn": 17,
+          "text": "What was Ivo's office originally?",
+          "answer": "",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "error": "scoped-memory observation: observed clause is not a request"
+        },
+        {
+          "script": "development",
+          "turn": 18,
+          "text": "What was Ivo's office before?",
+          "answer": "",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "error": "scoped-memory observation: observed clause is not a request"
+        },
+        {
+          "script": "development",
+          "turn": 22,
+          "text": "What was Ivo's office originally?",
+          "answer": "",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "error": "scoped-memory observation: observed clause is not a request"
+        },
+        {
+          "script": "development",
+          "turn": 28,
+          "text": "What is Cedar's office?",
+          "answer": "Fen",
+          "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 2,
+          "text": "What is Ova's office?",
+          "answer": "Bramble",
+          "expected": "Complete { value: \"Quarry\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 3,
+          "text": "What was Ova's office before?",
+          "answer": "",
+          "expected": "Complete { value: \"Bramble\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 4,
+          "text": "What was Ova's office originally?",
+          "answer": "",
+          "expected": "Complete { value: \"Bramble\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 13,
+          "text": "What is Nia's office?",
+          "answer": "Marsh",
+          "expected": "Complete { value: \"Harbor\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 18,
+          "text": "What is Tessa's office?",
+          "answer": "Marsh",
+          "expected": "Complete { value: \"Ledge\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 21,
+          "text": "What is Tessa's office?",
+          "answer": "Marsh",
+          "expected": "Complete { value: \"Ledge\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 22,
+          "text": "What was Ova's office originally?",
+          "answer": "",
+          "expected": "Complete { value: \"Bramble\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 2,
+          "text": "What is Una's office?",
+          "answer": "Cobalt",
+          "expected": "Complete { value: \"Mica\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 3,
+          "text": "What was Una's office before?",
+          "answer": "",
+          "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 4,
+          "text": "What was Una's office originally?",
+          "answer": "",
+          "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 13,
+          "text": "What is Pia's office?",
+          "answer": "",
+          "expected": "Complete { value: \"Basalt\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 18,
+          "text": "What is Kestrel's office?",
+          "answer": "Delta",
+          "expected": "Complete { value: \"Dune\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 21,
+          "text": "What is Kestrel's office?",
+          "answer": "",
+          "expected": "Complete { value: \"Dune\", hops: 2 }",
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 22,
+          "text": "What was Una's office originally?",
+          "answer": "",
+          "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+          "error": null
+        }
+      ],
+      "language_matches": 13,
+      "api_matches": 4,
+      "query_failure_types": {
+        "wrong_complete_answer": 9,
+        "runtime_or_observation_error": 4,
+        "Unresolved": 8
+      },
+      "failed_ingests": [
+        {
+          "script": "development",
+          "turn": 4,
+          "text": "Mara's project is Atlas",
+          "expected_write": true,
+          "wrote": true,
+          "observed": {
+            "continues": false,
+            "entity": "Mara",
+            "intent": 0,
+            "is_question": false,
+            "relation": 0,
+            "value": "Atlas"
+          },
+          "error": null
+        },
+        {
+          "script": "development",
+          "turn": 5,
+          "text": "Mara's office became Cedar Annex",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Mara",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Cedar Annex"
+          },
+          "error": null
+        },
+        {
+          "script": "development",
+          "turn": 8,
+          "text": "Mara's office might be Fen",
+          "expected_write": false,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Mara",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "be Fen"
+          },
+          "error": null
+        },
+        {
+          "script": "development",
+          "turn": 20,
+          "text": "Ivo's office became Cedar Annex",
+          "expected_write": true,
+          "wrote": true,
+          "observed": {
+            "continues": false,
+            "entity": "Ivo",
+            "intent": 0,
+            "is_question": false,
+            "relation": 0,
+            "value": "Cedar Annex"
+          },
+          "error": null
+        },
+        {
+          "script": "development",
+          "turn": 27,
+          "text": "Oren's office became Cedar Annex",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Oren",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Cedar Annex"
+          },
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 1,
+          "text": "Ova's office became Quarry",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Ova",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Quarry"
+          },
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 12,
+          "text": "Rin's office became Harbor",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Rin",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Harbor"
+          },
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 16,
+          "text": "Ova's office became Ledge",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Ova",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Ledge"
+          },
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 17,
+          "text": "Ova's project is Marsh",
+          "expected_write": true,
+          "wrote": true,
+          "observed": {
+            "continues": false,
+            "entity": "Ova",
+            "intent": 0,
+            "is_question": false,
+            "relation": 0,
+            "value": "Marsh"
+          },
+          "error": null
+        },
+        {
+          "script": "exposed_regression",
+          "turn": 20,
+          "text": "Tessa's office might be Vale",
+          "expected_write": false,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Tessa",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "be Vale"
+          },
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 1,
+          "text": "Una's office became Mica",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Una",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Mica"
+          },
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 12,
+          "text": "Soren's office became Basalt",
+          "expected_write": true,
+          "wrote": true,
+          "observed": {
+            "continues": true,
+            "entity": "Soren",
+            "intent": 0,
+            "is_question": false,
+            "relation": 0,
+            "value": "asalt"
+          },
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 16,
+          "text": "Una's office became Dune",
+          "expected_write": true,
+          "wrote": false,
+          "observed": {
+            "continues": false,
+            "entity": "Una",
+            "intent": 3,
+            "is_question": false,
+            "relation": 0,
+            "value": "Dune"
+          },
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 17,
+          "text": "Una's project is Delta",
+          "expected_write": true,
+          "wrote": true,
+          "observed": {
+            "continues": false,
+            "entity": "Una",
+            "intent": 0,
+            "is_question": false,
+            "relation": 0,
+            "value": "Delta"
+          },
+          "error": null
+        },
+        {
+          "script": "final_lexical_exposed",
+          "turn": 20,
+          "text": "Kestrel's office might be Mica",
+          "expected_write": false,
+          "wrote": true,
+          "observed": {
+            "continues": true,
+            "entity": "Kestrel",
+            "intent": 0,
+            "is_question": false,
+            "relation": 0,
+            "value": "Mica"
+          },
+          "error": null
+        }
+      ],
+      "suppressed_required_writes": 7,
+      "unexpected_writes": 1
+    },
+    {
+      "artifact": "prior_migrated",
+      "questions": 38,
+      "language": 34,
+      "api": 4,
+      "matched": 38,
+      "ingest_observation_and_write_matches": 37,
+      "reported_errors": 0,
+      "independent_oracle_errors": [],
+      "all38_retained": true,
+      "summary_agrees": true,
+      "failed_query_rows": [],
+      "language_matches": 34,
+      "api_matches": 4,
+      "query_failure_types": {},
+      "failed_ingests": [],
+      "suppressed_required_writes": 0,
+      "unexpected_writes": 0
+    }
+  ],
+  "parameter_parity": {
+    "model.json": {
+      "byte_identical": true,
+      "parameters_identical_excluding_explicit_metadata": true,
+      "changed_metadata": {}
+    },
+    "intent.json": {
+      "byte_identical": false,
+      "parameters_identical_excluding_explicit_metadata": true,
+      "changed_metadata": {
+        "statement_classes": {
+          "before_present": false,
+          "before": null,
+          "after_present": true,
+          "after": 4
+        },
+        "version": {
+          "before_present": true,
+          "before": 1,
+          "after_present": true,
+          "after": 2
+        }
+      }
+    },
+    "lexicon.json": {
+      "byte_identical": true,
+      "parameters_identical_excluding_explicit_metadata": true,
+      "changed_metadata": {}
+    },
+    "artifact.json": {
+      "byte_identical": false,
+      "parameters_identical_excluding_explicit_metadata": true,
+      "changed_metadata": {
+        "cyclic": {
+          "before_present": false,
+          "before": null,
+          "after_present": true,
+          "after": false
+        },
+        "projection": {
+          "before_present": false,
+          "before": null,
+          "after_present": true,
+          "after": null
+        },
+        "reference_outcome": {
+          "before_present": false,
+          "before": null,
+          "after_present": true,
+          "after": 0
+        },
+        "version": {
+          "before_present": false,
+          "before": null,
+          "after_present": true,
+          "after": 1
+        }
+      }
+    }
+  },
+  "backend_parameter_attribution": [
+    {
+      "backend": "signed_factorization",
+      "old_identity_reconstructed_sha256": "7447398aca321c9053a70cb5664d19267a115529ccba98b713828fd8de680d09",
+      "submitted_session_identity_sha256": [
+        "7447398aca321c9053a70cb5664d19267a115529ccba98b713828fd8de680d09"
+      ],
+      "all_submitted_identity_parameters_match": true,
+      "scope": "All original bound factorization/transition vectors unchanged; newly bound format metadata explicit."
+    },
+    {
+      "backend": "tabulated_finite",
+      "old_identity_reconstructed_sha256": "999c4df064684d02c4828cdaa20bd1d1033560512433e4230582fe0b6bc3688a",
+      "submitted_session_identity_sha256": [
+        "999c4df064684d02c4828cdaa20bd1d1033560512433e4230582fe0b6bc3688a"
+      ],
+      "all_submitted_identity_parameters_match": true,
+      "scope": "All original bound factorization/transition vectors unchanged; newly bound format metadata explicit."
+    },
+    {
+      "backend": "folded_central_sign",
+      "old_identity_reconstructed_sha256": "0829d6251b7af4f6a82f7de7d0181b702d08e21b7971fdea67214dc61996416c",
+      "submitted_session_identity_sha256": [
+        "0829d6251b7af4f6a82f7de7d0181b702d08e21b7971fdea67214dc61996416c"
+      ],
+      "all_submitted_identity_parameters_match": true,
+      "scope": "All original bound factorization/transition vectors unchanged; newly bound format metadata explicit."
+    },
+    {
+      "backend": "finite_transition",
+      "old_identity_reconstructed_sha256": "8a81b02b2b32da1c57db4867a107415d8b2724353ac46e7a5133f349ad8eac90",
+      "submitted_session_identity_sha256": [
+        "8a81b02b2b32da1c57db4867a107415d8b2724353ac46e7a5133f349ad8eac90"
+      ],
+      "all_submitted_identity_parameters_match": true,
+      "scope": "Every previously bound execution parameter matches; newly complete serialization also binds missing mode/decoder/projection fields. Old finite decoder bytes were not saved and cannot be independently compared byte for byte."
+    }
+  ],
+  "learning_receipt_identical": true,
+  "parameter_attribution_conclusion": "CGS binder bytes and grounding lexicon bytes unchanged; every intent weight and its four-class decision domain unchanged; signed action/initial/output vectors unchanged.17/38 reveals preserved submitted CGS fit failure on the prior language lifecycle, not a newly selected or tuned reviewer model. All360 submitted row behaviors also preserved. Prior migrated3-class artifact separately passes38/38.",
+  "raw_child_and_resume": {
+    "raw_text_scope_only": true,
+    "text": "Mara's office then i j",
+    "checkpoints": 10,
+    "phases": {
+      "Read": 2,
+      "Apply": 3,
+      "Emit": 3,
+      "Stop": 2
+    },
+    "errors": [],
+    "full_final_frame_compared": true
+  },
+  "claims": {
+    "integration_complete": false,
+    "same_artifact_lifecycle_preserved": false,
+    "component_checks": {
+      "consume_disabled_changes_answer": true,
+      "consumption_necessary": true,
+      "development_complete": true,
+      "disk_reload_identical": true,
+      "final_complete": true,
+      "fold_loses_the_order_distinction": true,
+      "fresh_process_identical": true,
+      "identity_unchanged": true,
+      "order_changes_state": true,
+      "ordinary_smoke": true,
+      "owned_resume_identical": true,
+      "prior_model_migration_preserves_lifecycle": true
+    },
+    "evaluation_scope": "Corrected exposed replay; selected final first appeared before design/comparator selection. Prior same-artifact lifecycle measured separately, not included in computation-component success.",
+    "unknown_boundaries": [
+      "Main computation-world Memory.write remains host preparation, not learned raw ingestion.",
+      "Phase replay over unchanged store does not independently qualify mutation/eviction ownership.",
+      "All exposed populations remain exposed; no fresh acceptance draw is inferred."
+    ]
+  }
+}

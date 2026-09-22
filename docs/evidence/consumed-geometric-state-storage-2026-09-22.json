@@ -1,0 +1,55 @@
+{
+  "schema": "uor-r4.consumed-state-storage/1",
+  "projection": {
+    "started_at": "2026-09-22T15:26:26.719120+00:00",
+    "preparation_estimate_ms": 240000,
+    "projected_review_ms": 7200000,
+    "before": {
+      "cumulative_ms": 334715344,
+      "limit_ms": 337300000
+    },
+    "extension_ms": 7200000,
+    "reason": "Full principal source/evidence/architecture review, needed integrity/preservation repairs, focused release checks, actual corrected replay and protected delivery exceed remaining2584656ms. Standing owner authorization; prospective full projection.",
+    "threads_compile": 2,
+    "threads_model": 1,
+    "ram_bytes": 8589934592,
+    "temporary_bytes": 805306368,
+    "retained_bytes": 67108864,
+    "physical_reserve_bytes": 36766079385,
+    "stop_margin_bytes": 134217728,
+    "free_before": 33450590208,
+    "paid_compute": false,
+    "after": {
+      "cumulative_ms": 334715344,
+      "limit_ms": 344500000
+    },
+    "build_storage_refinement": {
+      "recorded_at": "2026-09-22T15:33:19.016445+00:00",
+      "temporary_bytes": 402653184,
+      "retained_bytes": 33554432,
+      "reason": "Reuse current consumed-state release target; preceding scoped-source test/build sequence showed under150MiB incremental peak.384MiB temporary plus32MiB retained provides margin; physical reserve monitored per command."
+    }
+  },
+  "cleanup": [
+    {
+      "at": "2026-09-22T15:29:50.781188+00:00",
+      "files_removed": 2343,
+      "allocated_bytes_removed": 3890253824,
+      "manifest_sha256": "ae9ae8cad19b5e9acefbb0f0238d8931af9071e59ec3543b260f24de9f3bbc01",
+      "skipped": [],
+      "free_after": 37199990784,
+      "scope": "Inactive incremental files and rlib/rmeta compiler outputs only. Current consumed-state build cache retained; all executables, unique models/research/reports/histories/Downloads and open files preserved."
+    },
+    {
+      "at": "2026-09-22T15:33:19.016445+00:00",
+      "files_removed": 17583,
+      "allocated_bytes_removed": 355434496,
+      "manifest_sha256": "e7846be3829b065abce829a87e44422e76993b9cc65aff39cfbf75dfcab23309",
+      "skipped_count": 15,
+      "free_after": 37502627840,
+      "scope": "Chrome HTTP cache and uv download cache files unaccessed/unmodified for over1hour; open files excluded; browser history/profile, AI histories, research, artifacts and Downloads preserved."
+    }
+  ],
+  "total_allocated_bytes_removed": 4245688320,
+  "files_removed": 19926
+}
