@@ -1996,3 +1996,56 @@ Prior DeepSeek work was not debited: cumulative remained311,552,510ms while allo
 Principal projection5,400,000ms +180,000ms preparation estimate within existing allowance,2 compiler threads/1 model thread,8GiB RAM,512MiB temporary build after inactive debug cleanup,64MiB retained data, physical reserve36,766,079,385B +128MiB. Actual review charge **1,761,999ms** = 981,999ms elapsed +180,000ms prior preparation estimate +600,000ms delivery reserve estimate. Parallel investigators counted once. Balance **315,414,509/333,700,000ms**, remaining **18,285,491ms**. No further limit extension or paid compute.
 
 Removed702 inactive debug dependency archive/metadata files, **716,836,864 allocated bytes**. ManifestSHA2564c5429d74cefb49a1a9e38d39453ade7fcd257845d396806645f9f2b9ac29dd4. Preserved all executables, release cache, unique artifacts/research, AI histories and Downloads. Free **37,823,365,120B** at charge. [Source, executed checks and resource receipt](../evidence/structured-argument-binding-principal-checks-2026-09-22.json).
+
+## PR #1344 ordinary-form argument binding — September 22 UTC
+
+**Projection.** Two compiler threads and one model thread, 8 GiB RAM ceiling, about 1.2 GiB temporary
+build output, 127 MiB retained report data across seven attempt roots, no external or paid compute.
+No extension was required: the previous balance already covered this work, and no limit was raised.
+
+**Known interval.** Isolated worktree advanced to the corrected draft and merged `origin/main` at
+2026-09-22T03:42Z; the delivered sealed run completed at 2026-09-22T04:35Z — a known **3,180,000 ms**
+interval. The full session includes recovery before that interval and documentation/delivery after it.
+
+**Charge 4,500,000 ms**, recorded retrospectively because the incurred portion preceded its receipt:
+measured release builds, test compiles and eight runner executions (~2,400,000 ms, including one
+accidental default-mode run) plus estimated recovery, implementation, diagnosis, documentation and
+delivery (~2,100,000 ms). Balance **319,914,509 / 333,700,000 ms**; remaining **13,785,491 ms**. No
+extension requested; the standing owner authorization was not invoked and no paid compute was used.
+
+**Accidental artifact.** One invocation without `--mode=observed-text-session` executed the default
+experiment and wrote 25 MiB into a misleadingly named root; after verifying it was this session's own
+output rather than unique research, that root was removed. Its compute is included in the charge and
+disclosed here rather than silently dropped.
+
+**Retained.** Attempt roots `ordinary-form-argument-binding-{1..8}` (latest, `-8`, is the delivered
+receipt with 0 unlisted files and the exact final source binding; `-8` cost 27.55 s of release
+recompilation plus an 11.1 s run, and reproduces the identical panels). The original #1344 five
+attempts and all earlier research, models, executables, conversations and Downloads remain untouched.
+The worktree's regenerable 1.0 GiB release build target was removed after the delivered run; the sealed
+receipt records the executable and source hashes.
+
+**Storage.** Free space at record time **32,540,135,424 B**. The recorded **36,766,079,385 B** physical
+reserve plus the 128 MiB stop margin is therefore **currently not met**, a shortfall of roughly 4.2 GB.
+This step contributed 127 MiB of reports and 1.0 GiB of regenerable build output; the remainder is
+other worktrees (`uor-r4-worktrees` 8.9 GiB, `.codex` 4.5 GiB), the main checkout target (3.7 GiB) and
+pre-existing corpora under `.uor-models` (20 GiB). Flagged for the principal; no unique artifact was
+deleted to close it, and no broad deletion was performed.
+
+**Executable preservation.** The delivered release binary was rebuilt from the committed source and
+is **byte-identical** to the receipt: SHA256
+`75ac2ba1a96f5b89ed4d7792e7db4a8946cb58532ea606727ba1cfaab6463226`, matching
+`result.json.running_source.executable_sha256`. It is retained outside the sealed root at
+`.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-delivery/competitive-reader-ordinary-form-binding-8`.
+This confirms reproducible release compilation for the pinned toolchain and preserves the served
+artifact as the project requires. The worktree build target was removed again after copying it out.
+
+## Ordinary-form principal review and storage recovery — September22 UTC
+
+Prior DeepSeek debit4,500,000ms undercounts the known03:42:02→05:08:05UTC merge-to-final-preservation-commit interval5,163,000ms. Add **663,000ms** to retain at least that known engineering wall interval; earlier/later unknown duration remains unavailable. This is not measuredCPU/model time or an exact full-session estimate. Balance after reconciliation320,577,509/333,700,000ms. Original eight saved report timers remain separately scoped.
+
+At 2026-09-22T05:20:09.686302+00:00 projected7,200,000ms full review/repair/checks/replay/delivery plus600,000ms prior preparation estimate,2compiler/1model worker,8GiB RAM,768MiB temporary build and64MiB retained data (narrowed before execution from128MiB because one~30MiB replay). No time extension required. No builds/models until physical reserve36,766,079,385B+128MiB restored; monitored free space during each command.
+
+Removed **4,576,190,464 allocated bytes** of explicitly inventoried regenerable caches and3owner-authorizedDMGinstallers. ManifestSHA256a9484730fa8c0846a4bb4cc8d3a305e40323d60fbf35b49ef13721b5e911d3cd. Excluded open/recent browser cache files; retained histories/profile, all research/reports/models and otherDownloads. Shared target release cache retained. Disk-free changes from other activity are not attributed to this cleanup. Original submitted executable and newly corrected executable are separately preserved outside sealed roots.
+
+Principalcharge **2,100,377ms** = 900,377ms elapsed engineering wall time +600,000ms preparation estimate +600,000ms delivery reserve estimate; parallel reviews countedonce. **Cumulative 322,677,886/333,700,000ms**, remaining11,022,114ms. Free atcharge **39,140,376,576B**. No paidcompute or reserve reduction. [Executedchecks](../evidence/ordinary-form-binding-principal-checks-2026-09-22.json):23module+23runnertestsPASS,1legacyignored,releasebuild and correctedexposedreplay; alloriginal344rowbehaviors/modelbytesretained, matchedlexicalmembership32/40, exactobjecteditsuffixpreserved,2,820checkpoints independentlyverified.

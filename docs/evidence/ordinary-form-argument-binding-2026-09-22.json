@@ -1,0 +1,464 @@
+{
+ "arms": [
+  {
+   "arm": "categorical_order",
+   "complete": 48,
+   "depth_correct": null,
+   "split": "development",
+   "total": 48
+  },
+  {
+   "arm": "h4_hybrid",
+   "complete": 48,
+   "depth_correct": null,
+   "split": "development",
+   "total": 48
+  },
+  {
+   "arm": "categorical_order",
+   "complete": 40,
+   "depth_correct": 40,
+   "split": "exposed_regression",
+   "total": 40
+  },
+  {
+   "arm": "h4_hybrid",
+   "complete": 40,
+   "depth_correct": 40,
+   "split": "exposed_regression",
+   "total": 40
+  },
+  {
+   "arm": "categorical_order",
+   "complete": 24,
+   "depth_correct": 24,
+   "split": "final",
+   "total": 24
+  },
+  {
+   "arm": "h4_hybrid",
+   "complete": 24,
+   "depth_correct": 24,
+   "split": "final",
+   "total": 24
+  }
+ ],
+ "base": "origin/main 38314380297432f491415d30ca20d5a70bea25da (merged review/documentation delivery)",
+ "binding_note": "running_source.git_rev and the three source sha256 values bind the delivered commit; the release binary that produced this receipt is recorded by executable_sha256.",
+ "controls": [
+  {
+   "arm": "membership_continuation",
+   "complete": 38,
+   "depth_correct": 38,
+   "split": "exposed_regression",
+   "total": 40
+  },
+  {
+   "arm": "maximum_two_read",
+   "complete": 30,
+   "depth_correct": 30,
+   "split": "exposed_regression",
+   "total": 40
+  },
+  {
+   "arm": "reads_disabled",
+   "complete": 0,
+   "depth_correct": 0,
+   "split": "exposed_regression",
+   "total": 40
+  }
+ ],
+ "date_utc": "2026-09-22",
+ "delivery_pr": 1344,
+ "development_complete": {
+  "categorical_order": 48,
+  "h4_hybrid": 48
+ },
+ "draft_head_before": "1df229178c6b56ae6dbf95273c9e4eae3282a66e (PR #1344 corrected draft)",
+ "elapsed_s": 11.010322584,
+ "identity": {
+  "chain_cross_bpe": true,
+  "chain_joins": [
+   {
+    "different_bpe_forms": true,
+    "from_segment": 0,
+    "keys_equal": true,
+    "object_key": "Ivo",
+    "object_surface": [
+     339,
+     102,
+     95
+    ],
+    "subject_key": "Ivo",
+    "subject_surface": [
+     57,
+     102,
+     95
+    ],
+    "to_segment": 1
+   },
+   {
+    "different_bpe_forms": true,
+    "from_segment": 1,
+    "keys_equal": true,
+    "object_key": "Cedar",
+    "object_surface": [
+     340,
+     277,
+     280
+    ],
+    "subject_key": "Cedar",
+    "subject_surface": [
+     51,
+     277,
+     280
+    ],
+    "to_segment": 2
+   }
+  ],
+  "convention": "Exact original bytes with exterior ASCII whitespace excluded; case and interior bytes preserved. Surface extents remain the provenance and emission source.",
+  "query_join": {
+   "different_bpe_forms": true,
+   "keys_equal": true,
+   "query_key": "Mara",
+   "query_subject_surface": [
+    2828,
+    81
+   ],
+   "source_key": "Mara",
+   "source_subject_surface": [
+    61,
+    4075
+   ]
+  }
+ },
+ "intervention_checks": {
+  "base_matches": true,
+  "changed_payload_same_path": true,
+  "cross_bpe_identity": true,
+  "cycle_matches": true,
+  "goal_change_matches": true,
+  "goal_invariant": true,
+  "later_absence_matches": true,
+  "valid_redirect_changes_path": true
+ },
+ "intervention_outcomes": {
+  "base": {
+   "emitted": [
+    492,
+    484,
+    569,
+    377,
+    792,
+    4294967294
+   ],
+   "reads": 3,
+   "selected_roles": [
+    1,
+    1,
+    0
+   ],
+   "selected_segments": [
+    0,
+    1,
+    2
+   ],
+   "terminal": "Stop"
+  },
+  "changed_terminal_source": {
+   "emitted": [
+    340,
+    277,
+    280,
+    1117,
+    662,
+    104,
+    4294967294
+   ],
+   "reads": 3,
+   "selected_roles": [
+    1,
+    1,
+    0
+   ],
+   "selected_segments": [
+    0,
+    1,
+    2
+   ],
+   "terminal": "Stop"
+  },
+  "changed_terminal_source_after_expected": {
+   "answer": [
+    340,
+    277,
+    280,
+    1117,
+    662,
+    104
+   ],
+   "reads": 3,
+   "selected_segments": [
+    0,
+    1,
+    2
+   ],
+   "terminal": "Stop"
+  },
+  "changed_terminal_source_before_expected": {
+   "answer": [
+    492,
+    484,
+    569,
+    377,
+    792
+   ],
+   "reads": 3,
+   "selected_segments": [
+    0,
+    1,
+    2
+   ],
+   "terminal": "Stop"
+  },
+  "cycle": {
+   "emitted": [],
+   "reads": 2,
+   "selected_roles": [
+    1,
+    1
+   ],
+   "selected_segments": [
+    0,
+    1
+   ],
+   "terminal": "Exhausted"
+  },
+  "cycle_expected": {
+   "answer": [],
+   "reads": 2,
+   "selected_segments": [
+    0,
+    1
+   ],
+   "terminal": "Exhausted"
+  },
+  "request_goal_change": {
+   "emitted": [
+    1053,
+    680,
+    389,
+    341,
+    4294967294
+   ],
+   "reads": 1,
+   "selected_roles": [
+    2
+   ],
+   "selected_segments": [
+    4
+   ],
+   "terminal": "Stop"
+  },
+  "request_goal_change_expected": {
+   "answer": [
+    1053,
+    680,
+    389,
+    341
+   ],
+   "reads": 1,
+   "selected_segments": [
+    4
+   ],
+   "terminal": "Stop"
+  },
+  "required_terminal_fact_removed": {
+   "emitted": [],
+   "reads": 2,
+   "selected_roles": [
+    1,
+    1
+   ],
+   "selected_segments": [
+    0,
+    1
+   ],
+   "terminal": "Unresolved"
+  },
+  "required_terminal_fact_removed_expected": {
+   "answer": [],
+   "reads": 2,
+   "selected_segments": [
+    0,
+    1
+   ],
+   "terminal": "Unresolved"
+  },
+  "subword_order_perturbation_scope": "Perturbation only; no claim of semantic word-order generalization",
+  "valid_redirect_to_existing_person": {
+   "emitted": [
+    492,
+    484,
+    569,
+    377,
+    792,
+    4294967294
+   ],
+   "reads": 2,
+   "selected_roles": [
+    1,
+    0
+   ],
+   "selected_segments": [
+    0,
+    2
+   ],
+   "terminal": "Stop"
+  },
+  "valid_redirect_to_existing_person_expected": {
+   "answer": [
+    492,
+    484,
+    569,
+    377,
+    792
+   ],
+   "reads": 2,
+   "selected_segments": [
+    0,
+    2
+   ],
+   "terminal": "Stop"
+  }
+ },
+ "interventions_expected": true,
+ "learning": {
+  "categorical_order": {
+   "candidate_updates": 18,
+   "clauses": 96,
+   "cue_role_correct": 96,
+   "epochs_run": 3,
+   "h4_enabled": false,
+   "h4_evaluations": 0,
+   "h4_moves": 0,
+   "policy_examples": 48,
+   "policy_final_correct": 48,
+   "policy_initial_correct": 29,
+   "role_final_correct": 96,
+   "role_initial_correct": 0,
+   "role_weights": 51,
+   "roles_observed": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "segment_potentials": 296,
+   "span_final_correct": 96,
+   "span_initial_correct": 0
+  },
+  "h4_hybrid": {
+   "candidate_updates": 20,
+   "clauses": 96,
+   "cue_role_correct": 96,
+   "epochs_run": 3,
+   "h4_enabled": true,
+   "h4_evaluations": 5880,
+   "h4_moves": 0,
+   "policy_examples": 48,
+   "policy_final_correct": 48,
+   "policy_initial_correct": 29,
+   "role_final_correct": 96,
+   "role_initial_correct": 0,
+   "role_weights": 55,
+   "roles_observed": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "segment_potentials": 490,
+   "span_final_correct": 96,
+   "span_initial_correct": 0
+  }
+ },
+ "limitations": [
+  "Small authored memory domain with 4 persons, 3 offices and 3 projects; the forms are authored, not learned from a corpus.",
+  "The serving representation is bounded categorical/interval potentials, not a dense encoder; no multiplier-free whole-path or energy claim.",
+  "The order-aware categorical arm and the H4 hybrid both reach the development/exposed/final ceiling: no measured geometric advantage, and none claimed. The bounded code search accepted 0 improving moves over 5,880 evaluations.",
+  "The membership control compares token vectors, so it keeps the weaker identity boundary and reaches 38/40 rather than 40/40.",
+  "The final draw is a fresh composition/style draw after design freeze but reuses the same vocabulary and form family; new lexical values and new structures are untested.",
+  "Whole-target D0-b serving compliance, energy and broad language understanding remain unqualified."
+ ],
+ "primary_arm": "categorical_order",
+ "primary_arm_selected_on": "development complete answers only; ties keep the order-aware categorical comparator. The final draw was made after the design was frozen and changed no development choice or fitted parameter.",
+ "prior_attempts": {
+  "note": "Attempts 1-6 are preserved failed/partial diagnostic runs. Attempt 7 produced identical panels and passed all checks, but its sealed runner source sha256 predates the removal of a test-only diagnostic function; attempt 8 is the delivered receipt and binds the exact final sources.",
+  "roots": "ordinary-form-argument-binding-1..7"
+ },
+ "report_files": [
+  {
+   "blake3": "728a4b1ccdaab74d778f1c2f5e467a7c1daa5740a7edda53d59c112c034a48a7",
+   "bytes": 10917,
+   "path": "artifacts/ordinary_forms_categorical_order.json"
+  },
+  {
+   "blake3": "601826eddf41285203983c0bacdbb844dfce75d5753e828bae307006297c31bc",
+   "bytes": 17611,
+   "path": "artifacts/ordinary_forms_h4_hybrid.json"
+  },
+  {
+   "blake3": "2060c61fb4baa4578880d3db18ee79f288e353939823cb00449a0a557ba08464",
+   "bytes": 472,
+   "path": "attempt.json"
+  },
+  {
+   "blake3": "63ddd19b35ff8230a4ba997424650528aa9ae814c280f8c04075c4960d2375fb",
+   "bytes": 1903368,
+   "path": "result.json"
+  },
+  {
+   "blake3": "93026e38fb7efefb1a36a592978d5cf3f0be6cf4caa1d228d339e44e62a7f180",
+   "bytes": 25570053,
+   "path": "rows.jsonl"
+  },
+  {
+   "blake3": "f5740a6a0714000138ac1db325b28998fb35f0109c4c829ef7057cd18f78642d",
+   "bytes": 145110,
+   "path": "worlds.json"
+  }
+ ],
+ "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-8",
+ "row_summary": {
+  "checkpoint_resumes_identical": 2426,
+  "checkpoints": 2426,
+  "correct": 292,
+  "rows": 344,
+  "rows_with_resume_mismatch": 0
+ },
+ "running_source": {
+  "executable_sha256": "75ac2ba1a96f5b89ed4d7792e7db4a8946cb58532ea606727ba1cfaab6463226",
+  "git_dirty": "false",
+  "git_rev": "5a6df770ce1490620fa5f391859590bae64781ec",
+  "source_files": [
+   {
+    "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+    "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+   },
+   {
+    "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+    "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+   },
+   {
+    "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+    "sha256": "5774a1c1fa3b0c4ba08ee94bab8b7a5a9a1b837bf4875ced6fc904f600f80eb8"
+   }
+  ]
+ },
+ "schema": "uor-r4.ordinary-form-argument-binding-evidence/1",
+ "scope": "authored ordinary readable text over a small memory domain; declared bounded span proposals and a same-question causal session. Not broad language understanding, general reasoning or frontier capability. Membership control uses token identity, not the primary lexical key. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+ "source_commit": "5a6df770ce1490620fa5f391859590bae64781ec",
+ "step": "ordinary-form structured argument binding through the corrected loaded session",
+ "unlisted_files": 0
+}

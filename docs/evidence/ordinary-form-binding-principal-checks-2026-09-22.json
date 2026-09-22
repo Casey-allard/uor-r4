@@ -1,0 +1,287 @@
+{
+  "schema": "uor-r4.ordinary-binding-principal-checks/1",
+  "submitted_head": "5d0a770c642855c54afab8fe7319f28ee4755eba",
+  "corrected_source_head": "940a90766e9284eeb50b8403184a8e4159e7db51",
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::observed_text_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 193791,
+      "log": "/tmp/uor-ordinary-check-0.log",
+      "log_sha256": "f306ec34c6475c8ddb0909a6f2c84547df4a4eaa93c497566c96855ee3508930",
+      "minimum_free": 39148310528,
+      "free_after": 39209066496,
+      "storage_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 145577,
+      "log": "/tmp/uor-ordinary-check-1.log",
+      "log_sha256": "3baea4b2039c22fa8bcfe619ed94716f39bad8563d03effeb45839dfbedb95c5",
+      "minimum_free": 39108820992,
+      "free_after": 39219470336,
+      "storage_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 22093,
+      "log": "/tmp/uor-ordinary-check-2.log",
+      "log_sha256": "b4bd79e331953de66a4a0beb642f3a28380055f467265f77671c46ebdab6f997",
+      "minimum_free": 39215775744,
+      "free_after": 39217205248,
+      "storage_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-binding-principal-1",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 12055,
+      "log": "/tmp/uor-ordinary-check-3.log",
+      "log_sha256": "bad27669ee25384abbf7ce1a9c9291efa6f8a36d9767687afe30cef1433722a1",
+      "minimum_free": 39187275776,
+      "free_after": 39185350656,
+      "storage_stop": false
+    }
+  ],
+  "focused_library_tests": {
+    "passed": 23,
+    "failed": 0
+  },
+  "focused_runner_tests": {
+    "passed": 23,
+    "failed": 0,
+    "ignored": 1
+  },
+  "warnings": "Existing dead-code/unused warnings remain; no warning-free claim. Initial formatting-only diff fixed before source freeze/compilation.",
+  "source": {
+    "executable_sha256": "495119c734120a3811b3a4e1e6a44498665c84c65759040eb99f3edb812e3c57",
+    "git_dirty": "false",
+    "git_rev": "940a90766e9284eeb50b8403184a8e4159e7db51",
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+        "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+        "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "480aaceb6edc2063456591833da947e0b9419ad1f881f8c30e665b8ae47e5fdb"
+      }
+    ]
+  },
+  "replay_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-binding-principal-1",
+  "preserved_executable": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-binding-principal-delivery/competitive-reader-940a9076",
+  "arms": [
+    {
+      "arm": "categorical_order",
+      "complete": 48,
+      "depth_correct": null,
+      "split": "development",
+      "total": 48
+    },
+    {
+      "arm": "h4_hybrid",
+      "complete": 48,
+      "depth_correct": null,
+      "split": "development",
+      "total": 48
+    },
+    {
+      "arm": "categorical_order",
+      "complete": 40,
+      "depth_correct": 40,
+      "split": "exposed_regression",
+      "total": 40
+    },
+    {
+      "arm": "h4_hybrid",
+      "complete": 40,
+      "depth_correct": 40,
+      "split": "exposed_regression",
+      "total": 40
+    },
+    {
+      "arm": "categorical_order",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "h4_hybrid",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "final",
+      "total": 24
+    }
+  ],
+  "controls": [
+    {
+      "arm": "membership_continuation",
+      "complete": 38,
+      "depth_correct": 38,
+      "split": "exposed_regression",
+      "total": 40
+    },
+    {
+      "arm": "lexical_membership_continuation",
+      "complete": 32,
+      "depth_correct": 34,
+      "split": "exposed_regression",
+      "total": 40
+    },
+    {
+      "arm": "maximum_two_read",
+      "complete": 30,
+      "depth_correct": 30,
+      "split": "exposed_regression",
+      "total": 40
+    },
+    {
+      "arm": "reads_disabled",
+      "complete": 0,
+      "depth_correct": 0,
+      "split": "exposed_regression",
+      "total": 40
+    }
+  ],
+  "intervention_checks": {
+    "base_matches": true,
+    "changed_payload_same_path": true,
+    "cross_bpe_identity": true,
+    "cycle_matches": true,
+    "goal_change_matches": true,
+    "goal_invariant": true,
+    "later_absence_matches": true,
+    "valid_redirect_changes_path": true
+  },
+  "replay_elapsed_s": 10.913453833,
+  "audit": "ordinary-form-binding-corrected-audit-2026-09-22.json",
+  "resources": {
+    "at": "2026-09-22T05:35:10.063181+00:00",
+    "projection": {
+      "started_at": "2026-09-22T05:20:09.686302+00:00",
+      "starting_balance": {
+        "cumulative_ms": 319914509,
+        "limit_ms": 333700000
+      },
+      "review_wall_projection_ms": 7200000,
+      "prior_preparation_estimate_ms": 600000,
+      "threads_compile": 2,
+      "threads_model": 1,
+      "ram_bytes": 8589934592,
+      "temporary_build_bytes": 805306368,
+      "retained_bytes": 67108864,
+      "physical_reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_bytes": 33289359360,
+      "execution_condition": "No build/model execution until existing reserve plus stop margin and projected headroom restored by verified disposable cache cleanup. Time allowance covers projection; no extension. Preserve all reports/artifacts/executables and unique histories.",
+      "free_after_cleanup": 39191048192,
+      "cleanup_manifest_sha256": "a9484730fa8c0846a4bb4cc8d3a305e40323d60fbf35b49ef13721b5e911d3cd",
+      "rationale": "One corrected exposed replay ~30MiB plus docs/check receipts <64MiB. Reuse existing release target; <=768MiB temporary build, check free space during commands, preserve reserve+128MiB.",
+      "ready_for_checks": true
+    },
+    "elapsed_review_ms": 900377,
+    "preparation_estimate_ms": 600000,
+    "delivery_reserve_estimate_ms": 600000,
+    "charge_ms": 2100377,
+    "before": {
+      "cumulative_ms": 320577509,
+      "limit_ms": 333700000
+    },
+    "after": {
+      "cumulative_ms": 322677886,
+      "limit_ms": 333700000
+    },
+    "remaining_ms": 11022114,
+    "free_bytes": 39140376576,
+    "cleanup": {
+      "at": "2026-09-22T05:22:46.583493+00:00",
+      "free_before": 33244749824,
+      "free_after": 37822341120,
+      "files_removed": 69254,
+      "allocated_bytes_removed": 4576190464,
+      "skipped": 0,
+      "by_kind": {
+        "inactive_antigravity_cache": 168022016,
+        "owner_authorized_installer": 643424256,
+        "inactive_incremental": 1848647680,
+        "old_browser_http_cache": 925945856,
+        "inactive_antigravity_http_cache": 101625856,
+        "inactive_debug_dependency": 283701248,
+        "old_browser_code_cache": 267726848,
+        "downloaded_package_cache": 337096704
+      },
+      "manifest_sha256": "a9484730fa8c0846a4bb4cc8d3a305e40323d60fbf35b49ef13721b5e911d3cd",
+      "preserved": "All research/reports/models/executables/conversations, all Downloads except3explicitlyauthorizedDMGinstallers; active/open files and browserhistory/profile retained."
+    },
+    "prior_charge_correction": {
+      "recorded_at": "2026-09-22T05:30:42.599697+00:00",
+      "known_start": "2026-09-21T23:42:02-04:00",
+      "known_end": "2026-09-22T01:08:05-04:00",
+      "known_wall_interval_ms": 5163000,
+      "prior_reported_charge_ms": 4500000,
+      "supplement_ms": 663000,
+      "before": {
+        "cumulative_ms": 319914509,
+        "limit_ms": 333700000
+      },
+      "after": {
+        "cumulative_ms": 320577509,
+        "limit_ms": 333700000
+      },
+      "scope": "Minimum known engineering wall interval from actual merge to final executable-preservation commit, not CPU/model timing or exact full session. Earlier recovery/later delivery duration unavailable; no fabricated measured total. Prior reporttimers retained."
+    },
+    "parallel_agents": "Included once in elapsed engineering wall time",
+    "paid_compute": false,
+    "limit_extension": false
+  },
+  "scope": "Corrected exposed replay, both modelbytes and all344originalrowbehaviors unchanged; exact lexicalcontrol and isolated objectedit added. No fresh final/general language/geometric advantage/wholepath efficiency qualification.",
+  "document_validation": {
+    "cargo_fmt": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS",
+    "json_parsed": 3,
+    "relative_links_checked": 1038,
+    "missing": [],
+    "note": "Markdown inline code/fences excluded; initial simplistic scan mistook a bracket notation in code for a link."
+  }
+}

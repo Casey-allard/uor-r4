@@ -1,0 +1,1391 @@
+{
+  "schema": "uor-r4.ordinary-form-independent-audit/1",
+  "scope": "Read-only saved-data audit of authored ordinary forms; no model implementation, fitting, inference or builds.",
+  "submitted_head": "5d0a770c642855c54afab8fe7319f28ee4755eba",
+  "roots": {
+    "1": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-1",
+      "claimed_at": "1790050162",
+      "sealed_at": "1790050167",
+      "files": 6,
+      "bytes": 17455574,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "3e9f11ee0fb2771bc9790b3e12797df68a5a6d9f9e75c5025b8d5b46e60f38b1",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "bce0524a6c31cdcbd2a1ea4d7fc2e452eab04ccd037d9bee57da4fd82b1a5b41"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "8690d4b655484f9769839ff35ff9b2f7e7cd8956a74876a5aa52daf667925278"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 21,
+          "depth_correct": 24,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 19,
+          "depth_correct": 22,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 15,
+          "depth_correct": 15,
+          "split": "held_out",
+          "total": 16
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 13,
+          "depth_correct": 13,
+          "split": "held_out",
+          "total": 16
+        }
+      ],
+      "elapsed_s": 4.780513291,
+      "rows_sha256": "9530ef043c99d74734924c92e62f356c8df35374fe6666fa0813870b969a136e",
+      "worlds_sha256": "ca4e06594799638b6314969c069c11eaf611f710f5a25afa01d4eef458034411",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "422bde081156e20a54b8751666b77a403b7d62cf0dc3bcf61626ff2df7214efb",
+        "ordinary_forms_categorical_order.json": "2eacacf60ab3f88286c2eb868a7520fe314db2c2cf4f52db44371e1411fa4490"
+      }
+    },
+    "2": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-2",
+      "claimed_at": "1790050544",
+      "sealed_at": "1790050551",
+      "files": 6,
+      "bytes": 15710802,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "d8e121ac758ad852ac763b17430176eca95153d199d983df98daca782ec4d8bf",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "21d098394365d786d243cdd7470e0c6a661721467e29638c81244fea2bbc4d98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "8690d4b655484f9769839ff35ff9b2f7e7cd8956a74876a5aa52daf667925278"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 21,
+          "depth_correct": 21,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 21,
+          "depth_correct": 21,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 10,
+          "depth_correct": 11,
+          "split": "held_out",
+          "total": 16
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 10,
+          "depth_correct": 11,
+          "split": "held_out",
+          "total": 16
+        }
+      ],
+      "elapsed_s": 7.228793208,
+      "rows_sha256": "230961d5231b2a74bee0cee1a2112865a55c40113a832de4f5947c0d6a32bef5",
+      "worlds_sha256": "ca4e06594799638b6314969c069c11eaf611f710f5a25afa01d4eef458034411",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "0be603035fbbae8e78f52b34e7a9fb3a4749387da14602a42fb74836ca54e9d6",
+        "ordinary_forms_categorical_order.json": "baad8338feb25000fb36ff3522dc4462b7249f2913bedbb7b9ca3b65c4813f71"
+      }
+    },
+    "3": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-3",
+      "claimed_at": "1790051218",
+      "sealed_at": "1790051225",
+      "files": 6,
+      "bytes": 16385089,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "133fa73a461fd08c54d7e3212d356a462fc10726699ea973a274d52368a083cf",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "d8cb6e4494a7ceac90b08fcc44c5b94cd5a2c6b9acc6f84c8b95c7233dbb8901"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 21,
+          "depth_correct": 24,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 16,
+          "depth_correct": 16,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 16,
+          "depth_correct": 16,
+          "split": "held_out",
+          "total": 16
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 12,
+          "depth_correct": 13,
+          "split": "held_out",
+          "total": 16
+        }
+      ],
+      "elapsed_s": 7.216699583,
+      "rows_sha256": "e50c2498c22eea42dc9a262d013eeefcfcfaff394af20f7b1950a9d53401bec2",
+      "worlds_sha256": "ca4e06594799638b6314969c069c11eaf611f710f5a25afa01d4eef458034411",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "4e075f2c4213391447712310a097fbd5709b85439001a29de2333b1808dc6c8d",
+        "ordinary_forms_categorical_order.json": "48496543fff53d68971fb85fdcd506ce95b414204270239b3252e1f343655669"
+      }
+    },
+    "4": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-4",
+      "claimed_at": "1790051312",
+      "sealed_at": "1790051318",
+      "files": 6,
+      "bytes": 17039172,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "71f3e661433025a75dee7f0eea8ee84f3b1bb7ebd1125b2571607c307aca19ad",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "35f1f603ce47908645a59bfd71ae5e78dbd33eb9b7f7cadf981acd55d1394462"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": null,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 21,
+          "depth_correct": 21,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 13,
+          "depth_correct": 13,
+          "split": "held_out",
+          "total": 16
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 13,
+          "depth_correct": 13,
+          "split": "held_out",
+          "total": 16
+        }
+      ],
+      "elapsed_s": 5.969971667,
+      "rows_sha256": "e3e5e374a677717fd4a1c8fe0fec30394c70554b97770bc401b974cd01a04930",
+      "worlds_sha256": "6a2ddb7a2e4817119c97868178667e18fd387965e372159a67eeb32e9654660c",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "324b4978b8bc4b0fc9b65583a3ddea8c052876167d0d3ba63fd65a1c47836197",
+        "ordinary_forms_categorical_order.json": "05a3b3f371abbdfe30d1b5f2f4add0720dbd4f92915dd897acbb8b5c18e24e82"
+      }
+    },
+    "5": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-5",
+      "claimed_at": "1790051367",
+      "sealed_at": "1790051375",
+      "files": 6,
+      "bytes": 18092290,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "2fa1d5da5347710a081cb9a605c454891db18fd15973f9f723e27c0929165d20",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "eff67c225902c6c1b5fde2a1543ae4deafccef56eed33f423b36aa2f7b3c2434"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 32,
+          "depth_correct": null,
+          "split": "development",
+          "total": 32
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 32,
+          "depth_correct": null,
+          "split": "development",
+          "total": 32
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 21,
+          "depth_correct": 21,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 13,
+          "depth_correct": 13,
+          "split": "held_out",
+          "total": 16
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 13,
+          "depth_correct": 13,
+          "split": "held_out",
+          "total": 16
+        }
+      ],
+      "elapsed_s": 7.533413208,
+      "rows_sha256": "b73bff359b77068b6f3462450b794e5afa51a7160a7bf49e8c90f8af03f82167",
+      "worlds_sha256": "e84f036375d61c186e94116af4ebd63fc7897753fd0724a8e619682734a68ec4",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "324b4978b8bc4b0fc9b65583a3ddea8c052876167d0d3ba63fd65a1c47836197",
+        "ordinary_forms_categorical_order.json": "05a3b3f371abbdfe30d1b5f2f4add0720dbd4f92915dd897acbb8b5c18e24e82"
+      }
+    },
+    "6": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-6",
+      "claimed_at": "1790051580",
+      "sealed_at": "1790051591",
+      "files": 6,
+      "bytes": 20585197,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "fd6391d8b3a3353e9d4532044036c7776b898b7694acf7238a258e2316300415",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "3c10b6da6df7dd568b6109a8cbe6408c53cadf68db6ef6edfb1d9a221f4df47d"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 48,
+          "depth_correct": null,
+          "split": "development",
+          "total": 48
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 48,
+          "depth_correct": null,
+          "split": "development",
+          "total": 48
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "exposed_regression",
+          "total": 24
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 16,
+          "depth_correct": 16,
+          "split": "held_out",
+          "total": 16
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 16,
+          "depth_correct": 16,
+          "split": "held_out",
+          "total": 16
+        }
+      ],
+      "elapsed_s": 11.504348792,
+      "rows_sha256": "5623fbf764bc018753e37c72aa2835feb4d6337f6fece9dd8eee73a63bbc89bd",
+      "worlds_sha256": "406f998b736425be247be5ffcb174d49f7da20a721570d2b46e360b3af1898ae",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "b53645f6e04cf2e355ad11759eee8b4a9bf21ba44bc9671f32a0ade188518eb3",
+        "ordinary_forms_categorical_order.json": "b814a39770fd51a6fa42f7ec507d66e788a97281d2553c03a04c4c2e7a2a61e1"
+      }
+    },
+    "7": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-7",
+      "claimed_at": "1790051681",
+      "sealed_at": "1790051693",
+      "files": 6,
+      "bytes": 27648611,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "ba164f697785bf14e2723a823c80a20fd14a05f684ab0b061d817cd139586ff6",
+        "git_dirty": "unknown",
+        "git_rev": "unset",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "72d6a615cd8ec49761265e7684dfc1fb07a06e38c040709eda7eb8a3479881de"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 48,
+          "depth_correct": null,
+          "split": "development",
+          "total": 48
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 48,
+          "depth_correct": null,
+          "split": "development",
+          "total": 48
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 40,
+          "depth_correct": 40,
+          "split": "exposed_regression",
+          "total": 40
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 40,
+          "depth_correct": 40,
+          "split": "exposed_regression",
+          "total": 40
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "elapsed_s": 11.31327125,
+      "rows_sha256": "601dfd16468da516e5c6079ccb2687c0ed9b4df7a2d051f9b10ae5f912b1d231",
+      "worlds_sha256": "0ef551cbc64b7e4de98504f6843da18cdcc0048c5d64c8d79f148974fd062514",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "b53645f6e04cf2e355ad11759eee8b4a9bf21ba44bc9671f32a0ade188518eb3",
+        "ordinary_forms_categorical_order.json": "b814a39770fd51a6fa42f7ec507d66e788a97281d2553c03a04c4c2e7a2a61e1"
+      }
+    },
+    "8": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-8",
+      "claimed_at": "1790052843",
+      "sealed_at": "1790052854",
+      "files": 6,
+      "bytes": 27648680,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "source": {
+        "executable_sha256": "75ac2ba1a96f5b89ed4d7792e7db4a8946cb58532ea606727ba1cfaab6463226",
+        "git_dirty": "false",
+        "git_rev": "5a6df770ce1490620fa5f391859590bae64781ec",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "5774a1c1fa3b0c4ba08ee94bab8b7a5a9a1b837bf4875ced6fc904f600f80eb8"
+          }
+        ]
+      },
+      "arms": [
+        {
+          "arm": "categorical_order",
+          "complete": 48,
+          "depth_correct": null,
+          "split": "development",
+          "total": 48
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 48,
+          "depth_correct": null,
+          "split": "development",
+          "total": 48
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 40,
+          "depth_correct": 40,
+          "split": "exposed_regression",
+          "total": 40
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 40,
+          "depth_correct": 40,
+          "split": "exposed_regression",
+          "total": 40
+        },
+        {
+          "arm": "categorical_order",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "h4_hybrid",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "elapsed_s": 11.010322584,
+      "rows_sha256": "601dfd16468da516e5c6079ccb2687c0ed9b4df7a2d051f9b10ae5f912b1d231",
+      "worlds_sha256": "0ef551cbc64b7e4de98504f6843da18cdcc0048c5d64c8d79f148974fd062514",
+      "models_sha256": {
+        "ordinary_forms_h4_hybrid.json": "b53645f6e04cf2e355ad11759eee8b4a9bf21ba44bc9671f32a0ade188518eb3",
+        "ordinary_forms_categorical_order.json": "b814a39770fd51a6fa42f7ec507d66e788a97281d2553c03a04c4c2e7a2a61e1"
+      }
+    }
+  },
+  "arms": {
+    "development/categorical_order": {
+      "rows": 48,
+      "complete": 48,
+      "depth_correct": 48,
+      "flags_oracles_text_controls_match": true
+    },
+    "development/h4_hybrid": {
+      "rows": 48,
+      "complete": 48,
+      "depth_correct": 48,
+      "flags_oracles_text_controls_match": true
+    },
+    "exposed_regression/categorical_order": {
+      "rows": 40,
+      "complete": 40,
+      "depth_correct": 40,
+      "flags_oracles_text_controls_match": true
+    },
+    "exposed_regression/h4_hybrid": {
+      "rows": 40,
+      "complete": 40,
+      "depth_correct": 40,
+      "flags_oracles_text_controls_match": true
+    },
+    "final/categorical_order": {
+      "rows": 24,
+      "complete": 24,
+      "depth_correct": 24,
+      "flags_oracles_text_controls_match": true
+    },
+    "final/h4_hybrid": {
+      "rows": 24,
+      "complete": 24,
+      "depth_correct": 24,
+      "flags_oracles_text_controls_match": true
+    },
+    "exposed_regression/membership_continuation": {
+      "rows": 40,
+      "complete": 38,
+      "depth_correct": 38,
+      "flags_oracles_text_controls_match": true
+    },
+    "exposed_regression/maximum_two_read": {
+      "rows": 40,
+      "complete": 30,
+      "depth_correct": 30,
+      "flags_oracles_text_controls_match": true
+    },
+    "exposed_regression/reads_disabled": {
+      "rows": 40,
+      "complete": 0,
+      "depth_correct": 0,
+      "flags_oracles_text_controls_match": true
+    }
+  },
+  "primary_failures": [],
+  "rows_counts": {
+    "outcomes": 344,
+    "events": 2082,
+    "snapshots": 2426,
+    "successful_reads": 492,
+    "rejected_read_attempts": 0
+  },
+  "rows_phase_counts": {
+    "Read": 542,
+    "Continue": 198,
+    "Emit": 1048,
+    "Stop": 294,
+    "terminal:Stop": 294,
+    "terminal:Exhausted": 10,
+    "terminal:Unresolved": 40
+  },
+  "row_capture_key_modes": {
+    "lexical_capture": 492
+  },
+  "split_scope": {
+    "panels": {
+      "development": {
+        "worlds": 6,
+        "statement_occurrences": 48,
+        "unique_statements": 35,
+        "object_before_subject": 9,
+        "post_object_trailing_material": 11,
+        "statements_seen_in_development": 48,
+        "statements_seen_in_prior_panels": 48
+      },
+      "exposed_regression": {
+        "worlds": 3,
+        "statement_occurrences": 24,
+        "unique_statements": 18,
+        "object_before_subject": 4,
+        "post_object_trailing_material": 4,
+        "statements_seen_in_development": 17,
+        "statements_seen_in_prior_panels": 24
+      },
+      "exposed_regression_second_draw": {
+        "worlds": 2,
+        "statement_occurrences": 16,
+        "unique_statements": 15,
+        "object_before_subject": 2,
+        "post_object_trailing_material": 2,
+        "statements_seen_in_development": 7,
+        "statements_seen_in_prior_panels": 16
+      },
+      "final": {
+        "worlds": 3,
+        "statement_occurrences": 24,
+        "unique_statements": 23,
+        "object_before_subject": 4,
+        "post_object_trailing_material": 4,
+        "statements_seen_in_development": 8,
+        "statements_seen_in_prior_panels": 10
+      }
+    },
+    "unique_fit_questions": 8,
+    "fit_question_occurrences": 48,
+    "final_questions_seen_in_fit": 8,
+    "unique_final_questions": 8,
+    "construction": "Authored deterministic chain/style/target cycling, not randomized population sampling. Three-read compositions absent from development worlds; vocabulary and form families shared.",
+    "draw7_vs8": {
+      "same_worlds_bytes": true,
+      "same_rows_bytes": true,
+      "same_models": true
+    },
+    "root6_vs7_models_identical": true,
+    "claim": "Final composition panel first appears in root7 after root6 fitted models; root8 is a provenance replay of the same final draw, not another fresh qualification. No preregistered independent random sampling is claimed by this audit."
+  },
+  "model_comparison": {
+    "reported_learning": {
+      "categorical_order": {
+        "candidate_updates": 18,
+        "clauses": 96,
+        "cue_role_correct": 96,
+        "epochs_run": 3,
+        "h4_enabled": false,
+        "h4_evaluations": 0,
+        "h4_moves": 0,
+        "policy_examples": 48,
+        "policy_final_correct": 48,
+        "policy_initial_correct": 29,
+        "role_final_correct": 96,
+        "role_initial_correct": 0,
+        "role_weights": 51,
+        "roles_observed": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "segment_potentials": 296,
+        "span_final_correct": 96,
+        "span_initial_correct": 0
+      },
+      "h4_hybrid": {
+        "candidate_updates": 20,
+        "clauses": 96,
+        "cue_role_correct": 96,
+        "epochs_run": 3,
+        "h4_enabled": true,
+        "h4_evaluations": 5880,
+        "h4_moves": 0,
+        "policy_examples": 48,
+        "policy_final_correct": 48,
+        "policy_initial_correct": 29,
+        "role_final_correct": 96,
+        "role_initial_correct": 0,
+        "role_weights": 55,
+        "roles_observed": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "segment_potentials": 490,
+        "span_final_correct": 96,
+        "span_initial_correct": 0
+      }
+    },
+    "models": {
+      "categorical_order": {
+        "sha256": "b814a39770fd51a6fa42f7ec507d66e788a97281d2553c03a04c4c2e7a2a61e1",
+        "bytes": 10917,
+        "version": 6,
+        "role_feature_rows": 51,
+        "segment_feature_rows": 296,
+        "token_code_rows": 0
+      },
+      "h4_hybrid": {
+        "sha256": "b53645f6e04cf2e355ad11759eee8b4a9bf21ba44bc9671f32a0ade188518eb3",
+        "bytes": 17611,
+        "version": 6,
+        "role_feature_rows": 55,
+        "segment_feature_rows": 490,
+        "token_code_rows": 49
+      }
+    },
+    "h4_nonzero_segment_feature_kinds": {
+      "16": 36,
+      "17": 34,
+      "18": 26,
+      "19": 29,
+      "20": 8,
+      "21": 1,
+      "22": 1,
+      "23": 24,
+      "24": 48,
+      "25": 47,
+      "26": 53,
+      "27": 82,
+      "28": 36
+    },
+    "all_h4_codes_still_token_mod120": true,
+    "scope": "H4 hybrid adds ordered finite-group potentials to order-aware categorical features; equal authored final answers, not equality of capacity or proof of no geometric advantage. Code-search accepts strictly higher exact-fit count after already96/96, so 0 accepted moves is ceiling-imposed."
+  },
+  "membership_boundary": {
+    "actual_token_registry_complete": 38,
+    "analytical_lexical_registry_correct": 32,
+    "total": 40,
+    "different_rows": [
+      {
+        "world": 102,
+        "person": 0,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            61,
+            4075,
+            4294967294
+          ],
+          "reads": 3
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 102,
+        "person": 1,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            61,
+            4075,
+            4294967294
+          ],
+          "reads": 2
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 3,
+          "selected_segments": [
+            1,
+            2,
+            0
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 102,
+        "person": 2,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            61,
+            4075,
+            4294967294
+          ],
+          "reads": 1
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 3,
+          "selected_segments": [
+            2,
+            0,
+            1
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 102,
+        "person": 3,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            61,
+            4075,
+            4294967294
+          ],
+          "reads": 3
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 4,
+          "selected_segments": [
+            3,
+            1,
+            2,
+            0
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 201,
+        "person": 0,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            57,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 3
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 4,
+          "selected_segments": [
+            3,
+            1,
+            2,
+            0
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 201,
+        "person": 1,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            57,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 3
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 201,
+        "person": 2,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            57,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 2
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 3,
+          "selected_segments": [
+            1,
+            2,
+            0
+          ],
+          "terminal": "Exhausted"
+        }
+      },
+      {
+        "world": 201,
+        "person": 3,
+        "goal": "Office",
+        "token_registry_result": {
+          "emitted": [
+            57,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 1
+        },
+        "lexical_membership_gold_trace": {
+          "answer": [],
+          "reads": 3,
+          "selected_segments": [
+            2,
+            0,
+            1
+          ],
+          "terminal": "Exhausted"
+        }
+      }
+    ],
+    "scope": "Analytic traversal of saved typed facts, not model execution; actual token-membership comparator is boundary-mismatched and is not a matched lexical role comparator."
+  },
+  "interventions": {
+    "reported_checks": {
+      "base_matches": true,
+      "changed_payload_same_path": true,
+      "cross_bpe_identity": true,
+      "cycle_matches": true,
+      "goal_change_matches": true,
+      "goal_invariant": true,
+      "later_absence_matches": true,
+      "valid_redirect_changes_path": true
+    },
+    "all_expected_reported": true,
+    "details": {
+      "base": {
+        "expected": {
+          "answer": [
+            492,
+            484,
+            569,
+            377,
+            792
+          ],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "actual": {
+          "emitted": [
+            492,
+            484,
+            569,
+            377,
+            792,
+            4294967294
+          ],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer": " Office Park",
+        "coherent": true,
+        "matches": true
+      },
+      "changed_terminal_source": {
+        "expected": {
+          "answer": [
+            340,
+            277,
+            280,
+            1117,
+            662,
+            104
+          ],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "actual": {
+          "emitted": [
+            340,
+            277,
+            280,
+            1117,
+            662,
+            104,
+            4294967294
+          ],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer": " Cedar Annex",
+        "coherent": true,
+        "matches": true
+      },
+      "cycle": {
+        "expected": {
+          "answer": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Exhausted"
+        },
+        "actual": {
+          "emitted": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Exhausted"
+        },
+        "decoded_answer": "",
+        "coherent": true,
+        "matches": true
+      },
+      "valid_redirect_to_existing_person": {
+        "expected": {
+          "answer": [
+            492,
+            484,
+            569,
+            377,
+            792
+          ],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "actual": {
+          "emitted": [
+            492,
+            484,
+            569,
+            377,
+            792,
+            4294967294
+          ],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer": " Office Park",
+        "coherent": true,
+        "matches": true
+      },
+      "required_terminal_fact_removed": {
+        "expected": {
+          "answer": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Unresolved"
+        },
+        "actual": {
+          "emitted": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Unresolved"
+        },
+        "decoded_answer": "",
+        "coherent": true,
+        "matches": true
+      },
+      "request_goal_change": {
+        "expected": {
+          "answer": [
+            1053,
+            680,
+            389,
+            341
+          ],
+          "reads": 1,
+          "selected_segments": [
+            4
+          ],
+          "terminal": "Stop"
+        },
+        "actual": {
+          "emitted": [
+            1053,
+            680,
+            389,
+            341,
+            4294967294
+          ],
+          "reads": 1,
+          "selected_segments": [
+            4
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer": " Project Bay",
+        "coherent": true,
+        "matches": true
+      }
+    },
+    "oracle_errors": [],
+    "edits": [
+      {
+        "name": "changed_terminal_source",
+        "segment": 2,
+        "before": "Cedar's office is Office Park downtown",
+        "after": "Cedar's office is Cedar Annex",
+        "old_object": " Office Park",
+        "new_object": " Cedar Annex",
+        "dropped_suffix": " downtown",
+        "single_object_only": false
+      },
+      {
+        "name": "cycle",
+        "segment": 1,
+        "before": "Ivo office follows Cedar",
+        "after": "Ivo office follows Mara",
+        "old_object": " Cedar",
+        "new_object": " Mara",
+        "dropped_suffix": "",
+        "single_object_only": true
+      },
+      {
+        "name": "valid_redirect_to_existing_person",
+        "segment": 0,
+        "before": "Mara office follows Ivo",
+        "after": "Mara office follows Cedar",
+        "old_object": " Ivo",
+        "new_object": " Cedar",
+        "dropped_suffix": "",
+        "single_object_only": true
+      }
+    ],
+    "changed_payload_same_path_but_suffix_also_deleted": true,
+    "subword_perturbation": {
+      "text": "What is Mara's off?ice",
+      "emitted_text": " Office Park",
+      "snapshots": 0,
+      "scope": "Perturbation only; no claim of semantic word-order generalization"
+    },
+    "scope": "Saved intervention outcomes valid for their actual inputs; terminal-source edit changes payload AND removes downtown. Does not isolate payload-only causal effect. ob_edit_object truncates suffix, unsafe for object-before-subject forms."
+  },
+  "counts_before_uncheckpointed_perturbation": {
+    "outcomes": 350,
+    "events": 2130,
+    "snapshots": 2480,
+    "successful_reads": 505,
+    "rejected_read_attempts": 1
+  },
+  "all_saved_counts_including_perturbation": {
+    "outcomes": 351,
+    "events": 2141,
+    "snapshots": 2480,
+    "successful_reads": 508,
+    "rejected_read_attempts": 1
+  },
+  "frame_errors": [],
+  "snapshot_errors": [],
+  "clause_text_errors": [],
+  "cross_bpe": {
+    "query_verified": true,
+    "chain_joins": [
+      {
+        "from": 0,
+        "to": 1,
+        "independent_match": true
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "independent_match": true
+      }
+    ],
+    "actual_successful_base_answer": " Office Park",
+    "qualification": "Real different token sequences join through exact lexical identity in executed query and dependent chain."
+  },
+  "provenance": {
+    "source_matches_submitted": {
+      "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "preserved_executable": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-form-argument-binding-delivery/competitive-reader-ordinary-form-binding-8",
+    "executable_matches": true,
+    "source_receipt": {
+      "executable_sha256": "75ac2ba1a96f5b89ed4d7792e7db4a8946cb58532ea606727ba1cfaab6463226",
+      "git_dirty": "false",
+      "git_rev": "5a6df770ce1490620fa5f391859590bae64781ec",
+      "source_files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+          "sha256": "626d6fedbf3366b4c842d75f19a32172e5fd5b757434724f786547bb578190e4"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+          "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "5774a1c1fa3b0c4ba08ee94bab8b7a5a9a1b837bf4875ced6fc904f600f80eb8"
+        }
+      ]
+    }
+  },
+  "reported_counts_match": {
+    "development/categorical_order": true,
+    "development/h4_hybrid": true,
+    "exposed_regression/categorical_order": true,
+    "exposed_regression/h4_hybrid": true,
+    "final/categorical_order": true,
+    "final/h4_hybrid": true,
+    "exposed_regression/membership_continuation": true,
+    "exposed_regression/maximum_two_read": true,
+    "exposed_regression/reads_disabled": true
+  },
+  "saved_evidence_consistency_pass": true,
+  "qualified_conclusion": "Bounded authored ordinary-form argument parsing and dependent lexical joins demonstrated; source-edit instrument not isolated, token-membership comparator mismatched, root8 repeats root7 final draw. No geometric predictive advantage or broad-language claim."
+}
