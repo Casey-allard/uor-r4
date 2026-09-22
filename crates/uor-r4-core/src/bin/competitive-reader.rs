@@ -20843,3 +20843,354 @@ mod loaded_lifecycle_tests {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod loaded_realization_tests {
+    use super::*;
+
+    const FILES: [&str; 5] = [
+        "model.json",
+        "intent.json",
+        "lexicon.json",
+        "backend-signed_factorization.json",
+        "realization.json",
+    ];
+
+    fn bytes(root: &Path, name: &str) -> Result<Vec<u8>, String> {
+        std::fs::read(root.join(name)).map_err(|e| format!("{name}: {e}"))
+    }
+    fn tokenizer() -> Result<HfBpeTokenizer, String> {
+        let data = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| e.to_string())?;
+        if sha256_hex(&data) != TOKENIZER_SHA {
+            return Err("realization audit tokenizer identity differs".into());
+        }
+        derive_tokenizer(&data, VOCAB).map_err(|e| e.to_string())
+    }
+    fn loaded(
+        input: &Path,
+        memory: Memory,
+        contract: OutputContract,
+    ) -> Result<ScopedMemoryRuntime, String> {
+        let backend = cgs_backend_from_json(
+            &serde_json::from_slice(&bytes(input, "backend-signed_factorization.json")?)
+                .map_err(|e| e.to_string())?,
+        )?;
+        let lineage = memory.lineage;
+        ScopedMemoryRuntime::load_grounded(
+            &bytes(input, "model.json")?,
+            &bytes(input, "intent.json")?,
+            Some(&bytes(input, "lexicon.json")?),
+            backend,
+            Some(&bytes(input, "realization.json")?),
+            contract,
+            memory,
+            lineage,
+            MemoryControl::Normal,
+            VOCAB,
+            Some(CGS_EOS),
+        )
+        .map_err(|e| e.to_string())
+    }
+
+    /// A separate test process receives saved artifacts, store, raw request and snapshots only.
+    /// Full actual frames are retained, with no expected response supplied to inference.
+    #[test]
+    #[ignore = "child of the explicitly invoked saved-realizer audit"]
+    fn child_restores_realized_frames() -> Result<(), String> {
+        let root =
+            PathBuf::from(std::env::var("UOR_REALIZATION_CHILD").map_err(|e| e.to_string())?);
+        let tokenizer = tokenizer()?;
+        let memory = Memory::from_bytes(&bytes(&root, "store.json")?).map_err(|e| e.to_string())?;
+        let runtime = loaded(&root.join("artifacts"), memory, OutputContract::RealizedV1)?;
+        let request: serde_json::Value =
+            serde_json::from_slice(&bytes(&root, "request.json")?).map_err(|e| e.to_string())?;
+        if request.as_object().is_none_or(|o| o.len() != 2) {
+            return Err("child request must contain raw text and scope only".into());
+        }
+        let clause = scm_raw_clause(&tokenizer, request["text"].as_str().ok_or("request text")?)?;
+        let scope = request["scope"].as_str().ok_or("request scope")?;
+        let mut fresh = runtime
+            .ask(&clause, scope.as_bytes())
+            .map_err(|e| e.to_string())?;
+        let fresh_effects = runtime.run(&mut fresh).map_err(|e| e.to_string())?;
+        let snapshots: Vec<Vec<u8>> =
+            serde_json::from_slice(&bytes(&root, "snapshots.json")?).map_err(|e| e.to_string())?;
+        let mut resumed = Vec::new();
+        for bytes in snapshots {
+            let mut frame = runtime.restore(&bytes).map_err(|e| e.to_string())?;
+            let effects = runtime.run(&mut frame).map_err(|e| e.to_string())?;
+            resumed.push(json!({"frame": frame, "effects": effects}));
+        }
+        write_json(
+            &root,
+            "child.json",
+            &json!({
+                "fresh": fresh, "fresh_effects": fresh_effects, "resumed": resumed,
+            }),
+        )?;
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn persist_checkpoints(
+        root: &Path,
+        input: &Path,
+        runtime: &ScopedMemoryRuntime,
+        text: &str,
+        scope: &str,
+        snapshots: &[Vec<u8>],
+        baseline: &ScopedSession,
+        fresh: &ScopedSession,
+    ) -> Result<usize, String> {
+        for name in FILES {
+            write_checked(root, &format!("artifacts/{name}"), &bytes(input, name)?)?;
+        }
+        write_checked(
+            root,
+            "store.json",
+            &runtime.store_bytes().map_err(|e| e.to_string())?,
+        )?;
+        write_json(root, "request.json", &json!({"text": text, "scope": scope}))?;
+        write_json(root, "snapshots.json", &json!(snapshots))?;
+        let mut parent = Vec::new();
+        for snapshot in snapshots {
+            let mut frame = runtime.restore(snapshot).map_err(|e| e.to_string())?;
+            let effects = runtime.run(&mut frame).map_err(|e| e.to_string())?;
+            if frame != *baseline {
+                return Err("saved realizer parent full-frame mismatch".into());
+            }
+            parent.push(json!({"frame": frame, "effects": effects}));
+        }
+        write_json(
+            root,
+            "parent.json",
+            &json!({"fresh": fresh, "resumed": parent}),
+        )?;
+        let child = std::process::Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
+            .args([
+                "--exact",
+                "loaded_realization_tests::child_restores_realized_frames",
+                "--ignored",
+            ])
+            .env("UOR_REALIZATION_CHILD", root)
+            .output()
+            .map_err(|e| e.to_string())?;
+        write_checked(root, "child.stdout", &child.stdout)?;
+        write_checked(root, "child.stderr", &child.stderr)?;
+        if !child.status.success() {
+            return Err(format!(
+                "realizer child failed: {}",
+                String::from_utf8_lossy(&child.stderr)
+            ));
+        }
+        let actual: serde_json::Value =
+            serde_json::from_slice(&bytes(root, "child.json")?).map_err(|e| e.to_string())?;
+        if actual["fresh"] != json!(fresh) || actual["resumed"] != json!(parent) {
+            return Err("saved realizer child full-frame/effect mismatch".into());
+        }
+        Ok(snapshots.len())
+    }
+
+    #[test]
+    #[ignore = "requires UOR_REALIZATION_ARTIFACT_ROOT and exclusive UOR_REALIZATION_AUDIT_ROOT; no fitting"]
+    fn saved_realizer_preserves_exposed_outputs_and_owned_checkpoints() -> Result<(), String> {
+        let input = PathBuf::from(
+            std::env::var("UOR_REALIZATION_ARTIFACT_ROOT").map_err(|e| e.to_string())?,
+        );
+        let root =
+            PathBuf::from(std::env::var("UOR_REALIZATION_AUDIT_ROOT").map_err(|e| e.to_string())?);
+        claim(&root).map_err(|e| e.to_string())?;
+        let tokenizer = tokenizer()?;
+        let mut rows = Vec::new();
+        let mut total_phases = 0;
+        // Exact prior observed bytes are exposure/regression targets, explicitly NOT a semantic pass.
+        for (index, case) in CGS_REAL_CASES.iter().enumerate() {
+            let mut runtime = loaded(
+                &input,
+                Memory::new(case.lineage, 16),
+                OutputContract::RealizedV1,
+            )?;
+            let ingests = cgs_real_ingest(&mut runtime, &tokenizer, case.scope, case.facts)?;
+            let (clause, _) = cgs_clause(&tokenizer, 0, CgsForm::AskOffice, case.person, "")?;
+            let mut phase = runtime
+                .ask(&clause, case.scope.as_bytes())
+                .map_err(|e| e.to_string())?;
+            let mut snapshots = Vec::new();
+            let mut effects = Vec::new();
+            loop {
+                snapshots.push(runtime.snapshot(&phase).map_err(|e| e.to_string())?);
+                if phase.terminal.is_some() {
+                    break;
+                }
+                effects.push(runtime.step(&mut phase).map_err(|e| e.to_string())?);
+            }
+            let prior_output = [
+                "it is Harbor",
+                "it was Harbor",
+                "it is Harbor",
+                "it is Larkspur",
+                "it was Larkspur",
+            ][index];
+            if cgs_text(&tokenizer, &phase) != prior_output
+                || phase.terminal != Some(ScopedTerminal::Complete)
+            {
+                return Err(format!("{} changed exposed output", case.name));
+            }
+            let store = runtime.store_bytes().map_err(|e| e.to_string())?;
+            let legacy = loaded(
+                &input,
+                Memory::from_bytes(&store).map_err(|e| e.to_string())?,
+                OutputContract::LegacyWords,
+            )?;
+            let mut legacy_frame = legacy
+                .ask(&clause, case.scope.as_bytes())
+                .map_err(|e| e.to_string())?;
+            legacy.run(&mut legacy_frame).map_err(|e| e.to_string())?;
+            let payload = phase.captured.as_ref().ok_or("missing owned payload")?;
+            if cgs_text(&tokenizer, &legacy_frame) != String::from_utf8_lossy(&payload.value) {
+                return Err("bound realizer legacy contract changed owned value".into());
+            }
+            let phases = persist_checkpoints(
+                &root.join(case.name),
+                &input,
+                &runtime,
+                &clause.text,
+                case.scope,
+                &snapshots,
+                &phase,
+                &phase,
+            )?;
+            total_phases += phases;
+            rows.push(
+                json!({"case": case.name, "ingests": ingests, "request": clause.text,
+                "frame": phase, "effects": effects, "legacy_frame": legacy_frame,
+                "exposed_prior_output": prior_output, "parent_and_child_phases": phases}),
+            );
+        }
+        // Same loaded policy receives observed computation; final exact value remains owned evidence.
+        let world = cgs_worlds(0, &CGS_DEV_PEOPLE, &CGS_DEV_DESTS, "alpha", 5).remove(0);
+        let mut runtime = loaded(&input, Memory::new(420, 16), OutputContract::RealizedV1)?;
+        let mut observations = Vec::new();
+        for (turn, (form, entity, tail)) in cgs_world_facts(&world).into_iter().enumerate() {
+            let (clause, _) = cgs_clause(&tokenizer, 0, form, entity, tail)?;
+            let outcome = runtime
+                .ingest(&clause, b"alpha", turn as u64 + 1)
+                .map_err(|e| e.to_string())?;
+            observations.push(json!({"text": clause.text, "outcome": format!("{outcome:?}")}));
+        }
+        let clause = scm_raw_clause(&tokenizer, "Mara's office then i")?;
+        let mut phase = runtime.ask(&clause, b"alpha").map_err(|e| e.to_string())?;
+        let mut snapshots = Vec::new();
+        let mut effects = Vec::new();
+        loop {
+            snapshots.push(runtime.snapshot(&phase).map_err(|e| e.to_string())?);
+            if phase.terminal.is_some() {
+                break;
+            }
+            effects.push(runtime.step(&mut phase).map_err(|e| e.to_string())?);
+        }
+        if cgs_text(&tokenizer, &phase) != "it is now Tarn"
+            || !phase.captured.as_ref().is_some_and(|c| c.derived)
+        {
+            return Err("computed exposed output changed".into());
+        }
+        let phases = persist_checkpoints(
+            &root.join("derived"),
+            &input,
+            &runtime,
+            &clause.text,
+            "alpha",
+            &snapshots,
+            &phase,
+            &phase,
+        )?;
+        total_phases += phases;
+        rows.push(json!({"case": "derived", "ingests": observations, "request": clause.text,
+            "frame": phase, "effects": effects, "exposed_prior_output": "it is now Tarn", "parent_and_child_phases": phases}));
+        // Preserve the already owned contextual decision when both its predecessor payload and
+        // original source payload are actually evicted. The snapshot is before `was`, so a
+        // recomputed false prior-difference flag changes a vocabulary token and is observable.
+        let mut pinned_rt = loaded(&input, Memory::new(1349, 2), OutputContract::RealizedV1)?;
+        let pin_ingests = cgs_real_ingest(
+            &mut pinned_rt,
+            &tokenizer,
+            "alpha",
+            &[("Mara", "Quarry"), ("Mara", "Harbor")],
+        )?;
+        let pin_clause = scm_raw_clause(&tokenizer, "What is Mara's office?")?;
+        let mut pin_phase = pinned_rt
+            .ask(&pin_clause, b"alpha")
+            .map_err(|e| e.to_string())?;
+        while pin_phase.vocabulary_words == 0 && pin_phase.terminal.is_none() {
+            pinned_rt.step(&mut pin_phase).map_err(|e| e.to_string())?;
+        }
+        if pin_phase.vocabulary_words != 1 || pin_phase.cursor != 0 {
+            return Err("pin witness did not reach first vocabulary word".into());
+        }
+        let pin_snapshot = pinned_rt.snapshot(&pin_phase).map_err(|e| e.to_string())?;
+        let mut pin_baseline = pin_phase;
+        pinned_rt
+            .run(&mut pin_baseline)
+            .map_err(|e| e.to_string())?;
+        let (same_value, _) = cgs_clause(&tokenizer, 0, CgsForm::AssertOffice, "Mara", "Harbor")?;
+        for commit in [3, 4] {
+            pinned_rt
+                .ingest(&same_value, b"alpha", commit)
+                .map_err(|e| e.to_string())?;
+        }
+        let evicted_store =
+            Memory::from_bytes(&pinned_rt.store_bytes().map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())?;
+        if !(1..=2).all(|id| {
+            evicted_store
+                .record_ref(id)
+                .is_some_and(|r| r.evicted && r.payload.is_empty())
+        }) {
+            return Err("predecessor/source payload eviction was not witnessed".into());
+        }
+        let mut pin_fresh = pinned_rt
+            .ask(&pin_clause, b"alpha")
+            .map_err(|e| e.to_string())?;
+        pinned_rt.run(&mut pin_fresh).map_err(|e| e.to_string())?;
+        if cgs_text(&tokenizer, &pin_baseline) != "it was Harbor"
+            || cgs_text(&tokenizer, &pin_fresh) != "it is Harbor"
+        {
+            return Err("pinned/fresh exposed-realizer contrast changed".into());
+        }
+        let pin_phases = persist_checkpoints(
+            &root.join("owned_context_after_eviction"),
+            &input,
+            &pinned_rt,
+            &pin_clause.text,
+            "alpha",
+            &[pin_snapshot],
+            &pin_baseline,
+            &pin_fresh,
+        )?;
+        total_phases += pin_phases;
+        rows.push(json!({"case": "owned_context_after_eviction", "ingests": pin_ingests,
+            "evicted_record_ids": [1,2], "pinned": pin_baseline, "fresh": pin_fresh,
+            "parent_and_child_phases": pin_phases,
+            "classification": "Owned-state preservation only; original tense semantics remain a retained negative"}));
+        let hashes: BTreeMap<&str, String> = FILES
+            .into_iter()
+            .map(|name| bytes(&input, name).map(|data| (name, sha256_hex(&data))))
+            .collect::<Result<_, _>>()?;
+        write_json(
+            &root,
+            "result.json",
+            &json!({
+                "classification": "Exposed actual-artifact runtime regression; no fitting, no new semantic acceptance",
+                "artifact_root": input, "artifact_sha256": hashes, "cases": rows,
+                "complete_parent_and_child_frames_checked": total_phases,
+                "semantic_failure_retained": "Prior-difference falsely chooses was for current Harbor/Larkspur; preserving bytes here does not accept that training target.",
+                "source_executable_sha256": sha256_hex(&std::fs::read(std::env::current_exe().map_err(|e|e.to_string())?).map_err(|e|e.to_string())?),
+            }),
+        )?;
+        seal(&root).map_err(|e| e.to_string())?;
+        if !verify(&root).map_err(|e| e.to_string())?.is_empty() {
+            return Err("unlisted realizer audit evidence".into());
+        }
+        Ok(())
+    }
+}

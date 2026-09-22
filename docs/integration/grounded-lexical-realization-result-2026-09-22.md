@@ -1,5 +1,7 @@
 # Learned grounded lexical realization in the retained scoped session
 
+> **Principal qualification:** the submitted account below is historical. The [principal review](grounded-lexical-realization-review-2026-09-22.md) corrects its target semantics, clipped-count representation claim, realizer-bypass preservation scope, exposure, provenance and geometric-negative interpretation. Roots1 and2 are partial;3–9 are sealed. Do not follow its old recommendation to keep the same causal key. The active [next brief](deepseek-state-conditioned-lexical-step-2026-09-22.md) replaces that recommendation.
+
 September 22, 2026. Executed on the base `origin/main` `535b3ecc5cca1703070dfdae7cf53bc00cb342ab` (PR #1348,
 verified merged and equal to `origin/main`). Worktree `.worktrees/grounded-lexical-realization`, branch
 `codex/grounded-lexical-realization`. Retained attempt roots `grounded-lexical-realization-{1..9}`; `-1` is a

@@ -1,0 +1,28 @@
+{
+  "recorded_at": "2026-09-22T19:03:25.208889+00:00",
+  "task": "PR1349 principal source/evidence/architecture review, focused ownership/restore repairs, tests, documentation and protected delivery",
+  "base": "27fdc1798f0a8536238a72062ca269f976085e73",
+  "ledger_before": {
+    "cumulative_ms": 353798251,
+    "limit_ms": 366700000
+  },
+  "projected_total_ms": 6000000,
+  "limit_increment_ms": 0,
+  "accounting": "cumulative elapsed review wall time including concurrent audit workers once, build/tests/cleanup/retries/delivery; no artificial timeout or retry quota",
+  "compiler_workers": 1,
+  "experiment_workers": 1,
+  "ram_ceiling_bytes": 8589934592,
+  "temporary_build_allowance_bytes": 1073741824,
+  "retained_allowance_bytes": 67108864,
+  "cargo_target_dir": "/Users/casey.allard/uor-r4/target",
+  "cargo_profile": "release",
+  "cargo_incremental": "0",
+  "free_before_build_bytes": 28422303744,
+  "prior_reserve_bytes": 32212254720,
+  "temporary_review_reserve_bytes": 25769803776,
+  "stop_margin_bytes": 134217728,
+  "reserve_authorization": "Standing owner authorization for necessary local storage allowances. Submitted run was already below 30GiB reserve; after safely reclaiming ~10.55GB physical bytes, temporarily use24GiB reserve plus128MiB margin for <=1GiB release repair output. This explicitly revises local working reserve for this correction; it does not claim30GiB restored. Preserve all models/artifacts/executables/source/worktrees/history/Downloads. Reproject before exceeding physical allocation. Long term reclaim rebuildable caches and prevent debug incremental regrowth.",
+  "external_compute": "none",
+  "scope": "No model refit or new acceptance campaign. Saved outputs independently audited; runtime changes get focused tests and actual artifact execution.",
+  "retained_binary_note": "Existing compiled executables are retained by hardlink in a unique delivery directory; no extra executable extents allocated. Report/manifest/log copies remain below64MiB."
+}

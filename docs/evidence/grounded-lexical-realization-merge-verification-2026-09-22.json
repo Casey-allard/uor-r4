@@ -1,0 +1,69 @@
+{
+  "pr": 1349,
+  "head": "17bc7efbc033e01c841dc15879a95b1d6c745b21",
+  "merge": "27fdc1798f0a8536238a72062ca269f976085e73",
+  "base": "535b3ecc5cca1703070dfdae7cf53bc00cb342ab",
+  "trees_equal": true,
+  "changed_paths": [
+    {
+      "path": "README.md",
+      "sha256": "7eb40f6cb1ab3d88f96e963037fe848a55e35478c1d366c050ba045686736b86",
+      "match": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+      "sha256": "2e233a60d20094c88fa7f4d42e1e34a6e5c22e1f9f88eac4557b60ec08103f88",
+      "match": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/lexical_realization.rs",
+      "sha256": "5a0424a771dc36da5b81e4bd0050ef52dac0c82ca9978ac4b3c9c006d61f8435",
+      "match": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/mod.rs",
+      "sha256": "7b9675d4b33beedb02ab9bf081e8b42264f543da93566043c24c936386ff9798",
+      "match": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+      "sha256": "6bede9d96caab105e89c03657f48add4a544a31ed975fa4dfcce505e4d8b297a",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/grounded-lexical-realization-audit-2026-09-22.json",
+      "sha256": "8542b5f4cbc439d0098b5f6fe2771e43a7a0f54b73ff5aad2d9d63bc0695f6d0",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/grounded-lexical-realization-audit-2026-09-22.py",
+      "sha256": "b5af674423e777a844ac098756b81849a344c1b7226d8fa551bb3d6e6087bee8",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/grounded-lexical-realization-charge-2026-09-22.json",
+      "sha256": "4b6fcb25f3b419b86f35b5869c8083694ba016b7660319a9189bfc23cd48474e",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/grounded-lexical-realization-projection-2026-09-22.json",
+      "sha256": "6d6dc7dd4cf31694ac0c081891268dd93b279bf95900e2b33527d4005fab2304",
+      "match": true
+    },
+    {
+      "path": "docs/integration/current-state.md",
+      "sha256": "44d31dfb5aea0b678d62d5c4a0e08216d77b8e617b79cd0737434721e648151e",
+      "match": true
+    },
+    {
+      "path": "docs/integration/grounded-lexical-realization-result-2026-09-22.md",
+      "sha256": "97119122293771593dce6ed25ab610c308df2fe2a79c9706237a218edaf7316b",
+      "match": true
+    },
+    {
+      "path": "docs/integration/project-track.md",
+      "sha256": "6f51f60f11443982ed24760debe229ac9dc74b6b19a957e6310c4a6d6a294345",
+      "match": true
+    }
+  ]
+}

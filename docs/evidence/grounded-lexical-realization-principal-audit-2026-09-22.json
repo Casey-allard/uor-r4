@@ -1,0 +1,1435 @@
+{
+  "attempts": [
+    {
+      "claimed_at_utc": "2026-09-22T17:57:50+00:00",
+      "files": [
+        "artifacts/backend-finite_transition.json",
+        "artifacts/backend-folded_central_sign.json",
+        "artifacts/backend-signed_factorization.json",
+        "artifacts/backend-tabulated_finite.json",
+        "artifacts/intent.json",
+        "artifacts/lexicon.json",
+        "artifacts/model.json",
+        "attempt.json"
+      ],
+      "root": "grounded-lexical-realization-1",
+      "status": "UNSEALED_PARTIAL"
+    },
+    {
+      "claimed_at_utc": "2026-09-22T17:58:42+00:00",
+      "files": [
+        "artifacts/backend-finite_transition.json",
+        "artifacts/backend-folded_central_sign.json",
+        "artifacts/backend-signed_factorization.json",
+        "artifacts/backend-tabulated_finite.json",
+        "artifacts/intent.json",
+        "artifacts/lexicon.json",
+        "artifacts/model.json",
+        "attempt.json"
+      ],
+      "root": "grounded-lexical-realization-2",
+      "status": "UNSEALED_PARTIAL"
+    },
+    {
+      "claimed_at_utc": "2026-09-22T17:59:12+00:00",
+      "examples": 184,
+      "executable_sha256": "9c2577d3522a09721b304245e4671608127386c1e9489ebd93925e4468a96d44",
+      "failed_reported_checks": {
+        "consumed_result_changes_an_uncopied_choice": false,
+        "context_disabled_collapses_the_pair": false
+      },
+      "listed_files": 29,
+      "missing": [],
+      "mixed_reported_pass": null,
+      "realization_sha256": "a28f3b437ffaf48d2307011d5758ac12baf7d86d50ab8a0fde5485e10dbaefcb",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-3",
+      "root_reported_pass": false,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "unspecified",
+          "sha256": "UNAVAILABLE"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 16,
+      "unlisted": []
+    },
+    {
+      "claimed_at_utc": "2026-09-22T18:01:05+00:00",
+      "examples": 184,
+      "executable_sha256": "7ae9bcdfdf73d83b9ed0782a700db868a69cc48fe8dab67c3632b7cbe0bbb203",
+      "failed_reported_checks": {},
+      "listed_files": 28,
+      "missing": [],
+      "mixed_reported_pass": null,
+      "realization_sha256": "a28f3b437ffaf48d2307011d5758ac12baf7d86d50ab8a0fde5485e10dbaefcb",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-4",
+      "root_reported_pass": true,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "unspecified",
+          "sha256": "UNAVAILABLE"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 16,
+      "unlisted": []
+    },
+    {
+      "claimed_at_utc": "2026-09-22T18:03:03+00:00",
+      "examples": 184,
+      "executable_sha256": "d0e6d2117a2f54eadf2d0ad952abc24a539eec1f171d8c7305e2ebe12c68639c",
+      "failed_reported_checks": {},
+      "listed_files": 28,
+      "missing": [],
+      "mixed_reported_pass": false,
+      "realization_sha256": "a28f3b437ffaf48d2307011d5758ac12baf7d86d50ab8a0fde5485e10dbaefcb",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-5",
+      "root_reported_pass": true,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "unspecified",
+          "sha256": "UNAVAILABLE"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 16,
+      "unlisted": []
+    },
+    {
+      "claimed_at_utc": "2026-09-22T18:04:10+00:00",
+      "examples": 736,
+      "executable_sha256": "7faf813f3afa68a6c1c8fd7f2590c5ab3c672ac9c76be028bef152691f654d02",
+      "failed_reported_checks": {},
+      "listed_files": 28,
+      "missing": [],
+      "mixed_reported_pass": true,
+      "realization_sha256": "fa6dc4685542b80d1bacf7ea6258368af23481d3d7eea0677b150f6d734010b7",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-6",
+      "root_reported_pass": true,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "unspecified",
+          "sha256": "UNAVAILABLE"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 64,
+      "unlisted": []
+    },
+    {
+      "claimed_at_utc": "2026-09-22T18:26:09+00:00",
+      "examples": 736,
+      "executable_sha256": "f57f53e5b4c44e8931aa373cc1c501e88b612ffbc2aa4717babc2551ba3d7cbf",
+      "failed_reported_checks": {},
+      "listed_files": 28,
+      "missing": [],
+      "mixed_reported_pass": true,
+      "realization_sha256": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-7",
+      "root_reported_pass": true,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+          "sha256": "6bede9d96caab105e89c03657f48add4a544a31ed975fa4dfcce505e4d8b297a"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+          "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "0bcbc19b92fe7df17c39ec7e759ee654b349bd2355dcb10726909bf7d5d4ce13"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 64,
+      "unlisted": []
+    },
+    {
+      "claimed_at_utc": "2026-09-22T18:27:23+00:00",
+      "examples": 736,
+      "executable_sha256": "3a5ca7e8663503af883aa85e4a8e0dcf5ec38892a1beb48b3e864095a74e867f",
+      "failed_reported_checks": {
+        "every_realized_emission_reports_its_context": false
+      },
+      "listed_files": 28,
+      "missing": [],
+      "mixed_reported_pass": true,
+      "realization_sha256": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-8",
+      "root_reported_pass": false,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+          "sha256": "6bede9d96caab105e89c03657f48add4a544a31ed975fa4dfcce505e4d8b297a"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+          "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "509e9ee6352826544c6a6c05d2e807a7429f02ce6f346ab66153b66f7c544468"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 64,
+      "unlisted": []
+    },
+    {
+      "claimed_at_utc": "2026-09-22T18:28:15+00:00",
+      "examples": 736,
+      "executable_sha256": "afb077e17ae0124e4fd5d61a13e143c3f101013c64806044cf71ef8aebfcbaa7",
+      "failed_reported_checks": {},
+      "listed_files": 28,
+      "missing": [],
+      "mixed_reported_pass": true,
+      "realization_sha256": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f",
+      "realized_outputs": {
+        "direct": "it is Harbor",
+        "fresh_direct": "it is Larkspur",
+        "fresh_superseded": "it was Larkspur",
+        "reasserted": "it is Harbor",
+        "superseded": "it was Harbor"
+      },
+      "root": "grounded-lexical-realization-9",
+      "root_reported_pass": true,
+      "rows_sha256": "c0ddd4f73770ed5af4a91e109ae35e040fb0121b9d0f28664914224eecf35a37",
+      "seal_errors": [],
+      "source_hashes": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+          "sha256": "6bede9d96caab105e89c03657f48add4a544a31ed975fa4dfcce505e4d8b297a"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+          "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "2e233a60d20094c88fa7f4d42e1e34a6e5c22e1f9f88eac4557b60ec08103f88"
+        }
+      ],
+      "status": "SEALED",
+      "table_rows": 64,
+      "unlisted": []
+    }
+  ],
+  "calculator_dependency": {
+    "path": "docs/evidence/observed-computation-lifecycle-principal-audit-2026-09-22.py",
+    "sha256": "60959e266285ae103f009ab96d64dae8b32e1311597a48b7da7f0a6f1a4516a4"
+  },
+  "causal_pairs": {
+    "computation": {
+      "fixed_generated_prefix_tokens": 2,
+      "left": {
+        "decision": {
+          "action": "Copy",
+          "evidence_class": 1,
+          "from_table": true,
+          "key": 17261573012007197415
+        },
+        "token": 407
+      },
+      "right": {
+        "decision": {
+          "action": {
+            "Insert": 3
+          },
+          "evidence_class": 1,
+          "from_table": true,
+          "key": 17235688917709603316
+        },
+        "token": 1209
+      },
+      "same_request": false
+    },
+    "history": {
+      "fixed_generated_prefix_tokens": 1,
+      "left": {
+        "decision": {
+          "action": {
+            "Insert": 1
+          },
+          "evidence_class": 1,
+          "from_table": true,
+          "key": 4088513968994818791
+        },
+        "token": 314
+      },
+      "right": {
+        "decision": {
+          "action": {
+            "Insert": 2
+          },
+          "evidence_class": 1,
+          "from_table": true,
+          "key": 11872304419758554682
+        },
+        "token": 436
+      },
+      "same_request": true
+    },
+    "qualification": "History pair is real causal information flow but uses current-value predecessor difference as a tense target. The consumed comparison changes the request and derived flag; it does not isolate computed value or operator-state content.",
+    "reassertion": {
+      "fixed_generated_prefix_tokens": 6,
+      "left": null,
+      "right": null,
+      "same_request": true
+    },
+    "unfamiliar_history": {
+      "fixed_generated_prefix_tokens": 1,
+      "left": {
+        "decision": {
+          "action": {
+            "Insert": 1
+          },
+          "evidence_class": 1,
+          "from_table": true,
+          "key": 4088513968994818791
+        },
+        "token": 314
+      },
+      "right": {
+        "decision": {
+          "action": {
+            "Insert": 2
+          },
+          "evidence_class": 1,
+          "from_table": true,
+          "key": 11872304419758554682
+        },
+        "token": 436
+      },
+      "same_request": true
+    }
+  },
+  "exposure": {
+    "correction": "Roots1 and2 are both partial claims; roots3 through9 are seven sealed attempts. Root5 mixed check fails but root pass is true; root8 context-report check fails; root9 repairs the report predicate.",
+    "exact_final_realizer_sha256": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f",
+    "final_realizer_first_exposed": 7,
+    "final_status": "Development-exposed replay; root9 is not a new population or fresh withheld realization test.",
+    "first_complete_realized_population": 3,
+    "rows_roots3_through9_byte_identical": true
+  },
+  "legacy_retention": {
+    "complete_answers_independently_decoded": 338,
+    "effects_with_realization": 0,
+    "equality_exclusions": "Session version4\u21925; added contract, vocabulary_words, prelude_words, binding.contract, binding.realization_sha256; added null realization effect.",
+    "errors": [],
+    "independently_recomputed_counts": {
+      "control/apply_disabled": {
+        "matched": 12,
+        "requests": 40
+      },
+      "control/consume_disabled": {
+        "matched": 12,
+        "requests": 40
+      },
+      "control/finite_transition": {
+        "matched": 26,
+        "requests": 40
+      },
+      "control/folded_central_sign": {
+        "matched": 24,
+        "requests": 40
+      },
+      "control/no_read": {
+        "matched": 0,
+        "requests": 40
+      },
+      "control/tabulated_finite": {
+        "matched": 40,
+        "requests": 40
+      },
+      "control/unscoped": {
+        "matched": 40,
+        "requests": 40
+      },
+      "development/primary_signed": {
+        "matched": 56,
+        "requests": 56
+      },
+      "final/primary_signed": {
+        "matched": 24,
+        "requests": 24
+      },
+      "fresh_withheld/primary_signed": {
+        "matched": 32,
+        "requests": 32
+      }
+    },
+    "legacy_contract_frames": 392,
+    "parent_rows_equal_after_declared_schema_additions": 392,
+    "preservation": {
+      "ablation_computation_forms_only": {
+        "failed_queries": [
+          {
+            "answer": "Atlas",
+            "error": null,
+            "expected": "Complete { value: \"Cedar Annex\", hops: 1 }",
+            "script": "development",
+            "text": "What is Mara's office?",
+            "turn": 6
+          },
+          {
+            "answer": "Atlas",
+            "error": null,
+            "expected": "Complete { value: \"Cedar Annex\", hops: 1 }",
+            "script": "development",
+            "text": "What is Mara's office?",
+            "turn": 10
+          },
+          {
+            "answer": "",
+            "error": "scoped-memory observation: observed clause is not a request",
+            "expected": "Complete { value: \"Fen\", hops: 1 }",
+            "script": "development",
+            "text": "What was Ivo's office before?",
+            "turn": 13
+          },
+          {
+            "answer": "",
+            "error": "scoped-memory observation: observed clause is not a request",
+            "expected": "Complete { value: \"Fen\", hops: 1 }",
+            "script": "development",
+            "text": "What was Ivo's office originally?",
+            "turn": 17
+          },
+          {
+            "answer": "",
+            "error": "scoped-memory observation: observed clause is not a request",
+            "expected": "Complete { value: \"Fen\", hops: 1 }",
+            "script": "development",
+            "text": "What was Ivo's office before?",
+            "turn": 18
+          },
+          {
+            "answer": "",
+            "error": "scoped-memory observation: observed clause is not a request",
+            "expected": "Complete { value: \"Fen\", hops: 1 }",
+            "script": "development",
+            "text": "What was Ivo's office originally?",
+            "turn": 22
+          },
+          {
+            "answer": "Fen",
+            "error": null,
+            "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+            "script": "development",
+            "text": "What is Cedar's office?",
+            "turn": 28
+          },
+          {
+            "answer": "Bramble",
+            "error": null,
+            "expected": "Complete { value: \"Quarry\", hops: 1 }",
+            "script": "exposed_regression",
+            "text": "What is Ova's office?",
+            "turn": 2
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Bramble\", hops: 1 }",
+            "script": "exposed_regression",
+            "text": "What was Ova's office before?",
+            "turn": 3
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Bramble\", hops: 1 }",
+            "script": "exposed_regression",
+            "text": "What was Ova's office originally?",
+            "turn": 4
+          },
+          {
+            "answer": "Marsh",
+            "error": null,
+            "expected": "Complete { value: \"Harbor\", hops: 2 }",
+            "script": "exposed_regression",
+            "text": "What is Nia's office?",
+            "turn": 13
+          },
+          {
+            "answer": "Marsh",
+            "error": null,
+            "expected": "Complete { value: \"Ledge\", hops: 2 }",
+            "script": "exposed_regression",
+            "text": "What is Tessa's office?",
+            "turn": 18
+          },
+          {
+            "answer": "Marsh",
+            "error": null,
+            "expected": "Complete { value: \"Ledge\", hops: 2 }",
+            "script": "exposed_regression",
+            "text": "What is Tessa's office?",
+            "turn": 21
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Bramble\", hops: 1 }",
+            "script": "exposed_regression",
+            "text": "What was Ova's office originally?",
+            "turn": 22
+          },
+          {
+            "answer": "Cobalt",
+            "error": null,
+            "expected": "Complete { value: \"Mica\", hops: 1 }",
+            "script": "final_lexical_exposed",
+            "text": "What is Una's office?",
+            "turn": 2
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+            "script": "final_lexical_exposed",
+            "text": "What was Una's office before?",
+            "turn": 3
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+            "script": "final_lexical_exposed",
+            "text": "What was Una's office originally?",
+            "turn": 4
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Basalt\", hops: 2 }",
+            "script": "final_lexical_exposed",
+            "text": "What is Pia's office?",
+            "turn": 13
+          },
+          {
+            "answer": "Delta",
+            "error": null,
+            "expected": "Complete { value: \"Dune\", hops: 2 }",
+            "script": "final_lexical_exposed",
+            "text": "What is Kestrel's office?",
+            "turn": 18
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Dune\", hops: 2 }",
+            "script": "final_lexical_exposed",
+            "text": "What is Kestrel's office?",
+            "turn": 21
+          },
+          {
+            "answer": "",
+            "error": null,
+            "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+            "script": "final_lexical_exposed",
+            "text": "What was Una's office originally?",
+            "turn": 22
+          }
+        ],
+        "independent_oracle_errors": [],
+        "recomputed": {
+          "api_questions": 4,
+          "errors": 4,
+          "ingest_observation_and_write_correct": 22,
+          "ingest_total": 37,
+          "language_questions": 34,
+          "matched": 17,
+          "questions": 38
+        },
+        "reported_summary_matches": true
+      },
+      "candidate": {
+        "failed_queries": [],
+        "independent_oracle_errors": [],
+        "recomputed": {
+          "api_questions": 4,
+          "errors": 0,
+          "ingest_observation_and_write_correct": 37,
+          "ingest_total": 37,
+          "language_questions": 34,
+          "matched": 38,
+          "questions": 38
+        },
+        "reported_summary_matches": true
+      },
+      "prior_migrated": {
+        "failed_queries": [],
+        "independent_oracle_errors": [],
+        "recomputed": {
+          "api_questions": 4,
+          "errors": 0,
+          "ingest_observation_and_write_correct": 37,
+          "ingest_total": 37,
+          "language_questions": 34,
+          "matched": 38,
+          "questions": 38
+        },
+        "reported_summary_matches": true
+      }
+    },
+    "qualification": "All392 rows use load_with_computation with NO realization artifact. This is retained modified-runtime/component behavior, not a full RealizedV1 bundle control campaign. Five explicit short LegacyWords examples elsewhere do bind the realization artifact.",
+    "realizer_empty_sha_frames": 392,
+    "rows": 392,
+    "selected_records_checked": 649
+  },
+  "method": "Read-only independent byte decoding, saved action/row reconstruction, raw history oracle and seal checks. No model fitting or product execution.",
+  "missing_measurements": [
+    "No frozen E/S comparator run",
+    "No source-separated natural-text fit/evaluation or served likelihood",
+    "No fresh withheld realized population",
+    "No complete-response latency/RAM/parameter-traffic profile",
+    "No evidence-class ablation with variation: class1 everywhere and excluded from key",
+    "No saved clean-parent baseline/failing-test logs among sealed roots"
+  ],
+  "realized_outputs": {
+    "cases": [
+      {
+        "case": "direct",
+        "copied_bytes": "Harbor",
+        "copied_tokens": [
+          407,
+          280,
+          3259
+        ],
+        "decisions": [
+          {
+            "action": {
+              "Insert": 0
+            },
+            "from_table": true,
+            "key": 16099494704771013351,
+            "table_argmax": {
+              "Insert": 0
+            }
+          },
+          {
+            "action": {
+              "Insert": 1
+            },
+            "from_table": true,
+            "key": 4088513968994818791,
+            "table_argmax": {
+              "Insert": 1
+            }
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 17261573012007197415,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Stop",
+            "from_table": true,
+            "key": 17554306987348867629,
+            "table_argmax": "Stop"
+          }
+        ],
+        "decoded_answer": "it is Harbor",
+        "inserted_bytes": [
+          "it",
+          "is"
+        ],
+        "inserted_tokens": [
+          357,
+          314
+        ],
+        "legacy_payload_equal": true,
+        "request": "What is Mara's office?",
+        "selected_final_value": "Harbor"
+      },
+      {
+        "case": "superseded",
+        "copied_bytes": "Harbor",
+        "copied_tokens": [
+          407,
+          280,
+          3259
+        ],
+        "decisions": [
+          {
+            "action": {
+              "Insert": 0
+            },
+            "from_table": true,
+            "key": 11300413272676777530,
+            "table_argmax": {
+              "Insert": 0
+            }
+          },
+          {
+            "action": {
+              "Insert": 2
+            },
+            "from_table": true,
+            "key": 11872304419758554682,
+            "table_argmax": {
+              "Insert": 2
+            }
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 12444195566840331834,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 11158417872972502231,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 11158417872972502231,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Stop",
+            "from_table": true,
+            "key": 11584008037720743288,
+            "table_argmax": "Stop"
+          }
+        ],
+        "decoded_answer": "it was Harbor",
+        "inserted_bytes": [
+          "it",
+          "was"
+        ],
+        "inserted_tokens": [
+          357,
+          436
+        ],
+        "legacy_payload_equal": true,
+        "request": "What is Mara's office?",
+        "selected_final_value": "Harbor"
+      },
+      {
+        "case": "reasserted",
+        "copied_bytes": "Harbor",
+        "copied_tokens": [
+          407,
+          280,
+          3259
+        ],
+        "decisions": [
+          {
+            "action": {
+              "Insert": 0
+            },
+            "from_table": true,
+            "key": 16099494704771013351,
+            "table_argmax": {
+              "Insert": 0
+            }
+          },
+          {
+            "action": {
+              "Insert": 1
+            },
+            "from_table": true,
+            "key": 4088513968994818791,
+            "table_argmax": {
+              "Insert": 1
+            }
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 17261573012007197415,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Stop",
+            "from_table": true,
+            "key": 17554306987348867629,
+            "table_argmax": "Stop"
+          }
+        ],
+        "decoded_answer": "it is Harbor",
+        "inserted_bytes": [
+          "it",
+          "is"
+        ],
+        "inserted_tokens": [
+          357,
+          314
+        ],
+        "legacy_payload_equal": true,
+        "request": "What is Mara's office?",
+        "selected_final_value": "Harbor"
+      },
+      {
+        "case": "fresh_direct",
+        "copied_bytes": "Larkspur",
+        "copied_tokens": [
+          450,
+          280,
+          538,
+          96,
+          315
+        ],
+        "decisions": [
+          {
+            "action": {
+              "Insert": 0
+            },
+            "from_table": true,
+            "key": 16099494704771013351,
+            "table_argmax": {
+              "Insert": 0
+            }
+          },
+          {
+            "action": {
+              "Insert": 1
+            },
+            "from_table": true,
+            "key": 4088513968994818791,
+            "table_argmax": {
+              "Insert": 1
+            }
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 17261573012007197415,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 16534241672190105866,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Stop",
+            "from_table": true,
+            "key": 17554306987348867629,
+            "table_argmax": "Stop"
+          }
+        ],
+        "decoded_answer": "it is Larkspur",
+        "inserted_bytes": [
+          "it",
+          "is"
+        ],
+        "inserted_tokens": [
+          357,
+          314
+        ],
+        "legacy_payload_equal": true,
+        "request": "What is Juno's office?",
+        "selected_final_value": "Larkspur"
+      },
+      {
+        "case": "fresh_superseded",
+        "copied_bytes": "Larkspur",
+        "copied_tokens": [
+          450,
+          280,
+          538,
+          96,
+          315
+        ],
+        "decisions": [
+          {
+            "action": {
+              "Insert": 0
+            },
+            "from_table": true,
+            "key": 11300413272676777530,
+            "table_argmax": {
+              "Insert": 0
+            }
+          },
+          {
+            "action": {
+              "Insert": 2
+            },
+            "from_table": true,
+            "key": 11872304419758554682,
+            "table_argmax": {
+              "Insert": 2
+            }
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 12444195566840331834,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 11158417872972502231,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 11158417872972502231,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 11158417872972502231,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 11158417872972502231,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Stop",
+            "from_table": true,
+            "key": 11584008037720743288,
+            "table_argmax": "Stop"
+          }
+        ],
+        "decoded_answer": "it was Larkspur",
+        "inserted_bytes": [
+          "it",
+          "was"
+        ],
+        "inserted_tokens": [
+          357,
+          436
+        ],
+        "legacy_payload_equal": true,
+        "request": "What is Juno's office?",
+        "selected_final_value": "Larkspur"
+      },
+      {
+        "case": "derived",
+        "copied_bytes": "Tarn",
+        "copied_tokens": [
+          312,
+          714
+        ],
+        "decisions": [
+          {
+            "action": {
+              "Insert": 0
+            },
+            "from_table": true,
+            "key": 18397767224945787380,
+            "table_argmax": {
+              "Insert": 0
+            }
+          },
+          {
+            "action": {
+              "Insert": 1
+            },
+            "from_table": true,
+            "key": 17825735339301913076,
+            "table_argmax": {
+              "Insert": 1
+            }
+          },
+          {
+            "action": {
+              "Insert": 3
+            },
+            "from_table": true,
+            "key": 17235688917709603316,
+            "table_argmax": {
+              "Insert": 3
+            }
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 12016469711617769972,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Copy",
+            "from_table": true,
+            "key": 9843482891772727127,
+            "table_argmax": "Copy"
+          },
+          {
+            "action": "Stop",
+            "from_table": true,
+            "key": 11714728536926814138,
+            "table_argmax": "Stop"
+          }
+        ],
+        "decoded_answer": "it is now Tarn",
+        "inserted_bytes": [
+          "it",
+          "is",
+          "now"
+        ],
+        "inserted_tokens": [
+          357,
+          314,
+          1209
+        ],
+        "legacy_payload_equal": null,
+        "request": "Mara's office then i",
+        "selected_final_value": "Tarn"
+      }
+    ],
+    "class_values": [
+      1
+    ],
+    "reconstruction_errors": [],
+    "slots_decode": [
+      "it",
+      "is",
+      "was",
+      "now"
+    ]
+  },
+  "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-9",
+  "resource_qualification": "Charge is declared approximate wall-time accounting, not reconstructed stopwatch events. No second target tree does not imply low new disk usage; reported shared-cache growth is about9GiB and below-reserve free space is explicit.",
+  "resource_record": {
+    "after": {
+      "cumulative_ms": 353798251,
+      "limit_ms": 366700000
+    },
+    "at": "2026-09-22",
+    "before": {
+      "cumulative_ms": 341198251,
+      "limit_ms": 366700000
+    },
+    "charge_basis": "implementation and diagnosis plus the build/focused-test/runner wall time actually consumed: repeated offline cargo check/build of uor-r4-core, the filtered library-test runs, five development runner executions (each about 40 s) and the frozen evaluation, all on the owner-shared build cache.",
+    "charge_ms": 12600000,
+    "external_compute": "none; no paid or external GPU service was used",
+    "projected_increment_ms": 16200000,
+    "reason": "Apply the prospectively recorded increment to the live cumulative ledger after the delivery work. The increment was recorded in docs/evidence/grounded-lexical-realization-projection-2026-09-22.json before execution; this receipt charges the work actually performed and does not exceed it.",
+    "storage": {
+      "free_after_kb": 18837228,
+      "new_storage_estimate_bytes": 134217728,
+      "note": "No second build tree was created: the owner checkout target directory was reused via CARGO_TARGET_DIR. That shared directory grew from about 2.0 GiB to about 11 GiB because the large experiment/test debug artifacts were rebuilt here, so measured free space is below the previously recorded 30 GiB reserve even though this task added no separate target tree.",
+      "reclaim_path": "cargo sweep --time 1 --dry-run reports about 569 MiB of inactive rebuildable artifacts; deeper reclamation is available but was not run to avoid disturbing other worktrees sharing this cache.",
+      "reserve_status": "below the recorded 30 GiB reserve after the shared debug cache growth; free space is still about 18 GiB, far above the 128 MiB stop margin",
+      "revised_free_reserve_bytes": 32212254720,
+      "shared_build_cache_growth_bytes": 9663676416,
+      "stop_margin_bytes": 134217728,
+      "stop_margin_exceeded": false
+    },
+    "task": "learned grounded lexical realization in the retained scoped session",
+    "unused_projection_ms": 3600000
+  },
+  "restart": {
+    "inprocess_reported_final_token_terminal_equal": 9,
+    "mixed": "Only eight restart booleans/count are saved; actual mixed snapshots and resumed frames are not retained.",
+    "ownership": "Pinned mixed answer starts before correction but capture/emission occur afterward. No saved realized mid-copy eviction/correction run; simple restart store is unchanged.",
+    "saved_parent_final_frame": {
+      "binding": {
+        "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+        "backend": "signed_factorization",
+        "capacity": 16,
+        "contract": 1,
+        "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+        "eos": 4294967294,
+        "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+        "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "lineage": 400,
+        "max_vocab": 4096,
+        "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+        "realization_sha256": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f"
+      },
+      "captured": {
+        "commit": 1,
+        "continues": false,
+        "derived": false,
+        "key": [
+          5,
+          0,
+          0,
+          0,
+          97,
+          108,
+          112,
+          104,
+          97,
+          4,
+          0,
+          0,
+          0,
+          77,
+          97,
+          114,
+          97,
+          0
+        ],
+        "payload": [
+          407,
+          280,
+          3259
+        ],
+        "read_hop": 0,
+        "record_id": 1,
+        "value": [
+          72,
+          97,
+          114,
+          98,
+          111,
+          114
+        ]
+      },
+      "computation": null,
+      "contract": 1,
+      "cursor": 3,
+      "derived": false,
+      "emitted": [
+        357,
+        314,
+        407,
+        280,
+        3259,
+        4294967294
+      ],
+      "eos": 4294967294,
+      "history": "Current",
+      "hop": 0,
+      "op_cursor": 0,
+      "ops": [],
+      "pending": "Stop",
+      "prelude_words": 2,
+      "query_entity": [
+        77,
+        97,
+        114,
+        97
+      ],
+      "relation": 0,
+      "request": {
+        "clause": {
+          "byte_lengths": [
+            4,
+            3,
+            4,
+            1,
+            2,
+            4,
+            3,
+            1
+          ],
+          "seg": 0,
+          "text": "What is Mara's office?",
+          "tokens": [
+            1780,
+            314,
+            2828,
+            81,
+            506,
+            767,
+            569,
+            47
+          ]
+        },
+        "entity": [
+          77,
+          97,
+          114,
+          97
+        ],
+        "history": "Current",
+        "ops": [],
+        "relation": 0
+      },
+      "scope": [
+        97,
+        108,
+        112,
+        104,
+        97
+      ],
+      "terminal": "Complete",
+      "version": 5,
+      "view": 1,
+      "view_sha256": "90de55aebe579fb52022b0b9dabb74278c1d36a74f47028324d0d5d8c16292cd",
+      "visited": [],
+      "vocabulary_words": 2
+    },
+    "saved_snapshots": 9,
+    "separate_process": "SUMMARY_ONLY: runner computes full child equality, but saves only fresh_process_matches boolean; child full output is not in sealed report. New principal replay needed for independent child frame verification.",
+    "states": [
+      {
+        "cursor": 0,
+        "emitted": [],
+        "pending": "Read",
+        "terminal": null,
+        "vocabulary_words": 0
+      },
+      {
+        "cursor": 0,
+        "emitted": [],
+        "pending": "Emit",
+        "terminal": null,
+        "vocabulary_words": 0
+      },
+      {
+        "cursor": 0,
+        "emitted": [
+          357
+        ],
+        "pending": "Emit",
+        "terminal": null,
+        "vocabulary_words": 1
+      },
+      {
+        "cursor": 0,
+        "emitted": [
+          357,
+          314
+        ],
+        "pending": "Emit",
+        "terminal": null,
+        "vocabulary_words": 2
+      },
+      {
+        "cursor": 1,
+        "emitted": [
+          357,
+          314,
+          407
+        ],
+        "pending": "Emit",
+        "terminal": null,
+        "vocabulary_words": 2
+      },
+      {
+        "cursor": 2,
+        "emitted": [
+          357,
+          314,
+          407,
+          280
+        ],
+        "pending": "Emit",
+        "terminal": null,
+        "vocabulary_words": 2
+      },
+      {
+        "cursor": 3,
+        "emitted": [
+          357,
+          314,
+          407,
+          280,
+          3259
+        ],
+        "pending": "Emit",
+        "terminal": null,
+        "vocabulary_words": 2
+      },
+      {
+        "cursor": 3,
+        "emitted": [
+          357,
+          314,
+          407,
+          280,
+          3259
+        ],
+        "pending": "Stop",
+        "terminal": null,
+        "vocabulary_words": 2
+      },
+      {
+        "cursor": 3,
+        "emitted": [
+          357,
+          314,
+          407,
+          280,
+          3259,
+          4294967294
+        ],
+        "pending": "Stop",
+        "terminal": "Complete",
+        "vocabulary_words": 2
+      }
+    ]
+  },
+  "reviewed_source": "27fdc1798f0a8536238a72062ca269f976085e73",
+  "schema": "uor-r4.grounded-lexical-realization-principal-audit/1",
+  "semantic_audit": {
+    "current_query_contradictions": [
+      {
+        "answer": "it was Harbor",
+        "case": "superseded",
+        "current_value": "Harbor",
+        "facts": [
+          "Mara's office is Quarry",
+          "Mara's office is Harbor"
+        ],
+        "request": "What is Mara's office?"
+      },
+      {
+        "answer": "it was Larkspur",
+        "case": "fresh_superseded",
+        "current_value": "Larkspur",
+        "facts": [
+          "Juno's office is Nettle",
+          "Juno's office is Larkspur"
+        ],
+        "request": "What is Juno's office?"
+      }
+    ],
+    "expected_next": "Correct the proposition/temporal feature and independent answer semantics before widening vocabulary. Hold exact payload/scope/version contracts separate from lexical tense.",
+    "interpretation": "Quarry then Harbor makes Harbor current, not former; `it was Harbor` is not licensed by its differing predecessor. Initial Harbor after later corrections is historical but emits `it is Harbor`. The authored target rule confuses prior change with selected-answer temporal status. This is a supervision/semantic failure, not failure to learn the supplied labels.",
+    "mixed_record": {
+      "computed": "it is now Marsh",
+      "initial": "it is Harbor",
+      "kind": "decoded",
+      "ok": true,
+      "ordinary": "it is Harbor",
+      "ordinary_after_correction": "it was Quarry",
+      "pinned_in_flight": "it is Harbor",
+      "previous": "it was Quarry"
+    }
+  },
+  "source_provenance": {
+    "omitted_new_module": {
+      "committed_sha256": "5a0424a771dc36da5b81e4bd0050ef52dac0c82ca9978ac4b3c9c006d61f8435",
+      "path": "crates/uor-r4-core/src/native_geometric/learner/lexical_realization.rs",
+      "status": "Not bound in saved running_source.source_files"
+    },
+    "qualification": "Branch name plus dirty flag is not a commit identity. Existing per-file hashes are compared to reviewed commit; new module was omitted. Sealed report base is stale.",
+    "recorded": [
+      {
+        "committed_sha256": "6bede9d96caab105e89c03657f48add4a544a31ed975fa4dfcce505e4d8b297a",
+        "matches": true,
+        "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+        "reported_sha256": "6bede9d96caab105e89c03657f48add4a544a31ed975fa4dfcce505e4d8b297a"
+      },
+      {
+        "committed_sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f",
+        "matches": true,
+        "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+        "reported_sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+      },
+      {
+        "committed_sha256": "2e233a60d20094c88fa7f4d42e1e34a6e5c22e1f9f88eac4557b60ec08103f88",
+        "matches": true,
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "reported_sha256": "2e233a60d20094c88fa7f4d42e1e34a6e5c22e1f9f88eac4557b60ec08103f88"
+      }
+    ],
+    "recorded_base": "origin/main b5d36c9b8318e4fe2084ef49cc75cff55c1b2b6f",
+    "recorded_dirty": "tracked-modified",
+    "recorded_git_rev": "codex/grounded-lexical-realization"
+  },
+  "tokenizer": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct/tokenizer.json",
+    "sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+    "vocabulary": "Unchanged dense first4096 source IDs; independent byte decoding only."
+  }
+}

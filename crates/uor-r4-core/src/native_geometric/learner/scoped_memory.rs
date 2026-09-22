@@ -1994,6 +1994,14 @@ impl ScopedMemoryRuntime {
                 "the realized output contract requires a realization artifact".into(),
             ));
         }
+        if realization
+            .as_ref()
+            .is_some_and(|model| model.slots.iter().any(|token| Some(*token) == eos))
+        {
+            return Err(ScopedMemoryError::Model(
+                "a realization vocabulary slot cannot be the protocol terminator".into(),
+            ));
+        }
         // EOS is an explicitly bound protocol terminator and may be outside the lexical vocabulary.
         // Owned source payloads must still consist entirely of valid lexical token IDs.
         if memory
@@ -2479,7 +2487,13 @@ impl ScopedMemoryRuntime {
                 let mut capture_fault: Option<&str> = None;
                 if capture.payload.is_empty() {
                     capture_fault = Some("empty payload");
-                } else if capture.payload.len() + usize::from(session.eos.is_some())
+                } else if capture.payload.len()
+                    + usize::from(session.eos.is_some())
+                    + if self.contract == OutputContract::RealizedV1 {
+                        SCOPED_MAX_VOCAB_WORDS
+                    } else {
+                        0
+                    }
                     > SCOPED_MAX_ANSWER
                 {
                     capture_fault = Some("answer bound");
@@ -2606,7 +2620,12 @@ impl ScopedMemoryRuntime {
                 }
             }
             None => {
-                if session.cursor != 0 || !session.emitted.is_empty() || session.hop != 0 {
+                if session.cursor != 0
+                    || !session.emitted.is_empty()
+                    || session.hop != 0
+                    || session.vocabulary_words != 0
+                    || session.prelude_words != 0
+                {
                     return Err(ScopedMemoryError::Session(
                         "session has progress without an owned capture".into(),
                     ));
@@ -2900,7 +2919,81 @@ impl ScopedMemoryRuntime {
                 }
             },
         }
+        self.validate_realized_progress(session)?;
         Ok(())
+    }
+
+    /// Reconstruct the reachable lexical prefix with the same emission operation used by serving.
+    /// Slot membership alone cannot establish that the bound policy chose a word or reached Stop.
+    /// This is bounded causal consistency, not authentication of a caller-supplied conversation.
+    fn validate_realized_progress(&self, session: &ScopedSession) -> Result<(), ScopedMemoryError> {
+        if self.contract != OutputContract::RealizedV1 {
+            return Ok(());
+        }
+        let emitting = session.terminal == Some(ScopedTerminal::Complete)
+            || (session.terminal.is_none()
+                && matches!(session.pending, SessionAction::Emit | SessionAction::Stop));
+        if !emitting {
+            if !session.emitted.is_empty()
+                || session.cursor != 0
+                || session.vocabulary_words != 0
+                || session.prelude_words != 0
+            {
+                return Err(ScopedMemoryError::Session(
+                    "lexical progress precedes an emission-capable capture".into(),
+                ));
+            }
+            return Ok(());
+        }
+        let mut replay = session.clone();
+        replay.cursor = 0;
+        replay.emitted.clear();
+        replay.vocabulary_words = 0;
+        replay.prelude_words = 0;
+        replay.pending = SessionAction::Emit;
+        replay.terminal = None;
+        // Each transition emits a token, reaches the learned Stop, or emits the terminator. There
+        // are at most SCOPED_MAX_ANSWER tokens; one extra iteration checks the completed frame.
+        for _ in 0..SCOPED_MAX_ANSWER + 3 {
+            if replay.cursor == session.cursor
+                && replay.emitted == session.emitted
+                && replay.vocabulary_words == session.vocabulary_words
+                && replay.prelude_words == session.prelude_words
+                && replay.pending == session.pending
+                && replay.terminal == session.terminal
+            {
+                return Ok(());
+            }
+            match (replay.pending, replay.terminal) {
+                (SessionAction::Emit, None) => {
+                    let mut effect = ScopedStepEffect {
+                        action: SessionAction::Emit,
+                        next_action: None,
+                        selected_record: None,
+                        selected_commit: None,
+                        selected_value: None,
+                        op_label: None,
+                        computed_state: None,
+                        hop: replay.hop,
+                        emitted: None,
+                        realization: None,
+                        terminal: None,
+                    };
+                    // Calling the shared operation directly avoids recursively entering validate.
+                    self.realized_emit(&mut replay, &mut effect)?;
+                }
+                (SessionAction::Stop, None) => {
+                    if let Some(eos) = replay.eos {
+                        replay.emitted.push(eos);
+                    }
+                    replay.terminal = Some(ScopedTerminal::Complete);
+                }
+                _ => break,
+            }
+        }
+        Err(ScopedMemoryError::Session(
+            "realized emissions or phase are not reachable under the bound policy".into(),
+        ))
     }
 
     fn terminate(&self, session: &mut ScopedSession, reason: ScopedTerminal) {
@@ -3285,7 +3378,9 @@ impl ScopedMemoryRuntime {
             false
         } else {
             matches!(
-                self.memory.lookup(key, commit, HistoryView::PreviousAssertion),
+                // This is an immutable lexical-metadata comparison, not a request for a released
+                // payload. Future capacity eviction must not change an already-pinned answer.
+                self.memory.lookup_identity(key, commit, HistoryView::PreviousAssertion),
                 Lookup::Found(previous) if previous.value != value
             )
         };
@@ -3706,6 +3801,175 @@ mod tests {
             eos,
         )
         .unwrap()
+    }
+
+    fn replay_test_realization() -> RealizationModel {
+        use super::super::lexical_realization::{fit_realization, RealizationExample};
+        let mut examples = Vec::new();
+        for prior in [false, true] {
+            for (stage, words, action) in [
+                (0, 0, RealizationAction::Insert(u8::from(prior))),
+                (0, 1, RealizationAction::Copy),
+                (1, 1, RealizationAction::Copy),
+                (2, 1, RealizationAction::Insert(2)),
+                (2, 2, RealizationAction::Stop),
+            ] {
+                examples.push(RealizationExample {
+                    context: RealizationContext {
+                        relation: 0,
+                        history: 0,
+                        derived: false,
+                        prior_differs: prior,
+                        evidence_class: 0,
+                        copy_stage: stage,
+                        emitted_bucket: words,
+                    },
+                    action,
+                });
+            }
+        }
+        fit_realization(&examples, 4096, vec![11, 12, 13], 8).unwrap()
+    }
+
+    fn replay_test_runtime(memory: Memory, eos: Option<u32>) -> ScopedMemoryRuntime {
+        ScopedMemoryRuntime::load_grounded(
+            &ObservedTextModel::uninformed().to_bytes().unwrap(),
+            &IntentModel::uninformed().to_bytes().unwrap(),
+            None,
+            ComputationBackend::Absent,
+            Some(&replay_test_realization().to_bytes().unwrap()),
+            OutputContract::RealizedV1,
+            memory.clone(),
+            memory.lineage,
+            MemoryControl::Normal,
+            4096,
+            eos,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn realized_restore_replays_words_stop_and_terminator_at_every_boundary() {
+        let mut memory = Memory::new(31, 2);
+        write(&mut memory, "Ova", "A", Update::Assert);
+        let runtime = replay_test_runtime(memory, Some(4095));
+        let mut session = runtime
+            .ask_view(b"alpha", 0, b"Ova", HistoryView::Current)
+            .unwrap();
+        let mut boundaries = Vec::new();
+        loop {
+            let bytes = runtime.snapshot(&session).unwrap();
+            assert_eq!(runtime.restore(&bytes).unwrap(), session);
+            boundaries.push(bytes);
+            if session.terminal.is_some() {
+                break;
+            }
+            runtime.step(&mut session).unwrap();
+            if session.cursor == session.captured_payload_len()
+                && session.cursor > 0
+                && session.vocabulary_words == 1
+            {
+                let mut premature_stop = session.clone();
+                premature_stop.pending = SessionAction::Stop;
+                assert!(runtime
+                    .restore(&serde_json::to_vec(&premature_stop).unwrap())
+                    .is_err());
+            }
+            if session.cursor == 1 {
+                let mut interrupted = session.clone();
+                interrupted.emitted.push(13);
+                interrupted.vocabulary_words += 1;
+                assert!(runtime.validate(&interrupted).is_err());
+            }
+        }
+        assert_eq!(session.emitted, vec![11, 1, 2, 3, 13, 4095]);
+        for bytes in boundaries {
+            let mut restored = runtime.restore(&bytes).unwrap();
+            runtime.run(&mut restored).unwrap();
+            assert_eq!(restored, session);
+        }
+        let mut wrong_slot = session.clone();
+        wrong_slot.emitted[0] = 12; // Still a valid slot, but not the selected one.
+        assert!(runtime
+            .restore(&serde_json::to_vec(&wrong_slot).unwrap())
+            .is_err());
+        let mut misplaced_eos = session;
+        let last = misplaced_eos.emitted.len() - 1;
+        misplaced_eos.emitted.swap(0, last);
+        assert!(runtime
+            .restore(&serde_json::to_vec(&misplaced_eos).unwrap())
+            .is_err());
+    }
+
+    #[test]
+    fn realized_restore_rejects_unearned_word_counters_before_capture() {
+        let mut memory = Memory::new(32, 2);
+        write(&mut memory, "Ova", "A", Update::Assert);
+        let runtime = replay_test_runtime(memory, None);
+        let mut session = runtime
+            .ask_view(b"alpha", 0, b"Ova", HistoryView::Current)
+            .unwrap();
+        session.vocabulary_words = 1;
+        session.prelude_words = 1;
+        assert!(runtime
+            .restore(&serde_json::to_vec(&session).unwrap())
+            .is_err());
+    }
+
+    #[test]
+    fn realized_pinned_words_survive_predecessor_and_origin_payload_eviction() {
+        let mut memory = Memory::new(33, 2);
+        write(&mut memory, "Ova", "A", Update::Assert);
+        write(&mut memory, "Ova", "B", Update::Correct);
+        let mut runtime = replay_test_runtime(memory, Some(4095));
+        let mut captured = runtime
+            .ask_view(b"alpha", 0, b"Ova", HistoryView::Current)
+            .unwrap();
+        runtime.step(&mut captured).unwrap();
+        let captured_bytes = runtime.snapshot(&captured).unwrap();
+        let mut expected = captured.clone();
+        runtime.run(&mut expected).unwrap();
+        assert_eq!(expected.emitted, vec![12, 1, 2, 3, 13, 4095]);
+        let mut mid_word = captured;
+        runtime.step(&mut mid_word).unwrap();
+        let mid_word_bytes = runtime.snapshot(&mid_word).unwrap();
+        let complete_bytes = runtime.snapshot(&expected).unwrap();
+
+        for value in ["C", "D"] {
+            write(&mut runtime.memory, "Ova", value, Update::Correct);
+            assert!(runtime.memory.records[0].evicted);
+            for bytes in [&captured_bytes, &mid_word_bytes, &complete_bytes] {
+                let mut restored = runtime.restore(bytes).unwrap();
+                runtime.run(&mut restored).unwrap();
+                assert_eq!(restored, expected);
+            }
+        }
+        assert!(runtime.memory.records[1].evicted);
+        assert!(runtime.memory.records[1].payload.is_empty());
+        assert!(runtime.validate(&expected).is_ok());
+    }
+
+    #[test]
+    fn realized_vocabulary_cannot_bind_the_protocol_terminator_as_a_word() {
+        let model = ObservedTextModel::uninformed().to_bytes().unwrap();
+        let intent = IntentModel::uninformed().to_bytes().unwrap();
+        let realization = replay_test_realization().to_bytes().unwrap();
+        assert!(matches!(
+            ScopedMemoryRuntime::load_grounded(
+                &model,
+                &intent,
+                None,
+                ComputationBackend::Absent,
+                Some(&realization),
+                OutputContract::RealizedV1,
+                Memory::new(34, 2),
+                34,
+                MemoryControl::Normal,
+                4096,
+                Some(11),
+            ),
+            Err(ScopedMemoryError::Model(_))
+        ));
     }
 
     /// The realized contract: one learned vocabulary word selected from owned evidence, with the

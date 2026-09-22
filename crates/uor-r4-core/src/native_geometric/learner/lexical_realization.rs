@@ -12,14 +12,15 @@
 //!
 //! The table is indexed by *causal* session state only: the observed relation, the requested history
 //! position, whether the answer is a derived (computed) result, whether the address has a superseded
-//! older committed value, a bounded geometric class of the owned evidence payload, the copy stage and
+//! older committed value, the copy stage and
 //! a bounded count of already-emitted vocabulary words. Correctness, expected payload, evaluator
 //! family, target token, required answer length and gold route are never inputs.
 //!
 //! Because an owned-evidence feature participates in the key, changing older eligible evidence (or a
-//! consumed computed result) can change an *uncopied* lexical choice while the recent request and the
+//! derived-result provenance flag) can change an *uncopied* lexical choice while the recent request and the
 //! generated prefix up to that decision are held fixed. That is the property a scalar copy boost
-//! cannot express.
+//! cannot express. The payload class and emitted token identities do not index this prototype;
+//! it demonstrates a flag-conditioned action table, not content-sensitive lexical meaning.
 //!
 //! Served execution is a keyed row lookup plus an integer argmax: table reads, additions,
 //! comparisons, shifts and rotations, with no multiplier instruction and no floating point on the
@@ -52,13 +53,13 @@ const LR_KEY_SALT: u64 = 0x9e37_79b9_7f4a_7c15;
 pub struct RealizationContext {
     /// The observed relation byte of the address.
     pub relation: u8,
-    /// The requested history position (0 current, 1 previous assertion, 2 initial).
+    /// Requested history: 0 current, 1 previous assertion, 2 previous distinct, 3 initial.
     pub history: u8,
     /// The answer value came from consuming a computed result.
     pub derived: bool,
     /// An older committed value for the same address was superseded before this one.
     pub prior_differs: bool,
-    /// Bounded geometric class of the owned evidence payload.
+    /// Reported bounded class of the owned payload; deliberately omitted from the table key.
     pub evidence_class: u16,
     /// 0 before the payload, 1 inside it, 2 once it is complete.
     pub copy_stage: u8,

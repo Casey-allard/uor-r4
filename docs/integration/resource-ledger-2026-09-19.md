@@ -2192,3 +2192,31 @@ Reclaimed1,861,709,824 allocated bytes of995 inactive nonexecutable compiler-cac
 Charged1,367,387ms = 1,067,387ms elapsed review since17:04:04UTC +300,000ms estimated protected-delivery reserve; parallel agents counted once. Live cumulative **341,198,251/350,500,000ms**. Submitted approximate2,400,000ms charge was separately reconciled once above. Free at charge **34,167,316,480B**, above the explicitly revised30GiB reserve plus128MiB margin. Reclaimed **1,861,709,824 allocated bytes /995 inactive compiler files**; precise manifest preserved in observed-computation-lifecycle-delivery. No unique artifact, executable, model, research source, history or Downloads deleted; no paid compute.
 
 Independent audit verifies all four submitted19-file seals and392request outcomes/649selectedrecords/338emissions/88primarycomputations. Source6611aa0f adds tests only:25standard runner tests pass, four explicitly ignored by default; two artifact-dependent parent tests pass, three child processes. Loaded correction/role interaction:42parent+42child full-frame restores;479priorprimary/control rows unchanged with explicit binding/view-hash exclusions. Two32-file interaction roots and one3-file control root seal with0discrepancies. Format/claim-wording pass. Original parameters and production path unchanged. The reported four other library failures' baseline attribution remains UNVERIFIED. [Principal checks](../evidence/observed-computation-lifecycle-principal-checks-2026-09-22.json).
+
+## Grounded lexical realization — submitted charge reconciliation and principal correction
+
+The submitted PR #1349 [prospective projection](../evidence/grounded-lexical-realization-projection-2026-09-22.json)
+recorded a16,200,000ms local allowance increase from350,500,000 to366,700,000ms. Its
+[charge](../evidence/grounded-lexical-realization-charge-2026-09-22.json) already adds12,600,000ms,
+from341,198,251 to353,798,251ms. This prose reconciliation adds **no duplicate debit**.
+The live JSON was353,798,251/366,700,000ms at principal recovery. The submitted debug build cache
+exceeded its stated512MiB new-storage estimate and breached its30GiB physical reserve; reporting
+that free space exceeded128MiB did not restore that reserve. Preserve the original receipts.
+
+The [principal projection](../evidence/grounded-lexical-realization-principal-projection-2026-09-22.json)
+records6,000,000ms for independent review, source repairs, focused tests, loaded generation,
+documentation and protected delivery, inside the existing allowance. One release compiler worker,
+CARGO_INCREMENTAL=0,8GiB peak RAM planning bound,1GiB new temporary output and64MiB retained
+reports are projected. There is no arbitrary retry/timer gate; prospectively reproject necessary
+local changes under standing authorization, and preserve cumulative accounting.
+
+[Safe cleanup](../evidence/grounded-lexical-realization-principal-cleanup-2026-09-22.json) removes9,621
+inactive untracked nonexecutable debug intermediate files. Allocated sums13,902,155,776B overcount
+shared APFS extents; the actual measured free-space delta is10,549,026,816B, ending28,409,012,224B
+at cleanup. No executable, model, report, unique research, source, worktree, history or Downloads
+was removed. The review explicitly adopts24GiB plus128MiB temporary physical reserve for the
+bounded correction, under the standing necessary-local-storage authorization; the prior30GiB
+reserve is not reported restored. Restore headroom and avoid debug incremental regrowth before
+larger future work. Final review charge/check receipts own the final balance and free bytes.
+
+Principal correction charge at 2026-09-22T19:18:12.595947+00:00: **1,673,595ms**, comprising1,253,595ms measured since the recorded recovery clock,120,000ms earlier recovery estimate and300,000ms delivery allowance. New cumulative **355,471,846/366,700,000ms**; no limit increase. This is a conservative charge, not a claim that both estimates were measured. [Charge receipt](../evidence/grounded-lexical-realization-principal-charge-2026-09-22.json). Focused32+5+25 tests and one explicit loaded-artifact parent test/seven child processes pass;62parent+62child frames/effects retained in86 sealed files. Free after tests:28,355,604,480B.

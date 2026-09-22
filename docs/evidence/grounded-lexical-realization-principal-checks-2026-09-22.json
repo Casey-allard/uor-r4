@@ -1,0 +1,138 @@
+{
+  "schema": "uor-r4.lexical-principal-checks/1",
+  "recorded_at": "2026-09-22T19:17:29.672020+00:00",
+  "test_source_commit": "175de4122575d06f65fde683ff693051e16ec0c7",
+  "source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs": "c5abe68ca982b56c12d1987bb764f5e7ba4467129435ed20f2a7ff73a3e18fb5",
+    "crates/uor-r4-core/src/native_geometric/learner/lexical_realization.rs": "0f28ad521aef0526b6a56e1e7eac0990abfc869c6d2d09694aa2e528dbb131fc",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "fd9dda05df01b1311a4ea0da5965d6ed07cfa2b69fbf74ee84895642c8e3e6f4"
+  },
+  "submitted_merge_verified": "27fdc1798f0a8536238a72062ca269f976085e73",
+  "commands": {
+    "scoped": "CARGO_TARGET_DIR=/Users/casey.allard/uor-r4/target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo test --release --offline -p uor-r4-core --lib native_geometric::learner::scoped_memory::tests:: -- --nocapture",
+    "lexical": "core-tests native_geometric::learner::lexical_realization::tests:: --nocapture",
+    "runner_build": "CARGO_TARGET_DIR=/Users/casey.allard/uor-r4/target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo test --offline --release -p uor-r4-core --bin competitive-reader --no-run",
+    "runner_standard": "competitive-reader-tests",
+    "loaded": "UOR_REALIZATION_ARTIFACT_ROOT=grounded-lexical-realization-9/artifacts UOR_REALIZATION_AUDIT_ROOT=grounded-lexical-realization-principal-1 competitive-reader-tests loaded_realization_tests::saved_realizer_preserves_exposed_outputs_and_owned_checkpoints --exact --ignored --nocapture",
+    "format": "cargo fmt --check",
+    "claims": "python3 scripts/check_claim_wording.py",
+    "diff": "git diff --check"
+  },
+  "tests": {
+    "scoped_pass": 32,
+    "lexical_pass": 5,
+    "runner_pass": 25,
+    "runner_default_ignored": 6,
+    "explicit_saved_artifact_test_pass": 1,
+    "separate_child_processes_pass": 7
+  },
+  "build_seconds": {
+    "scoped_release_and_tests": 319.11,
+    "runner_release_test_build": 264.5,
+    "actual_saved_artifact_test": 0.72
+  },
+  "logs": {
+    "uor-glr-scoped-tests.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/uor-glr-scoped-tests.log",
+      "sha256": "8afab924f125dea3770d0bb26b821ca6d17e7def40fdf94480c3c4dbb4122d08"
+    },
+    "uor-glr-lexical-tests.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/uor-glr-lexical-tests.log",
+      "sha256": "e1388caa8e98a5ce3372c9966a5d955e6e5d054d8aae59109a51949d13ea3fe2"
+    },
+    "uor-glr-runner-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/uor-glr-runner-build.log",
+      "sha256": "e87e7a00b3739f018654f9ce376a831faeec6494f5e7453e3ba7baf9d741fde6"
+    },
+    "uor-glr-runner-tests.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/uor-glr-runner-tests.log",
+      "sha256": "0bff6e5fe364e0ef30936ff655a3ad596aff0e388eab724f07018be9c8037654"
+    },
+    "uor-glr-loaded-tests.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/uor-glr-loaded-tests.log",
+      "sha256": "177f8f6e9659f02f5a5282391ab94451a16c7bb4d9b8adf853c55bcaa69ebbec"
+    }
+  },
+  "executables": {
+    "core": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/core-tests",
+      "sha256": "3a6208d1ec6129cee9dbfe403a7aa003c55bcca744b686bbfb5ace3392ad8a65"
+    },
+    "runner": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-delivery/competitive-reader-tests",
+      "sha256": "395a337aea676ec74624c3c627677d7915ae18bc8289388d67b4c3d739e4a0bd"
+    }
+  },
+  "artifact_sha256": {
+    "backend-signed_factorization.json": "ce5d66fcaeb3ecd5bab5b925e65ba36635113742f9c98ea536f38b1bdd1635d9",
+    "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+    "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+    "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+    "realization.json": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f"
+  },
+  "loaded_evidence": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-principal-1",
+    "manifest_sha256": "e6022dd405fd87cd2f07bb4e3bf5b1681e90539526b1a6af5ea75952f4326bf7",
+    "listed_files": 86,
+    "seal_blake3_size_errors": 0,
+    "missing": [],
+    "unlisted": [],
+    "checkpoints": [
+      {
+        "case": "direct",
+        "parent_checkpoints": 9,
+        "child_checkpoints": 9,
+        "full_frames_and_remaining_effects_equal": true
+      },
+      {
+        "case": "superseded",
+        "parent_checkpoints": 9,
+        "child_checkpoints": 9,
+        "full_frames_and_remaining_effects_equal": true
+      },
+      {
+        "case": "reasserted",
+        "parent_checkpoints": 9,
+        "child_checkpoints": 9,
+        "full_frames_and_remaining_effects_equal": true
+      },
+      {
+        "case": "fresh_direct",
+        "parent_checkpoints": 11,
+        "child_checkpoints": 11,
+        "full_frames_and_remaining_effects_equal": true
+      },
+      {
+        "case": "fresh_superseded",
+        "parent_checkpoints": 11,
+        "child_checkpoints": 11,
+        "full_frames_and_remaining_effects_equal": true
+      },
+      {
+        "case": "derived",
+        "parent_checkpoints": 12,
+        "child_checkpoints": 12,
+        "full_frames_and_remaining_effects_equal": true
+      },
+      {
+        "case": "owned_context_after_eviction",
+        "parent_checkpoints": 1,
+        "child_checkpoints": 1,
+        "full_frames_and_remaining_effects_equal": true
+      }
+    ],
+    "parent_checkpoints": 62,
+    "child_checkpoints": 62,
+    "realized_exposed_outputs": 6,
+    "bound_realizer_legacy_outputs": 5,
+    "evicted_predecessor_and_origin_pinned_context": true
+  },
+  "limitations": [
+    "No refitting or fresh semantic acceptance; original incorrect tense targets remain negative.",
+    "392 old rows independently audited but bypass new realizer; not full-bundle retention.",
+    "No full-suite pass; submitted5 unrelated-failure baseline attribution remains unverified.",
+    "No complete-path instruction, allocation, latency or energy qualification; replay validation adds bounded cloning/work."
+  ],
+  "free_after_tests_bytes": 28355604480,
+  "external_compute": "none"
+}

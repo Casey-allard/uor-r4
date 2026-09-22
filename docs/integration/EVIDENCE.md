@@ -1,5 +1,13 @@
 # EVIDENCE
 
+## September22 — grounded lexical interface reviewed; semantics incomplete
+
+**PR #1349, principal review:** retain the learned Copy/Insert/Stop interface as an exposed four-word construction. It changes uncopied words from a history/provenance flag, but the authored targets misuse tense (`was` for the current value; `now` for computation). Correct temporal language and the lexical milestone remain **incomplete**. The 392 retained rows bypass the realizer; five explicit legacy cases do load it. [Review](grounded-lexical-realization-review-2026-09-22.md) and [independent audit](../evidence/grounded-lexical-realization-principal-audit-2026-09-22.json) distinguish implementation, semantic validity, exposure and same-artifact scope.
+
+**Next:** [truthful state-conditioned lexical realization](deepseek-state-conditioned-lexical-step-2026-09-22.md): learn from actual emitted-token feedback and selected evidence, with independent temporal meaning, source-separated text support and an E/S local comparator or justified adaptation. The current clipped-count key cannot learn variable-length continuation by widening vocabulary alone. Preserve exact memory/computation and versioned copying; then broaden conversation/prose and executed Rust, followed by complete-path laptop qualification. Signed geometry retains its finite competence/tie and sign-loss witness; Hopf fiber, E8/S7 and harmonics remain conditional tools, not missing semantic labels.
+
+**Leadership and resources:** principal mathematical/ML/systems review governs the roadmap; DeepSeek has substantive design and diagnostic discretion. Record necessary local extensions prospectively, cumulative work and measured physical space. No arbitrary short timer or retry quota, no paid compute, and no deletion of unique artifacts. Learned behavior, exact infrastructure and supplied supervision remain separate.
+
 ## September22 — independently reviewed combined lifecycle
 
 **PR #1348, principal review:** retain one combined learned observation/intent artifact with observed source ingestion and consumed signed computation. The same candidate preserves **38/38** prior outcomes (34 language questions +4 API queries),37/37 ingests and no interpretation errors; computation-only support reproduces17/38. Primary panels retain56/56 development,24/24 previously exposed and32/32 first evaluated in attempt2, then exposed replay in4. Raw primary ingestion is **72/72**, correcting48/48. [Review](observed-computation-lifecycle-review-2026-09-22.md) and [independent audit](../evidence/observed-computation-lifecycle-principal-audit-2026-09-22.json) qualify exposure, saved comparator coverage and atomic restart boundaries.
