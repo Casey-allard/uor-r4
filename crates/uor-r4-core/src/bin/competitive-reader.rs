@@ -17,6 +17,7 @@ use serde_json::json;
 use uor_r4_core::native_geometric::learner::contextual_emission::*;
 use uor_r4_core::native_geometric::learner::grounded_session::*;
 use uor_r4_core::native_geometric::learner::group_table::{group_table, GROUP_ORDER, ROW_STRIDE};
+use uor_r4_core::native_geometric::learner::observed_text_session::*;
 use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
 use uor_r4_core::native_geometric::learner::policy_feasibility::*;
 use uor_r4_core::native_geometric::learner::prefix_artifact::{
@@ -13461,6 +13462,870 @@ mod relational_session_tests {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Contextual occurrence roles and exact spans from readable text
+// ---------------------------------------------------------------------------
+
+const OB_PERSONS: usize = 4;
+const OB_SEED: u64 = 0xC0F7_0001;
+const OB_FINAL_SEED: u64 = 0xC0F7_0101;
+const OB_EOS: u32 = u32::MAX - 1;
+
+/// Authored vocabulary. Case and BPE boundaries matter: visual cue/name similarity is not
+/// automatically a shared learned feature. Exact full-span identity distinguishes overlapping names.
+struct ObNames {
+    persons: [&'static str; OB_PERSONS],
+    offices: [&'static str; 3],
+    projects: [&'static str; 3],
+}
+
+impl ObNames {
+    fn cue(&self, goal: Goal, redirect: bool) -> &'static str {
+        match (goal, redirect) {
+            (Goal::Office, false) => "works in",
+            (Goal::Office, true) => "office follows",
+            (Goal::Project, false) => "is on project",
+            (Goal::Project, true) => "project follows",
+        }
+    }
+    fn targets(&self, goal: Goal, target_is_key: bool) -> Vec<String> {
+        match goal {
+            Goal::Office if target_is_key => self.persons.iter().map(|s| s.to_string()).collect(),
+            Goal::Office => self.offices.iter().map(|s| s.to_string()).collect(),
+            Goal::Project => self.projects.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+    fn role_of(goal: Goal, redirect: bool) -> usize {
+        match (goal, redirect) {
+            (Goal::Office, false) => 0,
+            (Goal::Office, true) => 1,
+            (Goal::Project, false) => 2,
+            (Goal::Project, true) => 3,
+        }
+    }
+}
+
+struct ObWorld {
+    id: u32,
+    version: u32,
+    clauses: Vec<Clause>,
+    labels: Vec<ClauseLabel>,
+    /// Independent expectation per request: answer tokens and the number of reads required.
+    oracle: Vec<((usize, Goal), (Vec<u32>, u8))>,
+    texts: Vec<String>,
+}
+
+/// Encode one readable clause and locate its declared spans by exact sub-sequence identity. The cue
+/// and the object are encoded as they appear after a space, and the located extents are checked.
+fn ob_clause(
+    tokenizer: &HfBpeTokenizer,
+    seg: u32,
+    subject: &str,
+    cue: &str,
+    object: Option<&str>,
+) -> Result<(Clause, ClauseLabel), String> {
+    // A declared sentence-start space keeps every name mid-sentence, so a name has the same surface
+    // BPE tokens in subject and object positions and exact span identity can join them. Without it,
+    // "Ivo" clause-initial and " Ivo" mid-clause are different tokens and no redirect can chain.
+    let text = match object {
+        Some(o) => format!(" {subject} {cue} {o}"),
+        None => format!(" {subject} {cue}"),
+    };
+    let tokens = tokenizer.encode(&text);
+    if tokens.is_empty() || tokens.len() > OB_MAX_CLAUSE {
+        return Err(format!("clause outside the declared bound: {text}"));
+    }
+    let subject_tokens = tokenizer.encode(&format!(" {subject}"));
+    if tokens.len() < subject_tokens.len() || tokens[..subject_tokens.len()] != subject_tokens[..] {
+        return Err(format!(
+            "subject tokens are not the observed prefix of {text}"
+        ));
+    }
+    let cue_tokens = tokenizer.encode(&format!(" {cue}"));
+    let found: Vec<usize> = (subject_tokens.len()..tokens.len())
+        .filter(|s| {
+            s + cue_tokens.len() <= tokens.len()
+                && tokens[*s..*s + cue_tokens.len()] == cue_tokens[..]
+        })
+        .collect();
+    if found.len() != 1 {
+        return Err(format!(
+            "cue {cue:?} does not occur exactly once inside {text} ({} matches)",
+            found.len()
+        ));
+    }
+    let marker_start = found[0];
+    let object_start = marker_start + cue_tokens.len();
+    let object_tokens: Vec<u32> = tokens[object_start..].to_vec();
+    if let Some(o) = object {
+        let want = tokenizer.encode(&format!(" {o}"));
+        if object_tokens != want {
+            return Err(format!(
+                "object tokens differ from the encoded object in {text}"
+            ));
+        }
+    } else if !object_tokens.is_empty() {
+        return Err(format!("question clause carries trailing tokens in {text}"));
+    }
+    Ok((
+        Clause {
+            seg,
+            tokens: tokens.clone(),
+        },
+        ClauseLabel {
+            seg,
+            subject: (0, subject_tokens.len()),
+            marker: (marker_start as u32, cue_tokens.len()),
+            object: object.map(|_| (object_start as u32, object_tokens.len())),
+            role: 0,
+            goal: Goal::Office,
+            action: RelAction::Emit,
+        },
+    ))
+}
+
+fn ob_make_world(
+    tokenizer: &HfBpeTokenizer,
+    names: &ObNames,
+    id: u32,
+    version: u32,
+    office_chains: &[Vec<usize>],
+    project_chains: &[Vec<usize>],
+    target_is_key: bool,
+    seed: u64,
+) -> Result<ObWorld, String> {
+    let mut st = seed | 1;
+    let mut clauses = Vec::new();
+    let mut labels = Vec::new();
+    let mut texts = Vec::new();
+    let mut oracle = Vec::new();
+    let mut seg = 0u32;
+    for (goal, chains) in [
+        (Goal::Office, office_chains),
+        (Goal::Project, project_chains),
+    ] {
+        for chain in chains.iter() {
+            if chain.is_empty() {
+                continue;
+            }
+            let targets = names.targets(goal, target_is_key);
+            let target = targets[(xorshift(&mut st) as usize) % targets.len()].clone();
+            let len = chain.len();
+            for (hop, person) in chain.iter().enumerate() {
+                let last = hop + 1 == len;
+                let cue = names.cue(goal, !last);
+                let object = if last {
+                    target.as_str()
+                } else {
+                    names.persons[chain[hop + 1]]
+                };
+                let (clause, mut label) =
+                    ob_clause(tokenizer, seg, names.persons[*person], cue, Some(object))?;
+                label.role = ObNames::role_of(goal, !last);
+                label.goal = goal;
+                label.action = if last {
+                    RelAction::Emit
+                } else {
+                    RelAction::Continue
+                };
+                texts.push(format!(" {} {cue} {object}", names.persons[*person]));
+                clauses.push(clause);
+                labels.push(label);
+                oracle.push((
+                    (*person, goal),
+                    (
+                        if last {
+                            tokenizer.encode(&format!(" {target}"))
+                        } else {
+                            Vec::new()
+                        },
+                        (len - hop) as u8,
+                    ),
+                ));
+                seg += 1;
+            }
+            for (hop, person) in chain.iter().enumerate() {
+                if hop + 1 == len {
+                    continue;
+                }
+                if let Some(e) = oracle
+                    .iter_mut()
+                    .find(|((p, g), _)| *p == *person && *g == goal)
+                {
+                    e.1 .0 = tokenizer.encode(&format!(" {target}"));
+                }
+            }
+        }
+    }
+    Ok(ObWorld {
+        id,
+        version,
+        clauses,
+        labels,
+        oracle,
+        texts,
+    })
+}
+
+fn ob_question(
+    tokenizer: &HfBpeTokenizer,
+    names: &ObNames,
+    person: usize,
+    goal: Goal,
+) -> Result<Clause, String> {
+    let text = format!(" {} {}", names.persons[person], names.cue(goal, false));
+    let tokens = tokenizer.encode(&text);
+    if tokens.is_empty() || tokens.len() > OB_MAX_CLAUSE {
+        return Err("question outside the declared bound".into());
+    }
+    Ok(Clause { seg: 999, tokens })
+}
+
+struct ObOutcome {
+    emitted: Vec<u32>,
+    actions: Vec<RelAction>,
+    reads: u8,
+    terminal: RelAction,
+    selected: Vec<u32>,
+    roles: Vec<u64>,
+    events: Vec<serde_json::Value>,
+    snapshots: Vec<serde_json::Value>,
+    final_frame: TextSession,
+    resume_identical: usize,
+}
+
+/// Evaluation adapter: the executable runtime sees only loaded parameters, document tokens,
+/// observed question and explicitly named control. Expected goal/person/answer stay outside it.
+fn ob_serve(
+    model: &ObservedTextModel,
+    world: &ObWorld,
+    question: &Clause,
+    control: TextControl,
+    resume: bool,
+) -> Result<ObOutcome, String> {
+    let bytes = serde_json::to_vec(model).map_err(|e| e.to_string())?;
+    let runtime = ObservedTextRuntime::load(
+        &bytes,
+        DERIVED_SHA,
+        world.clauses.clone(),
+        world.id,
+        world.version,
+        VOCAB,
+        Some(OB_EOS),
+    )?
+    .with_control(control)?;
+    let mut session = runtime.start(question)?;
+    let mut snapshots = vec![runtime.snapshot(&session)?];
+    let mut events = Vec::new();
+    while session.terminal.is_none() {
+        let before = serde_json::to_value(&session).map_err(|e| e.to_string())?;
+        let effect = runtime.step(&mut session)?;
+        events.push(json!({"before":before,"effect":effect,"after":session}));
+        snapshots.push(runtime.snapshot(&session)?);
+        if events.len() > 3 * OB_MAX_READS as usize + OB_MAX_CLAUSE + 4 {
+            return Err("runtime exceeded declared read/phrase action bound".into());
+        }
+    }
+    let mut resume_identical = 0;
+    let mut saved_snapshots = Vec::new();
+    if resume {
+        // Each continuation is reconstructed from only the saved bytes and immutable runtime.
+        // No original loop counter, previous-read flag or pending source is carried across.
+        for (at, bytes) in snapshots.iter().enumerate() {
+            let mut restored = runtime.restore(bytes)?;
+            let mut suffix = Vec::new();
+            while restored.terminal.is_none() {
+                let before = serde_json::to_value(&restored).map_err(|e| e.to_string())?;
+                let effect = runtime.step(&mut restored)?;
+                suffix.push(json!({"before":before,"effect":effect,"after":restored}));
+                if suffix.len() > 3 * OB_MAX_READS as usize + OB_MAX_CLAUSE + 4 {
+                    return Err("restored runtime exceeded action bound".into());
+                }
+            }
+            let identical = suffix == events[at..] && restored == session;
+            resume_identical += usize::from(identical);
+            saved_snapshots.push(json!({"checkpoint_index":at,
+                "snapshot_utf8":String::from_utf8(bytes.clone()).map_err(|e|e.to_string())?,
+                "snapshot_sha256":sha256_hex(bytes),"resumed_suffix":suffix,
+                "resumed_final_frame":restored,"identical":identical}));
+        }
+    }
+    let actions = events
+        .iter()
+        .map(|v| serde_json::from_value(v["effect"]["action"].clone()).map_err(|e| e.to_string()))
+        .collect::<Result<Vec<RelAction>, _>>()?;
+    let selected = events
+        .iter()
+        .filter(|v| {
+            v["effect"]["action"] == "Read"
+                && v["after"]["reads"].as_u64() > v["before"]["reads"].as_u64()
+        })
+        .filter_map(|v| v["effect"]["selected_segment"].as_u64().map(|n| n as u32))
+        .collect();
+    let roles = events
+        .iter()
+        .filter(|v| {
+            v["effect"]["action"] == "Read"
+                && v["after"]["reads"].as_u64() > v["before"]["reads"].as_u64()
+        })
+        .filter_map(|v| v["effect"]["selected_role"].as_u64())
+        .collect();
+    Ok(ObOutcome {
+        emitted: session.emitted.clone(),
+        actions,
+        reads: session.reads,
+        terminal: session.terminal.ok_or("missing runtime terminal")?,
+        selected,
+        roles,
+        events,
+        snapshots: saved_snapshots,
+        final_frame: session,
+        resume_identical,
+    })
+}
+
+// Independent evaluation oracle over supplied labels and exact observed spans. Never called by
+// the runtime or feature extractor. Missing records, cycles and successful answers stay distinct.
+fn ob_expected(world: &ObWorld, subject: &[u32], goal: Goal) -> Result<serde_json::Value, String> {
+    let mut entity = subject.to_vec();
+    let mut selected = Vec::<u32>::new();
+    let mut visited = std::collections::BTreeSet::new();
+    for _ in 0..OB_MAX_READS {
+        let matching: Vec<_> = world
+            .labels
+            .iter()
+            .filter(|l| {
+                l.goal == goal
+                    && world
+                        .clauses
+                        .iter()
+                        .find(|c| c.seg == l.seg)
+                        .is_some_and(|c| {
+                            c.tokens
+                                .get(l.subject.0 as usize..l.subject.0 as usize + l.subject.1)
+                                == Some(entity.as_slice())
+                        })
+            })
+            .collect();
+        if matching.is_empty() {
+            return Ok(
+                json!({"answer":[],"terminal":"Unresolved","reads":selected.len(),"selected_segments":selected}),
+            );
+        }
+        if matching.len() != 1 {
+            return Err("oracle observed ambiguous exact subject/goal".into());
+        }
+        let label = matching[0];
+        if !visited.insert(label.seg) {
+            return Ok(
+                json!({"answer":[],"terminal":"Exhausted","reads":selected.len(),"selected_segments":selected}),
+            );
+        }
+        let clause = world
+            .clauses
+            .iter()
+            .find(|c| c.seg == label.seg)
+            .ok_or("oracle clause missing")?;
+        let (start, len) = label.object.ok_or("oracle statement object missing")?;
+        let object = clause
+            .tokens
+            .get(start as usize..start as usize + len)
+            .ok_or("oracle object outside clause")?
+            .to_vec();
+        selected.push(label.seg);
+        if label.action == RelAction::Emit {
+            return Ok(
+                json!({"answer":object,"terminal":"Stop","reads":selected.len(),"selected_segments":selected}),
+            );
+        }
+        if label.action != RelAction::Continue {
+            return Err("oracle invalid statement action".into());
+        }
+        entity = object;
+    }
+    Ok(
+        json!({"answer":[],"terminal":"Exhausted","reads":selected.len(),"selected_segments":selected}),
+    )
+}
+
+fn ob_outcome_record(out: &ObOutcome) -> serde_json::Value {
+    json!({"emitted":out.emitted,"reads":out.reads,"terminal":out.terminal,
+        "selected_segments":out.selected,"selected_roles":out.roles,"events":out.events,
+        "snapshots":out.snapshots,"final_frame":out.final_frame,"resume_identical":out.resume_identical})
+}
+
+fn ob_check_oracle(out: &ObOutcome, expected: &serde_json::Value) -> bool {
+    let mut answer: Vec<u32> =
+        serde_json::from_value(expected["answer"].clone()).unwrap_or_default();
+    if expected["terminal"] == "Stop" {
+        answer.push(OB_EOS);
+    }
+    out.emitted == answer
+        && json!(out.terminal) == expected["terminal"]
+        && json!(out.reads) == expected["reads"]
+        && json!(out.selected) == expected["selected_segments"]
+}
+
+fn ob_run() -> Result<ExitCode, String> {
+    let mut root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-1",
+    );
+    let mut source_root: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    let pb = std::fs::read(E_PATH).map_err(|e| format!("E: {e}"))?;
+    if sha256_hex(&pb) != E_SHA {
+        return Err("E sha mismatch".into());
+    }
+    let parent = PriorCore::from_bytes(&pb).map_err(|e| format!("load E: {e}"))?;
+    parent.validate()?;
+    let (parent_digest, _) = parent_hash_convention(&pb);
+    let sb = std::fs::read(S_PATH).map_err(|e| format!("S: {e}"))?;
+    if sha256_hex(&sb) != S_SHA {
+        return Err("S sha mismatch".into());
+    }
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let derived = sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?);
+    if derived != DERIVED_SHA {
+        return Err("derived tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let raw_tok: [u8; 32] = hex_to_bytes(&derived)?.try_into().unwrap();
+    let local = QueryHard::from_bytes(&sb, &parent, &parent_digest, &raw_tok)
+        .map_err(|e| format!("load S: {e}"))?;
+    let _u: Vec<Vec<i32>> = (0..120).map(|s| local.row_scores(s)).collect();
+    let table = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
+    let group_digest = group_table_digest(&table);
+    let source_files: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+    let executable_sha256 = hex_of(&sha256_bytes(
+        &std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+            .unwrap_or_default(),
+    ));
+    let names = ObNames {
+        persons: ["Mara", "Ivo", "Cedar", "Oren"],
+        offices: ["Cedar Annex", "Office Park", "Fen"],
+        projects: ["Atlas", "Project Bay", "Lumen"],
+    };
+
+    // Development: one- and two-read chains only, so a three-read composition is withheld.
+    let dev_worlds: Vec<ObWorld> = vec![
+        ob_make_world(
+            &tokenizer,
+            &names,
+            0,
+            10,
+            &[vec![0, 1], vec![2, 3]],
+            &[vec![0], vec![1, 2], vec![3]],
+            false,
+            OB_SEED,
+        )?,
+        ob_make_world(
+            &tokenizer,
+            &names,
+            1,
+            11,
+            &[vec![0], vec![1, 2], vec![3]],
+            &[vec![0, 1], vec![2, 3]],
+            false,
+            OB_SEED + 0x9E37,
+        )?,
+        ob_make_world(
+            &tokenizer,
+            &names,
+            2,
+            12,
+            &[vec![0, 1], vec![2, 3]],
+            &[vec![0, 2], vec![1, 3]],
+            false,
+            OB_SEED + 2 * 0x9E37,
+        )?,
+    ];
+    // Previously exposed regression: three-read composition absent from fitting, and a terminal answer that is also a
+    // person key elsewhere.
+    let final_worlds: Vec<ObWorld> = vec![
+        ob_make_world(
+            &tokenizer,
+            &names,
+            100,
+            300,
+            &[vec![0, 1, 2], vec![3]],
+            &[vec![0], vec![1, 2, 3]],
+            false,
+            OB_FINAL_SEED,
+        )?,
+        ob_make_world(
+            &tokenizer,
+            &names,
+            101,
+            301,
+            &[vec![0], vec![1, 2, 3]],
+            &[vec![0, 1, 2], vec![3]],
+            false,
+            OB_FINAL_SEED + 0x9E37,
+        )?,
+        ob_make_world(
+            &tokenizer,
+            &names,
+            102,
+            302,
+            &[vec![0, 1, 2], vec![3]],
+            &[vec![0], vec![1, 2, 3]],
+            true,
+            OB_FINAL_SEED + 2 * 0x9E37,
+        )?,
+    ];
+
+    // Development supervision: statement clauses plus the observed question clauses.
+    let mut dev_clauses: Vec<Clause> = Vec::new();
+    let mut dev_labels: Vec<ClauseLabel> = Vec::new();
+    for (wi, w) in dev_worlds.iter().enumerate() {
+        let base = wi as u32 * 100;
+        for c in w.clauses.iter() {
+            dev_clauses.push(Clause {
+                seg: c.seg + base,
+                tokens: c.tokens.clone(),
+            });
+        }
+        for l in w.labels.iter() {
+            let mut l2 = l.clone();
+            l2.seg += base;
+            dev_labels.push(l2);
+        }
+        for person in 0..OB_PERSONS {
+            for goal in [Goal::Office, Goal::Project] {
+                let mut q = ob_question(&tokenizer, &names, person, goal)?;
+                q.seg = 900_000 + wi as u32 * 100 + (person as u32) * 2 + goal.index() as u32;
+                let mut label = ob_clause(
+                    &tokenizer,
+                    0,
+                    names.persons[person],
+                    names.cue(goal, false),
+                    None,
+                )?
+                .1;
+                label.seg = q.seg;
+                label.role = ObNames::role_of(goal, false);
+                label.goal = goal;
+                label.action = RelAction::Emit;
+                dev_clauses.push(q);
+                dev_labels.push(label);
+            }
+        }
+    }
+    let (model, fit) =
+        fit_observed_text_model(&dev_clauses, &dev_labels).map_err(|e| format!("fit: {e}"))?;
+    let model_bytes = model.to_bytes().map_err(|e| format!("{e}"))?;
+    write_checked(&root, "artifacts/contextual_roles_model.json", &model_bytes)?;
+    let reloaded = ObservedTextModel::from_bytes(
+        &std::fs::read(root.join("artifacts/contextual_roles_model.json"))
+            .map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| format!("{e}"))?;
+    if reloaded != model {
+        return Err("contextual roles model reload mismatch".into());
+    }
+
+    let expected = |w: &ObWorld, person: usize, goal: Goal| -> (Vec<u32>, u8) {
+        w.oracle
+            .iter()
+            .find(|((p, g), _)| *p == person && *g == goal)
+            .map(|(_, v)| v.clone())
+            .unwrap_or_default()
+    };
+
+    let evaluate = |w: &ObWorld,
+                    control: &TextControl|
+     -> Result<(usize, usize, usize, Vec<serde_json::Value>), String> {
+        let mut complete = 0;
+        let mut depth_ok = 0;
+        let mut rows = Vec::new();
+        for person in 0..OB_PERSONS {
+            for goal in [Goal::Office, Goal::Project] {
+                let q = ob_question(&tokenizer, &names, person, goal)?;
+                let subject = tokenizer.encode(&format!(" {}", names.persons[person]));
+                let oracle = ob_expected(w, &subject, goal)?;
+                let (want, want_depth) = expected(w, person, goal);
+                if oracle["answer"] != json!(want)
+                    || oracle["reads"] != json!(want_depth)
+                    || oracle["terminal"] != "Stop"
+                {
+                    return Err("world expectation differs from independent exact traversal".into());
+                }
+                let out = ob_serve(&reloaded, w, &q, control.clone(), true)?;
+                let mut want_eos = want.clone();
+                want_eos.push(OB_EOS);
+                let ok = out.emitted == want_eos && out.terminal == RelAction::Stop;
+                complete += usize::from(ok);
+                depth_ok += usize::from(out.reads == want_depth);
+                rows.push(json!({"world":w.id,"world_version":w.version,"person":person,"goal":goal,
+                "question":q,"question_text":tokenizer.decode(&q.tokens),"expected_answer":want,
+                "expected_text":tokenizer.decode(&want),"expected_depth":want_depth,"independent_expected":oracle,
+                "emitted":out.emitted,"emitted_text_without_eos":tokenizer.decode(&out.emitted.iter().copied().filter(|t|*t!=OB_EOS).collect::<Vec<_>>()),
+                "reads":out.reads,"terminal":out.terminal,"selected_segments":out.selected,"selected_roles":out.roles,
+                "events":out.events,"snapshots":out.snapshots,"final_frame":out.final_frame,
+                "resume_identical":out.resume_identical,"actions":out.actions,"correct":ok}));
+            }
+        }
+        Ok((complete, rows.len(), depth_ok, rows))
+    };
+
+    let mut arms = Vec::<serde_json::Value>::new();
+    let mut all_rows = Vec::<serde_json::Value>::new();
+    let mut dev_rows = 0usize;
+    for (split, worlds) in [
+        ("development", &dev_worlds),
+        ("exposed_regression", &final_worlds),
+    ] {
+        let mut complete = 0;
+        let mut total = 0;
+        let mut depth_ok = 0;
+        for w in worlds {
+            let (c, t, d, mut rows) = evaluate(w, &TextControl::Normal)?;
+            complete += c;
+            total += t;
+            depth_ok += d;
+            for row in &mut rows {
+                row["arm"] = json!("contextual_primary");
+                row["split"] = json!(split);
+            }
+            if split == "development" {
+                dev_rows += rows.len();
+            }
+            all_rows.extend(rows);
+        }
+        arms.push(json!({"arm":"contextual_primary","split":split,"complete":complete,"total":total,"depth_correct":depth_ok}));
+    }
+    let membership_entities: Vec<Vec<u32>> = names
+        .persons
+        .iter()
+        .map(|p| tokenizer.encode(&format!(" {p}")))
+        .collect();
+    for (label, control) in [
+        (
+            "membership_continuation",
+            TextControl::Membership {
+                entities: membership_entities.clone(),
+            },
+        ),
+        ("maximum_two_read", TextControl::ReadCap { max_reads: 2 }),
+        ("reads_disabled", TextControl::ReadsDisabled),
+    ] {
+        let mut complete = 0;
+        let mut total = 0;
+        let mut depth_ok = 0;
+        for w in &final_worlds {
+            let (c, t, d, mut rows) = evaluate(w, &control)?;
+            complete += c;
+            total += t;
+            depth_ok += d;
+            for row in &mut rows {
+                row["arm"] = json!(label);
+                row["split"] = json!("exposed_regression");
+            }
+            all_rows.extend(rows);
+        }
+        arms.push(json!({"arm":label,"split":"exposed_regression","complete":complete,"total":total,"depth_correct":depth_ok}));
+    }
+
+    // Interventions choose source edits from independent typed fixture truth, then execute the
+    // exact same observed-question runtime. No supervised field reaches serving.
+    let w0 = &final_worlds[0];
+    let q0 = ob_question(&tokenizer, &names, 0, Goal::Office)?;
+    let subject = tokenizer.encode(&format!(" {}", names.persons[0]));
+    let base_expected = ob_expected(w0, &subject, Goal::Office)?;
+    let base = ob_serve(&reloaded, w0, &q0, TextControl::Normal, true)?;
+    let first_seg = base_expected["selected_segments"][0]
+        .as_u64()
+        .ok_or("missing first oracle segment")? as u32;
+    let edit_world = |replacement: &[u32]| -> Result<ObWorld, String> {
+        let mut clauses = w0.clauses.clone();
+        let mut labels = w0.labels.clone();
+        let label = labels
+            .iter_mut()
+            .find(|l| l.seg == first_seg)
+            .ok_or("missing source label")?;
+        let (start, _) = label.object.ok_or("missing source object")?;
+        let clause = clauses
+            .iter_mut()
+            .find(|c| c.seg == first_seg)
+            .ok_or("missing source clause")?;
+        clause.tokens.truncate(start as usize);
+        clause.tokens.extend_from_slice(replacement);
+        label.object = Some((start, replacement.len()));
+        Ok(ObWorld {
+            id: w0.id,
+            version: w0.version,
+            clauses,
+            labels,
+            oracle: Vec::new(),
+            texts: Vec::new(),
+        })
+    };
+    let edited = edit_world(&tokenizer.encode(&format!(" {}", names.persons[3])))?;
+    let edit_expected = ob_expected(&edited, &subject, Goal::Office)?;
+    let edit = ob_serve(&reloaded, &edited, &q0, TextControl::Normal, true)?;
+    let terminal_seg = base_expected["selected_segments"]
+        .as_array()
+        .and_then(|v| v.last())
+        .and_then(|v| v.as_u64())
+        .ok_or("missing terminal source")? as u32;
+    let removed = ObWorld {
+        id: w0.id,
+        version: w0.version,
+        clauses: w0
+            .clauses
+            .iter()
+            .filter(|c| c.seg != terminal_seg)
+            .cloned()
+            .collect(),
+        labels: w0
+            .labels
+            .iter()
+            .filter(|l| l.seg != terminal_seg)
+            .cloned()
+            .collect(),
+        oracle: Vec::new(),
+        texts: Vec::new(),
+    };
+    let removed_expected = ob_expected(&removed, &subject, Goal::Office)?;
+    let absent = ob_serve(&reloaded, &removed, &q0, TextControl::Normal, true)?;
+    let cycle_world = edit_world(&subject)?;
+    let cycle_expected = ob_expected(&cycle_world, &subject, Goal::Office)?;
+    let cycle = ob_serve(&reloaded, &cycle_world, &q0, TextControl::Normal, true)?;
+    let q_project = ob_question(&tokenizer, &names, 0, Goal::Project)?;
+    let project_expected = ob_expected(w0, &subject, Goal::Project)?;
+    let project = ob_serve(&reloaded, w0, &q_project, TextControl::Normal, true)?;
+    let mut swapped = q0.clone();
+    let n = swapped.tokens.len();
+    swapped.tokens.swap(n - 1, n - 2);
+    let perturbation = match ob_serve(&reloaded, w0, &swapped, TextControl::Normal, true) {
+        Ok(out) => ob_outcome_record(&out),
+        Err(e) => json!({"error":e}),
+    };
+    let goal_invariant = |out: &ObOutcome| {
+        out.events
+            .iter()
+            .all(|e| e["before"]["goal"] == e["after"]["goal"])
+    };
+    let checks = json!({"base_matches":ob_check_oracle(&base,&base_expected),"source_edit_matches":ob_check_oracle(&edit,&edit_expected),"source_edit_changes_successful_answer":edit.terminal==RelAction::Stop && edit.emitted!=base.emitted && edit.selected!=base.selected,"goal_invariant":goal_invariant(&base)&&goal_invariant(&edit),"later_absence_matches":ob_check_oracle(&absent,&removed_expected)&&absent.reads==2,"cycle_matches":ob_check_oracle(&cycle,&cycle_expected),"goal_change_matches":ob_check_oracle(&project,&project_expected)&&project.selected!=base.selected});
+    if checks
+        .as_object()
+        .ok_or("invalid intervention checks")?
+        .values()
+        .any(|v| v != &json!(true))
+    {
+        return Err(format!("intervention contract failed: {checks}"));
+    }
+    let interventions = json!({"one_source_object_span_edit":{"segment":first_seg,"replacement":names.persons[3],"before_clauses":w0.clauses,"after_clauses":edited.clauses,"before_expected":base_expected,"after_expected":edit_expected,"before":ob_outcome_record(&base),"after":ob_outcome_record(&edit)},"required_terminal_fact_removed":{"removed_segment":terminal_seg,"clauses":removed.clauses,"expected":removed_expected,"outcome":ob_outcome_record(&absent)},"cycle":{"clauses":cycle_world.clauses,"expected":cycle_expected,"outcome":ob_outcome_record(&cycle)},"request_goal_change":{"question":q_project,"expected":project_expected,"outcome":ob_outcome_record(&project)},"subword_order_perturbation":{"question":swapped,"decoded":tokenizer.decode(&swapped.tokens),"outcome":perturbation,"scope":"Perturbation only; no claim of semantic word-order generalization"},"checks":checks});
+
+    let world_record = |w: &ObWorld| json!({"id":w.id,"version":w.version,"clauses":w.clauses,"texts":w.clauses.iter().map(|c|tokenizer.decode(&c.tokens)).collect::<Vec<_>>(),"labels_for_evaluation_only":w.labels,"oracle_for_evaluation_only":w.oracle});
+    write_json(
+        &root,
+        "worlds.json",
+        &json!({"development":dev_worlds.iter().map(world_record).collect::<Vec<_>>(),"exposed_regression":final_worlds.iter().map(world_record).collect::<Vec<_>>(),"fit_clauses":dev_clauses,"fit_labels":dev_labels,"membership_entities":membership_entities,"identity_convention":"Exact BPE span equality under declared leading-space input convention; not normalization or learned coreference"}),
+    )?;
+
+    write_checked(
+        &root,
+        "rows.jsonl",
+        all_rows
+            .iter()
+            .map(|r| serde_json::to_string(r).unwrap_or_default())
+            .collect::<Vec<_>>()
+            .join("\n")
+            .as_bytes(),
+    )?;
+
+    let result = json!({
+        "schema": "uor-r4.contextual-text-roles/2",
+        "base_revision": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+        "running_source": {
+            "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+            "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
+            "executable_sha256": executable_sha256,
+            "source_files": source_files,
+        },
+        "inputs": {"E_sha256": E_SHA, "S_sha256": S_SHA, "tokenizer_derived": DERIVED_SHA,
+            "group_digest": group_digest, "f_bits": parent.cfg.f_bits},
+        "task": {
+            "serving_input": "readable statement clauses and an observed question clause, both encoded by the pinned BPE tokenizer; no gold role, span, goal, pointer, depth or target",
+            "vocabulary": {"persons": names.persons, "offices": names.offices, "projects": names.projects,
+                "office_assert": names.cue(Goal::Office, false),
+                "office_redirect": names.cue(Goal::Office, true),
+                "project_assert": names.cue(Goal::Project, false),
+                "project_redirect": names.cue(Goal::Project, true)},
+            "shared_vocabulary": "Case and actual BPE feature overlap must be audited; visual office/Office and project/Project similarity is not proof of cue reuse",
+            "eos": OB_EOS,
+            "dev_worlds": dev_worlds.iter().map(|w| w.texts.clone()).collect::<Vec<_>>(),
+            "final_office_depths": final_worlds.iter().map(|w| w.oracle.iter().filter(|((_, g), _)| *g == Goal::Office).map(|(_, (_, d))| *d).collect::<Vec<u8>>()).collect::<Vec<_>>(),
+        },
+        "learning": fit,
+        "arms": arms,
+        "interventions": interventions,
+        "development_rows": dev_rows,
+        "all_arm_rows": all_rows.len(),
+        "exposed_primary_rows":24,
+        "independent_checks":checks,
+        "scope": "authored readable text over a small memory domain; declared clause layout and bounded span proposals. Not broad language understanding. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+        "elapsed_s": started.elapsed().as_secs_f64(),
+    });
+    write_json(&root, "result.json", &result)?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    let find = |arm: &str, split: &str| -> (u64, u64) {
+        arms.iter()
+            .find(|a| a["arm"] == json!(arm) && a["split"] == json!(split))
+            .map(|a| {
+                (
+                    a["complete"].as_u64().unwrap_or(0),
+                    a["total"].as_u64().unwrap_or(0),
+                )
+            })
+            .unwrap_or((0, 0))
+    };
+    let (dc, dt) = find("contextual_primary", "development");
+    let (fc, ft) = find("contextual_primary", "exposed_regression");
+    let (mc, _) = find("membership_continuation", "exposed_regression");
+    let (xc, _) = find("maximum_two_read", "exposed_regression");
+    let (rc, _) = find("reads_disabled", "exposed_regression");
+    println!(
+        "contextual-text-roles: dev {dc}/{dt} exposed regression {fc}/{ft} | membership {mc} max-two {xc} no-read {rc} | role {} -> {} of {} | weights {} | sealed {} unlisted | {:.1}s",
+        fit.role_initial_correct, fit.role_final_correct, fit.clauses, fit.feature_weights,
+        unlisted.len(), started.elapsed().as_secs_f32()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let mode = std::env::args().any(|a| a == "--mode=utility-transfer");
     let ce = std::env::args().any(|a| a == "--mode=contextual-emission");
@@ -13469,7 +14334,10 @@ fn main() -> ExitCode {
     let stm = std::env::args().any(|a| a == "--mode=shared-transition");
     let gsm = std::env::args().any(|a| a == "--mode=grounded-session");
     let rsm = std::env::args().any(|a| a == "--mode=relational-session");
-    let result = if rsm {
+    let obm = std::env::args().any(|a| a == "--mode=observed-text-session");
+    let result = if obm {
+        ob_run()
+    } else if rsm {
         rel_run()
     } else if gsm {
         gs_run()

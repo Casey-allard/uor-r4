@@ -1,0 +1,300 @@
+{
+  "initial_checks_before_cycle_trace_fix": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::observed_text_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 183812,
+      "log": "/tmp/uor-pr1343-check-0.log",
+      "log_sha256": "0657f85cc192178d01fa58f91182a722994034148e569960fca51ec523fe59a8",
+      "free_after": 38692085760,
+      "minimum_free": 38631473152,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 137587,
+      "log": "/tmp/uor-pr1343-check-1.log",
+      "log_sha256": "9df10d853c0659788df5d040b1407bc70b13651785c77d413bf2248587e15811",
+      "free_after": 38684352512,
+      "minimum_free": 38584188928,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 20089,
+      "log": "/tmp/uor-pr1343-check-2.log",
+      "log_sha256": "f7ae7df519ae74151e37c13c5edff8584b0716f2a0f3295c824d7f010a71b4c5",
+      "free_after": 38683303936,
+      "minimum_free": 38681899008,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-1",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 1012,
+      "log": "/tmp/uor-pr1343-check-3.log",
+      "log_sha256": "ce3dd276f37e4dd58cc881d826664ddf895a8c0eccbadc7e00dfb9b35fd9ccc3",
+      "free_after": 38683213824,
+      "minimum_free": 38683283456,
+      "storage_limit_stop": false
+    }
+  ],
+  "first_corrected_executable": {
+    "path": "/tmp/uor-pr1343-first-corrected-competitive-reader",
+    "sha256": "ca2e7e7fba886b23ec1bf56ae631416139b3e81ce78278b851882ec4afa9f498",
+    "scope": "Partial root1 fails cycle selection accounting; preserve exact executable/source and original checks"
+  },
+  "schema": "uor-r4.contextual-text-roles-principal-checks/1",
+  "submitted_head": "bc9c81712bf505089bf22e3a3bd53df819e858c4",
+  "corrected_dependency": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75",
+  "recovery_main": "dd4c2751",
+  "projection": {
+    "at": "2026-09-22T02:16:33.326815+00:00",
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-2",
+    "commands": [
+      [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::observed_text_session::tests"
+      ],
+      [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      [
+        "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-2",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ]
+    ],
+    "source_sha256": {
+      "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": "46afbd9c32e24e659a2df8f24ef251192b52422803bb8af4f95d1e25bef40293",
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5",
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": "f76a148197b9e813a018f0069f3ed7fb322dd21899ad54d95d567d8f31146dda"
+    },
+    "free_before": 38676353024,
+    "environment": {
+      "CARGO_TARGET_DIR": "/Users/casey.allard/uor-r4/target",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0",
+      "UOR_GIT_REV": "bc9c81712bf505089bf22e3a3bd53df819e858c4",
+      "UOR_GIT_DIRTY": "true"
+    },
+    "scope": "One corrected exposed replay; no fresh evaluation or architecture extension; restore all-arm causal instrumentation and core malformed input/phase checks. Release time remains whole instrument including preparation, not serving latency."
+  },
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 5028,
+      "log": "/tmp/uor-pr1343-final-check-0.log",
+      "log_sha256": "1bf2cc15dee2d95c7bb5dc4b651515d6078bd7a4eee8f3578c96ae4ac6d93e1e",
+      "free_after": 38666006528,
+      "minimum_free": 38665302016,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 19087,
+      "log": "/tmp/uor-pr1343-final-check-1.log",
+      "log_sha256": "59b3dff1f22c287edb2e64ef27a7e4b0edf0903f0e5ef3ba58135bad07ca61d0",
+      "free_after": 38666792960,
+      "minimum_free": 38663733248,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-2",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1009,
+      "log": "/tmp/uor-pr1343-final-check-2.log",
+      "log_sha256": "6f6d6f42de3e916ac4d25a6d44c7aaf75752dbfa3d954de43cfe4e7e29d8a7b1",
+      "free_after": 38658461696,
+      "minimum_free": 38666784768,
+      "storage_limit_stop": false
+    }
+  ],
+  "library_tests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "runner_tests": {
+    "passed": 21,
+    "failed": 0,
+    "ignored": 1,
+    "ignored_name": "tests::retained_artifact_generation_matches_teacher_forced_prefixes",
+    "scope": "Legacy PR1321 artifact test; not run or counted as pass"
+  },
+  "document_checks": {
+    "postcheck_format_only": "mod.rs declaration order normalized after checks; no numerical/runtime change and all audited source hashes unchanged",
+    "json_files_parsed": [
+      "docs/evidence/contextual-text-roles-2026-09-22.json",
+      "docs/evidence/contextual-text-roles-corrected-replay-audit-2026-09-22.json",
+      "docs/evidence/contextual-text-roles-principal-checks-2026-09-22.json",
+      "docs/evidence/contextual-text-roles-principal-review-2026-09-22.json",
+      "docs/evidence/observed-text-session-2026-09-21.json",
+      "docs/evidence/observed-text-session-corrected-replay-audit-2026-09-22.json",
+      "docs/evidence/observed-text-session-principal-checks-2026-09-22.json",
+      "docs/evidence/observed-text-session-principal-review-2026-09-22.json"
+    ],
+    "relative_document_targets_checked": 1060,
+    "missing_targets": [],
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "replay": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-2",
+    "executable_sha256": "c1c8b57d91b5baac72aa5c83fea23934fb281cce60990693ee5b8c6dcf3dc3cd",
+    "elapsed_s": 0.254830125,
+    "scope": "Corrected exposed replay; original five reports/executable preserved, no new language mechanism/fresh-final qualification"
+  },
+  "resource": {
+    "at": "2026-09-22T02:19:38.464714+00:00",
+    "projection": {
+      "at": "2026-09-22T01:59:56.552746+00:00",
+      "before": {
+        "cumulative_ms": 309590598,
+        "limit_ms": 313100000
+      },
+      "principal_projection_ms": 5400000,
+      "preprojection_preparation_estimate_ms": 180000,
+      "extension_ms": 3600000,
+      "updated_limit_ms": 316700000,
+      "reason": "Owner-authorized principal source/evidence/architecture review, recover lost dependency documentation, concrete source corrections if warranted, focused tests and actual corrected execution, GitHub and knowledge delivery. No arbitrary retry quota.",
+      "cpu_threads": 2,
+      "model_threads": 1,
+      "peak_ram_bytes": 8589934592,
+      "temporary_build_bytes": 1610612736,
+      "retained_reports_bytes": 67108864,
+      "physical_reserve_bytes": 36766079385,
+      "storage_stop_margin_bytes": 134217728,
+      "free_before_bytes": 37835436032,
+      "paid_compute": false,
+      "owner_checkout": "clean74fef088",
+      "submitted_head": "bc9c81712bf505089bf22e3a3bd53df819e858c4"
+    },
+    "elapsed_ms": 1181912,
+    "preprojection_preparation_estimate_ms": 180000,
+    "delivery_reserve_ms": 300000,
+    "principal_charge_ms": 1961912,
+    "before": {
+      "cumulative_ms": 309590598,
+      "limit_ms": 316700000
+    },
+    "after": {
+      "cumulative_ms": 311552510,
+      "limit_ms": 316700000
+    },
+    "remaining_ms": 5147490,
+    "extension_ms": 3600000,
+    "free_after_bytes": 38651015168,
+    "cleanup": {
+      "at": "2026-09-22T02:06:03.087277+00:00",
+      "reason": "Discard regenerable debug core libraries from the preceding principal check profiles; current release cache and original/previous corrected executables are preserved, no active compiler. Release checks will use the current release profile.",
+      "before_free_bytes": 37787312128,
+      "allocated_bytes": 907038720,
+      "count": 4,
+      "after_free_bytes": 38694313984,
+      "manifest": "/tmp/uor-pr1343-cleanup-manifest.json",
+      "manifest_sha256": "ef270a80311ebd191d163fd9dffb7e1529a1176e80ef5efdb862efd268f7240c"
+    },
+    "parallel_work": "Included once in elapsed review wall time",
+    "paid_compute": false,
+    "additional_delivery_reserve_ms": 300000,
+    "additional_delivery_recorded_at": "2026-09-22T02:25:39.316867+00:00"
+  },
+  "limits": [
+    "Fixed prefix-marker-suffix support",
+    "Context available but endpoint signatures already distinguish authored cues",
+    "Artificial leading-space identity convention",
+    "Immutable source binding, not durable mutable memory",
+    "Restore internal chain/phase consistency does not authenticate an omitted original request",
+    "No geometric superiority, general prose, executed Rust or whole-path D0-b/energy claim"
+  ]
+}

@@ -1,0 +1,223 @@
+{
+  "schema": "uor-r4.pr1342-corrected-independent-audit/1",
+  "scope": "Independent saved-data audit of corrected observed-text runtime; no fitting, model run or build.",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-2",
+  "seal": {
+    "listed": 5,
+    "missing": [],
+    "unlisted": [],
+    "size_errors": [],
+    "blake3_errors": []
+  },
+  "provenance": {
+    "result_sha256": "6f8096504f1cd31e27ec68950cc2dbbfa69c6daf71035e7f71c6e5e8d3061f7c",
+    "model_sha256": "adce48b00d14e6c2ba55b03972e01f09660512db5e89e6a280aed8e08fd997bb",
+    "model_bytes": 394,
+    "source_matches_review": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "running_source": {
+      "executable_sha256": "c5e1ae85406ea4f9e72435dd0f8c6088dbcc04784cef12163e304380121e0705",
+      "git_dirty": "true",
+      "git_rev": "b9eca5d2759d86664e519a9fb4c875b8127cb914",
+      "source_files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+          "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+          "sha256": "8902b17a9efa95a5b453a77650415fbe6ca3554a60748406a0d9f09bcdc08d79"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "f71bbcba9378cb81403e001f075a3b8a773d8ab4aff0606dbe688f24e0433e9c"
+        }
+      ]
+    },
+    "actual_executable_matches": true
+  },
+  "arm_recounts": {
+    "observed_text_session/development": {
+      "rows": 24,
+      "correct": 24,
+      "correct_depth": 24,
+      "all_flags_match": true,
+      "all_expected_targets_match": true
+    },
+    "observed_text_session/exposed_regression": {
+      "rows": 24,
+      "correct": 24,
+      "correct_depth": 24,
+      "all_flags_match": true,
+      "all_expected_targets_match": true
+    },
+    "membership_continuation/exposed_regression": {
+      "rows": 24,
+      "correct": 20,
+      "correct_depth": 22,
+      "all_flags_match": true,
+      "all_expected_targets_match": true
+    },
+    "read_cap_two/exposed_regression": {
+      "rows": 24,
+      "correct": 18,
+      "correct_depth": 18,
+      "all_flags_match": true,
+      "all_expected_targets_match": true
+    },
+    "reads_disabled/exposed_regression": {
+      "rows": 24,
+      "correct": 0,
+      "correct_depth": 0,
+      "all_flags_match": true,
+      "all_expected_targets_match": true
+    }
+  },
+  "reported_counts_match": {
+    "observed_text_session/development": true,
+    "observed_text_session/exposed_regression": true,
+    "membership_continuation/exposed_regression": true,
+    "read_cap_two/exposed_regression": true,
+    "reads_disabled/exposed_regression": true
+  },
+  "row_event_totals": {
+    "events": 470,
+    "successful_reads": 158,
+    "repeated_read_attempts": 4,
+    "snapshots": 590
+  },
+  "snapshot_counts_by_arm": {
+    "observed_text_session/development": 126,
+    "observed_text_session/exposed_regression": 141,
+    "membership_continuation/exposed_regression": 149,
+    "read_cap_two/exposed_regression": 126,
+    "reads_disabled/exposed_regression": 48
+  },
+  "reported_primary_resume_count_matches": true,
+  "snapshot_phase_counts": {
+    "Read": 192,
+    "Continue": 72,
+    "Emit": 120,
+    "Stop": 86,
+    "terminal:Stop": 86,
+    "terminal:Exhausted": 10,
+    "terminal:Unresolved": 24
+  },
+  "event_errors": [],
+  "snapshot_errors": [],
+  "original_preservation": {
+    "rows": 24,
+    "matching_outputs_depth_roles": 24
+  },
+  "source_intervention": {
+    "changed_tokens": [
+      {
+        "segment": 0,
+        "offset": 3,
+        "before": 486,
+        "after": 488
+      }
+    ],
+    "before_expected": {
+      "answer": [
+        489,
+        491
+      ],
+      "terminal": "Stop",
+      "reads": 3,
+      "selected_segments": [
+        0,
+        1,
+        2
+      ],
+      "roles": [
+        1,
+        1,
+        0
+      ]
+    },
+    "after_expected": {
+      "answer": [
+        513
+      ],
+      "terminal": "Stop",
+      "reads": 2,
+      "selected_segments": [
+        0,
+        3
+      ],
+      "roles": [
+        1,
+        0
+      ]
+    },
+    "answers_match": true,
+    "selection_depth_match": true,
+    "goal_invariant_verified": true
+  },
+  "downstream_absence": {
+    "removed_segment": 2,
+    "original_expected_path": [
+      0,
+      1,
+      2
+    ],
+    "is_terminal_fact_after_two_redirects": true,
+    "expected": {
+      "answer": [],
+      "terminal": "Unresolved",
+      "reads": 2,
+      "selected_segments": [
+        0,
+        1
+      ],
+      "roles": [
+        1,
+        1
+      ]
+    },
+    "reported_successful_reads": 2,
+    "outcome_matches": true
+  },
+  "cycle": {
+    "expected": {
+      "answer": [],
+      "terminal": "Exhausted",
+      "reads": 1,
+      "selected_segments": [
+        0
+      ],
+      "roles": [
+        1
+      ]
+    },
+    "actual_successful_reads": 1,
+    "terminal": "Exhausted",
+    "emitted": [],
+    "matches": true
+  },
+  "totals": {
+    "events": 491,
+    "successful_reads": 166,
+    "repeated_read_attempts": 5,
+    "snapshots": 590
+  },
+  "remaining_scope": [
+    "Repeatedly exposed symbolic BPE-token grammar; no untouched final language qualification.",
+    "Three-hop composition absent from fit, but exposed during eight original design attempts.",
+    "Nine two-token answers do not establish multiword prose; familiar disjoint marker codebook remains.",
+    "Categorical observation baseline; no geometric predictive advantage or whole-path D0-b/energy claim.",
+    "Source-bound immutable runtime rejects changed documents rather than implementing mutable persistent-memory capture reuse."
+  ],
+  "resources": {
+    "reported_elapsed_s": 2.267851583,
+    "retained_report_bytes": 4604786,
+    "model_runs_by_auditor": 0,
+    "builds_by_auditor": 0
+  },
+  "all_material_checks_pass": true,
+  "script_sha256": "57fabb6060b95d482638bfdfec78392265700ffb4a5b54c289a3e76f13859716"
+}

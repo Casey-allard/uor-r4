@@ -1,7 +1,60 @@
 # Current native geometric AI work
 
-## Active: reviewed relational component; observed-text session next
+## Active: contextual scorer retained; learned argument binding next
 
+**PR #1343, principal review:** retain fitted categorical candidate/role learning and exact variable-depth answers. All 24/24 original primary answers/depths are independently reconstructed; seven outputs are genuine multiword spans. Actual marker-role learning is 0/48→48/48 (the reported 14 initial value was the action baseline). The panel is exposed, and static endpoint/length signatures suffice to identify its cues, so contextual necessity is not established. [Review](../integration/contextual-text-roles-review-2026-09-22.md); [original audit](../evidence/contextual-text-roles-principal-review-2026-09-22.json).
+
+**Corrected component:** shared loaded runtime and all-arm/every-phase evidence, valid leading-space membership control, source-span edit with independent changed-answer expectation, genuine downstream absence, coherent score/fit/restore contracts. [Corrected replay audit](../evidence/contextual-text-roles-corrected-replay-audit-2026-09-22.json); [executed checks/resources](../evidence/contextual-text-roles-principal-checks-2026-09-22.json). The supplied prefix/marker/suffix layout and artificial leading-space identity convention remain limits. No fresh-final, general-language, geometric-superiority or whole-path efficiency claim.
+
+**Next complete milestone:** [learned structured argument/query-span binding](../integration/deepseek-structured-argument-binding-step-2026-09-22.md) across ordinary sentence/question forms. Preserve exact raw surface/provenance separately from lexical identity. Use the same causal session, generic bounded span support, contextual categorical baseline and a meaningful ordered-H4 candidate on equal observations. Another categorical-only comparator run is not the missing mechanism. Broader durable scopes/corrections, integrated prose and executed Rust follow; Hopf/Spin, structural banks and conditional E8/S7/fields remain available.
+
+**Research leadership and autonomy:** Codex owns holistic mathematics/ML/systems architecture, evidence interpretation and roadmap revision. DeepSeek owns substantive implementation/diagnostic choices and complete lifecycle delivery, with prospectively accounted necessary local extensions. No arbitrary short timer or retry quota replaces scientific judgment, preservation or physical limits.
+
+## Historical PR #1343 submitted account (corrected above)
+
+
+## Active: contextual occurrence roles and exact spans from readable text
+
+**Executed the contextual text-roles brief** on the corrected head `f5919d8e` of PR #1342 while that PR was still open; `origin/main` (`d9d896e8`) did not contain the #1341/#1342 repairs, so the corrected head was the base.
+
+**What changed.** The monotone token-vote marker score and the global per-token boundary sign are replaced by a **candidate-conditioned score over ordered local context** (candidate first/last tokens, the immediately preceding and following tokens, candidate length and clause-relative position). The shared extractor `candidate_features` is the one observation path used by fitting and serving, so order is encoded and no decision depends on a global token sign. Learned by a bounded candidate perceptron from declared development clauses: whole-clause (marker extent, role) accuracy moves **14/48 to 48/48** on the same units with 50 feature weights.
+
+**Readable text.** Real words through the pinned BPE tokenizer, with cue words shared with name content (`office`/`project` inside `Office Park`/`Project Bay`) and overlapping names (`Cedar` vs `Cedar Annex`). Answers are multi-token spans emitted with spaces (` Lumen`, ` Cedar Annex`) plus the declared terminator, through the corrected `ObservedTextRuntime`.
+
+**Result.** Primary **24/24 development and 24/24 fresh final** with 24/24 correct depths; the same question answers after one, two and three reads with the three-read composition absent from development. Registry-membership continuation **13/24**, maximum-two-read **18/24**, reads disabled **0/24**. One-position source edit changes the selected occurrence and outcome; the goal change with fixed evidence selects different facts; removing a required later fact is unresolved; swapping two question tokens no longer parses as a question (order sensitivity); snapshot/restore continues identically.
+
+**Key diagnostic.** A tokenization boundary dominated: without a declared sentence-start space, clause-initial `Ivo` and mid-clause ` Ivo` are different BPE tokens, so exact span identity could not join a redirect target to the next subject and every multi-read chain stopped unresolved.
+
+**Next:** a separately fitted categorical/geometric contextual comparator on the same observations, then multiple active entities/scopes and corrections through the same boundary. [Result](contextual-text-roles-result-2026-09-22.md); [evidence](../evidence/contextual-text-roles-2026-09-22.json). Retained roots `contextual-text-roles-{1,2,3}` (0 unlisted). Energy UNAVAILABLE; whole-path D0-b not claimed.
+
+### Previous active (superseded by the section above)
+
+## Former active: 
+**PR #1342, principal review:** retain learned lexical-role tables and variable-depth exact-token memory answers. All original 24/24 primary answers and depths are independently reconstructed, including six three-read cases absent from fitting supervision. The final panel was repeatedly exposed; its BPE fragments are multi-token spans, not demonstrated multiword phrases or ordinary language. The 14/24 to 24/24 number measures gold-role action-table fit. [Review](../integration/observed-text-session-review-2026-09-22.md); [original audit](../evidence/observed-text-session-principal-review-2026-09-22.json).
+
+**Corrected reusable boundary:** `ObservedTextRuntime` owns actual loaded model/document/tokenizer bindings, receives observed question tokens, validates complete phase/capture/EOS state, and executes the learned Read/Continue/Emit/Stop path. Explicit controls, exact source spans and independent all-phase restores are recorded in the [corrected exposed replay audit](../evidence/observed-text-session-corrected-replay-audit-2026-09-22.json) and [executed checks/resources](../evidence/observed-text-session-principal-checks-2026-09-22.json). A supplied symbolic grammar remains; immutable source binding is not yet a durable mutable-memory service. No unique geometric, general-language or complete-path efficiency claim.
+
+**Next complete milestone:** [contextual roles and exact spans from ordinary observed text](../integration/deepseek-contextual-text-roles-step-2026-09-22.md), through that same session. Shared cue vocabulary, words used both in syntax and entity content, multiword overlapping entities and changed clause/question order must require occurrence context. Inspect ordered/full-relative H4 and existing role/span donors; compare a competent contextual baseline. More disjoint marker aliases cannot repair a global word-role collision. Broader durable memory, prose and executed Rust follow; structural banks, Hopf/Spin and conditional E8/S7/fields remain tools for witnessed needs.
+
+**Research leadership and autonomy:** Codex owns holistic mathematics/ML/systems architecture, evidence interpretation and roadmap revision. DeepSeek owns substantive implementation/diagnostic choices and complete lifecycle delivery, with prospectively accounted necessary local extensions. No arbitrary short timer or retry quota replaces scientific judgment, preservation or physical limits.
+
+## Historical submitted PR #1342 account (interpretation corrected above)
+
+### Original observed-text memory session submission
+
+**Executed the observed-text session brief** on the reviewed head `6fc34c1f` of PR #1341, which was still queued, so protection was preserved and the reviewed head used directly as the base. New module `learner/observed_text_session.rs` and mode `--mode=observed-text-session`.
+
+**Task.** The serving input is observed statement tokens, an observed question clause, a declared clause delimiter and a declared entity registry - no gold role, extent, pointer, depth or target. Statements are `subject marker object` with disjoint marker vocabulary per role; a question is `subject marker` with no object. Worlds are coherent (for each goal the persons are partitioned into ordered chains). Learned from declared development text: marker roles (token votes), boundary trimming (span edges), action semantics per role and the goal per role; the policy starts from a declared uninformed all-emit table and moves 14/24 to 24/24 on the same units.
+
+**Result.** The primary completes **24/24 development and 24/24 final with 24/24 correct depths**, emitting the complete selected phrase (multiword where the fact is multiword) plus the declared terminator through the boundary. The same exact request answers at **one, two and three reads** in different worlds, and the three-read composition is withheld from development. The registry-membership shortcut gets **20/24** and a relation-only fixed-depth-two controller **18/24**, so neither entity membership nor a fixed depth substitutes for the learned semantics; disabling reads gives **0/24**.
+
+**Causal controls.** A one-position first-source edit changes entity, selected sources, depth and the complete answer together and matches an independently derived expectation, with the goal invariant across the redirect; a request-goal change with the same evidence selects different facts and both match their independent expectations; a removed required fact gives an explicit unresolved stop; a redirect cycle gives exhausted; pause/resume is identical on 48/48.
+
+**Next:** broaden the same boundary to varied request/source wording (the current final novelty is the three-read composition and new assignments, not new wording), then source-separated prose and an executed Rust task. [Result](observed-text-session-result-2026-09-21.md); [evidence](../evidence/observed-text-session-2026-09-21.json). Retained roots `observed-text-session-{1..8}` (0 unlisted). Energy UNAVAILABLE; whole-path D0-b not claimed.
+
+### Previous active (superseded by the section above)
+
+## Former active: 
 **PR #1341, principal review:** retain learned relation/role correspondence and dependent exact-memory reads on supplied typed worlds. The original 128/128 labels are independently reconstructed, but the original continuation policy started correct and used a label-derived feature; request relation predicted depth, and resume still depended on host locals. The original H4 match used central minus identity. Categorical/cyclic ties are expected for this fixed-offset correspondence. Original panels were repeatedly exposed, not untouched final evaluation. [Review](../integration/relational-session-review-2026-09-21.md); [original audit](../evidence/relational-session-principal-review-2026-09-21.json).
 
 **Corrected component and boundary:** actual group identity, observed-type policy fitting from neutral initialization, state-driven restore/interleaving, bound snapshots, exact origin diagnostics and complete read/arm events are exercised in the [corrected replay](../evidence/relational-session-corrected-replay-audit-2026-09-21.json) and [checks](../evidence/relational-session-principal-checks-2026-09-21.json). Supplied record layout, entity registry, follow convention and single-token labels remain explicit; this is not general language or a complete-path efficiency result. Shared Q8 computation from PR #1340 remains retained.

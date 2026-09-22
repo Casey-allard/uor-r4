@@ -16,6 +16,7 @@ pub mod jepa_trainer;
 pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
+pub mod observed_text_session;
 pub mod occurrence;
 pub mod policy_feasibility;
 pub mod prefix_artifact;

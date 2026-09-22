@@ -1,0 +1,356 @@
+{
+  "schema": "uor-r4.contextual-text-roles/1",
+  "at": "2026-09-22",
+  "scope": "authored readable text over a small memory domain with declared clause layout and bounded span proposals; not broad language understanding; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75",
+    "pr": 1342,
+    "pr_state_at_work": "OPEN_QUEUED (not merged); origin/main was d9d896e8 and did not contain the #1341/#1342 repairs, so the corrected head was used as the base",
+    "worktree": ".worktrees/contextual-text-roles",
+    "owner_checkout_untouched": true
+  },
+  "task": {
+    "dev_worlds": [
+      [
+        "Mara office follows Ivo",
+        "Ivo works in Office Park",
+        "Cedar office follows Oren",
+        "Oren works in Fen",
+        "Mara is on project Atlas",
+        "Ivo project follows Cedar",
+        "Cedar is on project Project Bay",
+        "Oren is on project Project Bay"
+      ],
+      [
+        "Mara works in Cedar Annex",
+        "Ivo office follows Cedar",
+        "Cedar works in Fen",
+        "Oren works in Cedar Annex",
+        "Mara project follows Ivo",
+        "Ivo is on project Atlas",
+        "Cedar project follows Oren",
+        "Oren is on project Project Bay"
+      ],
+      [
+        "Mara office follows Ivo",
+        "Ivo works in Office Park",
+        "Cedar office follows Oren",
+        "Oren works in Office Park",
+        "Mara project follows Cedar",
+        "Cedar is on project Lumen",
+        "Ivo project follows Oren",
+        "Oren is on project Atlas"
+      ]
+    ],
+    "eos": 4294967294,
+    "final_office_depths": [
+      [
+        3,
+        2,
+        1,
+        1
+      ],
+      [
+        1,
+        3,
+        2,
+        1
+      ],
+      [
+        3,
+        2,
+        1,
+        1
+      ]
+    ],
+    "serving_input": "readable statement clauses and an observed question clause, both encoded by the pinned BPE tokenizer; no gold role, span, goal, pointer, depth or target",
+    "shared_vocabulary": "office and project occur inside entity names; Cedar is both a person and the first word of Cedar Annex",
+    "vocabulary": {
+      "office_assert": "works in",
+      "office_redirect": "office follows",
+      "offices": [
+        "Cedar Annex",
+        "Office Park",
+        "Fen"
+      ],
+      "persons": [
+        "Mara",
+        "Ivo",
+        "Cedar",
+        "Oren"
+      ],
+      "project_assert": "is on project",
+      "project_redirect": "project follows",
+      "projects": [
+        "Atlas",
+        "Project Bay",
+        "Lumen"
+      ]
+    }
+  },
+  "learning": {
+    "candidate_updates": 11,
+    "clauses": 48,
+    "epochs_run": 2,
+    "feature_weights": 50,
+    "policy_examples": 24,
+    "policy_final_correct": 24,
+    "policy_initial_correct": 14,
+    "role_final_correct": 48,
+    "role_initial_correct": 14,
+    "roles_observed": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "arms": [
+    {
+      "arm": "contextual_primary",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "development",
+      "total": 24
+    },
+    {
+      "arm": "contextual_primary",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "membership_continuation",
+      "complete": 13,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "maximum_two_read",
+      "complete": 18,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "reads_disabled",
+      "complete": 0,
+      "split": "final",
+      "total": 24
+    }
+  ],
+  "interventions": {
+    "base_terminal": "Some(Stop)",
+    "one_position_source_edit": {
+      "after": {
+        "emitted": [],
+        "reads": 1,
+        "selected": [
+          [
+            0,
+            4,
+            7
+          ]
+        ],
+        "terminal": "Some(Unresolved)"
+      },
+      "before": {
+        "emitted": [
+          426,
+          264,
+          4294967294
+        ],
+        "reads": 3,
+        "selected": [
+          [
+            0,
+            6,
+            3
+          ],
+          [
+            1,
+            7,
+            3
+          ],
+          [
+            2,
+            5,
+            2
+          ]
+        ],
+        "terminal": "Some(Stop)"
+      },
+      "changed_object_to": "Office Park",
+      "clause_index": 0
+    },
+    "order_change_in_observed_question": {
+      "error": "observed-text observation: observed clause is not a recognized question"
+    },
+    "request_goal_change_fixed_evidence": {
+      "changed": true,
+      "office": [
+        426,
+        264,
+        4294967294
+      ],
+      "project": [
+        450,
+        382,
+        264,
+        4294967294
+      ],
+      "project_expected": " Lumen"
+    },
+    "required_later_fact_removed": {
+      "emitted": [],
+      "terminal": "Some(Unresolved)"
+    },
+    "resume_from_snapshot": {
+      "emitted": [
+        426,
+        264,
+        4294967294
+      ],
+      "terminal": "Some(Stop)"
+    }
+  },
+  "final_rows": 24,
+  "sample_answers": [
+    {
+      "world": 100,
+      "person": 0,
+      "goal": "Office",
+      "question": " Mara works in",
+      "emitted_text": " Fen",
+      "expected_text": " Fen",
+      "reads": 3,
+      "expected_depth": 3,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 0,
+      "goal": "Project",
+      "question": " Mara is on project",
+      "emitted_text": " Lumen",
+      "expected_text": " Lumen",
+      "reads": 1,
+      "expected_depth": 1,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 1,
+      "goal": "Office",
+      "question": " Ivo works in",
+      "emitted_text": " Fen",
+      "expected_text": " Fen",
+      "reads": 2,
+      "expected_depth": 2,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 1,
+      "goal": "Project",
+      "question": " Ivo is on project",
+      "emitted_text": " Atlas",
+      "expected_text": " Atlas",
+      "reads": 3,
+      "expected_depth": 3,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 2,
+      "goal": "Office",
+      "question": " Cedar works in",
+      "emitted_text": " Fen",
+      "expected_text": " Fen",
+      "reads": 1,
+      "expected_depth": 1,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 2,
+      "goal": "Project",
+      "question": " Cedar is on project",
+      "emitted_text": " Atlas",
+      "expected_text": " Atlas",
+      "reads": 2,
+      "expected_depth": 2,
+      "correct": true
+    }
+  ],
+  "what_changed": {
+    "observation_model": "the monotone token-vote marker score and the global per-token boundary sign are replaced by a candidate-conditioned score over ordered local context (candidate first/last tokens, the tokens immediately before and after, candidate length and clause-relative position)",
+    "shortcuts_removed": [
+      "a candidate score that can only grow when a cue token is added inside a name",
+      "role identity invariant under permutation of the same marker tokens",
+      "one global sign per token, which cannot treat a token as syntax in one occurrence and entity content in another"
+    ],
+    "learned": "50 feature weights plus per-role goal and action tables, fitted by a bounded candidate perceptron from declared development clauses; whole-clause (marker, role) accuracy moves 14/48 to 48/48 on the same units",
+    "supplied_scaffolding": "readable clause layout, the declared sentence-start space, bounded contiguous span candidates (max marker length 4), the name/cue vocabulary and the terminator token"
+  },
+  "readable_text": {
+    "persons": [
+      "Mara",
+      "Ivo",
+      "Cedar",
+      "Oren"
+    ],
+    "offices": [
+      "Cedar Annex",
+      "Office Park",
+      "Fen"
+    ],
+    "projects": [
+      "Atlas",
+      "Project Bay",
+      "Lumen"
+    ],
+    "shared_vocabulary": "office and project occur inside entity names; Cedar is both a person and the first word of Cedar Annex",
+    "note": "answers are multi-token BPE spans emitted with their spaces intact, for example ' Lumen' and ' Cedar Annex'"
+  },
+  "focused_tests": {
+    "observed_text_session": 8,
+    "touched_runner_tests_passed": 21,
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass"
+  },
+  "readings": [
+    "the contextual observation model fits every development clause (48/48) from a declared uninformed start of 14/48, using only the shared extractor that serving calls",
+    "the primary completes 24/24 development and 24/24 fresh-final requests with correct depths, emitting complete multi-token answers that decode with spaces through the corrected runtime",
+    "the same question and entity answer after one, two and three reads across worlds; the three-read composition is absent from development supervision",
+    "registry-membership continuation reaches 13/24 and a maximum-two-read control 18/24, so neither entity membership nor a fixed depth substitutes for the learned contextual role semantics; reads disabled gives 0/24",
+    "a one-position source edit changes the selected source and the request outcome; a request-goal change with the same entity selects different evidence; removing a required later fact gives unresolved with no emission; an order change in the observed question is not accepted as a recognised question",
+    "mid-session snapshot and restore continues to the same terminal outcome"
+  ],
+  "limitations": [
+    "the names, cue vocabulary and clause layout are authored; the sentence-start space is declared scaffolding that makes mid-clause and clause-initial names share surface tokens",
+    "the comparator arms are control switches on the same model and runtime (membership, read cap, reads disabled), not independently fitted learners; a separately fitted categorical comparator was not run",
+    "no geometric arm was added: the milestone asked for the contextual interface first, and the earlier finding that a fixed identity/central offset reduces to a paired categorical code still applies",
+    "the final panel withholds the three-read composition and uses new assignments, but shares names, cues and clause forms with development",
+    "no prose, no executed Rust task, no whole-path latency or energy measurement"
+  ],
+  "principal_correction": {
+    "review": "docs/integration/contextual-text-roles-review-2026-09-22.md",
+    "audit": "docs/evidence/contextual-text-roles-principal-review-2026-09-22.json",
+    "retained": "24/24 primary source-reconstructed; seven multiword outputs",
+    "role_initial_correct": 0,
+    "original_14_scope": "statement-action baseline, not marker-role baseline",
+    "final_scope": "exposed regression; depth3 absent fitting",
+    "limitations": [
+      "fixed prefix-marker-suffix support",
+      "static endpoints/length signatures sufficient on fixture",
+      "membership whitespace mismatch",
+      "source edit parsed wrong object; absence direct not downstream",
+      "all-arm/frame/snapshot evidence omitted"
+    ],
+    "successor": "learned structured argument spans and separate surface/lexical identity"
+  }
+}

@@ -1,0 +1,3172 @@
+{
+  "schema": "uor-r4.pr1343-independent-evidence-audit/1",
+  "scope": "Read-only saved-evidence audit; no model inference, fitting, Rust build, or report mutation.",
+  "submitted_head": "bc9c8171",
+  "roots": {
+    "contextual-text-roles-1": {
+      "claimed_at": "1790041370",
+      "sealed_at": "1790041370",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "7d4dcd0727653a79ab4f8962d1562c7b5a41016c42681fa4638ad73f1668e31e",
+      "reported_arms": [
+        {
+          "arm": "contextual_primary",
+          "complete": 14,
+          "depth_correct": 14,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "contextual_primary",
+          "complete": 12,
+          "depth_correct": 12,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 13,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "maximum_two_read",
+          "complete": 12,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "rows": 24,
+      "running_source": {
+        "executable_sha256": "e18e4e29f916d74addd2d61f665a718b8bcbba00e550b466106a3649f543caa3",
+        "git_dirty": "false",
+        "git_rev": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "1c52cfbbbb1e16aca8dcdf9a3da33c3d57af44070c009b7db53e1f60b4a22630"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "7bea8193b88d8a5dc227dc9f47ad889dfb280ce45f95d5777264322d7725f655"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "model_sha256": "7d581d4e697e173c02ba2f655b1ee5d5e024d30693571dca0601fbd80f9a23ea",
+      "elapsed_s": 0.146313125,
+      "retained_bytes": 15565,
+      "row_initial_correct": 12
+    },
+    "contextual-text-roles-2": {
+      "claimed_at": "1790041420",
+      "sealed_at": "1790041420",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "5104586fe8451f93cfff2b8c5794799ea013e1ebd9635da2e83d77e6795971c1",
+      "reported_arms": [
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 13,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "maximum_two_read",
+          "complete": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "rows": 24,
+      "running_source": {
+        "executable_sha256": "3168380bb6a10bdbf5633fc099201e8c570769655025816b467d11bbc0e5e175",
+        "git_dirty": "false",
+        "git_rev": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "1c52cfbbbb1e16aca8dcdf9a3da33c3d57af44070c009b7db53e1f60b4a22630"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "fec73b061c84e1ef3f9037e51295da5bad930e5982cbb326e605e6d17f6547e9"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "model_sha256": "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "elapsed_s": 0.159604291,
+      "retained_bytes": 16797,
+      "row_initial_correct": 24
+    },
+    "contextual-text-roles-3": {
+      "claimed_at": "1790041660",
+      "sealed_at": "1790041661",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "5104586fe8451f93cfff2b8c5794799ea013e1ebd9635da2e83d77e6795971c1",
+      "reported_arms": [
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 13,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "maximum_two_read",
+          "complete": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "rows": 24,
+      "running_source": {
+        "executable_sha256": "24cf1e15e0f5ef2e472498c5ff6caee87cf25688dd5da2a2de825bb4d23b9fb1",
+        "git_dirty": "false",
+        "git_rev": "f5919d8e8430f3c676f4c5b0509f729ca68d9e75",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "fda36022cf512343cde8e2d16ff37dfc905526ac6189b19a227d834e836243d4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e847638d766a2dcd119d58bfb5b60aa7b2a5ebce38aded9c0d961333777eb2a0"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "model_sha256": "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "elapsed_s": 0.160338,
+      "retained_bytes": 16794,
+      "row_initial_correct": 24
+    },
+    "contextual-text-roles-4": {
+      "claimed_at": "1790041904",
+      "sealed_at": "1790041904",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "5104586fe8451f93cfff2b8c5794799ea013e1ebd9635da2e83d77e6795971c1",
+      "reported_arms": [
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 13,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "maximum_two_read",
+          "complete": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "rows": 24,
+      "running_source": {
+        "executable_sha256": "24cf1e15e0f5ef2e472498c5ff6caee87cf25688dd5da2a2de825bb4d23b9fb1",
+        "git_dirty": "false",
+        "git_rev": "dd4c27516cf6e596385117f9d11e2f9add1efbcc",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "fda36022cf512343cde8e2d16ff37dfc905526ac6189b19a227d834e836243d4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e847638d766a2dcd119d58bfb5b60aa7b2a5ebce38aded9c0d961333777eb2a0"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "model_sha256": "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "elapsed_s": 0.143941666,
+      "retained_bytes": 16797,
+      "row_initial_correct": 24
+    },
+    "contextual-text-roles-5": {
+      "claimed_at": "1790042155",
+      "sealed_at": "1790042155",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "5104586fe8451f93cfff2b8c5794799ea013e1ebd9635da2e83d77e6795971c1",
+      "reported_arms": [
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "contextual_primary",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 13,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "maximum_two_read",
+          "complete": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "rows": 24,
+      "running_source": {
+        "executable_sha256": "24cf1e15e0f5ef2e472498c5ff6caee87cf25688dd5da2a2de825bb4d23b9fb1",
+        "git_dirty": "false",
+        "git_rev": "dd4c27516cf6e596385117f9d11e2f9add1efbcc",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "fda36022cf512343cde8e2d16ff37dfc905526ac6189b19a227d834e836243d4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e847638d766a2dcd119d58bfb5b60aa7b2a5ebce38aded9c0d961333777eb2a0"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "model_sha256": "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "elapsed_s": 0.170148209,
+      "retained_bytes": 16797,
+      "row_initial_correct": 24
+    }
+  },
+  "provenance": {
+    "preserved_executable": "/tmp/uor-pr1343-original-competitive-reader",
+    "executable_bytes": 4038848,
+    "executable_sha256": "24cf1e15e0f5ef2e472498c5ff6caee87cf25688dd5da2a2de825bb4d23b9fb1",
+    "matches_run5": true,
+    "all_run5_source_hashes_match": true,
+    "qualification": "Source-file hashes match submitted head. git_rev/git_dirty are externally supplied parent labels; roots3,4,5 executable hashes are identical, so root5 alone does not demonstrate new executable byte contents after rebase."
+  },
+  "tokenizer": {
+    "source_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+    "derived_sha256": "a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f",
+    "derived_matches_receipt": true,
+    "names": {
+      "Mara": {
+        "plain": [
+          61,
+          4075
+        ],
+        "spaced": [
+          2828,
+          81
+        ]
+      },
+      "Ivo": {
+        "plain": [
+          57,
+          102,
+          95
+        ],
+        "spaced": [
+          339,
+          102,
+          95
+        ]
+      },
+      "Cedar": {
+        "plain": [
+          51,
+          277,
+          280
+        ],
+        "spaced": [
+          340,
+          277,
+          280
+        ]
+      },
+      "Oren": {
+        "plain": [
+          63,
+          723
+        ],
+        "spaced": [
+          492,
+          723
+        ]
+      },
+      "Cedar Annex": {
+        "plain": [
+          51,
+          277,
+          280,
+          1117,
+          662,
+          104
+        ],
+        "spaced": [
+          340,
+          277,
+          280,
+          1117,
+          662,
+          104
+        ]
+      },
+      "Office Park": {
+        "plain": [
+          63,
+          484,
+          569,
+          377,
+          792
+        ],
+        "spaced": [
+          492,
+          484,
+          569,
+          377,
+          792
+        ]
+      },
+      "Fen": {
+        "plain": [
+          54,
+          264
+        ],
+        "spaced": [
+          426,
+          264
+        ]
+      },
+      "Atlas": {
+        "plain": [
+          3473,
+          92,
+          292
+        ],
+        "spaced": [
+          1814,
+          92,
+          292
+        ]
+      },
+      "Project Bay": {
+        "plain": [
+          2954,
+          680,
+          389,
+          341
+        ],
+        "spaced": [
+          1053,
+          680,
+          389,
+          341
+        ]
+      },
+      "Lumen": {
+        "plain": [
+          60,
+          382,
+          264
+        ],
+        "spaced": [
+          450,
+          382,
+          264
+        ]
+      }
+    },
+    "cues": {
+      "works in": [
+        1806,
+        281
+      ],
+      "office follows": [
+        767,
+        569,
+        1066,
+        99
+      ],
+      "is on project": [
+        314,
+        335,
+        1391
+      ],
+      "project follows": [
+        1391,
+        1066,
+        99
+      ]
+    },
+    "saved_decodings_match": true,
+    "membership_registry_mismatched_names": [
+      "Mara",
+      "Ivo",
+      "Cedar",
+      "Oren"
+    ],
+    "office_lower_upper": {
+      "lower": [
+        767,
+        569
+      ],
+      "upper": [
+        492,
+        484,
+        569
+      ],
+      "same": false
+    },
+    "project_lower_upper": {
+      "lower": [
+        1391
+      ],
+      "upper": [
+        1053,
+        680
+      ],
+      "same": false
+    }
+  },
+  "fixture": {
+    "reconstructed_development_text_matches": true,
+    "development": [
+      {
+        "id": 0,
+        "version": 10,
+        "clauses": [
+          {
+            "seg": 0,
+            "tokens": [
+              2828,
+              81,
+              767,
+              569,
+              1066,
+              99,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 1,
+            "tokens": [
+              339,
+              102,
+              95,
+              1806,
+              281,
+              492,
+              484,
+              569,
+              377,
+              792
+            ]
+          },
+          {
+            "seg": 2,
+            "tokens": [
+              340,
+              277,
+              280,
+              767,
+              569,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 3,
+            "tokens": [
+              492,
+              723,
+              1806,
+              281,
+              426,
+              264
+            ]
+          },
+          {
+            "seg": 4,
+            "tokens": [
+              2828,
+              81,
+              314,
+              335,
+              1391,
+              1814,
+              92,
+              292
+            ]
+          },
+          {
+            "seg": 5,
+            "tokens": [
+              339,
+              102,
+              95,
+              1391,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 6,
+            "tokens": [
+              340,
+              277,
+              280,
+              314,
+              335,
+              1391,
+              1053,
+              680,
+              389,
+              341
+            ]
+          },
+          {
+            "seg": 7,
+            "tokens": [
+              492,
+              723,
+              314,
+              335,
+              1391,
+              1053,
+              680,
+              389,
+              341
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "seg": 0,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              4
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 1,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              2
+            ],
+            "object": [
+              5,
+              5
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 2,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              2
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 3,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              2
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 4,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 5,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 6,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              4
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 7,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              4
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          }
+        ],
+        "texts": [
+          " Mara office follows Ivo",
+          " Ivo works in Office Park",
+          " Cedar office follows Oren",
+          " Oren works in Fen",
+          " Mara is on project Atlas",
+          " Ivo project follows Cedar",
+          " Cedar is on project Project Bay",
+          " Oren is on project Project Bay"
+        ]
+      },
+      {
+        "id": 1,
+        "version": 11,
+        "clauses": [
+          {
+            "seg": 0,
+            "tokens": [
+              2828,
+              81,
+              1806,
+              281,
+              340,
+              277,
+              280,
+              1117,
+              662,
+              104
+            ]
+          },
+          {
+            "seg": 1,
+            "tokens": [
+              339,
+              102,
+              95,
+              767,
+              569,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 2,
+            "tokens": [
+              340,
+              277,
+              280,
+              1806,
+              281,
+              426,
+              264
+            ]
+          },
+          {
+            "seg": 3,
+            "tokens": [
+              492,
+              723,
+              1806,
+              281,
+              340,
+              277,
+              280,
+              1117,
+              662,
+              104
+            ]
+          },
+          {
+            "seg": 4,
+            "tokens": [
+              2828,
+              81,
+              1391,
+              1066,
+              99,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 5,
+            "tokens": [
+              339,
+              102,
+              95,
+              314,
+              335,
+              1391,
+              1814,
+              92,
+              292
+            ]
+          },
+          {
+            "seg": 6,
+            "tokens": [
+              340,
+              277,
+              280,
+              1391,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 7,
+            "tokens": [
+              492,
+              723,
+              314,
+              335,
+              1391,
+              1053,
+              680,
+              389,
+              341
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "seg": 0,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              6
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 1,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 2,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              2
+            ],
+            "object": [
+              5,
+              2
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 3,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              6
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 4,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 5,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 6,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              2
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 7,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              4
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          }
+        ],
+        "texts": [
+          " Mara works in Cedar Annex",
+          " Ivo office follows Cedar",
+          " Cedar works in Fen",
+          " Oren works in Cedar Annex",
+          " Mara project follows Ivo",
+          " Ivo is on project Atlas",
+          " Cedar project follows Oren",
+          " Oren is on project Project Bay"
+        ]
+      },
+      {
+        "id": 2,
+        "version": 12,
+        "clauses": [
+          {
+            "seg": 0,
+            "tokens": [
+              2828,
+              81,
+              767,
+              569,
+              1066,
+              99,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 1,
+            "tokens": [
+              339,
+              102,
+              95,
+              1806,
+              281,
+              492,
+              484,
+              569,
+              377,
+              792
+            ]
+          },
+          {
+            "seg": 2,
+            "tokens": [
+              340,
+              277,
+              280,
+              767,
+              569,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 3,
+            "tokens": [
+              492,
+              723,
+              1806,
+              281,
+              492,
+              484,
+              569,
+              377,
+              792
+            ]
+          },
+          {
+            "seg": 4,
+            "tokens": [
+              2828,
+              81,
+              1391,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 5,
+            "tokens": [
+              340,
+              277,
+              280,
+              314,
+              335,
+              1391,
+              450,
+              382,
+              264
+            ]
+          },
+          {
+            "seg": 6,
+            "tokens": [
+              339,
+              102,
+              95,
+              1391,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 7,
+            "tokens": [
+              492,
+              723,
+              314,
+              335,
+              1391,
+              1814,
+              92,
+              292
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "seg": 0,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              4
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 1,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              2
+            ],
+            "object": [
+              5,
+              5
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 2,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              2
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 3,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              5
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 4,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 5,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 6,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              2
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 7,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          }
+        ],
+        "texts": [
+          " Mara office follows Ivo",
+          " Ivo works in Office Park",
+          " Cedar office follows Oren",
+          " Oren works in Office Park",
+          " Mara project follows Cedar",
+          " Cedar is on project Lumen",
+          " Ivo project follows Oren",
+          " Oren is on project Atlas"
+        ]
+      }
+    ],
+    "final": [
+      {
+        "id": 100,
+        "version": 300,
+        "clauses": [
+          {
+            "seg": 0,
+            "tokens": [
+              2828,
+              81,
+              767,
+              569,
+              1066,
+              99,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 1,
+            "tokens": [
+              339,
+              102,
+              95,
+              767,
+              569,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 2,
+            "tokens": [
+              340,
+              277,
+              280,
+              1806,
+              281,
+              426,
+              264
+            ]
+          },
+          {
+            "seg": 3,
+            "tokens": [
+              492,
+              723,
+              1806,
+              281,
+              340,
+              277,
+              280,
+              1117,
+              662,
+              104
+            ]
+          },
+          {
+            "seg": 4,
+            "tokens": [
+              2828,
+              81,
+              314,
+              335,
+              1391,
+              450,
+              382,
+              264
+            ]
+          },
+          {
+            "seg": 5,
+            "tokens": [
+              339,
+              102,
+              95,
+              1391,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 6,
+            "tokens": [
+              340,
+              277,
+              280,
+              1391,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 7,
+            "tokens": [
+              492,
+              723,
+              314,
+              335,
+              1391,
+              1814,
+              92,
+              292
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "seg": 0,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              4
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 1,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 2,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              2
+            ],
+            "object": [
+              5,
+              2
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 3,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              6
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 4,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 5,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 6,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              2
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 7,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          }
+        ],
+        "texts": [
+          " Mara office follows Ivo",
+          " Ivo office follows Cedar",
+          " Cedar works in Fen",
+          " Oren works in Cedar Annex",
+          " Mara is on project Lumen",
+          " Ivo project follows Cedar",
+          " Cedar project follows Oren",
+          " Oren is on project Atlas"
+        ]
+      },
+      {
+        "id": 101,
+        "version": 301,
+        "clauses": [
+          {
+            "seg": 0,
+            "tokens": [
+              2828,
+              81,
+              1806,
+              281,
+              426,
+              264
+            ]
+          },
+          {
+            "seg": 1,
+            "tokens": [
+              339,
+              102,
+              95,
+              767,
+              569,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 2,
+            "tokens": [
+              340,
+              277,
+              280,
+              767,
+              569,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 3,
+            "tokens": [
+              492,
+              723,
+              1806,
+              281,
+              340,
+              277,
+              280,
+              1117,
+              662,
+              104
+            ]
+          },
+          {
+            "seg": 4,
+            "tokens": [
+              2828,
+              81,
+              1391,
+              1066,
+              99,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 5,
+            "tokens": [
+              339,
+              102,
+              95,
+              1391,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 6,
+            "tokens": [
+              340,
+              277,
+              280,
+              314,
+              335,
+              1391,
+              1814,
+              92,
+              292
+            ]
+          },
+          {
+            "seg": 7,
+            "tokens": [
+              492,
+              723,
+              314,
+              335,
+              1391,
+              450,
+              382,
+              264
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "seg": 0,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              2
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 1,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 2,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              2
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 3,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              6
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 4,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 5,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 6,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 7,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          }
+        ],
+        "texts": [
+          " Mara works in Fen",
+          " Ivo office follows Cedar",
+          " Cedar office follows Oren",
+          " Oren works in Cedar Annex",
+          " Mara project follows Ivo",
+          " Ivo project follows Cedar",
+          " Cedar is on project Atlas",
+          " Oren is on project Lumen"
+        ]
+      },
+      {
+        "id": 102,
+        "version": 302,
+        "clauses": [
+          {
+            "seg": 0,
+            "tokens": [
+              2828,
+              81,
+              767,
+              569,
+              1066,
+              99,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 1,
+            "tokens": [
+              339,
+              102,
+              95,
+              767,
+              569,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 2,
+            "tokens": [
+              340,
+              277,
+              280,
+              1806,
+              281,
+              339,
+              102,
+              95
+            ]
+          },
+          {
+            "seg": 3,
+            "tokens": [
+              492,
+              723,
+              1806,
+              281,
+              2828,
+              81
+            ]
+          },
+          {
+            "seg": 4,
+            "tokens": [
+              2828,
+              81,
+              314,
+              335,
+              1391,
+              1814,
+              92,
+              292
+            ]
+          },
+          {
+            "seg": 5,
+            "tokens": [
+              339,
+              102,
+              95,
+              1391,
+              1066,
+              99,
+              340,
+              277,
+              280
+            ]
+          },
+          {
+            "seg": 6,
+            "tokens": [
+              340,
+              277,
+              280,
+              1391,
+              1066,
+              99,
+              492,
+              723
+            ]
+          },
+          {
+            "seg": 7,
+            "tokens": [
+              492,
+              723,
+              314,
+              335,
+              1391,
+              1053,
+              680,
+              389,
+              341
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "seg": 0,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              4
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 1,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              4
+            ],
+            "object": [
+              7,
+              3
+            ],
+            "role": 1,
+            "goal": "Office",
+            "action": "Continue"
+          },
+          {
+            "seg": 2,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              2
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 3,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              2
+            ],
+            "object": [
+              4,
+              2
+            ],
+            "role": 0,
+            "goal": "Office",
+            "action": "Emit"
+          },
+          {
+            "seg": 4,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              3
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          },
+          {
+            "seg": 5,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              3
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 6,
+            "subject": [
+              0,
+              3
+            ],
+            "marker": [
+              3,
+              3
+            ],
+            "object": [
+              6,
+              2
+            ],
+            "role": 3,
+            "goal": "Project",
+            "action": "Continue"
+          },
+          {
+            "seg": 7,
+            "subject": [
+              0,
+              2
+            ],
+            "marker": [
+              2,
+              3
+            ],
+            "object": [
+              5,
+              4
+            ],
+            "role": 2,
+            "goal": "Project",
+            "action": "Emit"
+          }
+        ],
+        "texts": [
+          " Mara office follows Ivo",
+          " Ivo office follows Cedar",
+          " Cedar works in Ivo",
+          " Oren works in Mara",
+          " Mara is on project Atlas",
+          " Ivo project follows Cedar",
+          " Cedar project follows Oren",
+          " Oren is on project Project Bay"
+        ]
+      }
+    ]
+  },
+  "primary_recount": {
+    "rows": 24,
+    "checks_true_counts": {
+      "answer": 24,
+      "expected_text": 24,
+      "depth": 24,
+      "selected": 24,
+      "correct_flag": 24,
+      "eos": 24
+    },
+    "read_depth_counts": {
+      "3": 6,
+      "1": 12,
+      "2": 6
+    },
+    "decoded_output_counts": {
+      " Fen": 4,
+      " Lumen": 2,
+      " Atlas": 7,
+      " Cedar Annex": 4,
+      " Ivo": 3,
+      " Project Bay": 3,
+      " Mara": 1
+    },
+    "genuine_multiword_answers": 7,
+    "answer_token_lengths": {
+      "2": 5,
+      "3": 12,
+      "6": 4,
+      "4": 3
+    },
+    "source_span_complete": 24,
+    "all_arm_raw_rows_retained": false,
+    "snapshot_bytes_retained": 0,
+    "events_retained": 0
+  },
+  "novelty": {
+    "development_unique_statements": 20,
+    "final_unique_statements": 17,
+    "final_statement_occurrences_seen_in_development": 18,
+    "final_unique_statements_seen_in_development": 11,
+    "all_8_request_wordings_seen_in_fit_three_times": true,
+    "development_read_counts": {
+      "2": 10,
+      "1": 14
+    },
+    "final_read_counts": {
+      "3": 6,
+      "1": 12,
+      "2": 6
+    },
+    "final_question_depth_vectors": [
+      {
+        "person": 0,
+        "goal": "Office",
+        "development": [
+          2,
+          1,
+          2
+        ],
+        "final": [
+          3,
+          1,
+          3
+        ]
+      },
+      {
+        "person": 0,
+        "goal": "Project",
+        "development": [
+          1,
+          2,
+          2
+        ],
+        "final": [
+          1,
+          3,
+          1
+        ]
+      },
+      {
+        "person": 1,
+        "goal": "Office",
+        "development": [
+          1,
+          2,
+          1
+        ],
+        "final": [
+          2,
+          3,
+          2
+        ]
+      },
+      {
+        "person": 1,
+        "goal": "Project",
+        "development": [
+          2,
+          1,
+          2
+        ],
+        "final": [
+          3,
+          2,
+          3
+        ]
+      },
+      {
+        "person": 2,
+        "goal": "Office",
+        "development": [
+          2,
+          1,
+          2
+        ],
+        "final": [
+          1,
+          2,
+          1
+        ]
+      },
+      {
+        "person": 2,
+        "goal": "Project",
+        "development": [
+          1,
+          2,
+          1
+        ],
+        "final": [
+          2,
+          1,
+          2
+        ]
+      },
+      {
+        "person": 3,
+        "goal": "Office",
+        "development": [
+          1,
+          1,
+          1
+        ],
+        "final": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "person": 3,
+        "goal": "Project",
+        "development": [
+          1,
+          1,
+          1
+        ],
+        "final": [
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    "qualification": "Three-read composition absent from fit; same authored final family evaluated five times with source/model/input repairs. Roots2-5 saved rows byte-identical, so final means exposed regression, not new confirmation."
+  },
+  "learning": {
+    "reported": {
+      "candidate_updates": 11,
+      "clauses": 48,
+      "epochs_run": 2,
+      "feature_weights": 50,
+      "policy_examples": 24,
+      "policy_final_correct": 24,
+      "policy_initial_correct": 14,
+      "role_final_correct": 48,
+      "role_initial_correct": 14,
+      "roles_observed": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "true_uninformed_marker_role_accuracy": 0,
+    "fit_units": 48,
+    "uninformed_tie_rule": "all zero scores => first candidate start1,length1,role0",
+    "initial_receipt_bug": "role_initial_correct is overwritten by statement action initial_correct before constructing ObFitReport. Report14 is action baseline, not marker-role baseline.",
+    "statement_actions": {
+      "Continue": 10,
+      "Emit": 14
+    },
+    "unique_feature_keys": 50,
+    "nonzero_feature_keys": 47,
+    "nonzero_scalar_coefficients": 72,
+    "zero_feature_keys": [
+      {
+        "kind": "right",
+        "value": 340,
+        "token_text": " C",
+        "weights": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 277,
+        "token_text": "ed",
+        "weights": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "length",
+        "value": 2,
+        "token_text": null,
+        "weights": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "feature_kind_counts": {
+      "first": 9,
+      "last": 7,
+      "left": 8,
+      "right": 8,
+      "left2": 6,
+      "right2": 7,
+      "length": 4,
+      "final": 1
+    },
+    "rows": [
+      {
+        "kind": "first",
+        "value": 81,
+        "token_text": "a",
+        "weights": [
+          -1,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 99,
+        "token_text": "s",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 102,
+        "token_text": "v",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 314,
+        "token_text": " is",
+        "weights": [
+          -1,
+          -1,
+          2,
+          0
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 569,
+        "token_text": "ice",
+        "weights": [
+          0,
+          0,
+          0,
+          -1
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 767,
+        "token_text": " off",
+        "weights": [
+          0,
+          4,
+          0,
+          -1
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 1066,
+        "token_text": " follow",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 1391,
+        "token_text": " project",
+        "weights": [
+          0,
+          -1,
+          0,
+          3
+        ]
+      },
+      {
+        "kind": "first",
+        "value": 1806,
+        "token_text": " works",
+        "weights": [
+          2,
+          0,
+          -1,
+          0
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 81,
+        "token_text": "a",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 99,
+        "token_text": "s",
+        "weights": [
+          -1,
+          1,
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 281,
+        "token_text": " in",
+        "weights": [
+          2,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 335,
+        "token_text": " on",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 1391,
+        "token_text": " project",
+        "weights": [
+          0,
+          0,
+          2,
+          0
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 1806,
+        "token_text": " works",
+        "weights": [
+          0,
+          0,
+          -1,
+          0
+        ]
+      },
+      {
+        "kind": "last",
+        "value": 1814,
+        "token_text": " At",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 81,
+        "token_text": "a",
+        "weights": [
+          0,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 95,
+        "token_text": "o",
+        "weights": [
+          1,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 280,
+        "token_text": "ar",
+        "weights": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 339,
+        "token_text": " I",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 569,
+        "token_text": "ice",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 767,
+        "token_text": " off",
+        "weights": [
+          0,
+          0,
+          0,
+          -1
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 1066,
+        "token_text": " follow",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left",
+        "value": 2828,
+        "token_text": " Mar",
+        "weights": [
+          -1,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 92,
+        "token_text": "l",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 281,
+        "token_text": " in",
+        "weights": [
+          0,
+          0,
+          -1,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 339,
+        "token_text": " I",
+        "weights": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 340,
+        "token_text": " C",
+        "weights": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 492,
+        "token_text": " O",
+        "weights": [
+          0,
+          -1,
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 767,
+        "token_text": " off",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 1391,
+        "token_text": " project",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right",
+        "value": 1814,
+        "token_text": " At",
+        "weights": [
+          0,
+          0,
+          1,
+          0
+        ]
+      },
+      {
+        "kind": "left2",
+        "value": 81,
+        "token_text": "a",
+        "weights": [
+          0,
+          0,
+          0,
+          -1
+        ]
+      },
+      {
+        "kind": "left2",
+        "value": 102,
+        "token_text": "v",
+        "weights": [
+          1,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "left2",
+        "value": 277,
+        "token_text": "ed",
+        "weights": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left2",
+        "value": 767,
+        "token_text": " off",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left2",
+        "value": 1391,
+        "token_text": " project",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "left2",
+        "value": 2828,
+        "token_text": " Mar",
+        "weights": [
+          0,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 92,
+        "token_text": "l",
+        "weights": [
+          0,
+          0,
+          1,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 102,
+        "token_text": "v",
+        "weights": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 277,
+        "token_text": "ed",
+        "weights": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 292,
+        "token_text": "as",
+        "weights": [
+          0,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 484,
+        "token_text": "ff",
+        "weights": [
+          1,
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 569,
+        "token_text": "ice",
+        "weights": [
+          -1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "right2",
+        "value": 723,
+        "token_text": "ren",
+        "weights": [
+          -1,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "length",
+        "value": 1,
+        "token_text": null,
+        "weights": [
+          -1,
+          -1,
+          -1,
+          0
+        ]
+      },
+      {
+        "kind": "length",
+        "value": 2,
+        "token_text": null,
+        "weights": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "kind": "length",
+        "value": 3,
+        "token_text": null,
+        "weights": [
+          0,
+          -1,
+          2,
+          2
+        ]
+      },
+      {
+        "kind": "length",
+        "value": 4,
+        "token_text": null,
+        "weights": [
+          0,
+          1,
+          0,
+          -1
+        ]
+      },
+      {
+        "kind": "final",
+        "value": 0,
+        "token_text": null,
+        "weights": [
+          1,
+          0,
+          1,
+          0
+        ]
+      }
+    ],
+    "ordered_local_context_necessity_established": false,
+    "endpoint_signatures": {
+      "(1806, 281, 2)": 0,
+      "(767, 99, 4)": 1,
+      "(314, 1391, 3)": 2,
+      "(1391, 99, 3)": 3
+    },
+    "endpoint_signature_ambiguous_clause_count": 0,
+    "endpoint_signature_ambiguities": [],
+    "endpoint_scope": "Checking only first/last/length uniquely identifies the four annotated cue spans on every one of the48 statements plus8 questions. This is a static fixture collision audit, not a fitted baseline evaluation. Interior cue permutation preserving endpoints remains invisible to the entire extractor."
+  },
+  "lexical_overlap": {
+    "cue_word_strings_inside_name_words_case_sensitive": [],
+    "cue_token_ids_inside_name_token_ids": [
+      569
+    ],
+    "cedar_person_prefix_matches_cedar_annex": true,
+    "qualification": "Office and Project in proper names are capitalized; lowercase complete cue words do not recur literally in names. Shared subword IDs and Cedar prefix overlap are present but do not force cue-context disambiguation."
+  },
+  "interventions": {
+    "source_edit": {
+      "before": {
+        "answer": [
+          426,
+          264
+        ],
+        "terminal": "Stop",
+        "reads": 3,
+        "segments": [
+          0,
+          1,
+          2
+        ],
+        "roles": [
+          1,
+          1,
+          0
+        ],
+        "spans": [
+          [
+            0,
+            6,
+            3
+          ],
+          [
+            1,
+            7,
+            3
+          ],
+          [
+            2,
+            5,
+            2
+          ]
+        ]
+      },
+      "after": {
+        "answer": [],
+        "terminal": "Unresolved",
+        "reads": 1,
+        "segments": [
+          0
+        ],
+        "roles": [
+          1
+        ],
+        "spans": [
+          [
+            0,
+            6,
+            5
+          ]
+        ]
+      },
+      "changed_clause_before": " Mara office follows Ivo",
+      "changed_clause_after": " Mara office follows Office Park",
+      "expected_terminal_is_unresolved": true,
+      "saved_after": {
+        "emitted": [],
+        "reads": 1,
+        "selected": [
+          [
+            0,
+            4,
+            7
+          ]
+        ],
+        "terminal": "Some(Unresolved)"
+      },
+      "saved_selected_spans_match_declared_extent": false,
+      "qualification": "Edited redirect points to an office phrase with no subject record. Expected abstention is consistent, but saved object span4+7 differs from gold6+5, so the actual parse is wrong and no successful answer-change control is demonstrated."
+    },
+    "removed_fact": {
+      "segment": 4,
+      "text": " Mara is on project Lumen",
+      "base_path": {
+        "answer": [
+          450,
+          382,
+          264
+        ],
+        "terminal": "Stop",
+        "reads": 1,
+        "segments": [
+          4
+        ],
+        "roles": [
+          2
+        ],
+        "spans": [
+          [
+            4,
+            5,
+            3
+          ]
+        ]
+      },
+      "removed_path": {
+        "answer": [],
+        "terminal": "Unresolved",
+        "reads": 0,
+        "segments": [],
+        "roles": [],
+        "spans": []
+      },
+      "is_later_fact": false
+    },
+    "goal_change": {
+      "expected_office": [
+        426,
+        264,
+        4294967294
+      ],
+      "expected_project": [
+        450,
+        382,
+        264,
+        4294967294
+      ],
+      "saved_project_correct": true
+    },
+    "resume": "Single inline snapshot; no snapshot bytes, resumed events or frames retained. Saved matching output is insufficient to audit phase completeness or causal continuation.",
+    "order": "Last two BPE IDs of Office question cue are swapped. One malformed observed question rejection is not a matched fitted orderless comparator or positive reordered-language example."
+  },
+  "exposure": {
+    "attempt_count": 5,
+    "original_primary_final_correct": [
+      12,
+      24,
+      24,
+      24,
+      24
+    ],
+    "roots2_5_rows_identical": true,
+    "model_hashes": [
+      "7d581d4e697e173c02ba2f655b1ee5d5e024d30693571dca0601fbd80f9a23ea",
+      "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+      "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f"
+    ],
+    "fresh_final_confirmation": false
+  },
+  "control_scope": {
+    "membership": "Registry encodes bare names but serving clauses use leading space. All four registry values differ from serving keys. Aggregate13/24 is confounded and all control rows discarded.",
+    "maximum_two_read": "18/24 agrees with six depth3 rows being beyond cap, but all individual control events/rows discarded. This is truncation control, not independently trained fixed-depth policy.",
+    "reads_disabled": "0/24 is aggregate-only.",
+    "geometry": "No H4/geometric competing arm here; finding concerns observation parser, not geometric advantage.",
+    "fitserve": "Shared candidate_features serves sparse integer role scorer. Runtime gets loaded model bytes and observed clauses/question, no explicit gold labels at serve. Gold span/role/action/goal supervision and authored clause grammar remain strong offline scaffold."
+  },
+  "resources": {
+    "saved_elapsed_s": 0.7803452909999999,
+    "retained_report_bytes": 82750,
+    "original_model_bytes": 1471,
+    "model_runs_by_auditor": 0,
+    "builds_by_auditor": 0,
+    "energy": "UNAVAILABLE",
+    "cleanup": "Root investigator auditing separately."
+  },
+  "script_sha256": "455599f54be0755c310eaf9054a1bb766195fa5f31977b97248260a2f8d4ef79"
+}

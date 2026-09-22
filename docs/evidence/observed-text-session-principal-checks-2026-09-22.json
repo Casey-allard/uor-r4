@@ -1,0 +1,321 @@
+{
+  "schema": "uor-r4.observed-text-session-principal-checks/1",
+  "reviewed_submission": "b9eca5d2759d86664e519a9fb4c875b8127cb914",
+  "recovery_origin_main": "d9d896e8de59fc7c37004d1ea1f0f12cfed11462",
+  "recovery_pr1341": "OPEN reviewed6fc34c1f",
+  "final_source_sha256": {
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "f71bbcba9378cb81403e001f075a3b8a773d8ab4aff0606dbe688f24e0433e9c",
+    "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": "8902b17a9efa95a5b453a77650415fbe6ca3554a60748406a0d9f09bcdc08d79"
+  },
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::observed_text_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 240867,
+      "log": "/tmp/uor-pr1342-final-check-0.log",
+      "free_after_bytes": 39114338304,
+      "log_sha256": "ce432f8e7e0dd04fbdd18a6b86233f9229a10363df60408f9457e4a771defe8e"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 196146,
+      "log": "/tmp/uor-pr1342-final-check-1.log",
+      "free_after_bytes": 38778753024,
+      "log_sha256": "282b7a1604cd56c2a416ff7d8d2740499a5ea0a31af4fa672e9a55cf254f2f68"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 50066,
+      "log": "/tmp/uor-pr1342-final-check-2.log",
+      "free_after_bytes": 38403842048,
+      "log_sha256": "30a2e5b91d7eba059e78e0f650737c90d979bdc94cd97133181d7d2a21923428"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-2",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 2708,
+      "log": "/tmp/uor-pr1342-final-check-3.log",
+      "free_after_bytes": 38399029248,
+      "log_sha256": "ad5449b023df7453bdacfceb182c30d7ec1a394c810b44b5ee0b8a0731ee8249"
+    }
+  ],
+  "initial_checks_before_visited_span_and_typed_error_refinement": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::observed_text_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 245645,
+      "log": "/tmp/uor-pr1342-check-0.log",
+      "free_after_bytes": 39181389824,
+      "log_sha256": "3364c35b4870e118cb466b30b66f2590dda9120635959d7c5f0274572eb8c830"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader",
+        "session_tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 198759,
+      "log": "/tmp/uor-pr1342-check-1.log",
+      "free_after_bytes": 38855901184,
+      "log_sha256": "260880cbf43b91c2602ac3b7335e8a85826d81d864194665499bfff437e98e2e"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 49940,
+      "log": "/tmp/uor-pr1342-check-2.log",
+      "free_after_bytes": 38477717504,
+      "log_sha256": "56a8643e225c98c226f2695b52ffcb92bb6955deb1f6276ff77d32f91577f091"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-1",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 2696,
+      "log": "/tmp/uor-pr1342-check-3.log",
+      "free_after_bytes": 38473433088,
+      "log_sha256": "ad5449b023df7453bdacfceb182c30d7ec1a394c810b44b5ee0b8a0731ee8249"
+    }
+  ],
+  "library_tests": {
+    "passed": 8,
+    "failed": 0
+  },
+  "runner_tests": {
+    "passed": 21,
+    "failed": 0,
+    "ignored": 1,
+    "ignored_name": "tests::retained_artifact_generation_matches_teacher_forced_prefixes",
+    "ignored_scope": "Legacy PR1321 artifact smoke; not part of changed observed-text path, not executed or counted as pass"
+  },
+  "document_checks": {
+    "json_parsed": [
+      "docs/evidence/observed-text-session-2026-09-21.json",
+      "docs/evidence/observed-text-session-corrected-replay-audit-2026-09-22.json",
+      "docs/evidence/observed-text-session-principal-checks-2026-09-22.json",
+      "docs/evidence/observed-text-session-principal-review-2026-09-22.json"
+    ],
+    "relative_document_targets_checked": 1022,
+    "missing_targets": [],
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "warnings": "Existing dead code/unused variables and mutability warnings. No unrelated warning cleanup; filtered tests are not passes.",
+  "scope": "Categorical lexical decoder in supplied symbolic-token grammar. Canonical loaded library runtime, actual source/question binding, exact spans, explicit controls, lawful typed EOS, every-phase restoration. Immutable document snapshot, not mutable-memory service. No natural-wording/multiword/main model integration or whole-path D0-b/energy claim.",
+  "replay": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-2",
+    "initial_corrected_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-1",
+    "scope": "Corrected exposed replay; all original and initial-corrected reports preserved.",
+    "elapsed_s": 2.267851583,
+    "executable_sha256": "c5e1ae85406ea4f9e72435dd0f8c6088dbcc04784cef12163e304380121e0705",
+    "projection": {
+      "at": "2026-09-22T00:56:22.694179+00:00",
+      "scope": "Corrected exposed symbolic-token replay, all arms and every-phase restore; no fresh qualification",
+      "commands": [
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::learner::observed_text_session::tests"
+        ],
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader"
+        ],
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader"
+        ],
+        [
+          "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+          "--mode=observed-text-session",
+          "--root",
+          "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-2",
+          "--source-root",
+          "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+        ]
+      ],
+      "threads": 2,
+      "model_workers": 1,
+      "ram_gib": 8,
+      "new_build_storage_bytes": 2415919104,
+      "new_report_storage_bytes": 67108864,
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-principal-2",
+      "source_sha256": {
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": "f71bbcba9378cb81403e001f075a3b8a773d8ab4aff0606dbe688f24e0433e9c",
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": "8902b17a9efa95a5b453a77650415fbe6ca3554a60748406a0d9f09bcdc08d79"
+      }
+    },
+    "independent_audit": "docs/evidence/observed-text-session-corrected-replay-audit-2026-09-22.json"
+  },
+  "initial_corrected_executable": {
+    "path": "/tmp/uor-pr1342-initial-corrected-competitive-reader",
+    "sha256": "ef92e857c7b864d7d89668535576ccb359d1641b2f51a4de75dad22854bef42e",
+    "bytes": 16984784
+  },
+  "resource": {
+    "at": "2026-09-22T01:08:39.608142+00:00",
+    "projection": {
+      "at": "2026-09-22T00:39:03.046055+00:00",
+      "before": {
+        "cumulative_ms": 291614036,
+        "limit_ms": 293900000
+      },
+      "principal_projection_ms": 7200000,
+      "preprojection_preparation_estimate_ms": 900000,
+      "extension_ms": 7200000,
+      "updated_limit_ms": 301100000,
+      "reason": "Principal audit found target-field leakage at serving entry, placeholder bindings, incomplete restore/EOS/capture validation, reused final panel and token-fragment wording claims. Repair the canonical observed-token session and independently replay exposed evidence before the next contextual-language milestone. Standing owner local extension authorization applies.",
+      "compiler_workers": 2,
+      "model_workers": 1,
+      "ram_limit_gib": 8,
+      "temporary_build_bytes": 2415919104,
+      "report_bytes": 67108864,
+      "reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_bytes_before_cleanup": 37907628032,
+      "model_run_plan": "Focused Rust session and runner tests; one corrected exposed-panel replay with retained controls and phase-by-phase snapshots; diagnose only substantive failures. No new architecture fit, fresh-final or broad language campaign.",
+      "paid_compute": false
+    },
+    "elapsed_ms": 1776562,
+    "preprojection_preparation_estimate_ms": 900000,
+    "final_delivery_reserve_ms": 300000,
+    "principal_charge_ms": 2976562,
+    "before": {
+      "cumulative_ms": 291614036,
+      "limit_ms": 301100000
+    },
+    "after": {
+      "cumulative_ms": 294590598,
+      "limit_ms": 301100000
+    },
+    "remaining_ms": 6509402,
+    "allowance_extension_ms": 7200000,
+    "free_after_checks_bytes": 39477911552,
+    "cleanups": [
+      {
+        "count": 0,
+        "allocated_bytes": 0,
+        "before_free_bytes": 37907628032,
+        "after_free_bytes": 37907595264,
+        "manifest": "/tmp/uor-pr1342-cleanup-manifest.json",
+        "manifest_sha256": "36965121ab33ae1a43918895d7909bb49132667626b011c5f82d23a83536ef95"
+      },
+      {
+        "count": 16,
+        "allocated_bytes": 1254531072,
+        "before_free_bytes": 37906280448,
+        "after_free_bytes": 39161012224,
+        "manifest": "/tmp/uor-pr1342-cleanup-old-core-libraries.json",
+        "manifest_sha256": "8cd9e70d420a4eac8ff935040fe581b7c230d3875c15f18f3227d9c16049aede"
+      },
+      {
+        "reason": "Obsolete top-level debug core build library, older than eight hours; preserve current hashed dependency libraries and all executables.",
+        "path": "/Users/casey.allard/uor-r4/target/debug/libuor_r4_core.rlib",
+        "bytes": 403210544,
+        "allocated_bytes": 403214336,
+        "sha256": "a791e436b3ce6c8790c976b22b16853543d4bab6d6342565cf3891a3d185cc34",
+        "before_free_bytes": 39157456896,
+        "after_free_bytes": 39560663040
+      },
+      {
+        "at": "2026-09-22T00:55:50.706926+00:00",
+        "reason": "Pre-final-build cleanup of completed-check compiler intermediates; preserve all executables/libraries/metadata/research/model/report files. No active compiler/model.",
+        "before_free_bytes": 38455910400,
+        "allocated_bytes": 1087295488,
+        "count": 80,
+        "after_free_bytes": 39543074816,
+        "manifest": "/tmp/uor-pr1342-removed-compiler-objects-final.json",
+        "manifest_sha256": "95e9bfa71c9ddb1f6652bb54ee473914a69267b3b3c23f9be61e9c49b4ad5ecb"
+      },
+      {
+        "at": "2026-09-22T01:08:39.368775+00:00",
+        "reason": "Completed final check cleanup of completed-check compiler intermediates; preserve all executables/libraries/metadata/research/model/report files. No active compiler/model.",
+        "before_free_bytes": 38390304768,
+        "allocated_bytes": 1087459328,
+        "count": 80,
+        "after_free_bytes": 39477952512,
+        "manifest": "/tmp/uor-pr1342-removed-compiler-objects-postcheck.json",
+        "manifest_sha256": "17378a0b087b9318640b6d28ee5f3edfbe6b4bba0425a192ee40505c3660b805"
+      }
+    ],
+    "paid_compute": false,
+    "parallel_work": "Included once in elapsed principal wall time, not charged again per agent",
+    "original_deepseek_charge": "18000000ms preserved as whole-work estimate; saved eight model attempts total1.190325625s, not a replacement for engineering charges"
+  }
+}

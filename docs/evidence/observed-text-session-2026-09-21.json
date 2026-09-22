@@ -1,0 +1,342 @@
+{
+  "schema": "uor-r4.observed-text-session/1",
+  "at": "2026-09-21",
+  "scope": "bounded authored memory domain rendered as observed tokens with declared clause layout, marker vocabulary and entity registry; not broad language understanding; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+    "pr": 1341,
+    "pr_state_at_work": "OPEN_QUEUED (not merged); the exact reviewed head was read and used as the implementation base",
+    "worktree": ".worktrees/observed-text-session",
+    "owner_checkout_untouched": true
+  },
+  "task": {
+    "dev_office_depths": [
+      [
+        2,
+        1,
+        2,
+        1
+      ],
+      [
+        1,
+        2,
+        1,
+        1
+      ],
+      [
+        2,
+        1,
+        2,
+        1
+      ]
+    ],
+    "eos": 4294967294,
+    "final_office_depths": [
+      [
+        3,
+        2,
+        1,
+        1
+      ],
+      [
+        1,
+        3,
+        2,
+        1
+      ],
+      [
+        3,
+        2,
+        1,
+        1
+      ]
+    ],
+    "markers": [
+      [
+        547,
+        548
+      ],
+      [
+        552,
+        554
+      ],
+      [
+        556,
+        557
+      ],
+      [
+        558,
+        560
+      ]
+    ],
+    "offices": [
+      [
+        489,
+        491
+      ],
+      [
+        500,
+        507
+      ],
+      [
+        513
+      ]
+    ],
+    "persons": [
+      [
+        485
+      ],
+      [
+        486
+      ],
+      [
+        487
+      ],
+      [
+        488
+      ]
+    ],
+    "projects": [
+      [
+        515
+      ],
+      [
+        516,
+        517
+      ]
+    ],
+    "serving_input": "observed statement tokens, an observed question clause, a declared clause delimiter and a declared entity registry; no gold role, extent, pointer, depth or target"
+  },
+  "learning": {
+    "boundary_tokens": 14,
+    "clauses": 48,
+    "marker_tokens": 8,
+    "policy_examples": 24,
+    "policy_final_correct": 24,
+    "policy_initial_correct": 14,
+    "roles_observed": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "arms": [
+    {
+      "arm": "observed_text_session",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "development",
+      "total": 24
+    },
+    {
+      "arm": "observed_text_session",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "membership_continuation",
+      "complete": 20,
+      "depth_correct": 22,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "fixed_depth_two",
+      "complete": 18,
+      "depth_correct": 18,
+      "split": "final",
+      "total": 24
+    },
+    {
+      "arm": "reads_disabled",
+      "complete": 0,
+      "depth_correct": 0,
+      "split": "final",
+      "total": 24
+    }
+  ],
+  "interventions": {
+    "goal_preserved_across_redirect": {
+      "reads": 3,
+      "terminal": "Stop"
+    },
+    "one_position_source_edit": {
+      "answer_changed": true,
+      "changed_object_to": [
+        488
+      ],
+      "clause_index": 0,
+      "emitted_after": [
+        513,
+        4294967294
+      ],
+      "emitted_before": [
+        489,
+        491,
+        4294967294
+      ],
+      "goal": "Office",
+      "goal_invariant": true,
+      "independent_expected_after": [
+        513
+      ],
+      "matches_independent_expectation": true,
+      "person": 0,
+      "reads_after": 2,
+      "reads_before": 3,
+      "selected_after": [
+        485,
+        485,
+        488,
+        488
+      ],
+      "selected_before": [
+        485,
+        485,
+        486,
+        486,
+        487,
+        487,
+        487
+      ],
+      "world": 100
+    },
+    "request_goal_change_fixed_evidence": {
+      "changed": true,
+      "emitted_office": [
+        489,
+        491,
+        4294967294
+      ],
+      "emitted_project": [
+        515,
+        4294967294
+      ],
+      "expected_office": [
+        489,
+        491
+      ],
+      "expected_project": [
+        515
+      ],
+      "office_matches": true,
+      "project_matches": true
+    },
+    "required_later_fact_removed": {
+      "outcome": {
+        "emitted": [],
+        "terminal": "Unresolved"
+      },
+      "removed_clause": 4
+    },
+    "resume_identical": {
+      "identical": 48,
+      "total": 48
+    }
+  },
+  "final_rows": 24,
+  "sample_answers": [
+    {
+      "world": 100,
+      "person": 0,
+      "goal": "Office",
+      "emitted": [
+        489,
+        491,
+        4294967294
+      ],
+      "emitted_text": "ideations",
+      "expected_text": "ideations",
+      "reads": 3,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 0,
+      "goal": "Project",
+      "emitted": [
+        515,
+        4294967294
+      ],
+      "emitted_text": "able",
+      "expected_text": "able",
+      "reads": 1,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 1,
+      "goal": "Office",
+      "emitted": [
+        489,
+        491,
+        4294967294
+      ],
+      "emitted_text": "ideations",
+      "expected_text": "ideations",
+      "reads": 2,
+      "correct": true
+    },
+    {
+      "world": 100,
+      "person": 1,
+      "goal": "Project",
+      "emitted": [
+        516,
+        517,
+        4294967294
+      ],
+      "emitted_text": "ongear",
+      "expected_text": "ongear",
+      "reads": 3,
+      "correct": true
+    }
+  ],
+  "focused_tests": {
+    "observed_text_session": [
+      "the_extractor_locates_roles_and_goals_without_gold_fields",
+      "the_goal_survives_a_redirect_and_the_span_identity_is_exact",
+      "a_missing_fact_is_unresolved_and_a_cycle_is_exhausted",
+      "the_frame_round_trips_and_rejects_a_foreign_binding"
+    ],
+    "touched_runner_tests_passed": 21,
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass"
+  },
+  "readings": [
+    "the same exact request answers at one, two and three reads in different supplied worlds; the three-read composition is withheld from development and the final panel is a fresh draw with new assignments",
+    "the primary completes 24/24 development and 24/24 final with 24/24 correct depths, emitting the complete selected phrase plus the declared terminator through the boundary",
+    "the registry-membership shortcut completes 20/24 and a relation-only fixed-depth-two controller 18/24, so neither entity membership nor a fixed depth substitutes for the learned role/continuation semantics; disabling reads gives 0/24",
+    "a one-position first-source edit changes the entity, the selected sources (486 to 488), the depth (3 to 2) and the complete answer (489,491 to 513) together and matches an independently derived expectation, while the goal stays invariant across the redirect",
+    "changing only the request goal with the same entity and world selects different evidence and both answers match their independent expectations",
+    "removing a required later fact yields an explicit unresolved stop with no emission; a redirect cycle yields an exhausted outcome",
+    "pause/resume is identical on 48/48 request executions and the frame refuses a foreign binding"
+  ],
+  "limitations": [
+    "the clause layout, marker vocabulary, entity registry and the terminator token are declared scaffolding; only the marker roles, boundary trimming, action semantics per role and the goal table are learned",
+    "development exposes one- and two-read chains, and the final panel withholds the three-read composition, but the marker tokens and the redirect/assert forms themselves are familiar",
+    "no geometric arm is claimed here: the marker observation is a learned categorical vote table, consistent with the principal finding that the fixed-equality relation test ties",
+    "one read/compute/emit boundary is reused, but the earlier relational runner's frame is a sibling type rather than the same struct",
+    "no prose, no executed Rust task, no whole-path latency or energy measurement"
+  ],
+  "principal_correction": {
+    "at": "2026-09-22",
+    "status": "ORIGINAL_VALUES_PRESERVED_INTERPRETATION_SUPERSEDED",
+    "review": "docs/integration/observed-text-session-review-2026-09-22.md",
+    "audit": "docs/evidence/observed-text-session-principal-review-2026-09-22.json",
+    "corrections": [
+      "Final population repeatedly exposed across eight attempts; not untouched qualification",
+      "Multi-token BPE fragments, no whitespace in final answer strings; not multiword prose",
+      "14/24 to24/24 measures gold-role action-table fit, not initial/final end-to-end output",
+      "Runtime source hashes literal bound; gold Goal accepted by wrapper; incomplete EOS/restore/capture validation",
+      "fixed_depth_two is maximum-two-read control; removed later fact actually first/direct fact",
+      "Only primary24rows saved; all-arm/frame/snapshot evidence added in corrected exposed replay"
+    ]
+  }
+}

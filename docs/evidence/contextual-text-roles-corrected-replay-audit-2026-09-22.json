@@ -1,0 +1,374 @@
+{
+  "schema": "uor-r4.pr1343-corrected-independent-audit/1",
+  "scope": "Independent saved-data audit of corrected contextual roles; no fitting, model execution or build.",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-text-roles-principal-2",
+  "seal": {
+    "listed": 5,
+    "missing": [],
+    "unlisted": [],
+    "size_errors": [],
+    "blake3_errors": []
+  },
+  "provenance": {
+    "result_sha256": "effc9ba58c8233f7ba705fc84b253e91dd783202acce7bac52b76b2259f7217b",
+    "model_sha256": "b5707d2cdd301b0e9c7c91e2177e6d5e5fe3aab446e64e66a0bbbf5204a75e1f",
+    "model_bytes": 1471,
+    "source_matches_review": {
+      "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "running_source": {
+      "executable_sha256": "c1c8b57d91b5baac72aa5c83fea23934fb281cce60990693ee5b8c6dcf3dc3cd",
+      "git_dirty": "true",
+      "git_rev": "bc9c81712bf505089bf22e3a3bd53df819e858c4",
+      "source_files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+          "sha256": "46afbd9c32e24e659a2df8f24ef251192b52422803bb8af4f95d1e25bef40293"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+          "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "f76a148197b9e813a018f0069f3ed7fb322dd21899ad54d95d567d8f31146dda"
+        }
+      ]
+    },
+    "actual_executable_matches": true,
+    "model_bytes_unchanged_from_original": true
+  },
+  "fixture_preservation": {
+    "0": true,
+    "1": true,
+    "2": true,
+    "100": true,
+    "101": true,
+    "102": true
+  },
+  "membership_entities_correct": true,
+  "learning": {
+    "reported": {
+      "candidate_updates": 11,
+      "clauses": 48,
+      "epochs_run": 2,
+      "feature_weights": 50,
+      "policy_examples": 24,
+      "policy_final_correct": 24,
+      "policy_initial_correct": 14,
+      "role_final_correct": 48,
+      "role_initial_correct": 0,
+      "roles_observed": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "expected_initial_marker_role": 0,
+    "expected_initial_action": 14,
+    "fit_clauses": 48,
+    "fit_labels": 48,
+    "same_feature_weights": true,
+    "initial_receipts_correct": true,
+    "feature_keys": 50,
+    "nonzero_feature_keys": 47,
+    "qualification": "Primary saved output checked independently; no model inference performed by auditor. Fit accuracy48 is preserved reported training accuracy."
+  },
+  "arm_recounts": {
+    "contextual_primary/development": {
+      "rows": 24,
+      "correct": 24,
+      "correct_depth": 24,
+      "all_correct_flags_match": true,
+      "all_targets_match": true,
+      "all_control_predictions_match_independent_semantics": true,
+      "all_decoded_text_matches": true
+    },
+    "contextual_primary/exposed_regression": {
+      "rows": 24,
+      "correct": 24,
+      "correct_depth": 24,
+      "all_correct_flags_match": true,
+      "all_targets_match": true,
+      "all_control_predictions_match_independent_semantics": true,
+      "all_decoded_text_matches": true
+    },
+    "membership_continuation/exposed_regression": {
+      "rows": 24,
+      "correct": 20,
+      "correct_depth": 22,
+      "all_correct_flags_match": true,
+      "all_targets_match": true,
+      "all_control_predictions_match_independent_semantics": true,
+      "all_decoded_text_matches": true
+    },
+    "maximum_two_read/exposed_regression": {
+      "rows": 24,
+      "correct": 18,
+      "correct_depth": 18,
+      "all_correct_flags_match": true,
+      "all_targets_match": true,
+      "all_control_predictions_match_independent_semantics": true,
+      "all_decoded_text_matches": true
+    },
+    "reads_disabled/exposed_regression": {
+      "rows": 24,
+      "correct": 0,
+      "correct_depth": 0,
+      "all_correct_flags_match": true,
+      "all_targets_match": true,
+      "all_control_predictions_match_independent_semantics": true,
+      "all_decoded_text_matches": true
+    }
+  },
+  "reported_counts_match": {
+    "contextual_primary/development": true,
+    "contextual_primary/exposed_regression": true,
+    "membership_continuation/exposed_regression": true,
+    "maximum_two_read/exposed_regression": true,
+    "reads_disabled/exposed_regression": true
+  },
+  "row_event_totals": {
+    "events": 655,
+    "successful_reads": 158,
+    "repeated_read_attempts": 4,
+    "snapshots": 775
+  },
+  "snapshots_by_arm": {
+    "contextual_primary/development": 183,
+    "contextual_primary/exposed_regression": 190,
+    "membership_continuation/exposed_regression": 191,
+    "maximum_two_read/exposed_regression": 163,
+    "reads_disabled/exposed_regression": 48
+  },
+  "original_primary_preservation": {
+    "rows": 24,
+    "matching_outputs_depth": 24,
+    "genuine_multiword": 7,
+    "decoded_output_counts": {
+      " Fen": 4,
+      " Lumen": 2,
+      " Atlas": 7,
+      " Cedar Annex": 4,
+      " Ivo": 3,
+      " Project Bay": 3,
+      " Mara": 1
+    }
+  },
+  "source_intervention": {
+    "before": {
+      "expected": {
+        "answer": [
+          426,
+          264
+        ],
+        "terminal": "Stop",
+        "reads": 3,
+        "selected_segments": [
+          0,
+          1,
+          2
+        ],
+        "roles": [
+          1,
+          1,
+          0
+        ],
+        "spans": [
+          [
+            0,
+            6,
+            3
+          ],
+          [
+            1,
+            7,
+            3
+          ],
+          [
+            2,
+            5,
+            2
+          ]
+        ]
+      },
+      "output_matches": true,
+      "selection_depth_matches": true,
+      "goal_invariant": true,
+      "snapshots": 9
+    },
+    "after": {
+      "expected": {
+        "answer": [
+          340,
+          277,
+          280,
+          1117,
+          662,
+          104
+        ],
+        "terminal": "Stop",
+        "reads": 2,
+        "selected_segments": [
+          0,
+          3
+        ],
+        "roles": [
+          1,
+          0
+        ],
+        "spans": [
+          [
+            0,
+            6,
+            2
+          ],
+          [
+            3,
+            4,
+            6
+          ]
+        ]
+      },
+      "output_matches": true,
+      "selection_depth_matches": true,
+      "goal_invariant": true,
+      "snapshots": 11
+    },
+    "reported_expectations_match": true,
+    "different_successful_answer": true,
+    "only_declared_source_object_changed": true,
+    "before_text": " Mara office follows Ivo",
+    "after_text": " Mara office follows Oren"
+  },
+  "later_absence": {
+    "audit": {
+      "expected": {
+        "answer": [],
+        "terminal": "Unresolved",
+        "reads": 2,
+        "selected_segments": [
+          0,
+          1
+        ],
+        "roles": [
+          1,
+          1
+        ],
+        "spans": [
+          [
+            0,
+            6,
+            3
+          ],
+          [
+            1,
+            7,
+            3
+          ]
+        ]
+      },
+      "output_matches": true,
+      "selection_depth_matches": true,
+      "goal_invariant": true,
+      "snapshots": 6
+    },
+    "is_terminal_after_two_redirects": true,
+    "reported_expected_matches": true
+  },
+  "cycle": {
+    "audit": {
+      "expected": {
+        "answer": [],
+        "terminal": "Exhausted",
+        "reads": 1,
+        "selected_segments": [
+          0
+        ],
+        "roles": [
+          1
+        ],
+        "spans": [
+          [
+            0,
+            6,
+            2
+          ]
+        ]
+      },
+      "output_matches": true,
+      "selection_depth_matches": true,
+      "goal_invariant": true,
+      "snapshots": 4
+    },
+    "reported_expected_matches": true
+  },
+  "goal_change": {
+    "audit": {
+      "expected": {
+        "answer": [
+          450,
+          382,
+          264
+        ],
+        "terminal": "Stop",
+        "reads": 1,
+        "selected_segments": [
+          4
+        ],
+        "roles": [
+          2
+        ],
+        "spans": [
+          [
+            4,
+            5,
+            3
+          ]
+        ]
+      },
+      "output_matches": true,
+      "selection_depth_matches": true,
+      "goal_invariant": true,
+      "snapshots": 6
+    },
+    "reported_expected_matches": true,
+    "observed_question_exact": true
+  },
+  "event_errors": [],
+  "snapshot_errors": [],
+  "snapshot_phase_counts": {
+    "Read": 203,
+    "Continue": 78,
+    "Emit": 316,
+    "Stop": 89,
+    "terminal:Stop": 89,
+    "terminal:Exhausted": 11,
+    "terminal:Unresolved": 25
+  },
+  "totals_including_interventions": {
+    "events": 686,
+    "successful_reads": 167,
+    "repeated_read_attempts": 5,
+    "snapshots": 811
+  },
+  "remaining_scope": [
+    "Exposed authored readable-text panel; not new final language confirmation.",
+    "Static endpoint/length cue signatures suffice on this fixture; contextual-feature necessity not measured.",
+    "Gold span/role/goal/action supervision and exact leading-space BPE identities remain.",
+    "No geometric competing arm or predictive geometric advantage.",
+    "Immutable document runtime, not mutable persistent memory service or native public chat integration.",
+    "Whole-path D0-b and energy unavailable."
+  ],
+  "resources": {
+    "reported_elapsed_s": 0.254830125,
+    "retained_report_bytes": 8282308,
+    "model_runs_by_auditor": 0,
+    "builds_by_auditor": 0
+  },
+  "all_material_checks_pass": true,
+  "script_sha256": "3fb4504e07d70788a78fa5cebba146be0482fbec6740481bd88178b301ebe0f7"
+}

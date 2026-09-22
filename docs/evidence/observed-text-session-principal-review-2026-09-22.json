@@ -1,0 +1,1767 @@
+{
+  "schema": "uor-r4.pr1342-independent-evidence-audit/1",
+  "scope": "Read-only PR1342 audit of saved artifacts, counts and authored target reconstruction; no model run.",
+  "submitted_head": "b9eca5d2759d86664e519a9fb4c875b8127cb914",
+  "roots": {
+    "observed-text-session-1": {
+      "claimed_at": "1790034609",
+      "sealed_at": "1790034609",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "2fe2240679f95c1112b231b01a205b696381d6d3829b6a95fd97be6fa11c1963",
+      "result_sha256": "05b0c28fa1c1aa2f249f640fb5b47b071f3e6ad3f2b44364a78782500fd3283e",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 10,
+          "depth_correct": 12,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 7,
+          "depth_correct": 8,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 7,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 7,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 7,
+      "primary_recount_depth": 8,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "3c28867847a3be2625792b14ac502a07f73d4f434a972057da54163c419f3982",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "2242d72192dab873d3ce8ed16e20d41f9d5ca5fb66c4cac95bd3c98d086eab7f"
+          }
+        ]
+      },
+      "model_sha256": "79ab464837dbd20b78701103d22933196dc9b90fa412304624fa28959b19321f",
+      "elapsed_s": 0.146942667,
+      "retained_bytes": 13438,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 0,
+          "terminal": "Unresolved"
+        },
+        "one_position_source_edit": {
+          "answer_changed": false,
+          "changed_object_to": [
+            486
+          ],
+          "clause_index": 0,
+          "emitted_after": [],
+          "emitted_before": [],
+          "matches_expected_office_answer": false,
+          "reads_after": 0,
+          "reads_before": 0,
+          "selected_after": [],
+          "selected_before": [],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [],
+          "emitted_project": [
+            516,
+            517,
+            4294967294
+          ],
+          "expected_office": [
+            513
+          ],
+          "expected_project": [
+            516,
+            517
+          ],
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "removed_clause": 3,
+          "terminal": "Stop"
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-2": {
+      "claimed_at": "1790034679",
+      "sealed_at": "1790034679",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "b30b44f149df62f44291097ba71b334e0efe9f195dc5488cb62d7ea6b51b04fe",
+      "result_sha256": "2050577f8a68fa5bd26a8ada54f970a18e01f3292d4b4dfa81336c81494b20c7",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 19,
+          "depth_correct": 19,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 15,
+          "depth_correct": 15,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 18,
+      "primary_recount_depth": 18,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "2b43ec6747af2e5791c95f7fc30732982ddf88bf5d953230381476048a101a70",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "72794bc0890ef49193a13527a9334bea9981e11eeda2a0816c245903056bc7bc"
+          }
+        ]
+      },
+      "model_sha256": "85df1ffcc0c4ce0b2e5d74400d9a7d217caa355c9e55710a4e1b360dd44ea0d7",
+      "elapsed_s": 0.14649075,
+      "retained_bytes": 14203,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": false,
+          "changed_object_to": [
+            487
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            487,
+            487,
+            487
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-3": {
+      "claimed_at": "1790034725",
+      "sealed_at": "1790034725",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "aa77a4fe3085fa8cfe1926e889d3fb1dc61461b5c1d7a499d62dd8c3bfc4d096",
+      "result_sha256": "df9eac2abf3d355cc34dc1dc864bf71b1a749552710bcd09b6887875f326476c",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 19,
+          "depth_correct": 19,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 15,
+          "depth_correct": 15,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 18,
+      "primary_recount_depth": 18,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "e7b674cf97c18d5bc88804fb31af4b5fca1c51d2ead23ec347e31076e850f682",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "10e2361df8745f91828cfcdb5ffff68c252fafe0b9a02eee9a5aaac283444877"
+          }
+        ]
+      },
+      "model_sha256": "85df1ffcc0c4ce0b2e5d74400d9a7d217caa355c9e55710a4e1b360dd44ea0d7",
+      "elapsed_s": 0.160604667,
+      "retained_bytes": 14726,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": false,
+          "changed_object_to": [
+            487
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            487,
+            487,
+            487
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-4": {
+      "claimed_at": "1790034774",
+      "sealed_at": "1790034774",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "aa77a4fe3085fa8cfe1926e889d3fb1dc61461b5c1d7a499d62dd8c3bfc4d096",
+      "result_sha256": "685254802a44576299dcd10f8612bce77614223960e563308bcd89c407ff7ec0",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 19,
+          "depth_correct": 19,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 15,
+          "depth_correct": 15,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 18,
+      "primary_recount_depth": 18,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "71faef3d5dfcdc9c2acd91150f12da99167149e4b0125638cb64b3b79054bca2",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "8563fba6030b696999d6bcd27b938aa78c34d225227c665e761f1210c1ada4e9"
+          }
+        ]
+      },
+      "model_sha256": "85df1ffcc0c4ce0b2e5d74400d9a7d217caa355c9e55710a4e1b360dd44ea0d7",
+      "elapsed_s": 0.152645417,
+      "retained_bytes": 14726,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": false,
+          "changed_object_to": [
+            487
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            487,
+            487,
+            487
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-5": {
+      "claimed_at": "1790034803",
+      "sealed_at": "1790034803",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "a024b09f3d23ac81f099d3162675b2dd50e38813f8f0a61409c33c89bb039035",
+      "result_sha256": "84dabdc8638150937c3cca969cc12dce903881ec9d4310025cd0a949c13d0c06",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 24,
+      "primary_recount_depth": 24,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "d7a1f8e5a66c94714a6b6e333eb66f4036c77bad0acb639cafc6a0d67e3d03fb",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "a34212c260ea8b8619550dd60cf145c70b99bf22714cb116f4c2094babfd1d34"
+          }
+        ]
+      },
+      "model_sha256": "1ad86f0ae768d6e0e6c4254eeb3d80378f12e7f91778054063a522d218e46738",
+      "elapsed_s": 0.1439845,
+      "retained_bytes": 15046,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": false,
+          "changed_object_to": [
+            487
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            487,
+            487,
+            487
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-6": {
+      "claimed_at": "1790034831",
+      "sealed_at": "1790034831",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "a024b09f3d23ac81f099d3162675b2dd50e38813f8f0a61409c33c89bb039035",
+      "result_sha256": "4c515e04bb9e5448270d042786d77640b96ba1a6c3e715538471b4ce2445b4d5",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 24,
+      "primary_recount_depth": 24,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "4f178957eb449c93610abf8fe9e92e0d7cd2f8901b811db0de30285ac04b777f",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "8b21fa646315e25211cba4db34d2df3cc357db84c3e4f969f9ffe39302fdd1ba"
+          }
+        ]
+      },
+      "model_sha256": "1ad86f0ae768d6e0e6c4254eeb3d80378f12e7f91778054063a522d218e46738",
+      "elapsed_s": 0.143365041,
+      "retained_bytes": 15048,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": false,
+          "changed_object_to": [
+            487
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            487,
+            487,
+            487
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-7": {
+      "claimed_at": "1790034866",
+      "sealed_at": "1790034866",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "a024b09f3d23ac81f099d3162675b2dd50e38813f8f0a61409c33c89bb039035",
+      "result_sha256": "9f07eab4a1c4cf0159e699c02dd93bbdd73dc97e2c1f915f293bdfd15e1517ad",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 20,
+          "depth_correct": 22,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 24,
+      "primary_recount_depth": 24,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "running_source": {
+        "executable_sha256": "37d37ff0e728e1e1d70c0c6bf18e9ed0380cb471359f176b8cd41abc428ea978",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "2cb96465704dd36f593ab42b6c1d9542b37ca3f99ccf169427ca529b9a83a378"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e17f33ecbfdaecf1ac6e45af3a1e65ca1aa23844e6b1beb6ca88bdb51ebc91dc"
+          }
+        ]
+      },
+      "model_sha256": "1ad86f0ae768d6e0e6c4254eeb3d80378f12e7f91778054063a522d218e46738",
+      "elapsed_s": 0.142255125,
+      "retained_bytes": 15157,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": true,
+          "changed_object_to": [
+            488
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            513,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "goal_invariant": true,
+          "independent_expected_after": [
+            513
+          ],
+          "matches_independent_expectation": true,
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            488,
+            488
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    },
+    "observed-text-session-8": {
+      "claimed_at": "1790035076",
+      "sealed_at": "1790035076",
+      "listed": 4,
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "a024b09f3d23ac81f099d3162675b2dd50e38813f8f0a61409c33c89bb039035",
+      "result_sha256": "60dbff46e6adad4eaf2b951156e527bbf4425f420bfe7217ced4bf91583110ba",
+      "reported_arms": [
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "development",
+          "total": 24
+        },
+        {
+          "arm": "observed_text_session",
+          "complete": 24,
+          "depth_correct": 24,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "membership_continuation",
+          "complete": 20,
+          "depth_correct": 22,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "fixed_depth_two",
+          "complete": 18,
+          "depth_correct": 18,
+          "split": "final",
+          "total": 24
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "depth_correct": 0,
+          "split": "final",
+          "total": 24
+        }
+      ],
+      "primary_recount_correct": 24,
+      "primary_recount_depth": 24,
+      "correct_flags_match": true,
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "running_source": {
+        "executable_sha256": "767ddc81df9d4439e259134b3e74262a6d99e62d74883c26eff60602f05dfd3b",
+        "git_dirty": "false",
+        "git_rev": "6fc34c1feb6caa106f3a83d432dacf2603f04b35",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "7affd65cfe36050d35f58d6914ba0a6c2801280b1f8970bb0cb062a156b8d611"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "41e265b8c3b4da3a54fbf5c736126c33153461f892d39eeb9ec6c3a394aa0963"
+          }
+        ]
+      },
+      "model_sha256": "1ad86f0ae768d6e0e6c4254eeb3d80378f12e7f91778054063a522d218e46738",
+      "elapsed_s": 0.154037458,
+      "retained_bytes": 15157,
+      "interventions": {
+        "goal_preserved_across_redirect": {
+          "reads": 3,
+          "terminal": "Stop"
+        },
+        "one_position_source_edit": {
+          "answer_changed": true,
+          "changed_object_to": [
+            488
+          ],
+          "clause_index": 0,
+          "emitted_after": [
+            513,
+            4294967294
+          ],
+          "emitted_before": [
+            489,
+            491,
+            4294967294
+          ],
+          "goal": "Office",
+          "goal_invariant": true,
+          "independent_expected_after": [
+            513
+          ],
+          "matches_independent_expectation": true,
+          "person": 0,
+          "reads_after": 2,
+          "reads_before": 3,
+          "selected_after": [
+            485,
+            485,
+            488,
+            488
+          ],
+          "selected_before": [
+            485,
+            485,
+            486,
+            486,
+            487,
+            487,
+            487
+          ],
+          "world": 100
+        },
+        "request_goal_change_fixed_evidence": {
+          "changed": true,
+          "emitted_office": [
+            489,
+            491,
+            4294967294
+          ],
+          "emitted_project": [
+            515,
+            4294967294
+          ],
+          "expected_office": [
+            489,
+            491
+          ],
+          "expected_project": [
+            515
+          ],
+          "office_matches": true,
+          "project_matches": true
+        },
+        "required_later_fact_removed": {
+          "outcome": {
+            "emitted": [],
+            "terminal": "Unresolved"
+          },
+          "removed_clause": 4
+        },
+        "resume_identical": {
+          "identical": 48,
+          "total": 48
+        }
+      }
+    }
+  },
+  "provenance": {
+    "preserved_executable": "/tmp/uor-pr1342-original-competitive-reader",
+    "executable_bytes": 3985440,
+    "executable_sha256": "767ddc81df9d4439e259134b3e74262a6d99e62d74883c26eff60602f05dfd3b",
+    "matches_run8": true,
+    "all_run8_source_hashes_match": true,
+    "note": "Git stamp names the reviewed parent; individual source-file hashes bind the submitted new implementation."
+  },
+  "primary_recount": {
+    "rows": 24,
+    "distinct_worlds": 3,
+    "checks_true_counts": {
+      "independent_answer_matches": 24,
+      "emitted_matches": 24,
+      "depth_matches": 24,
+      "selected_role_path_matches": 24,
+      "subject_event_array_matches": 24,
+      "eos_exactly_once_at_end": 24
+    },
+    "depth_counts": {
+      "3": 6,
+      "1": 12,
+      "2": 6
+    },
+    "decoded_answer_counts": {
+      "ideations": 3,
+      "able": 9,
+      "ongear": 3,
+      "ame": 2,
+      "astorm": 3,
+      "end": 3,
+      "ich": 1
+    },
+    "answer_token_lengths": {
+      "2": 9,
+      "1": 15
+    },
+    "decoded_outputs_with_whitespace": 0,
+    "eos": 4294967294,
+    "terminal_frames_with_out_of_vocab_emission": 24,
+    "note": "All24 rows are correct multi-token spans for the declared token task. Nine two-token spans decode as single no-space strings, not demonstrated multiword answers."
+  },
+  "novelty": {
+    "requests": [
+      {
+        "person": 0,
+        "goal": "Office",
+        "question_tokens": [
+          485,
+          547,
+          548
+        ],
+        "development_depths": [
+          2,
+          1,
+          2
+        ],
+        "final_depths": [
+          3,
+          1,
+          3
+        ],
+        "all_three_depths_across_both": true,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 0,
+        "goal": "Project",
+        "question_tokens": [
+          485,
+          556,
+          557
+        ],
+        "development_depths": [
+          1,
+          2,
+          2
+        ],
+        "final_depths": [
+          1,
+          3,
+          1
+        ],
+        "all_three_depths_across_both": true,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 1,
+        "goal": "Office",
+        "question_tokens": [
+          486,
+          547,
+          548
+        ],
+        "development_depths": [
+          1,
+          2,
+          1
+        ],
+        "final_depths": [
+          2,
+          3,
+          2
+        ],
+        "all_three_depths_across_both": true,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 1,
+        "goal": "Project",
+        "question_tokens": [
+          486,
+          556,
+          557
+        ],
+        "development_depths": [
+          2,
+          1,
+          2
+        ],
+        "final_depths": [
+          3,
+          2,
+          3
+        ],
+        "all_three_depths_across_both": true,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 2,
+        "goal": "Office",
+        "question_tokens": [
+          487,
+          547,
+          548
+        ],
+        "development_depths": [
+          2,
+          1,
+          2
+        ],
+        "final_depths": [
+          1,
+          2,
+          1
+        ],
+        "all_three_depths_across_both": false,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 2,
+        "goal": "Project",
+        "question_tokens": [
+          487,
+          556,
+          557
+        ],
+        "development_depths": [
+          1,
+          2,
+          1
+        ],
+        "final_depths": [
+          2,
+          1,
+          2
+        ],
+        "all_three_depths_across_both": false,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 3,
+        "goal": "Office",
+        "question_tokens": [
+          488,
+          547,
+          548
+        ],
+        "development_depths": [
+          1,
+          1,
+          1
+        ],
+        "final_depths": [
+          1,
+          1,
+          1
+        ],
+        "all_three_depths_across_both": false,
+        "all_three_depths_within_final": false
+      },
+      {
+        "person": 3,
+        "goal": "Project",
+        "question_tokens": [
+          488,
+          556,
+          557
+        ],
+        "development_depths": [
+          1,
+          1,
+          1
+        ],
+        "final_depths": [
+          1,
+          1,
+          1
+        ],
+        "all_three_depths_across_both": false,
+        "all_three_depths_within_final": false
+      }
+    ],
+    "development_read_counts": {
+      "2": 10,
+      "1": 14
+    },
+    "final_read_counts": {
+      "3": 6,
+      "1": 12,
+      "2": 6
+    },
+    "depth3_absent_development": true,
+    "familiar_marker_vocabulary": true,
+    "note": "Depth3 is held out of fit supervision, but not kept unexposed through design. Final chain structures are explicitly authored arrays; only terminal assignments use fixed PRNG draws."
+  },
+  "exposure": {
+    "run_primary_final_correct": [
+      7,
+      18,
+      18,
+      18,
+      24,
+      24,
+      24,
+      24
+    ],
+    "roots5_through8_rows_identical": true,
+    "membership_reported_final": [
+      7,
+      18,
+      18,
+      18,
+      24,
+      24,
+      20,
+      20
+    ],
+    "qualification": "Repeated exposed development diagnostics. Final output improved7->18->24 while source/instrument/model changed; membership control repaired24->20 after primary perfect result. Fresh final confirmation not established."
+  },
+  "learning_audit": {
+    "annotated_clauses": 48,
+    "statement_actions": 24,
+    "all_emit_initial_correct": 14,
+    "gold_action_counts": {
+      "Continue": 10,
+      "Emit": 14
+    },
+    "marker_votes_equal_label_counts": true,
+    "boundary_votes_equal_label_counts": true,
+    "action_table": [
+      3,
+      2,
+      3,
+      2
+    ],
+    "artifact_action_table_matches": true,
+    "goal_table_matches": true,
+    "negative_edge_tokens": [
+      548,
+      554,
+      557,
+      560
+    ],
+    "negative_edges_are_already_removed_marker_tails": true,
+    "actual_filler_boundary_cases": 0,
+    "marker_codebook_scope": "All four roles use disjoint marker-token pairs. Gold marker extents, subject/object boundaries, role, action and goal supervise offline counts. Serving sees a fitted categorical codebook; no unseen wording or competing same-goal syntax tested."
+  },
+  "interventions_audit": {
+    "changed_observed_token_positions": [
+      [
+        0,
+        3,
+        486,
+        488
+      ]
+    ],
+    "before": {
+      "answer": [
+        489,
+        491
+      ],
+      "terminal": "Stop",
+      "reads": 3,
+      "segments": [
+        0,
+        1,
+        2
+      ],
+      "subjects": [
+        [
+          485
+        ],
+        [
+          486
+        ],
+        [
+          487
+        ]
+      ],
+      "roles": [
+        1,
+        1,
+        0
+      ]
+    },
+    "after": {
+      "answer": [
+        513
+      ],
+      "terminal": "Stop",
+      "reads": 2,
+      "segments": [
+        0,
+        3
+      ],
+      "subjects": [
+        [
+          485
+        ],
+        [
+          488
+        ]
+      ],
+      "roles": [
+        1,
+        0
+      ]
+    },
+    "saved_answer_after_matches": true,
+    "saved_depths_match": true,
+    "goal_invariant_receipt": "Recorded boolean is only first action==Continue, not an audited goal trace. Source Continue explicitly copies self.goal, but no frames retained.",
+    "selected_receipt": "Arrays contain subject first-token IDs repeated per read/continue/emit effect, not unique exact occurrence references. Reconstructed underlying segment path [0,1,2]->[0,3].",
+    "removed_test_original_path": {
+      "answer": [
+        515
+      ],
+      "terminal": "Stop",
+      "reads": 1,
+      "segments": [
+        4
+      ],
+      "subjects": [
+        [
+          485
+        ]
+      ],
+      "roles": [
+        2
+      ]
+    },
+    "removed_test_result": {
+      "answer": [],
+      "terminal": "Unresolved",
+      "reads": 0,
+      "segments": [],
+      "subjects": [],
+      "roles": []
+    },
+    "removed_is_later_fact": false,
+    "cycle_and_unknown": "Cycle and unknown subject supported in module tests only, not retained in run8 report."
+  },
+  "interface_and_controls": {
+    "fixed_depth_two": "Control enforces at most2 reads only when pendingRead andreads>=2; it retains learned earlier Emit.18/24 therefore max-two-read truncation, not a pure fixed-depth baseline.",
+    "membership": "Corrected after run6; replaces action after each read based on declared registry. Only aggregate20/24,22correctdepth retained; comparator rows absent.",
+    "reads_disabled": "Overrides pendingRead toStop, causingEOS emission and terminalStop with no answer tokens, rather than explicit unresolved. Report0complete is correct but no-read semantics need repair.",
+    "goal_input": "ob_serve receives supplied Goal, uses it to create the question and initialize session; observed qgoal is checked against it. No evidence of a mismatched goal changing a correct prediction, but claimed raw-input-only API is not implemented.",
+    "binding": "Model/tokenizer/document digests are literal bound placeholders; only worldid/version are real. Foreign model/tokenizer/document rejection is not established by this runner.",
+    "step_validation": "step does not validate expected binding or frame invariants; validate is called at start and a single resume point. EOS4294967294 outside4096 makes every completed emitted frame fail validate.",
+    "resume": "Inline serde roundtrip after step1 in the same loop; no saved snapshots, frame events, independent continuation entry, midphrase or postEOS restoration. Counts compare only emitted andterminal, not reads/control/selection.",
+    "loaded_model": "Artifact JSON independently deserialized, equal to original, and loaded object used by serving; no pre/post full-predictor comparison beyond parameter equality.",
+    "all_arm_rows": "Only24 primary final rows retained; development/control/resume full rows not retained.",
+    "span_identity": "Observed object_start derives totaltrim count rather than leadingtrim only, so trailing fillers shift origin incorrectly; current fixture has no actual filler case. CapturedPayload.abs lacks segment but captured_span stores segment.",
+    "step_budget": "TextSession::run uses fixed2*MAX_READS+4 cap unrelated to phrase length and returnsOk possibly nonterminal. Wrapper maps nonterminal toUnresolved even with partial emission. Current1-2token answers do not expose this.",
+    "prose_and_teacher_forcing": "Fixture constructs token arrays directly from banks; decoded strings are arbitrary fragments. Runner performs complete rollout exact-answer comparison, not a separate teacher-forced predictive-language test."
+  },
+  "artifact": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-text-session-8/artifacts/observed_text_model.json",
+    "bytes": 394,
+    "sha256": "1ad86f0ae768d6e0e6c4254eeb3d80378f12e7f91778054063a522d218e46738",
+    "model": {
+      "version": 1,
+      "token_votes": [
+        [
+          547,
+          [
+            19,
+            0,
+            0,
+            0
+          ]
+        ],
+        [
+          548,
+          [
+            19,
+            0,
+            0,
+            0
+          ]
+        ],
+        [
+          552,
+          [
+            0,
+            5,
+            0,
+            0
+          ]
+        ],
+        [
+          554,
+          [
+            0,
+            5,
+            0,
+            0
+          ]
+        ],
+        [
+          556,
+          [
+            0,
+            0,
+            19,
+            0
+          ]
+        ],
+        [
+          557,
+          [
+            0,
+            0,
+            19,
+            0
+          ]
+        ],
+        [
+          558,
+          [
+            0,
+            0,
+            0,
+            5
+          ]
+        ],
+        [
+          560,
+          [
+            0,
+            0,
+            0,
+            5
+          ]
+        ]
+      ],
+      "edge_votes": [
+        [
+          485,
+          12
+        ],
+        [
+          486,
+          15
+        ],
+        [
+          487,
+          15
+        ],
+        [
+          488,
+          16
+        ],
+        [
+          489,
+          4
+        ],
+        [
+          491,
+          4
+        ],
+        [
+          513,
+          3
+        ],
+        [
+          515,
+          5
+        ],
+        [
+          516,
+          2
+        ],
+        [
+          517,
+          2
+        ],
+        [
+          548,
+          -7
+        ],
+        [
+          554,
+          -5
+        ],
+        [
+          557,
+          -7
+        ],
+        [
+          560,
+          -5
+        ]
+      ],
+      "action_per_role": [
+        3,
+        2,
+        3,
+        2
+      ],
+      "goal_per_role": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "redirect_per_role": [
+        false,
+        true,
+        false,
+        true
+      ]
+    }
+  },
+  "resources": {
+    "eight_saved_run_elapsed_s": 1.1903256249999998,
+    "retained_report_bytes": 117501,
+    "reported_charge_ms": 18000000,
+    "listed_component_estimates_sum_ms": 18000000,
+    "charge_scope": "Approximate measured-plus-estimated whole work charge, not model-run wall time. No independent cleanup manifest audited here.",
+    "model_runs_by_auditor": 0,
+    "builds_by_auditor": 0,
+    "energy": "UNAVAILABLE"
+  },
+  "script_sha256": "c9d20d2bccdc75c822d27817404a6e0f12e522e0c26da87b1459668d735c127f"
+}
