@@ -1,5 +1,10 @@
 # EVIDENCE
 
+## PR #1344 principal review — corrected draft, milestone incomplete
+
+[Original audit](../evidence/structured-argument-binding-principal-review-2026-09-22.json), [corrected replay](../evidence/structured-argument-binding-corrected-replay-audit-2026-09-22.json), [checks/resources](../evidence/structured-argument-binding-principal-checks-2026-09-22.json), [principal interpretation](structured-argument-binding-review-2026-09-22.md). Original23/24 answers reflect cue-role 47/48, not a failed48/48 span assignment. Raw-byte identity was exercised; stale intervention text mixed identity regimes. Corrected source/restore/fitting contracts are a draft repair, not new-form or geometric-advantage evidence. Preserve the original five attempts and accepted PR1343 artifact.
+
+
 ## September22: PR #1343 principal source/evidence correction
 
 **PR #1343, principal review:** retain fitted categorical candidate/role learning and exact variable-depth answers. All 24/24 original primary answers/depths are independently reconstructed; seven outputs are genuine multiword spans. Actual marker-role learning is 0/48→48/48 (the reported 14 initial value was the action baseline). The panel is exposed, and static endpoint/length signatures suffice to identify its cues, so contextual necessity is not established. [Review](../integration/contextual-text-roles-review-2026-09-22.md); [original audit](../evidence/contextual-text-roles-principal-review-2026-09-22.json).

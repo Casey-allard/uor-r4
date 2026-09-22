@@ -1,0 +1,534 @@
+{
+  "schema": "uor-r4.pr1344-corrected-independent-audit/1",
+  "scope": "Independent corrected saved-data audit: hashes, typed oracles, exact text/provenance and saved continuations. No model fit/inference/build.",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-principal-1",
+  "seal": {
+    "listed": 5,
+    "missing": [],
+    "unlisted": [],
+    "size_errors": [],
+    "blake3_errors": []
+  },
+  "source": {
+    "commit": "1df229178c6b56ae6dbf95273c9e4eae3282a66e",
+    "running_source": {
+      "executable_sha256": "0fd3f9eabe748ed4c56afb0e04f1a36483065b6a9b6f3c5681c2ad09d9b83396",
+      "git_dirty": "true",
+      "git_rev": "9cb02f6e77eeae6d026e830f7128625c135f7e26",
+      "source_files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+          "sha256": "ef1c51b35344dcb98fb37ea9d7608e3efc91d59be993afc58f4aeaefb2e3b24d"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+          "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "4d866fd6c35329d45d379468150c22ce9cb9c7cabac85c8d6594929a37d1ecad"
+        }
+      ]
+    },
+    "frozen_review_source_sha256": {
+      "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": "ef1c51b35344dcb98fb37ea9d7608e3efc91d59be993afc58f4aeaefb2e3b24d",
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5",
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": "4d866fd6c35329d45d379468150c22ce9cb9c7cabac85c8d6594929a37d1ecad"
+    },
+    "actual_source_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "executable_matches": true,
+    "model_sha256": "600aa78b03bb962970e7945591ee274d89c6d1e5f57ee4eddf17940d9c629ca5",
+    "model_bytes": 2717,
+    "model_version": 5
+  },
+  "arms": {
+    "development/contextual_primary": {
+      "rows": 24,
+      "complete": 24,
+      "depth_correct": 24,
+      "flag_oracle_decode_control_match": true
+    },
+    "exposed_regression/contextual_primary": {
+      "rows": 24,
+      "complete": 24,
+      "depth_correct": 24,
+      "flag_oracle_decode_control_match": true
+    },
+    "exposed_regression/membership_continuation": {
+      "rows": 24,
+      "complete": 20,
+      "depth_correct": 22,
+      "flag_oracle_decode_control_match": true
+    },
+    "exposed_regression/maximum_two_read": {
+      "rows": 24,
+      "complete": 18,
+      "depth_correct": 18,
+      "flag_oracle_decode_control_match": true
+    },
+    "exposed_regression/reads_disabled": {
+      "rows": 24,
+      "complete": 0,
+      "depth_correct": 0,
+      "flag_oracle_decode_control_match": true
+    }
+  },
+  "primary_failures": [],
+  "rows_counts": {
+    "outcomes": 120,
+    "events": 655,
+    "snapshots": 775,
+    "successful_reads": 158,
+    "rejected_read_attempts": 4
+  },
+  "row_capture_key_modes": {
+    "lexical_capture": 158
+  },
+  "alignment": {
+    "statement_clauses": 48,
+    "aligned_statements": 48,
+    "fit_clauses": 48,
+    "aligned_fit_clauses": 48,
+    "aligned_row_questions": 120,
+    "token_text_length_errors": [],
+    "cross_BPE_boundary_join_panel": "NOT_RUN: this exposed fixture retains initial spaces; focused unit coverage is separate",
+    "identity_tag_observation": "All successful captures in this panel use tag1 lexical bytes. Tag0 fallback disjointness is a source/unit-test property, not evidence of mixed-regime joins."
+  },
+  "learning": {
+    "reported": {
+      "candidate_updates": 5,
+      "clauses": 48,
+      "cue_role_correct": 48,
+      "epochs_run": 2,
+      "feature_weights": 71,
+      "h4_enabled": false,
+      "h4_moves": 0,
+      "policy_examples": 24,
+      "policy_final_correct": 24,
+      "policy_initial_correct": 14,
+      "role_final_correct": 48,
+      "role_initial_correct": 0,
+      "roles_observed": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "span_feature_keys": 71,
+    "nonzero_span_feature_keys": 57,
+    "cue_feature_keys": 21,
+    "scope": "Reported training extent0\u219248 and cue-role48/48 are distinct quantities; all downstream contextual outputs are independently checked, no decoder execution by auditor."
+  },
+  "interventions": {
+    "reported_checks": {
+      "base_matches": true,
+      "cycle_matches": true,
+      "goal_change_matches": true,
+      "goal_invariant": true,
+      "later_absence_matches": true,
+      "source_edit_changes_successful_answer": true,
+      "source_edit_matches": true
+    },
+    "all_expected": true,
+    "details": {
+      "base": {
+        "expected": {
+          "answer": [
+            426,
+            264
+          ],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "saved_expected_matches": true,
+        "actual": {
+          "emitted": [
+            426,
+            264,
+            4294967294
+          ],
+          "reads": 3,
+          "selected_segments": [
+            0,
+            1,
+            2
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer_without_eos": " Fen",
+        "coherent_observed_clauses": true,
+        "output_path_depth_matches": true
+      },
+      "source_edit": {
+        "expected": {
+          "answer": [
+            340,
+            277,
+            280,
+            1117,
+            662,
+            104
+          ],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            3
+          ],
+          "terminal": "Stop"
+        },
+        "saved_expected_matches": true,
+        "actual": {
+          "emitted": [
+            340,
+            277,
+            280,
+            1117,
+            662,
+            104,
+            4294967294
+          ],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            3
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer_without_eos": " Cedar Annex",
+        "coherent_observed_clauses": true,
+        "output_path_depth_matches": true
+      },
+      "cycle": {
+        "expected": {
+          "answer": [],
+          "reads": 1,
+          "selected_segments": [
+            0
+          ],
+          "terminal": "Exhausted"
+        },
+        "saved_expected_matches": true,
+        "actual": {
+          "emitted": [],
+          "reads": 1,
+          "selected_segments": [
+            0
+          ],
+          "terminal": "Exhausted"
+        },
+        "decoded_answer_without_eos": "",
+        "coherent_observed_clauses": true,
+        "output_path_depth_matches": true
+      },
+      "required_terminal_fact_removed": {
+        "expected": {
+          "answer": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Unresolved"
+        },
+        "saved_expected_matches": true,
+        "actual": {
+          "emitted": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Unresolved"
+        },
+        "decoded_answer_without_eos": "",
+        "coherent_observed_clauses": true,
+        "output_path_depth_matches": true
+      },
+      "request_goal_change": {
+        "expected": {
+          "answer": [
+            450,
+            382,
+            264
+          ],
+          "reads": 1,
+          "selected_segments": [
+            4
+          ],
+          "terminal": "Stop"
+        },
+        "saved_expected_matches": true,
+        "actual": {
+          "emitted": [
+            450,
+            382,
+            264,
+            4294967294
+          ],
+          "reads": 1,
+          "selected_segments": [
+            4
+          ],
+          "terminal": "Stop"
+        },
+        "decoded_answer_without_eos": " Lumen",
+        "coherent_observed_clauses": true,
+        "output_path_depth_matches": true
+      }
+    },
+    "oracle_errors": [],
+    "exact_single_object_edit": true,
+    "different_successful_answer": true,
+    "subword_perturbation": {
+      "decoded": " Mara in works",
+      "outcome": {
+        "error": "observed-text observation: observed clause is not a recognized question"
+      },
+      "question": {
+        "byte_lengths": [
+          4,
+          1,
+          3,
+          6
+        ],
+        "seg": 999,
+        "text": " Mara in works",
+        "tokens": [
+          2828,
+          81,
+          281,
+          1806
+        ]
+      },
+      "scope": "Perturbation only; no claim of semantic word-order generalization"
+    },
+    "scope": "Word-piece permutation is a rejected observed request, not semantic generalization evidence."
+  },
+  "all_saved_counts_including_interventions": {
+    "outcomes": 125,
+    "events": 686,
+    "snapshots": 811,
+    "successful_reads": 167,
+    "rejected_read_attempts": 5
+  },
+  "phase_counts": {
+    "Read": 203,
+    "Continue": 78,
+    "Emit": 316,
+    "Stop": 89,
+    "terminal:Stop": 89,
+    "terminal:Exhausted": 11,
+    "terminal:Unresolved": 25
+  },
+  "frame_errors": [],
+  "snapshot_errors": [],
+  "original_comparison": {
+    "row_count": 120,
+    "behavior_changes": [
+      {
+        "key": [
+          "development",
+          "contextual_primary",
+          1,
+          0,
+          "Project"
+        ],
+        "before": {
+          "emitted": [
+            339,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 1,
+          "terminal": "Stop",
+          "selected_segments": [
+            4
+          ],
+          "selected_roles": [
+            2
+          ],
+          "correct": false
+        },
+        "after": {
+          "emitted": [
+            1814,
+            92,
+            292,
+            4294967294
+          ],
+          "reads": 2,
+          "terminal": "Stop",
+          "selected_segments": [
+            4,
+            5
+          ],
+          "selected_roles": [
+            3,
+            2
+          ],
+          "correct": true
+        }
+      },
+      {
+        "key": [
+          "exposed_regression",
+          "contextual_primary",
+          101,
+          0,
+          "Project"
+        ],
+        "before": {
+          "emitted": [
+            339,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 1,
+          "terminal": "Stop",
+          "selected_segments": [
+            4
+          ],
+          "selected_roles": [
+            2
+          ],
+          "correct": false
+        },
+        "after": {
+          "emitted": [
+            1814,
+            92,
+            292,
+            4294967294
+          ],
+          "reads": 3,
+          "terminal": "Stop",
+          "selected_segments": [
+            4,
+            5,
+            6
+          ],
+          "selected_roles": [
+            3,
+            3,
+            2
+          ],
+          "correct": true
+        }
+      },
+      {
+        "key": [
+          "exposed_regression",
+          "membership_continuation",
+          101,
+          0,
+          "Project"
+        ],
+        "before": {
+          "emitted": [
+            1814,
+            92,
+            292,
+            4294967294
+          ],
+          "reads": 3,
+          "terminal": "Stop",
+          "selected_segments": [
+            4,
+            5,
+            6
+          ],
+          "selected_roles": [
+            2,
+            3,
+            2
+          ],
+          "correct": true
+        },
+        "after": {
+          "emitted": [
+            1814,
+            92,
+            292,
+            4294967294
+          ],
+          "reads": 3,
+          "terminal": "Stop",
+          "selected_segments": [
+            4,
+            5,
+            6
+          ],
+          "selected_roles": [
+            3,
+            3,
+            2
+          ],
+          "correct": true
+        }
+      },
+      {
+        "key": [
+          "exposed_regression",
+          "maximum_two_read",
+          101,
+          0,
+          "Project"
+        ],
+        "before": {
+          "emitted": [
+            339,
+            102,
+            95,
+            4294967294
+          ],
+          "reads": 1,
+          "terminal": "Stop",
+          "selected_segments": [
+            4
+          ],
+          "selected_roles": [
+            2
+          ],
+          "correct": false
+        },
+        "after": {
+          "emitted": [],
+          "reads": 2,
+          "terminal": "Exhausted",
+          "selected_segments": [
+            4,
+            5
+          ],
+          "selected_roles": [
+            3,
+            3
+          ],
+          "correct": false
+        }
+      }
+    ],
+    "original_root_preserved": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-5",
+    "corrected_model_differs": true
+  },
+  "reported_counts_match": {
+    "development/contextual_primary": true,
+    "exposed_regression/contextual_primary": true,
+    "exposed_regression/membership_continuation": true,
+    "exposed_regression/maximum_two_read": true,
+    "exposed_regression/reads_disabled": true
+  },
+  "all_material_checks_pass": true,
+  "qualification": "Corrected exposed regression and causal instrumentation pass. Richer ordinary-language fixture, matched H4 comparison and genuinely new final qualification remain NOT_RUN."
+}

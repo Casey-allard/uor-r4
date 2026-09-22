@@ -1,0 +1,534 @@
+{
+  "schema": "uor-r4.pr1344-original-independent-audit/1",
+  "scope": "Independent saved-data audit; no model fitting/inference/build. Manifest and trace arithmetic only.",
+  "submitted": "9cb02f6e77eeae6d026e830f7128625c135f7e26",
+  "roots": {
+    "1": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-1",
+      "retained_bytes": 3755,
+      "files": [
+        "artifacts/contextual_roles_model.json",
+        "attempt.json"
+      ],
+      "claimed_at": "1790045653",
+      "sealed": false
+    },
+    "2": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-2",
+      "retained_bytes": 3755,
+      "files": [
+        "artifacts/contextual_roles_model.json",
+        "attempt.json"
+      ],
+      "claimed_at": "1790045682",
+      "sealed": false
+    },
+    "3": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-3",
+      "retained_bytes": 3755,
+      "files": [
+        "artifacts/contextual_roles_model.json",
+        "attempt.json"
+      ],
+      "claimed_at": "1790045795",
+      "sealed": false
+    },
+    "4": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-4",
+      "retained_bytes": 8359369,
+      "files": [
+        "artifacts/contextual_roles_model.json",
+        "attempt.json",
+        "manifest.json",
+        "result.json",
+        "rows.jsonl",
+        "worlds.json"
+      ],
+      "claimed_at": "1790045833",
+      "sealed": true,
+      "sealed_at": "1790045833",
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "running_source": {
+        "executable_sha256": "963cf8b834e557673cb57d5d3057232921a8614ec6c3de4b5e121d93be91a701",
+        "git_dirty": "false",
+        "git_rev": "6ee9d0f53feea5e03dfaa408ff6a08776e2eabc8",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "7e8f4a1283157c03574084900b4f184222d2994ee5f0f7521bd99395eb2649ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "78bff48aee3c19376df29bd6797be369e4c7767a2ea8021aea038eb136010cf9"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": false,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "model_sha256": "289621f07fbd550a172d16578e1a7d571fd1f9e5bcdcad25c3bcfd907def833c",
+      "rows_sha256": "ab2047958850567fd1c433dcdb3ff32e477d865e80159a1e629c80b3fed02a8a",
+      "elapsed_s": 0.3257395,
+      "learning": {
+        "candidate_updates": 288,
+        "clauses": 48,
+        "cue_role_correct": 47,
+        "epochs_run": 6,
+        "feature_weights": 91,
+        "h4_enabled": false,
+        "h4_moves": 0,
+        "policy_examples": 24,
+        "policy_final_correct": 24,
+        "policy_initial_correct": 14,
+        "role_final_correct": 0,
+        "role_initial_correct": 0,
+        "roles_observed": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "5": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-5",
+      "retained_bytes": 8358992,
+      "files": [
+        "artifacts/contextual_roles_model.json",
+        "attempt.json",
+        "manifest.json",
+        "result.json",
+        "rows.jsonl",
+        "worlds.json"
+      ],
+      "claimed_at": "1790045943",
+      "sealed": true,
+      "sealed_at": "1790045944",
+      "missing": [],
+      "unlisted": [],
+      "size_errors": [],
+      "blake3_errors": [],
+      "running_source": {
+        "executable_sha256": "545223e74bef210a42b9f9c1b107de374aafa1e8999d0a567614d12387f57f0d",
+        "git_dirty": "false",
+        "git_rev": "6ee9d0f53feea5e03dfaa408ff6a08776e2eabc8",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "5485f073896827aba4220097d474317bbf28c0470a0afb6f41394a3f164ce4de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "78bff48aee3c19376df29bd6797be369e4c7767a2ea8021aea038eb136010cf9"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "model_sha256": "4de84ad0b3e5c0a3e4534556dae3d41a4c72ea851574e81b7fb092ff6b3e1b3a",
+      "rows_sha256": "257bbe2701e62b37318e158e4a6571b844a6fd8cf04cd0ea38db20f53c34e9ef",
+      "elapsed_s": 0.333227291,
+      "learning": {
+        "candidate_updates": 5,
+        "clauses": 48,
+        "cue_role_correct": 47,
+        "epochs_run": 2,
+        "feature_weights": 77,
+        "h4_enabled": false,
+        "h4_moves": 0,
+        "policy_examples": 24,
+        "policy_final_correct": 24,
+        "policy_initial_correct": 14,
+        "role_final_correct": 48,
+        "role_initial_correct": 0,
+        "roles_observed": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    }
+  },
+  "executable_matches_preserved": true,
+  "running_revision_scope": "git_rev/git_dirty describe source-root git command: declared clean base conflicts with uncommitted source hashes; use recorded file and executable bytes.",
+  "arms": {
+    "development/contextual_primary": {
+      "rows": 24,
+      "complete": 23,
+      "depth_correct": 23,
+      "flag_and_oracle_and_decode_match": true
+    },
+    "exposed_regression/contextual_primary": {
+      "rows": 24,
+      "complete": 23,
+      "depth_correct": 23,
+      "flag_and_oracle_and_decode_match": true
+    },
+    "exposed_regression/membership_continuation": {
+      "rows": 24,
+      "complete": 20,
+      "depth_correct": 22,
+      "flag_and_oracle_and_decode_match": true
+    },
+    "exposed_regression/maximum_two_read": {
+      "rows": 24,
+      "complete": 18,
+      "depth_correct": 18,
+      "flag_and_oracle_and_decode_match": true
+    },
+    "exposed_regression/reads_disabled": {
+      "rows": 24,
+      "complete": 0,
+      "depth_correct": 0,
+      "flag_and_oracle_and_decode_match": true
+    }
+  },
+  "primary_failures": [
+    {
+      "split": "development",
+      "world": 1,
+      "person": 0,
+      "goal": "Project",
+      "question_text": " Mara is on project",
+      "expected_text": " Atlas",
+      "expected_depth": 2,
+      "emitted_text_without_eos": " Ivo",
+      "reads": 1,
+      "selected_segments": [
+        4
+      ],
+      "selected_roles": [
+        2
+      ],
+      "terminal": "Stop"
+    },
+    {
+      "split": "exposed_regression",
+      "world": 101,
+      "person": 0,
+      "goal": "Project",
+      "question_text": " Mara is on project",
+      "expected_text": " Atlas",
+      "expected_depth": 3,
+      "emitted_text_without_eos": " Ivo",
+      "reads": 1,
+      "selected_segments": [
+        4
+      ],
+      "selected_roles": [
+        2
+      ],
+      "terminal": "Stop"
+    }
+  ],
+  "rows_counts": {
+    "outcomes": 120,
+    "events": 649,
+    "snapshots": 769,
+    "successful_reads": 154,
+    "rejected_read_attempts": 4
+  },
+  "row_capture_key_modes": {
+    "lexical_capture": 154
+  },
+  "alignment": {
+    "statement_clauses": 48,
+    "aligned_statements": 48,
+    "fit_clauses": 48,
+    "aligned_fit_clauses": 48,
+    "aligned_row_questions": 120,
+    "token_text_length_errors": [],
+    "cross_BPE_boundary_join_test": "NOT_RUN: every authored sentence/request retains initial space",
+    "summary_correction": "Aligned-byte keys are exercised. Claim of all keys falling back is false."
+  },
+  "learning": {
+    "reported": {
+      "candidate_updates": 5,
+      "clauses": 48,
+      "cue_role_correct": 47,
+      "epochs_run": 2,
+      "feature_weights": 77,
+      "h4_enabled": false,
+      "h4_moves": 0,
+      "policy_examples": 24,
+      "policy_final_correct": 24,
+      "policy_initial_correct": 14,
+      "role_final_correct": 48,
+      "role_initial_correct": 0,
+      "roles_observed": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "span_feature_keys": 77,
+    "nonzero_span_feature_keys": 67,
+    "cue_feature_keys": 21,
+    "span_assignment_accuracy_scope": "0 to 48/48 reported and distinct initial field source verified, no independent decoder execution",
+    "cue_role_accuracy": 47,
+    "regression_reason": "Correct spans with wrong cue role on Mara project follows Ivo: learned role2 Emit instead of role3 Continue; separate cue classifier trained one pass."
+  },
+  "interventions": {
+    "reported_checks": {
+      "base_matches": true,
+      "cycle_matches": false,
+      "goal_change_matches": true,
+      "goal_invariant": true,
+      "later_absence_matches": true,
+      "source_edit_changes_successful_answer": false,
+      "source_edit_matches": false
+    },
+    "all_expected": false,
+    "details": {
+      "one_source_object_span_edit": {
+        "clause": {
+          "byte_lengths": [
+            4,
+            1,
+            4,
+            3,
+            7,
+            1,
+            2,
+            1,
+            1
+          ],
+          "seg": 0,
+          "text": " Mara office follows Ivo",
+          "tokens": [
+            2828,
+            81,
+            767,
+            569,
+            1066,
+            99,
+            492,
+            723
+          ]
+        },
+        "tokens_decode": " Mara office follows Oren",
+        "token_count": 8,
+        "length_count": 9,
+        "aligned": false,
+        "text_matches_tokens": false,
+        "expected": {
+          "answer": [
+            340,
+            277,
+            280,
+            1117,
+            662,
+            104
+          ],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            3
+          ],
+          "terminal": "Stop"
+        },
+        "actual": {
+          "emitted": [],
+          "reads": 0,
+          "selected_segments": [],
+          "terminal": "Unresolved"
+        },
+        "initial_query_key": [
+          77,
+          97,
+          114,
+          97
+        ],
+        "edited_subject_fallback_key": [
+          12,
+          11,
+          0,
+          0,
+          81,
+          0,
+          0,
+          0
+        ]
+      },
+      "cycle": {
+        "clause": {
+          "byte_lengths": [
+            4,
+            1,
+            4,
+            3,
+            7,
+            1,
+            2,
+            1,
+            1
+          ],
+          "seg": 0,
+          "text": " Mara office follows Ivo",
+          "tokens": [
+            2828,
+            81,
+            767,
+            569,
+            1066,
+            99,
+            2828,
+            81
+          ]
+        },
+        "tokens_decode": " Mara office follows Mara",
+        "token_count": 8,
+        "length_count": 9,
+        "aligned": false,
+        "text_matches_tokens": false,
+        "expected": {
+          "answer": [],
+          "reads": 1,
+          "selected_segments": [
+            0
+          ],
+          "terminal": "Exhausted"
+        },
+        "actual": {
+          "emitted": [],
+          "reads": 0,
+          "selected_segments": [],
+          "terminal": "Unresolved"
+        },
+        "initial_query_key": [
+          77,
+          97,
+          114,
+          97
+        ],
+        "edited_subject_fallback_key": [
+          12,
+          11,
+          0,
+          0,
+          81,
+          0,
+          0,
+          0
+        ]
+      },
+      "required_terminal_fact_removed": {
+        "expected": {
+          "answer": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Unresolved"
+        },
+        "actual": {
+          "emitted": [],
+          "reads": 2,
+          "selected_segments": [
+            0,
+            1
+          ],
+          "terminal": "Unresolved"
+        }
+      },
+      "request_goal_change": {
+        "expected": {
+          "answer": [
+            450,
+            382,
+            264
+          ],
+          "reads": 1,
+          "selected_segments": [
+            4
+          ],
+          "terminal": "Stop"
+        },
+        "actual": {
+          "emitted": [
+            450,
+            382,
+            264,
+            4294967294
+          ],
+          "reads": 1,
+          "selected_segments": [
+            4
+          ],
+          "terminal": "Stop"
+        }
+      }
+    },
+    "subword_order_perturbation": {
+      "error": "observed-text observation: observed clause is not a recognized question"
+    },
+    "diagnosis": "Source-edit and cycle mutate tokens only, retaining stale text and byte lengths. Clause falls back to token-byte key while request stays lexical ASCII key; first subject fails to match. This is an instrument/input construction error, not evidence against geometric attention."
+  },
+  "all_saved_counts_including_interventions": {
+    "outcomes": 125,
+    "events": 669,
+    "snapshots": 794,
+    "successful_reads": 160,
+    "rejected_read_attempts": 4
+  },
+  "phase_counts": {
+    "Read": 196,
+    "Continue": 71,
+    "Emit": 313,
+    "Stop": 89,
+    "terminal:Stop": 89,
+    "terminal:Exhausted": 9,
+    "terminal:Unresolved": 27
+  },
+  "frame_errors": [],
+  "snapshot_errors": [],
+  "resources": {
+    "live_json_observed": {
+      "cumulative_ms": 311552510,
+      "limit_ms": 333700000
+    },
+    "preceding_review_cumulative_ms": 311552510,
+    "preceding_limit_ms": 316700000,
+    "allowance_increment_ms": 17000000,
+    "prior_run_charge_recorded_ms": 0,
+    "completed_instrument_elapsed_s": 0.658966791,
+    "worktree_git_birth_local": "2026-09-21T22:35:01-0400",
+    "live_ledger_birth_mtime_local": "2026-09-21T22:35:54-0400",
+    "submitted_commit_local": "2026-09-21T23:01:18-0400",
+    "worktree_birth_to_commit_ms": 1577000,
+    "scope": "Missing complete prior debit. These filesystem/git wall timestamps exclude earlier recovery and later delivery; they are a partial wall-time reconstruction, not measured CPU/model time. No matching DeepSeek Codex thread found in narrow state5 lookup. No prior projection/debit file among report roots or matching /tmp names."
+  },
+  "conclusion": {
+    "saved_trace_internal_checks_pass": true,
+    "all_result_counts_match": true,
+    "instrument_contract_pass": false,
+    "new_argument_binding_milestone_pass": false,
+    "geometry_advantage": "NOT_RUN",
+    "new_final": "NOT_RUN",
+    "recommended_repair_order": [
+      "repair coherent surface/token construction and identity representation",
+      "fit/measure cue roles separately from span extents",
+      "retain/refit semantic regression tests",
+      "then execute readable argument-placement and query fixture with equal-support H4 comparator"
+    ]
+  }
+}

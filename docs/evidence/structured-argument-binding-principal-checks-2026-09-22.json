@@ -1,0 +1,260 @@
+{
+  "schema": "uor-r4.pr1344-principal-checks/1",
+  "submitted_head": "9cb02f6e77eeae6d026e830f7128625c135f7e26",
+  "corrected_draft_head": "1df229178c6b56ae6dbf95273c9e4eae3282a66e",
+  "main_runtime_base": "6ee9d0f53feea5e03dfaa408ff6a08776e2eabc8",
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::observed_text_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 181753,
+      "log": "/tmp/uor-pr1344-check-0.log",
+      "log_sha256": "14233713e8fa620ca5756dc80d93180c2beaddbcc4fd2867bf21bab61c6dba80",
+      "free_after": 37836607488,
+      "minimum_free": 37765214208,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 142616,
+      "log": "/tmp/uor-pr1344-check-1.log",
+      "log_sha256": "6fd95bf231817aa6e04dd9a1e56b3ba5822c2dfc165db548470ffcb8d8918e5a",
+      "free_after": 37831225344,
+      "minimum_free": 37830819840,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 20093,
+      "log": "/tmp/uor-pr1344-check-2.log",
+      "log_sha256": "65e5148689c1c46936a9d810cfdd38a8afe5dd3be18d6a0aea221ae0d584688c",
+      "free_after": 37836922880,
+      "minimum_free": 37830012928,
+      "storage_limit_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+        "--mode=observed-text-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-principal-1",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1013,
+      "log": "/tmp/uor-pr1344-check-3.log",
+      "log_sha256": "9c394408315d4a7ca560dc9cc264696afea3fcb11ad83730e3172196b90b4b90",
+      "free_after": 37827923968,
+      "minimum_free": 37836914688,
+      "storage_limit_stop": false
+    }
+  ],
+  "library_tests": {
+    "pass": 18,
+    "fail": 0
+  },
+  "runner_tests": {
+    "pass": 22,
+    "fail": 0,
+    "ignored": 1,
+    "ignored_scope": "Legacy PR1321 artifact smoke; not counted as pass"
+  },
+  "focused_scope": "Runtime-boundary fixtures preserve exact long-output/restore checks; learned fitting tested separately. Real pinned BPE byte-content/key equivalence and Unicode reconstruction tested; not a learned ordinary-form full-answer result. H4 algebra unit check only; H4 language comparison NOT_RUN.",
+  "source": {
+    "executable_sha256": "0fd3f9eabe748ed4c56afb0e04f1a36483065b6a9b6f3c5681c2ad09d9b83396",
+    "git_dirty": "true",
+    "git_rev": "9cb02f6e77eeae6d026e830f7128625c135f7e26",
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+        "sha256": "ef1c51b35344dcb98fb37ea9d7608e3efc91d59be993afc58f4aeaefb2e3b24d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+        "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "4d866fd6c35329d45d379468150c22ce9cb9c7cabac85c8d6594929a37d1ecad"
+      }
+    ]
+  },
+  "replay_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/structured-argument-binding-principal-1",
+  "learning": {
+    "candidate_updates": 5,
+    "clauses": 48,
+    "cue_role_correct": 48,
+    "epochs_run": 2,
+    "feature_weights": 71,
+    "h4_enabled": false,
+    "h4_moves": 0,
+    "policy_examples": 24,
+    "policy_final_correct": 24,
+    "policy_initial_correct": 14,
+    "role_final_correct": 48,
+    "role_initial_correct": 0,
+    "roles_observed": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "arms": [
+    {
+      "arm": "contextual_primary",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "development",
+      "total": 24
+    },
+    {
+      "arm": "contextual_primary",
+      "complete": 24,
+      "depth_correct": 24,
+      "split": "exposed_regression",
+      "total": 24
+    },
+    {
+      "arm": "membership_continuation",
+      "complete": 20,
+      "depth_correct": 22,
+      "split": "exposed_regression",
+      "total": 24
+    },
+    {
+      "arm": "maximum_two_read",
+      "complete": 18,
+      "depth_correct": 18,
+      "split": "exposed_regression",
+      "total": 24
+    },
+    {
+      "arm": "reads_disabled",
+      "complete": 0,
+      "depth_correct": 0,
+      "split": "exposed_regression",
+      "total": 24
+    }
+  ],
+  "intervention_checks": {
+    "base_matches": true,
+    "cycle_matches": true,
+    "goal_change_matches": true,
+    "goal_invariant": true,
+    "later_absence_matches": true,
+    "source_edit_changes_successful_answer": true,
+    "source_edit_matches": true
+  },
+  "replay_elapsed_s": 0.312335334,
+  "timing_scope": "Whole replay instrument; not complete preparation/build/fit work or optimized serving latency",
+  "document_checks": {
+    "source_fmt": "PASS",
+    "source_diff_check": "PASS",
+    "claim_wording": "PASS",
+    "json_files_parsed": [
+      "docs/evidence/structured-argument-binding-corrected-replay-audit-2026-09-22.json",
+      "docs/evidence/structured-argument-binding-principal-checks-2026-09-22.json",
+      "docs/evidence/structured-argument-binding-principal-review-2026-09-22.json"
+    ],
+    "relative_targets_checked": 1028,
+    "missing_targets": []
+  },
+  "resources": {
+    "at": "2026-09-22T03:21:22.869965+00:00",
+    "projection": {
+      "at": "2026-09-22T03:05:00.871056+00:00",
+      "before": {
+        "cumulative_ms": 311552510,
+        "limit_ms": 333700000
+      },
+      "projection_ms": 5400000,
+      "prior_preparation_estimate_ms": 180000,
+      "purpose": "Independent source/evidence/math review of PR1344, bounded correctness repairs and actual regression checks, update WIP draft and protected main documentation, issues and knowledge; full readable task remains next contributor milestone unless cheap constructive tests expose defects",
+      "cpu_threads": 2,
+      "model_threads": 1,
+      "peak_ram_bytes": 8589934592,
+      "temporary_build_bytes": 536870912,
+      "retained_bytes": 67108864,
+      "physical_reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_before_bytes": 37087141888,
+      "paid_compute": false,
+      "prior_run_debit": "Unchanged cumulative after DeepSeek; recovering separately, do not invent as measured",
+      "revised_build_projection_reason": "Reuse complete release dependency cache, no incremental files or debug build; monitor reserve percommand, stop on threshold. Removed inactive debug dependency archives gives ~900MiB headroom."
+    },
+    "elapsed_ms": 981999,
+    "preprojection_preparation_estimate_ms": 180000,
+    "delivery_reserve_estimate_ms": 600000,
+    "principal_charge_ms": 1761999,
+    "before": {
+      "cumulative_ms": 313652510,
+      "limit_ms": 333700000
+    },
+    "after": {
+      "cumulative_ms": 315414509,
+      "limit_ms": 333700000
+    },
+    "remaining_ms": 18285491,
+    "free_bytes": 37823365120,
+    "cleanup": {
+      "before_free": 37076992000,
+      "after_free": 37794050048,
+      "allocated_removed_bytes": 716836864,
+      "files": 702,
+      "manifest_sha256": "4c5429d74cefb49a1a9e38d39453ade7fcd257845d396806645f9f2b9ac29dd4",
+      "preserved": "All executables, release cache, research/models/reports, AI histories, Downloads. Only inactive debug dependency archives/metadata removed."
+    },
+    "prior_run_debit": {
+      "at": "2026-09-22T03:12:12.016258+00:00",
+      "run": "DeepSeek PR1344 submitted9cb02f6e",
+      "charge_ms": 2100000,
+      "charge_kind": "retrospective estimated engineering wall time",
+      "known_partial_interval_ms": 1577000,
+      "known_interval": "worktree birth2026-09-22T02:35:01Z to commit03:01:18Z",
+      "additional_estimate_ms": 523000,
+      "additional_scope": "Recovery before worktree and delivery; exact total timer unavailable, not asserted measured upper bound",
+      "report_timers_s": 0.658966791,
+      "prior_balance": 311552510,
+      "updated_balance": {
+        "cumulative_ms": 313652510,
+        "limit_ms": 333700000
+      },
+      "allowance_increment_already_present_ms": 17000000,
+      "allowance_scope": "standing owner authorization, original exact projection not retained in Git documentation; do not represent as fully audited prospectivity"
+    },
+    "paid_compute": false,
+    "parallel_reviews": "Included once in elapsed wall time"
+  },
+  "qualification": "Corrected WIP exposed regression; no new multi-form fixture, fresh final, H4-comparative or whole-pathD0-b/energy claim"
+}
