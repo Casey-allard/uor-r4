@@ -1,20 +1,12 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**PR #1347, principal review:** retain consumed signed Q8 computation at authored-task scope. Development 56/56 and exposed composition 24/24 contain 16 ordinary plus 64 computed requests; the competent finite table ties, while central-sign projection loses an answer-relevant distinction. Primary worlds still supply typed records and continuation flags. [Review](docs/integration/consumed-geometric-state-review-2026-09-22.md) and [independent audit](docs/evidence/consumed-geometric-state-submission-audit-2026-09-22.json) own the qualifications.
+**PR #1348, principal review:** retain one combined learned observation/intent artifact with observed source ingestion and consumed signed computation. The same candidate preserves **38/38** prior outcomes (34 language questions +4 API queries),37/37 ingests and no interpretation errors; computation-only support reproduces17/38. Primary panels retain56/56 development,24/24 previously exposed and32/32 first evaluated in attempt2, then exposed replay in4. Raw primary ingestion is **72/72**, correcting48/48. [Review](docs/integration/observed-computation-lifecycle-review-2026-09-22.md) and [independent audit](docs/evidence/observed-computation-lifecycle-principal-audit-2026-09-22.json) qualify exposure, saved comparator coverage and atomic restart boundaries.
 
-**Same-artifact integration remains incomplete:** the new computation binder/intent preserves **17/38** prior primary outcomes; the migrated prior artifact preserves **38/38** on the same raw scripts (34 language questions + 4 API queries). The new narrow fit is not a replacement for the old correction/history model. Principal repairs bind computed state/request/source/consumption provenance, retain genuine legacy intent semantics, load every backend and verify full-frame raw-text restart. [Executed checks](docs/evidence/consumed-geometric-state-principal-checks-2026-09-22.json) own exact source/results. Whole-path D0-b, broad language and energy remain unqualified.
+**Architecture:** the competent finite table still ties signed geometry; dropping central sign loses an answer-relevant distinction. No geometric superiority, broad prose, whole-path D0-b or energy advantage is established. [Principal checks](docs/evidence/observed-computation-lifecycle-principal-checks-2026-09-22.json) owns the additional loaded-artifact interaction validation and resources.
 
-**Next:** [one learned observed-memory/control/computation artifact](docs/integration/deepseek-observed-computation-lifecycle-step-2026-09-22.md), ingesting actual assertions/corrections, following observed redirects before and after computation, and preserving temporal intent/restart. Then E/S contextual lexical emission and broader prose/conversation, executed Rust and complete laptop/API qualification. Signed-state information is useful here; E8/S7, Hopf fiber and harmonic/scalar mechanisms remain conditional tools for a witnessed need.
+**Next:** [learned grounded lexical realization](docs/integration/deepseek-grounded-lexical-realization-step-2026-09-22.md): one same-session Copy/Vocabulary/Stop policy plus a vocabulary effect conditioned on owned evidence or a derived result. E/S is a local donor; adding it alone cannot make older facts change uncopied word choices. Preserve exact copy/version semantics, then broaden conversation/prose and executed Rust, followed by complete laptop/API/WASM/Studio qualification. Hopf fiber, E8/S7 and finite harmonic/scalar mechanisms remain tools for a witnessed distinction or cost need.
 
-**Research leadership and autonomy:** Codex owns principal mathematics/ML/systems review; DeepSeek owns substantive implementation and diagnosis within the objective. Necessary local extensions remain prospectively authorized with cumulative accounting and physical reserve. No arbitrary short timer or retry quota replaces judgment. Preserve original/negative artifacts and separate exact infrastructure, learned interpretation and supplied fixtures.
-
-
-
-
-
-
-
-
+**Research leadership and autonomy:** Codex owns principal mathematics/ML/systems review; DeepSeek owns substantive implementation and diagnosis. Necessary local extensions remain prospectively authorized with cumulative accounting and measured physical headroom. No arbitrary short timer or one-retry quota. Preserve unique artifacts and separate learned mechanisms, exact infrastructure and supplied fixtures.
 
 ## Capability direction
 
@@ -35,7 +27,7 @@ The [canonical project plan](docs/integration/project-track.md) owns the ordered
 | 11 | [#1173](https://github.com/UOR-Foundation/uor-r4/issues/1173) — Run the native geometric model in GitHub Pages AI Studio | The final user-facing goal is the already developed Studio running our own local geometric model in the browser. |
 | 12 | [#965](https://github.com/UOR-Foundation/uor-r4/issues/965) — Qualify, release and iteratively improve the local model | Alpha requires integrated conversation/memory and coding/reasoning on the delivered model; frontier capability is a longer-term evidence-driven objective. |
 
-Current active research is #973: one learned observed-memory/control/computation artifact, retaining prior correction/history and consuming signed finite results. Broader E/S prose and executed Rust follow. #1140 remains closed at its bounded scope; the other listed capability responsibilities remain open. #1139/#962 retain binding/memory obligations, #963 cost and #964 serving invariants. Canonical plan and current state own exact next acceptance.
+Current active research is #973: learned grounded lexical realization using the retained combined memory/computation artifact, an E/S local donor and an evidence-conditioned vocabulary effect. Broader prose/conversation and executed Rust follow. #1140 remains closed at its bounded scope; the other listed capability responsibilities remain open. #1139/#962 retain binding/memory obligations, #963 cost and #964 serving invariants. Canonical plan and current state own exact next acceptance.
 
 Native bounded inference and contextual/copy attention exist; general prose and reasoning, broad coding, frontier quality and full-task energy advantage remain unqualified. See [the capability/direction assessment](docs/integration/model-direction-2026-09.md). Shared contextual transitions/emission must carry us beyond copied-answer patterns; model scaling follows measured quality/cost needs. API/WASM integration precedes claiming that the Pages Studio runs this model.
 

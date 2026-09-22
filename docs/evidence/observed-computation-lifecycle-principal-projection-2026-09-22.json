@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-22T17:11:59.284393+00:00",
+  "ledger_before": {
+    "cumulative_ms": 337430864,
+    "limit_ms": 344500000
+  },
+  "submitted_charge_reconciled_once_ms": 2400000,
+  "charge_basis": "submitted approximate elapsed receipt, missing from live JSON; not independently stopwatch-measured",
+  "review_projection_ms": 6000000,
+  "limit_increment_ms": 6000000,
+  "compiler_workers": 1,
+  "ram_ceiling_bytes": 8589934592,
+  "temporary_build_ceiling_bytes": 1073741824,
+  "retained_ceiling_bytes": 33554432,
+  "old_proposed_free_reserve_bytes": 36766079385,
+  "revised_free_reserve_bytes": 32212254720,
+  "stop_margin_bytes": 134217728,
+  "free_at_projection": 34187235328,
+  "reason": "Principal source/evidence/interaction checks, docs/research and protected delivery. Standing owner-authorized local time/storage extension; original 15-percent reserve is a proposed planning threshold, revised explicitly to30GiB with128MiB stop margin after preserving artifacts and removing inactive incremental output. Allows1GiB rebuild without paid compute or unique deletion; restore more headroom opportunistically.",
+  "ledger_after_reconciliation": {
+    "cumulative_ms": 339830864,
+    "limit_ms": 350500000
+  }
+}

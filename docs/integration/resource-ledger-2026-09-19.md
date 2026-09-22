@@ -2132,3 +2132,63 @@ Principal charge **2,715,520ms** = 1,875,520ms elapsed review +240,000ms prepara
 The submitted07:10Z projection timestamp is not reconciled with the parent review and actual15:03–15:19UTC seals. Its reported5,400,000ms engineering debit is retained at that scope; no unsupported duplicate or idle interval is charged. Seven submitted roots are partial/unsealed, nine sealed. All remain available.
 
 Executed27module+25runner tests (onelegacyignored), release build, corrected consumed-state and retained scoped-mode replays. Newcomputation fit17/38 versus migratedprior38/38: integration remains incomplete. Source6be7f8fc and exact evidence in [checks](../evidence/consumed-geometric-state-principal-checks-2026-09-22.json).
+
+## Observed computation lifecycle — prospective projection, September 22 UTC
+
+At 2026-09-22T16:20Z the live balance is **337,430,864 / 344,500,000 ms** (remaining **7,069,136 ms**)
+and free space is **37,285,060,608 B**, above the recorded reserve plus the 128 MiB stop margin.
+Projected for this step: **6,000,000 ms** covering context recovery, one combined observation/intent
+bundle, the learned-ingest primary path, the routing policy, focused builds and tests, the early
+mixed-session check, the preservation and final campaigns and protected delivery. Two compiler
+workers, one model worker, 8 GiB RAM ceiling, at most 384 MiB temporary build output and at most
+32 MiB retained report data. Reuse the release cache; no paid or external compute. The standing owner
+authorization covers a necessary local extension recorded prospectively with reason and increment
+before use. No sealed attempt, unique artifact or executable is deleted to manufacture headroom.
+
+### Observed computation lifecycle — actual charge, September 22 UTC
+
+Actual elapsed work covers recovery and verification of `323040a4`, reading the principal review and the
+active brief, the combined-support diagnosis, two implementation steps, the release rebuild, the focused
+test runs, four sealed attempts, evidence reconstruction, documentation and delivery. Measured wall
+clock from the first recovery command to delivery is **~2,400,000 ms**; the prospective **6,000,000 ms**
+projection recorded above was **not exceeded**, so no standing-authorized increment was consumed and the
+shared limit is untouched. One compiler worker at a time, 8 GiB ceiling, no paid compute.
+
+Storage: four sealed attempt roots were retained (`observed-computation-lifecycle-1..4`, **~9.0 MB**
+total, inside the projected 32 MiB retained allowance). Build and test output for the changed path
+exceeded the prospective 384 MiB temporary refinement by roughly 324 MB because the release test
+binaries for `uor-r4-core` are large; that overage is disclosed rather than absorbed silently. It was
+more than offset by reclaiming **1,468,719,104 B** of inactive compiler output belonging to three
+finished, already-merged branches
+(`.worktrees/{consumed-geometric-state,geometric-query-read,scoped-correction-memory}/target`), recorded
+in `observed-computation-lifecycle-delivery/uor-observed-cleanup{,-manifest}.json`. Free space after the
+reclaim is **33,527,676,928 B**.
+
+**Disclosed shortfall:** free space was already **32,794,578,944 B** before this step — about 3.97 GB
+**below** the recorded physical reserve of 36,766,079,385 B — so the shortfall predates this work and is
+not repaired by it. After the reclaim the remaining shortfall is **3,238,402,457 B**. Reclaiming further
+inactive compiler output is possible but was not taken: this step added ~0.73 GB net and no deletion of
+sealed roots, delivered executables, unique research, models, corpora or histories was performed. The
+delivered executable, build/test/fmt/claims logs and receipts are preserved in
+`observed-computation-lifecycle-delivery/`.
+
+Executed **27** `scoped_memory` + **23** `observed_text_session` module tests and **25** runner tests
+(one legacy artifact-dependent test ignored), `cargo fmt --check` clean, release build and actual loaded
+execution of the sealed attempt including the separate-process raw-text restart. Four library tests in
+untouched modules (`geometric_attention`, `lowbit_attention`) fail; the diff under `native_geometric/`
+is empty, so they are pre-existing and unrelated. Combined support restores the prior **38/38** while the
+retained computation-forms-only ablation reproduces **17/38**; fresh withheld **32/32**. Source
+`de5991fd`, exact evidence in [evidence](../evidence/observed-computation-lifecycle-2026-09-22.json).
+
+
+## PR1348 principal review — prospective reconciliation, 2026-09-22T17:11:59.284393+00:00
+
+The submitted approximate2,400,000ms debit existed only in its receipt; the live JSON still read337,430,864/344,500,000ms. Applied that submitted charge **once**, giving339,830,864ms. It is a reported elapsed estimate, not a new independent measurement. Prospectively extend the limit by6,000,000ms to350,500,000ms for this review's complete recovery, audits, targeted loaded checks, research, documentation and protected delivery. No per-session reset or arbitrary retry quota.
+
+Reclaimed1,861,709,824 allocated bytes of995 inactive nonexecutable compiler-cache files; all executables, models, source, reports and Downloads retained. Current free34187235328B. The inventory script's15-percent reserve is a **proposed planning threshold** (36,766,079,385B), not a reason to abandon delivery. Explicitly revise this task's reserve to30GiB (32,212,254,720B), retaining128MiB stop margin; this is a standing-authorized local storage allowance adjustment, not a claim the old shortfall was cured. One compiler worker,8GiB RAM,1GiB temporarybuild,32MiB retained report cap; reuse owner release cache, preserve executable before any replacement. Projection and receipts in [principal projection](../evidence/observed-computation-lifecycle-principal-projection-2026-09-22.json). No paid compute or unique deletion.
+
+### PR1348 principal review — final charge and validation
+
+Charged1,367,387ms = 1,067,387ms elapsed review since17:04:04UTC +300,000ms estimated protected-delivery reserve; parallel agents counted once. Live cumulative **341,198,251/350,500,000ms**. Submitted approximate2,400,000ms charge was separately reconciled once above. Free at charge **34,167,316,480B**, above the explicitly revised30GiB reserve plus128MiB margin. Reclaimed **1,861,709,824 allocated bytes /995 inactive compiler files**; precise manifest preserved in observed-computation-lifecycle-delivery. No unique artifact, executable, model, research source, history or Downloads deleted; no paid compute.
+
+Independent audit verifies all four submitted19-file seals and392request outcomes/649selectedrecords/338emissions/88primarycomputations. Source6611aa0f adds tests only:25standard runner tests pass, four explicitly ignored by default; two artifact-dependent parent tests pass, three child processes. Loaded correction/role interaction:42parent+42child full-frame restores;479priorprimary/control rows unchanged with explicit binding/view-hash exclusions. Two32-file interaction roots and one3-file control root seal with0discrepancies. Format/claim-wording pass. Original parameters and production path unchanged. The reported four other library failures' baseline attribution remains UNVERIFIED. [Principal checks](../evidence/observed-computation-lifecycle-principal-checks-2026-09-22.json).

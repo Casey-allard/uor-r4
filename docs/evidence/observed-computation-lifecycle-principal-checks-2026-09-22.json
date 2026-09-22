@@ -1,0 +1,2894 @@
+{
+  "at": "2026-09-22T17:18:45.533528+00:00",
+  "source_file": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+  "source_sha256": "88627e5eff89a1fc37b693d8857ba788b9ad79e4a92fca778d412114a63e14fc",
+  "executable": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-delivery/competitive-reader-tests-lifecycle-review-2",
+  "executable_sha256": "82b6abf4685e60c8c9c609207837ef522168b431bb0c1ddce120f5bdbdfea490",
+  "loaded_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-4/artifacts",
+  "artifact_hashes": {
+    "backend-signed_factorization.json": "ce5d66fcaeb3ecd5bab5b925e65ba36635113742f9c98ea536f38b1bdd1635d9",
+    "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+    "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+    "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+  },
+  "interaction_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-principal-2",
+  "control_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-controls-principal-1",
+  "interaction_phases": 14,
+  "interaction_scenarios": [
+    {
+      "name": "operand_correction",
+      "answer": "Ledge",
+      "reads": 3,
+      "pinned_resumes": 14
+    },
+    {
+      "name": "downstream_correction",
+      "answer": "Harbor",
+      "reads": 4,
+      "pinned_resumes": 14
+    },
+    {
+      "name": "same_key_role_change",
+      "answer": "Stone",
+      "reads": 2,
+      "pinned_resumes": 14
+    }
+  ],
+  "compared_scoped_rows": 479,
+  "scoped_differences": 0,
+  "missing_prior_rows": 0,
+  "standard_runner_tests": {
+    "passed": 25,
+    "ignored": 4
+  },
+  "explicit_loaded_tests": {
+    "passed": 2,
+    "child_processes": 3
+  },
+  "logs": [
+    {
+      "name": "uor-pr1348-loaded-controls-1.log",
+      "sha256": "88af861faeb8f1fd486a372b9fba14acf9b1317adc6bbdd0e26ae63e0ea3abdd"
+    },
+    {
+      "name": "uor-pr1348-runner-tests-final.log",
+      "sha256": "08d32e3d4cf25beddfe63f443305eba9001d778a44c0023c46851e53128e4bb2"
+    },
+    {
+      "name": "uor-pr1348-runner-build.log",
+      "sha256": "a452af89b1155ed2ae09228f043c0db779087e939b70d1933dc3143022234053"
+    },
+    {
+      "name": "uor-pr1348-runner-build-3.log",
+      "sha256": "2a543dcc479912ce54ac7dfda1ef51cd3da8e0f0153aca657c511d6f71e77e9d"
+    },
+    {
+      "name": "uor-pr1348-runner-build-2.log",
+      "sha256": "70979e3db30688cbc9563b2249f242b1ebb7556488568de68f25164c4f45f594"
+    },
+    {
+      "name": "uor-pr1348-runner-tests.log",
+      "sha256": "a1098b503ec6069253f8a48c7103a2c4fa548a7c559cbf63cfe4ded1772422dd"
+    },
+    {
+      "name": "uor-pr1348-loaded-audit-2.log",
+      "sha256": "73a253e0b8aa58a32939c8867dae8813fc64bd89c0450d989f6ccb7c68c59610"
+    },
+    {
+      "name": "uor-pr1348-loaded-audit-1.log",
+      "sha256": "73d18b8d08f07a2724d15c5df83299d2e5b0a4a83ab5d30ef9e039070119a4db"
+    },
+    {
+      "name": "uor-pr1348-final-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "principal_source_commit": "6611aa0f25124640540f92c35dab21718638525c",
+  "submitted_audit": "observed-computation-lifecycle-principal-audit-2026-09-22.json",
+  "production_change": "Principal source additions are cfg(test) only; submitted production code and learned parameters unchanged. Release test executable exercises actual loaded runtime. No separate production CLI rebuild for test-only additions.",
+  "principal_seals": [
+    {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-principal-1",
+      "sealed_files": 32,
+      "bad": [],
+      "missing": [],
+      "unlisted": []
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-principal-2",
+      "sealed_files": 32,
+      "bad": [],
+      "missing": [],
+      "unlisted": []
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-controls-principal-1",
+      "sealed_files": 3,
+      "bad": [],
+      "missing": [],
+      "unlisted": []
+    }
+  ],
+  "retained_control_comparison": {
+    "compared_rows": 479,
+    "comparison_excludes": [
+      "final_frame.binding",
+      "final_frame.view_sha256"
+    ],
+    "differences": [],
+    "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+    "missing_prior_rows": [],
+    "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+    "prior_rows_sha256": "ee57d509c14635ff591601bd2ef7594cb9b0d6aa748c1012168e8bf0cfa28e7c",
+    "scope": "same saved observation and intent parameters in unchanged ordinary scoped runtime; arithmetic backend absent because requests carry no operations; original scripted controls, not fresh language acceptance",
+    "summaries": [
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "normal",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 16,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "normal",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 11,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "exposed_regression"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "normal",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 11,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "final"
+      },
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "no_read",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 0,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "no_read",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 0,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "exposed_regression"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "no_read",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 0,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "final"
+      },
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "update_disabled",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 1,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "update_disabled",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 0,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "exposed_regression"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "update_disabled",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 0,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "final"
+      },
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "unpinned",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 16,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "unpinned",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 11,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "exposed_regression"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "unpinned",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 11,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "final"
+      },
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "unscoped",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 15,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "unscoped",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 9,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "exposed_regression"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "unscoped",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 9,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "final"
+      },
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "parse_score_authority",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 7,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "parse_score_authority",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 6,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "exposed_regression"
+      },
+      {
+        "branch_correct": 12,
+        "branch_total": 12,
+        "control": "parse_score_authority",
+        "intent_correct": 12,
+        "intent_total": 12,
+        "matched": 6,
+        "nowrite_correct": 1,
+        "nowrite_total": 1,
+        "questions": 11,
+        "script": "final"
+      },
+      {
+        "branch_correct": 13,
+        "branch_total": 13,
+        "control": "capacity_2",
+        "intent_correct": 13,
+        "intent_total": 13,
+        "matched": 16,
+        "nowrite_correct": 2,
+        "nowrite_total": 2,
+        "questions": 16,
+        "script": "development"
+      }
+    ]
+  },
+  "interaction_result": {
+    "artifact_hashes": {
+      "backend-signed_factorization.json": "ce5d66fcaeb3ecd5bab5b925e65ba36635113742f9c98ea536f38b1bdd1635d9",
+      "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+      "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+      "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+    },
+    "artifact_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-4/artifacts",
+    "baseline": {
+      "binding": {
+        "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+        "backend": "signed_factorization",
+        "capacity": 8,
+        "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+        "eos": 4294967294,
+        "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+        "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+        "lineage": 1348,
+        "max_vocab": 4096,
+        "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+      },
+      "captured": {
+        "commit": 12,
+        "continues": false,
+        "derived": false,
+        "key": [
+          5,
+          0,
+          0,
+          0,
+          97,
+          108,
+          112,
+          104,
+          97,
+          4,
+          0,
+          0,
+          0,
+          79,
+          114,
+          101,
+          110,
+          0
+        ],
+        "payload": [
+          3069,
+          280,
+          541
+        ],
+        "read_hop": 3,
+        "record_id": 12,
+        "value": [
+          81,
+          117,
+          97,
+          114,
+          114,
+          121
+        ]
+      },
+      "computation": {
+        "applied": 2,
+        "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+        "consumed": true,
+        "derived_key": [
+          71,
+          119,
+          101,
+          110
+        ],
+        "derived_label": 6,
+        "operand_key": [
+          66,
+          101,
+          114,
+          116
+        ],
+        "operand_state": 0,
+        "source_commit": 9,
+        "source_entity": [
+          65,
+          108,
+          109,
+          97
+        ],
+        "source_hop": 1,
+        "source_key": [
+          5,
+          0,
+          0,
+          0,
+          97,
+          108,
+          112,
+          104,
+          97,
+          4,
+          0,
+          0,
+          0,
+          65,
+          108,
+          109,
+          97,
+          0
+        ],
+        "source_record": 9,
+        "source_scope": [
+          97,
+          108,
+          112,
+          104,
+          97
+        ],
+        "state": 7
+      },
+      "cursor": 3,
+      "derived": true,
+      "emitted": [
+        3069,
+        280,
+        541,
+        4294967294
+      ],
+      "eos": 4294967294,
+      "history": "Current",
+      "hop": 3,
+      "op_cursor": 2,
+      "ops": [
+        [
+          105
+        ],
+        [
+          106
+        ]
+      ],
+      "pending": "Stop",
+      "query_entity": [
+        79,
+        114,
+        101,
+        110
+      ],
+      "relation": 0,
+      "request": {
+        "clause": {
+          "byte_lengths": [
+            1,
+            3,
+            2,
+            4,
+            3,
+            5,
+            2,
+            2
+          ],
+          "seg": 0,
+          "text": "Mara's office then i j",
+          "tokens": [
+            61,
+            4075,
+            506,
+            767,
+            569,
+            965,
+            2056,
+            544
+          ]
+        },
+        "entity": [
+          77,
+          97,
+          114,
+          97
+        ],
+        "history": "Current",
+        "ops": [
+          [
+            105
+          ],
+          [
+            106
+          ]
+        ],
+        "relation": 0
+      },
+      "scope": [
+        97,
+        108,
+        112,
+        104,
+        97
+      ],
+      "terminal": "Complete",
+      "version": 4,
+      "view": 12,
+      "view_sha256": "f16f33cacb29addb4afa9855a9f06900dacd41e469eb29d324473469683e7426",
+      "visited": [
+        [
+          77,
+          97,
+          114,
+          97
+        ],
+        [
+          65,
+          108,
+          109,
+          97
+        ],
+        [
+          71,
+          119,
+          101,
+          110
+        ]
+      ]
+    },
+    "baseline_expected": "Quarry",
+    "classification": "exposed principal interaction regression; no refit",
+    "ingests": [
+      {
+        "byte_lengths": [
+          2,
+          2,
+          2,
+          4,
+          3,
+          3,
+          2,
+          3,
+          3
+        ],
+        "commit": 1,
+        "continues": false,
+        "entity": "Alma",
+        "intent": 0,
+        "text": "Alma's office is Bramble",
+        "tokens": [
+          2219,
+          2432,
+          506,
+          767,
+          569,
+          314,
+          389,
+          814,
+          854
+        ],
+        "value": "Bramble",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          3,
+          2,
+          4,
+          3,
+          3,
+          3,
+          2,
+          2
+        ],
+        "commit": 2,
+        "continues": false,
+        "entity": "Bert",
+        "intent": 0,
+        "text": "Bert's office is Quarry",
+        "tokens": [
+          50,
+          730,
+          506,
+          767,
+          569,
+          314,
+          3069,
+          280,
+          541
+        ],
+        "value": "Quarry",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          2,
+          1,
+          2,
+          4,
+          3,
+          3,
+          2,
+          3
+        ],
+        "commit": 3,
+        "continues": false,
+        "entity": "Cora",
+        "intent": 0,
+        "text": "Cora's office is Vale",
+        "tokens": [
+          51,
+          270,
+          81,
+          506,
+          767,
+          569,
+          314,
+          717,
+          1121
+        ],
+        "value": "Vale",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          3,
+          2,
+          4,
+          3,
+          3,
+          2,
+          3,
+          1
+        ],
+        "commit": 4,
+        "continues": false,
+        "entity": "Dane",
+        "intent": 0,
+        "text": "Dane's office is Marsh",
+        "tokens": [
+          52,
+          1674,
+          506,
+          767,
+          569,
+          314,
+          372,
+          954,
+          88
+        ],
+        "value": "Marsh",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          1,
+          2,
+          2,
+          4,
+          3,
+          3,
+          2,
+          3
+        ],
+        "commit": 5,
+        "continues": false,
+        "entity": "Elin",
+        "intent": 0,
+        "text": "Elin's office is Tarn",
+        "tokens": [
+          53,
+          92,
+          254,
+          506,
+          767,
+          569,
+          314,
+          312,
+          714
+        ],
+        "value": "Tarn",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          2,
+          1,
+          2,
+          4,
+          3,
+          3,
+          2,
+          2,
+          2
+        ],
+        "commit": 6,
+        "continues": false,
+        "entity": "Frey",
+        "intent": 0,
+        "text": "Frey's office is Ledge",
+        "tokens": [
+          54,
+          257,
+          105,
+          506,
+          767,
+          569,
+          314,
+          450,
+          277,
+          361
+        ],
+        "value": "Ledge",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          1,
+          2,
+          2,
+          4,
+          3,
+          3,
+          2,
+          4
+        ],
+        "commit": 7,
+        "continues": false,
+        "entity": "Gwen",
+        "intent": 0,
+        "text": "Gwen's office is Ridge",
+        "tokens": [
+          55,
+          103,
+          264,
+          506,
+          767,
+          569,
+          314,
+          428,
+          3177
+        ],
+        "value": "Ridge",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          2,
+          1,
+          2,
+          4,
+          3,
+          3,
+          3,
+          3
+        ],
+        "commit": 8,
+        "continues": false,
+        "entity": "Holt",
+        "intent": 0,
+        "text": "Holt's office is Stone",
+        "tokens": [
+          56,
+          308,
+          100,
+          506,
+          767,
+          569,
+          314,
+          625,
+          537
+        ],
+        "value": "Stone",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          2,
+          2,
+          2,
+          4,
+          3,
+          7,
+          2,
+          3
+        ],
+        "commit": 9,
+        "continues": false,
+        "entity": "Alma",
+        "intent": 1,
+        "text": "Alma's office became Bert",
+        "tokens": [
+          2219,
+          2432,
+          506,
+          767,
+          569,
+          2163,
+          389,
+          730
+        ],
+        "value": "Bert",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          3,
+          4,
+          3,
+          7,
+          1,
+          3,
+          2
+        ],
+        "commit": 10,
+        "continues": true,
+        "entity": "Mara",
+        "intent": 0,
+        "text": "Mara office follows Alma",
+        "tokens": [
+          61,
+          4075,
+          767,
+          569,
+          1066,
+          99,
+          1065,
+          2432
+        ],
+        "value": "Alma",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          1,
+          2,
+          4,
+          3,
+          7,
+          1,
+          2,
+          3
+        ],
+        "commit": 11,
+        "continues": true,
+        "entity": "Gwen",
+        "intent": 0,
+        "text": "Gwen office follows Oren",
+        "tokens": [
+          55,
+          103,
+          264,
+          767,
+          569,
+          1066,
+          99,
+          492,
+          723
+        ],
+        "value": "Oren",
+        "wrote": true
+      },
+      {
+        "byte_lengths": [
+          1,
+          3,
+          2,
+          4,
+          3,
+          3,
+          3,
+          2,
+          2
+        ],
+        "commit": 12,
+        "continues": false,
+        "entity": "Oren",
+        "intent": 0,
+        "text": "Oren's office is Quarry",
+        "tokens": [
+          63,
+          723,
+          506,
+          767,
+          569,
+          314,
+          3069,
+          280,
+          541
+        ],
+        "value": "Quarry",
+        "wrote": true
+      }
+    ],
+    "phase_scope": "grounding and consumption are one atomic Apply; no separate between-state exists",
+    "phases": [
+      {
+        "captured": null,
+        "computation": null,
+        "hop": 0,
+        "pending": "Read"
+      },
+      {
+        "captured": {
+          "commit": 10,
+          "continues": true,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            77,
+            97,
+            114,
+            97,
+            0
+          ],
+          "payload": [
+            1065,
+            2432
+          ],
+          "read_hop": 0,
+          "record_id": 10,
+          "value": [
+            65,
+            108,
+            109,
+            97
+          ]
+        },
+        "computation": null,
+        "hop": 0,
+        "pending": "Continue"
+      },
+      {
+        "captured": {
+          "commit": 10,
+          "continues": true,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            77,
+            97,
+            114,
+            97,
+            0
+          ],
+          "payload": [
+            1065,
+            2432
+          ],
+          "read_hop": 0,
+          "record_id": 10,
+          "value": [
+            65,
+            108,
+            109,
+            97
+          ]
+        },
+        "computation": null,
+        "hop": 1,
+        "pending": "Read"
+      },
+      {
+        "captured": {
+          "commit": 9,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "payload": [
+            389,
+            730
+          ],
+          "read_hop": 1,
+          "record_id": 9,
+          "value": [
+            66,
+            101,
+            114,
+            116
+          ]
+        },
+        "computation": {
+          "applied": 0,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": false,
+          "derived_key": [],
+          "derived_label": 0,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 0
+        },
+        "hop": 1,
+        "pending": "Apply"
+      },
+      {
+        "captured": {
+          "commit": 9,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "payload": [
+            389,
+            730
+          ],
+          "read_hop": 1,
+          "record_id": 9,
+          "value": [
+            66,
+            101,
+            114,
+            116
+          ]
+        },
+        "computation": {
+          "applied": 1,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": false,
+          "derived_key": [],
+          "derived_label": 0,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 3
+        },
+        "hop": 1,
+        "pending": "Apply"
+      },
+      {
+        "captured": {
+          "commit": 9,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "payload": [
+            389,
+            730
+          ],
+          "read_hop": 1,
+          "record_id": 9,
+          "value": [
+            66,
+            101,
+            114,
+            116
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": false,
+          "derived_key": [],
+          "derived_label": 0,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 1,
+        "pending": "Apply"
+      },
+      {
+        "captured": {
+          "commit": 9,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "payload": [
+            389,
+            730
+          ],
+          "read_hop": 1,
+          "record_id": 9,
+          "value": [
+            66,
+            101,
+            114,
+            116
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 2,
+        "pending": "Read"
+      },
+      {
+        "captured": {
+          "commit": 11,
+          "continues": true,
+          "derived": true,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            71,
+            119,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            492,
+            723
+          ],
+          "read_hop": 2,
+          "record_id": 11,
+          "value": [
+            79,
+            114,
+            101,
+            110
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 2,
+        "pending": "Continue"
+      },
+      {
+        "captured": {
+          "commit": 11,
+          "continues": true,
+          "derived": true,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            71,
+            119,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            492,
+            723
+          ],
+          "read_hop": 2,
+          "record_id": 11,
+          "value": [
+            79,
+            114,
+            101,
+            110
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 3,
+        "pending": "Read"
+      },
+      {
+        "captured": {
+          "commit": 12,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            79,
+            114,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            3069,
+            280,
+            541
+          ],
+          "read_hop": 3,
+          "record_id": 12,
+          "value": [
+            81,
+            117,
+            97,
+            114,
+            114,
+            121
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 3,
+        "pending": "Emit"
+      },
+      {
+        "captured": {
+          "commit": 12,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            79,
+            114,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            3069,
+            280,
+            541
+          ],
+          "read_hop": 3,
+          "record_id": 12,
+          "value": [
+            81,
+            117,
+            97,
+            114,
+            114,
+            121
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 3,
+        "pending": "Emit"
+      },
+      {
+        "captured": {
+          "commit": 12,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            79,
+            114,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            3069,
+            280,
+            541
+          ],
+          "read_hop": 3,
+          "record_id": 12,
+          "value": [
+            81,
+            117,
+            97,
+            114,
+            114,
+            121
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 3,
+        "pending": "Emit"
+      },
+      {
+        "captured": {
+          "commit": 12,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            79,
+            114,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            3069,
+            280,
+            541
+          ],
+          "read_hop": 3,
+          "record_id": 12,
+          "value": [
+            81,
+            117,
+            97,
+            114,
+            114,
+            121
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 3,
+        "pending": "Stop"
+      },
+      {
+        "captured": {
+          "commit": 12,
+          "continues": false,
+          "derived": false,
+          "key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            79,
+            114,
+            101,
+            110,
+            0
+          ],
+          "payload": [
+            3069,
+            280,
+            541
+          ],
+          "read_hop": 3,
+          "record_id": 12,
+          "value": [
+            81,
+            117,
+            97,
+            114,
+            114,
+            121
+          ]
+        },
+        "computation": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "derived_label": 6,
+          "operand_key": [
+            66,
+            101,
+            114,
+            116
+          ],
+          "operand_state": 0,
+          "source_commit": 9,
+          "source_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "source_hop": 1,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            65,
+            108,
+            109,
+            97,
+            0
+          ],
+          "source_record": 9,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 7
+        },
+        "hop": 3,
+        "pending": "Stop"
+      }
+    ],
+    "request": "Mara's office then i j",
+    "scenarios": [
+      {
+        "expected": "Ledge",
+        "expected_reads": 3,
+        "fresh": {
+          "binding": {
+            "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "backend": "signed_factorization",
+            "capacity": 8,
+            "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+            "eos": 4294967294,
+            "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+            "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+            "lineage": 1348,
+            "max_vocab": 4096,
+            "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+          },
+          "captured": {
+            "commit": 6,
+            "continues": false,
+            "derived": true,
+            "key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              70,
+              114,
+              101,
+              121,
+              0
+            ],
+            "payload": [
+              450,
+              277,
+              361
+            ],
+            "read_hop": 2,
+            "record_id": 6,
+            "value": [
+              76,
+              101,
+              100,
+              103,
+              101
+            ]
+          },
+          "computation": {
+            "applied": 2,
+            "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "consumed": true,
+            "derived_key": [
+              70,
+              114,
+              101,
+              121
+            ],
+            "derived_label": 5,
+            "operand_key": [
+              67,
+              111,
+              114,
+              97
+            ],
+            "operand_state": 3,
+            "source_commit": 13,
+            "source_entity": [
+              65,
+              108,
+              109,
+              97
+            ],
+            "source_hop": 1,
+            "source_key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              65,
+              108,
+              109,
+              97,
+              0
+            ],
+            "source_record": 13,
+            "source_scope": [
+              97,
+              108,
+              112,
+              104,
+              97
+            ],
+            "state": 4
+          },
+          "cursor": 3,
+          "derived": true,
+          "emitted": [
+            450,
+            277,
+            361,
+            4294967294
+          ],
+          "eos": 4294967294,
+          "history": "Current",
+          "hop": 2,
+          "op_cursor": 2,
+          "ops": [
+            [
+              105
+            ],
+            [
+              106
+            ]
+          ],
+          "pending": "Stop",
+          "query_entity": [
+            70,
+            114,
+            101,
+            121
+          ],
+          "relation": 0,
+          "request": {
+            "clause": {
+              "byte_lengths": [
+                1,
+                3,
+                2,
+                4,
+                3,
+                5,
+                2,
+                2
+              ],
+              "seg": 0,
+              "text": "Mara's office then i j",
+              "tokens": [
+                61,
+                4075,
+                506,
+                767,
+                569,
+                965,
+                2056,
+                544
+              ]
+            },
+            "entity": [
+              77,
+              97,
+              114,
+              97
+            ],
+            "history": "Current",
+            "ops": [
+              [
+                105
+              ],
+              [
+                106
+              ]
+            ],
+            "relation": 0
+          },
+          "scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "terminal": "Complete",
+          "version": 4,
+          "view": 13,
+          "view_sha256": "6d32ab957e61b1394bc8e11fcbf196f9b1b3ae7fa1cb8a5021f784fe5aa68915",
+          "visited": [
+            [
+              77,
+              97,
+              114,
+              97
+            ],
+            [
+              65,
+              108,
+              109,
+              97
+            ]
+          ]
+        },
+        "name": "operand_correction",
+        "observation": {
+          "byte_lengths": [
+            2,
+            2,
+            2,
+            4,
+            3,
+            7,
+            2,
+            2,
+            1
+          ],
+          "commit": 13,
+          "continues": false,
+          "entity": "Alma",
+          "intent": 1,
+          "text": "Alma's office became Cora",
+          "tokens": [
+            2219,
+            2432,
+            506,
+            767,
+            569,
+            2163,
+            340,
+            270,
+            81
+          ],
+          "value": "Cora",
+          "wrote": true
+        },
+        "pinned_resumes": 14,
+        "separate_process_full_frame_parity": true
+      },
+      {
+        "expected": "Harbor",
+        "expected_reads": 4,
+        "fresh": {
+          "binding": {
+            "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "backend": "signed_factorization",
+            "capacity": 8,
+            "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+            "eos": 4294967294,
+            "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+            "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+            "lineage": 1348,
+            "max_vocab": 4096,
+            "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+          },
+          "captured": {
+            "commit": 13,
+            "continues": false,
+            "derived": false,
+            "key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              79,
+              114,
+              101,
+              110,
+              0
+            ],
+            "payload": [
+              407,
+              280,
+              3259
+            ],
+            "read_hop": 3,
+            "record_id": 13,
+            "value": [
+              72,
+              97,
+              114,
+              98,
+              111,
+              114
+            ]
+          },
+          "computation": {
+            "applied": 2,
+            "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "consumed": true,
+            "derived_key": [
+              71,
+              119,
+              101,
+              110
+            ],
+            "derived_label": 6,
+            "operand_key": [
+              66,
+              101,
+              114,
+              116
+            ],
+            "operand_state": 0,
+            "source_commit": 9,
+            "source_entity": [
+              65,
+              108,
+              109,
+              97
+            ],
+            "source_hop": 1,
+            "source_key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              65,
+              108,
+              109,
+              97,
+              0
+            ],
+            "source_record": 9,
+            "source_scope": [
+              97,
+              108,
+              112,
+              104,
+              97
+            ],
+            "state": 7
+          },
+          "cursor": 3,
+          "derived": true,
+          "emitted": [
+            407,
+            280,
+            3259,
+            4294967294
+          ],
+          "eos": 4294967294,
+          "history": "Current",
+          "hop": 3,
+          "op_cursor": 2,
+          "ops": [
+            [
+              105
+            ],
+            [
+              106
+            ]
+          ],
+          "pending": "Stop",
+          "query_entity": [
+            79,
+            114,
+            101,
+            110
+          ],
+          "relation": 0,
+          "request": {
+            "clause": {
+              "byte_lengths": [
+                1,
+                3,
+                2,
+                4,
+                3,
+                5,
+                2,
+                2
+              ],
+              "seg": 0,
+              "text": "Mara's office then i j",
+              "tokens": [
+                61,
+                4075,
+                506,
+                767,
+                569,
+                965,
+                2056,
+                544
+              ]
+            },
+            "entity": [
+              77,
+              97,
+              114,
+              97
+            ],
+            "history": "Current",
+            "ops": [
+              [
+                105
+              ],
+              [
+                106
+              ]
+            ],
+            "relation": 0
+          },
+          "scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "terminal": "Complete",
+          "version": 4,
+          "view": 13,
+          "view_sha256": "3296d0850aa13764bba546ce4af1e82036c08904bd6f2b21d6c33348a07bfe2f",
+          "visited": [
+            [
+              77,
+              97,
+              114,
+              97
+            ],
+            [
+              65,
+              108,
+              109,
+              97
+            ],
+            [
+              71,
+              119,
+              101,
+              110
+            ]
+          ]
+        },
+        "name": "downstream_correction",
+        "observation": {
+          "byte_lengths": [
+            1,
+            3,
+            2,
+            4,
+            3,
+            7,
+            2,
+            2,
+            3
+          ],
+          "commit": 13,
+          "continues": false,
+          "entity": "Oren",
+          "intent": 1,
+          "text": "Oren's office became Harbor",
+          "tokens": [
+            63,
+            723,
+            506,
+            767,
+            569,
+            2163,
+            407,
+            280,
+            3259
+          ],
+          "value": "Harbor",
+          "wrote": true
+        },
+        "pinned_resumes": 14,
+        "separate_process_full_frame_parity": true
+      },
+      {
+        "expected": "Stone",
+        "expected_reads": 2,
+        "fresh": {
+          "binding": {
+            "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "backend": "signed_factorization",
+            "capacity": 8,
+            "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+            "eos": 4294967294,
+            "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+            "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+            "lineage": 1348,
+            "max_vocab": 4096,
+            "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+          },
+          "captured": {
+            "commit": 8,
+            "continues": false,
+            "derived": true,
+            "key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              72,
+              111,
+              108,
+              116,
+              0
+            ],
+            "payload": [
+              625,
+              537
+            ],
+            "read_hop": 1,
+            "record_id": 8,
+            "value": [
+              83,
+              116,
+              111,
+              110,
+              101
+            ]
+          },
+          "computation": {
+            "applied": 2,
+            "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "consumed": true,
+            "derived_key": [
+              72,
+              111,
+              108,
+              116
+            ],
+            "derived_label": 7,
+            "operand_key": [
+              65,
+              108,
+              109,
+              97
+            ],
+            "operand_state": 1,
+            "source_commit": 13,
+            "source_entity": [
+              77,
+              97,
+              114,
+              97
+            ],
+            "source_hop": 0,
+            "source_key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              77,
+              97,
+              114,
+              97,
+              0
+            ],
+            "source_record": 13,
+            "source_scope": [
+              97,
+              108,
+              112,
+              104,
+              97
+            ],
+            "state": 6
+          },
+          "cursor": 2,
+          "derived": true,
+          "emitted": [
+            625,
+            537,
+            4294967294
+          ],
+          "eos": 4294967294,
+          "history": "Current",
+          "hop": 1,
+          "op_cursor": 2,
+          "ops": [
+            [
+              105
+            ],
+            [
+              106
+            ]
+          ],
+          "pending": "Stop",
+          "query_entity": [
+            72,
+            111,
+            108,
+            116
+          ],
+          "relation": 0,
+          "request": {
+            "clause": {
+              "byte_lengths": [
+                1,
+                3,
+                2,
+                4,
+                3,
+                5,
+                2,
+                2
+              ],
+              "seg": 0,
+              "text": "Mara's office then i j",
+              "tokens": [
+                61,
+                4075,
+                506,
+                767,
+                569,
+                965,
+                2056,
+                544
+              ]
+            },
+            "entity": [
+              77,
+              97,
+              114,
+              97
+            ],
+            "history": "Current",
+            "ops": [
+              [
+                105
+              ],
+              [
+                106
+              ]
+            ],
+            "relation": 0
+          },
+          "scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "terminal": "Complete",
+          "version": 4,
+          "view": 13,
+          "view_sha256": "2e0ae4d02fdc999c8970869a507497a781a2d249785ff2f7b42750d32118bb3b",
+          "visited": [
+            [
+              77,
+              97,
+              114,
+              97
+            ]
+          ]
+        },
+        "name": "same_key_role_change",
+        "observation": {
+          "byte_lengths": [
+            1,
+            3,
+            2,
+            4,
+            3,
+            7,
+            3,
+            2
+          ],
+          "commit": 13,
+          "continues": false,
+          "entity": "Mara",
+          "intent": 1,
+          "text": "Mara's office became Alma",
+          "tokens": [
+            61,
+            4075,
+            506,
+            767,
+            569,
+            2163,
+            1065,
+            2432
+          ],
+          "value": "Alma",
+          "wrote": true
+        },
+        "pinned_resumes": 14,
+        "separate_process_full_frame_parity": true
+      }
+    ]
+  },
+  "cleanup": {
+    "at": "2026-09-22T17:10:53.660378+00:00",
+    "files_removed": 995,
+    "allocated_bytes_removed": 1861709824,
+    "free_before": 32369762304,
+    "free_after": 34191761408,
+    "skipped": [],
+    "scope": "inactive untracked nonexecutable Rust incremental and rlib/rmeta/object caches; no executable/models/research source/Downloads"
+  },
+  "physical_space_at_checks": {
+    "total": 245107195904,
+    "used": 210937061376,
+    "free": 34170134528
+  },
+  "resources_projection": {
+    "at": "2026-09-22T17:11:59.284393+00:00",
+    "ledger_before": {
+      "cumulative_ms": 337430864,
+      "limit_ms": 344500000
+    },
+    "submitted_charge_reconciled_once_ms": 2400000,
+    "charge_basis": "submitted approximate elapsed receipt, missing from live JSON; not independently stopwatch-measured",
+    "review_projection_ms": 6000000,
+    "limit_increment_ms": 6000000,
+    "compiler_workers": 1,
+    "ram_ceiling_bytes": 8589934592,
+    "temporary_build_ceiling_bytes": 1073741824,
+    "retained_ceiling_bytes": 33554432,
+    "old_proposed_free_reserve_bytes": 36766079385,
+    "revised_free_reserve_bytes": 32212254720,
+    "stop_margin_bytes": 134217728,
+    "free_at_projection": 34187235328,
+    "reason": "Principal source/evidence/interaction checks, docs/research and protected delivery. Standing owner-authorized local time/storage extension; original 15-percent reserve is a proposed planning threshold, revised explicitly to30GiB with128MiB stop margin after preserving artifacts and removing inactive incremental output. Allows1GiB rebuild without paid compute or unique deletion; restore more headroom opportunistically.",
+    "ledger_after_reconciliation": {
+      "cumulative_ms": 339830864,
+      "limit_ms": 350500000
+    }
+  },
+  "unrelated_library_failure_attribution": "UNVERIFIED: four failures reported without retained failing log or parent baseline; unchanged source is insufficient attribution.",
+  "charge": {
+    "at": "2026-09-22T17:21:51.387085+00:00",
+    "review_elapsed_ms": 1067387,
+    "delivery_reserve_estimate_ms": 300000,
+    "charge_ms": 1367387,
+    "parallel_agent_wall_time_counted_once": true,
+    "before": {
+      "cumulative_ms": 339830864,
+      "limit_ms": 350500000
+    },
+    "after": {
+      "cumulative_ms": 341198251,
+      "limit_ms": 350500000
+    }
+  },
+  "physical_space_at_charge": {
+    "total": 245107195904,
+    "used": 210939879424,
+    "free": 34167316480
+  }
+}

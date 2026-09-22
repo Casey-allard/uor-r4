@@ -1,0 +1,576 @@
+{
+  "ablation_baseline_parity": {
+    "identical_denominators": true,
+    "matching_rows": 75,
+    "rows": 75,
+    "scope": "Actual saved baseline row observations/answers/errors match; narrow ablation parameter bytes were not separately saved."
+  },
+  "executable": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-delivery/competitive-reader-de5991fd",
+    "recorded_matches": true,
+    "sha256": "435cde4373fc35e23d0865c08026c095523e53e21419b0b8f5df2b5b761c3c4b"
+  },
+  "exposure": {
+    "all_artifacts_roots1_through4_identical": true,
+    "attempts": [
+      {
+        "checks_all_expected": true,
+        "claimed_at_utc": "2026-09-22T16:23:40+00:00",
+        "panels": [
+          {
+            "arm": "primary_signed",
+            "complete": 56,
+            "panel": "development",
+            "requests": 56
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 24,
+            "panel": "final",
+            "requests": 24
+          }
+        ],
+        "root": "observed-computation-lifecycle-1",
+        "rows_sha256": "f6d661676492cc792509061e870991613f48adc1997ad6a7bd68e84e1997a835",
+        "sealed_at_utc": "2026-09-22T16:23:43+00:00"
+      },
+      {
+        "checks_all_expected": false,
+        "claimed_at_utc": "2026-09-22T16:27:10+00:00",
+        "panels": [
+          {
+            "arm": "primary_signed",
+            "complete": 56,
+            "panel": "development",
+            "requests": 56
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 24,
+            "panel": "final",
+            "requests": 24
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 32,
+            "panel": "fresh_withheld",
+            "requests": 32
+          }
+        ],
+        "root": "observed-computation-lifecycle-2",
+        "rows_sha256": "12c35674d4089ba3a10018cbb2059d1c16f86fdcff35609cadef5ce8175c3b69",
+        "sealed_at_utc": "2026-09-22T16:27:14+00:00"
+      },
+      {
+        "checks_all_expected": true,
+        "claimed_at_utc": "2026-09-22T16:27:58+00:00",
+        "panels": [
+          {
+            "arm": "primary_signed",
+            "complete": 56,
+            "panel": "development",
+            "requests": 56
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 24,
+            "panel": "final",
+            "requests": 24
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 32,
+            "panel": "fresh_withheld",
+            "requests": 32
+          }
+        ],
+        "root": "observed-computation-lifecycle-3",
+        "rows_sha256": "12c35674d4089ba3a10018cbb2059d1c16f86fdcff35609cadef5ce8175c3b69",
+        "sealed_at_utc": "2026-09-22T16:28:01+00:00"
+      },
+      {
+        "checks_all_expected": true,
+        "claimed_at_utc": "2026-09-22T16:44:48+00:00",
+        "panels": [
+          {
+            "arm": "primary_signed",
+            "complete": 56,
+            "panel": "development",
+            "requests": 56
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 24,
+            "panel": "final",
+            "requests": 24
+          },
+          {
+            "arm": "primary_signed",
+            "complete": 32,
+            "panel": "fresh_withheld",
+            "requests": 32
+          }
+        ],
+        "root": "observed-computation-lifecycle-4",
+        "rows_sha256": "12c35674d4089ba3a10018cbb2059d1c16f86fdcff35609cadef5ce8175c3b69",
+        "sealed_at_utc": "2026-09-22T16:44:51+00:00"
+      }
+    ],
+    "interpretation": "The32-case population first passes in root2 before the mixed-session read-count oracle repair. Roots3 and4 replay identical model parameters and identical rows. Root4 is exposed replay, not a new final draw. The24-case final population was already exposed under PR1347.",
+    "roots2_through4_rows_byte_identical": true
+  },
+  "learned_ingest": {
+    "actual_receipts": 72,
+    "correction": "The result prose and user handoff say48; actual sealed root contains72 observed assertions across six worlds.",
+    "independent_errors": []
+  },
+  "method": "Read-only saved evidence; independent integer Hamilton action and raw scoped-history oracle. No fitting or product execution.",
+  "preservation": {
+    "ablation_computation_forms_only": {
+      "failed_queries": [
+        {
+          "answer": "Atlas",
+          "error": null,
+          "expected": "Complete { value: \"Cedar Annex\", hops: 1 }",
+          "script": "development",
+          "text": "What is Mara's office?",
+          "turn": 6
+        },
+        {
+          "answer": "Atlas",
+          "error": null,
+          "expected": "Complete { value: \"Cedar Annex\", hops: 1 }",
+          "script": "development",
+          "text": "What is Mara's office?",
+          "turn": 10
+        },
+        {
+          "answer": "",
+          "error": "scoped-memory observation: observed clause is not a request",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "script": "development",
+          "text": "What was Ivo's office before?",
+          "turn": 13
+        },
+        {
+          "answer": "",
+          "error": "scoped-memory observation: observed clause is not a request",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "script": "development",
+          "text": "What was Ivo's office originally?",
+          "turn": 17
+        },
+        {
+          "answer": "",
+          "error": "scoped-memory observation: observed clause is not a request",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "script": "development",
+          "text": "What was Ivo's office before?",
+          "turn": 18
+        },
+        {
+          "answer": "",
+          "error": "scoped-memory observation: observed clause is not a request",
+          "expected": "Complete { value: \"Fen\", hops: 1 }",
+          "script": "development",
+          "text": "What was Ivo's office originally?",
+          "turn": 22
+        },
+        {
+          "answer": "Fen",
+          "error": null,
+          "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+          "script": "development",
+          "text": "What is Cedar's office?",
+          "turn": 28
+        },
+        {
+          "answer": "Bramble",
+          "error": null,
+          "expected": "Complete { value: \"Quarry\", hops: 1 }",
+          "script": "exposed_regression",
+          "text": "What is Ova's office?",
+          "turn": 2
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Bramble\", hops: 1 }",
+          "script": "exposed_regression",
+          "text": "What was Ova's office before?",
+          "turn": 3
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Bramble\", hops: 1 }",
+          "script": "exposed_regression",
+          "text": "What was Ova's office originally?",
+          "turn": 4
+        },
+        {
+          "answer": "Marsh",
+          "error": null,
+          "expected": "Complete { value: \"Harbor\", hops: 2 }",
+          "script": "exposed_regression",
+          "text": "What is Nia's office?",
+          "turn": 13
+        },
+        {
+          "answer": "Marsh",
+          "error": null,
+          "expected": "Complete { value: \"Ledge\", hops: 2 }",
+          "script": "exposed_regression",
+          "text": "What is Tessa's office?",
+          "turn": 18
+        },
+        {
+          "answer": "Marsh",
+          "error": null,
+          "expected": "Complete { value: \"Ledge\", hops: 2 }",
+          "script": "exposed_regression",
+          "text": "What is Tessa's office?",
+          "turn": 21
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Bramble\", hops: 1 }",
+          "script": "exposed_regression",
+          "text": "What was Ova's office originally?",
+          "turn": 22
+        },
+        {
+          "answer": "Cobalt",
+          "error": null,
+          "expected": "Complete { value: \"Mica\", hops: 1 }",
+          "script": "final_lexical_exposed",
+          "text": "What is Una's office?",
+          "turn": 2
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+          "script": "final_lexical_exposed",
+          "text": "What was Una's office before?",
+          "turn": 3
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+          "script": "final_lexical_exposed",
+          "text": "What was Una's office originally?",
+          "turn": 4
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Basalt\", hops: 2 }",
+          "script": "final_lexical_exposed",
+          "text": "What is Pia's office?",
+          "turn": 13
+        },
+        {
+          "answer": "Delta",
+          "error": null,
+          "expected": "Complete { value: \"Dune\", hops: 2 }",
+          "script": "final_lexical_exposed",
+          "text": "What is Kestrel's office?",
+          "turn": 18
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Dune\", hops: 2 }",
+          "script": "final_lexical_exposed",
+          "text": "What is Kestrel's office?",
+          "turn": 21
+        },
+        {
+          "answer": "",
+          "error": null,
+          "expected": "Complete { value: \"Cobalt\", hops: 1 }",
+          "script": "final_lexical_exposed",
+          "text": "What was Una's office originally?",
+          "turn": 22
+        }
+      ],
+      "independent_oracle_errors": [],
+      "recomputed": {
+        "api_questions": 4,
+        "errors": 4,
+        "ingest_observation_and_write_correct": 22,
+        "ingest_total": 37,
+        "language_questions": 34,
+        "matched": 17,
+        "questions": 38
+      },
+      "reported_summary_matches": true
+    },
+    "candidate": {
+      "failed_queries": [],
+      "independent_oracle_errors": [],
+      "recomputed": {
+        "api_questions": 4,
+        "errors": 0,
+        "ingest_observation_and_write_correct": 37,
+        "ingest_total": 37,
+        "language_questions": 34,
+        "matched": 38,
+        "questions": 38
+      },
+      "reported_summary_matches": true
+    },
+    "prior_migrated": {
+      "failed_queries": [],
+      "independent_oracle_errors": [],
+      "recomputed": {
+        "api_questions": 4,
+        "errors": 0,
+        "ingest_observation_and_write_correct": 37,
+        "ingest_total": 37,
+        "language_questions": 34,
+        "matched": 38,
+        "questions": 38
+      },
+      "reported_summary_matches": true
+    }
+  },
+  "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-4",
+  "restart": {
+    "checkpoints": [
+      {
+        "applied": null,
+        "captured_hop": null,
+        "consumed": null,
+        "derived_key": null,
+        "index": 0,
+        "pending": "Read"
+      },
+      {
+        "applied": 0,
+        "captured_hop": 0,
+        "consumed": false,
+        "derived_key": "",
+        "index": 1,
+        "pending": "Apply"
+      },
+      {
+        "applied": 1,
+        "captured_hop": 0,
+        "consumed": false,
+        "derived_key": "",
+        "index": 2,
+        "pending": "Apply"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 0,
+        "consumed": false,
+        "derived_key": "",
+        "index": 3,
+        "pending": "Apply"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 0,
+        "consumed": true,
+        "derived_key": "Alma",
+        "index": 4,
+        "pending": "Read"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 1,
+        "consumed": true,
+        "derived_key": "Alma",
+        "index": 5,
+        "pending": "Emit"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 1,
+        "consumed": true,
+        "derived_key": "Alma",
+        "index": 6,
+        "pending": "Emit"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 1,
+        "consumed": true,
+        "derived_key": "Alma",
+        "index": 7,
+        "pending": "Emit"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 1,
+        "consumed": true,
+        "derived_key": "Alma",
+        "index": 8,
+        "pending": "Stop"
+      },
+      {
+        "applied": 2,
+        "captured_hop": 1,
+        "consumed": true,
+        "derived_key": "Alma",
+        "index": 9,
+        "pending": "Stop"
+      }
+    ],
+    "explicit_grounded_unconsumed_snapshots": 0,
+    "independently_equal_final_frames": 10,
+    "phases_match_snapshots": true,
+    "scope": "Ten saved checkpoints resume to one identical complete frame. The store for this separate-process check is typed cgs_memory; the request is raw text. Snapshot3 is after operations but before finalization; snapshot4 is after atomic grounding/consumption. No grounded-unconsumed boundary is serialized."
+  },
+  "rows": {
+    "complete_owned_emissions_checked": 338,
+    "count": 392,
+    "counts": {
+      "control/apply_disabled": {
+        "complete": 12,
+        "requests": 40
+      },
+      "control/consume_disabled": {
+        "complete": 12,
+        "requests": 40
+      },
+      "control/finite_transition": {
+        "complete": 26,
+        "requests": 40
+      },
+      "control/folded_central_sign": {
+        "complete": 24,
+        "requests": 40
+      },
+      "control/no_read": {
+        "complete": 0,
+        "requests": 40
+      },
+      "control/tabulated_finite": {
+        "complete": 40,
+        "requests": 40
+      },
+      "control/unscoped": {
+        "complete": 40,
+        "requests": 40
+      },
+      "development/primary_signed": {
+        "complete": 56,
+        "requests": 56
+      },
+      "final/primary_signed": {
+        "complete": 24,
+        "requests": 24
+      },
+      "fresh_withheld/primary_signed": {
+        "complete": 32,
+        "requests": 32
+      }
+    },
+    "errors": [],
+    "oracle": "Targets reconstructed from declared world plus signed-axis integer Hamilton algebra, not row.expected or learned table.",
+    "primary_computations_checked": 88,
+    "selected_reads_checked": 649
+  },
+  "schema": "uor-r4.observed-computation-lifecycle-principal-audit/1",
+  "seals": [
+    {
+      "bad_hashes": [],
+      "bad_sizes": [],
+      "blake3_status": "VERIFIED",
+      "files": 19,
+      "missing": [],
+      "root": "observed-computation-lifecycle-1",
+      "unlisted": []
+    },
+    {
+      "bad_hashes": [],
+      "bad_sizes": [],
+      "blake3_status": "VERIFIED",
+      "files": 19,
+      "missing": [],
+      "root": "observed-computation-lifecycle-2",
+      "unlisted": []
+    },
+    {
+      "bad_hashes": [],
+      "bad_sizes": [],
+      "blake3_status": "VERIFIED",
+      "files": 19,
+      "missing": [],
+      "root": "observed-computation-lifecycle-3",
+      "unlisted": []
+    },
+    {
+      "bad_hashes": [],
+      "bad_sizes": [],
+      "blake3_status": "VERIFIED",
+      "files": 19,
+      "missing": [],
+      "root": "observed-computation-lifecycle-4",
+      "unlisted": []
+    }
+  ],
+  "sources": [
+    {
+      "committed_matches": true,
+      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+      "recorded_sha256": "a4925b9514586bbf76b4c81e4547a5719821b0a9d6b8047fabc756bd164e7a67"
+    },
+    {
+      "committed_matches": true,
+      "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+      "recorded_sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+    },
+    {
+      "committed_matches": true,
+      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+      "recorded_sha256": "b2245a4d94acd2145049a48a9dd0be8eb44e5b015e81ab6c6248b49479a7464d"
+    }
+  ],
+  "submitted_accounting": {
+    "initial_authoritative_ledger_observed_by_principal": {
+      "cumulative_ms": 337430864,
+      "limit_ms": 344500000
+    },
+    "interpretation": "Receipt records the approximate charge but did not update the authoritative owner ledger. Principal must reconcile once, without recharging on audit replay.",
+    "missing_submitted_debit_ms": 2400000,
+    "receipt": {
+      "actual_elapsed_ms": 2400000,
+      "compiler_workers": 1,
+      "date_utc": "2026-09-22",
+      "free_after_bytes": 33527676928,
+      "free_before_bytes": 32794578944,
+      "kind": "submitted actual charge for the observed computation lifecycle step",
+      "live_cumulative_at_projection_ms": 337430864,
+      "model_workers": 0,
+      "note": "The physical reserve was already breached before this step; the shortfall is disclosed, not cured.",
+      "paid_compute": false,
+      "projection_exceeded": false,
+      "projection_ms": 6000000,
+      "ram_ceiling_bytes": 8589934592,
+      "reclaimed_inactive_compiler_bytes": 1468719104,
+      "reserve_bytes": 36766079385,
+      "reserve_shortfall_after_step_bytes": 3238402457,
+      "reserve_shortfall_before_step_bytes": 3971500441,
+      "retained_report_bytes": 9440000,
+      "shared_limit_ms": 344500000,
+      "standing_authorized_increment_consumed": false,
+      "stop_margin_bytes": 134217728,
+      "temporary_build_over_projection_bytes": 324000000
+    }
+  },
+  "typed_comparator": {
+    "reason": "The runner compares matched and answer in memory, but discards typed rows. Saved receipts support only reported counters, not independent replay of typed trace or record identity.",
+    "status": "SUMMARY_ONLY"
+  },
+  "unrelated_tests": {
+    "reason": "Preserved focused logs show27+23 module and25 runner passes/1ignored; no saved broad-failure log or parent execution proves the reported four failures pre-existing. Unchanged module source alone is insufficient attribution.",
+    "status": "UNVERIFIED_SUBMITTED_ATTRIBUTION"
+  }
+}

@@ -1,0 +1,3433 @@
+{
+  "artifact_sha256": {
+    "artifact.json": "ce5d66fcaeb3ecd5bab5b925e65ba36635113742f9c98ea536f38b1bdd1635d9",
+    "backend-finite_transition.json": "80c202dca49d8b51fffe6ddb616bc4eac990eeaa1bba14e5087b3099f071cc0b",
+    "backend-folded_central_sign.json": "4f97d23e248f410ae07b247b82fedba1598e62eac62e02f926cf502afc64b3fb",
+    "backend-signed_factorization.json": "ce5d66fcaeb3ecd5bab5b925e65ba36635113742f9c98ea536f38b1bdd1635d9",
+    "backend-tabulated_finite.json": "1f23e6094b7866f215b416e74ffbd540582dbab2f8487790ec02205ac2e0b3de",
+    "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+    "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+    "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+  },
+  "base": "origin/main b5d36c9b8318e4fe2084ef49cc75cff55c1b2b6f",
+  "checks": {
+    "ablation_computation_forms_only_does_not_restore_prior_lifecycle": true,
+    "combined_support_restores_prior_lifecycle": true,
+    "consume_disabled_changes_answer": true,
+    "consumption_necessary": true,
+    "development_complete": true,
+    "disk_reload_identical": true,
+    "final_complete": true,
+    "fold_loses_the_order_distinction": true,
+    "fresh_process_identical": true,
+    "fresh_withheld_complete": true,
+    "identity_unchanged": true,
+    "learned_ingest_commits_every_assertion": true,
+    "learned_ingest_matches_typed_records": true,
+    "mixed_session": true,
+    "order_changes_state": true,
+    "ordinary_smoke": true,
+    "owned_resume_identical": true,
+    "prior_model_migration_preserves_lifecycle": true
+  },
+  "checks_all_expected": true,
+  "consumption": {
+    "changed_operand": {
+      "base": "Bramble",
+      "base_key": "Alma",
+      "changed": "Quarry",
+      "changed_key": "Bert"
+    },
+    "changed_order": {
+      "folded_i_then_j": "Quarry",
+      "folded_ij_key": "Bert",
+      "folded_j_then_i": "Quarry",
+      "folded_ji_key": "Bert",
+      "i_then_j": "Bramble",
+      "ij_key": "Alma",
+      "j_then_i": "Quarry",
+      "ji_key": "Bert"
+    },
+    "consume_disabled": {
+      "answer": "Ridge",
+      "consumed": false,
+      "terminal": "Complete"
+    },
+    "identity": {
+      "key": "Gwen",
+      "operand_state": 7,
+      "state": 7
+    },
+    "reload": {
+      "child": {
+        "computed": {
+          "applied": 2,
+          "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+          "consumed": true,
+          "derived_key": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "derived_label": 0,
+          "operand_key": [
+            71,
+            119,
+            101,
+            110
+          ],
+          "operand_state": 7,
+          "source_commit": 1,
+          "source_entity": [
+            77,
+            97,
+            114,
+            97
+          ],
+          "source_hop": 0,
+          "source_key": [
+            5,
+            0,
+            0,
+            0,
+            97,
+            108,
+            112,
+            104,
+            97,
+            4,
+            0,
+            0,
+            0,
+            77,
+            97,
+            114,
+            97,
+            0
+          ],
+          "source_record": 1,
+          "source_scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "state": 1
+        },
+        "emitted": [
+          389,
+          814,
+          854,
+          4294967294
+        ],
+        "final_frame": {
+          "binding": {
+            "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "backend": "signed_factorization",
+            "capacity": 16,
+            "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+            "eos": 4294967294,
+            "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+            "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+            "lineage": 0,
+            "max_vocab": 4096,
+            "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+          },
+          "captured": {
+            "commit": 5,
+            "continues": false,
+            "derived": true,
+            "key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              65,
+              108,
+              109,
+              97,
+              0
+            ],
+            "payload": [
+              389,
+              814,
+              854
+            ],
+            "read_hop": 1,
+            "record_id": 5,
+            "value": [
+              66,
+              114,
+              97,
+              109,
+              98,
+              108,
+              101
+            ]
+          },
+          "computation": {
+            "applied": 2,
+            "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+            "consumed": true,
+            "derived_key": [
+              65,
+              108,
+              109,
+              97
+            ],
+            "derived_label": 0,
+            "operand_key": [
+              71,
+              119,
+              101,
+              110
+            ],
+            "operand_state": 7,
+            "source_commit": 1,
+            "source_entity": [
+              77,
+              97,
+              114,
+              97
+            ],
+            "source_hop": 0,
+            "source_key": [
+              5,
+              0,
+              0,
+              0,
+              97,
+              108,
+              112,
+              104,
+              97,
+              4,
+              0,
+              0,
+              0,
+              77,
+              97,
+              114,
+              97,
+              0
+            ],
+            "source_record": 1,
+            "source_scope": [
+              97,
+              108,
+              112,
+              104,
+              97
+            ],
+            "state": 1
+          },
+          "cursor": 3,
+          "derived": true,
+          "emitted": [
+            389,
+            814,
+            854,
+            4294967294
+          ],
+          "eos": 4294967294,
+          "history": "Current",
+          "hop": 1,
+          "op_cursor": 2,
+          "ops": [
+            [
+              105
+            ],
+            [
+              106
+            ]
+          ],
+          "pending": "Stop",
+          "query_entity": [
+            65,
+            108,
+            109,
+            97
+          ],
+          "relation": 0,
+          "request": {
+            "clause": {
+              "byte_lengths": [
+                1,
+                3,
+                2,
+                4,
+                3,
+                5,
+                2,
+                2
+              ],
+              "seg": 0,
+              "text": "Mara's office then i j",
+              "tokens": [
+                61,
+                4075,
+                506,
+                767,
+                569,
+                965,
+                2056,
+                544
+              ]
+            },
+            "entity": [
+              77,
+              97,
+              114,
+              97
+            ],
+            "history": "Current",
+            "ops": [
+              [
+                105
+              ],
+              [
+                106
+              ]
+            ],
+            "relation": 0
+          },
+          "scope": [
+            97,
+            108,
+            112,
+            104,
+            97
+          ],
+          "terminal": "Complete",
+          "version": 4,
+          "view": 12,
+          "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+          "visited": [
+            [
+              77,
+              97,
+              114,
+              97
+            ]
+          ]
+        },
+        "hop": 1,
+        "resumed": [
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Read",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Apply",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Apply",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Apply",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Read",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Emit",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Emit",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Emit",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Stop",
+            "terminal": "Complete"
+          },
+          {
+            "computed": {
+              "applied": 2,
+              "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+              "consumed": true,
+              "derived_key": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "derived_label": 0,
+              "operand_key": [
+                71,
+                119,
+                101,
+                110
+              ],
+              "operand_state": 7,
+              "source_commit": 1,
+              "source_entity": [
+                77,
+                97,
+                114,
+                97
+              ],
+              "source_hop": 0,
+              "source_key": [
+                5,
+                0,
+                0,
+                0,
+                97,
+                108,
+                112,
+                104,
+                97,
+                4,
+                0,
+                0,
+                0,
+                77,
+                97,
+                114,
+                97,
+                0
+              ],
+              "source_record": 1,
+              "source_scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "state": 1
+            },
+            "emitted": [
+              389,
+              814,
+              854,
+              4294967294
+            ],
+            "final_frame": {
+              "binding": {
+                "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "backend": "signed_factorization",
+                "capacity": 16,
+                "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                "eos": 4294967294,
+                "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                "lineage": 0,
+                "max_vocab": 4096,
+                "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+              },
+              "captured": {
+                "commit": 5,
+                "continues": false,
+                "derived": true,
+                "key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  65,
+                  108,
+                  109,
+                  97,
+                  0
+                ],
+                "payload": [
+                  389,
+                  814,
+                  854
+                ],
+                "read_hop": 1,
+                "record_id": 5,
+                "value": [
+                  66,
+                  114,
+                  97,
+                  109,
+                  98,
+                  108,
+                  101
+                ]
+              },
+              "computation": {
+                "applied": 2,
+                "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                "consumed": true,
+                "derived_key": [
+                  65,
+                  108,
+                  109,
+                  97
+                ],
+                "derived_label": 0,
+                "operand_key": [
+                  71,
+                  119,
+                  101,
+                  110
+                ],
+                "operand_state": 7,
+                "source_commit": 1,
+                "source_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "source_hop": 0,
+                "source_key": [
+                  5,
+                  0,
+                  0,
+                  0,
+                  97,
+                  108,
+                  112,
+                  104,
+                  97,
+                  4,
+                  0,
+                  0,
+                  0,
+                  77,
+                  97,
+                  114,
+                  97,
+                  0
+                ],
+                "source_record": 1,
+                "source_scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "state": 1
+              },
+              "cursor": 3,
+              "derived": true,
+              "emitted": [
+                389,
+                814,
+                854,
+                4294967294
+              ],
+              "eos": 4294967294,
+              "history": "Current",
+              "hop": 1,
+              "op_cursor": 2,
+              "ops": [
+                [
+                  105
+                ],
+                [
+                  106
+                ]
+              ],
+              "pending": "Stop",
+              "query_entity": [
+                65,
+                108,
+                109,
+                97
+              ],
+              "relation": 0,
+              "request": {
+                "clause": {
+                  "byte_lengths": [
+                    1,
+                    3,
+                    2,
+                    4,
+                    3,
+                    5,
+                    2,
+                    2
+                  ],
+                  "seg": 0,
+                  "text": "Mara's office then i j",
+                  "tokens": [
+                    61,
+                    4075,
+                    506,
+                    767,
+                    569,
+                    965,
+                    2056,
+                    544
+                  ]
+                },
+                "entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "history": "Current",
+                "ops": [
+                  [
+                    105
+                  ],
+                  [
+                    106
+                  ]
+                ],
+                "relation": 0
+              },
+              "scope": [
+                97,
+                108,
+                112,
+                104,
+                97
+              ],
+              "terminal": "Complete",
+              "version": 4,
+              "view": 12,
+              "view_sha256": "b137e28741274eee5a801073f4b0f691303507978c6b399c519d7c9e9092a03f",
+              "visited": [
+                [
+                  77,
+                  97,
+                  114,
+                  97
+                ]
+              ]
+            },
+            "matches": true,
+            "phase": "Stop",
+            "terminal": "Complete"
+          }
+        ],
+        "terminal": "Complete"
+      },
+      "child_status": 0,
+      "disk": true,
+      "fresh_process": true,
+      "raw_text_entry": true
+    },
+    "requests": 112,
+    "resume": {
+      "identical": true,
+      "mid": {
+        "applied": 1,
+        "artifact": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+        "consumed": false,
+        "derived_key": [],
+        "derived_label": 0,
+        "operand_key": [
+          71,
+          119,
+          101,
+          110
+        ],
+        "operand_state": 7,
+        "source_commit": 1,
+        "source_entity": [
+          77,
+          97,
+          114,
+          97
+        ],
+        "source_hop": 0,
+        "source_key": [
+          5,
+          0,
+          0,
+          0,
+          97,
+          108,
+          112,
+          104,
+          97,
+          4,
+          0,
+          0,
+          0,
+          77,
+          97,
+          114,
+          97,
+          0
+        ],
+        "source_record": 1,
+        "source_scope": [
+          97,
+          108,
+          112,
+          104,
+          97
+        ],
+        "state": 5
+      }
+    },
+    "rows": 112
+  },
+  "controls_recomputed": {
+    "apply_disabled": {
+      "complete": 12,
+      "requests": 40
+    },
+    "consume_disabled": {
+      "complete": 12,
+      "requests": 40
+    },
+    "finite_transition": {
+      "complete": 26,
+      "requests": 40
+    },
+    "folded_central_sign": {
+      "complete": 24,
+      "requests": 40
+    },
+    "no_read": {
+      "complete": 0,
+      "requests": 40
+    },
+    "tabulated_finite": {
+      "complete": 40,
+      "requests": 40
+    },
+    "unscoped": {
+      "complete": 40,
+      "requests": 40
+    }
+  },
+  "date_utc": "2026-09-22",
+  "integration_complete": true,
+  "learned_ingest": {
+    "all_committed": true,
+    "path": "ScopedMemoryRuntime::observe + ingest over the observed assertion text",
+    "receipts": 72
+  },
+  "learning": {
+    "ablation_computation_forms_only": {
+      "binder": {
+        "candidate_updates": 8,
+        "clauses": 48,
+        "cue_role_correct": 48,
+        "epochs_run": 2,
+        "h4_enabled": false,
+        "h4_evaluations": 0,
+        "h4_moves": 0,
+        "policy_examples": 44,
+        "policy_final_correct": 44,
+        "policy_initial_correct": 36,
+        "role_final_correct": 48,
+        "role_initial_correct": 0,
+        "role_weights": 36,
+        "roles_observed": [
+          0,
+          1
+        ],
+        "segment_potentials": 164,
+        "span_final_correct": 48,
+        "span_initial_correct": 0
+      },
+      "intent": {
+        "epochs_run": 2,
+        "examples": 48,
+        "question_final_correct": 4,
+        "question_initial_correct": 4,
+        "question_weights": 0,
+        "statement_final_correct": 44,
+        "statement_initial_correct": 20,
+        "statement_weights": 11,
+        "updates": 2
+      }
+    },
+    "binder": {
+      "candidate_updates": 25,
+      "clauses": 132,
+      "cue_role_correct": 132,
+      "epochs_run": 3,
+      "h4_enabled": false,
+      "h4_evaluations": 0,
+      "h4_moves": 0,
+      "policy_examples": 92,
+      "policy_final_correct": 92,
+      "policy_initial_correct": 72,
+      "role_final_correct": 132,
+      "role_initial_correct": 0,
+      "role_weights": 74,
+      "roles_observed": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "segment_potentials": 359,
+      "span_final_correct": 132,
+      "span_initial_correct": 0
+    },
+    "factorization": {
+      "gauge_fixed": true,
+      "group_order": 8,
+      "identity_primitive": 300,
+      "initial_agreements": 8,
+      "initial_checks": 16,
+      "isomorphic_candidates_checked": 1033,
+      "noncommuting_witness": [
+        100,
+        200
+      ],
+      "order_spectrum": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          4,
+          6
+        ]
+      ],
+      "outcomes": 8,
+      "primitives": 3,
+      "transitions_checked": 48,
+      "transitions_consistent": 48
+    },
+    "finite_control_fit": {
+      "accepted_moves": 10,
+      "examples": 48,
+      "final_complete": 32,
+      "final_tokens": 80,
+      "initial_complete": 1,
+      "states": 8,
+      "token_total": 96
+    },
+    "finite_control_shape": {
+      "actions": 3,
+      "values": 8
+    },
+    "intent": {
+      "epochs_run": 4,
+      "examples": 132,
+      "question_final_correct": 40,
+      "question_initial_correct": 16,
+      "question_weights": 17,
+      "statement_final_correct": 92,
+      "statement_initial_correct": 44,
+      "statement_weights": 47,
+      "updates": 25
+    }
+  },
+  "limitations": [
+    "one deterministic process-local store; energy UNAVAILABLE; whole-path D0-b unqualified",
+    "familiar operation and label vocabularies; the fresh population is lexical, routing-depth and operation-order novelty inside the declared clause forms",
+    "the learned lexicon is fitted from supervised pairs, not unlabeled text",
+    "the geometric arm ties a directly tabulated finite control on this path; no compactness, efficiency or cost advantage is established",
+    "the prior primary panel is a retained development panel, not a fresh acceptance set"
+  ],
+  "mixed_session": {
+    "after_correction": {
+      "matched": 3,
+      "total": 3
+    },
+    "checks": {
+      "computation_follows_redirect_to_operand": true,
+      "correction_writes_and_changes_new_answers": true,
+      "ingest_declared_write_and_observation": true,
+      "ordinary_and_historical_questions": true,
+      "pinned_answer_retained_across_correction": true,
+      "question_input_writes_nothing": true,
+      "save_reload_continues_identically": true
+    },
+    "computation": {
+      "matched": 2,
+      "total": 2
+    },
+    "ingest": {
+      "matched": 12,
+      "total": 12
+    },
+    "ok": true,
+    "pinned_answer": "Quarry",
+    "questions": {
+      "matched": 6,
+      "total": 6
+    },
+    "reload": {
+      "matched": 3,
+      "total": 3
+    }
+  },
+  "panels": {
+    "fresh_dests": [
+      "Larkspur",
+      "Nettle",
+      "Umber",
+      "Vellum",
+      "Wren",
+      "Yarrow",
+      "Zephyr",
+      "Cinder"
+    ],
+    "fresh_novelty": {
+      "lexical": "fresh people and destinations are disjoint from every earlier population",
+      "operation_order": "three-operation orders absent from development and from the earlier exposed final",
+      "routing_depth": "the first person's office record is itself an observed redirect, so the requested operand needs one followed read before the operation starts; that composition is absent from fitting",
+      "syntax": "the observed clause forms are the familiar declared forms; no new surface syntax is introduced"
+    },
+    "fresh_people": [
+      "Juno",
+      "Rhea",
+      "Silas",
+      "Perrin"
+    ],
+    "fresh_sequences": [
+      [
+        "i",
+        "i",
+        "j"
+      ],
+      [
+        "j",
+        "j",
+        "i"
+      ],
+      [
+        "j",
+        "i",
+        "i"
+      ]
+    ],
+    "primary_signed_recomputed": {
+      "development": {
+        "complete": 56,
+        "requests": 56
+      },
+      "final": {
+        "complete": 24,
+        "requests": 24
+      },
+      "fresh_withheld": {
+        "complete": 32,
+        "requests": 32
+      }
+    },
+    "typed_records_only_recomputed": {
+      "development#0": {
+        "complete": 28,
+        "requests": 28
+      },
+      "development#1": {
+        "complete": 28,
+        "requests": 28
+      },
+      "final#4": {
+        "complete": 12,
+        "requests": 12
+      },
+      "final#5": {
+        "complete": 12,
+        "requests": 12
+      },
+      "fresh_withheld#8": {
+        "complete": 16,
+        "requests": 16
+      },
+      "fresh_withheld#9": {
+        "complete": 16,
+        "requests": 16
+      }
+    }
+  },
+  "prior_identity": {
+    "prior_intent_sha256": "862387f728d5ce2101bab727e44c86c8ddf9de0fa13d3e7e6352f0ea054d0aa6",
+    "prior_model_sha256": "a6cdbeca00a504aa68d8ae25fc7e39b57917fb945fe02bb9b403288d33ac0502"
+  },
+  "prior_lifecycle": {
+    "ablation_computation_forms_only": {
+      "all_preserved": false,
+      "api_questions": 4,
+      "errors": 4,
+      "ingest_observation_and_write_correct": 22,
+      "ingest_total": 37,
+      "language_questions": 34,
+      "matched": 17,
+      "questions": 38
+    },
+    "candidate": {
+      "all_preserved": true,
+      "api_questions": 4,
+      "errors": 0,
+      "ingest_observation_and_write_correct": 37,
+      "ingest_total": 37,
+      "language_questions": 34,
+      "matched": 38,
+      "questions": 38
+    },
+    "prior_migrated": {
+      "all_preserved": true,
+      "api_questions": 4,
+      "errors": 0,
+      "ingest_observation_and_write_correct": 37,
+      "ingest_total": 37,
+      "language_questions": 34,
+      "matched": 38,
+      "questions": 38
+    }
+  },
+  "recomputed_total_requests": 112,
+  "report_files": [
+    "artifacts",
+    "attempt.json",
+    "manifest.json",
+    "preservation.json",
+    "reload",
+    "result.json",
+    "rows.jsonl"
+  ],
+  "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/observed-computation-lifecycle-4",
+  "row_summary": {
+    "computation_requests": 312,
+    "ordinary_asks": 80,
+    "rows": 392
+  },
+  "running_source": {
+    "executable_sha256": "435cde4373fc35e23d0865c08026c095523e53e21419b0b8f5df2b5b761c3c4b",
+    "git_dirty": "false",
+    "git_rev": "de5991fd10fa9c50f7d3e95a3d94299fc3af45fe",
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+        "sha256": "a4925b9514586bbf76b4c81e4547a5719821b0a9d6b8047fabc756bd164e7a67"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+        "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "b2245a4d94acd2145049a48a9dd0be8eb44e5b015e81ab6c6248b49479a7464d"
+      }
+    ]
+  },
+  "saved_state_restore": {
+    "covers": [
+      "before the computation starts",
+      "during a nonempty operation sequence (after each applied operation)",
+      "after grounding and before consumption",
+      "after the later source capture"
+    ],
+    "disk_reload": true,
+    "every_phase_reproduces_the_complete_final_frame": true,
+    "restore_phases": [
+      "Read",
+      "Apply",
+      "Apply",
+      "Apply",
+      "Read",
+      "Emit",
+      "Emit",
+      "Emit",
+      "Stop",
+      "Stop"
+    ],
+    "separate_process": true
+  },
+  "schema": "uor-r4.observed-computation-lifecycle-evidence/1",
+  "scope": "authored ordinary readable requests over a small declared state world; one loaded path consumes a shared finite computation whose grounded result selects the next exact read. Not broad language understanding, general reasoning, frontier capability or a whole-program dictionary. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+  "step": "one learned observed-text artifact composing ordinary scoped memory with the retained consumed geometric computation",
+  "unlisted_files": 0
+}
