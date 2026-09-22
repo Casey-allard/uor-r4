@@ -1,0 +1,23 @@
+{
+  "at": "2026-09-22",
+  "task": "learned grounded lexical realization in the retained scoped session",
+  "reason": "Apply the prospectively recorded increment to the live cumulative ledger after the delivery work. The increment was recorded in docs/evidence/grounded-lexical-realization-projection-2026-09-22.json before execution; this receipt charges the work actually performed and does not exceed it.",
+  "before": { "cumulative_ms": 341198251, "limit_ms": 366700000 },
+  "charge_ms": 12600000,
+  "charge_basis": "implementation and diagnosis plus the build/focused-test/runner wall time actually consumed: repeated offline cargo check/build of uor-r4-core, the filtered library-test runs, five development runner executions (each about 40 s) and the frozen evaluation, all on the owner-shared build cache.",
+  "after": { "cumulative_ms": 353798251, "limit_ms": 366700000 },
+  "projected_increment_ms": 16200000,
+  "unused_projection_ms": 3600000,
+  "storage": {
+    "note": "No second build tree was created: the owner checkout target directory was reused via CARGO_TARGET_DIR. That shared directory grew from about 2.0 GiB to about 11 GiB because the large experiment/test debug artifacts were rebuilt here, so measured free space is below the previously recorded 30 GiB reserve even though this task added no separate target tree.",
+    "shared_build_cache_growth_bytes": 9663676416,
+    "reclaim_path": "cargo sweep --time 1 --dry-run reports about 569 MiB of inactive rebuildable artifacts; deeper reclamation is available but was not run to avoid disturbing other worktrees sharing this cache.",
+    "new_storage_estimate_bytes": 134217728,
+    "stop_margin_bytes": 134217728,
+    "revised_free_reserve_bytes": 32212254720,
+    "free_after_kb": 18837228,
+    "stop_margin_exceeded": false,
+    "reserve_status": "below the recorded 30 GiB reserve after the shared debug cache growth; free space is still about 18 GiB, far above the 128 MiB stop margin"
+  },
+  "external_compute": "none; no paid or external GPU service was used"
+}

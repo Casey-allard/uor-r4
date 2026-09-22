@@ -1,0 +1,271 @@
+{
+  "attempts": [
+    {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-9",
+      "artifact": {
+        "context_disabled_control": "MemoryControl::RealizationContextDisabled",
+        "evidence_buckets": 8,
+        "examples": 736,
+        "sha256": "3e35d07e248456f948044d8c96ecfd27157c48904c2548eb0b62d3ce3533a43f",
+        "slot_words": [
+          " it",
+          " is",
+          " was",
+          " now"
+        ],
+        "slots": [
+          357,
+          314,
+          436,
+          1209
+        ],
+        "table_rows": 64,
+        "version": 1
+      },
+      "rebuild_problems": [],
+      "rebuilt": [
+        {
+          "case": "direct",
+          "request": "What is Mara's office?",
+          "answer": "it is Harbor",
+          "legacy_answer": "Harbor",
+          "payload_surface": "Harbor",
+          "copied_span": [
+            407,
+            280,
+            3259
+          ],
+          "learned_words": [
+            357,
+            314
+          ],
+          "prelude_words": 2,
+          "rebuilt_emitted": [
+            357,
+            314,
+            407,
+            280,
+            3259,
+            4294967294
+          ],
+          "problems": []
+        },
+        {
+          "case": "superseded",
+          "request": "What is Mara's office?",
+          "answer": "it was Harbor",
+          "legacy_answer": "Harbor",
+          "payload_surface": "Harbor",
+          "copied_span": [
+            407,
+            280,
+            3259
+          ],
+          "learned_words": [
+            357,
+            436
+          ],
+          "prelude_words": 2,
+          "rebuilt_emitted": [
+            357,
+            436,
+            407,
+            280,
+            3259,
+            4294967294
+          ],
+          "problems": []
+        },
+        {
+          "case": "reasserted",
+          "request": "What is Mara's office?",
+          "answer": "it is Harbor",
+          "legacy_answer": "Harbor",
+          "payload_surface": "Harbor",
+          "copied_span": [
+            407,
+            280,
+            3259
+          ],
+          "learned_words": [
+            357,
+            314
+          ],
+          "prelude_words": 2,
+          "rebuilt_emitted": [
+            357,
+            314,
+            407,
+            280,
+            3259,
+            4294967294
+          ],
+          "problems": []
+        },
+        {
+          "case": "fresh_direct",
+          "request": "What is Juno's office?",
+          "answer": "it is Larkspur",
+          "legacy_answer": "Larkspur",
+          "payload_surface": "Larkspur",
+          "copied_span": [
+            450,
+            280,
+            538,
+            96,
+            315
+          ],
+          "learned_words": [
+            357,
+            314
+          ],
+          "prelude_words": 2,
+          "rebuilt_emitted": [
+            357,
+            314,
+            450,
+            280,
+            538,
+            96,
+            315,
+            4294967294
+          ],
+          "problems": []
+        },
+        {
+          "case": "fresh_superseded",
+          "request": "What is Juno's office?",
+          "answer": "it was Larkspur",
+          "legacy_answer": "Larkspur",
+          "payload_surface": "Larkspur",
+          "copied_span": [
+            450,
+            280,
+            538,
+            96,
+            315
+          ],
+          "learned_words": [
+            357,
+            436
+          ],
+          "prelude_words": 2,
+          "rebuilt_emitted": [
+            357,
+            436,
+            450,
+            280,
+            538,
+            96,
+            315,
+            4294967294
+          ],
+          "problems": []
+        }
+      ],
+      "derived_rebuilt": {
+        "case": "derived",
+        "request": "Mara's office then i",
+        "answer": "it is now Tarn",
+        "legacy_answer": null,
+        "payload_surface": "Tarn",
+        "copied_span": [
+          312,
+          714
+        ],
+        "learned_words": [
+          357,
+          314,
+          1209
+        ],
+        "prelude_words": 3,
+        "rebuilt_emitted": [
+          357,
+          314,
+          1209,
+          312,
+          714,
+          4294967294
+        ],
+        "problems": []
+      },
+      "pairs": {
+        "older_evidence_vs_direct": {
+          "identical_prefix_tokens": 1,
+          "a": {
+            "token": 314,
+            "action": {
+              "Insert": 1
+            },
+            "from_table": true,
+            "evidence_class": 1
+          },
+          "b": {
+            "token": 436,
+            "action": {
+              "Insert": 2
+            },
+            "from_table": true,
+            "evidence_class": 1
+          }
+        },
+        "fresh_older_evidence_vs_direct": {
+          "identical_prefix_tokens": 1,
+          "a": {
+            "token": 314,
+            "action": {
+              "Insert": 1
+            },
+            "from_table": true,
+            "evidence_class": 1
+          },
+          "b": {
+            "token": 436,
+            "action": {
+              "Insert": 2
+            },
+            "from_table": true,
+            "evidence_class": 1
+          }
+        },
+        "consumed_result_vs_direct": {
+          "identical_prefix_tokens": 2,
+          "a": {
+            "token": 407,
+            "action": "Copy",
+            "from_table": true,
+            "evidence_class": 1
+          },
+          "b": {
+            "token": 1209,
+            "action": {
+              "Insert": 3
+            },
+            "from_table": true,
+            "evidence_class": 1
+          }
+        },
+        "same_value_reassertion_vs_direct": {
+          "identical_prefix_tokens": 5,
+          "a": null,
+          "b": null
+        }
+      },
+      "claims": {
+        "exact_span_reproduced_in_every_case": true,
+        "older_evidence_changes_an_uncopied_word": true,
+        "consumed_result_changes_an_uncopied_choice": true,
+        "same_value_reassertion_keeps_the_direct_words": true,
+        "context_disabled_collapses_the_pair": true,
+        "legacy_contract_is_byte_exact": true,
+        "runner_checks_all_expected": true
+      },
+      "untouched": "decoded-text claim is checked structurally (payload surface inside the answer); no tokenizer is re-run"
+    }
+  ],
+  "trees": {
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-lexical-realization-9": null
+  },
+  "reconstructed_failures": [],
+  "all_reconstructed": true
+}

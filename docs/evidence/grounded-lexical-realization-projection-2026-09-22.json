@@ -1,0 +1,33 @@
+{
+  "at": "2026-09-22",
+  "task": "learned grounded lexical realization in the retained scoped session",
+  "worktree": "/Users/casey.allard/uor-r4/.worktrees/grounded-lexical-realization",
+  "base_commit": "535b3ecc5cca1703070dfdae7cf53bc00cb342ab",
+  "reason": "Full milestone: implement learned Copy/Vocabulary/Stop selection plus an evidence-conditioned vocabulary effect in the scoped session, fit on source-separated development text, build focused Rust checks, run the cheap actual-loaded mixed interaction, evaluate actual autoregressive responses with targeted causal controls, and deliver through a protected PR. Rust compile/link and repeated focused test runs dominate the wall time.",
+  "ledger_before": { "cumulative_ms": 341198251, "limit_ms": 350500000 },
+  "projection": {
+    "implementation_ms": 7200000,
+    "build_and_focused_tests_ms": 6300000,
+    "development_fit_and_diagnostics_ms": 1800000,
+    "interaction_and_evaluation_ms": 900000,
+    "delivery_ms": 0,
+    "delivery_reserve_estimate_ms": 0,
+    "total_projected_ms": 16200000,
+    "limit_increment_ms": 16200000
+  },
+  "ledger_after": { "cumulative_ms": 341198251, "limit_ms": 366700000 },
+  "cpu": "all available cores for cargo; single-threaded experiment runs",
+  "ram_ceiling_bytes": 8589934592,
+  "new_storage_bytes": 536870912,
+  "temporary_build_ceiling_bytes": 0,
+  "retained_ceiling_bytes": 536870912,
+  "build_cache_reuse": {
+    "note": "Reuse the owner checkout build cache to avoid duplicating ~2 GiB of rebuildable target output while physical free space sits just above the revised reserve.",
+    "cargo_target_dir": "/Users/casey.allard/uor-r4/target"
+  },
+  "stale_proposed_free_reserve_bytes": 17179869184,
+  "revised_free_reserve_bytes": 32212254720,
+  "stop_margin_bytes": 134217728,
+  "free_at_projection_kb": 32070956,
+  "free_at_projection_bytes": 32840658944
+}

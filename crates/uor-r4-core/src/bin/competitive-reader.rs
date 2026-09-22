@@ -17,6 +17,7 @@ use serde_json::json;
 use uor_r4_core::native_geometric::learner::contextual_emission::*;
 use uor_r4_core::native_geometric::learner::grounded_session::*;
 use uor_r4_core::native_geometric::learner::group_table::{group_table, GROUP_ORDER, ROW_STRIDE};
+use uor_r4_core::native_geometric::learner::lexical_realization::*;
 use uor_r4_core::native_geometric::learner::observed_text_session::*;
 use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
 use uor_r4_core::native_geometric::learner::policy_feasibility::*;
@@ -2215,7 +2216,15 @@ fn run() -> Result<ExitCode, String> {
                 if k >= 2 && k + 1 < ws[0].len() {
                     let target = ws[0][k + 1];
                     let (zl, _) = predict_next(
-                        &ring, cur, prev, prev2, &relational_reload, &table, &parent, &local, &u,
+                        &ring,
+                        cur,
+                        prev,
+                        prev2,
+                        &relational_reload,
+                        &table,
+                        &parent,
+                        &local,
+                        &u,
                         false,
                     );
                     doc_local += bits(&zl, target, parent.cfg.f_bits);
@@ -2615,10 +2624,18 @@ fn run() -> Result<ExitCode, String> {
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
         "fresh all-pos: ctx {:.6} vs global {:.6} vs exact {:.6} vs local {:.6}; ctx-global {:?} [{:?},{:?}]; present {:?} [{:?},{:?}]; absent {:?}; cat_ctx-rel_ctx {:?} [{:?},{:?}]; heldout text global {:.4} ctx {:.4} cat_ctx {:.4}; reading {}; unique_geom {}; ctx_ok {ctx_positive}; instrument {ctx_instrument_ok}; sealed {} unlisted; elapsed {:.1}s",
-        get("relational_ctx")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
-        get("relational")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
-        get("exact")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
-        get("local")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
+        get("relational_ctx")["hard_action_ce_bits"]
+            .as_f64()
+            .unwrap_or(f64::NAN),
+        get("relational")["hard_action_ce_bits"]
+            .as_f64()
+            .unwrap_or(f64::NAN),
+        get("exact")["hard_action_ce_bits"]
+            .as_f64()
+            .unwrap_or(f64::NAN),
+        get("local")["hard_action_ce_bits"]
+            .as_f64()
+            .unwrap_or(f64::NAN),
         ctx_point,
         ctx_diff["lo"].as_f64().unwrap_or(f64::NAN),
         ctx_hi,
@@ -7080,13 +7097,23 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
         "utility-transfer: text_final h4 {:.4} cat {:.4} one_nat {:.4} parent {:.4} bits/token | present emitted h4 {} parent {} | absent reads h4 {} parent {} | rel_preserved {} absence_ok {} harm {} transfer {} | fitted>1nat c={} t={} | manifest {} | sealed {} unlisted | {:.1}s",
-        d_text_h4, d_text_cat, corpus(&txt_one_nat, "delta_bits_per_position"), d_text_parent,
+        d_text_h4,
+        d_text_cat,
+        corpus(&txt_one_nat, "delta_bits_per_position"),
+        d_text_parent,
         present_h4["emitted_correct"].as_u64().unwrap_or(0),
         present_parent["emitted_correct"].as_u64().unwrap_or(0),
-        absent_reads_h4, absent_reads_parent,
-        present_ok, absent_ok, harm_containment, useful_transfer,
-        fitted_beats_one_nat_construction, fitted_beats_one_nat_text,
-        verified_digest, unlisted.len(), started.elapsed().as_secs_f32()
+        absent_reads_h4,
+        absent_reads_parent,
+        present_ok,
+        absent_ok,
+        harm_containment,
+        useful_transfer,
+        fitted_beats_one_nat_construction,
+        fitted_beats_one_nat_text,
+        verified_digest,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -8512,9 +8539,21 @@ fn contextual_emission_run() -> Result<ExitCode, String> {
         .unwrap_or(json!(null));
     println!(
         "contextual-emission: dev {} pos | absent {} | decisive {} | reads {} | identical-local pairs {} | frozen-row ceiling {}/{} | shift {} | H4 dev {}/{} fresh {}/{} both {} | sealed {} unlisted | {:.1}s",
-        dev_pos.len(), absent_ok, decisive, reads, identical_local, row_hits, dev_pos.len(), shift,
-        h4["dev_hits"], h4["dev_positions"], h4["fresh_hits"], h4["fresh_positions"],
-        h4["fresh_pairs_both_correct"], unlisted.len(), started.elapsed().as_secs_f32()
+        dev_pos.len(),
+        absent_ok,
+        decisive,
+        reads,
+        identical_local,
+        row_hits,
+        dev_pos.len(),
+        shift,
+        h4["dev_hits"],
+        h4["dev_positions"],
+        h4["fresh_hits"],
+        h4["fresh_positions"],
+        h4["fresh_pairs_both_correct"],
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -9560,10 +9599,23 @@ fn rc2_run() -> Result<ExitCode, String> {
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
         "relation-composition: dev {} | held-out {} | all-read {} | all-source {} | frozen q0 {} | dev classes {} held-out classes {} | held-out states shared {} | H4 dev {} held-out {} | best control {} | sealed {} unlisted | {:.1}s",
-        dev_pos.len(), test_pos.len(), all_read, all_source, q0_values.len(),
-        dev_classes.len(), test_classes.len(), test_shared,
-        comparisons.iter().find(|c| c["arm"] == json!("h4_composition")).and_then(|c| c["dev_hits"].as_u64()).unwrap_or(0),
-        h4_test, control_max, unlisted.len(), started.elapsed().as_secs_f32()
+        dev_pos.len(),
+        test_pos.len(),
+        all_read,
+        all_source,
+        q0_values.len(),
+        dev_classes.len(),
+        test_classes.len(),
+        test_shared,
+        comparisons
+            .iter()
+            .find(|c| c["arm"] == json!("h4_composition"))
+            .and_then(|c| c["dev_hits"].as_u64())
+            .unwrap_or(0),
+        h4_test,
+        control_max,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -10660,9 +10712,15 @@ fn dsd_run() -> Result<ExitCode, String> {
     let a_final = a_arms.last().cloned().unwrap_or(json!(null));
     println!(
         "derived-state: association decoder dev {} tune {} final {} (dict final {}) | composition dev {} held-out {} best control {} | sealed {} unlisted | {:.1}s",
-        a_arms[0]["decoder_hits"], a_arms[1]["decoder_hits"], a_final["decoder_hits"],
-        a_final["selected_value_dictionary_hits"], b_hits("h4_derived_state", "dev_cells"), h4_test,
-        control_max, unlisted.len(), started.elapsed().as_secs_f32()
+        a_arms[0]["decoder_hits"],
+        a_arms[1]["decoder_hits"],
+        a_final["decoder_hits"],
+        a_final["selected_value_dictionary_hits"],
+        b_hits("h4_derived_state", "dev_cells"),
+        h4_test,
+        control_max,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -11411,7 +11469,9 @@ fn st_run() -> Result<ExitCode, String> {
         let absent = st_read_and_serve(&parent, &local, &u, &table, &sel, &h4, &removed, true)?;
         interventions["read_disabled"] = st_event("h4_read_disabled", base, &disabled);
         interventions["source_removed"] = st_event("h4_source_removed", &removed, &absent);
-        interventions["absence_scope"] = json!("removal and read disabling are distinct; the component returns NoRead with no response and records the actual local token; it does not claim local-output parity or eviction");
+        interventions["absence_scope"] = json!(
+            "removal and read disabling are distinct; the component returns NoRead with no response and records the actual local token; it does not claim local-output parity or eviction"
+        );
         interventions["finite_no_read"] = json!({"steps": finite_loaded.serve(None, st_instructions(base)?).steps.iter().map(|k| format!("{k:?}")).collect::<Vec<_>>()});
         let mut reversed = base.clone();
         reversed.primitives.reverse();
@@ -11606,10 +11666,15 @@ fn st_run() -> Result<ExitCode, String> {
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
         "shared-transition: dev {} | length4 {} | reversal {} | H4 complete dev {} len4 {} rev {} | best control len4 {} | sealed {} unlisted | {:.1}s",
-        dev.len(), held_len.len(), held_rev.len(),
-        find("h4_shared_transition", "dev"), h4_len,
-        find("h4_shared_transition", "held_out_reversal"), control_max,
-        unlisted.len(), started.elapsed().as_secs_f32()
+        dev.len(),
+        held_len.len(),
+        held_rev.len(),
+        find("h4_shared_transition", "dev"),
+        h4_len,
+        find("h4_shared_transition", "held_out_reversal"),
+        control_max,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -12399,8 +12464,10 @@ fn gs_run() -> Result<ExitCode, String> {
         find("finite_transition_control", "held_out_length4"),
         find("finite_transition_control", "held_out_reversal"),
         gf_report.isomorphic_candidates_checked,
-        gf_report.transitions_consistent, gf_report.transitions_checked,
-        unlisted.len(), started.elapsed().as_secs_f32()
+        gf_report.transitions_consistent,
+        gf_report.transitions_checked,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -13383,8 +13450,18 @@ fn rel_run() -> Result<ExitCode, String> {
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
         "relational-session: dev {}/{} final {}/{} depth {} | cat {} cyc {} | no-rel {} always {} no-read {} | sealed {} unlisted | {:.1}s",
-        dev_ok, dev_total, fin_ok, fin_total, fin_depth, cat_ok, cyc_ok, no_rel_ok, always_ok,
-        no_read_ok, unlisted.len(), started.elapsed().as_secs_f32()
+        dev_ok,
+        dev_total,
+        fin_ok,
+        fin_total,
+        fin_depth,
+        cat_ok,
+        cyc_ok,
+        no_rel_ok,
+        always_ok,
+        no_read_ok,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -16831,15 +16908,36 @@ fn scm_run() -> Result<ExitCode, String> {
     }
     println!(
         "scoped-correction-memory: dev {}/{} final {}/{} | intent {}/{} branch {}/{} nowrite {}/{} | controls: no_read {} update_disabled {} unpinned {} unscoped {} parse_score {} capacity2 {} | intent-w {} binder-w {} | sealed {} unlisted | {:.1}s",
-        dev.complete, dev.questions, final_pop.complete, final_pop.questions,
-        dev.intent_correct + final_pop.intent_correct, dev.intent_total + final_pop.intent_total,
-        dev.branch_correct + final_pop.branch_correct, dev.branch_total + final_pop.branch_total,
-        dev.nowrite_correct + final_pop.nowrite_correct, dev.nowrite_total + final_pop.nowrite_total,
-        arms.iter().filter(|a| a["arm"] == json!("no_read")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
-        arms.iter().filter(|a| a["arm"] == json!("update_disabled")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
-        arms.iter().filter(|a| a["arm"] == json!("unpinned")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
-        arms.iter().filter(|a| a["arm"] == json!("unscoped")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
-        arms.iter().filter(|a| a["arm"] == json!("parse_score_authority")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        dev.complete,
+        dev.questions,
+        final_pop.complete,
+        final_pop.questions,
+        dev.intent_correct + final_pop.intent_correct,
+        dev.intent_total + final_pop.intent_total,
+        dev.branch_correct + final_pop.branch_correct,
+        dev.branch_total + final_pop.branch_total,
+        dev.nowrite_correct + final_pop.nowrite_correct,
+        dev.nowrite_total + final_pop.nowrite_total,
+        arms.iter()
+            .filter(|a| a["arm"] == json!("no_read"))
+            .map(|a| a["complete"].as_u64().unwrap_or(0))
+            .sum::<u64>(),
+        arms.iter()
+            .filter(|a| a["arm"] == json!("update_disabled"))
+            .map(|a| a["complete"].as_u64().unwrap_or(0))
+            .sum::<u64>(),
+        arms.iter()
+            .filter(|a| a["arm"] == json!("unpinned"))
+            .map(|a| a["complete"].as_u64().unwrap_or(0))
+            .sum::<u64>(),
+        arms.iter()
+            .filter(|a| a["arm"] == json!("unscoped"))
+            .map(|a| a["complete"].as_u64().unwrap_or(0))
+            .sum::<u64>(),
+        arms.iter()
+            .filter(|a| a["arm"] == json!("parse_score_authority"))
+            .map(|a| a["complete"].as_u64().unwrap_or(0))
+            .sum::<u64>(),
         capacity_replay.complete,
         intent_fit.statement_weights + intent_fit.question_weights,
         fit.segment_potentials,
@@ -17634,17 +17732,33 @@ fn cgs_reload_check(dir: &std::path::Path) -> Result<ExitCode, String> {
     let backend = cgs_backend_from_json(&artifact)?;
     let memory = Memory::from_bytes(&store_bytes).map_err(|e| e.to_string())?;
     let lineage = memory.lineage;
-    let runtime = ScopedMemoryRuntime::load_with_computation(
-        &model_bytes,
-        &intent_bytes,
-        Some(&lexicon_bytes),
-        backend,
-        memory,
-        lineage,
-        MemoryControl::Normal,
-        VOCAB,
-        Some(CGS_EOS),
-    )
+    let realization_bytes = std::fs::read(dir.join("realization.json")).ok();
+    let runtime = match realization_bytes.as_deref() {
+        Some(realization) => ScopedMemoryRuntime::load_grounded(
+            &model_bytes,
+            &intent_bytes,
+            Some(&lexicon_bytes),
+            backend,
+            Some(realization),
+            OutputContract::RealizedV1,
+            memory,
+            lineage,
+            MemoryControl::Normal,
+            VOCAB,
+            Some(CGS_EOS),
+        ),
+        None => ScopedMemoryRuntime::load_with_computation(
+            &model_bytes,
+            &intent_bytes,
+            Some(&lexicon_bytes),
+            backend,
+            memory,
+            lineage,
+            MemoryControl::Normal,
+            VOCAB,
+            Some(CGS_EOS),
+        ),
+    }
     .map_err(|e| e.to_string())?;
     let object = request.as_object().ok_or("request must be an object")?;
     if object.keys().any(|k| k != "text" && k != "scope") {
@@ -18032,6 +18146,26 @@ fn cgs_run() -> Result<ExitCode, String> {
     write_checked(&root, "artifacts/model.json", &model_bytes)?;
     write_checked(&root, "artifacts/intent.json", &intent_bytes)?;
     write_checked(&root, "artifacts/lexicon.json", &lexicon_bytes)?;
+
+    // ---- the learned grounded lexical realization policy ----
+    // One compact finite context-indexed table fitted from declared development response text.
+    // `realization` is the candidate; `realization-context-disabled` is the falsifier ablation that
+    // holds the owned-evidence and derived flags at zero, so the vocabulary effect cannot depend on
+    // them. Both are fitted on identical examples and differ only in those flags.
+    let real_slots = cgs_real_slots(&tokenizer)?;
+    let real_examples = cgs_realization_examples(&tokenizer, &real_slots)?;
+    let realization = fit_realization(&real_examples, VOCAB, real_slots, 8)
+        .map_err(|e| format!("realization fit: {e}"))?;
+    let realization_bytes = realization.to_bytes().map_err(|e| format!("{e}"))?;
+    write_checked(&root, "artifacts/realization.json", &realization_bytes)?;
+    let realization_reloaded = RealizationModel::from_bytes(
+        &std::fs::read(root.join("artifacts/realization.json")).map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| format!("{e}"))?;
+    if realization_reloaded != realization {
+        return Err("realization artifact reload mismatch".into());
+    }
     write_json(
         &root,
         "artifacts/artifact.json",
@@ -18374,7 +18508,21 @@ fn cgs_run() -> Result<ExitCode, String> {
         &signed,
         "ablation_computation_forms_only",
     )?;
-    let prior_root = PathBuf::from("/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-3");
+    let realization_report = cgs_realized_section(
+        &tokenizer,
+        &root,
+        &model_bytes,
+        &intent_bytes,
+        &lexicon_bytes,
+        &realization_bytes,
+        &signed,
+        &realization,
+        &real_examples,
+        &dev_worlds[0],
+    )?;
+    let prior_root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-3",
+    );
     let prior_model =
         std::fs::read(prior_root.join("artifacts/binder.json")).map_err(|e| e.to_string())?;
     let prior_intent =
@@ -18456,6 +18604,8 @@ fn cgs_run() -> Result<ExitCode, String> {
         // computation-forms-only supervision must *not* restore the prior lifecycle.
         "ablation_computation_forms_only_does_not_restore_prior_lifecycle":
             ablation["all_preserved"] == json!(false),
+        // The milestone: a learned evidence-conditioned lexical interface in the *same* session.
+        "grounded_realization_all_expected": realization_report["checks_all_expected"] == json!(true),
     });
     let all_expected = checks
         .as_object()
@@ -18513,6 +18663,7 @@ fn cgs_run() -> Result<ExitCode, String> {
         "controls": controls,
         "consumption": consumption,
         "mixed_session": mixed,
+        "grounded_realization": realization_report,
         "ordinary_lifecycle": ordinary,
         "all_backend_arms_loaded_from_saved_artifacts": true,
         "checks": checks,
@@ -18536,6 +18687,865 @@ fn cgs_run() -> Result<ExitCode, String> {
 
 fn backend_identity_json(backend: &ComputationBackend) -> serde_json::Value {
     backend.identity_json()
+}
+
+// ---------------------------------------------------------------------------
+// Learned grounded lexical realization: one learned Copy/Vocabulary/Stop policy
+// emits shared vocabulary words around the exact owned span, with the word chosen
+// from causal owned evidence rather than from the recent request
+// ---------------------------------------------------------------------------
+
+/// Declared development realization vocabulary: one learned shared slot per word. Slot 0 is a shared
+/// opener every declared response starts with; the other slots are the *uncopied* connector words
+/// whose selection is exactly what the learned policy has to make. Each must be one token of the
+/// bound tokenizer, so one slot is one learned word.
+const CGS_REAL_WORDS: [&str; 4] = [" it", " is", " was", " now"];
+
+/// A declared development response class. The class is a property of the observed session state
+/// (owned committed history and computed consumption), never of the request text or an evaluator
+/// label.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum CgsRealClass {
+    /// Current value, no superseded older evidence, not a derived result.
+    Direct,
+    /// The current value superseded a *different* older committed value for the same address.
+    Superseded,
+    /// A same-value reassertion: history exists but the value never changed.
+    Reasserted,
+    /// The answer reads the consumed computed result.
+    Derived,
+}
+
+impl CgsRealClass {
+    fn flags(self) -> (bool, bool) {
+        (
+            matches!(self, Self::Superseded),
+            matches!(self, Self::Derived),
+        )
+    }
+    /// The declared development response text for this class and value.
+    fn text(self, value: &str) -> String {
+        match self {
+            Self::Direct | Self::Reasserted => format!("it is {value}"),
+            Self::Superseded => format!("it was {value}"),
+            Self::Derived => format!("it is now {value}"),
+        }
+    }
+}
+
+const CGS_REAL_CLASSES: [CgsRealClass; 4] = [
+    CgsRealClass::Direct,
+    CgsRealClass::Superseded,
+    CgsRealClass::Reasserted,
+    CgsRealClass::Derived,
+];
+
+/// The declared slot tokens, each required to be exactly one token so a slot is one learned word.
+/// Every candidate is reported together, so one run identifies all unusable words.
+fn cgs_real_slots(tokenizer: &HfBpeTokenizer) -> Result<Vec<u32>, String> {
+    let encoded: Vec<(u32, usize)> = CGS_REAL_WORDS
+        .iter()
+        .map(|word| {
+            let tokens = tokenizer.encode(word);
+            (tokens.first().copied().unwrap_or(0), tokens.len())
+        })
+        .collect();
+    if let Some((_, _)) = encoded.iter().find(|(_, len)| *len != 1) {
+        return Err(format!(
+            "declared realization words tokenize to {:?} (word, token count); each must be one token",
+            CGS_REAL_WORDS
+                .iter()
+                .zip(encoded.iter())
+                .map(|(word, (_, len))| (word, len))
+                .collect::<Vec<_>>()
+        ));
+    }
+    Ok(encoded.into_iter().map(|(token, _)| token).collect())
+}
+
+/// Derive the realization fit examples from the **declared development response text**: tokenize each
+/// declared response, locate the exact owned payload inside it, and read one example per emitted
+/// token. The payload is never given to the policy; it is the label the fit extracts from text.
+fn cgs_realization_examples(
+    tokenizer: &HfBpeTokenizer,
+    slots: &[u32],
+) -> Result<Vec<RealizationExample>, String> {
+    let slot_of = |token: u32| -> Result<u8, String> {
+        slots
+            .iter()
+            .position(|s| *s == token)
+            .map(|i| i as u8)
+            .ok_or_else(|| format!("response word {token} is not a declared realization slot"))
+    };
+    let mut examples = Vec::new();
+    for value in CGS_DEV_DESTS.iter() {
+        let payload = tokenizer.encode(&format!(" {value}"));
+        // The declared wording rule is defined by the owned-evidence flags, so the same declared
+        // response is fitted at every learned historical position. Otherwise a `previous` or
+        // `initial` request would fall back to the declared default and emit no learned word.
+        for history in [0u8, 1, 2, 3] {
+            for class in CGS_REAL_CLASSES {
+                let (prior_differs, derived) = class.flags();
+                let text = class.text(value);
+                // The bound convention is an explicit leading space, matching the owned payload encoding.
+                let tokens = tokenizer.encode(&format!(" {text}"));
+                let pos = tokens
+                    .windows(payload.len())
+                    .position(|w| w == payload.as_slice())
+                    .ok_or_else(|| {
+                        format!("declared response {text:?} does not contain its owned payload")
+                    })?;
+                let base = |copy_stage: u8, emitted_bucket: u8| RealizationContext {
+                    relation: 0,
+                    history,
+                    derived,
+                    prior_differs,
+                    evidence_class: 0,
+                    copy_stage,
+                    emitted_bucket,
+                };
+                for (i, token) in tokens[..pos].iter().enumerate() {
+                    examples.push(RealizationExample {
+                        context: base(0, (i as u8).min(3)),
+                        action: RealizationAction::Insert(slot_of(*token)?),
+                    });
+                }
+                let words = pos as u8;
+                for i in 0..payload.len() {
+                    // The first payload token is emitted with the copy cursor still at zero.
+                    examples.push(RealizationExample {
+                        context: base(u8::from(i > 0), words.min(3)),
+                        action: RealizationAction::Copy,
+                    });
+                }
+                let suffix = tokens.len() - pos - payload.len();
+                for (i, token) in tokens[pos + payload.len()..].iter().enumerate() {
+                    examples.push(RealizationExample {
+                        context: base(2, (words + i as u8).min(3)),
+                        action: RealizationAction::Insert(slot_of(*token)?),
+                    });
+                }
+                examples.push(RealizationExample {
+                    context: base(2, (words + suffix as u8).min(3)),
+                    action: RealizationAction::Stop,
+                });
+            }
+        }
+    }
+    Ok(examples)
+}
+
+/// One declared realized case: a scope, a lineage, the observed assertions that build its store, and
+/// the person the request asks about.
+struct CgsRealCase {
+    name: &'static str,
+    scope: &'static str,
+    lineage: u64,
+    person: &'static str,
+    facts: &'static [(&'static str, &'static str)],
+}
+
+const CGS_REAL_CASES: [CgsRealCase; 5] = [
+    CgsRealCase {
+        name: "direct",
+        scope: "alpha",
+        lineage: 400,
+        person: "Mara",
+        facts: &[("Mara", "Harbor")],
+    },
+    CgsRealCase {
+        name: "superseded",
+        scope: "alpha",
+        lineage: 401,
+        person: "Mara",
+        facts: &[("Mara", "Quarry"), ("Mara", "Harbor")],
+    },
+    CgsRealCase {
+        name: "reasserted",
+        scope: "alpha",
+        lineage: 402,
+        person: "Mara",
+        facts: &[("Mara", "Harbor"), ("Mara", "Harbor")],
+    },
+    CgsRealCase {
+        name: "fresh_direct",
+        scope: "gamma",
+        lineage: 410,
+        person: "Juno",
+        facts: &[("Juno", "Larkspur")],
+    },
+    CgsRealCase {
+        name: "fresh_superseded",
+        scope: "gamma",
+        lineage: 411,
+        person: "Juno",
+        facts: &[("Juno", "Nettle"), ("Juno", "Larkspur")],
+    },
+];
+
+/// Ingest the declared assertions of one realized case through the loaded observe+ingest path.
+fn cgs_real_ingest(
+    runtime: &mut ScopedMemoryRuntime,
+    tokenizer: &HfBpeTokenizer,
+    scope: &str,
+    facts: &[(&str, &str)],
+) -> Result<Vec<serde_json::Value>, String> {
+    let mut receipts = Vec::new();
+    for (turn, (entity, value)) in facts.iter().enumerate() {
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::AssertOffice, entity, value)?;
+        let observed = runtime.observe(&clause).map_err(|e| e.to_string())?;
+        let outcome = runtime
+            .ingest(&clause, scope.as_bytes(), turn as u64 + 1)
+            .map_err(|e| e.to_string())?;
+        receipts.push(json!({
+            "text": clause.text,
+            "entity": String::from_utf8_lossy(&observed.entity_key),
+            "value": observed.value_key.as_ref().map(|v| String::from_utf8_lossy(v).into_owned()),
+            "intent": observed.intent,
+            "declared_value": value,
+            "outcome": format!("{outcome:?}").chars().take(28).collect::<String>(),
+        }));
+    }
+    Ok(receipts)
+}
+
+/// Trimmed decoded surface of one token list.
+fn cgs_decode_trim(tokenizer: &HfBpeTokenizer, tokens: &[u32]) -> String {
+    tokenizer
+        .decode(tokens)
+        .trim_matches(|c: char| c.is_ascii_whitespace())
+        .to_string()
+}
+
+/// The per-emission trace of one realized run: (token, decision) for every emitted token.
+fn cgs_real_trace(effects: &[ScopedStepEffect]) -> Vec<(u32, Option<RealizationDecision>)> {
+    effects
+        .iter()
+        .filter_map(|e| e.emitted.map(|t| (t, e.realization)))
+        .collect()
+}
+
+/// Compare two emission traces and describe the first differing decision and the fixed prefix before
+/// it. This is the shape of the reduced causal test.
+fn cgs_real_divergence(
+    a: &[(u32, Option<RealizationDecision>)],
+    b: &[(u32, Option<RealizationDecision>)],
+) -> serde_json::Value {
+    let prefix = a
+        .iter()
+        .zip(b.iter())
+        .take_while(|(x, y)| x.0 == y.0)
+        .count();
+    let at = |t: &[(u32, Option<RealizationDecision>)], i: usize| {
+        t.get(i).map(|(token, decision)| {
+            json!({
+                "token": token,
+                "text": decision.map(|d| format!("{:?}", d.action)),
+                "from_table": decision.map(|d| d.from_table),
+                "evidence_class": decision.map(|d| d.evidence_class),
+            })
+        })
+    };
+    json!({
+        "identical_prefix_tokens": prefix,
+        "same_length": a.len() == b.len(),
+        "a_emitted": a.iter().map(|(t, _)| *t).collect::<Vec<_>>(),
+        "b_emitted": b.iter().map(|(t, _)| *t).collect::<Vec<_>>(),
+        "a_at_divergence": at(a, prefix),
+        "b_at_divergence": at(b, prefix),
+    })
+}
+
+/// Every realized assertion the milestone must make, evaluated from actual emitted token records
+/// rather than from summary booleans.
+#[allow(clippy::too_many_arguments)]
+fn cgs_realized_section(
+    tokenizer: &HfBpeTokenizer,
+    root: &std::path::Path,
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lexicon_bytes: &[u8],
+    realization_bytes: &[u8],
+    backend: &ComputationBackend,
+    realization: &RealizationModel,
+    examples: &[RealizationExample],
+    world: &CgsWorld,
+) -> Result<serde_json::Value, String> {
+    let load = |lineage: u64, control: MemoryControl, real: &[u8], contract: OutputContract| {
+        ScopedMemoryRuntime::load_grounded(
+            model_bytes,
+            intent_bytes,
+            Some(lexicon_bytes),
+            backend.clone(),
+            Some(real),
+            contract,
+            Memory::new(lineage, 16),
+            lineage,
+            control,
+            VOCAB,
+            Some(CGS_EOS),
+        )
+        .map_err(|e| e.to_string())
+    };
+
+    let mut cases = Vec::new();
+    let mut traces =
+        std::collections::BTreeMap::<String, Vec<(u32, Option<RealizationDecision>)>>::new();
+    let mut disabled_traces =
+        std::collections::BTreeMap::<String, Vec<(u32, Option<RealizationDecision>)>>::new();
+    let mut disabled_cases = std::collections::BTreeMap::<String, String>::new();
+    let mut payload_text = std::collections::BTreeMap::<String, String>::new();
+    let mut direct_session: Option<ScopedSession> = None;
+
+    for case in CGS_REAL_CASES.iter() {
+        let mut runtime = load(
+            case.lineage,
+            MemoryControl::Normal,
+            realization_bytes,
+            OutputContract::RealizedV1,
+        )?;
+        let receipts = cgs_real_ingest(&mut runtime, tokenizer, case.scope, case.facts)?;
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::AskOffice, case.person, "")?;
+        let mut session = runtime
+            .ask(&clause, case.scope.as_bytes())
+            .map_err(|e| format!("realized ask {}: {e}", case.name))?;
+        let effects = runtime
+            .run(&mut session)
+            .map_err(|e| format!("realized run {}: {e}", case.name))?;
+        let answer = cgs_text(tokenizer, &session);
+        let payload = session
+            .captured
+            .as_ref()
+            .map(|c| c.payload.clone())
+            .unwrap_or_default();
+        let prelude = session.prelude_words as usize;
+        let span = session
+            .emitted
+            .get(prelude..prelude + session.cursor)
+            .map(|s| s.to_vec())
+            .unwrap_or_default();
+        let payload_surface = cgs_decode_trim(tokenizer, &payload);
+        let trace = cgs_real_trace(&effects);
+
+        // The same artifact under the retained legacy contract, for byte-for-byte retention.
+        let mut legacy = load(
+            case.lineage,
+            MemoryControl::Normal,
+            realization_bytes,
+            OutputContract::LegacyWords,
+        )?;
+        cgs_real_ingest(&mut legacy, tokenizer, case.scope, case.facts)?;
+        let mut legacy_session = legacy
+            .ask(&clause, case.scope.as_bytes())
+            .map_err(|e| format!("legacy ask {}: {e}", case.name))?;
+        legacy.run(&mut legacy_session).map_err(|e| e.to_string())?;
+        let legacy_answer = cgs_text(tokenizer, &legacy_session);
+
+        cases.push(json!({
+            "case": case.name,
+            "scope": case.scope,
+            "request": clause.text,
+            "observed": receipts,
+            "answer": answer,
+            "legacy_answer": legacy_answer,
+            "payload_surface": payload_surface,
+            "copied_span_equals_payload": span == payload && !payload.is_empty(),
+            "terminal": session.terminal,
+            "emitted": &session.emitted,
+            "vocabulary_words": session.vocabulary_words,
+            "prelude_words": session.prelude_words,
+            "derived_capture": session.captured.as_ref().map(|c| c.derived).unwrap_or(false),
+            "effects": &effects,
+        }));
+        payload_text.insert(case.name.to_string(), payload_surface);
+        traces.insert(case.name.to_string(), trace);
+
+        // The context-disabled arm: identical artifact shape, fitted with the owned-evidence and
+        // derived flags held at zero, so the vocabulary effect cannot depend on them.
+        let mut disabled = load(
+            case.lineage,
+            MemoryControl::RealizationContextDisabled,
+            realization_bytes,
+            OutputContract::RealizedV1,
+        )?;
+        cgs_real_ingest(&mut disabled, tokenizer, case.scope, case.facts)?;
+        let mut disabled_session = disabled
+            .ask(&clause, case.scope.as_bytes())
+            .map_err(|e| format!("disabled ask {}: {e}", case.name))?;
+        let disabled_effects = disabled
+            .run(&mut disabled_session)
+            .map_err(|e| e.to_string())?;
+        disabled_cases.insert(
+            case.name.to_string(),
+            cgs_text(tokenizer, &disabled_session),
+        );
+        disabled_traces.insert(case.name.to_string(), cgs_real_trace(&disabled_effects));
+
+        if case.name == "direct" {
+            direct_session = Some(session);
+        }
+    }
+
+    // The consumed-computation case: one observed operation applied to the declared world's operand,
+    // then the grounded result consumed as the next exact read.
+    let mut derived_runtime = load(
+        420,
+        MemoryControl::Normal,
+        realization_bytes,
+        OutputContract::RealizedV1,
+    )?;
+    let mut derived_receipts = Vec::new();
+    for (turn, (form, entity, tail)) in cgs_world_facts(world).into_iter().enumerate() {
+        let (clause, _) = cgs_clause(tokenizer, 0, form, entity, tail)?;
+        let outcome = derived_runtime
+            .ingest(&clause, world.scope.as_bytes(), turn as u64 + 1)
+            .map_err(|e| e.to_string())?;
+        derived_receipts.push(json!({
+            "text": clause.text,
+            "declared_form": format!("{form:?}"),
+            "committed": format!("{outcome:?}").chars().take(28).collect::<String>(),
+        }));
+    }
+    let operand = world.people[0];
+    let (compute_clause, _) = cgs_clause(tokenizer, 0, CgsForm::Compute, operand, "i")?;
+    let mut derived_session = derived_runtime
+        .ask(&compute_clause, world.scope.as_bytes())
+        .map_err(|e| format!("realized compute ask: {e}"))?;
+    let derived_effects = derived_runtime
+        .run(&mut derived_session)
+        .map_err(|e| format!("realized compute run: {e}"))?;
+    let derived_answer = cgs_text(tokenizer, &derived_session);
+    let derived_trace = cgs_real_trace(&derived_effects);
+    let derived_payload = derived_session
+        .captured
+        .as_ref()
+        .map(|c| c.payload.clone())
+        .unwrap_or_default();
+    let derived_prelude = derived_session.prelude_words as usize;
+    let derived_span = derived_session
+        .emitted
+        .get(derived_prelude..derived_prelude + derived_session.cursor)
+        .map(|s| s.to_vec())
+        .unwrap_or_default();
+    let derived_payload_surface = cgs_decode_trim(tokenizer, &derived_payload);
+
+    // A source-access-disabled control over the identical realized store: no capture, no emission.
+    let mut noread = load(
+        400,
+        MemoryControl::NoRead,
+        realization_bytes,
+        OutputContract::RealizedV1,
+    )?;
+    cgs_real_ingest(&mut noread, tokenizer, "alpha", CGS_REAL_CASES[0].facts)?;
+    let (noread_clause, _) = cgs_clause(
+        tokenizer,
+        0,
+        CgsForm::AskOffice,
+        CGS_REAL_CASES[0].person,
+        "",
+    )?;
+    let mut noread_session = noread
+        .ask(&noread_clause, b"alpha")
+        .map_err(|e| e.to_string())?;
+    noread.run(&mut noread_session).map_err(|e| e.to_string())?;
+
+    // ---- reduced causal tests ----
+    let older = cgs_real_divergence(
+        traces.get("direct").map(Vec::as_slice).unwrap_or(&[]),
+        traces.get("superseded").map(Vec::as_slice).unwrap_or(&[]),
+    );
+    let reassert = cgs_real_divergence(
+        traces.get("direct").map(Vec::as_slice).unwrap_or(&[]),
+        traces.get("reasserted").map(Vec::as_slice).unwrap_or(&[]),
+    );
+    let derived_div = cgs_real_divergence(
+        traces.get("direct").map(Vec::as_slice).unwrap_or(&[]),
+        derived_trace.as_slice(),
+    );
+    let fresh_older = cgs_real_divergence(
+        traces.get("fresh_direct").map(Vec::as_slice).unwrap_or(&[]),
+        traces
+            .get("fresh_superseded")
+            .map(Vec::as_slice)
+            .unwrap_or(&[]),
+    );
+    let disabled_older = cgs_real_divergence(
+        disabled_traces
+            .get("direct")
+            .map(Vec::as_slice)
+            .unwrap_or(&[]),
+        disabled_traces
+            .get("superseded")
+            .map(Vec::as_slice)
+            .unwrap_or(&[]),
+    );
+
+    // ---- mid-copy and mid-vocabulary restart, in process and in a fresh process ----
+    let session = direct_session.ok_or("no realized direct session")?;
+    let mut runtime = load(
+        400,
+        MemoryControl::Normal,
+        realization_bytes,
+        OutputContract::RealizedV1,
+    )?;
+    cgs_real_ingest(&mut runtime, tokenizer, "alpha", CGS_REAL_CASES[0].facts)?;
+    let (restart_clause, _) = cgs_clause(
+        tokenizer,
+        0,
+        CgsForm::AskOffice,
+        CGS_REAL_CASES[0].person,
+        "",
+    )?;
+    let mut phase = runtime
+        .ask(&restart_clause, b"alpha")
+        .map_err(|e| e.to_string())?;
+    let mut snapshots = Vec::<Vec<u8>>::new();
+    let mut boundaries = Vec::<serde_json::Value>::new();
+    loop {
+        snapshots.push(runtime.snapshot(&phase).map_err(|e| e.to_string())?);
+        boundaries.push(json!({
+            "pending": phase.pending,
+            "cursor": phase.cursor,
+            "vocabulary_words": phase.vocabulary_words,
+            "emitted": phase.emitted,
+        }));
+        if phase.terminal.is_some() {
+            break;
+        }
+        runtime.step(&mut phase).map_err(|e| e.to_string())?;
+    }
+    let mut restarts = Vec::new();
+    for bytes in &snapshots {
+        let mut restored = runtime.restore(bytes).map_err(|e| e.to_string())?;
+        let boundary = json!({
+            "cursor": restored.cursor,
+            "vocabulary_words": restored.vocabulary_words,
+            "pending": restored.pending,
+        });
+        runtime.run(&mut restored).map_err(|e| e.to_string())?;
+        restarts.push(json!({
+            "boundary": boundary,
+            "matches": restored == session,
+            "emitted": restored.emitted,
+            "terminal": restored.terminal,
+        }));
+    }
+
+    let reload_dir = root.join("realized_reload");
+    std::fs::create_dir_all(&reload_dir).map_err(|e| e.to_string())?;
+    let store_bytes = runtime.store_bytes().map_err(|e| e.to_string())?;
+    write_checked(root, "realized_reload/model.json", model_bytes)?;
+    write_checked(root, "realized_reload/intent.json", intent_bytes)?;
+    write_checked(root, "realized_reload/lexicon.json", lexicon_bytes)?;
+    write_checked(root, "realized_reload/realization.json", realization_bytes)?;
+    write_checked(root, "realized_reload/store.json", &store_bytes)?;
+    write_json(
+        root,
+        "realized_reload/artifact.json",
+        &backend_identity_json(backend),
+    )?;
+    write_json(
+        root,
+        "realized_reload/request.json",
+        &json!({"text": restart_clause.text, "scope": "alpha"}),
+    )?;
+    write_json(root, "realized_reload/checkpoints.json", &json!(&snapshots))?;
+    let child = std::process::Command::new(
+        std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?,
+    )
+    .arg("--mode=consumed-geometric-state")
+    .arg("--reload-check")
+    .arg(&reload_dir)
+    .output()
+    .map_err(|e| format!("realized fresh process: {e}"))?;
+    let child_json: serde_json::Value =
+        serde_json::from_str(String::from_utf8_lossy(&child.stdout).trim()).map_err(|e| {
+            format!(
+                "realized child json: {e} (stderr {})",
+                String::from_utf8_lossy(&child.stderr)
+            )
+        })?;
+    let child_ok = child.status.success()
+        && child_json["emitted"] == json!(&session.emitted)
+        && child_json["terminal"]
+            == serde_json::to_value(session.terminal).map_err(|e| e.to_string())?
+        && child_json["final_frame"] == json!(&session)
+        && child_json["resumed"].as_array().is_some_and(|rs| {
+            rs.len() == snapshots.len() && rs.iter().all(|r| r["matches"] == json!(true))
+        });
+
+    // ---- one actual loaded multi-turn mixed interaction over the realized contract ----
+    // observe, ordinary answer, correction, pinned in-flight continuation across that correction,
+    // computed answer, previous/initial requests, and a mid-copy restart. Inspected as decoded text.
+    let mut mixed_rt = load(
+        430,
+        MemoryControl::Normal,
+        realization_bytes,
+        OutputContract::RealizedV1,
+    )?;
+    let mut mixed_turns = Vec::<serde_json::Value>::new();
+    let mut observe_turn = |rt: &mut ScopedMemoryRuntime,
+                            entity: &str,
+                            value: &str,
+                            commit: u64,
+                            out: &mut Vec<serde_json::Value>| {
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::AssertOffice, entity, value)?;
+        let outcome = rt
+            .ingest(&clause, b"delta", commit)
+            .map_err(|e| e.to_string())?;
+        out.push(json!({
+            "kind": "observe", "commit": commit, "text": clause.text,
+            "outcome": format!("{outcome:?}").chars().take(24).collect::<String>(),
+        }));
+        Ok::<(), String>(())
+    };
+    observe_turn(&mut mixed_rt, "Mara", "Harbor", 1, &mut mixed_turns)?;
+    let (ordinary_clause, _) = cgs_clause(tokenizer, 0, CgsForm::AskOffice, "Mara", "")?;
+    let mut ordinary_session = mixed_rt
+        .ask(&ordinary_clause, b"delta")
+        .map_err(|e| e.to_string())?;
+    mixed_rt
+        .run(&mut ordinary_session)
+        .map_err(|e| e.to_string())?;
+    mixed_turns.push(json!({
+        "kind": "ordinary", "request": ordinary_clause.text,
+        "answer": cgs_text(tokenizer, &ordinary_session), "terminal": ordinary_session.terminal,
+    }));
+    // A pinned in-flight answer is started now and run only after a later correction commits.
+    let mut pinned = mixed_rt
+        .ask(&ordinary_clause, b"delta")
+        .map_err(|e| e.to_string())?;
+    observe_turn(&mut mixed_rt, "Mara", "Quarry", 2, &mut mixed_turns)?;
+    mixed_rt.run(&mut pinned).map_err(|e| e.to_string())?;
+    mixed_turns.push(json!({
+        "kind": "pinned_in_flight", "request": ordinary_clause.text,
+        "answer": cgs_text(tokenizer, &pinned), "terminal": pinned.terminal,
+    }));
+    let mut corrected = mixed_rt
+        .ask(&ordinary_clause, b"delta")
+        .map_err(|e| e.to_string())?;
+    mixed_rt.run(&mut corrected).map_err(|e| e.to_string())?;
+    mixed_turns.push(json!({
+        "kind": "ordinary_after_correction", "request": ordinary_clause.text,
+        "answer": cgs_text(tokenizer, &corrected), "terminal": corrected.terminal,
+    }));
+    // A consumed computation and the historical positions in the same loaded session. The Alma
+    // assertion commits first, so previous is a different value from current and initial is not.
+    observe_turn(&mut mixed_rt, "Mara", "Alma", 3, &mut mixed_turns)?;
+    // A previous-assertion and an initial request through the same policy.
+    let mut previous_session = mixed_rt
+        .ask_view(b"delta", 0, b"Mara", HistoryView::PreviousAssertion)
+        .map_err(|e| e.to_string())?;
+    mixed_rt
+        .run(&mut previous_session)
+        .map_err(|e| e.to_string())?;
+    let mut initial_session = mixed_rt
+        .ask_view(b"delta", 0, b"Mara", HistoryView::Initial)
+        .map_err(|e| e.to_string())?;
+    mixed_rt
+        .run(&mut initial_session)
+        .map_err(|e| e.to_string())?;
+    mixed_turns.push(json!({
+        "kind": "previous", "answer": cgs_text(tokenizer, &previous_session),
+        "terminal": previous_session.terminal,
+        "kind_initial": "initial", "initial_answer": cgs_text(tokenizer, &initial_session),
+        "initial_terminal": initial_session.terminal,
+    }));
+    // The grounded label offices the consumed computation will read.
+    for (index, label) in CGS_LABELS.iter().enumerate() {
+        observe_turn(
+            &mut mixed_rt,
+            label,
+            CGS_DEV_DESTS[index],
+            4 + index as u64,
+            &mut mixed_turns,
+        )?;
+    }
+    // A consumed computation in the same loaded session.
+    let (compute_clause, _) = cgs_clause(tokenizer, 0, CgsForm::Compute, "Mara", "i")?;
+    let mut computed_session = mixed_rt
+        .ask(&compute_clause, b"delta")
+        .map_err(|e| e.to_string())?;
+    mixed_rt
+        .run(&mut computed_session)
+        .map_err(|e| e.to_string())?;
+    let computed_payload = computed_session
+        .captured
+        .as_ref()
+        .map(|c| c.payload.clone())
+        .unwrap_or_default();
+    let computed_prelude = computed_session.prelude_words as usize;
+    let computed_span = computed_session
+        .emitted
+        .get(computed_prelude..computed_prelude + computed_session.cursor)
+        .map(|s| s.to_vec())
+        .unwrap_or_default();
+    mixed_turns.push(json!({
+        "kind": "computed", "request": compute_clause.text,
+        "answer": cgs_text(tokenizer, &computed_session),
+        "terminal": computed_session.terminal,
+        "copied_span_equals_payload": computed_span == computed_payload && !computed_payload.is_empty(),
+        "derived_capture": computed_session.captured.as_ref().map(|c| c.derived).unwrap_or(false),
+    }));
+    // Mid-copy restart inside the same loaded session.
+    let mut mixed_phase = mixed_rt
+        .ask(&ordinary_clause, b"delta")
+        .map_err(|e| e.to_string())?;
+    let mut mixed_snapshots = Vec::<Vec<u8>>::new();
+    loop {
+        mixed_snapshots.push(mixed_rt.snapshot(&mixed_phase).map_err(|e| e.to_string())?);
+        if mixed_phase.terminal.is_some() {
+            break;
+        }
+        mixed_rt.step(&mut mixed_phase).map_err(|e| e.to_string())?;
+    }
+    let mut mixed_restarts = Vec::new();
+    for bytes in &mixed_snapshots {
+        let mut restored = mixed_rt.restore(bytes).map_err(|e| e.to_string())?;
+        mixed_rt.run(&mut restored).map_err(|e| e.to_string())?;
+        mixed_restarts.push(restored == mixed_phase);
+    }
+    let ordinary_text = cgs_text(tokenizer, &ordinary_session);
+    let pinned_text = cgs_text(tokenizer, &pinned);
+    let corrected_text = cgs_text(tokenizer, &corrected);
+    let previous_text = cgs_text(tokenizer, &previous_session);
+    let initial_text = cgs_text(tokenizer, &initial_session);
+    let computed_text = cgs_text(tokenizer, &computed_session);
+    let mixed_ok = ordinary_text == "it is Harbor"
+        // The pinned answer was started before the correction, so it keeps the old view; the fresh
+        // request after the same correction sees the new value and its differing predecessor.
+        && pinned_text == "it is Harbor"
+        && corrected_text == "it was Quarry"
+        && previous_text == "it was Quarry"
+        && initial_text == "it is Harbor"
+        && computed_session.terminal == Some(ScopedTerminal::Complete)
+        && computed_span == computed_payload
+        && !computed_payload.is_empty()
+        && computed_session.captured.as_ref().map(|c| c.derived) == Some(true)
+        && mixed_restarts.iter().all(|m| *m)
+        && !mixed_restarts.is_empty();
+    mixed_turns.push(json!({
+        "kind": "decoded",
+        "ordinary": ordinary_text,
+        "pinned_in_flight": pinned_text,
+        "ordinary_after_correction": corrected_text,
+        "previous": previous_text,
+        "initial": initial_text,
+        "computed": computed_text,
+        "ok": mixed_ok,
+    }));
+
+    let at = |v: &serde_json::Value| -> serde_json::Value {
+        json!({
+            "a": v["a_at_divergence"],
+            "b": v["b_at_divergence"],
+            "identical_prefix_tokens": v["identical_prefix_tokens"],
+            "same_length": v["same_length"],
+        })
+    };
+    let diverged = |v: &serde_json::Value| -> bool {
+        let prefix = v["identical_prefix_tokens"].as_u64().unwrap_or(0);
+        prefix > 0
+            && v["a_at_divergence"].is_object()
+            && v["b_at_divergence"].is_object()
+            && v["a_at_divergence"]["token"] != v["b_at_divergence"]["token"]
+    };
+    let insert_at = |v: &serde_json::Value| -> bool {
+        let is_insert = |side: &serde_json::Value| {
+            side["text"]
+                .as_str()
+                .is_some_and(|t| t.starts_with("Insert"))
+        };
+        (is_insert(&v["a_at_divergence"]) || is_insert(&v["b_at_divergence"]))
+            && v["a_at_divergence"]["from_table"] == json!(true)
+            && v["b_at_divergence"]["from_table"] == json!(true)
+    };
+
+    let checks = json!({
+        "realization_fit_is_nonempty": !examples.is_empty() && !realization.table.is_empty(),
+        "realized_answers_are_complete": cases.iter().all(|c| c["terminal"] == json!(Some(ScopedTerminal::Complete))
+            && c["vocabulary_words"].as_u64().unwrap_or(0) > 0),
+        "realized_copied_span_is_exact": cases.iter().all(|c| c["copied_span_equals_payload"] == json!(true))
+            && derived_span == derived_payload && !derived_payload.is_empty(),
+        "legacy_contract_is_byte_exact": cases.iter().all(|c| c["legacy_answer"] == c["payload_surface"]),
+        // The milestone's causal claim: older owned evidence changes an *uncopied* word while the
+        // request and the generated prefix up to that decision are identical.
+        "older_evidence_changes_an_uncopied_word": diverged(&older) && insert_at(&older),
+        "fresh_older_evidence_changes_an_uncopied_word": diverged(&fresh_older) && insert_at(&fresh_older),
+        "same_value_reassertion_keeps_the_direct_word": reassert["a_emitted"] == reassert["b_emitted"],
+        "consumed_result_changes_an_uncopied_choice": diverged(&derived_div) && insert_at(&derived_div),
+        // The context-disabled falsifier: with the owned-evidence flags held at zero the pair
+        // collapses, so the effect is not a copy placement or a template shortcut.
+        "context_disabled_collapses_the_pair": disabled_older["a_emitted"] == disabled_older["b_emitted"]
+            && !diverged(&disabled_older),
+        "source_access_disabled_emits_nothing": noread_session.terminal == Some(ScopedTerminal::NoRead)
+            && noread_session.emitted.is_empty(),
+        "restart_reproduces_the_complete_realized_frame": restarts.iter().all(|r| r["matches"] == json!(true))
+            && restarts.len() == snapshots.len(),
+        "fresh_process_restart_reproduces_the_complete_realized_frame": child_ok,
+        "every_realized_emission_reports_its_context": cases.iter().all(|c| {
+            c["effects"].as_array().is_some_and(|es| {
+                es.iter()
+                    .filter(|e| e["action"] == json!("Emit"))
+                    .all(|e| e["realization"].is_object())
+            })
+        }),
+        "realized_mixed_interaction_ok": mixed_ok,
+    });
+
+    Ok(json!({
+        "artifact": {
+            "version": realization.version,
+            "slots": realization.slots,
+            "slot_words": CGS_REAL_WORDS,
+            "evidence_buckets": realization.evidence_buckets,
+            "table_rows": realization.table.len(),
+            "examples": examples.len(),
+            "sha256": sha256_hex(realization_bytes),
+            "context_disabled_control": "MemoryControl::RealizationContextDisabled",
+        },
+        "policy": "learned hard action policy over {Copy, Insert(slot), Stop}; owned structural invariants keep the exact span contiguous and complete, so the learned choice is the words around it and where to end",
+        "context": "causal session state only: observed relation, requested history position, derived-result flag, superseded-older-evidence flag, copy stage and emitted-word count",
+        "cases": cases,
+        "derived_case": {
+            "request": compute_clause.text,
+            "observed": derived_receipts,
+            "answer": derived_answer,
+            "payload_surface": derived_payload_surface,
+            "copied_span_equals_payload": derived_span == derived_payload,
+            "terminal": derived_session.terminal,
+            "emitted": &derived_session.emitted,
+            "vocabulary_words": derived_session.vocabulary_words,
+            "derived_capture": derived_session.captured.as_ref().map(|c| c.derived).unwrap_or(false),
+            "effects": &derived_effects,
+        },
+        "no_read_control": {"terminal": noread_session.terminal, "emitted": noread_session.emitted},
+        "context_disabled_answers": disabled_cases,
+        "mixed_interaction": {
+            "turns": mixed_turns,
+            "restart_matches": mixed_restarts.iter().all(|m| *m),
+            "restart_boundaries": mixed_restarts.len(),
+            "ok": mixed_ok,
+        },
+        "causal": {
+            "older_evidence_vs_direct": at(&older),
+            "fresh_older_evidence_vs_direct": at(&fresh_older),
+            "same_value_reassertion_vs_direct": at(&reassert),
+            "consumed_result_vs_direct": at(&derived_div),
+            "context_disabled_older_evidence_vs_direct": at(&disabled_older),
+            "held_fixed": "the requested clause text, the copied payload and every emitted token before the flagged decision",
+        },
+        "restart": {
+            "boundaries": boundaries,
+            "resumed": restarts,
+            "fresh_process_matches": child_ok,
+            "snapshots": snapshots.len(),
+        },
+        "payload_text": payload_text,
+        "checks": checks,
+        "checks_all_expected": checks.as_object().map(|m| m.values().all(|v| v == &json!(true))).unwrap_or(false),
+        "scope": "authored development responses over a small declared state world; a finite learned association table selects which shared vocabulary word follows the owned history. Not general prose, not semantic generalization of arbitrary values, no geometric advantage claimed.",
+    }))
 }
 
 /// Ask one request and return (emitted text, terminal, computed result).
@@ -18581,8 +19591,10 @@ fn cgs_finish_run(
     let panels = &payload["panels"];
     println!(
         "consumed-geometric-state: dev {}/{} final {}/{} | consumed {} | sealed {} unlisted | {:.1}s",
-        panels[0]["complete"], panels[0]["requests"],
-        panels[1]["complete"], panels[1]["requests"],
+        panels[0]["complete"],
+        panels[0]["requests"],
+        panels[1]["complete"],
+        panels[1]["requests"],
         payload["consumption"]["rows"],
         unlisted.len(),
         started.elapsed().as_secs_f32()

@@ -13,6 +13,7 @@ pub mod grounded_session;
 pub mod group_table;
 pub mod head_projection;
 pub mod jepa_trainer;
+pub mod lexical_realization;
 pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
@@ -49,6 +50,10 @@ pub use group_table::{group_table, GroupTable, GROUP_ORDER, ROW_STRIDE};
 pub use jepa_trainer::{
     ExportedGeometricModel, JepaTrainer, JepaTrainerConfig, NativeGeometricLearnerModel,
     TrainingMetrics,
+};
+pub use lexical_realization::{
+    fit_realization, RealizationAction, RealizationContext, RealizationDecision,
+    RealizationExample, RealizationModel, LR_MAX_SLOTS,
 };
 pub use lowbit::TernaryLinear;
 pub use lowbit_attention::{LowBitAttention, LowBitAttentionTrainer};

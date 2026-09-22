@@ -44,6 +44,9 @@
 
 use super::grounded_session::GroundedFactorization;
 use super::group_table::{group_table, GROUP_ORDER, ROW_STRIDE};
+use super::lexical_realization::{
+    RealizationAction, RealizationContext, RealizationDecision, RealizationModel,
+};
 use super::observed_text_session::{
     candidate_features, lexical_key, observe_clause, Clause, Observation, ObservedTextModel,
 };
@@ -89,7 +92,7 @@ impl From<ScopedMemoryError> for String {
 /// adds the typed computation phase and its owned result.
 pub const SCOPED_VERSION: u8 = 1;
 pub const SCOPED_STORE_VERSION: u8 = 2;
-pub const SCOPED_SESSION_VERSION: u8 = 4;
+pub const SCOPED_SESSION_VERSION: u8 = 5;
 pub const SCOPED_INTENT_VERSION: u8 = 2;
 pub const SCOPED_MAX_OPERATIONS: usize = super::observed_text_session::OB_MAX_CLAUSE;
 
@@ -126,6 +129,39 @@ pub const UNSCOPED_MARKER: &[u8] = b"*";
 pub const SCOPED_MAX_HOPS: u8 = 6;
 /// Declared answer-token bound.
 pub const SCOPED_MAX_ANSWER: usize = 64;
+/// Declared bound on learned realization vocabulary words per answer. Kept a power of two so the
+/// realized emission test is a compare, not a division.
+pub const SCOPED_MAX_VOCAB_WORDS: usize = 4;
+
+/// The declared public output contract.
+///
+/// `LegacyWords` is the retained byte-for-byte plain answer: the exact owned payload followed by the
+/// bound terminator. `RealizedV1` is a prospectively versioned richer contract in which the *same*
+/// learned policy interleaves shared learned vocabulary words with the *same* exact owned span. The
+/// distinction is a versioned output contract, not an evaluator-supplied task mode, and it lets
+/// semantic retention be measured separately from byte-for-byte retention.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum OutputContract {
+    #[default]
+    LegacyWords,
+    RealizedV1,
+}
+
+impl OutputContract {
+    pub fn as_u8(self) -> u8 {
+        match self {
+            Self::LegacyWords => 0,
+            Self::RealizedV1 => 1,
+        }
+    }
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            0 => Some(Self::LegacyWords),
+            1 => Some(Self::RealizedV1),
+            _ => None,
+        }
+    }
+}
 
 /// Which retained historical position an answer requests. Only the first three are reachable from
 /// learned question intent; the fourth is exact infrastructure used by the harness.
@@ -1572,6 +1608,10 @@ pub enum MemoryControl {
     ApplyDisabled,
     /// Compute the retained state but do not consume it: the next read uses the operand label.
     ConsumeDisabled,
+    /// Hold the realization context's owned-evidence and derived-result flags at zero while keeping
+    /// the learned table, the copy placement and the exact span. This isolates a contextual
+    /// vocabulary effect from copy placement: the same artifact queried without its causal features.
+    RealizationContextDisabled,
 }
 
 /// Immutable identities prepared once from the loaded bytes and store.
@@ -1588,6 +1628,10 @@ pub struct MemoryBinding {
     pub capacity: usize,
     pub max_vocab: usize,
     pub eos: Option<u32>,
+    /// Identity of the bound realization artifact bytes, or the empty-byte digest when none is bound.
+    pub realization_sha256: String,
+    /// The declared output contract this runtime serves, as [`OutputContract::as_u8`].
+    pub contract: u8,
 }
 
 /// Exact owned payload captured for one record.
@@ -1672,6 +1716,12 @@ pub struct ScopedSession {
     pub pending: SessionAction,
     pub emitted: Vec<u32>,
     pub cursor: usize,
+    /// The output contract this session was started under.
+    pub contract: u8,
+    /// How many learned realization vocabulary words have been emitted so far.
+    pub vocabulary_words: u8,
+    /// How many of those words preceded the owned span.
+    pub prelude_words: u8,
     pub visited: Vec<Vec<u8>>,
     pub terminal: Option<ScopedTerminal>,
     pub eos: Option<u32>,
@@ -1691,6 +1741,8 @@ pub struct ScopedStepEffect {
     pub computed_state: Option<usize>,
     pub hop: u8,
     pub emitted: Option<u32>,
+    /// The realized emission decision performed by this step, when `RealizedV1` is bound.
+    pub realization: Option<RealizationDecision>,
     pub terminal: Option<ScopedTerminal>,
 }
 
@@ -1758,9 +1810,11 @@ pub struct ScopedMemoryRuntime {
     intent: IntentModel,
     lexicon: GroundingLexicon,
     backend: ComputationBackend,
+    realization: Option<RealizationModel>,
     memory: Memory,
     binding: MemoryBinding,
     control: MemoryControl,
+    contract: OutputContract,
     max_vocab: usize,
 }
 
@@ -1876,6 +1930,40 @@ impl ScopedMemoryRuntime {
         max_vocab: usize,
         eos: Option<u32>,
     ) -> Result<Self, ScopedMemoryError> {
+        Self::load_grounded(
+            model_bytes,
+            intent_bytes,
+            lexicon_bytes,
+            backend,
+            None,
+            OutputContract::LegacyWords,
+            memory,
+            lineage,
+            control,
+            max_vocab,
+            eos,
+        )
+    }
+
+    /// Load with a declared computation artifact and an optional learned realization artifact.
+    ///
+    /// `RealizedV1` requires the realization bytes: a richer contract that silently degraded to the
+    /// legacy copy path would make its measured behaviour uninterpretable. `LegacyWords` ignores a
+    /// supplied realization artifact except for identity binding.
+    #[allow(clippy::too_many_arguments)]
+    pub fn load_grounded(
+        model_bytes: &[u8],
+        intent_bytes: &[u8],
+        lexicon_bytes: Option<&[u8]>,
+        backend: ComputationBackend,
+        realization_bytes: Option<&[u8]>,
+        contract: OutputContract,
+        memory: Memory,
+        lineage: u64,
+        control: MemoryControl,
+        max_vocab: usize,
+        eos: Option<u32>,
+    ) -> Result<Self, ScopedMemoryError> {
         if memory.lineage != lineage {
             return Err(ScopedMemoryError::Store(
                 "store lineage disagrees with the declared runtime lineage".into(),
@@ -1895,6 +1983,17 @@ impl ScopedMemoryRuntime {
             ));
         }
         memory.validate()?;
+        let realization = match realization_bytes {
+            Some(bytes) => Some(
+                RealizationModel::from_bytes(bytes, max_vocab).map_err(ScopedMemoryError::Model)?,
+            ),
+            None => None,
+        };
+        if contract == OutputContract::RealizedV1 && realization.is_none() {
+            return Err(ScopedMemoryError::Model(
+                "the realized output contract requires a realization artifact".into(),
+            ));
+        }
         // EOS is an explicitly bound protocol terminator and may be outside the lexical vocabulary.
         // Owned source payloads must still consist entirely of valid lexical token IDs.
         if memory
@@ -1923,17 +2022,30 @@ impl ScopedMemoryRuntime {
             capacity: memory.capacity,
             max_vocab,
             eos,
+            realization_sha256: sha256_hex(realization_bytes.unwrap_or(&[])),
+            contract: contract.as_u8(),
         };
         Ok(Self {
             model,
             intent,
             lexicon,
             backend,
+            realization,
             memory,
             binding,
             control,
+            contract,
             max_vocab,
         })
+    }
+
+    /// The bound learned realization artifact, if any.
+    pub fn realization(&self) -> Option<&RealizationModel> {
+        self.realization.as_ref()
+    }
+    /// The declared output contract this runtime serves.
+    pub fn contract(&self) -> OutputContract {
+        self.contract
     }
 
     pub fn model(&self) -> &ObservedTextModel {
@@ -1983,11 +2095,17 @@ impl ScopedMemoryRuntime {
             .map_err(|e| ScopedMemoryError::Model(e.to_string()))?;
         let intent_bytes = self.intent.to_bytes()?;
         let lexicon_bytes = self.lexicon.to_bytes()?;
-        let mut runtime = Self::load_with_computation(
+        let realization_bytes = match self.realization.as_ref() {
+            Some(model) => Some(model.to_bytes().map_err(ScopedMemoryError::Model)?),
+            None => None,
+        };
+        let mut runtime = Self::load_grounded(
             &model_bytes,
             &intent_bytes,
             Some(&lexicon_bytes),
             self.backend.clone(),
+            realization_bytes.as_deref(),
+            self.contract,
             memory,
             self.binding.lineage,
             control,
@@ -1999,6 +2117,7 @@ impl ScopedMemoryRuntime {
         runtime.binding.model_sha256 = self.binding.model_sha256.clone();
         runtime.binding.intent_sha256 = self.binding.intent_sha256.clone();
         runtime.binding.lexicon_sha256 = self.binding.lexicon_sha256.clone();
+        runtime.binding.realization_sha256 = self.binding.realization_sha256.clone();
         Ok(runtime)
     }
 
@@ -2080,12 +2199,12 @@ impl ScopedMemoryRuntime {
             STMT_NONASSERTING | STMT_COMPUTE => {
                 return Ok(IngestOutcome::NonAsserting {
                     reason: "learned nonasserting statement intent".into(),
-                })
+                });
             }
             _ => {
                 return Err(ScopedMemoryError::Intent(
                     "statement intent is out of range".into(),
-                ))
+                ));
             }
         };
         if matches!(self.control, MemoryControl::UpdateDisabled) {
@@ -2259,6 +2378,9 @@ impl ScopedMemoryRuntime {
             pending: SessionAction::Read,
             emitted: Vec::new(),
             cursor: 0,
+            contract: self.contract.as_u8(),
+            vocabulary_words: 0,
+            prelude_words: 0,
             visited: Vec::new(),
             terminal: None,
             eos: self.binding.eos,
@@ -2283,6 +2405,18 @@ impl ScopedMemoryRuntime {
         }
         if session.scope.is_empty() || session.query_entity.is_empty() {
             return Err(ScopedMemoryError::Session("empty session address".into()));
+        }
+        if OutputContract::from_u8(session.contract) != Some(self.contract) {
+            return Err(ScopedMemoryError::Session(
+                "session output contract disagrees with the runtime".into(),
+            ));
+        }
+        if session.prelude_words > session.vocabulary_words
+            || session.vocabulary_words as usize > SCOPED_MAX_VOCAB_WORDS
+        {
+            return Err(ScopedMemoryError::Session(
+                "realization word counters are out of range".into(),
+            ));
         }
         if session.request.entity.is_empty()
             || session.request.relation != session.relation
@@ -2401,16 +2535,74 @@ impl ScopedMemoryRuntime {
                         ));
                     }
                 }
-                let mut expected = capture.payload[..session.cursor].to_vec();
-                if session.terminal == Some(ScopedTerminal::Complete) {
-                    if let Some(eos) = session.eos {
-                        expected.push(eos);
+                let terminators = usize::from(
+                    session.terminal == Some(ScopedTerminal::Complete) && session.eos.is_some(),
+                );
+                match self.contract {
+                    OutputContract::LegacyWords => {
+                        let mut expected = capture.payload[..session.cursor].to_vec();
+                        if session.terminal == Some(ScopedTerminal::Complete) {
+                            if let Some(eos) = session.eos {
+                                expected.push(eos);
+                            }
+                        }
+                        if session.emitted != expected {
+                            return Err(ScopedMemoryError::Session(
+                                "emissions disagree with the owned payload prefix/EOS".into(),
+                            ));
+                        }
+                        if session.vocabulary_words != 0 || session.prelude_words != 0 {
+                            return Err(ScopedMemoryError::Session(
+                                "the legacy contract must emit no realization words".into(),
+                            ));
+                        }
                     }
-                }
-                if session.emitted != expected {
-                    return Err(ScopedMemoryError::Session(
-                        "emissions disagree with the owned payload prefix/EOS".into(),
-                    ));
+                    OutputContract::RealizedV1 => {
+                        let prelude = session.prelude_words as usize;
+                        let words = session.vocabulary_words as usize;
+                        if session.emitted.len() != session.cursor + words + terminators
+                            || prelude > words
+                            || session.emitted.len() < prelude + session.cursor
+                        {
+                            return Err(ScopedMemoryError::Session(
+                                "realized emissions disagree with the owned span, word count or terminator"
+                                    .into(),
+                            ));
+                        }
+                        if session.emitted[prelude..prelude + session.cursor]
+                            != capture.payload[..session.cursor]
+                        {
+                            return Err(ScopedMemoryError::Session(
+                                "realized emission does not carry the exact owned payload prefix"
+                                    .into(),
+                            ));
+                        }
+                        let model = self.realization.as_ref().ok_or_else(|| {
+                            ScopedMemoryError::Session(
+                                "realized contract without a realization artifact".into(),
+                            )
+                        })?;
+                        let before = &session.emitted[..prelude];
+                        let after = &session.emitted[prelude + session.cursor..];
+                        let mut counted = 0usize;
+                        for token in before.iter().chain(after.iter()) {
+                            if Some(*token) == session.eos {
+                                continue;
+                            }
+                            counted += 1;
+                            if !model.slots.contains(token) {
+                                return Err(ScopedMemoryError::Session(
+                                    "realized vocabulary word is not from the learned slot set"
+                                        .into(),
+                                ));
+                            }
+                        }
+                        if counted != words {
+                            return Err(ScopedMemoryError::Session(
+                                "realized word count disagrees with the emitted words".into(),
+                            ));
+                        }
+                    }
                 }
             }
             None => {
@@ -2643,7 +2835,7 @@ impl ScopedMemoryRuntime {
                     _ => {
                         return Err(ScopedMemoryError::Session(
                             "followed record is not eligible".into(),
-                        ))
+                        ));
                     }
                 };
                 let next = session
@@ -2660,13 +2852,18 @@ impl ScopedMemoryRuntime {
         let terminators = usize::from(
             session.terminal == Some(ScopedTerminal::Complete) && session.eos.is_some(),
         );
+        let realized_words = if self.contract == OutputContract::RealizedV1 {
+            session.vocabulary_words as usize
+        } else {
+            0
+        };
         match session.terminal {
             Some(ScopedTerminal::Complete) => {
                 if session.pending != SessionAction::Stop
                     || !session.captured.as_ref().is_some_and(|c| !c.continues)
                     || session.cursor == 0
                     || session.cursor != session.captured_payload_len()
-                    || session.emitted.len() != session.cursor + terminators
+                    || session.emitted.len() != session.cursor + terminators + realized_words
                 {
                     return Err(ScopedMemoryError::Session(
                         "complete terminal requires the full owned payload".into(),
@@ -2690,7 +2887,8 @@ impl ScopedMemoryRuntime {
                         && session.emitted.is_empty() => {}
                 SessionAction::Emit
                     if session.captured.as_ref().is_some_and(|c| !c.continues)
-                        && session.cursor < session.captured_payload_len() => {}
+                        && (session.cursor < session.captured_payload_len()
+                            || self.contract == OutputContract::RealizedV1) => {}
                 SessionAction::Stop
                     if session.captured.as_ref().is_some_and(|c| !c.continues)
                         && session.cursor > 0
@@ -2698,7 +2896,7 @@ impl ScopedMemoryRuntime {
                 _ => {
                     return Err(ScopedMemoryError::Session(
                         "invalid active session phase".into(),
-                    ))
+                    ));
                 }
             },
         }
@@ -2729,6 +2927,7 @@ impl ScopedMemoryRuntime {
             computed_state: None,
             hop: session.hop,
             emitted: None,
+            realization: None,
             terminal: None,
         };
         match performed {
@@ -2759,6 +2958,16 @@ impl ScopedMemoryRuntime {
                                     > SCOPED_MAX_ANSWER
                                 {
                                     // Reject before any token escapes; typed failure terminals are silent.
+                                    self.terminate(session, ScopedTerminal::Exhausted);
+                                } else if self.contract == OutputContract::RealizedV1
+                                    && record.payload.len()
+                                        + SCOPED_MAX_VOCAB_WORDS
+                                        + usize::from(session.eos.is_some())
+                                        > SCOPED_MAX_ANSWER
+                                {
+                                    // The realized contract reserves room for the learned words, so a
+                                    // payload that cannot fit them plus its terminator is refused
+                                    // before any token escapes rather than mid-response.
                                     self.terminate(session, ScopedTerminal::Exhausted);
                                 } else {
                                     effect.selected_record = Some(record.id);
@@ -2937,7 +3146,7 @@ impl ScopedMemoryRuntime {
                     None => {
                         return Err(ScopedMemoryError::Session(
                             "continue without a capture".into(),
-                        ))
+                        ));
                     }
                 };
                 if !continues {
@@ -2953,25 +3162,31 @@ impl ScopedMemoryRuntime {
                 session.pending = SessionAction::Read;
             }
             SessionAction::Emit => {
-                let (token, done) = match &session.captured {
-                    Some(capture) => {
-                        let token = *capture.payload.get(session.cursor).ok_or_else(|| {
-                            ScopedMemoryError::Session("emission past the payload".into())
-                        })?;
-                        (token, session.cursor + 1 == capture.payload.len())
-                    }
-                    None => {
-                        return Err(ScopedMemoryError::Session("emit without a capture".into()))
-                    }
-                };
-                if session.emitted.len() >= SCOPED_MAX_ANSWER {
-                    self.terminate(session, ScopedTerminal::Exhausted);
+                if self.contract == OutputContract::RealizedV1 {
+                    self.realized_emit(session, &mut effect)?;
                 } else {
-                    session.emitted.push(token);
-                    session.cursor += 1;
-                    effect.emitted = Some(token);
-                    if done {
-                        session.pending = SessionAction::Stop;
+                    let (token, done) = match &session.captured {
+                        Some(capture) => {
+                            let token = *capture.payload.get(session.cursor).ok_or_else(|| {
+                                ScopedMemoryError::Session("emission past the payload".into())
+                            })?;
+                            (token, session.cursor + 1 == capture.payload.len())
+                        }
+                        None => {
+                            return Err(ScopedMemoryError::Session(
+                                "emit without a capture".into(),
+                            ));
+                        }
+                    };
+                    if session.emitted.len() >= SCOPED_MAX_ANSWER {
+                        self.terminate(session, ScopedTerminal::Exhausted);
+                    } else {
+                        session.emitted.push(token);
+                        session.cursor += 1;
+                        effect.emitted = Some(token);
+                        if done {
+                            session.pending = SessionAction::Stop;
+                        }
                     }
                 }
             }
@@ -3027,6 +3242,146 @@ impl ScopedMemoryRuntime {
         self.memory.lookup(key, view, history)
     }
 
+    /// The causal, target-free context that indexes the realization table for the current capture.
+    fn realization_context(&self, session: &ScopedSession) -> RealizationContext {
+        let len = session.captured_payload_len();
+        let cursor = session.cursor;
+        let copy_stage = if cursor == 0 {
+            0
+        } else if cursor < len {
+            1
+        } else {
+            2
+        };
+        let (payload, value, derived, key, commit) = match &session.captured {
+            Some(capture) => (
+                capture.payload.as_slice(),
+                capture.value.as_slice(),
+                capture.derived,
+                capture.key.as_slice(),
+                capture.commit,
+            ),
+            None => (&[][..], &[][..], false, &[][..], 0),
+        };
+        // A bounded class of the owned evidence: the composed H4 element of the captured payload
+        // through the bound model's learned per-token elements. This is the same exact composition
+        // table the retained geometric paths use, evaluated as table reads only.
+        let table = group_table();
+        let mut state = table.identity as usize;
+        for token in payload {
+            let root = self.model.token_element(*token).min(GROUP_ORDER - 1);
+            state = table.product[state * ROW_STRIDE + root] as usize;
+        }
+        let buckets = self
+            .realization
+            .as_ref()
+            .map(|m| m.evidence_buckets.max(1) as usize)
+            .unwrap_or(1)
+            .min(GROUP_ORDER);
+        let evidence_class = (state & (buckets - 1)) as u16;
+        // Older eligible evidence: a superseded committed value for this exact address. This is a
+        // property of the owned store history, not of the request text or the evaluator.
+        let prior_differs = if commit == 0 || key.is_empty() {
+            false
+        } else {
+            matches!(
+                self.memory.lookup(key, commit, HistoryView::PreviousAssertion),
+                Lookup::Found(previous) if previous.value != value
+            )
+        };
+        let context_disabled = matches!(self.control, MemoryControl::RealizationContextDisabled);
+        RealizationContext {
+            relation: session.relation,
+            history: match session.history {
+                HistoryView::Current => 0,
+                HistoryView::PreviousAssertion => 1,
+                HistoryView::PreviousDistinctValue => 2,
+                HistoryView::Initial => 3,
+            },
+            derived: derived && !context_disabled,
+            prior_differs: prior_differs && !context_disabled,
+            evidence_class,
+            copy_stage,
+            emitted_bucket: session.vocabulary_words.min(3),
+        }
+    }
+
+    /// One realized emission step under the versioned `RealizedV1` contract.
+    ///
+    /// Owned structural invariants keep the exact span: a learned vocabulary word may never
+    /// interrupt the payload (`Copy` is forced while `0 < cursor < len`) and the payload may never be
+    /// truncated (`Stop` is forced while `cursor < len`). The learned table therefore decides which
+    /// words surround the span and where to end; the span itself stays exactly owned. A decision
+    /// overridden by an invariant is reported with `from_table = false` so no learned credit is
+    /// claimed for the owned guarantee.
+    fn realized_emit(
+        &self,
+        session: &mut ScopedSession,
+        effect: &mut ScopedStepEffect,
+    ) -> Result<(), ScopedMemoryError> {
+        let Some(model) = self.realization.as_ref() else {
+            return Err(ScopedMemoryError::Session(
+                "realized contract without a realization artifact".into(),
+            ));
+        };
+        let ctx = self.realization_context(session);
+        let decision = model.decide(&ctx);
+        let room = session.vocabulary_words < SCOPED_MAX_VOCAB_WORDS as u8;
+        // The owned structural invariants keep the span exact and complete. An action they override is
+        // reported with `from_table = false`, so no learned credit is claimed for the guarantee.
+        let permitted = match (ctx.copy_stage, decision.action) {
+            (0, RealizationAction::Insert(_)) => room,
+            (0, RealizationAction::Copy) => true,
+            (1, RealizationAction::Copy) => true,
+            (2, RealizationAction::Insert(_)) => room,
+            (2, RealizationAction::Stop) => true,
+            _ => false,
+        };
+        let action = if permitted {
+            decision.action
+        } else {
+            match ctx.copy_stage {
+                2 => RealizationAction::Stop,
+                _ => RealizationAction::Copy,
+            }
+        };
+        effect.realization = Some(RealizationDecision {
+            action,
+            from_table: decision.from_table && permitted,
+            key: decision.key,
+            evidence_class: ctx.evidence_class,
+        });
+        match action {
+            RealizationAction::Copy => {
+                let token = *session
+                    .captured
+                    .as_ref()
+                    .and_then(|capture| capture.payload.get(session.cursor))
+                    .ok_or_else(|| {
+                        ScopedMemoryError::Session("emission past the payload".into())
+                    })?;
+                session.emitted.push(token);
+                session.cursor += 1;
+                effect.emitted = Some(token);
+            }
+            RealizationAction::Insert(slot) => {
+                let token = *model.slots.get(slot as usize).ok_or_else(|| {
+                    ScopedMemoryError::Session("realization slot is not declared".into())
+                })?;
+                session.emitted.push(token);
+                session.vocabulary_words += 1;
+                if session.cursor == 0 {
+                    session.prelude_words += 1;
+                }
+                effect.emitted = Some(token);
+            }
+            RealizationAction::Stop => {
+                session.pending = SessionAction::Stop;
+            }
+        }
+        Ok(())
+    }
+
     /// Run to a terminal under the declared bounds.
     pub fn run(
         &self,
@@ -3054,6 +3409,7 @@ impl ScopedMemoryRuntime {
                 computed_state: None,
                 hop: session.hop,
                 emitted: None,
+                realization: None,
                 terminal: session.terminal,
             });
         }
@@ -3350,6 +3706,139 @@ mod tests {
             eos,
         )
         .unwrap()
+    }
+
+    /// The realized contract: one learned vocabulary word selected from owned evidence, with the
+    /// exact span retained, the legacy contract unchanged, and the context-disabled control
+    /// collapsing the evidence-conditioned choice.
+    #[test]
+    fn realized_contract_selects_a_learned_word_from_owned_evidence() {
+        use super::super::lexical_realization::{fit_realization, RealizationExample};
+        let base = |prior: bool, copy_stage: u8, bucket: u8| RealizationContext {
+            relation: 0,
+            history: 0,
+            derived: false,
+            prior_differs: prior,
+            evidence_class: 0,
+            copy_stage,
+            emitted_bucket: bucket,
+        };
+        let realization = fit_realization(
+            &[
+                RealizationExample {
+                    context: base(false, 0, 0),
+                    action: RealizationAction::Insert(0),
+                },
+                RealizationExample {
+                    context: base(true, 0, 0),
+                    action: RealizationAction::Insert(1),
+                },
+                RealizationExample {
+                    context: base(false, 0, 1),
+                    action: RealizationAction::Copy,
+                },
+                RealizationExample {
+                    context: base(true, 0, 1),
+                    action: RealizationAction::Copy,
+                },
+                RealizationExample {
+                    context: base(false, 2, 1),
+                    action: RealizationAction::Stop,
+                },
+                RealizationExample {
+                    context: base(true, 2, 1),
+                    action: RealizationAction::Stop,
+                },
+            ],
+            4096,
+            vec![11, 12, 13],
+            8,
+        )
+        .unwrap();
+        let realization_bytes = realization.to_bytes().unwrap();
+        let model = ObservedTextModel::uninformed().to_bytes().unwrap();
+        let intent = IntentModel::uninformed().to_bytes().unwrap();
+        let lexicon = test_lexicon().to_bytes().unwrap();
+
+        // One store has a superseded older value for the same address; the other does not.
+        let store = |superseded: bool| {
+            let mut memory = Memory::new(1, 4);
+            if superseded {
+                memory
+                    .write(
+                        b"alpha",
+                        b"Ova",
+                        0,
+                        b"B",
+                        &[7, 7],
+                        1,
+                        Update::Assert,
+                        false,
+                        0,
+                    )
+                    .unwrap();
+            }
+            memory
+                .write(
+                    b"alpha",
+                    b"Ova",
+                    0,
+                    b"C",
+                    &[7, 7],
+                    2,
+                    Update::Assert,
+                    false,
+                    0,
+                )
+                .unwrap();
+            memory
+        };
+        let run = |superseded: bool, control: MemoryControl, contract: OutputContract| {
+            let memory = store(superseded);
+            let lineage = memory.lineage;
+            let rt = ScopedMemoryRuntime::load_grounded(
+                &model,
+                &intent,
+                Some(&lexicon),
+                ComputationBackend::Absent,
+                Some(&realization_bytes),
+                contract,
+                memory,
+                lineage,
+                control,
+                4096,
+                None,
+            )
+            .unwrap();
+            let mut session = rt
+                .ask_view(b"alpha", 0, b"Ova", HistoryView::Current)
+                .unwrap();
+            rt.run(&mut session).unwrap();
+            assert_eq!(session.terminal, Some(ScopedTerminal::Complete));
+            session.emitted
+        };
+
+        // The request and the copied payload are identical; only older owned evidence differs.
+        let direct = run(false, MemoryControl::Normal, OutputContract::RealizedV1);
+        let superseded = run(true, MemoryControl::Normal, OutputContract::RealizedV1);
+        assert_eq!(direct, vec![11, 7, 7]);
+        assert_eq!(superseded, vec![12, 7, 7]);
+        assert_eq!(direct[1..], superseded[1..]);
+        assert_ne!(direct[0], superseded[0]);
+        // The retained legacy contract on the same artifact stays the exact owned payload.
+        assert_eq!(
+            run(true, MemoryControl::Normal, OutputContract::LegacyWords),
+            vec![7, 7]
+        );
+        // Holding the contextual flags at zero collapses the evidence-conditioned pair.
+        assert_eq!(
+            run(
+                true,
+                MemoryControl::RealizationContextDisabled,
+                OutputContract::RealizedV1
+            ),
+            direct
+        );
     }
 
     #[test]
