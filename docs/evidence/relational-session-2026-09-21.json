@@ -1,0 +1,394 @@
+{
+  "schema": "uor-r4.relational-session/1",
+  "at": "2026-09-21",
+  "scope": "bounded authored memory worlds with supplied token layout and follow-up convention; not broad language understanding; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "5821c48d11144ebd8b93c19fa5f283ec27b895e3",
+    "pr": 1340,
+    "pr_state_at_work": "OPEN_QUEUED (not merged); reviewed head read while preserving protection",
+    "worktree": ".worktrees/learned-relation-control",
+    "owner_checkout_untouched": true
+  },
+  "task": {
+    "authored_structure": "token layout, record triples and the follow-up convention are supplied; the role/relation correspondence, the ranking and the continuation decision are learned",
+    "chain": "read the requested relation of the entity; if the retrieved value is itself a key of the world, follow the learned follow-up relation; otherwise emit and stop",
+    "entities": [
+      485,
+      486,
+      487,
+      488,
+      489,
+      491,
+      500,
+      507
+    ],
+    "literals": [
+      513,
+      515,
+      516,
+      517
+    ],
+    "records": "role/key/value triples in a supplied world; the role token encodes the relation while the request names it",
+    "relations": [
+      424,
+      433,
+      434,
+      438
+    ],
+    "roles": [
+      440,
+      445,
+      447,
+      449
+    ]
+  },
+  "learning": {
+    "categorical": {
+      "accepted_moves": 0,
+      "examples": 128,
+      "follow_entries": 2,
+      "policy_final": 128,
+      "policy_initial": 1,
+      "relation_pairs_learned": 4,
+      "relations": 4,
+      "roles": 4,
+      "scorer_final": 128,
+      "scorer_initial": 0
+    },
+    "cyclic": {
+      "accepted_moves": 4,
+      "examples": 128,
+      "follow_entries": 2,
+      "policy_final": 128,
+      "policy_initial": 1,
+      "relation_pairs_learned": 4,
+      "relations": 4,
+      "roles": 4,
+      "scorer_final": 128,
+      "scorer_initial": 0
+    },
+    "primary": {
+      "accepted_moves": 4,
+      "examples": 128,
+      "follow_entries": 2,
+      "policy_final": 128,
+      "policy_initial": 1,
+      "relation_pairs_learned": 4,
+      "relations": 4,
+      "roles": 4,
+      "scorer_final": 128,
+      "scorer_initial": 0
+    }
+  },
+  "arms": [
+    {
+      "arm": "learned_relational",
+      "complete": 128,
+      "depth_correct": 128,
+      "split": "development",
+      "total": 128
+    },
+    {
+      "arm": "learned_relational",
+      "complete": 128,
+      "depth_correct": 128,
+      "split": "final",
+      "total": 128
+    },
+    {
+      "arm": "categorical_control",
+      "complete": 128,
+      "split": "final",
+      "total": 128
+    },
+    {
+      "arm": "cyclic_control",
+      "complete": 128,
+      "split": "final",
+      "total": 128
+    },
+    {
+      "arm": "relation_match_frozen",
+      "complete": 0,
+      "split": "final",
+      "total": 128
+    },
+    {
+      "arm": "continuation_frozen_continue",
+      "complete": 0,
+      "split": "final",
+      "total": 128
+    },
+    {
+      "arm": "reads_disabled",
+      "complete": 0,
+      "split": "final",
+      "total": 128
+    }
+  ],
+  "interventions": {
+    "incomplete_world_missing_required_fact": {
+      "note": "the required record is removed from the world; the session must stop unresolved with no emission",
+      "total": 16,
+      "unresolved_and_silent": 16
+    },
+    "interleaved_sessions_independent": true,
+    "one_position_source_edit": {
+      "answer_changed": true,
+      "changed_record_index": 0,
+      "emitted_after": 517,
+      "emitted_before": 515,
+      "entity": 485,
+      "independent_expected_after": 517,
+      "matches_independent_expectation": true,
+      "relation": 424,
+      "retained_after": [
+        486,
+        517
+      ],
+      "retained_before": [
+        488,
+        515
+      ],
+      "value_after": 486,
+      "value_before": 488,
+      "world": 0
+    },
+    "owned_capture_versus_live_reference": {
+      "origin_is_live": false,
+      "origin_now": 517,
+      "owned_payload": 488,
+      "owned_still_usable": true
+    },
+    "pause_resume_identical": {
+      "identical": 128,
+      "total": 128
+    },
+    "plausible_distractor_added": {
+      "answer_preserved": true,
+      "selected_roles_preserved": true
+    },
+    "request_relation_change_fixed_evidence": {
+      "changed": true,
+      "emitted_after": 513,
+      "emitted_before": 515,
+      "entity": 485,
+      "independent_expected_after": 513,
+      "matches_independent_expectation": true,
+      "relation_after": 434,
+      "relation_before": 424,
+      "selected_roles_after": [
+        447
+      ],
+      "selected_roles_before": [
+        440,
+        447
+      ]
+    },
+    "required_record_removed": {
+      "emitted": null,
+      "removed_index": 0,
+      "terminal": "Unresolved"
+    }
+  },
+  "artifacts": [
+    {
+      "algebra": "signed_h4",
+      "arm": "relational_primary",
+      "artifact_bytes": 140,
+      "artifact_sha256": "02f377740049214629b3ac33a36527f81a0defd66757d9afa3d172a1e4f53f95",
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "reload_identical": true
+    },
+    {
+      "algebra": "categorical",
+      "arm": "relational_categorical_control",
+      "artifact_bytes": 140,
+      "artifact_sha256": "248f0f06f230fba76d1b7c4ee212068305cea1654022cf15da3013a1739eb3d3",
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "reload_identical": true
+    },
+    {
+      "algebra": "cyclic_c120",
+      "arm": "relational_cyclic_control",
+      "artifact_bytes": 140,
+      "artifact_sha256": "d55160f8de1f90c289de3cd368e7a4a54067db75da9649e6395de6afb371d14f",
+      "group_digest": "7861ea6f63610cacba01e070ac69ecc521adaaa9d482ce0e5f629328fb71d184",
+      "reload_identical": true
+    }
+  ],
+  "loaded_full_predictor_parity_requests": 256,
+  "generated_final_sample": [
+    {
+      "actions": [
+        "Read",
+        "Continue",
+        "Emit",
+        "Stop"
+      ],
+      "correct": true,
+      "decoded": "able",
+      "emitted": 515,
+      "entity": 485,
+      "expected_answer": 515,
+      "expected_depth": 2,
+      "hops": 2,
+      "relation": 424,
+      "retained": [
+        488,
+        515
+      ],
+      "selected_abs": [
+        0,
+        14
+      ],
+      "selected_roles": [
+        440,
+        447
+      ],
+      "terminal": "Stop",
+      "world": 0,
+      "world_version": 100
+    },
+    {
+      "actions": [
+        "Read",
+        "Continue",
+        "Emit",
+        "Stop"
+      ],
+      "correct": true,
+      "decoded": "able",
+      "emitted": 515,
+      "entity": 486,
+      "expected_answer": 515,
+      "expected_depth": 2,
+      "hops": 2,
+      "relation": 424,
+      "retained": [
+        488,
+        515
+      ],
+      "selected_abs": [
+        4,
+        14
+      ],
+      "selected_roles": [
+        440,
+        447
+      ],
+      "terminal": "Stop",
+      "world": 0,
+      "world_version": 100
+    },
+    {
+      "actions": [
+        "Read",
+        "Continue",
+        "Emit",
+        "Stop"
+      ],
+      "correct": true,
+      "decoded": "ong",
+      "emitted": 516,
+      "entity": 487,
+      "expected_answer": 516,
+      "expected_depth": 2,
+      "hops": 2,
+      "relation": 424,
+      "retained": [
+        507,
+        516
+      ],
+      "selected_abs": [
+        8,
+        30
+      ],
+      "selected_roles": [
+        440,
+        447
+      ],
+      "terminal": "Stop",
+      "world": 0,
+      "world_version": 100
+    },
+    {
+      "actions": [
+        "Read",
+        "Continue",
+        "Emit",
+        "Stop"
+      ],
+      "correct": true,
+      "decoded": "ame",
+      "emitted": 513,
+      "entity": 488,
+      "expected_answer": 513,
+      "expected_depth": 2,
+      "hops": 2,
+      "relation": 424,
+      "retained": [
+        485,
+        513
+      ],
+      "selected_abs": [
+        12,
+        2
+      ],
+      "selected_roles": [
+        440,
+        447
+      ],
+      "terminal": "Stop",
+      "world": 0,
+      "world_version": 100
+    }
+  ],
+  "focused_tests": {
+    "relational_session": [
+      "the_learned_compatibility_selects_the_answered_role",
+      "the_categorical_control_is_fitted_from_the_same_supervision",
+      "the_follow_map_and_continuation_policy_are_learned",
+      "the_model_and_frame_round_trip_and_reject_malformed_bytes"
+    ],
+    "touched_runner_tests_passed": 19,
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass"
+  },
+  "readings": [
+    "the primary completes 128/128 development and 128/128 on fresh final worlds with 128/128 correct depths, emitting a decoded answer token for every request",
+    "freezing the learned relation match, freezing continuation to always-continue, and disabling reads each drop the complete answers to 0/128, so relation discrimination, content-dependent continuation and reading are each necessary",
+    "removing exactly the required record makes the session stop explicitly unresolved with no emission in 16/16 worlds, and a learned compatibility gate is what distinguishes a missing fact from an incompatible one",
+    "a single-position source edit changes the first retained value, the follow-up relation query, the selected second occurrence and the final answer together, matching the independently derived expectation; changing only the request relation changes the selected fact and the answer while all records stay fixed",
+    "an added plausible distractor with the same key and an unseen role preserves both the answer and the selected roles",
+    "pause/resume is identical on 128/128 requests, two interleaved frames stay independent, and an owned captured payload remains usable after its origin was overwritten while the separate origin liveness check reports false",
+    "the matched categorical and cyclic controls reach the same 128/128, so this task establishes learned relational access and control, not geometric advantage"
+  ],
+  "limitations": [
+    "supplied token layout, record triples and follow-up convention; only the role/relation correspondence, the ranking and the continuation decision are learned",
+    "the world is small (8 entities, 4 relations, 4 literals) and relations are single-hop joins, so this is a bounded input format, not learned language parsing",
+    "the categorical control ties the group arm on this task; no encoding-normalized or whole-path cost advantage is claimed",
+    "no prose, no executed Rust task, and no whole-path energy or latency qualification"
+  ],
+  "principal_review_annotation": {
+    "status": "ORIGINAL_SUBMISSION_RETAINED_WITH_CORRECTIONS",
+    "reviewed_head": "84ba72cea9f1283c56e36471b59f348a6f8c06ba",
+    "original_report_values_preserved": true,
+    "review": "docs/integration/relational-session-review-2026-09-21.md",
+    "audit": "docs/evidence/relational-session-principal-review-2026-09-21.json",
+    "limitations": [
+      "reported final repeatedly exposed",
+      "continuation initialized correct; feature derived from action label",
+      "fixed coefficients not fitted",
+      "H4 matches central -1 not identity",
+      "request relation confounds depth",
+      "original resume host-local dependent; interleave struct-only; origin value-only",
+      "primary final rows only; omitted second Read events"
+    ],
+    "original_primary_recount": 128,
+    "no_general_language_or_geometric_advantage": true
+  }
+}

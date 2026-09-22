@@ -1,0 +1,670 @@
+{
+  "schema": "uor-r4.pr1341-corrected-independent-audit/1",
+  "scope": "Independent saved-report/event audit of corrected PR1341. No model execution or fitting.",
+  "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-2",
+  "seal": {
+    "listed_files": 134,
+    "missing": [],
+    "unlisted": [],
+    "size_errors": [],
+    "blake3_errors": []
+  },
+  "provenance": {
+    "result_sha256": "75db0d890d7e57eaa1a6c6b1f26182bd451a2a9d683bc6497e734b487bde4d3b",
+    "source_matches_review_worktree": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "running_source": {
+      "executable_sha256": "09a3f2f7691a5c349740c7c2acddc0ff1347c61d61119d2ce38b6bf0abaa8e37",
+      "git_dirty": "unknown",
+      "git_rev": "unset",
+      "source_files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+          "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+          "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+          "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+          "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+          "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+          "sha256": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "314130320199c82c89cf724c3a3dde8a29ac5764da7de2bbe0b97b4a47f37deb"
+        }
+      ]
+    },
+    "executable_matches": true
+  },
+  "artifacts": {
+    "relational_cyclic_control": {
+      "version": 2,
+      "cyclic": true,
+      "categorical": false,
+      "relation_domain": [
+        424,
+        433,
+        434,
+        438
+      ],
+      "role_domain": [
+        440,
+        445,
+        447,
+        449
+      ],
+      "relation_codes": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "role_codes": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "follow": [
+        [
+          424,
+          434
+        ],
+        [
+          433,
+          438
+        ]
+      ],
+      "weights": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "policy": [
+        0,
+        1
+      ],
+      "categorical_table": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "sha256": "07f17317eb9ce8c5f600e56958ef68ffd59241c159bba49d51cc46d8df6096d4",
+      "bytes": 140
+    },
+    "relational_categorical_control": {
+      "version": 2,
+      "cyclic": false,
+      "categorical": true,
+      "relation_domain": [
+        424,
+        433,
+        434,
+        438
+      ],
+      "role_domain": [
+        440,
+        445,
+        447,
+        449
+      ],
+      "relation_codes": [
+        1,
+        8,
+        15,
+        22
+      ],
+      "role_codes": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "follow": [
+        [
+          424,
+          434
+        ],
+        [
+          433,
+          438
+        ]
+      ],
+      "weights": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "policy": [
+        0,
+        1
+      ],
+      "categorical_table": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "sha256": "9d20c979983b177d45651f58088c7e28bc4c449f02519c7b8c69ed446c17433f",
+      "bytes": 140
+    },
+    "relational_primary": {
+      "version": 2,
+      "cyclic": false,
+      "categorical": false,
+      "relation_domain": [
+        424,
+        433,
+        434,
+        438
+      ],
+      "role_domain": [
+        440,
+        445,
+        447,
+        449
+      ],
+      "relation_codes": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "role_codes": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "follow": [
+        [
+          424,
+          434
+        ],
+        [
+          433,
+          438
+        ]
+      ],
+      "weights": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "policy": [
+        0,
+        1
+      ],
+      "categorical_table": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "sha256": "648388b5dbb7bc1a824915d7940de824c9269bf33ece2a23022f6757a3a269f9",
+      "bytes": 140
+    }
+  },
+  "rows_file_matches_embedded_primary": true,
+  "all_arm_recount": {
+    "always_continue": {
+      "rows": 128,
+      "correct": 0,
+      "correct_depth": 128,
+      "reported_flags_match": true,
+      "event_count": 384,
+      "successful_captures": 192,
+      "read_action_count": 192
+    },
+    "categorical": {
+      "rows": 128,
+      "correct": 128,
+      "correct_depth": 128,
+      "reported_flags_match": true,
+      "event_count": 512,
+      "successful_captures": 192,
+      "read_action_count": 192
+    },
+    "cyclic": {
+      "rows": 128,
+      "correct": 128,
+      "correct_depth": 128,
+      "reported_flags_match": true,
+      "event_count": 512,
+      "successful_captures": 192,
+      "read_action_count": 192
+    },
+    "development_primary": {
+      "rows": 128,
+      "correct": 128,
+      "correct_depth": 128,
+      "reported_flags_match": true,
+      "event_count": 512,
+      "successful_captures": 192,
+      "read_action_count": 192
+    },
+    "exposed_primary": {
+      "rows": 128,
+      "correct": 128,
+      "correct_depth": 128,
+      "reported_flags_match": true,
+      "event_count": 512,
+      "successful_captures": 192,
+      "read_action_count": 192
+    },
+    "read_disabled": {
+      "rows": 128,
+      "correct": 0,
+      "correct_depth": 0,
+      "reported_flags_match": true,
+      "event_count": 128,
+      "successful_captures": 0,
+      "read_action_count": 0
+    },
+    "relation_disabled": {
+      "rows": 128,
+      "correct": 0,
+      "correct_depth": 128,
+      "reported_flags_match": true,
+      "event_count": 384,
+      "successful_captures": 192,
+      "read_action_count": 192
+    }
+  },
+  "event_errors": [],
+  "reported_arm_count_matches": {
+    "development_primary": true,
+    "exposed_primary": true,
+    "categorical": true,
+    "cyclic": true,
+    "relation_disabled": true,
+    "always_continue": true,
+    "read_disabled": true
+  },
+  "original_primary_preservation": {
+    "original_rows": 128,
+    "matching_request_output_selection_depth": 128
+  },
+  "learning_recount": {
+    "examples": 128,
+    "observed_entity_first_values": 64,
+    "initial_all_false_policy_correct": 64,
+    "fitted_policy_correct": 128,
+    "artifact_policy": [
+      0,
+      1
+    ],
+    "fixed_score_coefficients": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "relation_role_codes_equal": true,
+    "reports": {
+      "categorical": {
+        "accepted_moves": 0,
+        "examples": 128,
+        "follow_entries": 2,
+        "policy_final": 128,
+        "policy_initial": 64,
+        "relation_pairs_learned": 4,
+        "relations": 4,
+        "roles": 4,
+        "scorer_final": 128,
+        "scorer_initial": 0
+      },
+      "cyclic": {
+        "accepted_moves": 4,
+        "examples": 128,
+        "follow_entries": 2,
+        "policy_final": 128,
+        "policy_initial": 64,
+        "relation_pairs_learned": 4,
+        "relations": 4,
+        "roles": 4,
+        "scorer_final": 128,
+        "scorer_initial": 0
+      },
+      "fitted_relation_only_depths": {
+        "424": 2,
+        "433": 2,
+        "434": 1,
+        "438": 1
+      },
+      "fixed_score_coefficients": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "primary": {
+        "accepted_moves": 4,
+        "examples": 128,
+        "follow_entries": 2,
+        "policy_final": 128,
+        "policy_initial": 64,
+        "relation_pairs_learned": 4,
+        "relations": 4,
+        "roles": 4,
+        "scorer_final": 128,
+        "scorer_initial": 0
+      }
+    },
+    "note": "Feature derived from supplied entity registry, target from separately declared oracle action label. Original fixture still correlates type/depth with request relation."
+  },
+  "snapshot_audit": {
+    "count": 128,
+    "sha_size_match": 128,
+    "matches_after_first_read": 128,
+    "matches_next_transition_before": 128,
+    "continue_after_one_read": 128,
+    "model_bindings_correct": 128,
+    "min_bytes": 590,
+    "max_bytes": 591,
+    "total_bytes": 75608,
+    "resume_identical_reported": {
+      "identical": 128,
+      "total": 128
+    },
+    "scope": "Saved checkpoints equal the exact frame at the continuation boundary and next recorded transition. Source executes independent rel_finish after dropping live frame; no extra model runs by auditor."
+  },
+  "interleave_audit": {
+    "recorded_interleaved_traces_match_isolated": [
+      true,
+      true
+    ],
+    "reported_independent": true
+  },
+  "source_intervention": {
+    "changed_record_indices": [
+      0
+    ],
+    "world_other_fields_same": true,
+    "before_expected": {
+      "answer": 515,
+      "terminal": "Stop",
+      "selected_abs": [
+        0,
+        14
+      ]
+    },
+    "after_expected": {
+      "answer": 517,
+      "terminal": "Stop",
+      "selected_abs": [
+        0,
+        6
+      ]
+    },
+    "saved_occurrences_match": true,
+    "answers_match": true,
+    "follow_relation_unchanged": 434,
+    "query_entities": [
+      488,
+      486
+    ]
+  },
+  "same_request_diagnostic": {
+    "cases": [
+      {
+        "case": "entity",
+        "request": {
+          "entity": 485,
+          "relation": 424
+        },
+        "independent_expected": {
+          "answer": 515,
+          "terminal": "Stop",
+          "selected_abs": [
+            0,
+            14
+          ]
+        },
+        "rows": [
+          {
+            "arm": "learned_type_policy",
+            "correct": true,
+            "flag_matches": true,
+            "emitted": 515,
+            "hops": 2,
+            "terminal": "Stop",
+            "event_errors": []
+          },
+          {
+            "arm": "relation_only_fixed_depth",
+            "correct": true,
+            "flag_matches": true,
+            "emitted": 515,
+            "hops": 2,
+            "terminal": "Stop",
+            "event_errors": []
+          }
+        ]
+      },
+      {
+        "case": "direct_literal",
+        "request": {
+          "entity": 485,
+          "relation": 424
+        },
+        "independent_expected": {
+          "answer": 513,
+          "terminal": "Stop",
+          "selected_abs": [
+            0
+          ]
+        },
+        "rows": [
+          {
+            "arm": "learned_type_policy",
+            "correct": true,
+            "flag_matches": true,
+            "emitted": 513,
+            "hops": 1,
+            "terminal": "Stop",
+            "event_errors": []
+          },
+          {
+            "arm": "relation_only_fixed_depth",
+            "correct": false,
+            "flag_matches": true,
+            "emitted": null,
+            "hops": 1,
+            "terminal": "Unresolved",
+            "event_errors": []
+          }
+        ]
+      },
+      {
+        "case": "orphan_entity",
+        "request": {
+          "entity": 485,
+          "relation": 424
+        },
+        "independent_expected": {
+          "answer": null,
+          "terminal": "Unresolved",
+          "selected_abs": [
+            0
+          ]
+        },
+        "rows": [
+          {
+            "arm": "learned_type_policy",
+            "correct": true,
+            "flag_matches": true,
+            "emitted": null,
+            "hops": 1,
+            "terminal": "Unresolved",
+            "event_errors": []
+          },
+          {
+            "arm": "relation_only_fixed_depth",
+            "correct": true,
+            "flag_matches": true,
+            "emitted": null,
+            "hops": 1,
+            "terminal": "Unresolved",
+            "event_errors": []
+          }
+        ]
+      }
+    ],
+    "same_request_in_all_cases": true,
+    "by_arm": {
+      "learned_type_policy": 3,
+      "relation_only_fixed_depth": 2
+    },
+    "scope": "Three authored diagnostic cases after design: normal two-read entity, one-read literal, unresolved orphan entity. Not a fresh population or statistical advantage claim."
+  },
+  "remaining_boundaries": [
+    "Relation-role operation is equality encoding; group/categorical/cyclic equivalence on this task remains.",
+    "Entity type registry, record layout and follow convention supplied; no natural-language parsing/prose.",
+    "Session runtime remains in competitive-reader runner; exact origin comparison is a descriptor diagnostic, not independently verified persistent ring service.",
+    "Primary only explicit pre/post full-predictor parity256; categorical/cyclic actual loaded serving audited through retained rows.",
+    "Serializing bound snapshots does not prove bounded serving allocations or optimized energy/cost.",
+    "Repeatedly exposed original panels and three new authored cases are development diagnostics."
+  ],
+  "resources": {
+    "reported_elapsed_s": 12.575312457999999,
+    "retained_report_bytes": 18392066,
+    "model_runs_by_auditor": 0,
+    "builds_by_auditor": 0
+  },
+  "all_material_checks_pass": true,
+  "script_sha256": "e60439e34127b7d8c05bee515f40c80109d37b72aad0f7adf398feb3d92e2126"
+}

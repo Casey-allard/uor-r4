@@ -1,0 +1,301 @@
+{
+  "schema": "uor-r4.relational-session-principal-checks/1",
+  "reviewed_submission": "84ba72cea9f1283c56e36471b59f348a6f8c06ba",
+  "parent_merge_verified": "d9d896e8de59fc7c37004d1ea1f0f12cfed11462",
+  "final_source_sha256": {
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "314130320199c82c89cf724c3a3dde8a29ac5764da7de2bbe0b97b4a47f37deb",
+    "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+  },
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::relational_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 250106,
+      "log": "/tmp/uor-pr1341-final-check-0.log",
+      "free_after_bytes": 38828306432,
+      "log_sha256": "3088f49ec190602b9d2d9402fb5a7f269292895ff9103529dfd3309ab6e79b55"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader",
+        "relational_session_tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 230811,
+      "log": "/tmp/uor-pr1341-final-check-1.log",
+      "free_after_bytes": 38479601664,
+      "log_sha256": "e984fab303e608b98958fa8a3436a1dcf5977fffd23049bc96b4dba2deb5e73f"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 58427,
+      "log": "/tmp/uor-pr1341-final-check-2.log",
+      "free_after_bytes": 38106791936,
+      "log_sha256": "3d38a3d638baef2b904f7606734db8a881b9a1ae57d5cfef3a34a7063156813e"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+        "--mode=relational-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-2",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13780,
+      "log": "/tmp/uor-pr1341-final-check-3.log",
+      "free_after_bytes": 38090379264,
+      "log_sha256": "742816e7a1a9b5219b1c74ed6b12afffc9eca9286aacd20af5d67a13d729a777"
+    }
+  ],
+  "initial_checks_before_empty_stop_fix": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::relational_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 324127,
+      "log": "/tmp/uor-pr1341-check-0.log",
+      "free_after_bytes": 38786232320,
+      "log_sha256": "917d409ced6dda882eac26002946353d31af61ac7db64fb278e8cc6145e3429a"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader",
+        "relational_session_tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 200176,
+      "log": "/tmp/uor-pr1341-check-1.log",
+      "free_after_bytes": 38428446720,
+      "log_sha256": "1ff37a8fb60617d898ed09c656a6bdcaf3f278e1bd57e7592aac8d70a1210065"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 58598,
+      "log": "/tmp/uor-pr1341-check-2.log",
+      "free_after_bytes": 37974319104,
+      "log_sha256": "ba62dac87007132f1087917b51a5d01e23aa61bcdceecdab6c9688261744c0c0"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+        "--mode=relational-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-1",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13733,
+      "log": "/tmp/uor-pr1341-check-3.log",
+      "free_after_bytes": 37960118272,
+      "log_sha256": "742816e7a1a9b5219b1c74ed6b12afffc9eca9286aacd20af5d67a13d729a777"
+    }
+  ],
+  "library_tests": {
+    "passed": 6,
+    "failed": 0
+  },
+  "runner_tests": {
+    "passed": 2,
+    "failed": 0
+  },
+  "document_checks": {
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "json_parsed": [
+      "docs/evidence/relational-session-2026-09-21.json",
+      "docs/evidence/relational-session-corrected-replay-audit-2026-09-21.json",
+      "docs/evidence/relational-session-principal-checks-2026-09-21.json",
+      "docs/evidence/relational-session-principal-review-2026-09-21.json"
+    ],
+    "relative_document_targets_checked": 1009,
+    "missing_targets": []
+  },
+  "warnings": "Existing unused variables/mutability/dead-code warnings, including unused experiment frame_bytes. No unrelated warning cleanup; filtered tests are not passes.",
+  "scope": "Corrected typed relation correspondence and observed-type policy, version2 identity semantics, phase-driven restore/interleave and bound checkpoints. Supplied semantic triples/type registry/follow convention and one-token output. Runner execution, not library/product integration. Origin descriptor equality, not a complete mutable ring service. Primary-only pre/post parity; all3 loaded arms evaluated.",
+  "replay": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-2",
+    "retained_prior_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-1",
+    "scope": "Corrected exposed replay; three small same-request development diagnostics. Debug elapsed is not optimized serving cost.",
+    "elapsed_s": 12.575312457999999,
+    "executable_sha256": "09a3f2f7691a5c349740c7c2acddc0ff1347c61d61119d2ce38b6bf0abaa8e37",
+    "independent_audit": "docs/evidence/relational-session-corrected-replay-audit-2026-09-21.json",
+    "projection": {
+      "at": "2026-09-21T23:17:34.982455+00:00",
+      "scope": "Final validation after empty Stop rejection; prior root1 retained; unchanged fit/data plus3 development diagnostic cases. Repetition justified by serialization defect, not new scientific qualification. Within principal4200000ms projection.",
+      "commands": [
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::learner::relational_session::tests"
+        ],
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "relational_session_tests"
+        ],
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader"
+        ],
+        [
+          "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+          "--mode=relational-session",
+          "--root",
+          "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-2",
+          "--source-root",
+          "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+        ]
+      ],
+      "threads": 2,
+      "model_workers": 1,
+      "ram_gib": 8,
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-session-principal-2",
+      "source_sha256": {
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": "314130320199c82c89cf724c3a3dde8a29ac5764da7de2bbe0b97b4a47f37deb",
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": "1c89b2b48a4041542b8fadf58aa29a30deedde75d7161258155a7103070112e5"
+      }
+    }
+  },
+  "resource": {
+    "at": "2026-09-21T23:27:43.816290+00:00",
+    "projection": {
+      "at": "2026-09-21T23:00:27.607356+00:00",
+      "before": {
+        "cumulative_ms": 271317827,
+        "limit_ms": 275900000
+      },
+      "principal_projection_ms": 4200000,
+      "preprojection_preparation_estimate_ms": 360000,
+      "compiler_workers": 2,
+      "model_workers": 1,
+      "ram_limit_gib": 8,
+      "temporary_build_bytes": 2415919104,
+      "report_bytes": 67108864,
+      "reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_bytes_before_cleanup": 38561619968,
+      "cleanup_plan": "Only regenerable target/debug/deps/*.rcgu.o intermediates with no active cargo/rustc/model process; preserve libraries/metadata/executables/all source/models/reports/user folders.",
+      "model_run_plan": "Source/evidence/math review; necessary controller/identity/session correctness repairs; one corrected exposed replay plus small prospective same-request content/type/absence diagnostics. No new language fit or fresh-final campaign. Exact commands and source hashes recorded before execution.",
+      "paid_compute": false,
+      "free_bytes_after_cleanup": 39578435584
+    },
+    "elapsed_ms": 1636209,
+    "preprojection_preparation_estimate_ms": 360000,
+    "final_delivery_reserve_ms": 300000,
+    "principal_charge_ms": 2296209,
+    "before": {
+      "cumulative_ms": 271317827,
+      "limit_ms": 275900000
+    },
+    "after": {
+      "cumulative_ms": 273614036,
+      "limit_ms": 275900000
+    },
+    "remaining_ms": 2285964,
+    "allowance_extension_ms": 0,
+    "free_after_checks_bytes": 39149801472,
+    "cleanups": [
+      {
+        "at": "2026-09-21T23:00:27.607356+00:00",
+        "kind": "regenerable Rust compiler object intermediates only",
+        "root": "/Users/casey.allard/uor-r4/target/debug/deps",
+        "pattern": "*.rcgu.o",
+        "count": 80,
+        "allocated_bytes_removed": 1016963072,
+        "logical_bytes_removed": 1016816408,
+        "free_before_bytes": 38561619968,
+        "free_after_bytes": 39578435584,
+        "manifest_path": "/tmp/uor-pr1341-removed-compiler-objects.json",
+        "manifest_sha256": "67fc6ff63c2682f7936bcf8a8cdc0964595a2c5ca930c184536b384f7b1a6b14",
+        "preserved": "rlib/rmeta/executables and all source/model/research/report/user files including Downloads"
+      },
+      {
+        "at": "2026-09-21T23:17:34.858214+00:00",
+        "reason": "Remove only regenerable finished-build intermediates before required empty-Stop validation correction; preserve report1 executable and source diff. Within principal projection, no active compiler/model.",
+        "before_free_bytes": 37954433024,
+        "allocated_bytes": 1263931392,
+        "preserved_executable": "/tmp/uor-pr1341-pre-empty-stop-competitive-reader",
+        "preserved_executable_sha256": "5f67384ff3936618af941cbbc6ff3e8a839d0aa226fea9931d73bde12cb3fd8b",
+        "count": 347,
+        "after_free_bytes": 39218335744,
+        "manifest": "/tmp/uor-pr1341-removed-compiler-objects-second.json",
+        "manifest_sha256": "09f671ae2e3df9da3fcb5aa6e7a66e19d88519a13c20c7c3248139c58cfaf53c"
+      },
+      {
+        "at": "2026-09-21T23:27:30.454044+00:00",
+        "reason": "Final cleanup of completed-check compiler intermediates; preserve all executables/libraries/metadata/research/model/report files. No active compiler/model.",
+        "before_free_bytes": 38090813440,
+        "allocated_bytes": 1060552704,
+        "count": 80,
+        "after_free_bytes": 39151165440,
+        "manifest": "/tmp/uor-pr1341-removed-compiler-objects-final.json",
+        "manifest_sha256": "72ba47a71e6731fe01a185e45285b4abbe2499650061481bb33d74d41c83c164"
+      }
+    ],
+    "paid_compute": false,
+    "idle_external_merge_queue_time": "not a new local model run",
+    "original_deepseek_charge": "14000000ms preserved as estimate; component estimates sum14400000ms with overlap unknown"
+  }
+}

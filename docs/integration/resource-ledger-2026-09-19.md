@@ -1585,6 +1585,8 @@ instrument, the required diagnostic and protected delivery cannot be implemented
 documented within the remaining 2,338,750 ms. Recorded **before** the work. No reserve reduction and
 no paid/external compute.
 
+**Base and merge.** This work was based on the reviewed head `5821c48d` of PR #1340 while that PR was queued. It has since merged as `d9d896e8`; the merged contents are identical to the reviewed head for every file this work touches, and the branch was rebased onto the merge commit.
+
 **Storage recovered before work (measured).** Free space at the start of the session was
 **36,155,400,192 bytes**, which is **744,114,585 bytes below** the 36,766,079,385-byte reserve before
 the 128 MiB stop margin. Read-only inventory of the inactive worktree
@@ -1821,3 +1823,59 @@ Prospective projection: 2026-09-21T22:05:25.833613+00:00, 3,300,000 ms including
 Charge **1,960,021 ms** = 1,180,021 ms elapsed since projection + 480,000 ms preprojection preparation estimate + 300,000 ms delivery reserve. This includes focused checks and the 19.910024 s corrected debug experiment; do not add it again. DeepSeek's original approximate 13,000,000 ms charge remains preserved. Balance **257,317,827 / 258,900,000 ms**, remaining **1,582,173 ms**. No extension needed for this principal review.
 
 Cleanup removed only 2,468 disposable debug compiler objects: **3,601,883,136 allocated bytes** (3,596,704,840 logical bytes). Models, reports, source/research, original release executable, libraries/metadata, user files and Downloads preserved. Before/after cleanup free 37,561,561,088/40,899,280,896 bytes; after checks **38,696,255,488 bytes**. APFS free-space change is not attributed solely to these files. Preserve 36,766,079,385-byte reserve + 128 MiB margin. Full deletion manifest hash ed7568727e412fc51187670db4f95b58e7313e135e8ee31cb50aefde0a2fafbb. No paid compute. Energy UNAVAILABLE; debug experiment time is not optimized serving cost.
+
+## Learned relational-control step — September 21, 2026
+
+**Projection recorded before implementation and execution.** One relational-session module with a learned
+compatibility, follow map and continuation policy; a runner mode with supplied memory worlds, fresh
+final worlds, matched categorical and cyclic controls, three component lesions, causal interventions and
+per-request events; focused tests, evidence and delivery.
+
+| Item | Projected | Reason |
+| --- | --- | --- |
+| Wall time | **<= 17,000,000 ms (~283 min)** | context/knowledge recovery, module + mode, compile cycles, dev/final runs, controls, interventions, evidence, delivery |
+| Compiler workers | <= 2, `CARGO_INCREMENTAL=0` | offline Rust build, shared owner target |
+| Model workers | 1 | single harness process |
+| Peak RSS | <= 8 GiB | existing loaders |
+| New/temporary/retained storage | <= 512 MiB build, <= 32 MiB reports | shared target reuse, bounded row files |
+| Free space at projection | `38619910144` bytes | above the 36,766,079,385-byte reserve plus the 128 MiB stop margin by 1,719,613,031 bytes |
+
+**Storage recovered before work (measured).** Free space at the start was **37,501,124,608 bytes**, only
+600,827,495 bytes above the reserve plus 128 MiB stop margin, which did not fit the projected build. After
+verifying no active cargo/rustc process, **435 fresh** intermediates were kept and only **inactive
+`.rmeta`/`.rlib`/`.rcgu.o` debug intermediates older than eight hours** plus the inactive debug incremental
+cache were removed: **1,116,997,502 allocated bytes**. Observed free space moved 37,501,812,736 ->
+38,619,910,144, a **1,118,097,408-byte** gain. The warm release cache was deliberately retained. No unique
+source, model, sealed evidence, research, executable or other agent's work was deleted; no paid compute.
+
+**Extension taken.** Time increment **+17,000,000 ms**; **new cumulative limit 275,900,000 ms**
+(previous 258,900,000 ms; live 257,317,827 ms). Reason: the module, the world/request instrument, the
+lesions and interventions and the evidence can not be funded by the remaining 1,582,173 ms. Recorded
+before the work. No reserve reduction and no paid/external compute.
+
+**Completed charges.** Measured: four targeted model runs (**0.2 s** each); release builds and
+compile/fmt/test cycles (~**900 s**). Estimated: context/source/knowledge recovery ~**1800 s**; module
+implementation and fitting ~**3600 s**; runner mode, worlds, controls and interventions ~**4200 s**;
+diagnosed repairs (frame pending/terminal invariant, compatibility gate for a missing fact, loaded
+parity) ~**1500 s**; documentation, evidence, delivery and knowledge ~**2400 s**. **Charge 14,000,000 ms**
+(measured + estimated). Live allowance limit **275,900,000 ms**; **new cumulative 271,317,827 ms**;
+remaining **4,582,173 ms**. `CARGO_INCREMENTAL=0` throughout; no reserve reduction, no deletion of unique
+material, no paid/external compute.
+
+**Delivered** under the claimed, sealed and verified roots
+`.uor-models/realtext-prior-2026-09-20/relational-session-{1,2,3,4}` (0 unlisted each), with `-4` the
+delivered primary.
+
+## September 21: PR #1341 principal review projection and safe cleanup
+
+At 2026-09-21T23:00:27.607356+00:00, balance271,317,827/275,900,000ms. Project4,200,000ms total including360,000ms preprojection preparation and complete source/evidence/research/repair/build/check/replay/delivery work; two compiler workers, one model worker,8GiB RAM,2.25GiB temporary build and64MiB reports. No allowance extension needed for this projection. Corrected exposed replay plus a small same-request diagnostic, not a new final qualification or language campaign. Exact command/source projection precedes execution.
+
+Removed only 80 regenerable debug compiler object files, 1,016,963,072 allocated bytes, after verifying no active compiler/model process. Free before/after 38,561,619,968/39,578,435,584 bytes. Preserve36,766,079,385-byte reserve +128MiB stop margin. Models, research, reports, libraries/metadata, executables and all user folders including Downloads untouched. Manifest SHA256 67fc6ff63c2682f7936bcf8a8cdc0964595a2c5ca930c184536b384f7b1a6b14. No paid compute.
+
+## September21: PR #1341 principal corrections, verification and delivery charge
+
+Prospective complete projection 2026-09-21T23:00:27.607356+00:00:4,200,000ms including360,000ms preprojection preparation estimate, two compiler workers, one model worker,8GiB RAM,2.25GiB temporary build and64MiB report allowance. Exact commands/source hashes were recorded before each execution. Initial exposed replay passed; a subsequently identified malformed empty Stop acceptance required one validation correction and final focused checks/replay. Both report roots and the pre-correction executable/source diff are retained. No fresh-final or language campaign.
+
+Charge **2,296,209ms** = **1,636,209ms** elapsed from projection +360,000ms preparation estimate +300,000ms delivery reserve. This includes all principal builds/tests/replays/reviews; do not charge component runtimes again. Balance **273,614,036/275,900,000ms**, remaining **2,285,964ms**. No principal allowance extension or paid compute. Original DeepSeek14,000,000ms debit remains estimated; component estimates sum14,400,000ms without reliable overlap information.
+
+Storage: initial80 existing disposable compiler objects removed,1,016,963,072 allocated bytes. A second347 finished-build intermediates removed,1,263,931,392 bytes; final post-check disposal is recorded with its exact count/bytes and manifests in the [checks receipt](../evidence/relational-session-principal-checks-2026-09-21.json). Removal totals include files regenerated by these checks, and are not net free-space gain. Free after checks/cleanup **39,149,801,472bytes**. Preserve36,766,079,385-byte reserve +128MiB margin. All models/reports/research, original release and first corrected executable, libraries/metadata, owner checkout and Downloads retained. Energy UNAVAILABLE; debug experiment time is not optimized inference latency.

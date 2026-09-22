@@ -1,0 +1,1075 @@
+{
+  "schema": "uor-r4.pr1341-independent-evidence-audit/1",
+  "scope": "Read-only PR1341 saved-byte/event audit. No fitting, model execution or sealed-root writes.",
+  "submitted_head": "84ba72cea9f1283c56e36471b59f348a6f8c06ba",
+  "roots": {
+    "relational-session-1": {
+      "claimed_at": "1790030617",
+      "sealed_at": "1790030618",
+      "listed": 6,
+      "missing": [],
+      "unlisted": [],
+      "byte_size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "bec9dc3b98ea6945315eeeb8d1ff9a619b9d3871d90038588923370fce162d72",
+      "result_sha256": "aa3954862f4fec2299a8c30c8d16299441c275f6fa3c305a21007a4e3be96a7b",
+      "retained_bytes": 46558,
+      "reported_elapsed_s": 0.156498083,
+      "running_source": {
+        "executable_sha256": "e38db8c3d4ca98d6d318e4fb794b281450d1134477c1aa96e98e9ecc207748bb",
+        "git_dirty": "false",
+        "git_rev": "5821c48d11144ebd8b93c19fa5f283ec27b895e3",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "53fdbd96d6f76444ed7e50529ed799c1469eaa673444f6fc881b46fccdfa817e"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "4715a73ae0853c7c0ae737c6b5ee5d158e0bddd12ffde38f443f39cd0c6c6382"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes": {
+        "relational_cyclic_control.rlrm": "d55160f8de1f90c289de3cd368e7a4a54067db75da9649e6395de6afb371d14f",
+        "relational_categorical_control.rlrm": "248f0f06f230fba76d1b7c4ee212068305cea1654022cf15da3013a1739eb3d3",
+        "relational_primary.rlrm": "02f377740049214629b3ac33a36527f81a0defd66757d9afa3d172a1e4f53f95"
+      },
+      "primary_retained_rows": 128,
+      "primary_correct_recount": 128,
+      "reported_arms": [
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "development",
+          "total": 128
+        },
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "categorical_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "cyclic_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "relation_match_frozen",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "continuation_frozen_continue",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        }
+      ],
+      "interventions": null
+    },
+    "relational-session-2": {
+      "claimed_at": "1790030654",
+      "sealed_at": "1790030655",
+      "listed": 6,
+      "missing": [],
+      "unlisted": [],
+      "byte_size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "bec9dc3b98ea6945315eeeb8d1ff9a619b9d3871d90038588923370fce162d72",
+      "result_sha256": "e68759682b882e3eeeebeac0a55697278c99703a50b6f70a96f4e629e519b5ca",
+      "retained_bytes": 48014,
+      "reported_elapsed_s": 0.153288833,
+      "running_source": {
+        "executable_sha256": "1ca42b1b7dbbf49815c9809a47f4b8c68bece015221c9afa9c1f4fb2aee69243",
+        "git_dirty": "false",
+        "git_rev": "5821c48d11144ebd8b93c19fa5f283ec27b895e3",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "53fdbd96d6f76444ed7e50529ed799c1469eaa673444f6fc881b46fccdfa817e"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "c4927f8cae071a008a48e9a0d626ee650e09ca2880e69ad97cec35906a47d44a"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes": {
+        "relational_cyclic_control.rlrm": "d55160f8de1f90c289de3cd368e7a4a54067db75da9649e6395de6afb371d14f",
+        "relational_categorical_control.rlrm": "248f0f06f230fba76d1b7c4ee212068305cea1654022cf15da3013a1739eb3d3",
+        "relational_primary.rlrm": "02f377740049214629b3ac33a36527f81a0defd66757d9afa3d172a1e4f53f95"
+      },
+      "primary_retained_rows": 128,
+      "primary_correct_recount": 128,
+      "reported_arms": [
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "development",
+          "total": 128
+        },
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "categorical_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "cyclic_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "relation_match_frozen",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "continuation_frozen_continue",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        }
+      ],
+      "interventions": {
+        "interleaved_sessions_independent": true,
+        "one_position_source_edit": {
+          "answer_changed": true,
+          "changed_record_index": 0,
+          "emitted_after": 517,
+          "emitted_before": 515,
+          "entity": 485,
+          "independent_expected_after": 517,
+          "matches_independent_expectation": true,
+          "relation": 424,
+          "retained_after": [
+            486,
+            517
+          ],
+          "retained_before": [
+            488,
+            515
+          ],
+          "value_after": 486,
+          "value_before": 488,
+          "world": 0
+        },
+        "owned_capture_versus_live_reference": {
+          "origin_is_live": false,
+          "origin_now": 517,
+          "owned_payload": 488,
+          "owned_still_usable": true
+        },
+        "pause_resume_identical": {
+          "identical": 128,
+          "total": 128
+        },
+        "plausible_distractor_added": {
+          "answer_preserved": true,
+          "selected_roles_preserved": true
+        },
+        "request_relation_change_fixed_evidence": {
+          "changed": true,
+          "emitted_after": 513,
+          "emitted_before": 515,
+          "entity": 485,
+          "independent_expected_after": 513,
+          "matches_independent_expectation": true,
+          "relation_after": 434,
+          "relation_before": 424,
+          "selected_roles_after": [
+            447
+          ],
+          "selected_roles_before": [
+            440,
+            447
+          ]
+        },
+        "required_record_removed": {
+          "emitted": 517,
+          "removed_index": 0,
+          "terminal": "Stop"
+        }
+      }
+    },
+    "relational-session-3": {
+      "claimed_at": "1790030684",
+      "sealed_at": "1790030684",
+      "listed": 6,
+      "missing": [],
+      "unlisted": [],
+      "byte_size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "bec9dc3b98ea6945315eeeb8d1ff9a619b9d3871d90038588923370fce162d72",
+      "result_sha256": "7f432bcfba3b78205e43bae6fe517bf6f5eddc6cfb70572d6023f2b5424ddb81",
+      "retained_bytes": 48243,
+      "reported_elapsed_s": 0.154882083,
+      "running_source": {
+        "executable_sha256": "46642d27ee06d6305dc9e0cf15f3c40a4b67b3dd2e7f056842267aeb53ae16b5",
+        "git_dirty": "false",
+        "git_rev": "5821c48d11144ebd8b93c19fa5f283ec27b895e3",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "53fdbd96d6f76444ed7e50529ed799c1469eaa673444f6fc881b46fccdfa817e"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "1905196d3a7ca9c19c0677b62464cc263842ffc79b6f5c5c29b0952255259cde"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "artifact_hashes": {
+        "relational_cyclic_control.rlrm": "d55160f8de1f90c289de3cd368e7a4a54067db75da9649e6395de6afb371d14f",
+        "relational_categorical_control.rlrm": "248f0f06f230fba76d1b7c4ee212068305cea1654022cf15da3013a1739eb3d3",
+        "relational_primary.rlrm": "02f377740049214629b3ac33a36527f81a0defd66757d9afa3d172a1e4f53f95"
+      },
+      "primary_retained_rows": 128,
+      "primary_correct_recount": 128,
+      "reported_arms": [
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "development",
+          "total": 128
+        },
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "categorical_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "cyclic_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "relation_match_frozen",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "continuation_frozen_continue",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        }
+      ],
+      "interventions": {
+        "incomplete_world_missing_required_fact": {
+          "note": "the required record is removed from the world; the session must stop unresolved with no emission",
+          "total": 16,
+          "unresolved_and_silent": 16
+        },
+        "interleaved_sessions_independent": true,
+        "one_position_source_edit": {
+          "answer_changed": true,
+          "changed_record_index": 0,
+          "emitted_after": 517,
+          "emitted_before": 515,
+          "entity": 485,
+          "independent_expected_after": 517,
+          "matches_independent_expectation": true,
+          "relation": 424,
+          "retained_after": [
+            486,
+            517
+          ],
+          "retained_before": [
+            488,
+            515
+          ],
+          "value_after": 486,
+          "value_before": 488,
+          "world": 0
+        },
+        "owned_capture_versus_live_reference": {
+          "origin_is_live": false,
+          "origin_now": 517,
+          "owned_payload": 488,
+          "owned_still_usable": true
+        },
+        "pause_resume_identical": {
+          "identical": 128,
+          "total": 128
+        },
+        "plausible_distractor_added": {
+          "answer_preserved": true,
+          "selected_roles_preserved": true
+        },
+        "request_relation_change_fixed_evidence": {
+          "changed": true,
+          "emitted_after": 513,
+          "emitted_before": 515,
+          "entity": 485,
+          "independent_expected_after": 513,
+          "matches_independent_expectation": true,
+          "relation_after": 434,
+          "relation_before": 424,
+          "selected_roles_after": [
+            447
+          ],
+          "selected_roles_before": [
+            440,
+            447
+          ]
+        },
+        "required_record_removed": {
+          "emitted": null,
+          "removed_index": 0,
+          "terminal": "Unresolved"
+        }
+      }
+    },
+    "relational-session-4": {
+      "claimed_at": "1790030923",
+      "sealed_at": "1790030923",
+      "listed": 6,
+      "missing": [],
+      "unlisted": [],
+      "byte_size_errors": [],
+      "blake3_errors": [],
+      "rows_sha256": "bec9dc3b98ea6945315eeeb8d1ff9a619b9d3871d90038588923370fce162d72",
+      "result_sha256": "83f0dc1e9dd23a94e1afecc0c63605002b7618cee5ff5814fd6188f3a81eb7e2",
+      "retained_bytes": 48243,
+      "reported_elapsed_s": 0.158763209,
+      "running_source": {
+        "executable_sha256": "009d6faca625b0810c6f77b8ffeaaa980197548646491de33156164ad661bc08",
+        "git_dirty": "false",
+        "git_rev": "5821c48d11144ebd8b93c19fa5f283ec27b895e3",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs",
+            "sha256": "78caa5864101346c81f4be84735eab1304e499de48cbed3cf5a2a33f9488cf49"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "7dd2274c5f3f47db04b1aede424e082ae2852fe1a96c6d90ac433f21c1bd145e"
+          }
+        ]
+      },
+      "source_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/relational_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "artifact_hashes": {
+        "relational_cyclic_control.rlrm": "d55160f8de1f90c289de3cd368e7a4a54067db75da9649e6395de6afb371d14f",
+        "relational_categorical_control.rlrm": "248f0f06f230fba76d1b7c4ee212068305cea1654022cf15da3013a1739eb3d3",
+        "relational_primary.rlrm": "02f377740049214629b3ac33a36527f81a0defd66757d9afa3d172a1e4f53f95"
+      },
+      "primary_retained_rows": 128,
+      "primary_correct_recount": 128,
+      "reported_arms": [
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "development",
+          "total": 128
+        },
+        {
+          "arm": "learned_relational",
+          "complete": 128,
+          "depth_correct": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "categorical_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "cyclic_control",
+          "complete": 128,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "relation_match_frozen",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "continuation_frozen_continue",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        },
+        {
+          "arm": "reads_disabled",
+          "complete": 0,
+          "split": "final",
+          "total": 128
+        }
+      ],
+      "interventions": {
+        "incomplete_world_missing_required_fact": {
+          "note": "the required record is removed from the world; the session must stop unresolved with no emission",
+          "total": 16,
+          "unresolved_and_silent": 16
+        },
+        "interleaved_sessions_independent": true,
+        "one_position_source_edit": {
+          "answer_changed": true,
+          "changed_record_index": 0,
+          "emitted_after": 517,
+          "emitted_before": 515,
+          "entity": 485,
+          "independent_expected_after": 517,
+          "matches_independent_expectation": true,
+          "relation": 424,
+          "retained_after": [
+            486,
+            517
+          ],
+          "retained_before": [
+            488,
+            515
+          ],
+          "value_after": 486,
+          "value_before": 488,
+          "world": 0
+        },
+        "owned_capture_versus_live_reference": {
+          "origin_is_live": false,
+          "origin_now": 517,
+          "owned_payload": 488,
+          "owned_still_usable": true
+        },
+        "pause_resume_identical": {
+          "identical": 128,
+          "total": 128
+        },
+        "plausible_distractor_added": {
+          "answer_preserved": true,
+          "selected_roles_preserved": true
+        },
+        "request_relation_change_fixed_evidence": {
+          "changed": true,
+          "emitted_after": 513,
+          "emitted_before": 515,
+          "entity": 485,
+          "independent_expected_after": 513,
+          "matches_independent_expectation": true,
+          "relation_after": 434,
+          "relation_before": 424,
+          "selected_roles_after": [
+            447
+          ],
+          "selected_roles_before": [
+            440,
+            447
+          ]
+        },
+        "required_record_removed": {
+          "emitted": null,
+          "removed_index": 0,
+          "terminal": "Unresolved"
+        }
+      }
+    }
+  },
+  "provenance": {
+    "preserved_executable": "/tmp/uor-pr1341-original-competitive-reader",
+    "executable_sha256": "009d6faca625b0810c6f77b8ffeaaa980197548646491de33156164ad661bc08",
+    "matches_run4": true,
+    "all_run4_source_hashes_match_submitted": true,
+    "source_note": "Git stamp is reviewed parent; source-file hashes identify actual new implementation."
+  },
+  "exposure": {
+    "all_four_retained_primary_row_sets_byte_identical": true,
+    "all_four_primary_artifacts_identical": true,
+    "all_four_have_same_final_seed": "Source hard-codes REL_FINAL_SEED=0xC0F50101. All four rows identical. Compatibility-gate and intervention repairs followed final-panel exposure.",
+    "qualification": "Final split is development-disjoint in world assignment but repeatedly exposed during instrumentation/design; not an untouched final qualification."
+  },
+  "artifacts": {
+    "relational_cyclic_control": {
+      "version": 1,
+      "cyclic": true,
+      "categorical": false,
+      "relation_domain": [
+        424,
+        433,
+        434,
+        438
+      ],
+      "role_domain": [
+        440,
+        445,
+        447,
+        449
+      ],
+      "relation_code": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "role_code": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "follow": [
+        [
+          424,
+          434
+        ],
+        [
+          433,
+          438
+        ]
+      ],
+      "weights": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "continue_policy": [
+        0,
+        1
+      ],
+      "categorical_table": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "bytes": 140,
+      "sha256": "d55160f8de1f90c289de3cd368e7a4a54067db75da9649e6395de6afb371d14f"
+    },
+    "relational_categorical_control": {
+      "version": 1,
+      "cyclic": false,
+      "categorical": true,
+      "relation_domain": [
+        424,
+        433,
+        434,
+        438
+      ],
+      "role_domain": [
+        440,
+        445,
+        447,
+        449
+      ],
+      "relation_code": [
+        1,
+        8,
+        15,
+        22
+      ],
+      "role_code": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "follow": [
+        [
+          424,
+          434
+        ],
+        [
+          433,
+          438
+        ]
+      ],
+      "weights": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "continue_policy": [
+        0,
+        1
+      ],
+      "categorical_table": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "bytes": 140,
+      "sha256": "248f0f06f230fba76d1b7c4ee212068305cea1654022cf15da3013a1739eb3d3"
+    },
+    "relational_primary": {
+      "version": 1,
+      "cyclic": false,
+      "categorical": false,
+      "relation_domain": [
+        424,
+        433,
+        434,
+        438
+      ],
+      "role_domain": [
+        440,
+        445,
+        447,
+        449
+      ],
+      "relation_code": [
+        2,
+        17,
+        30,
+        35
+      ],
+      "role_code": [
+        3,
+        14,
+        25,
+        36
+      ],
+      "follow": [
+        [
+          424,
+          434
+        ],
+        [
+          433,
+          438
+        ]
+      ],
+      "weights": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "continue_policy": [
+        0,
+        1
+      ],
+      "categorical_table": [
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "bytes": 140,
+      "sha256": "02f377740049214629b3ac33a36527f81a0defd66757d9afa3d172a1e4f53f95"
+    }
+  },
+  "primary_recount": {
+    "rows": 128,
+    "independent_world_draws": 4,
+    "by_world": {
+      "0": 32,
+      "1": 32,
+      "2": 32,
+      "3": 32
+    },
+    "by_relation": {
+      "424": {
+        "requests": 32,
+        "depths": [
+          2
+        ]
+      },
+      "433": {
+        "requests": 32,
+        "depths": [
+          2
+        ]
+      },
+      "434": {
+        "requests": 32,
+        "depths": [
+          1
+        ]
+      },
+      "438": {
+        "requests": 32,
+        "depths": [
+          1
+        ]
+      }
+    },
+    "depth_counts": {
+      "2": 64,
+      "1": 64
+    },
+    "decoded_output_counts": {
+      "able": 26,
+      "ong": 42,
+      "ame": 24,
+      "ear": 36
+    },
+    "token_counts": {
+      "515": 26,
+      "516": 42,
+      "513": 24,
+      "517": 36
+    },
+    "checks_true_counts": {
+      "expected_matches": 128,
+      "emitted_correct": 128,
+      "exact_occurrences_match": 128,
+      "retained_matches": 128,
+      "roles_match": 128,
+      "flags_match": 128
+    },
+    "all_reported_primary_correct_flags_match": true,
+    "action_event_count": 448,
+    "selection_count": 192,
+    "read_action_event_count": 128,
+    "note": "Actions omit the second Read event; only primary final rows retained, no development/comparator/lesion row files."
+  },
+  "intervention_reconstruction": {
+    "first_source_edit_changed_record_indices": [
+      0
+    ],
+    "before": {
+      "answer": 515,
+      "depth": 2,
+      "selected_abs": [
+        0,
+        14
+      ],
+      "retained": [
+        488,
+        515
+      ],
+      "selected_roles": [
+        440,
+        447
+      ]
+    },
+    "after": {
+      "answer": 517,
+      "depth": 2,
+      "selected_abs": [
+        0,
+        6
+      ],
+      "retained": [
+        486,
+        517
+      ],
+      "selected_roles": [
+        440,
+        447
+      ]
+    },
+    "answer_changes": true,
+    "second_occurrence_changes": true,
+    "follow_relation_before_after": [
+      434,
+      434
+    ],
+    "query_entity_before_after": [
+      488,
+      486
+    ],
+    "note": "Source edit changes second-query entity, not follow-up relation. Downstream records fixed. Saved intervention lacks selected occurrence traces; reconstructed from pinned fixture source.",
+    "missing_source": "Original incomplete-world intervention removes first required fact only; not a missing second entity record or same-value/version overwrite test."
+  },
+  "claim_audit": {
+    "learned_components": [
+      "relation/role code assignment or categorical compatibility table",
+      "relation-indexed follow map from development intermediate supervision"
+    ],
+    "scorer_weights": "Fixed [1,1,0,0]; no weight fit. Across admitted candidates exact_key constant, content_is_key passed as a single per-query value; relation match is the only discriminant.",
+    "continuation_policy": "Initialized to already correct [false,true]. Training derives both feature and target from e.depth>=2 instead of observing world key membership. The policy does not change. policy_initial=1 counts true entries, policy_final=128 counts examples: incomparable quantities.",
+    "depth_confound": "Every relation0/1 is always two reads, every relation2/3 always one. A relation-only fixed-depth policy perfectly predicts all observed depths, so same-request content-dependent scheduling advantage remains untested.",
+    "geometric_identity": "H4 code tests relative element0, but canonical identity is1; code0 is central -1. Learned antipodal codes compensate. Cyclic identity0 is correct. Classification scores hold, claimed identity interpretation needs repair.",
+    "geometric_scope": "Testing whether a^-1*z equals one fixed group element is a relabeled equality relation. All three arms tie by construction-level expressive equivalence on this fixture; no noncommutative/order geometry used.",
+    "no_relation_lesion": "Always selects candidate0 while retaining learned compatibility gate. Requests that could survive first selection terminate on second incompatible relation. The 0/128 is whole ranking-plus-gate intervention, not evidence that group structure is necessary.",
+    "resume": "rel_serve always constructs fresh RelFrame. resume_probe serializes/deserializes after capture but retains host-loop program counter, chosen.value, relation and trace vectors; subsequent control uses chosen.value rather than restored payload. No snapshot bytes or resumed trajectories retained, no external continuation entry exercised.",
+    "interleave": "Two frame structs receive manual field mutations; no interleaved predictor or alternate model/world resume. Checks only retained/emitted fields.",
+    "ownership": "CapturedPayload fields public; live-origin diagnostic compares scalar payload only, ignores seq/abs/version. Same-value overwrite would be falsely live. No model/geometry/tokenizer/session identity binding in model or frame.",
+    "loaded_serving": "All three actual loaded objects used for evaluated serving. Full-predictor pre/post parity256 requests primary only; categorical/cyclic parameter roundtrip equality plus loaded serving, no explicit pre/post full-predictor parity.",
+    "output_scope": "One literal token among four, decoded strings ame/able/ong/ear. These are complete answers only for supplied typed-world task; no natural-language parsing/prose.",
+    "raw_evidence_scope": "Complete primary final rows are retained. Development/comparator/lesion outcomes summarized only. Raw worlds reconstructed from constant seeds/source; no event-level all-arm audit possible from stored reports alone."
+  },
+  "resources": {
+    "all_four_saved_run_elapsed_s": 0.623432208,
+    "retained_report_bytes": 191058,
+    "model_runs_by_auditor": 0,
+    "builds_by_auditor": 0,
+    "ledger_charge_claim_ms": 14000000,
+    "component_estimates_sum_ms": 14400000,
+    "estimate_note": "Listed 900+1800+3600+4200+1500+2400 seconds total14400, vs14000 charged; no trustworthy measured breakdown to reconcile overlap. Preserve as estimated charge, not measured wall time.",
+    "energy": "UNAVAILABLE"
+  },
+  "script_sha256": "3f39a7e4f92854724eb993be7e04afecf4bf832716b6bde0144b1f954d481b9e"
+}
