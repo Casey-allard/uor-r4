@@ -1,6 +1,29 @@
 # Current native geometric AI work
 
-## Active: correction-aware scoped conversation memory
+## Active — principal review of scoped correction memory, September22
+
+**PR #1346, principal review:** retain learned scoped correction memory with exact version authority. Submitted primary 38/38 is expected-outcome agreement over 34 language questions and 4 explicit API queries (36 Complete, one NoHistory, one Unresolved). Final 10 language + 1 API queries use unfamiliar whole lexical strings in the exposed interaction structure; root 13 first evaluates them and root 14 replays them. [Review](../integration/scoped-memory-review-2026-09-22.md) and [independent audit](../evidence/scoped-memory-submission-audit-2026-09-22.json) own qualifications.
+
+The principal source correction repairs repeated capacity eviction, store/capture/emission/restore integrity, raw-text restart interpretation, and the pin/control instruments. Seventeen module tests, 25 runner tests (one legacy test ignored), release build and corrected exposed execution pass. Exact executed status is in the [checks receipt](../evidence/scoped-memory-principal-checks-2026-09-22.json); original artifacts remain retained. Capacity bounds token payloads per address, not all history bytes. Learned parameters, general scheduling, whole-path D0-b and energy claims are separate.
+
+**Next:** [consume one Q8-derived value inside this same session](../integration/deepseek-consumed-geometric-state-step-2026-09-22.md), so learned observed operations and a selected source change a later exact query and complete answer. Preserve scope/history/correction and actual restart. E/S prose/conversation and executed Rust follow, then integrated artifact/laptop qualification. Signed Q8 already supplies an order/sign witness; Hopf fiber, E8/S7 and harmonic/scalar mechanisms remain available for a measured need.
+
+## Historical submitted state (qualified by the principal review above)
+
+
+## Submitted direction before principal qualification
+
+**Completed step (source `c4bd440a`):** [correction-aware scoped conversation memory](scoped-correction-memory-result-2026-09-22.md) now runs on one loaded path. The retained joint binder observes ordinary assertions about unfamiliar entities; a separately fitted intent table reads the cue span for assert / explicit correction / declared nonasserting and for current / previous / initial questions. Addresses are injective length-delimited `(scope, entity lexical key, relation)` records with exact id, predecessor, global commit, source and owned payload; version order, equality and predecessor traversal are exact infrastructure and **a parse score never decides which fact is current**. Declared before fitting: same-value reassertion appends a revision without deduplication, a contradictory bare assertion becomes current and is marked `conflict`, an explicit correction supersedes without conflict, `previous` is the previous assertion while the previous distinct value is a separate exact query, `initial` is the earliest revision and an evicted one is typed, and a historical dependent request applies its view to the first hop only.
+
+**Executed:** development **16/16**, exposed regression **11/11** and fresh final **11/11** complete answers with correct depths; binder **84/84** exact spans+roles and cue-role matches; intent **48/48** statement and **36/36** question; nonasserting inputs write nothing. Controls (NoRead 0/38, UpdateDisabled 1/38, Unscoped 33/38, ParseScoreAuthority 19/38, reduced capacity typed) each change the measured answers. A pinned read is not spliced by a mid-answer correction while the unpinned control is; an owned capture survives replacement with origin liveness false; physical storage order is irrelevant; a real disk reload and a **separate process** reproduce every answer. [Evidence](../evidence/scoped-correction-memory-2026-09-22.json).
+
+**Localized obstruction resolved:** the first fresh final scored 9/11 because one unseen three-token entity name was cut by one token in its clause-initial occurrence, so its exact lexical key differed from the same name's internal occurrence. The cause was the observation boundary, not identity, admission or version eligibility. Widened supervision (one-to-four-token names, five values) and copula-free correction/nonassertion cues fixed it; that informed panel is retained as exposed and the fresh final was drawn afterwards.
+
+**Next complete milestone:** consume one Q8-derived computation result through this same owned session so a changed computation changes a subsequent read or complete answer, with source/update-disabled controls and no fixed host schedule. Then retained E/S language prediction and executed Rust through the same artifact. Structural banks, Hopf fiber, signed Spin-H4 and conditional paired-H4/icosian E8, S7 and harmonic functions remain tools for a witnessed need; no geometric component participates in this milestone's serving path and none is claimed.
+
+**Geometric contribution measured in this step: none.** The retained H4 artifact is unchanged and was not re-swept: its exact-hit code search is saturated, so another sweep is uninformative.
+
+## Previous active: correction-aware scoped conversation memory
 
 **PR #1344, principal reviewed:** retain learned extraction across the tested ordinary forms, exact lexical joins across different BPE tokenizations and dependent copying. Both arms retain **48/48 development,40/40 exposed and24/24 final-composition** answers. Root7 first evaluated the post-selection composition panel; root8 and the principal correction replay it. Vocabulary/forms and all question strings overlap training; unfamiliar-entity and novel-syntax transfer remain unqualified. [Principal review](../integration/ordinary-form-binding-review-2026-09-22.md); [independent audit](../evidence/ordinary-form-binding-principal-audit-2026-09-22.json).
 

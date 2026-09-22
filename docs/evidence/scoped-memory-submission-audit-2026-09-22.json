@@ -1,0 +1,1307 @@
+{
+  "schema": "uor-r4.scoped-submitted-independent-audit/1",
+  "method": "Read-only files/source audit; no build or model execution",
+  "roots": [
+    {
+      "root": 1,
+      "exists": true,
+      "files": [
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {}
+    },
+    {
+      "root": 2,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 3,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 4,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 5,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 6,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 7,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 8,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json"
+      ],
+      "sealed": false,
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      }
+    },
+    {
+      "root": 9,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json",
+        "manifest.json",
+        "reload/intent.json",
+        "reload/model.json",
+        "reload/queries.json",
+        "reload/store.json",
+        "result.json",
+        "rows.jsonl"
+      ],
+      "sealed": true,
+      "bad_seal_files": [],
+      "unlisted": [],
+      "missing": [],
+      "sealed_at": "1790057995",
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      },
+      "source": {
+        "executable_sha256": "9a0075a65f12c512d7b9d1eae81a045ecd73b7f8ca219267247f7cb34d4b6492",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "3d2b8586e0cd73c9e4a9623f822e3fd34e3d6dcfc6bdb26bd5f0713bbc2cc76c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "41e66d2de46baad2f015378fdc50591b5c61e1d2d72e176a687424c2e4776bc2"
+          }
+        ]
+      },
+      "learning": {
+        "binder": {
+          "candidate_updates": 29,
+          "clauses": 42,
+          "cue_role_correct": 42,
+          "epochs_run": 4,
+          "h4_enabled": false,
+          "h4_evaluations": 0,
+          "h4_moves": 0,
+          "policy_examples": 24,
+          "policy_final_correct": 24,
+          "policy_initial_correct": 18,
+          "role_final_correct": 42,
+          "role_initial_correct": 0,
+          "role_weights": 62,
+          "roles_observed": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "segment_potentials": 299,
+          "span_final_correct": 42,
+          "span_initial_correct": 0
+        },
+        "intent": {
+          "epochs_run": 5,
+          "examples": 42,
+          "question_final_correct": 18,
+          "question_initial_correct": 6,
+          "question_weights": 16,
+          "statement_final_correct": 24,
+          "statement_initial_correct": 12,
+          "statement_weights": 31,
+          "updates": 22
+        }
+      },
+      "primary": [
+        {
+          "arm": "primary",
+          "branch_correct": 13,
+          "branch_total": 13,
+          "complete": 2,
+          "intent_correct": 12,
+          "intent_total": 13,
+          "nowrite_correct": 2,
+          "nowrite_total": 2,
+          "questions": 16,
+          "script": "development"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 0,
+          "intent_correct": 6,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "final"
+        }
+      ],
+      "rows": 373,
+      "kind_counts": {
+        "ingest": 178,
+        "ask": 173,
+        "ask_view": 22
+      },
+      "rows_sha256": "7e4ca6effaf68829e69402c00e58fa1fdaf0ea42eb07b2c2f136961dfab88374"
+    },
+    {
+      "root": 10,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json",
+        "manifest.json",
+        "reload/intent.json",
+        "reload/model.json",
+        "reload/queries.json",
+        "reload/store.json",
+        "result.json",
+        "rows.jsonl"
+      ],
+      "sealed": true,
+      "bad_seal_files": [],
+      "unlisted": [],
+      "missing": [],
+      "sealed_at": "1790058141",
+      "artifacts": {
+        "artifacts/binder.json": "b42b34934f3150aa7f35510aaa80f312f5bff6556ebd641c33c8c14a158db844",
+        "artifacts/intent.json": "34c334bbff6bd4045ba8530bc2e107e16ad50b8cd2a9289344a028f8cc07abbd"
+      },
+      "source": {
+        "executable_sha256": "c6de60cf91bd92b6748ac2846331ce4b6e77a78b74e6df10d552d701c0e429f8",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "6fa4b53c4fd46c1a3a6ce27d1ad90f8f25a33da495e5e3125b44a5490ae51153"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "6bcf5ec8819a0475cae8d7b525ec8f1dd49aab54aa3fbd29297b1c907906f785"
+          }
+        ]
+      },
+      "learning": {
+        "binder": {
+          "candidate_updates": 29,
+          "clauses": 42,
+          "cue_role_correct": 42,
+          "epochs_run": 4,
+          "h4_enabled": false,
+          "h4_evaluations": 0,
+          "h4_moves": 0,
+          "policy_examples": 24,
+          "policy_final_correct": 24,
+          "policy_initial_correct": 18,
+          "role_final_correct": 42,
+          "role_initial_correct": 0,
+          "role_weights": 62,
+          "roles_observed": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "segment_potentials": 299,
+          "span_final_correct": 42,
+          "span_initial_correct": 0
+        },
+        "intent": {
+          "epochs_run": 5,
+          "examples": 42,
+          "question_final_correct": 18,
+          "question_initial_correct": 6,
+          "question_weights": 16,
+          "statement_final_correct": 24,
+          "statement_initial_correct": 12,
+          "statement_weights": 31,
+          "updates": 22
+        }
+      },
+      "primary": [
+        {
+          "arm": "primary",
+          "branch_correct": 13,
+          "branch_total": 13,
+          "complete": 16,
+          "intent_correct": 12,
+          "intent_total": 13,
+          "nowrite_correct": 2,
+          "nowrite_total": 2,
+          "questions": 16,
+          "script": "development"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 3,
+          "intent_correct": 6,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "final"
+        }
+      ],
+      "rows": 373,
+      "kind_counts": {
+        "ingest": 178,
+        "ask": 173,
+        "ask_view": 22
+      },
+      "rows_sha256": "bf6a95271d35ffbbeda68e6b81b989b9c922b7e853515061ae566c3d729f2c0b"
+    },
+    {
+      "root": 11,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json",
+        "manifest.json",
+        "reload/intent.json",
+        "reload/model.json",
+        "reload/queries.json",
+        "reload/store.json",
+        "result.json",
+        "rows.jsonl"
+      ],
+      "sealed": true,
+      "bad_seal_files": [],
+      "unlisted": [],
+      "missing": [],
+      "sealed_at": "1790058364",
+      "artifacts": {
+        "artifacts/binder.json": "304a0b31aaf0b8e643082150437c1a1fa2d3ace4ac7abd1cba9cb42ef8eda681",
+        "artifacts/intent.json": "6d2d35be257f5aa5dd25e197b2525d85234b89f35d3816754de1a5203cd1299d"
+      },
+      "source": {
+        "executable_sha256": "95101895a504c8da6f3d46079f7e9144d679f1b588a03701f07ec69fcc972c31",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "6fa4b53c4fd46c1a3a6ce27d1ad90f8f25a33da495e5e3125b44a5490ae51153"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "a3f9f748d7e7e94ace3bd91837277fe1c9d186728e549e52d874fa147e0e168a"
+          }
+        ]
+      },
+      "learning": {
+        "binder": {
+          "candidate_updates": 23,
+          "clauses": 42,
+          "cue_role_correct": 42,
+          "epochs_run": 5,
+          "h4_enabled": false,
+          "h4_evaluations": 0,
+          "h4_moves": 0,
+          "policy_examples": 24,
+          "policy_final_correct": 24,
+          "policy_initial_correct": 18,
+          "role_final_correct": 42,
+          "role_initial_correct": 0,
+          "role_weights": 63,
+          "roles_observed": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "segment_potentials": 319,
+          "span_final_correct": 42,
+          "span_initial_correct": 0
+        },
+        "intent": {
+          "epochs_run": 4,
+          "examples": 42,
+          "question_final_correct": 18,
+          "question_initial_correct": 6,
+          "question_weights": 16,
+          "statement_final_correct": 24,
+          "statement_initial_correct": 12,
+          "statement_weights": 33,
+          "updates": 21
+        }
+      },
+      "primary": [
+        {
+          "arm": "primary",
+          "branch_correct": 13,
+          "branch_total": 13,
+          "complete": 16,
+          "intent_correct": 13,
+          "intent_total": 13,
+          "nowrite_correct": 2,
+          "nowrite_total": 2,
+          "questions": 16,
+          "script": "development"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 9,
+          "intent_correct": 12,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "final"
+        }
+      ],
+      "rows": 373,
+      "kind_counts": {
+        "ingest": 178,
+        "ask": 173,
+        "ask_view": 22
+      },
+      "rows_sha256": "0f3441664a543053c8ef01a13a081dc571e3b72c224db9aab194d1f981f6d63e"
+    },
+    {
+      "root": 12,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json",
+        "manifest.json",
+        "reload/intent.json",
+        "reload/model.json",
+        "reload/queries.json",
+        "reload/store.json",
+        "result.json",
+        "rows.jsonl"
+      ],
+      "sealed": true,
+      "bad_seal_files": [],
+      "unlisted": [],
+      "missing": [],
+      "sealed_at": "1790058411",
+      "artifacts": {
+        "artifacts/binder.json": "304a0b31aaf0b8e643082150437c1a1fa2d3ace4ac7abd1cba9cb42ef8eda681",
+        "artifacts/intent.json": "6d2d35be257f5aa5dd25e197b2525d85234b89f35d3816754de1a5203cd1299d"
+      },
+      "source": {
+        "executable_sha256": "34587bfdc02d8121b36f7bdd830c61a98adea703624811c84d0fa7c9c2f9f3d9",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "6fa4b53c4fd46c1a3a6ce27d1ad90f8f25a33da495e5e3125b44a5490ae51153"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "c5af59951137b4cd0c138c96c5c97eac9ee252ce2d7ddb08d136c77adce3f818"
+          }
+        ]
+      },
+      "learning": {
+        "binder": {
+          "candidate_updates": 23,
+          "clauses": 42,
+          "cue_role_correct": 42,
+          "epochs_run": 5,
+          "h4_enabled": false,
+          "h4_evaluations": 0,
+          "h4_moves": 0,
+          "policy_examples": 24,
+          "policy_final_correct": 24,
+          "policy_initial_correct": 18,
+          "role_final_correct": 42,
+          "role_initial_correct": 0,
+          "role_weights": 63,
+          "roles_observed": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "segment_potentials": 319,
+          "span_final_correct": 42,
+          "span_initial_correct": 0
+        },
+        "intent": {
+          "epochs_run": 4,
+          "examples": 42,
+          "question_final_correct": 18,
+          "question_initial_correct": 6,
+          "question_weights": 16,
+          "statement_final_correct": 24,
+          "statement_initial_correct": 12,
+          "statement_weights": 33,
+          "updates": 21
+        }
+      },
+      "primary": [
+        {
+          "arm": "primary",
+          "branch_correct": 13,
+          "branch_total": 13,
+          "complete": 16,
+          "intent_correct": 13,
+          "intent_total": 13,
+          "nowrite_correct": 2,
+          "nowrite_total": 2,
+          "questions": 16,
+          "script": "development"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 9,
+          "intent_correct": 12,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "final"
+        }
+      ],
+      "rows": 373,
+      "kind_counts": {
+        "ingest": 178,
+        "ask": 173,
+        "ask_view": 22
+      },
+      "rows_sha256": "c1aaf6d4183c8c70dd8b80bb85f50ca05a487e3e6055c79c0c921cfc361ada35"
+    },
+    {
+      "root": 13,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json",
+        "manifest.json",
+        "reload/intent.json",
+        "reload/model.json",
+        "reload/queries.json",
+        "reload/store.json",
+        "result.json",
+        "rows.jsonl"
+      ],
+      "sealed": true,
+      "bad_seal_files": [],
+      "unlisted": [],
+      "missing": [],
+      "sealed_at": "1790058551",
+      "artifacts": {
+        "artifacts/binder.json": "a6cdbeca00a504aa68d8ae25fc7e39b57917fb945fe02bb9b403288d33ac0502",
+        "artifacts/intent.json": "862387f728d5ce2101bab727e44c86c8ddf9de0fa13d3e7e6352f0ea054d0aa6"
+      },
+      "source": {
+        "executable_sha256": "04d4875b31b25a4209d2c11ab92417d4f7925d327c048ccfc6f8f34402aedc95",
+        "git_dirty": "true",
+        "git_rev": "uncommitted",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "6fa4b53c4fd46c1a3a6ce27d1ad90f8f25a33da495e5e3125b44a5490ae51153"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "37dfbc1eb708e3edcf540e46ff7d6173860280cb212e23584fdffa55724755eb"
+          }
+        ]
+      },
+      "learning": {
+        "binder": {
+          "candidate_updates": 28,
+          "clauses": 84,
+          "cue_role_correct": 84,
+          "epochs_run": 4,
+          "h4_enabled": false,
+          "h4_evaluations": 0,
+          "h4_moves": 0,
+          "policy_examples": 48,
+          "policy_final_correct": 48,
+          "policy_initial_correct": 36,
+          "role_final_correct": 84,
+          "role_initial_correct": 0,
+          "role_weights": 71,
+          "roles_observed": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "segment_potentials": 359,
+          "span_final_correct": 84,
+          "span_initial_correct": 0
+        },
+        "intent": {
+          "epochs_run": 5,
+          "examples": 84,
+          "question_final_correct": 36,
+          "question_initial_correct": 12,
+          "question_weights": 17,
+          "statement_final_correct": 48,
+          "statement_initial_correct": 24,
+          "statement_weights": 40,
+          "updates": 23
+        }
+      },
+      "primary": [
+        {
+          "arm": "primary",
+          "branch_correct": 13,
+          "branch_total": 13,
+          "complete": 16,
+          "intent_correct": 13,
+          "intent_total": 13,
+          "nowrite_correct": 2,
+          "nowrite_total": 2,
+          "questions": 16,
+          "script": "development"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 11,
+          "intent_correct": 12,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "exposed_regression"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 11,
+          "intent_correct": 12,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "final"
+        }
+      ],
+      "rows": 511,
+      "kind_counts": {
+        "ingest": 250,
+        "ask": 233,
+        "ask_view": 28
+      },
+      "rows_sha256": "8dae86e792166e63862c84cd959744c398ffbf45a889e7d5ae07507a2ed7a841"
+    },
+    {
+      "root": 14,
+      "exists": true,
+      "files": [
+        "artifacts/binder.json",
+        "artifacts/intent.json",
+        "attempt.json",
+        "manifest.json",
+        "reload/intent.json",
+        "reload/model.json",
+        "reload/queries.json",
+        "reload/store.json",
+        "result.json",
+        "rows.jsonl"
+      ],
+      "sealed": true,
+      "bad_seal_files": [],
+      "unlisted": [],
+      "missing": [],
+      "sealed_at": "1790058903",
+      "artifacts": {
+        "artifacts/binder.json": "a6cdbeca00a504aa68d8ae25fc7e39b57917fb945fe02bb9b403288d33ac0502",
+        "artifacts/intent.json": "862387f728d5ce2101bab727e44c86c8ddf9de0fa13d3e7e6352f0ea054d0aa6"
+      },
+      "source": {
+        "executable_sha256": "7f610230603ad7de0744c182a7f3ba3d96307a82de0454406ba079bc312efdec",
+        "git_dirty": "false",
+        "git_rev": "c4bd440a",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "sha256": "6bdfde36905394e13eb2e0fcd08d0aadb313458598a9142b4d1a7ba07cfcff0f"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "e008b4047510e0f8305a195cf2cb772ee7d02509d41d0e9aa8e01d541af7fad6"
+          }
+        ]
+      },
+      "learning": {
+        "binder": {
+          "candidate_updates": 28,
+          "clauses": 84,
+          "cue_role_correct": 84,
+          "epochs_run": 4,
+          "h4_enabled": false,
+          "h4_evaluations": 0,
+          "h4_moves": 0,
+          "policy_examples": 48,
+          "policy_final_correct": 48,
+          "policy_initial_correct": 36,
+          "role_final_correct": 84,
+          "role_initial_correct": 0,
+          "role_weights": 71,
+          "roles_observed": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "segment_potentials": 359,
+          "span_final_correct": 84,
+          "span_initial_correct": 0
+        },
+        "intent": {
+          "epochs_run": 5,
+          "examples": 84,
+          "question_final_correct": 36,
+          "question_initial_correct": 12,
+          "question_weights": 17,
+          "statement_final_correct": 48,
+          "statement_initial_correct": 24,
+          "statement_weights": 40,
+          "updates": 23
+        }
+      },
+      "primary": [
+        {
+          "arm": "primary",
+          "branch_correct": 13,
+          "branch_total": 13,
+          "complete": 16,
+          "intent_correct": 13,
+          "intent_total": 13,
+          "nowrite_correct": 2,
+          "nowrite_total": 2,
+          "questions": 16,
+          "script": "development"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 11,
+          "intent_correct": 12,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "exposed_regression"
+        },
+        {
+          "arm": "primary",
+          "branch_correct": 12,
+          "branch_total": 12,
+          "complete": 11,
+          "intent_correct": 12,
+          "intent_total": 12,
+          "nowrite_correct": 1,
+          "nowrite_total": 1,
+          "questions": 11,
+          "script": "final"
+        }
+      ],
+      "rows": 511,
+      "kind_counts": {
+        "ingest": 250,
+        "ask": 233,
+        "ask_view": 28
+      },
+      "rows_sha256": "8dae86e792166e63862c84cd959744c398ffbf45a889e7d5ae07507a2ed7a841"
+    }
+  ],
+  "source_bindings": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+      "recorded_sha256": "6bdfde36905394e13eb2e0fcd08d0aadb313458598a9142b4d1a7ba07cfcff0f",
+      "commit_matches": true,
+      "current_matches": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+      "recorded_sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea",
+      "commit_matches": true,
+      "current_matches": true
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+      "recorded_sha256": "e008b4047510e0f8305a195cf2cb772ee7d02509d41d0e9aa8e01d541af7fad6",
+      "commit_matches": true,
+      "current_matches": true
+    }
+  ],
+  "executable": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-delivery/competitive-reader-submitted-c4bd440a",
+    "recorded_sha256": "7f610230603ad7de0744c182a7f3ba3d96307a82de0454406ba079bc312efdec",
+    "exists": true,
+    "actual_sha256": "7f610230603ad7de0744c182a7f3ba3d96307a82de0454406ba079bc312efdec",
+    "matches": true
+  },
+  "groups": [
+    {
+      "control": "normal",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 16,
+      "terminal_counts": {
+        "Complete": 14,
+        "NoHistory": 1,
+        "Unresolved": 1
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "normal",
+      "script": "final",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 11,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "normal",
+      "script": "exposed_regression",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 11,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "no_read",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 0,
+      "terminal_counts": {
+        "NoRead": 16
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "no_read",
+      "script": "final",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 0,
+      "terminal_counts": {
+        "NoRead": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "no_read",
+      "script": "exposed_regression",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 0,
+      "terminal_counts": {
+        "NoRead": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "update_disabled",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 1,
+      "terminal_counts": {
+        "Unresolved": 16
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "update_disabled",
+      "script": "final",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 0,
+      "terminal_counts": {
+        "Unresolved": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "update_disabled",
+      "script": "exposed_regression",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 0,
+      "terminal_counts": {
+        "Unresolved": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "unpinned",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 16,
+      "terminal_counts": {
+        "Complete": 14,
+        "NoHistory": 1,
+        "Unresolved": 1
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "unpinned",
+      "script": "final",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 11,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "unpinned",
+      "script": "exposed_regression",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 11,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "unscoped",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 15,
+      "terminal_counts": {
+        "Complete": 14,
+        "NoHistory": 1,
+        "Unresolved": 1
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "unscoped",
+      "script": "final",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 9,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "unscoped",
+      "script": "exposed_regression",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 9,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "parse_score_authority",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 7,
+      "terminal_counts": {
+        "Complete": 15,
+        "Unresolved": 1
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "parse_score_authority",
+      "script": "final",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 6,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "parse_score_authority",
+      "script": "exposed_regression",
+      "rows": 23,
+      "language_questions": 10,
+      "exact_api_queries": 1,
+      "matches": 6,
+      "terminal_counts": {
+        "Complete": 11
+      },
+      "branch_matches": 12,
+      "branch_total": 12,
+      "intent_matches": 12,
+      "no_write_matches": 1,
+      "no_write_total": 1
+    },
+    {
+      "control": "capacity_2",
+      "script": "development",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 16,
+      "terminal_counts": {
+        "Complete": 12,
+        "NoHistory": 1,
+        "Evicted": 2,
+        "Unresolved": 1
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "normal",
+      "script": "development_changed_source",
+      "rows": 29,
+      "language_questions": 14,
+      "exact_api_queries": 2,
+      "matches": 16,
+      "terminal_counts": {
+        "Complete": 14,
+        "NoHistory": 1,
+        "Unresolved": 1
+      },
+      "branch_matches": 13,
+      "branch_total": 13,
+      "intent_matches": 13,
+      "no_write_matches": 2,
+      "no_write_total": 2
+    },
+    {
+      "control": "normal",
+      "script": "cycle",
+      "rows": 3,
+      "language_questions": 1,
+      "exact_api_queries": 0,
+      "matches": 1,
+      "terminal_counts": {
+        "Cycle": 1
+      },
+      "branch_matches": 2,
+      "branch_total": 2,
+      "intent_matches": 2,
+      "no_write_matches": 0,
+      "no_write_total": 0
+    }
+  ],
+  "row_counts": {
+    "rows": 511,
+    "kinds": {
+      "ingest": 250,
+      "ask": 233,
+      "ask_view": 28
+    },
+    "events": 1066,
+    "read_events": 299,
+    "successful_read_events": 209,
+    "terminal_counts": {
+      "Complete": 171,
+      "NoHistory": 5,
+      "Unresolved": 44,
+      "NoRead": 38,
+      "Evicted": 2,
+      "Cycle": 1
+    }
+  },
+  "ownership": {
+    "checked_selected_reads": 209,
+    "checked_complete_captures": 171,
+    "errors": []
+  },
+  "independent_semantics": {
+    "rows_verified": 261,
+    "match_flags_verified": 261,
+    "errors": [],
+    "capacity_warning": "Independent oracle fixes repeated-oldest eviction, but submitted asks never probe the second-oldest after fourth write, so rows do not distinguish the bug."
+  },
+  "novelty": {
+    "training_strings": [
+      "Atlas",
+      "Bay",
+      "Bo",
+      "Casper",
+      "Cedar",
+      "Cedar Annex",
+      "Fen",
+      "Io",
+      "Ivo",
+      "Lumen",
+      "Mara",
+      "Odette",
+      "Office Park",
+      "Oren",
+      "Project Bay",
+      "Tarn",
+      "Vega",
+      "Wren"
+    ],
+    "final_strings": [
+      "Basalt",
+      "Cobalt",
+      "Delta",
+      "Dune",
+      "Kestrel",
+      "Mica",
+      "Pia",
+      "Ridge",
+      "Soren",
+      "Una"
+    ],
+    "overlap": [],
+    "root13_first_new_lexical_population": true,
+    "root13_root14_rows_identical": true,
+    "root13_root14_models_identical": true,
+    "final_and_exposed_event_shape_identical": true,
+    "renaming_differences": [
+      {
+        "turn": 20,
+        "mapped_exposed": "Kestrel's office might be Ridge",
+        "final": "Kestrel's office might be Mica",
+        "kind": "ingest",
+        "expected_write": false
+      }
+    ],
+    "qualification": "Fresh whole entity/value strings at root13; all clause forms shared with fit; interaction skeleton already exposed. Root14 is byte-identical replay, not second fresh draw."
+  },
+  "defects": [
+    {
+      "id": "capacity",
+      "finding": "Both runtime commit and ScmOracle::declared always evict chain[0]. Capacity2 with four writes retains three live payloads. Existing capacity asks do not probe the surviving second oldest."
+    },
+    {
+      "id": "history_control_denominator",
+      "finding": "history_control_differs compares capacity2 development matches16 to primary all-panels38; unequal denominators make this non-discriminating."
+    },
+    {
+      "id": "reload_semantic_bypass",
+      "finding": "Fresh child loads model but queries via ask_view from supplied entity/relation/history authored in scm_queries. No learned language query path in child, no subsequent write, no persisted in-flight session."
+    },
+    {
+      "id": "pin_witness",
+      "finding": "Only terminal Oren office changes between hops while Cedar->Oren remains unchanged. Unpinned Office Park exists in final committed view; no-single-view splice claim false."
+    },
+    {
+      "id": "fresh_final_scope",
+      "finding": "New whole lexical strings with the already-exposed operation structure. Root14 repeats root13 rows/models exactly."
+    },
+    {
+      "id": "answer_counts",
+      "finding": "Primary38/38 is oracle agreement:34 learned language questions+4 direct API queries;36 terminal Complete plus NoHistory and Unresolved. Intent/branch counts37/37 cover ingest operations, not all queries."
+    },
+    {
+      "id": "historical_continuation_missing",
+      "finding": "No submitted script asks previous/initial over a dependent redirect; history x continuation contract unexercised on language path."
+    }
+  ]
+}

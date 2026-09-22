@@ -30,6 +30,7 @@ use uor_r4_core::native_geometric::learner::realtext_support::*;
 use uor_r4_core::native_geometric::learner::relational::*;
 use uor_r4_core::native_geometric::learner::relational_session::*;
 use uor_r4_core::native_geometric::learner::result_decoder::*;
+use uor_r4_core::native_geometric::learner::scoped_memory::*;
 use uor_r4_core::native_geometric::learner::shared_transition::*;
 use uor_r4_core::report_output::{claim, seal, verify};
 use uor_r4_core::transformerless::bpe_derive::{derive_tokenizer, derive_tokenizer_json};
@@ -15055,6 +15056,1799 @@ fn ob_run() -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+// ---------------------------------------------------------------------------
+// Scoped correction memory: learned ingestion intent over exact versioned storage
+// ---------------------------------------------------------------------------
+
+const SCM_EOS: u32 = u32::MAX - 1;
+
+/// Development and final entity/value vocabularies. The final population uses strings that never
+/// appear in the fitted supervision, so lexical transfer is measured rather than assumed.
+const SCM_DEV_ENTITIES: [&str; 8] = [
+    "Mara", "Ivo", "Cedar", "Oren", "Bo", "Odette", "Wren", "Casper",
+];
+const SCM_DEV_OFFICES: [&str; 5] = ["Fen", "Office Park", "Cedar Annex", "Bay", "Vega"];
+const SCM_DEV_PROJECTS: [&str; 5] = ["Atlas", "Project Bay", "Lumen", "Tarn", "Io"];
+/// Panel whose failures informed the training-recipe change; reported as exposed.
+const SCM_EXPOSED_ENTITIES: [&str; 4] = ["Ova", "Nia", "Rin", "Tessa"];
+const SCM_EXPOSED_OFFICES: [&str; 3] = ["Bramble", "Quarry", "Vale"];
+const SCM_EXPOSED_PROJECTS: [&str; 3] = ["Marsh", "Harbor", "Ledge"];
+/// Fresh final population drawn after the change: disjoint entities and values.
+const SCM_FINAL_ENTITIES: [&str; 4] = ["Una", "Pia", "Soren", "Kestrel"];
+const SCM_FINAL_OFFICES: [&str; 3] = ["Cobalt", "Mica", "Ridge"];
+const SCM_FINAL_PROJECTS: [&str; 3] = ["Delta", "Basalt", "Dune"];
+
+/// The authored clause forms. Assertions, explicit corrections, declared nonasserting statements and
+/// three temporal question forms, in both relations.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum ScmForm {
+    AssertOffice,
+    CorrectOffice,
+    NegateOffice,
+    RedirectOffice,
+    AssertProject,
+    CorrectProject,
+    NegateProject,
+    RedirectProject,
+    AskCurrentOffice,
+    AskPreviousOffice,
+    AskInitialOffice,
+    AskCurrentProject,
+    AskPreviousProject,
+    AskInitialProject,
+}
+
+const SCM_STATEMENT_FORMS: [ScmForm; 8] = [
+    ScmForm::AssertOffice,
+    ScmForm::CorrectOffice,
+    ScmForm::NegateOffice,
+    ScmForm::RedirectOffice,
+    ScmForm::AssertProject,
+    ScmForm::CorrectProject,
+    ScmForm::NegateProject,
+    ScmForm::RedirectProject,
+];
+
+const SCM_QUESTION_FORMS: [ScmForm; 6] = [
+    ScmForm::AskCurrentOffice,
+    ScmForm::AskPreviousOffice,
+    ScmForm::AskInitialOffice,
+    ScmForm::AskCurrentProject,
+    ScmForm::AskPreviousProject,
+    ScmForm::AskInitialProject,
+];
+
+impl ScmForm {
+    fn relation(self) -> u8 {
+        match self {
+            ScmForm::AssertOffice
+            | ScmForm::CorrectOffice
+            | ScmForm::NegateOffice
+            | ScmForm::RedirectOffice
+            | ScmForm::AskCurrentOffice
+            | ScmForm::AskPreviousOffice
+            | ScmForm::AskInitialOffice => 0,
+            _ => 1,
+        }
+    }
+    fn is_question(self) -> bool {
+        SCM_QUESTION_FORMS.contains(&self)
+    }
+    fn is_redirect(self) -> bool {
+        matches!(self, ScmForm::RedirectOffice | ScmForm::RedirectProject)
+    }
+    fn is_negation(self) -> bool {
+        matches!(self, ScmForm::NegateOffice | ScmForm::NegateProject)
+    }
+    fn is_correction(self) -> bool {
+        matches!(self, ScmForm::CorrectOffice | ScmForm::CorrectProject)
+    }
+    fn history(self) -> Option<uor_r4_core::native_geometric::learner::scoped_memory::HistoryView> {
+        use uor_r4_core::native_geometric::learner::scoped_memory::HistoryView;
+        match self {
+            ScmForm::AskCurrentOffice | ScmForm::AskCurrentProject => Some(HistoryView::Current),
+            ScmForm::AskPreviousOffice | ScmForm::AskPreviousProject => {
+                Some(HistoryView::PreviousAssertion)
+            }
+            ScmForm::AskInitialOffice | ScmForm::AskInitialProject => Some(HistoryView::Initial),
+            _ => None,
+        }
+    }
+    fn declared_statement_intent(self) -> Option<usize> {
+        use uor_r4_core::native_geometric::learner::scoped_memory::{
+            STMT_ASSERT, STMT_CORRECT, STMT_NONASSERTING,
+        };
+        match self {
+            // A redirect is a bare assertion whose value is itself an entity key.
+            ScmForm::AssertOffice
+            | ScmForm::AssertProject
+            | ScmForm::RedirectOffice
+            | ScmForm::RedirectProject => Some(STMT_ASSERT),
+            ScmForm::CorrectOffice | ScmForm::CorrectProject => Some(STMT_CORRECT),
+            ScmForm::NegateOffice | ScmForm::NegateProject => Some(STMT_NONASSERTING),
+            _ => None,
+        }
+    }
+    fn declared_question_intent(self) -> Option<usize> {
+        use uor_r4_core::native_geometric::learner::scoped_memory::{
+            ASK_CURRENT, ASK_INITIAL, ASK_PREVIOUS,
+        };
+        match self {
+            ScmForm::AskCurrentOffice | ScmForm::AskCurrentProject => Some(ASK_CURRENT),
+            ScmForm::AskPreviousOffice | ScmForm::AskPreviousProject => Some(ASK_PREVIOUS),
+            ScmForm::AskInitialOffice | ScmForm::AskInitialProject => Some(ASK_INITIAL),
+            _ => None,
+        }
+    }
+    fn noun(self) -> &'static str {
+        if self.relation() == 0 {
+            "office"
+        } else {
+            "project"
+        }
+    }
+    /// The role the retained binder must learn: relation plus whether the value is an entity key.
+    fn role(self) -> usize {
+        match (self.relation(), self.is_redirect()) {
+            (0, false) => 0,
+            (0, true) => 1,
+            (_, false) => 2,
+            (_, true) => 3,
+        }
+    }
+    fn goal(self) -> Goal {
+        if self.relation() == 0 {
+            Goal::Office
+        } else {
+            Goal::Project
+        }
+    }
+    fn action(self) -> RelAction {
+        if self.is_redirect() {
+            RelAction::Continue
+        } else {
+            RelAction::Emit
+        }
+    }
+}
+
+/// Realize one authored form as the retained part-based clause. The cue span carries the relation and
+/// the statement/request intent, so the learned intent table reads it from the same observation.
+fn scm_ob_form(form: ScmForm, entity: &str, value: Option<&str>) -> ObForm {
+    let noun = form.noun();
+    let object = |v: Option<&str>| (Some(ObPart::Object), format!(" {}", v.unwrap_or("")));
+    let parts = match form {
+        ScmForm::AssertOffice | ScmForm::AssertProject => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), format!(" {noun}")),
+            (None, " is".to_string()),
+            object(value),
+        ],
+        // Correction and nonassertion cues deliberately contain no copula: a cue ending in " is" would
+        // share its prefix with " is <value>", letting it absorb the copula and the value's first token
+        // on unseen values. Every cue here ends immediately before the object.
+        ScmForm::CorrectOffice | ScmForm::CorrectProject => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), format!(" {noun} became")),
+            object(value),
+        ],
+        ScmForm::NegateOffice | ScmForm::NegateProject => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), format!(" {noun} might be")),
+            object(value),
+        ],
+        ScmForm::RedirectOffice | ScmForm::RedirectProject => vec![
+            (Some(ObPart::Subject), entity.to_string()),
+            (Some(ObPart::Cue), format!(" {noun} follows")),
+            object(value),
+        ],
+        ScmForm::AskCurrentOffice | ScmForm::AskCurrentProject => vec![
+            (None, "What is".to_string()),
+            (Some(ObPart::Subject), format!(" {entity}")),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), format!(" {noun}")),
+            (None, "?".to_string()),
+        ],
+        ScmForm::AskPreviousOffice | ScmForm::AskPreviousProject => vec![
+            (None, "What was".to_string()),
+            (Some(ObPart::Subject), format!(" {entity}")),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), format!(" {noun} before")),
+            (None, "?".to_string()),
+        ],
+        ScmForm::AskInitialOffice | ScmForm::AskInitialProject => vec![
+            (None, "What was".to_string()),
+            (Some(ObPart::Subject), format!(" {entity}")),
+            (None, "'s".to_string()),
+            (Some(ObPart::Cue), format!(" {noun} originally")),
+            (None, "?".to_string()),
+        ],
+    };
+    ObForm {
+        parts,
+        role: form.role(),
+        goal: form.goal(),
+        action: form.action(),
+    }
+}
+
+/// One authored operation in an interaction script. The runtime is never told which kind it is; the
+/// learned observation and intent decide whether anything is written.
+#[derive(Clone, Copy, Debug)]
+enum ScmOp {
+    Ingest {
+        scope: u8,
+        form: ScmForm,
+        entity: &'static str,
+        value: &'static str,
+    },
+    Ask {
+        scope: u8,
+        form: ScmForm,
+        entity: &'static str,
+    },
+    /// An exact historical view that is not reachable from learned question intent.
+    AskView {
+        scope: u8,
+        entity: &'static str,
+        relation: u8,
+        history: uor_r4_core::native_geometric::learner::scoped_memory::HistoryView,
+    },
+}
+
+const SCM_SCOPES: [&str; 2] = ["alpha", "beta"];
+
+/// Expected answer under the declared semantics.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ScmExpected {
+    Complete { value: String, hops: u8 },
+    Unresolved,
+    NoHistory,
+    Evicted,
+    Cycle,
+    Exhausted,
+}
+
+#[derive(Clone, Debug)]
+struct ScmRefRecord {
+    value: String,
+    continues: bool,
+    conflict: bool,
+    commit: u64,
+    evicted: bool,
+}
+
+/// Exact declared-semantics reference. It diagnoses store bookkeeping and harness agreement; it is
+/// **not** evidence of learned intent, which is counted separately from the loaded path.
+struct ScmOracle {
+    chains: std::collections::BTreeMap<(u8, String, u8), Vec<ScmRefRecord>>,
+    commit: u64,
+    capacity: usize,
+}
+
+impl ScmOracle {
+    fn new(capacity: usize) -> Self {
+        ScmOracle {
+            chains: std::collections::BTreeMap::new(),
+            commit: 0,
+            capacity: capacity.max(1),
+        }
+    }
+
+    /// Apply the declared semantics of one asserting form.
+    fn declared(&mut self, scope: u8, form: ScmForm, entity: &str, value: &str) -> bool {
+        if form.is_question() || form.is_negation() {
+            return false;
+        }
+        self.commit += 1;
+        let key = (scope, entity.to_string(), form.relation());
+        let chain = self.chains.entry(key).or_default();
+        let conflict = chain
+            .last()
+            .filter(|head| !head.evicted)
+            .is_some_and(|head| !form.is_correction() && head.value != value);
+        chain.push(ScmRefRecord {
+            value: value.to_string(),
+            continues: form.is_redirect(),
+            conflict,
+            commit: self.commit,
+            evicted: false,
+        });
+        // Independent age/rank rule: only the newest capacity revisions retain payloads.
+        let retained_start = chain.len().saturating_sub(self.capacity);
+        for (index, record) in chain.iter_mut().enumerate() {
+            record.evicted = index < retained_start;
+        }
+        true
+    }
+
+    fn answer(
+        &self,
+        scope: u8,
+        entity: &str,
+        relation: u8,
+        history: uor_r4_core::native_geometric::learner::scoped_memory::HistoryView,
+        view: u64,
+    ) -> ScmExpected {
+        use uor_r4_core::native_geometric::learner::scoped_memory::HistoryView;
+        use uor_r4_core::native_geometric::learner::scoped_memory::SCOPED_MAX_HOPS;
+        let mut current = entity.to_string();
+        let mut visited: Vec<String> = Vec::new();
+        let mut hop = 0u8;
+        loop {
+            if hop >= SCOPED_MAX_HOPS {
+                return ScmExpected::Exhausted;
+            }
+            if visited.contains(&current) {
+                return ScmExpected::Cycle;
+            }
+            let hop_history = if hop == 0 {
+                history
+            } else {
+                HistoryView::Current
+            };
+            let Some(chain) = self.chains.get(&(scope, current.clone(), relation)) else {
+                return ScmExpected::Unresolved;
+            };
+            let visible: Vec<&ScmRefRecord> = chain.iter().filter(|r| r.commit <= view).collect();
+            let Some(head) = visible.last() else {
+                return ScmExpected::Unresolved;
+            };
+            let selected = match hop_history {
+                HistoryView::Current => *head,
+                HistoryView::Initial => visible[0],
+                HistoryView::PreviousAssertion => {
+                    if visible.len() < 2 {
+                        return ScmExpected::NoHistory;
+                    }
+                    visible[visible.len() - 2]
+                }
+                HistoryView::PreviousDistinctValue => {
+                    let mut found = None;
+                    for record in visible.iter().rev().skip(1) {
+                        if record.evicted {
+                            return ScmExpected::Evicted;
+                        }
+                        if record.value != head.value {
+                            found = Some(*record);
+                            break;
+                        }
+                    }
+                    match found {
+                        Some(record) => record,
+                        None => return ScmExpected::NoHistory,
+                    }
+                }
+            };
+            if selected.evicted {
+                return ScmExpected::Evicted;
+            }
+            if selected.continues {
+                visited.push(current);
+                current = selected.value.clone();
+                hop += 1;
+                continue;
+            }
+            return ScmExpected::Complete {
+                value: selected.value.clone(),
+                hops: hop + 1,
+            };
+        }
+    }
+}
+
+struct ScmSupervision {
+    label: ClauseLabel,
+    question: bool,
+    intent: usize,
+}
+
+/// Development supervision: every form in both relations, with disjoint entity/value pools.
+fn scm_development_supervision(
+    tokenizer: &HfBpeTokenizer,
+) -> Result<(Vec<Clause>, Vec<ScmSupervision>), String> {
+    let mut clauses = Vec::new();
+    let mut supervision = Vec::new();
+    let mut seg = 0u32;
+    for (index, form) in SCM_STATEMENT_FORMS.iter().enumerate() {
+        for k in 0..6usize {
+            let entity = SCM_DEV_ENTITIES[(index + k) % SCM_DEV_ENTITIES.len()];
+            let value = if form.is_redirect() {
+                SCM_DEV_ENTITIES[(index + k + 1) % SCM_DEV_ENTITIES.len()]
+            } else if form.relation() == 0 {
+                SCM_DEV_OFFICES[(index + k) % SCM_DEV_OFFICES.len()]
+            } else {
+                SCM_DEV_PROJECTS[(index + k) % SCM_DEV_PROJECTS.len()]
+            };
+            let (clause, label) =
+                ob_build_clause(tokenizer, seg, &scm_ob_form(*form, entity, Some(value)))?;
+            clauses.push(clause);
+            supervision.push(ScmSupervision {
+                label,
+                question: false,
+                intent: form
+                    .declared_statement_intent()
+                    .ok_or("statement form has no declared intent")?,
+            });
+            seg += 1;
+        }
+    }
+    for (index, form) in SCM_QUESTION_FORMS.iter().enumerate() {
+        for k in 0..6usize {
+            let entity = SCM_DEV_ENTITIES[(index + k) % SCM_DEV_ENTITIES.len()];
+            let (clause, label) =
+                ob_build_clause(tokenizer, seg, &scm_ob_form(*form, entity, None))?;
+            clauses.push(clause);
+            supervision.push(ScmSupervision {
+                label,
+                question: true,
+                intent: form
+                    .declared_question_intent()
+                    .ok_or("question form has no declared intent")?,
+            });
+            seg += 1;
+        }
+    }
+    Ok((clauses, supervision))
+}
+
+/// Open development interaction script. Covers scope independence, relation independence,
+/// nonasserting inputs, same-value reassertion, a conflicting bare assertion, an explicit correction,
+/// the three temporal questions, the exact previous-distinct query, a dependent read and a missing fact.
+fn scm_development_script() -> Vec<ScmOp> {
+    use ScmForm::*;
+    vec![
+        // Independent scopes: identical entity bytes, different values.
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Mara", value: "Fen" },
+        ScmOp::Ingest { scope: 1, form: AssertOffice, entity: "Mara", value: "Office Park" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Mara" },
+        ScmOp::Ask { scope: 1, form: AskCurrentOffice, entity: "Mara" },
+        // Relation independence: correcting the office must not change the project.
+        ScmOp::Ingest { scope: 0, form: AssertProject, entity: "Mara", value: "Atlas" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Mara", value: "Cedar Annex" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Mara" },
+        ScmOp::Ask { scope: 0, form: AskCurrentProject, entity: "Mara" },
+        // Declared nonasserting inputs write nothing.
+        ScmOp::Ingest { scope: 0, form: NegateOffice, entity: "Mara", value: "Fen" },
+        // A question ingested as if it were input must also write nothing.
+        ScmOp::Ingest { scope: 0, form: AskCurrentOffice, entity: "Mara", value: "" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Mara" },
+        // Same-value reassertion, conflicting bare assertion, explicit correction, history.
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Ivo", value: "Fen" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Ivo", value: "Fen" },
+        ScmOp::Ask { scope: 0, form: AskPreviousOffice, entity: "Ivo" },
+        ScmOp::AskView { scope: 0, entity: "Ivo", relation: 0, history: uor_r4_core::native_geometric::learner::scoped_memory::HistoryView::PreviousDistinctValue },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Ivo", value: "Office Park" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Ivo" },
+        ScmOp::Ask { scope: 0, form: AskInitialOffice, entity: "Ivo" },
+        ScmOp::Ask { scope: 0, form: AskPreviousOffice, entity: "Ivo" },
+        ScmOp::AskView { scope: 0, entity: "Ivo", relation: 0, history: uor_r4_core::native_geometric::learner::scoped_memory::HistoryView::PreviousDistinctValue },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Ivo", value: "Cedar Annex" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Ivo" },
+        ScmOp::Ask { scope: 0, form: AskInitialOffice, entity: "Ivo" },
+        // Missing fact before any dependent read is written.
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Oren" },
+        // Dependent read: Cedar's office follows Oren, and Oren's office is Fen.
+        ScmOp::Ingest { scope: 0, form: RedirectOffice, entity: "Cedar", value: "Oren" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Oren", value: "Fen" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Cedar" },
+        // A correction of the dependent terminal changes the first entity's answer too.
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Oren", value: "Cedar Annex" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Cedar" },
+    ]
+}
+
+/// Former final population used to diagnose the boundary; now exposed.
+fn scm_exposed_script() -> Vec<ScmOp> {
+    use ScmForm::*;
+    vec![
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Ova", value: "Bramble" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Ova", value: "Quarry" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Ova" },
+        ScmOp::Ask { scope: 0, form: AskPreviousOffice, entity: "Ova" },
+        ScmOp::Ask { scope: 0, form: AskInitialOffice, entity: "Ova" },
+        // Held out: an unrelated-scope update must not move the answer.
+        ScmOp::Ingest { scope: 1, form: AssertOffice, entity: "Ova", value: "Vale" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Ova", value: "Quarry" },
+        ScmOp::Ask { scope: 1, form: AskCurrentOffice, entity: "Ova" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Ova" },
+        ScmOp::AskView { scope: 0, entity: "Ova", relation: 0, history: uor_r4_core::native_geometric::learner::scoped_memory::HistoryView::PreviousDistinctValue },
+        // Held out: a dependent chain whose intermediate link is corrected.
+        ScmOp::Ingest { scope: 0, form: RedirectOffice, entity: "Nia", value: "Rin" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Rin", value: "Marsh" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Rin", value: "Harbor" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Nia" },
+        // Held out: a dependent chain whose terminal is corrected, and a project relation alongside.
+        ScmOp::Ingest { scope: 0, form: RedirectOffice, entity: "Tessa", value: "Ova" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Ova", value: "Harbor" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Ova", value: "Ledge" },
+        ScmOp::Ingest { scope: 0, form: AssertProject, entity: "Ova", value: "Marsh" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Tessa" },
+        ScmOp::Ask { scope: 0, form: AskCurrentProject, entity: "Ova" },
+        // Held out: a negation between two assertions must not disturb the current value.
+        ScmOp::Ingest { scope: 0, form: NegateOffice, entity: "Tessa", value: "Vale" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Tessa" },
+        ScmOp::Ask { scope: 0, form: AskInitialOffice, entity: "Ova" },
+    ]
+}
+
+/// Fresh final population: new unseen entity and value strings, same held-out interaction structure.
+fn scm_final_script() -> Vec<ScmOp> {
+    use ScmForm::*;
+    vec![
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Una", value: "Cobalt" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Una", value: "Mica" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Una" },
+        ScmOp::Ask { scope: 0, form: AskPreviousOffice, entity: "Una" },
+        ScmOp::Ask { scope: 0, form: AskInitialOffice, entity: "Una" },
+        ScmOp::Ingest { scope: 1, form: AssertOffice, entity: "Una", value: "Ridge" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Una", value: "Mica" },
+        ScmOp::Ask { scope: 1, form: AskCurrentOffice, entity: "Una" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Una" },
+        ScmOp::AskView { scope: 0, entity: "Una", relation: 0, history: uor_r4_core::native_geometric::learner::scoped_memory::HistoryView::PreviousDistinctValue },
+        ScmOp::Ingest { scope: 0, form: RedirectOffice, entity: "Pia", value: "Soren" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Soren", value: "Delta" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Soren", value: "Basalt" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Pia" },
+        ScmOp::Ingest { scope: 0, form: RedirectOffice, entity: "Kestrel", value: "Una" },
+        ScmOp::Ingest { scope: 0, form: AssertOffice, entity: "Una", value: "Basalt" },
+        ScmOp::Ingest { scope: 0, form: CorrectOffice, entity: "Una", value: "Dune" },
+        ScmOp::Ingest { scope: 0, form: AssertProject, entity: "Una", value: "Delta" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Kestrel" },
+        ScmOp::Ask { scope: 0, form: AskCurrentProject, entity: "Una" },
+        ScmOp::Ingest { scope: 0, form: NegateOffice, entity: "Kestrel", value: "Mica" },
+        ScmOp::Ask { scope: 0, form: AskCurrentOffice, entity: "Kestrel" },
+        ScmOp::Ask { scope: 0, form: AskInitialOffice, entity: "Una" },
+    ]
+}
+
+fn scm_clause(
+    tokenizer: &HfBpeTokenizer,
+    seg: u32,
+    form: ScmForm,
+    entity: &str,
+    value: Option<&str>,
+) -> Result<(Clause, ClauseLabel), String> {
+    ob_build_clause(tokenizer, seg, &scm_ob_form(form, entity, value))
+}
+
+/// The emitted answer as an exact lexical identity: exterior ASCII whitespace is excluded, exactly as
+/// the store's identity policy does.
+fn scm_emitted_key(tokenizer: &HfBpeTokenizer, session: &ScopedSession) -> String {
+    let tokens: Vec<u32> = session
+        .emitted
+        .iter()
+        .copied()
+        .filter(|t| Some(*t) != session.eos)
+        .collect();
+    tokenizer
+        .decode(&tokens)
+        .trim_matches(|c: char| c.is_ascii_whitespace())
+        .to_string()
+}
+
+fn scm_terminal_of(expected: &ScmExpected) -> ScopedTerminal {
+    match expected {
+        ScmExpected::Complete { .. } => ScopedTerminal::Complete,
+        ScmExpected::Unresolved => ScopedTerminal::Unresolved,
+        ScmExpected::NoHistory => ScopedTerminal::NoHistory,
+        ScmExpected::Evicted => ScopedTerminal::Evicted,
+        ScmExpected::Cycle => ScopedTerminal::Cycle,
+        ScmExpected::Exhausted => ScopedTerminal::Exhausted,
+    }
+}
+
+#[derive(Default)]
+struct ScmReplay {
+    questions: usize,
+    complete: usize,
+    branch_total: usize,
+    branch_correct: usize,
+    intent_total: usize,
+    intent_correct: usize,
+    nowrite_total: usize,
+    nowrite_correct: usize,
+    rows: Vec<serde_json::Value>,
+    store: Vec<u8>,
+}
+
+/// Replay one interaction script through the loaded path under one control and declared capacity.
+/// A fresh runtime and store are built every time, so controls are compared on identical inputs.
+#[allow(clippy::too_many_arguments)]
+fn scm_replay(
+    tokenizer: &HfBpeTokenizer,
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lineage: u64,
+    control: MemoryControl,
+    capacity: usize,
+    script: &[ScmOp],
+    script_name: &str,
+    control_name: &str,
+) -> Result<ScmReplay, String> {
+    let memory = Memory::new(lineage, capacity);
+    let mut runtime = ScopedMemoryRuntime::load(
+        model_bytes,
+        intent_bytes,
+        memory,
+        lineage,
+        control,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("scoped runtime load: {e}"))?;
+    let mut oracle = ScmOracle::new(capacity);
+    let mut out = ScmReplay::default();
+    for (index, op) in script.iter().enumerate() {
+        match *op {
+            ScmOp::Ingest {
+                scope,
+                form,
+                entity,
+                value,
+            } => {
+                let (clause, _) = scm_clause(tokenizer, index as u32, form, entity, Some(value))?;
+                let observed = runtime
+                    .observe(&clause)
+                    .map_err(|e| format!("observe {entity:?}: {e}"))?;
+                out.branch_total += 1;
+                if observed.is_question == form.is_question() {
+                    out.branch_correct += 1;
+                }
+                let declared = if form.is_question() {
+                    form.declared_question_intent()
+                } else {
+                    form.declared_statement_intent()
+                };
+                if let Some(declared) = declared {
+                    out.intent_total += 1;
+                    if observed.intent == declared {
+                        out.intent_correct += 1;
+                    }
+                }
+                let expected_write = !form.is_question() && !form.is_negation();
+                let outcome = runtime
+                    .ingest(&clause, SCM_SCOPES[scope as usize].as_bytes(), index as u64)
+                    .map_err(|e| {
+                        format!(
+                            "ingest {entity:?} text={:?} is_q={} intent={} rel={} value={:?}: {e}",
+                            clause.text,
+                            observed.is_question,
+                            observed.intent,
+                            observed.relation,
+                            observed
+                                .value_key
+                                .as_ref()
+                                .map(|v| String::from_utf8_lossy(v).into_owned())
+                        )
+                    })?;
+                let wrote = matches!(outcome, IngestOutcome::Wrote(_));
+                if !expected_write {
+                    out.nowrite_total += 1;
+                    if !wrote {
+                        out.nowrite_correct += 1;
+                    }
+                }
+                let declared_wrote = oracle.declared(scope, form, entity, value);
+                if declared_wrote != expected_write {
+                    return Err(format!("harness/oracle disagreement on {entity:?}"));
+                }
+                out.rows.push(json!({
+                    "script": script_name, "control": control_name, "turn": index,
+                    "kind": "ingest", "scope": SCM_SCOPES[scope as usize], "text": clause.text,
+                    "entity_key": String::from_utf8_lossy(&observed.entity_key).into_owned(),
+                    "value_key": observed.value_key.as_ref().map(|v| String::from_utf8_lossy(v).into_owned()),
+                    "learned_is_question": observed.is_question,
+                    "declared_is_question": form.is_question(),
+                    "learned_relation": observed.relation,
+                    "declared_relation": form.relation(),
+                    "learned_intent": observed.intent,
+                    "declared_intent": declared,
+                    "learned_continues": observed.continues,
+                    "declared_continues": form.is_redirect(),
+                    "expected_write": expected_write,
+                    "wrote": wrote,
+                    "outcome": outcome,
+                }));
+            }
+            ScmOp::Ask {
+                scope,
+                form,
+                entity,
+            } => {
+                let (clause, _) = scm_clause(tokenizer, index as u32, form, entity, None)?;
+                let query_key = runtime
+                    .observe(&clause)
+                    .map_err(|e| format!("observe question {entity:?}: {e}"))?;
+                let session = runtime
+                    .ask(&clause, SCM_SCOPES[scope as usize].as_bytes())
+                    .map_err(|e| format!("ask {entity:?}: {e}"))?;
+                let view = session.view;
+                let mut session = session;
+                let effects = runtime
+                    .run(&mut session)
+                    .map_err(|e| format!("run {entity:?}: {e}"))?;
+                let answer = scm_emitted_key(tokenizer, &session);
+                // The expectation is taken at the *declared* commit snapshot, so a control that
+                // writes nothing cannot silently agree with an oracle that also saw nothing.
+                let oracle_view = oracle.commit;
+                let expected = oracle.answer(
+                    scope,
+                    entity,
+                    form.relation(),
+                    form.history().ok_or("ask form has no history")?,
+                    oracle_view,
+                );
+                out.questions += 1;
+                let matched = match (&expected, session.terminal) {
+                    (ScmExpected::Complete { value, hops }, Some(ScopedTerminal::Complete)) => {
+                        // `hop` counts continuations, so the read count is one more than the hop.
+                        answer == *value && session.hop + 1 == *hops
+                    }
+                    (_, Some(terminal)) => terminal == scm_terminal_of(&expected),
+                    _ => false,
+                };
+                if matched {
+                    out.complete += 1;
+                }
+                out.rows.push(json!({
+                    "script": script_name, "control": control_name, "turn": index,
+                    "kind": "ask", "scope": SCM_SCOPES[scope as usize], "text": clause.text,
+                    "query_key": String::from_utf8_lossy(&query_key.entity_key).into_owned(),
+                    "query_relation": query_key.relation,
+                    "query_is_question": query_key.is_question,
+                    "pin_view": view, "oracle_view": oracle_view,
+                    "view_agrees": view == oracle_view, "answer": answer,
+                    "expected": format!("{expected:?}"), "terminal": session.terminal,
+                    "hop": session.hop, "matched": matched,
+                    "effects": effects,
+                    "final_frame": session,
+                }));
+            }
+            ScmOp::AskView {
+                scope,
+                entity,
+                relation,
+                history,
+            } => {
+                let session = runtime
+                    .ask_view(
+                        SCM_SCOPES[scope as usize].as_bytes(),
+                        relation,
+                        entity.as_bytes(),
+                        history,
+                    )
+                    .map_err(|e| format!("ask_view {entity:?}: {e}"))?;
+                let view = session.view;
+                let mut session = session;
+                let effects = runtime
+                    .run(&mut session)
+                    .map_err(|e| format!("run view {entity:?}: {e}"))?;
+                let answer = scm_emitted_key(tokenizer, &session);
+                let oracle_view = oracle.commit;
+                let expected = oracle.answer(scope, entity, relation, history, oracle_view);
+                out.questions += 1;
+                let matched = match (&expected, session.terminal) {
+                    (ScmExpected::Complete { value, hops }, Some(ScopedTerminal::Complete)) => {
+                        answer == *value && session.hop + 1 == *hops
+                    }
+                    (_, Some(terminal)) => terminal == scm_terminal_of(&expected),
+                    _ => false,
+                };
+                if matched {
+                    out.complete += 1;
+                }
+                out.rows.push(json!({
+                    "script": script_name, "control": control_name, "turn": index,
+                    "kind": "ask_view", "scope": SCM_SCOPES[scope as usize],
+                    "text": format!("exact {history:?} of {entity:?} relation {relation}"),
+                    "pin_view": view, "oracle_view": oracle_view,
+                    "view_agrees": view == oracle_view, "answer": answer,
+                    "expected": format!("{expected:?}"), "terminal": session.terminal,
+                    "hop": session.hop, "matched": matched,
+                    "effects": effects,
+                    "final_frame": session,
+                }));
+            }
+        }
+    }
+    out.store = runtime
+        .store_bytes()
+        .map_err(|e| format!("store bytes: {e}"))?;
+    Ok(out)
+}
+
+fn scm_answer_questions(
+    tokenizer: &HfBpeTokenizer,
+    runtime: &ScopedMemoryRuntime,
+    script: &[ScmOp],
+) -> Result<Vec<serde_json::Value>, String> {
+    let mut answers = Vec::new();
+    for (index, op) in script.iter().enumerate() {
+        match *op {
+            ScmOp::Ask {
+                scope,
+                form,
+                entity,
+            } => {
+                let (clause, _) = scm_clause(tokenizer, index as u32, form, entity, None)?;
+                let mut session = runtime
+                    .ask(&clause, SCM_SCOPES[scope as usize].as_bytes())
+                    .map_err(|e| format!("ask {entity:?}: {e}"))?;
+                runtime
+                    .run(&mut session)
+                    .map_err(|e| format!("run {entity:?}: {e}"))?;
+                answers.push(json!({
+                    "kind": "ask", "text": clause.text,
+                    "answer": scm_emitted_key(tokenizer, &session),
+                    "emitted": session.emitted,
+                    "terminal": session.terminal, "hop": session.hop,
+                }));
+            }
+            ScmOp::AskView {
+                scope,
+                entity,
+                relation,
+                history,
+            } => {
+                let mut session = runtime
+                    .ask_view(
+                        SCM_SCOPES[scope as usize].as_bytes(),
+                        relation,
+                        entity.as_bytes(),
+                        history,
+                    )
+                    .map_err(|e| format!("ask_view {entity:?}: {e}"))?;
+                runtime
+                    .run(&mut session)
+                    .map_err(|e| format!("run view {entity:?}: {e}"))?;
+                answers.push(json!({
+                    "kind": "ask_view",
+                    "text": format!("exact {history:?} of {entity:?} relation {relation}"),
+                    "answer": scm_emitted_key(tokenizer, &session),
+                    "emitted": session.emitted,
+                    "terminal": session.terminal, "hop": session.hop,
+                }));
+            }
+            ScmOp::Ingest { .. } => {}
+        }
+    }
+    Ok(answers)
+}
+
+/// Convert actual text into observed tokens and byte alignment, without semantic annotations.
+fn scm_raw_clause(tokenizer: &HfBpeTokenizer, text: &str) -> Result<Clause, String> {
+    let tokens = tokenizer.encode(text);
+    if tokens.is_empty() || tokens.len() > OB_MAX_CLAUSE {
+        return Err("raw clause outside declared token bound".into());
+    }
+    Ok(Clause {
+        seg: 0,
+        byte_lengths: ob_byte_lengths(tokenizer, text, &tokens)?,
+        tokens,
+        text: text.to_string(),
+    })
+}
+
+fn scm_answer_json(session: &ScopedSession) -> serde_json::Value {
+    json!({"emitted": session.emitted, "terminal": session.terminal, "hop": session.hop,
+        "selected": session.captured.as_ref().map(|c| c.record_id)})
+}
+
+/// Fresh-process reload runs learned text interpretation, typed API controls separately, actual
+/// in-flight restoration, and a learned post-restart write. Gold semantic fields never route asks.
+fn scm_reload_check(dir: &std::path::Path) -> Result<ExitCode, String> {
+    let model_bytes = std::fs::read(dir.join("model.json")).map_err(|e| e.to_string())?;
+    let intent_bytes = std::fs::read(dir.join("intent.json")).map_err(|e| e.to_string())?;
+    let store_bytes = std::fs::read(dir.join("store.json")).map_err(|e| e.to_string())?;
+    let queries: Vec<serde_json::Value> = serde_json::from_slice(
+        &std::fs::read(dir.join("queries.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| e.to_string())?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("reload tokenizer mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| e.to_string())?;
+    let memory = Memory::from_bytes(&store_bytes).map_err(|e| e.to_string())?;
+    let lineage = memory.lineage;
+    let mut runtime = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        memory,
+        lineage,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| e.to_string())?;
+    let required = |v: &serde_json::Value, key: &str| -> Result<String, String> {
+        v[key]
+            .as_str()
+            .map(str::to_string)
+            .ok_or_else(|| format!("missing reload {key}"))
+    };
+    let mut out = Vec::new();
+    for query in queries {
+        let scope = required(&query, "scope")?;
+        let mut session = match required(&query, "kind")?.as_str() {
+            "ask" => {
+                if query.get("entity").is_some()
+                    || query.get("relation").is_some()
+                    || query.get("history").is_some()
+                {
+                    return Err("semantic fields on raw ask".into());
+                }
+                let clause = scm_raw_clause(&tokenizer, &required(&query, "text")?)?;
+                runtime
+                    .ask(&clause, scope.as_bytes())
+                    .map_err(|e| e.to_string())?
+            }
+            "ask_view" => {
+                let relation = query["relation"]
+                    .as_u64()
+                    .filter(|r| *r <= u8::MAX as u64)
+                    .ok_or("invalid typed relation")? as u8;
+                let history: HistoryView =
+                    serde_json::from_value(query["history"].clone()).map_err(|e| e.to_string())?;
+                runtime
+                    .ask_view(
+                        scope.as_bytes(),
+                        relation,
+                        required(&query, "entity")?.as_bytes(),
+                        history,
+                    )
+                    .map_err(|e| e.to_string())?
+            }
+            _ => return Err("unknown reload query kind".into()),
+        };
+        runtime.run(&mut session).map_err(|e| e.to_string())?;
+        out.push(scm_answer_json(&session));
+    }
+    // One learned correction after restart, then continue all pre-write saved phases under their pin.
+    let update = scm_raw_clause(&tokenizer, "Oren's office became Office Park")?;
+    let before = runtime.revision();
+    let outcome = runtime
+        .ingest(&update, b"alpha", 1900)
+        .map_err(|e| e.to_string())?;
+    let wrote = matches!(outcome, IngestOutcome::Wrote(_)) && runtime.revision() == before + 1;
+    let checkpoints: Vec<serde_json::Value> = serde_json::from_slice(
+        &std::fs::read(dir.join("checkpoints.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let mut resumed = Vec::new();
+    for checkpoint in checkpoints {
+        let bytes = serde_json::to_vec(&checkpoint["session"]).map_err(|e| e.to_string())?;
+        let mut session = runtime.restore(&bytes).map_err(|e| e.to_string())?;
+        runtime.run(&mut session).map_err(|e| e.to_string())?;
+        let answer = scm_answer_json(&session);
+        resumed.push(json!({"phase": checkpoint["session"]["pending"],
+            "matches": answer == checkpoint["expected"], "answer": answer}));
+    }
+    let question = scm_raw_clause(&tokenizer, "What is Cedar's office?")?;
+    let mut session = runtime
+        .ask(&question, b"alpha")
+        .map_err(|e| e.to_string())?;
+    runtime.run(&mut session).map_err(|e| e.to_string())?;
+    let updated_answer = scm_emitted_key(&tokenizer, &session);
+    println!(
+        "{}",
+        serde_json::to_string(&json!({"answers": out, "resumed": resumed,
+        "post_restart": {"wrote": wrote, "answer": updated_answer, "frame": session},
+        "learned_restart": wrote && updated_answer == "Office Park"}))
+        .map_err(|e| e.to_string())?
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn scm_queries(script: &[ScmOp]) -> Vec<serde_json::Value> {
+    script.iter().filter_map(|op| match op {
+        ScmOp::Ask {scope, form, entity} => {
+            let text: String = scm_ob_form(*form, entity, None).parts.into_iter().map(|(_,s)| s).collect();
+            Some(json!({"kind":"ask", "scope": SCM_SCOPES[*scope as usize], "text": text}))
+        }
+        ScmOp::AskView {scope, entity, relation, history} => Some(json!({"kind":"ask_view",
+            "scope":SCM_SCOPES[*scope as usize], "entity":entity,"relation":relation,"history":history})),
+        ScmOp::Ingest {..} => None,
+    }).collect()
+}
+
+#[cfg(test)]
+mod scoped_runner_checks {
+    use super::*;
+    #[test]
+    fn capacity_oracle_retains_only_latest_two_after_each_write() {
+        let mut o = ScmOracle::new(2);
+        for value in ["a", "b", "c", "d", "e"] {
+            o.declared(0, ScmForm::CorrectOffice, "entity", value);
+            let chain = &o.chains[&(0, "entity".to_string(), 0)];
+            assert_eq!(
+                chain.iter().filter(|r| !r.evicted).count(),
+                chain.len().min(2)
+            );
+        }
+        assert_eq!(
+            o.answer(0, "entity", 0, HistoryView::Initial, o.commit),
+            ScmExpected::Evicted
+        );
+        assert_eq!(
+            o.answer(0, "entity", 0, HistoryView::PreviousAssertion, o.commit),
+            ScmExpected::Complete {
+                value: "d".into(),
+                hops: 1
+            }
+        );
+    }
+    #[test]
+    fn restart_text_questions_have_no_semantic_routing_fields() {
+        let queries = scm_queries(&scm_development_script());
+        assert_eq!(queries.iter().filter(|q| q["kind"] == "ask").count(), 14);
+        assert_eq!(
+            queries.iter().filter(|q| q["kind"] == "ask_view").count(),
+            2
+        );
+        for q in queries.iter().filter(|q| q["kind"] == "ask") {
+            assert!(q["text"].as_str().is_some());
+            assert!(
+                q.get("entity").is_none()
+                    && q.get("relation").is_none()
+                    && q.get("history").is_none()
+            );
+        }
+    }
+}
+
+fn scm_run() -> Result<ExitCode, String> {
+    let mut root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-correction-memory-1",
+    );
+    let mut source_root: Option<PathBuf> = None;
+    let mut reload_dir: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                "--reload-check" => reload_dir = Some(PathBuf::from(a.next().ok_or("value")?)),
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    if let Some(dir) = reload_dir {
+        return scm_reload_check(&dir);
+    }
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let derived = sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?);
+    if derived != DERIVED_SHA {
+        return Err("derived tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let source_files: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+    let executable_sha256 = hex_of(&sha256_bytes(
+        &std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+            .unwrap_or_default(),
+    ));
+
+    // ---- fit the retained categorical binder and the new intent tables ----
+    let (dev_clauses, supervision) = scm_development_supervision(&tokenizer)?;
+    let labels: Vec<ClauseLabel> = supervision.iter().map(|s| s.label.clone()).collect();
+    let (model, fit) = fit_observed_text_model(&dev_clauses, &labels, false)
+        .map_err(|e| format!("binder fit: {e}"))?;
+    let cue_spans: Vec<(usize, usize)> = supervision
+        .iter()
+        .map(|s| (s.label.marker.0 as usize, s.label.marker.1))
+        .collect();
+    let examples: Vec<IntentExample> = supervision
+        .iter()
+        .map(|s| IntentExample {
+            question: s.question,
+            intent: s.intent,
+        })
+        .collect();
+    let (intent, intent_fit) = fit_intent_model(&dev_clauses, &cue_spans, &examples, VOCAB)
+        .map_err(|e| format!("intent fit: {e}"))?;
+    let model_bytes = model.to_bytes().map_err(|e| format!("{e}"))?;
+    let intent_bytes = intent.to_bytes().map_err(|e| format!("{e}"))?;
+    write_checked(&root, "artifacts/binder.json", &model_bytes)?;
+    write_checked(&root, "artifacts/intent.json", &intent_bytes)?;
+    let binder_reloaded = ObservedTextModel::from_bytes(
+        &std::fs::read(root.join("artifacts/binder.json")).map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| format!("{e}"))?;
+    let intent_reloaded = IntentModel::from_bytes(
+        &std::fs::read(root.join("artifacts/intent.json")).map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| format!("{e}"))?;
+    if binder_reloaded != model || intent_reloaded != intent {
+        return Err("artifact reload mismatch".into());
+    }
+
+    // ---- populations ----
+    let dev_script = scm_development_script();
+    let exposed_script = scm_exposed_script();
+    let final_script = scm_final_script();
+    const DEV_LINEAGE: u64 = 0x5C0F_0000_0001;
+    const FINAL_LINEAGE: u64 = 0x5C0F_0000_0002;
+    const EXPOSED_LINEAGE: u64 = 0x5C0F_0000_0003;
+    let dev = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        DEFAULT_CHAIN_CAPACITY,
+        &dev_script,
+        "development",
+        "normal",
+    )?;
+    let final_pop = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        FINAL_LINEAGE,
+        MemoryControl::Normal,
+        DEFAULT_CHAIN_CAPACITY,
+        &final_script,
+        "final",
+        "normal",
+    )?;
+    // The earlier final draw whose two failures informed the wider training recipe. Retained and
+    // reported as exposed, never as a fresh win.
+    let exposed = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        EXPOSED_LINEAGE,
+        MemoryControl::Normal,
+        DEFAULT_CHAIN_CAPACITY,
+        &exposed_script,
+        "exposed_regression",
+        "normal",
+    )?;
+
+    // ---- controls on both populations ----
+    let mut arms = vec![
+        json!({"arm": "primary", "script": "development", "questions": dev.questions,
+            "complete": dev.complete, "branch_correct": dev.branch_correct,
+            "branch_total": dev.branch_total, "intent_correct": dev.intent_correct,
+            "intent_total": dev.intent_total, "nowrite_correct": dev.nowrite_correct,
+            "nowrite_total": dev.nowrite_total}),
+        json!({"arm": "primary", "script": "exposed_regression", "questions": exposed.questions,
+            "complete": exposed.complete, "branch_correct": exposed.branch_correct,
+            "branch_total": exposed.branch_total, "intent_correct": exposed.intent_correct,
+            "intent_total": exposed.intent_total, "nowrite_correct": exposed.nowrite_correct,
+            "nowrite_total": exposed.nowrite_total}),
+        json!({"arm": "primary", "script": "final", "questions": final_pop.questions,
+            "complete": final_pop.complete, "branch_correct": final_pop.branch_correct,
+            "branch_total": final_pop.branch_total, "intent_correct": final_pop.intent_correct,
+            "intent_total": final_pop.intent_total, "nowrite_correct": final_pop.nowrite_correct,
+            "nowrite_total": final_pop.nowrite_total}),
+    ];
+    let mut all_rows: Vec<serde_json::Value> = Vec::new();
+    all_rows.extend(dev.rows.clone());
+    all_rows.extend(final_pop.rows.clone());
+    all_rows.extend(exposed.rows.clone());
+    for (name, control) in [
+        ("no_read", MemoryControl::NoRead),
+        ("update_disabled", MemoryControl::UpdateDisabled),
+        ("unpinned", MemoryControl::Unpinned),
+        ("unscoped", MemoryControl::Unscoped),
+        ("parse_score_authority", MemoryControl::ParseScoreAuthority),
+    ] {
+        for (script_name, script, lineage) in [
+            ("development", &dev_script, DEV_LINEAGE),
+            ("final", &final_script, FINAL_LINEAGE),
+            ("exposed_regression", &exposed_script, EXPOSED_LINEAGE),
+        ] {
+            let replay = scm_replay(
+                &tokenizer,
+                &model_bytes,
+                &intent_bytes,
+                lineage,
+                control.clone(),
+                DEFAULT_CHAIN_CAPACITY,
+                script,
+                script_name,
+                name,
+            )?;
+            arms.push(
+                json!({"arm": name, "script": script_name, "questions": replay.questions,
+                "complete": replay.complete, "branch_correct": replay.branch_correct,
+                "branch_total": replay.branch_total, "intent_correct": replay.intent_correct,
+                "intent_total": replay.intent_total, "nowrite_correct": replay.nowrite_correct,
+                "nowrite_total": replay.nowrite_total}),
+            );
+            all_rows.extend(replay.rows);
+        }
+    }
+    // Declared-capacity arm on the development population.
+    let capacity_replay = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        2,
+        &dev_script,
+        "development",
+        "capacity_2",
+    )?;
+    arms.push(json!({"arm": "capacity_2", "script": "development",
+        "questions": capacity_replay.questions, "complete": capacity_replay.complete,
+        "branch_correct": capacity_replay.branch_correct, "branch_total": capacity_replay.branch_total,
+        "intent_correct": capacity_replay.intent_correct, "intent_total": capacity_replay.intent_total,
+        "nowrite_correct": capacity_replay.nowrite_correct, "nowrite_total": capacity_replay.nowrite_total}));
+    let capacity_changes = capacity_replay
+        .rows
+        .iter()
+        .filter(|r| r["kind"] != "ingest")
+        .zip(dev.rows.iter().filter(|r| r["kind"] != "ingest"))
+        .filter(|(a, b)| {
+            a["turn"] == b["turn"] && (a["answer"] != b["answer"] || a["terminal"] != b["terminal"])
+        })
+        .count();
+    all_rows.extend(capacity_replay.rows);
+
+    // ---- procedural interventions on one committed development store ----
+    let dev_memory = Memory::from_bytes(&dev.store).map_err(|e| format!("{e}"))?;
+    let dev_base = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        dev_memory.clone(),
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("{e}"))?;
+    let baseline_answers = scm_answer_questions(&tokenizer, &dev_base, &dev_script)?;
+    let cedar_question = scm_clause(&tokenizer, 0, ScmForm::AskCurrentOffice, "Cedar", None)?.0;
+    let baseline_cedar = {
+        let mut s = dev_base
+            .ask(&cedar_question, SCM_SCOPES[0].as_bytes())
+            .map_err(|e| format!("{e}"))?;
+        dev_base.run(&mut s).map_err(|e| format!("{e}"))?;
+        scm_emitted_key(&tokenizer, &s)
+    };
+
+    // (a) Physical storage order must be irrelevant to authority.
+    let mut reordered_memory = dev_memory.clone();
+    reordered_memory.records.reverse();
+    reordered_memory.validate().map_err(|e| format!("{e}"))?;
+    let reordered_runtime = dev_base.with_memory(reordered_memory, MemoryControl::Normal)?;
+    let reorder_identical =
+        scm_answer_questions(&tokenizer, &reordered_runtime, &dev_script)? == baseline_answers;
+
+    // (b) A pinned read view is not spliced by a correction that arrives mid-answer.
+    let mid_correction = scm_clause(
+        &tokenizer,
+        0,
+        ScmForm::CorrectOffice,
+        "Oren",
+        Some("Office Park"),
+    )?
+    .0;
+    let disconnect = scm_raw_clause(&tokenizer, "Cedar's office became Fen")?;
+    let mut pinned_runtime = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        dev_memory.clone(),
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("{e}"))?;
+    let mut pinned_session = pinned_runtime
+        .ask(&cedar_question, SCM_SCOPES[0].as_bytes())
+        .map_err(|e| format!("{e}"))?;
+    let pinned_view = pinned_session.view;
+    pinned_runtime
+        .step(&mut pinned_session)
+        .map_err(|e| format!("{e}"))?;
+    pinned_runtime
+        .ingest(&disconnect, SCM_SCOPES[0].as_bytes(), 899)
+        .map_err(|e| format!("{e}"))?;
+    pinned_runtime
+        .ingest(&mid_correction, SCM_SCOPES[0].as_bytes(), 900)
+        .map_err(|e| format!("{e}"))?;
+    pinned_runtime
+        .run(&mut pinned_session)
+        .map_err(|e| format!("{e}"))?;
+    let pinned_answer = scm_emitted_key(&tokenizer, &pinned_session);
+    let pinned_terminal = pinned_session.terminal;
+
+    let mut oracle_to_pin = ScmOracle::new(DEFAULT_CHAIN_CAPACITY);
+    for op in &dev_script {
+        if let ScmOp::Ingest {
+            scope,
+            form,
+            entity,
+            value,
+        } = op
+        {
+            oracle_to_pin.declared(*scope, *form, entity, value);
+        }
+    }
+    let pinned_expected = oracle_to_pin.answer(0, "Cedar", 0, HistoryView::Current, pinned_view);
+    let pinned_matches_expected = matches!(
+        (&pinned_expected, pinned_terminal),
+        (ScmExpected::Complete { value, .. }, Some(ScopedTerminal::Complete)) if *value == pinned_answer
+    );
+
+    let mut unpinned_runtime = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        dev_memory.clone(),
+        DEV_LINEAGE,
+        MemoryControl::Unpinned,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("{e}"))?;
+    let mut unpinned_session = unpinned_runtime
+        .ask(&cedar_question, SCM_SCOPES[0].as_bytes())
+        .map_err(|e| format!("{e}"))?;
+    unpinned_runtime
+        .step(&mut unpinned_session)
+        .map_err(|e| format!("{e}"))?;
+    unpinned_runtime
+        .ingest(&disconnect, SCM_SCOPES[0].as_bytes(), 899)
+        .map_err(|e| format!("{e}"))?;
+    unpinned_runtime
+        .ingest(&mid_correction, SCM_SCOPES[0].as_bytes(), 901)
+        .map_err(|e| format!("{e}"))?;
+    unpinned_runtime
+        .run(&mut unpinned_session)
+        .map_err(|e| format!("{e}"))?;
+    let unpinned_answer = scm_emitted_key(&tokenizer, &unpinned_session);
+    let mut consistent_answers = vec![format!("{pinned_expected:?}")];
+    oracle_to_pin.declared(0, ScmForm::CorrectOffice, "Cedar", "Fen");
+    consistent_answers.push(format!(
+        "{:?}",
+        oracle_to_pin.answer(0, "Cedar", 0, HistoryView::Current, oracle_to_pin.commit)
+    ));
+    oracle_to_pin.declared(0, ScmForm::CorrectOffice, "Oren", "Office Park");
+    consistent_answers.push(format!(
+        "{:?}",
+        oracle_to_pin.answer(0, "Cedar", 0, HistoryView::Current, oracle_to_pin.commit)
+    ));
+    let unpinned_splices = pinned_answer == "Cedar Annex"
+        && unpinned_answer == "Office Park"
+        && consistent_answers
+            .iter()
+            .all(|s| !s.contains("Office Park"));
+
+    // (c) An owned capture survives replacement of its origin.
+    let mut capture_runtime = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        dev_memory.clone(),
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("{e}"))?;
+    let mara_question = scm_clause(&tokenizer, 0, ScmForm::AskCurrentOffice, "Mara", None)?.0;
+    let mut capture_session = capture_runtime
+        .ask(&mara_question, SCM_SCOPES[0].as_bytes())
+        .map_err(|e| format!("{e}"))?;
+    capture_runtime
+        .step(&mut capture_session)
+        .map_err(|e| format!("{e}"))?;
+    let live_before = capture_session.origin_is_live(capture_runtime.memory());
+    let capture_before = capture_session.captured.clone();
+    let mara_replacement = scm_clause(&tokenizer, 0, ScmForm::AssertOffice, "Mara", Some("Fen"))?.0;
+    capture_runtime
+        .ingest(&mara_replacement, SCM_SCOPES[0].as_bytes(), 902)
+        .map_err(|e| format!("{e}"))?;
+    let live_after = capture_session.origin_is_live(capture_runtime.memory());
+    capture_runtime
+        .run(&mut capture_session)
+        .map_err(|e| format!("{e}"))?;
+    let capture_answer = scm_emitted_key(&tokenizer, &capture_session);
+    let capture_complete = capture_session.terminal == Some(ScopedTerminal::Complete);
+    let capture_preserved = capture_before == capture_session.captured;
+    let capture_liveness_distinct = live_before && !live_after;
+
+    // (d) A changed source changes the dependent answer and keeps the oracle agreement.
+    let mut changed_script = dev_script.clone();
+    for op in changed_script.iter_mut() {
+        if let ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::CorrectOffice,
+            entity: "Oren",
+            value,
+        } = op
+        {
+            *value = "Office Park";
+        }
+    }
+    let changed = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        DEFAULT_CHAIN_CAPACITY,
+        &changed_script,
+        "development_changed_source",
+        "normal",
+    )?;
+    let changed_runtime = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        Memory::from_bytes(&changed.store).map_err(|e| format!("{e}"))?,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("{e}"))?;
+    let changed_cedar = {
+        let mut s = changed_runtime
+            .ask(&cedar_question, SCM_SCOPES[0].as_bytes())
+            .map_err(|e| format!("{e}"))?;
+        changed_runtime.run(&mut s).map_err(|e| format!("{e}"))?;
+        scm_emitted_key(&tokenizer, &s)
+    };
+    all_rows.extend(changed.rows.clone());
+    let changed_source_ok = changed_cedar != baseline_cedar
+        && changed.complete == changed.questions
+        && changed_cedar == "Office Park";
+
+    // (e) A typed cycle.
+    let cycle_script = vec![
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::RedirectOffice,
+            entity: "Mara",
+            value: "Ivo",
+        },
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::RedirectOffice,
+            entity: "Ivo",
+            value: "Mara",
+        },
+        ScmOp::Ask {
+            scope: 0,
+            form: ScmForm::AskCurrentOffice,
+            entity: "Mara",
+        },
+    ];
+    let cycle = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        DEFAULT_CHAIN_CAPACITY,
+        &cycle_script,
+        "cycle",
+        "normal",
+    )?;
+    all_rows.extend(cycle.rows.clone());
+    let cycle_typed = cycle.complete == cycle.questions && cycle.questions == 1;
+
+    // Historical intent applies to the first relation only; later hops use the pinned current view.
+    let history_script = vec![
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::AssertOffice,
+            entity: "Ivo",
+            value: "Fen",
+        },
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::AssertOffice,
+            entity: "Oren",
+            value: "Office Park",
+        },
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::RedirectOffice,
+            entity: "Cedar",
+            value: "Ivo",
+        },
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::RedirectOffice,
+            entity: "Cedar",
+            value: "Oren",
+        },
+        ScmOp::Ingest {
+            scope: 0,
+            form: ScmForm::CorrectOffice,
+            entity: "Ivo",
+            value: "Cedar Annex",
+        },
+        ScmOp::Ask {
+            scope: 0,
+            form: ScmForm::AskPreviousOffice,
+            entity: "Cedar",
+        },
+        ScmOp::Ask {
+            scope: 0,
+            form: ScmForm::AskInitialOffice,
+            entity: "Cedar",
+        },
+        ScmOp::Ask {
+            scope: 0,
+            form: ScmForm::AskCurrentOffice,
+            entity: "Cedar",
+        },
+    ];
+    let historical = scm_replay(
+        &tokenizer,
+        &model_bytes,
+        &intent_bytes,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        DEFAULT_CHAIN_CAPACITY,
+        &history_script,
+        "historical_dependent_review",
+        "normal",
+    )?;
+    let historical_answers: Vec<String> = historical
+        .rows
+        .iter()
+        .filter(|r| r["kind"] == "ask")
+        .filter_map(|r| r["answer"].as_str().map(str::to_string))
+        .collect();
+    let historical_ok = historical.complete == 3
+        && historical.questions == 3
+        && historical_answers == ["Cedar Annex", "Cedar Annex", "Office Park"];
+    all_rows.extend(historical.rows);
+
+    // ---- save / reload ----
+    let reload_dir = root.join("reload");
+    std::fs::create_dir_all(&reload_dir).map_err(|e| format!("{e}"))?;
+    write_checked(&root, "reload/model.json", &model_bytes)?;
+    write_checked(&root, "reload/intent.json", &intent_bytes)?;
+    write_checked(&root, "reload/store.json", &dev.store)?;
+    write_json(
+        &root,
+        "reload/queries.json",
+        &json!(scm_queries(&dev_script)),
+    )?;
+    let mut checkpoints = Vec::new();
+    let mut phase = dev_base
+        .ask(&cedar_question, b"alpha")
+        .map_err(|e| e.to_string())?;
+    loop {
+        let snapshot = dev_base.snapshot(&phase).map_err(|e| e.to_string())?;
+        let mut continued = dev_base.restore(&snapshot).map_err(|e| e.to_string())?;
+        dev_base.run(&mut continued).map_err(|e| e.to_string())?;
+        checkpoints.push(
+            json!({"session":serde_json::from_slice::<serde_json::Value>(&snapshot)
+            .map_err(|e| e.to_string())?, "expected":scm_answer_json(&continued)}),
+        );
+        if phase.terminal.is_some() {
+            break;
+        }
+        dev_base.step(&mut phase).map_err(|e| e.to_string())?;
+    }
+    write_json(&root, "reload/checkpoints.json", &json!(checkpoints))?;
+    let reloaded_memory = Memory::from_bytes(
+        &std::fs::read(root.join("reload/store.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| format!("{e}"))?;
+    let reloaded_runtime = ScopedMemoryRuntime::load(
+        &model_bytes,
+        &intent_bytes,
+        reloaded_memory,
+        DEV_LINEAGE,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SCM_EOS),
+    )
+    .map_err(|e| format!("{e}"))?;
+    let reload_answers = scm_answer_questions(&tokenizer, &reloaded_runtime, &dev_script)?;
+    let disk_reload_identical = reload_answers == baseline_answers;
+    let child = std::process::Command::new(
+        std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?,
+    )
+    .arg("--mode=scoped-correction-memory")
+    .arg("--reload-check")
+    .arg(&reload_dir)
+    .output()
+    .map_err(|e| format!("fresh process: {e}"))?;
+    let child_stdout = String::from_utf8_lossy(&child.stdout).into_owned();
+    let child_json: serde_json::Value =
+        serde_json::from_str(child_stdout.trim()).map_err(|e| format!("child json: {e}"))?;
+    let child_answers = child_json["answers"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let fresh_process_identical = child.status.success()
+        && child_answers.len() == reload_answers.len()
+        && child_answers
+            .iter()
+            .zip(reload_answers.iter())
+            .all(|(c, p)| {
+                c["emitted"] == p["emitted"]
+                    && c["terminal"] == p["terminal"]
+                    && c["hop"] == p["hop"]
+            });
+
+    let mut terminal_counts = std::collections::BTreeMap::<String, usize>::new();
+    for row in &all_rows {
+        let kind = row["kind"].as_str().unwrap_or_default();
+        if kind == "ask" || kind == "ask_view" {
+            let key = format!("{}", row["terminal"]);
+            *terminal_counts.entry(key).or_default() += 1;
+        }
+    }
+    let arm_total = |name: &str| -> u64 {
+        arms.iter()
+            .filter(|a| a["arm"] == json!(name))
+            .map(|a| a["complete"].as_u64().unwrap_or(0))
+            .sum()
+    };
+    let primary_total = arm_total("primary");
+    let checks = json!({
+        "development_complete": dev.complete == dev.questions && dev.questions > 0,
+        "final_complete": final_pop.complete == final_pop.questions && final_pop.questions > 0,
+        "exposed_reported": exposed.questions > 0,
+        "intent_learned_exactly": dev.intent_correct == dev.intent_total
+            && final_pop.intent_correct == final_pop.intent_total
+            && exposed.intent_correct == exposed.intent_total
+            && dev.intent_total > 0,
+        "binder_branch_exact": dev.branch_correct == dev.branch_total
+            && final_pop.branch_correct == final_pop.branch_total
+            && exposed.branch_correct == exposed.branch_total,
+        "nonasserting_writes_nothing": dev.nowrite_correct == dev.nowrite_total
+            && dev.nowrite_total > 0,
+        "capacity_arm_agrees": capacity_replay.complete == capacity_replay.questions,
+        "reordered_storage_invariant": reorder_identical,
+        "pinned_view_matches_oracle": pinned_matches_expected,
+        "unpinned_control_splices": unpinned_splices,
+        "owned_capture_preserved": capture_preserved && capture_liveness_distinct && capture_complete,
+        "changed_source_changes_answer": changed_source_ok,
+        "cycle_typed": cycle_typed,
+        "historical_dependent_first_hop": historical_ok,
+        // Each named control must actually change the measured answers on the same inputs.
+        "scope_control_contaminates": arm_total("unscoped") < primary_total,
+        "phase_and_controls_differ": arm_total("parse_score_authority") < primary_total,
+        "history_control_differs": capacity_changes > 0,
+        "write_control_differs": arm_total("update_disabled") < primary_total,
+        "read_control_differs": arm_total("no_read") < primary_total,
+        "disk_reload_identical": disk_reload_identical,
+        "fresh_process_identical": fresh_process_identical,
+        "fresh_process_learned_update": child_json["learned_restart"] == true,
+        "fresh_process_phases_after_update": child_json["resumed"].as_array()
+            .is_some_and(|a| a.len() == checkpoints.len() && !a.is_empty() && a.iter().all(|c| c["matches"] == true)),
+    });
+    let all_expected = checks
+        .as_object()
+        .map(|m| m.values().all(|v| v == &json!(true)))
+        .unwrap_or(false);
+    let result = json!({
+        "schema": "uor-r4.scoped-correction-memory/2",
+        "evaluation_scope": "Principal corrected exposed replay of submitted panels; original final lexical population is already exposed. Typed AskView and expected failure matches are separate from emitted learned-language answers.",
+        "restart_child": child_json,
+        "historical_dependent_answers": historical_answers,
+        "capacity_changes_same_development_inputs": capacity_changes,
+        "base_revision": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+        "running_source": {
+            "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+            "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
+            "executable_sha256": executable_sha256,
+            "source_files": source_files,
+        },
+        "inputs": {"tokenizer_derived": DERIVED_SHA, "vocab": VOCAB, "eos": SCM_EOS,
+            "capacity": DEFAULT_CHAIN_CAPACITY, "hop_bound": SCOPED_MAX_HOPS},
+        "task": {
+            "serving_input": "observed readable clauses (assertions, explicit corrections, negations, redirects and three temporal question forms) with a host-authenticated scope tag; no gold intent, relation, expected answer or preselected fact",
+            "development_entities": SCM_DEV_ENTITIES,
+            "development_values": {"offices": SCM_DEV_OFFICES, "projects": SCM_DEV_PROJECTS},
+            "final_entities": SCM_FINAL_ENTITIES,
+            "final_values": {"offices": SCM_FINAL_OFFICES, "projects": SCM_FINAL_PROJECTS},
+            "scopes": SCM_SCOPES,
+            "novelty": "the final population's entity and value strings never appear in fitting; the forms and cue phrases are shared",
+        },
+        "semantics": {
+            "assert": "appends a revision; a differing bare assertion becomes current and is marked conflict",
+            "correct": "explicit correction supersedes with the stated value, never marked conflict",
+            "same_value_reassertion": "a new revision with the same value; history is never deduplicated",
+            "previous": "previous assertion (immediate predecessor)",
+            "previous_distinct": "separate exact query; not reachable from learned question intent",
+            "initial": "earliest retained revision; an evicted one is typed, never absent",
+            "historical_dependent_read": "first hop uses the requested view; later hops resolve Current at the same pinned view",
+            "pin": "the read view is fixed when the answer starts",
+        },
+        "learning": {"binder": fit, "intent": intent_fit},
+        "panels": {
+            "development": {"questions": dev.questions, "complete": dev.complete},
+            "exposed_regression": {"questions": exposed.questions, "complete": exposed.complete},
+            "final": {"questions": final_pop.questions, "complete": final_pop.complete},
+        },
+        "arms": arms,
+        "checks": checks,
+        "checks_all_expected": all_expected,
+        "ask_terminal_counts": terminal_counts,
+        "interventions": {
+            "reordered_storage": {"answers_identical": reorder_identical},
+            "pinned_view": {"pin": pinned_view, "answer": pinned_answer, "terminal": pinned_terminal,
+                "expected": format!("{pinned_expected:?}"), "unpinned_answer": unpinned_answer, "consistent_answers": consistent_answers},
+            "owned_capture": {"live_before": live_before, "live_after": live_after,
+                "answer": capture_answer, "payload_preserved": capture_preserved},
+            "changed_source": {"baseline_cedar": baseline_cedar, "changed_cedar": changed_cedar,
+                "complete": changed.complete, "questions": changed.questions},
+            "cycle": {"complete": cycle.complete, "questions": cycle.questions},
+            "save_reload": {"disk_reload_identical": disk_reload_identical,
+                "fresh_process_identical": fresh_process_identical,
+                "child_status": child.status.code()},
+        },
+        "all_rows": all_rows.len(),
+        "elapsed_s": started.elapsed().as_secs_f64(),
+        "scope": "authored ordinary readable text in a small declared memory domain; learned intent feeding exact versioned storage with a pinned read view. Scope is host-authenticated, not inferred from language. Not broad language understanding, general reasoning or frontier capability. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+    });
+    write_json(&root, "result.json", &result)?;
+    write_checked(
+        &root,
+        "rows.jsonl",
+        all_rows
+            .iter()
+            .map(|r| serde_json::to_string(r).unwrap_or_default())
+            .collect::<Vec<_>>()
+            .join("\n")
+            .as_bytes(),
+    )?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    if !all_expected {
+        return Err(format!("sealed scoped-memory contract failure: {checks}"));
+    }
+    println!(
+        "scoped-correction-memory: dev {}/{} final {}/{} | intent {}/{} branch {}/{} nowrite {}/{} | controls: no_read {} update_disabled {} unpinned {} unscoped {} parse_score {} capacity2 {} | intent-w {} binder-w {} | sealed {} unlisted | {:.1}s",
+        dev.complete, dev.questions, final_pop.complete, final_pop.questions,
+        dev.intent_correct + final_pop.intent_correct, dev.intent_total + final_pop.intent_total,
+        dev.branch_correct + final_pop.branch_correct, dev.branch_total + final_pop.branch_total,
+        dev.nowrite_correct + final_pop.nowrite_correct, dev.nowrite_total + final_pop.nowrite_total,
+        arms.iter().filter(|a| a["arm"] == json!("no_read")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        arms.iter().filter(|a| a["arm"] == json!("update_disabled")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        arms.iter().filter(|a| a["arm"] == json!("unpinned")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        arms.iter().filter(|a| a["arm"] == json!("unscoped")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        arms.iter().filter(|a| a["arm"] == json!("parse_score_authority")).map(|a| a["complete"].as_u64().unwrap_or(0)).sum::<u64>(),
+        capacity_replay.complete,
+        intent_fit.statement_weights + intent_fit.question_weights,
+        fit.segment_potentials,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let mode = std::env::args().any(|a| a == "--mode=utility-transfer");
     let ce = std::env::args().any(|a| a == "--mode=contextual-emission");
@@ -15064,7 +16858,10 @@ fn main() -> ExitCode {
     let gsm = std::env::args().any(|a| a == "--mode=grounded-session");
     let rsm = std::env::args().any(|a| a == "--mode=relational-session");
     let obm = std::env::args().any(|a| a == "--mode=observed-text-session");
-    let result = if obm {
+    let scm = std::env::args().any(|a| a == "--mode=scoped-correction-memory");
+    let result = if scm {
+        scm_run()
+    } else if obm {
         ob_run()
     } else if rsm {
         rel_run()

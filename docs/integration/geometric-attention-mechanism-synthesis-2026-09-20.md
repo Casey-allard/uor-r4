@@ -1,5 +1,7 @@
 # Geometric attention: mechanism reuse and missing connections
 
+**September22 scoped-memory review:** [principal analysis](scoped-memory-review-2026-09-22.md) retains the bounded learned language-to-versioned-memory path and repairs capacity/restore/restart instruments. Next is [consumed geometric state](deepseek-consumed-geometric-state-step-2026-09-22.md) through the same session. Signed Q8 order distinguishes `ij` from `ji`; retain central sign/fiber where its grounded result is used. The current scope/history mechanism has no measured geometric contribution. E8/S7/harmonic expansion remains conditional on a witnessed representation/cost need. Earlier then-next directions below are historical.
+
 **September22 ordinary-form review:** [principal analysis](ordinary-form-binding-review-2026-09-22.md) retains the tested learned binder and exact cross-BPE dependent session. Next [scoped correction-aware conversation memory](deepseek-scoped-correction-memory-step-2026-09-22.md): exact version eligibility is missing; a higher parse score does not make a stale fact current. This concretely develops structural persistence. Q8 result consumption follows, then E/S prose/executed Rust. H4's answer tie uses fixed initialized descriptors and a saturated code-search criterion, not a learned-geometry negative. Harmonic functions, retained Hopf fiber, signed orientation and paired-H4/E8/S7 remain available for a witnessed information/cost need.
 
 

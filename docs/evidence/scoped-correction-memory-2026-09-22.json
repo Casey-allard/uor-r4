@@ -1,0 +1,449 @@
+{
+ "arms": [
+  {
+   "arm": "primary",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 16,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  },
+  {
+   "arm": "primary",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 11,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "exposed_regression"
+  },
+  {
+   "arm": "primary",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 11,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "final"
+  },
+  {
+   "arm": "no_read",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 0,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  },
+  {
+   "arm": "no_read",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 0,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "final"
+  },
+  {
+   "arm": "no_read",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 0,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "exposed_regression"
+  },
+  {
+   "arm": "update_disabled",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 1,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  },
+  {
+   "arm": "update_disabled",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 0,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "final"
+  },
+  {
+   "arm": "update_disabled",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 0,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "exposed_regression"
+  },
+  {
+   "arm": "unpinned",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 16,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  },
+  {
+   "arm": "unpinned",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 11,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "final"
+  },
+  {
+   "arm": "unpinned",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 11,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "exposed_regression"
+  },
+  {
+   "arm": "unscoped",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 15,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  },
+  {
+   "arm": "unscoped",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 9,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "final"
+  },
+  {
+   "arm": "unscoped",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 9,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "exposed_regression"
+  },
+  {
+   "arm": "parse_score_authority",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 7,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  },
+  {
+   "arm": "parse_score_authority",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 6,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "final"
+  },
+  {
+   "arm": "parse_score_authority",
+   "branch_correct": 12,
+   "branch_total": 12,
+   "complete": 6,
+   "intent_correct": 12,
+   "intent_total": 12,
+   "nowrite_correct": 1,
+   "nowrite_total": 1,
+   "questions": 11,
+   "script": "exposed_regression"
+  },
+  {
+   "arm": "capacity_2",
+   "branch_correct": 13,
+   "branch_total": 13,
+   "complete": 16,
+   "intent_correct": 13,
+   "intent_total": 13,
+   "nowrite_correct": 2,
+   "nowrite_total": 2,
+   "questions": 16,
+   "script": "development"
+  }
+ ],
+ "ask_terminal_counts": {
+  "\"Complete\"": 171,
+  "\"Cycle\"": 1,
+  "\"Evicted\"": 2,
+  "\"NoHistory\"": 5,
+  "\"NoRead\"": 38,
+  "\"Unresolved\"": 44
+ },
+ "base": "origin/main b218058f7445f7e815c7aca505d9e0d7f913ae26 (reviewed ordinary-form merge)",
+ "checks": {
+  "binder_branch_exact": true,
+  "capacity_arm_agrees": true,
+  "changed_source_changes_answer": true,
+  "cycle_typed": true,
+  "development_complete": true,
+  "disk_reload_identical": true,
+  "exposed_reported": true,
+  "final_complete": true,
+  "fresh_process_identical": true,
+  "history_control_differs": true,
+  "intent_learned_exactly": true,
+  "nonasserting_writes_nothing": true,
+  "owned_capture_preserved": true,
+  "phase_and_controls_differ": true,
+  "pinned_view_matches_oracle": true,
+  "read_control_differs": true,
+  "reordered_storage_invariant": true,
+  "scope_control_contaminates": true,
+  "unpinned_control_splices": true,
+  "write_control_differs": true
+ },
+ "checks_all_expected": true,
+ "date_utc": "2026-09-22",
+ "interventions": {
+  "changed_source": {
+   "baseline_cedar": "Cedar Annex",
+   "changed_cedar": "Office Park",
+   "complete": 16,
+   "questions": 16
+  },
+  "cycle": {
+   "complete": 1,
+   "questions": 1
+  },
+  "owned_capture": {
+   "answer": "Cedar Annex",
+   "live_after": false,
+   "live_before": true,
+   "payload_preserved": true
+  },
+  "pinned_view": {
+   "answer": "Cedar Annex",
+   "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+   "pin": 11,
+   "terminal": "Complete",
+   "unpinned_answer": "Office Park"
+  },
+  "reordered_storage": {
+   "answers_identical": true
+  },
+  "save_reload": {
+   "child_status": 0,
+   "disk_reload_identical": true,
+   "fresh_process_identical": true
+  }
+ },
+ "learning": {
+  "binder": {
+   "candidate_updates": 28,
+   "clauses": 84,
+   "cue_role_correct": 84,
+   "epochs_run": 4,
+   "h4_enabled": false,
+   "h4_evaluations": 0,
+   "h4_moves": 0,
+   "policy_examples": 48,
+   "policy_final_correct": 48,
+   "policy_initial_correct": 36,
+   "role_final_correct": 84,
+   "role_initial_correct": 0,
+   "role_weights": 71,
+   "roles_observed": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "segment_potentials": 359,
+   "span_final_correct": 84,
+   "span_initial_correct": 0
+  },
+  "intent": {
+   "epochs_run": 5,
+   "examples": 84,
+   "question_final_correct": 36,
+   "question_initial_correct": 12,
+   "question_weights": 17,
+   "statement_final_correct": 48,
+   "statement_initial_correct": 24,
+   "statement_weights": 40,
+   "updates": 23
+  }
+ },
+ "limitations": [
+  "Small authored domain and authored clause forms; scope is host-authenticated rather than inferred from language.",
+  "The observation boundary is the fragile layer: an unseen entity or value whose subword shape collides with a learned length pattern can still be mis-cut, which changes its exact lexical key. Widened supervision and copula-free cues fixed the observed case; it is not a proof of general boundary robustness.",
+  "Learned statement/question intent covers three statement and three question intents; the previous-distinct query is exact infrastructure, not a learned question form.",
+  "Memory capacity is one process-local deterministic store; no replication, no durable multi-writer semantics.",
+  "No geometric component participates in this milestone's serving path: the retained H4 artifact is unchanged from the ordinary-form milestone and its code search remains ceiling-censored by an exact-hit criterion. Energy UNAVAILABLE; whole-path D0-b not claimed."
+ ],
+ "panels": {
+  "development": {
+   "complete": 16,
+   "questions": 16
+  },
+  "exposed_regression": {
+   "complete": 11,
+   "questions": 11
+  },
+  "final": {
+   "complete": 11,
+   "questions": 11
+  }
+ },
+ "progress_history": {
+  "design_change": "development supervision widened from 42 to 84 clauses with entity names spanning one to four subword tokens and five office/project values, and correction/nonassertion cues were made copula-free (became / might be) so no cue can absorb the copula and the value's first token.",
+  "fresh_final": "a new final population with disjoint unseen entities (Una, Pia, Soren, Kestrel) and values (Cobalt, Mica, Ridge, Delta, Basalt, Dune) was drawn after the change; it is reported as final and was not used to change any parameter.",
+  "informed_panel": "scoped-correction-memory-12 measured final 9/11; two failures on one unseen 3-token entity name whose clause-initial occurrence was truncated by one subword token, so its lexical key differed from the internal occurrence. That panel is retained and reported as exposed_regression."
+ },
+ "report_files": [
+  {
+   "blake3": "682744ea11820d7db65c1a1a65359de6925175800cd2a7525bbf48e33be69ef6",
+   "bytes": 13407,
+   "path": "artifacts/binder.json"
+  },
+  {
+   "blake3": "09030c54749a930517e5f767caff082e45eb5dcd00e75a81e036200af618b0a1",
+   "bytes": 1466,
+   "path": "artifacts/intent.json"
+  },
+  {
+   "blake3": "37598e6861c3fac5f9f2236125b8d3f124365c910eaca90655889ba3cbffbe84",
+   "bytes": 467,
+   "path": "attempt.json"
+  },
+  {
+   "blake3": "09030c54749a930517e5f767caff082e45eb5dcd00e75a81e036200af618b0a1",
+   "bytes": 1466,
+   "path": "reload/intent.json"
+  },
+  {
+   "blake3": "682744ea11820d7db65c1a1a65359de6925175800cd2a7525bbf48e33be69ef6",
+   "bytes": 13407,
+   "path": "reload/model.json"
+  },
+  {
+   "blake3": "afbcf052a76ce484a86d2c286cb6ebf1822269506caf31c46e30196d72735d32",
+   "bytes": 1595,
+   "path": "reload/queries.json"
+  },
+  {
+   "blake3": "7bb75e2212150b753ad63f2fe7c819387e8e03c33b9d75a60781e90a393134b1",
+   "bytes": 3327,
+   "path": "reload/store.json"
+  },
+  {
+   "blake3": "669041d742b6d9517326853776b343803b418ec02138a32d108c02addbb54170",
+   "bytes": 11412,
+   "path": "result.json"
+  },
+  {
+   "blake3": "3219514081da431ead5418fab85f2de10f958f819bcad2322ecce91dfdf54ce4",
+   "bytes": 556855,
+   "path": "rows.jsonl"
+  }
+ ],
+ "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-correction-memory-14",
+ "row_summary": {
+  "asks": 261,
+  "rows": 511,
+  "view_agreements": 223,
+  "view_disagreements": 38
+ },
+ "running_source": {
+  "executable_sha256": "7f610230603ad7de0744c182a7f3ba3d96307a82de0454406ba079bc312efdec",
+  "git_dirty": "false",
+  "git_rev": "c4bd440a",
+  "source_files": [
+   {
+    "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+    "sha256": "6bdfde36905394e13eb2e0fcd08d0aadb313458598a9142b4d1a7ba07cfcff0f"
+   },
+   {
+    "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+    "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+   },
+   {
+    "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+    "sha256": "e008b4047510e0f8305a195cf2cb772ee7d02509d41d0e9aa8e01d541af7fad6"
+   }
+  ]
+ },
+ "schema": "uor-r4.scoped-correction-memory-evidence/1",
+ "scope": "authored ordinary readable text in a small declared memory domain; learned intent feeding exact versioned storage with a pinned read view. Scope is host-authenticated, not inferred from language. Not broad language understanding, general reasoning or frontier capability. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+ "semantics": {
+  "assert": "appends a revision; a differing bare assertion becomes current and is marked conflict",
+  "correct": "explicit correction supersedes with the stated value, never marked conflict",
+  "historical_dependent_read": "first hop uses the requested view; later hops resolve Current at the same pinned view",
+  "initial": "earliest retained revision; an evicted one is typed, never absent",
+  "pin": "the read view is fixed when the answer starts",
+  "previous": "previous assertion (immediate predecessor)",
+  "previous_distinct": "separate exact query; not reachable from learned question intent",
+  "same_value_reassertion": "a new revision with the same value; history is never deduplicated"
+ },
+ "source_commit": "c4bd440a",
+ "step": "correction-aware scoped conversation memory over unfamiliar entities",
+ "unlisted_files": 0
+}

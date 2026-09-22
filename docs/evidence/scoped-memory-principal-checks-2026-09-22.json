@@ -1,0 +1,399 @@
+{
+  "schema": "uor-r4.scoped-memory-principal-checks/1",
+  "recorded_at": "2026-09-22T13:33:34.412771+00:00",
+  "scope": "Corrected exposed replay and added correctness instruments; no new independent final population",
+  "source_revision": "38bf325f274f4530a53685836ac3f94f50e9aa3a",
+  "running_source": {
+    "executable_sha256": "19b01d54d29f3385e41ffde9e45fc150d564d1a38dcc82eb5bc4d260eec8f640",
+    "git_dirty": "true",
+    "git_rev": "38bf325f274f4530a53685836ac3f94f50e9aa3a",
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+        "sha256": "e998bea158092463ba0f2c33b9f87b2cb75464d63b83c3f99ee71548aaf95306"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+        "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "20025e7700f14366a0049a5790da15fa0e6857dbba8f3ff60939d22012ebd235"
+      }
+    ]
+  },
+  "executable_preserved": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-delivery/competitive-reader-38bf325f",
+  "submitted_artifacts": [
+    {
+      "path": "artifacts/binder.json",
+      "sha256": "a6cdbeca00a504aa68d8ae25fc7e39b57917fb945fe02bb9b403288d33ac0502",
+      "submitted_bytes_identical": true
+    },
+    {
+      "path": "artifacts/intent.json",
+      "sha256": "862387f728d5ce2101bab727e44c86c8ddf9de0fa13d3e7e6352f0ea054d0aa6",
+      "submitted_bytes_identical": true
+    }
+  ],
+  "seal_verification": [
+    {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-2",
+      "files_verified": 10,
+      "unlisted": 0,
+      "manifest_sha256": "c88ad22e601a1debd0a951026447b1e55b11e101adc6e86badc365a1c2d986d8"
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-3",
+      "files_verified": 10,
+      "unlisted": 0,
+      "manifest_sha256": "18d32a4ebf6b2585079b8a04e72fa503a379019edb1c4eb033d8c6354734973e"
+    }
+  ],
+  "earlier_attempt": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-1",
+    "source_revision": "e738502e",
+    "status": "FAILED introduced EOS vocabulary check; protocol EOS need not be a lexical token; corrected at38bf325f and regression tested",
+    "checks": [
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::learner::scoped_memory::tests"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 182352,
+        "log": "/tmp/uor-scoped-check-0.log",
+        "log_sha256": "1c7c319cf3164469d840ef4a001d938af519ada1361e1df52d5d7b934e72ffaa",
+        "minimum_free": 38156619776,
+        "free_after": 38217908224,
+        "storage_stop": false
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 142925,
+        "log": "/tmp/uor-scoped-check-1.log",
+        "log_sha256": "d77baf98d71e62dfdcb033d31628cfa345b95caac9fc656fbfe0a8a10f93ea9d",
+        "minimum_free": 38029291520,
+        "free_after": 38027468800,
+        "storage_stop": false
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 23095,
+        "log": "/tmp/uor-scoped-check-2.log",
+        "log_sha256": "1adc3b12b5277a64df8caf7dbaf7cab30220c04eaec651c66dc5fa788a2e3ba6",
+        "minimum_free": 38025928704,
+        "free_after": 38022889472,
+        "storage_stop": false
+      },
+      {
+        "command": [
+          "/Users/casey.allard/uor-r4/.worktrees/scoped-correction-memory/target/release/competitive-reader",
+          "--mode=scoped-correction-memory",
+          "--root",
+          "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-1",
+          "--source-root",
+          "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+        ],
+        "exit_code": 1,
+        "elapsed_ms": 1013,
+        "log": "/tmp/uor-scoped-check-3.log",
+        "log_sha256": "0ee8fdcf4cbf9c6739b9e7bb861fe73721898cdc589a66d1ed092a9a97a586cb",
+        "minimum_free": 38022877184,
+        "free_after": 38022823936,
+        "storage_stop": false
+      }
+    ]
+  },
+  "corrected_checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::scoped_memory::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 187877,
+      "log": "/tmp/uor-scoped-final-check-0.log",
+      "log_sha256": "4c000f6e09628b80a3966ba0d777aed774843e4bc7ca044390b64d7e9a41fbb8",
+      "minimum_free": 37963354112,
+      "free_after": 38021537792,
+      "storage_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 140573,
+      "log": "/tmp/uor-scoped-final-check-1.log",
+      "log_sha256": "50c0cb8e8d89049f721a35d33df6bce0af28304eb9752d49f2d1cc1119047e1b",
+      "minimum_free": 37905481728,
+      "free_after": 38019043328,
+      "storage_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 23165,
+      "log": "/tmp/uor-scoped-final-check-2.log",
+      "log_sha256": "55b958f1136a4ec7ea7eaca7eafe03fd2f614743f0df365c5bc85121d8c28249",
+      "minimum_free": 38015811584,
+      "free_after": 38017445888,
+      "storage_stop": false
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/.worktrees/scoped-correction-memory/target/release/competitive-reader",
+        "--mode=scoped-correction-memory",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-2",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1017,
+      "log": "/tmp/uor-scoped-final-check-3.log",
+      "log_sha256": "3db231ffc0c8e30cccaba2f957acbb8be86ec3f14820cb415692fa5183db24bc",
+      "minimum_free": 38017425408,
+      "free_after": 38016708608,
+      "storage_stop": false
+    }
+  ],
+  "metadata_replay": {
+    "command": [
+      "/Users/casey.allard/uor-r4/.worktrees/scoped-correction-memory/target/release/competitive-reader",
+      "--mode=scoped-correction-memory",
+      "--root",
+      "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-3",
+      "--source-root",
+      "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+    ],
+    "exit_code": 0,
+    "elapsed_ms": 387,
+    "note": "Same executable and byte-identical model/row replay; correct caller dirty flag for pending documentation edits. All three model sources exactly committed at recorded source revision. Prior root preserved.",
+    "executable": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/scoped-memory-principal-delivery/competitive-reader-38bf325f",
+    "running_source": {
+      "executable_sha256": "19b01d54d29f3385e41ffde9e45fc150d564d1a38dcc82eb5bc4d260eec8f640",
+      "git_dirty": "true",
+      "git_rev": "38bf325f274f4530a53685836ac3f94f50e9aa3a",
+      "source_files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+          "sha256": "e998bea158092463ba0f2c33b9f87b2cb75464d63b83c3f99ee71548aaf95306"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs",
+          "sha256": "c6529239fb6071b5999cd944570dc78fe7970372b932cc637fc3674d467652ea"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "20025e7700f14366a0049a5790da15fa0e6857dbba8f3ff60939d22012ebd235"
+        }
+      ]
+    }
+  },
+  "test_counts": {
+    "module_passed": 17,
+    "runner_passed": 25,
+    "runner_legacy_ignored": 1,
+    "failed": 0
+  },
+  "model_results": {
+    "rows": 519,
+    "original_rows_behavior_compared": 511,
+    "original_behavior_changes": [],
+    "kind_counts": {
+      "ingest": 255,
+      "ask": 236,
+      "ask_view": 28
+    },
+    "panels": {
+      "development": {
+        "complete": 16,
+        "questions": 16
+      },
+      "exposed_regression": {
+        "complete": 11,
+        "questions": 11
+      },
+      "final": {
+        "complete": 11,
+        "questions": 11
+      }
+    },
+    "checks": {
+      "binder_branch_exact": true,
+      "capacity_arm_agrees": true,
+      "changed_source_changes_answer": true,
+      "cycle_typed": true,
+      "development_complete": true,
+      "disk_reload_identical": true,
+      "exposed_reported": true,
+      "final_complete": true,
+      "fresh_process_identical": true,
+      "fresh_process_learned_update": true,
+      "fresh_process_phases_after_update": true,
+      "historical_dependent_first_hop": true,
+      "history_control_differs": true,
+      "intent_learned_exactly": true,
+      "nonasserting_writes_nothing": true,
+      "owned_capture_preserved": true,
+      "phase_and_controls_differ": true,
+      "pinned_view_matches_oracle": true,
+      "read_control_differs": true,
+      "reordered_storage_invariant": true,
+      "scope_control_contaminates": true,
+      "unpinned_control_splices": true,
+      "write_control_differs": true
+    },
+    "capacity_same_development_input_changes": 2,
+    "historical_dependent_answers": [
+      "Cedar Annex",
+      "Cedar Annex",
+      "Office Park"
+    ],
+    "restart_queries": 16,
+    "resumed_answer_phases": 11,
+    "all_resumed_match": true,
+    "post_restart_learned_write": true,
+    "post_restart_answer": "Office Park",
+    "pin_intervention": {
+      "answer": "Cedar Annex",
+      "consistent_answers": [
+        "Complete { value: \"Cedar Annex\", hops: 2 }",
+        "Complete { value: \"Fen\", hops: 1 }",
+        "Complete { value: \"Fen\", hops: 1 }"
+      ],
+      "expected": "Complete { value: \"Cedar Annex\", hops: 2 }",
+      "pin": 11,
+      "terminal": "Complete",
+      "unpinned_answer": "Office Park"
+    }
+  },
+  "projection": {
+    "started_at": "2026-09-22T13:06:48.851132+00:00",
+    "preparation_estimate_ms": 360000,
+    "projected_review_ms": 7200000,
+    "before": {
+      "cumulative_ms": 326677886,
+      "limit_ms": 333700000
+    },
+    "extension_ms": 3600000,
+    "reason": "Independent review found capacity and restored-session integrity defects plus bypassed learned restart boundary; source repairs, focused tests, one corrected exposed run and delivery require full projection beyond remaining allowance. Standing local extension authorization.",
+    "threads_compile": 2,
+    "threads_model": 1,
+    "ram_bytes": 8589934592,
+    "temporary_bytes": 805306368,
+    "retained_bytes": 67108864,
+    "physical_reserve_bytes": 36766079385,
+    "stop_margin_bytes": 134217728,
+    "free_before": 35698626560,
+    "paid_compute": false,
+    "after": {
+      "cumulative_ms": 326677886,
+      "limit_ms": 337300000
+    }
+  },
+  "cleanup": {
+    "first": {
+      "at": "2026-09-22T13:07:28.529568+00:00",
+      "allocated_bytes_removed": 2132803584,
+      "files_removed": 1852,
+      "manifest_sha256": "6d8f7c58cbf9594c44dd3552717dd30950179c38ad563dd4e3e6388453f97291",
+      "free_after": 37791879168,
+      "preserved": "all executables, release caches, unique research, sealed roots, AI histories, Downloads and open rust-analyzer dylibs"
+    },
+    "second": {
+      "allocated_bytes_removed": 435277824,
+      "files_removed": 180,
+      "free_after": 38214336512,
+      "scope": "Inactive release library rlib/rmeta files in owner target; original executable preserved, use DeepSeek target for corrected build. All executables retained."
+    },
+    "total_allocated_bytes_removed": 2568081408,
+    "files_removed": 2032,
+    "downloads_deleted": 0,
+    "unique_artifacts_deleted": 0
+  },
+  "limitations": [
+    "Authored familiar forms with lexical-renaming final already exposed",
+    "38/38 expected outcomes is34language+4API, including two expected nonComplete terminals",
+    "Capacity bounds token payload retention, not total metadata/history bytes",
+    "Immutable history digest currently scans/sorts/serializes; complete-path D0b, optimized serving cost and energy unqualified",
+    "History witness provides consistency, not external authenticity",
+    "Root2 caller git_dirty=false was inaccurate for uncommitted documentation; root3 corrects metadata with identical executable, source, parameters and rows"
+  ],
+  "resource_charge": {
+    "recorded_at": "2026-09-22T13:34:46.309372+00:00",
+    "elapsed_review_ms": 1677458,
+    "preparation_estimate_ms": 360000,
+    "delivery_reserve_estimate_ms": 600000,
+    "total_charge_ms": 2637458,
+    "parallel_wall_time_counted_once": true,
+    "before": {
+      "cumulative_ms": 326677886,
+      "limit_ms": 337300000
+    },
+    "after": {
+      "cumulative_ms": 329315344,
+      "limit_ms": 337300000
+    },
+    "free_at_charge_bytes": 38016589824,
+    "paid_compute": false
+  },
+  "documentation_checks": {
+    "claim_wording": "PASS",
+    "cargo_fmt_all": "PASS",
+    "git_diff_check": "PASS",
+    "relative_links_verified": 1065,
+    "missing_links": 0,
+    "new_json_parse": "PASS"
+  },
+  "independent_corrected_audit": "docs/evidence/scoped-memory-corrected-audit-2026-09-22.json"
+}
