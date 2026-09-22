@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-09-22T22:39:55.171782+00:00",
+  "before": {
+    "cumulative_ms": 361471846,
+    "limit_ms": 372700000
+  },
+  "charge_ms": 2664171,
+  "components": {
+    "elapsed_since_recorded_recovery_clock_ms": 2244171,
+    "earlier_recovery_estimate_ms": 120000,
+    "remaining_delivery_allowance_ms": 300000
+  },
+  "basis": "Measured elapsed wall time since22:02:31UTC plus conservative120s earlier recovery estimate and300s delivery allowance. Concurrent investigators counted once. Submitted6millionms already charged. Estimates are not described as measured.",
+  "after": {
+    "cumulative_ms": 364136017,
+    "limit_ms": 372700000
+  },
+  "free_bytes": 29745901568,
+  "limit_increment_ms": 6000000,
+  "limit_increment_recorded_before_execution": true,
+  "projection_ms": 7200000,
+  "external_compute": "none",
+  "deletions": "none"
+}

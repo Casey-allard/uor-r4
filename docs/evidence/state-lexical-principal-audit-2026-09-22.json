@@ -1,0 +1,1143 @@
+{
+  "case_scope": {
+    "new_correction_or_pinned_update_cases": 0,
+    "normal_cases": 31,
+    "observed_text_computation_cases": 12,
+    "previous_distinct_cases": 0,
+    "typed_ask_view_cases": 19
+  },
+  "conclusion": "A learned low-bit action recurrence reproduces 31 exposed authored responses and transfers flag-driven phrasing to eight reserved-world cases. Useful component result; the larger truthful state-conditioned lexical milestone is incomplete. Correct the comparator/runtime/evidence claims, then learn and test token-conditioned continuation with exact provenance, independent text, and the full retained bundle before broad prose or executed-Rust expansion.",
+  "date": "2026-09-22",
+  "findings": [
+    {
+      "detail": "Every fitted finite-table action uses bucket zero, whereas serving advances the bucket. The measured 0/31 is preserved but cannot attribute failure to finite-state capacity.",
+      "id": "FINITE_COMPARATOR_SUPPORT_MISMATCH",
+      "status": "INVALID_COMPARISON",
+      "witness": true
+    },
+    {
+      "detail": "Inserted vocabulary slot identities enter the recurrence. Every copied token enters as the same Copy action symbol; no copied token identity or order-sensitive copied content enters the transition.",
+      "id": "ACTION_FEEDBACK_IS_NOT_ALL_TOKEN_FEEDBACK",
+      "status": "PARTIAL"
+    },
+    {
+      "detail": "All 31 targets are Insert* Copy* Stop. Moving the identity marker before the span avoided the requested meaningful suffix/later content-conditioned lexical decision.",
+      "id": "NO_POST_COPY_LEXICAL_BEHAVIOR",
+      "status": "UNTESTED",
+      "witness": true
+    },
+    {
+      "detail": "Reachability reconstructs the decoder state, but its success predicate does not compare the supplied sl_state to that reconstruction. Correct final bytes in one restart scenario cannot establish forged-state rejection.",
+      "id": "STATE_REPLAY_NOT_COMPARED",
+      "status": "DEFECT_IN_SUBMITTED_SOURCE",
+      "witness": true
+    },
+    {
+      "detail": "slx_probe_compute labels changed from derived_key != operand_key. The compute query does not commit an office correction. 'became'/'still' need explicit computational-provenance wording; present targets can falsely imply a changed persisted office. Every label maps its office to itself, confounding changed derived address with changed terminal value.",
+      "id": "COMPUTATION_NOT_WORLD_CHANGE",
+      "status": "SEMANTIC_SCOPE_ERROR"
+    },
+    {
+      "detail": "slx_render and slx_oracle encode the same hand-declared view/derived/changed branch. Computation expected payloads are obtained by executing the same retained legacy path. This checks new emission agreement, not an independent semantic or arithmetic oracle.",
+      "id": "SHARED_EXPECTATION_CONSTRUCTION",
+      "status": "LIMITED_ORACLE"
+    },
+    {
+      "detail": "The 31 LegacyWords rows load no new lexical artifact. Saved prior observer/intent/lexicon bytes match, but the prior 392 interacting lifecycle/control rows were not replayed with this decoder. Six artifact-dependent runner tests were ignored.",
+      "id": "SAME_CANDIDATE_RETENTION_MISSING",
+      "status": "UNTESTED"
+    },
+    {
+      "detail": "The seven authored worlds are the only language population. No independent prose/conversation corpus or loaded E/S donor comparison is present. Declared hard-action scores are not normalized token probability or text cross-entropy.",
+      "id": "SOURCE_TEXT_AND_E_S_REFERENCE",
+      "status": "NOT_RUN"
+    },
+    {
+      "detail": "slx-sweep already contains the identical lexical artifact and all 31 final panel outputs. Approximately forty exploratory runs are disclosed by the ledger/returned session, but their winning/losing seed/configuration history is not bound in this final report. Do not infer deletion from this absence.",
+      "id": "EXPOSURE_AND_SELECTION",
+      "status": "DEVELOPMENT_REPLAY"
+    },
+    {
+      "detail": "All 31 recurrence-disabled rows reach Some(Complete); zero match target bytes. 'Completes nothing' misstates the result. Normal rows report one learned Stop each, but main-case per-step effects are not saved.",
+      "id": "FORCED_TERMINATION_WORDING",
+      "status": "CLAIM_CORRECTION"
+    },
+    {
+      "detail": "The content feature sums the first four fitted token embeddings, skips unknown tokens, and drops order. Entirely unknown equal and unequal pairs both map to zero; permutations of the same first-four tokens alias. The supplied disagreement statistic is over those lossy coordinates, not exact value inequality.",
+      "id": "CONTENT_CAPACITY",
+      "status": "STRUCTURAL_LIMIT"
+    }
+  ],
+  "manifest_checks": [
+    {
+      "claimed_at": "1790114217",
+      "hash_or_size_failures": [],
+      "listed_bytes": 169935,
+      "listed_files": 24,
+      "missing": [],
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-1",
+      "sealed_at": "1790114286",
+      "total_files_including_manifest": 25,
+      "unlisted": []
+    },
+    {
+      "claimed_at": "1790114004",
+      "hash_or_size_failures": [],
+      "listed_bytes": 165144,
+      "listed_files": 23,
+      "missing": [],
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/slx-sweep",
+      "sealed_at": "1790114039",
+      "total_files_including_manifest": 24,
+      "unlisted": []
+    }
+  ],
+  "method": "Independent read-only saved-byte reconstruction and immutable submitted-source inspection; no training, new model run, or mutation of sealed evidence.",
+  "normal_output_shapes": [
+    {
+      "case": "current",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "mara",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        389,
+        730
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Bert",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "previous",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "mara",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        1065,
+        2432
+      ],
+      "prefix": [
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "it was Alma",
+      "unfitted_content_token_occurrences": 0,
+      "view": "previous"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "mara",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        1065,
+        2432
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Alma",
+      "unfitted_content_token_occurrences": 0,
+      "view": "initial"
+    },
+    {
+      "case": "derived_unchanged",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "mara",
+      "eos": true,
+      "fit": true,
+      "op": "e",
+      "payload": [
+        389,
+        730
+      ],
+      "prefix": [
+        357,
+        314,
+        1361
+      ],
+      "suffix": [],
+      "text": "it is still Bert",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 3,
+      "derived": true,
+      "document": "mara",
+      "eos": true,
+      "fit": true,
+      "op": "i",
+      "payload": [
+        340,
+        270,
+        81
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Cora",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "mara",
+      "eos": true,
+      "fit": true,
+      "op": "j",
+      "payload": [
+        3906,
+        254
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Elin",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "current",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "ivo",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        340,
+        270,
+        81
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Cora",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "ivo",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        340,
+        270,
+        81
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Cora",
+      "unfitted_content_token_occurrences": 0,
+      "view": "initial"
+    },
+    {
+      "case": "derived_unchanged",
+      "content_tokens_considered": 3,
+      "derived": true,
+      "document": "ivo",
+      "eos": true,
+      "fit": true,
+      "op": "e",
+      "payload": [
+        340,
+        270,
+        81
+      ],
+      "prefix": [
+        357,
+        314,
+        1361
+      ],
+      "suffix": [],
+      "text": "it is still Cora",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "ivo",
+      "eos": true,
+      "fit": true,
+      "op": "i",
+      "payload": [
+        1065,
+        2432
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Alma",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 3,
+      "derived": true,
+      "document": "ivo",
+      "eos": true,
+      "fit": true,
+      "op": "j",
+      "payload": [
+        452,
+        103,
+        264
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Gwen",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "current",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "cedar",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        422,
+        1674
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Dane",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "previous",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "cedar",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        422,
+        1674
+      ],
+      "prefix": [
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "it was Dane",
+      "unfitted_content_token_occurrences": 0,
+      "view": "previous"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "cedar",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        422,
+        1674
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Dane",
+      "unfitted_content_token_occurrences": 0,
+      "view": "initial"
+    },
+    {
+      "case": "derived_unchanged",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "cedar",
+      "eos": true,
+      "fit": true,
+      "op": "e",
+      "payload": [
+        422,
+        1674
+      ],
+      "prefix": [
+        357,
+        314,
+        1361
+      ],
+      "suffix": [],
+      "text": "it is still Dane",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "cedar",
+      "eos": true,
+      "fit": true,
+      "op": "i",
+      "payload": [
+        389,
+        730
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Bert",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "cedar",
+      "eos": true,
+      "fit": true,
+      "op": "j",
+      "payload": [
+        3970,
+        100
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Holt",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "current",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "oren",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        452,
+        103,
+        264
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Gwen",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "previous",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "oren",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        426,
+        257,
+        105
+      ],
+      "prefix": [
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "it was Frey",
+      "unfitted_content_token_occurrences": 0,
+      "view": "previous"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "oren",
+      "eos": true,
+      "fit": true,
+      "op": null,
+      "payload": [
+        3906,
+        254
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Elin",
+      "unfitted_content_token_occurrences": 0,
+      "view": "initial"
+    },
+    {
+      "case": "derived_unchanged",
+      "content_tokens_considered": 3,
+      "derived": true,
+      "document": "oren",
+      "eos": true,
+      "fit": true,
+      "op": "e",
+      "payload": [
+        452,
+        103,
+        264
+      ],
+      "prefix": [
+        357,
+        314,
+        1361
+      ],
+      "suffix": [],
+      "text": "it is still Gwen",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "oren",
+      "eos": true,
+      "fit": true,
+      "op": "i",
+      "payload": [
+        3906,
+        254
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Elin",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "derived_changed",
+      "content_tokens_considered": 2,
+      "derived": true,
+      "document": "oren",
+      "eos": true,
+      "fit": true,
+      "op": "j",
+      "payload": [
+        422,
+        1674
+      ],
+      "prefix": [
+        357,
+        2163
+      ],
+      "suffix": [],
+      "text": "it became Dane",
+      "unfitted_content_token_occurrences": 0,
+      "view": "current"
+    },
+    {
+      "case": "current",
+      "content_tokens_considered": 4,
+      "derived": false,
+      "document": "una",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        450,
+        280,
+        538,
+        96,
+        315
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Larkspur",
+      "unfitted_content_token_occurrences": 4,
+      "view": "current"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 4,
+      "derived": false,
+      "document": "una",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        450,
+        280,
+        538,
+        96,
+        315
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Larkspur",
+      "unfitted_content_token_occurrences": 4,
+      "view": "initial"
+    },
+    {
+      "case": "current",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "pia",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        514,
+        2604
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Umber",
+      "unfitted_content_token_occurrences": 2,
+      "view": "current"
+    },
+    {
+      "case": "previous",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "pia",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        442,
+        305,
+        1080
+      ],
+      "prefix": [
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "it was Nettle",
+      "unfitted_content_token_occurrences": 3,
+      "view": "previous"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "pia",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        442,
+        305,
+        1080
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Nettle",
+      "unfitted_content_token_occurrences": 3,
+      "view": "initial"
+    },
+    {
+      "case": "current",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "silas",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        718,
+        280,
+        720
+      ],
+      "prefix": [
+        357,
+        314
+      ],
+      "suffix": [],
+      "text": "it is Yarrow",
+      "unfitted_content_token_occurrences": 3,
+      "view": "current"
+    },
+    {
+      "case": "previous",
+      "content_tokens_considered": 2,
+      "derived": false,
+      "document": "silas",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        408,
+        723
+      ],
+      "prefix": [
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "it was Wren",
+      "unfitted_content_token_occurrences": 2,
+      "view": "previous"
+    },
+    {
+      "case": "initial",
+      "content_tokens_considered": 3,
+      "derived": false,
+      "document": "silas",
+      "eos": true,
+      "fit": false,
+      "op": null,
+      "payload": [
+        717,
+        478,
+        382
+      ],
+      "prefix": [
+        418,
+        808,
+        357,
+        436
+      ],
+      "suffix": [],
+      "text": "at first it was Vellum",
+      "unfitted_content_token_occurrences": 3,
+      "view": "initial"
+    }
+  ],
+  "panels_recomputed": {
+    "LegacyWords:Normal": {
+      "byte_equal": 31,
+      "cases": 31,
+      "correct_and_complete": 31,
+      "reported_all_stops": 0,
+      "reported_learned_stops": 0,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 31
+    },
+    "RealizedV1:Normal": {
+      "byte_equal": 0,
+      "cases": 31,
+      "correct_and_complete": 0,
+      "reported_all_stops": 31,
+      "reported_learned_stops": 29,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 31
+    },
+    "StateLexicalV1:Normal": {
+      "byte_equal": 31,
+      "cases": 31,
+      "correct_and_complete": 31,
+      "reported_all_stops": 31,
+      "reported_learned_stops": 31,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 31
+    },
+    "StateLexicalV1:RealizationContextDisabled": {
+      "byte_equal": 7,
+      "cases": 31,
+      "correct_and_complete": 7,
+      "reported_all_stops": 31,
+      "reported_learned_stops": 31,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 31
+    },
+    "StateLexicalV1:RecurrenceDisabled": {
+      "byte_equal": 0,
+      "cases": 31,
+      "correct_and_complete": 0,
+      "reported_all_stops": 31,
+      "reported_learned_stops": 0,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 31
+    },
+    "fit": {
+      "byte_equal": 23,
+      "cases": 23,
+      "correct_and_complete": 23,
+      "reported_all_stops": 23,
+      "reported_learned_stops": 23,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 23
+    },
+    "held_out_authored_worlds": {
+      "byte_equal": 8,
+      "cases": 8,
+      "correct_and_complete": 8,
+      "reported_all_stops": 8,
+      "reported_learned_stops": 8,
+      "reported_ok_disagreements": 0,
+      "terminal_complete": 8
+    }
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "file": "comparator.json",
+        "matches_report": true,
+        "sha256": "40930793853156bca21500046a3125a243657a50d795a84d35d5deba54163bb4"
+      },
+      {
+        "file": "intent.json",
+        "matches_report": true,
+        "sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407"
+      },
+      {
+        "file": "lexicon.json",
+        "matches_report": true,
+        "sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8"
+      },
+      {
+        "file": "model.json",
+        "matches_report": true,
+        "sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261"
+      },
+      {
+        "file": "state_lexical.json",
+        "matches_report": true,
+        "sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+      }
+    ],
+    "byte_identical_earlier_lexical_artifact": true,
+    "currently_present_executable_sha256_not_historical_proof": "e45238e4b87f11ca857a9803cf742ed734f52050a3538a40409bf5a8510a041b",
+    "earlier_all_case_records_identical": true,
+    "earlier_failure": "restart_child_process=false; path join defect",
+    "earlier_panels_identical": true,
+    "earlier_sources": [
+      {
+        "path": "unspecified",
+        "sha256": "UNAVAILABLE"
+      }
+    ],
+    "executable_byte_hash_recorded_at_execution": false,
+    "recorded_fit_fields": [
+      "action_correct",
+      "action_total",
+      "content_tokens",
+      "e_dim",
+      "epochs",
+      "final_loss",
+      "first_loss",
+      "h_dim",
+      "sequences",
+      "served_loss",
+      "steps"
+    ],
+    "retained_observer_intent_lexicon": [
+      {
+        "root": "observed-computation-lifecycle-4",
+        "shared_artifact_identity": {
+          "intent.json": true,
+          "lexicon.json": true,
+          "model.json": true
+        }
+      },
+      {
+        "root": "grounded-lexical-realization-9",
+        "shared_artifact_identity": {
+          "intent.json": true,
+          "lexicon.json": true,
+          "model.json": true
+        }
+      }
+    ],
+    "seed_lr_weights_tries_winning_seed_losing_artifacts_saved_in_final_root": false,
+    "source_files": [
+      {
+        "matches_submitted_git": true,
+        "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+        "sha256": "a3f67f26233fe66467142f1d0cb10e22ad12d51040b71495df4472c77504b22c",
+        "submitted_git_sha256": "a3f67f26233fe66467142f1d0cb10e22ad12d51040b71495df4472c77504b22c"
+      },
+      {
+        "matches_submitted_git": true,
+        "path": "crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs",
+        "sha256": "943a44180758fd1055bc4e9a3a39efc50f9f92852a470b710a268c8686f3d841",
+        "submitted_git_sha256": "943a44180758fd1055bc4e9a3a39efc50f9f92852a470b710a268c8686f3d841"
+      },
+      {
+        "matches_submitted_git": true,
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "6bfb4cb08272f92d31248c1b2ddd482733ec3cf00a244c2e49de7150b206d58a",
+        "submitted_git_sha256": "6bfb4cb08272f92d31248c1b2ddd482733ec3cf00a244c2e49de7150b206d58a"
+      }
+    ],
+    "submitted_commit": "711334f50853d48b8a201539c07667014ae81c55"
+  },
+  "restart_reconstructed": {
+    "attempt_pid": 82182,
+    "child_final_bytes_equal": 10,
+    "child_final_states_or_remaining_effects_saved": false,
+    "child_pid": 82192,
+    "child_rows": 10,
+    "contains_computation": false,
+    "distinct_request_worlds": 1,
+    "histories": [
+      "Initial"
+    ],
+    "observed_text_request_count": 0,
+    "separate_pid": true,
+    "snapshot_phases": [
+      {
+        "copied": 0,
+        "emitted_count": 0,
+        "file": "frame-000.json",
+        "pending": "Read",
+        "sl_state_length": 0,
+        "terminal": null
+      },
+      {
+        "copied": 0,
+        "emitted_count": 0,
+        "file": "frame-001.json",
+        "pending": "Emit",
+        "sl_state_length": 0,
+        "terminal": null
+      },
+      {
+        "copied": 0,
+        "emitted_count": 1,
+        "file": "frame-002.json",
+        "pending": "Emit",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 0,
+        "emitted_count": 2,
+        "file": "frame-003.json",
+        "pending": "Emit",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 0,
+        "emitted_count": 3,
+        "file": "frame-004.json",
+        "pending": "Emit",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 0,
+        "emitted_count": 4,
+        "file": "frame-005.json",
+        "pending": "Emit",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 1,
+        "emitted_count": 5,
+        "file": "frame-006.json",
+        "pending": "Emit",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 2,
+        "emitted_count": 6,
+        "file": "frame-007.json",
+        "pending": "Emit",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 2,
+        "emitted_count": 6,
+        "file": "frame-008.json",
+        "pending": "Stop",
+        "sl_state_length": 24,
+        "terminal": null
+      },
+      {
+        "copied": 2,
+        "emitted_count": 7,
+        "file": "frame-009.json",
+        "pending": "Stop",
+        "sl_state_length": 24,
+        "terminal": "Complete"
+      }
+    ],
+    "snapshots": 10,
+    "store_mutation_or_correction_between_snapshots": false
+  },
+  "schema": "uor-r4.state-lexical-principal-audit/1",
+  "total_saved_cases": 155,
+  "training_reconstructed": {
+    "agrees_with_reported_counts": true,
+    "declared_authored_responses": 23,
+    "expanded_action_targets": 322,
+    "expanded_sequences": 54,
+    "fit_worlds": [
+      "cedar",
+      "ivo",
+      "mara",
+      "oren"
+    ],
+    "fresh_acceptance_draw": false,
+    "held_out_cases_that_compute": 0,
+    "held_out_worlds": [
+      "pia",
+      "silas",
+      "una"
+    ],
+    "integer_teacher_forced_correct_reported_not_reexecuted": 322,
+    "scope": "Seven authored structured worlds, not seven independent natural-text sources; all response forms supplied by slx_render. The eight reserved-world cases exclude computation and were already exposed in slx-sweep."
+  },
+  "value_pairs_reconstructed": [
+    {
+      "changed_prefix": [
+        357,
+        2163
+      ],
+      "common_generated_prefix_tokens": 1,
+      "document": "mara",
+      "fitting_world": true,
+      "payload_changes": true,
+      "prompt_operation_changes": true,
+      "reported_final_state_differs": false,
+      "scope": "Real computation path, not a fabricated capture; source-only intervention with fixed request is not executed. Per-step readout/state/capture traces are absent.",
+      "unchanged_prefix": [
+        357,
+        314,
+        1361
+      ],
+      "uncopied_prefix_changes": true
+    },
+    {
+      "changed_prefix": [
+        357,
+        2163
+      ],
+      "common_generated_prefix_tokens": 1,
+      "document": "ivo",
+      "fitting_world": true,
+      "payload_changes": true,
+      "prompt_operation_changes": true,
+      "reported_final_state_differs": true,
+      "scope": "Real computation path, not a fabricated capture; source-only intervention with fixed request is not executed. Per-step readout/state/capture traces are absent.",
+      "unchanged_prefix": [
+        357,
+        314,
+        1361
+      ],
+      "uncopied_prefix_changes": true
+    },
+    {
+      "changed_prefix": [
+        357,
+        2163
+      ],
+      "common_generated_prefix_tokens": 1,
+      "document": "cedar",
+      "fitting_world": true,
+      "payload_changes": true,
+      "prompt_operation_changes": true,
+      "reported_final_state_differs": true,
+      "scope": "Real computation path, not a fabricated capture; source-only intervention with fixed request is not executed. Per-step readout/state/capture traces are absent.",
+      "unchanged_prefix": [
+        357,
+        314,
+        1361
+      ],
+      "uncopied_prefix_changes": true
+    },
+    {
+      "changed_prefix": [
+        357,
+        2163
+      ],
+      "common_generated_prefix_tokens": 1,
+      "document": "oren",
+      "fitting_world": true,
+      "payload_changes": true,
+      "prompt_operation_changes": true,
+      "reported_final_state_differs": true,
+      "scope": "Real computation path, not a fabricated capture; source-only intervention with fixed request is not executed. Per-step readout/state/capture traces are absent.",
+      "unchanged_prefix": [
+        357,
+        314,
+        1361
+      ],
+      "uncopied_prefix_changes": true
+    }
+  ]
+}

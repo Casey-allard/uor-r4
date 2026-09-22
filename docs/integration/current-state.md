@@ -1,6 +1,14 @@
 # Current native geometric AI work
 
-## Active — truthful state-conditioned lexical realization
+## Active — recurrent lexical component reviewed; transferable language remains open
+
+**PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](state-conditioned-lexical-review-2026-09-22.md), [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](../evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. The corrected reference scores **12/31**, with unchanged learned **31/31** and teacher-forced **322/322**; 46 distinct library tests and the release replay pass. Original artifacts remain preserved.
+
+**Next:** [one transferable lexical learner](deepseek-transferable-lexical-step-2026-09-22.md): exact causal address/value/history distinctions, actual generated and copied-token feedback, meaningful continuation after copying, ordinary source-separated text plus grounded responses, and a loaded E/S reference or measured adaptation. Geometric ordered transport/shared residuals remain preferred candidates beside the ordinary low-bit baseline. Complete this interface before broader conversation and executed Rust; then qualify whole-model laptop cost and product delivery. This remains the open lexical milestone, not a new series of renamed fixtures.
+
+**Leadership and resources:** principal mathematical/ML/systems review governs sequencing; DeepSeek has substantive representation, data and optimization discretion. Necessary local extensions are authorized prospectively with cumulative accounting and measured physical reserve. No arbitrary short timer or retry quota, no paid compute, and no deletion of unique research. Separate learned behavior, exact infrastructure and supplied supervision.
+
+## Previous active — the truthful state-conditioned lexical brief (still incomplete)
 
 **PR #1349, principal review:** retain the learned Copy/Insert/Stop interface as an exposed four-word construction. It changes uncopied words from a history/provenance flag, but the authored targets misuse tense (`was` for the current value; `now` for computation). Correct temporal language and the lexical milestone remain **incomplete**. The 392 retained rows bypass the realizer; five explicit legacy cases do load it. [Review](grounded-lexical-realization-review-2026-09-22.md) and [independent audit](../evidence/grounded-lexical-realization-principal-audit-2026-09-22.json) distinguish implementation, semantic validity, exposure and same-artifact scope.
 

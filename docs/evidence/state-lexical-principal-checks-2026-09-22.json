@@ -1,0 +1,2473 @@
+{
+  "schema": "uor-r4.state-lexical-principal-checks/1",
+  "recorded_utc": "2026-09-22T22:39:17.570817+00:00",
+  "submitted_head": "711334f50853d48b8a201539c07667014ae81c55",
+  "executed_runner_source_commit": "1108357d765cd12d01a9b77f7c3403f5087017e4",
+  "library_test_source_commit": "544500db",
+  "library_test_source_note": "Final scoped_memory changes after the executed library tests only expose the unchanged realization_context method publicly with documentation; the final release CLI exercises that interface.",
+  "source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs": "7101f40920e3f549891feb3462fff7ac1a0b2d5dc5ad5ef7a2c10ead1493e168",
+    "crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs": "62aa97b24e53995a48f71b33e31be640e2604282e85b36cd84430ba9692a1ec9",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "82a68d13cc02ed99092f1a1b9e015ca7314adbd05ddf7e609fcd1f9aed91c954"
+  },
+  "executables": {
+    "core-tests": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/core-tests",
+      "sha256": "4121ade325b4603eba957d30d6cb845659bc9c77431d66185cd2fa7f5f99e0a9",
+      "bytes": 30581712
+    },
+    "competitive-reader": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/competitive-reader",
+      "sha256": "e45238e4b87f11ca857a9803cf742ed734f52050a3538a40409bf5a8510a041b",
+      "bytes": 5559856
+    }
+  },
+  "logs": {
+    "uor-statelex-lib-review.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/uor-statelex-lib-review.log",
+      "sha256": "6a353f0364f363bae5952bac716e13c77682f7b9e32709d3cef6b6e8cee267b0"
+    },
+    "uor-statelex-scoped-review.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/uor-statelex-scoped-review.log",
+      "sha256": "174668187e99494077ffe13104b828c5ba6b614e0e51179a1af2fe45eebf38f1"
+    },
+    "uor-statelex-runner-final-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/uor-statelex-runner-final-build.log",
+      "sha256": "3682bf351574f23301adf06c6bc6cbed5afe274bea1dc276e8f03e1668534c39"
+    },
+    "uor-statelex-final-replay.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/uor-statelex-final-replay.log",
+      "sha256": "4a3c4010872241233057c03301c55d067a6b7ef5ab9eb4e68942ba77e9f30f6f"
+    },
+    "uor-statelex-fmt.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/uor-statelex-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "uor-statelex-claims.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/uor-statelex-claims.log",
+      "sha256": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+    }
+  },
+  "tests": {
+    "distinct_state_lexical_module": 10,
+    "distinct_scoped_memory_module": 36,
+    "distinct_total": 46,
+    "filter_overlap": 3,
+    "new_focused_tests": 7,
+    "full_suite": "NOT_RUN",
+    "historical_runner_tests": "not reexecuted; changed runner exercised through actual release CLI"
+  },
+  "intermediate_replay": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-1",
+    "retained_finite_table_expected_bytes": "10/31",
+    "status": "preserved count-only fitting repair; historical predecessor support corrected in final replay",
+    "receipt": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/count-only-principal-checks.json",
+    "executable": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-delivery/count-only-competitive-reader"
+  },
+  "execution": {
+    "command": "competitive-reader --mode=state-lexical --root /Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-2 --source-root /Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4 --reuse-artifact-root /Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-1",
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-principal-2",
+    "manifest_sha256": "d470ab8746f13beb8c4d234806b60c249745dd22bf526462bb7077e5fbbc0d7a",
+    "sealed_files_including_manifest": 25,
+    "unlisted": [],
+    "hash_or_size_errors": 0,
+    "neural_refit": false,
+    "small_finite_comparator_refit": true,
+    "teacher_forced_replay": {
+      "correct": 322,
+      "total": 322
+    },
+    "artifact_sha256": {
+      "comparator.json": "fffd6c96c12d1e3567a23b3af10cdddba297c5c08ff482e2adde716e08baa6d2",
+      "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+      "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+      "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+      "state_lexical.json": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+    },
+    "recomputed_panels": {
+      "LegacyWords/Normal": {
+        "cases": 31,
+        "expected_bytes": 31
+      },
+      "RealizedV1/Normal": {
+        "cases": 31,
+        "expected_bytes": 12
+      },
+      "StateLexicalV1/Normal": {
+        "cases": 31,
+        "expected_bytes": 31
+      },
+      "StateLexicalV1/RealizationContextDisabled": {
+        "cases": 31,
+        "expected_bytes": 7
+      },
+      "StateLexicalV1/RecurrenceDisabled": {
+        "cases": 31,
+        "expected_bytes": 0
+      }
+    },
+    "unchanged_noncomparator_case_rows": 124,
+    "original_lexical_bytes_unchanged": true,
+    "restart": {
+      "all_equal_final": true,
+      "boundaries": 10,
+      "child": {
+        "expected": [
+          418,
+          808,
+          357,
+          436,
+          1065,
+          2432,
+          4294967294
+        ],
+        "frames": [
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Read",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": 9,
+                  "selected_record": 9,
+                  "selected_value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ],
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 418,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 6
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 5299427180201986115
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 808,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 5
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 1504186032891200977
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 357,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 0
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 6217596984903980197
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 436,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 2
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 14585597658794690421
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 1065,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 12294089757441697388
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 0,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 418,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 6
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 5299427180201986115
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 808,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 5
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 1504186032891200977
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 357,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 0
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 6217596984903980197
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 436,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 2
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 14585597658794690421
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 1065,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 12294089757441697388
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 1,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 808,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 5
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 1504186032891200977
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 357,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 0
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 6217596984903980197
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 436,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 2
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 14585597658794690421
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 1065,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 12294089757441697388
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 2,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 357,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 0
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 6217596984903980197
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 436,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 2
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 14585597658794690421
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 1065,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 12294089757441697388
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 3,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 436,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": {
+                      "Insert": 2
+                    },
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 14585597658794690421
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 1065,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 12294089757441697388
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 4,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 1065,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 12294089757441697388
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 5,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": 2432,
+                  "hop": 0,
+                  "next_action": "Emit",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Copy",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 831463315313020839
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 6,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Emit",
+                  "computed_state": null,
+                  "emitted": null,
+                  "hop": 0,
+                  "next_action": "Stop",
+                  "op_label": null,
+                  "realization": {
+                    "action": "Stop",
+                    "evidence_class": 0,
+                    "from_table": true,
+                    "key": 15020020700106989606
+                  },
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": null
+                },
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 7,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [
+                {
+                  "action": "Stop",
+                  "computed_state": null,
+                  "emitted": 4294967294,
+                  "hop": 0,
+                  "next_action": null,
+                  "op_label": null,
+                  "realization": null,
+                  "selected_commit": null,
+                  "selected_record": null,
+                  "selected_value": null,
+                  "terminal": "Complete"
+                }
+              ],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 8,
+            "ok": true
+          },
+          {
+            "continuation": {
+              "remaining_effects": [],
+              "session": {
+                "binding": {
+                  "artifact_sha256": "d0c64eda2fc75c4dc8261d2cf281b1f4e28772998043ac98470ca73438517d5a",
+                  "backend": "signed_factorization",
+                  "capacity": 16,
+                  "contract": 2,
+                  "control_sha256": "863603b1fc1a3595712797aea6a1f2f7b25f4eafd800f9be6c3f99c74ceb1ae5",
+                  "eos": 4294967294,
+                  "intent_sha256": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+                  "lexicon_sha256": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+                  "lineage": 501,
+                  "max_vocab": 4096,
+                  "model_sha256": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+                  "realization_sha256": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+                },
+                "captured": {
+                  "commit": 9,
+                  "continues": false,
+                  "derived": false,
+                  "key": [
+                    5,
+                    0,
+                    0,
+                    0,
+                    97,
+                    108,
+                    112,
+                    104,
+                    97,
+                    4,
+                    0,
+                    0,
+                    0,
+                    77,
+                    97,
+                    114,
+                    97,
+                    0
+                  ],
+                  "payload": [
+                    1065,
+                    2432
+                  ],
+                  "read_hop": 0,
+                  "record_id": 9,
+                  "value": [
+                    65,
+                    108,
+                    109,
+                    97
+                  ]
+                },
+                "computation": null,
+                "contract": 2,
+                "cursor": 2,
+                "derived": false,
+                "emitted": [
+                  418,
+                  808,
+                  357,
+                  436,
+                  1065,
+                  2432,
+                  4294967294
+                ],
+                "eos": 4294967294,
+                "history": "Initial",
+                "hop": 0,
+                "op_cursor": 0,
+                "ops": [],
+                "pending": "Stop",
+                "prelude_words": 4,
+                "query_entity": [
+                  77,
+                  97,
+                  114,
+                  97
+                ],
+                "relation": 0,
+                "request": {
+                  "clause": null,
+                  "entity": [
+                    77,
+                    97,
+                    114,
+                    97
+                  ],
+                  "history": "Initial",
+                  "ops": [],
+                  "relation": 0
+                },
+                "scope": [
+                  97,
+                  108,
+                  112,
+                  104,
+                  97
+                ],
+                "sl_state": [
+                  255,
+                  -255,
+                  -2,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -1,
+                  -255,
+                  -255,
+                  -255,
+                  3,
+                  255,
+                  255,
+                  -255,
+                  -255,
+                  255,
+                  255,
+                  -255,
+                  255,
+                  -255,
+                  -255,
+                  255
+                ],
+                "terminal": "Complete",
+                "version": 5,
+                "view": 10,
+                "view_sha256": "ecd33b6b6eb97f2913ac26d16c7b6fba261e9894ed2d5f8c77f1010fcebdaade",
+                "visited": [],
+                "vocabulary_words": 4
+              }
+            },
+            "emitted": [
+              418,
+              808,
+              357,
+              436,
+              1065,
+              2432,
+              4294967294
+            ],
+            "full_continuation_equal": true,
+            "index": 9,
+            "ok": true
+          }
+        ],
+        "frames_ok": 10,
+        "ok": true,
+        "pid": 96194
+      },
+      "child_process": true
+    },
+    "representation_diagnostics": {
+      "copy_token_feedback": "one shared action symbol; copied token identity absent",
+      "equal_and_unequal_unknown_pairs_alias": true,
+      "known_token_ids": [
+        0,
+        389,
+        730,
+        1065
+      ],
+      "reordered_known_tokens_alias": true,
+      "scope": "loaded representation witnesses only; not a language-quality panel",
+      "suffix_after_four_tokens_alias": true,
+      "unknown_token_ids": [
+        1,
+        2
+      ]
+    }
+  },
+  "donor_presence": {
+    "head-projection-3/corrected/empirical.cpl2": {
+      "bytes": 454788,
+      "sha256": "565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf",
+      "matches_runner_pin": true,
+      "model_execution": "NOT_RUN"
+    },
+    "s-attribution-3/corrected/separable_older_query_read.cpx3": {
+      "bytes": 53555,
+      "sha256": "ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad",
+      "matches_runner_pin": true,
+      "model_execution": "NOT_RUN"
+    }
+  },
+  "projection": {
+    "start_utc": "2026-09-22T22:02:31Z",
+    "projection_utc": "2026-09-22T22:07:53.677421+00:00",
+    "before": {
+      "cumulative_ms": 361471846,
+      "limit_ms": 366700000
+    },
+    "after": {
+      "cumulative_ms": 361471846,
+      "limit_ms": 372700000
+    },
+    "projected_ms": 7200000
+  },
+  "disk_after_checks_bytes": 29746708480,
+  "cleanup": "none; no files deleted",
+  "limitations": [
+    "Exposed authored response targets retain semantic qualifications; no fresh acceptance or natural text run.",
+    "31 legacy outputs omit lexical artifact; full same-candidate retention still incomplete.",
+    "All computed contrasts fitted; eight reserved-world cases familiar forms and unknown copied values.",
+    "Restart replay covers one typed Initial query; full parent/child continuations compared, not mixed-session qualification.",
+    "Retained flag-key reference remains lower-information; its 12/31 is not an equal-information architectural comparison.",
+    "Historical neural teacher forcing retains some manufactured predecessor flags; 322/322 is not general fit/serve feature parity.",
+    "Corrected trainer is prospective; original fit diagnostics inherited and marked, no original-candidate retraining.",
+    "No whole-path allocation/instruction/energy qualification."
+  ],
+  "external_compute": "none",
+  "energy": "UNAVAILABLE"
+}

@@ -33,6 +33,7 @@ use uor_r4_core::native_geometric::learner::relational_session::*;
 use uor_r4_core::native_geometric::learner::result_decoder::*;
 use uor_r4_core::native_geometric::learner::scoped_memory::*;
 use uor_r4_core::native_geometric::learner::shared_transition::*;
+use uor_r4_core::native_geometric::learner::state_lexical::*;
 use uor_r4_core::report_output::{claim, seal, verify};
 use uor_r4_core::transformerless::bpe_derive::{derive_tokenizer, derive_tokenizer_json};
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
@@ -20014,7 +20015,10 @@ fn main() -> ExitCode {
     let obm = std::env::args().any(|a| a == "--mode=observed-text-session");
     let scm = std::env::args().any(|a| a == "--mode=scoped-correction-memory");
     let cgs = std::env::args().any(|a| a == "--mode=consumed-geometric-state");
-    let result = if cgs {
+    let slx = std::env::args().any(|a| a == "--mode=state-lexical");
+    let result = if slx {
+        slx_run()
+    } else if cgs {
         cgs_run()
     } else if scm {
         scm_run()
@@ -21193,4 +21197,1367 @@ mod loaded_realization_tests {
         }
         Ok(())
     }
+}
+
+// ---------------------------------------------------------------------------
+// Truthful state-conditioned lexical realization
+//
+// The retained `RealizedV1` finite table changed a word from a history/provenance
+// *flag*: its key omitted the actual emitted symbols and the evidence content, so
+// a word selected after the third insertion aliased and an external cap had to
+// end the response; two values with identical flags could not differ, and the
+// authored targets used `was` for the current value and `now` for a computation.
+//
+// This section learns a **state-conditioned decoder** from declared, truthful
+// response *text* and serves it through the retained scoped session. The decoder
+// consumes the symbols the session actually emits and a content embedding of the
+// selected evidence, and its wording is tied to the requested history (past
+// tense follows a historical request) or to the computation's actual effect
+// (a consumed value that changed is reported as changed), never to a predecessor
+// alone.
+// ---------------------------------------------------------------------------
+
+/// The protocol terminator the session binds.
+const SLX_EOS: u32 = u32::MAX - 1;
+
+/// The declared learned vocabulary: one shared slot per word, each a single token of the bound
+/// tokenizer. Slot order is the learned action order and is never derived from an evaluator field.
+const SLX_WORDS: [&str; 7] = [" it", " is", " was", " still", " became", " first", " at"];
+/// Declared bound on learned insert words per answer, matching the session contract.
+const SLX_MAX_INSERT: u8 = 6;
+
+/// One declared source document: a scope, the entity it is about, and the successive office values
+/// the document asserts. `computed` documents use groundable labels so a computation can consume
+/// their current value; plain documents may use any unfamiliar value string.
+struct SlxDoc {
+    name: &'static str,
+    scope: &'static str,
+    lineage: u64,
+    entity: &'static str,
+    values: &'static [&'static str],
+    fit: bool,
+    computed: bool,
+}
+
+/// Four fitting documents and three **held-out source documents** that share no entity and, for the
+/// plain documents, no value string with the fitting set. The split is by document, before fitting.
+const SLX_DOCS: [SlxDoc; 7] = [
+    SlxDoc {
+        name: "mara",
+        scope: "alpha",
+        lineage: 501,
+        entity: "Mara",
+        values: &["Alma", "Bert"],
+        fit: true,
+        computed: true,
+    },
+    SlxDoc {
+        name: "ivo",
+        scope: "beta",
+        lineage: 502,
+        entity: "Ivo",
+        values: &["Cora"],
+        fit: true,
+        computed: true,
+    },
+    SlxDoc {
+        name: "cedar",
+        scope: "gamma",
+        lineage: 503,
+        entity: "Cedar",
+        values: &["Dane", "Dane"],
+        fit: true,
+        computed: true,
+    },
+    SlxDoc {
+        name: "oren",
+        scope: "delta",
+        lineage: 504,
+        entity: "Oren",
+        values: &["Elin", "Frey", "Gwen"],
+        fit: true,
+        computed: true,
+    },
+    SlxDoc {
+        name: "una",
+        scope: "epsilon",
+        lineage: 601,
+        entity: "Una",
+        values: &["Larkspur"],
+        fit: false,
+        computed: false,
+    },
+    SlxDoc {
+        name: "pia",
+        scope: "zeta",
+        lineage: 602,
+        entity: "Pia",
+        values: &["Nettle", "Umber"],
+        fit: false,
+        computed: false,
+    },
+    SlxDoc {
+        name: "silas",
+        scope: "eta",
+        lineage: 603,
+        entity: "Silas",
+        values: &["Vellum", "Wren", "Yarrow"],
+        fit: false,
+        computed: false,
+    },
+];
+
+/// The retained historical position a case requests.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum SlxView {
+    Current,
+    Previous,
+    Initial,
+}
+
+impl SlxView {
+    fn history(self) -> HistoryView {
+        match self {
+            Self::Current => HistoryView::Current,
+            Self::Previous => HistoryView::PreviousAssertion,
+            Self::Initial => HistoryView::Initial,
+        }
+    }
+    fn code(self) -> u8 {
+        match self {
+            Self::Current => 0,
+            Self::Previous => 1,
+            Self::Initial => 3,
+        }
+    }
+    fn name(self) -> &'static str {
+        match self {
+            Self::Current => "current",
+            Self::Previous => "previous",
+            Self::Initial => "initial",
+        }
+    }
+}
+
+/// The declared slot tokens, each required to be exactly one token so a slot is one learned word.
+fn slx_slots(tokenizer: &HfBpeTokenizer) -> Result<Vec<u32>, String> {
+    let encoded: Vec<(u32, usize)> = SLX_WORDS
+        .iter()
+        .map(|word| {
+            let tokens = tokenizer.encode(word);
+            (tokens.first().copied().unwrap_or(0), tokens.len())
+        })
+        .collect();
+    if encoded.iter().any(|(_, len)| *len != 1) {
+        return Err(format!(
+            "declared state-lexical words tokenize to {:?}; each must be one token",
+            SLX_WORDS
+                .iter()
+                .zip(encoded.iter())
+                .map(|(word, (_, len))| (word, len))
+                .collect::<Vec<_>>()
+        ));
+    }
+    Ok(encoded.into_iter().map(|(token, _)| token).collect())
+}
+
+fn slx_slot_of(slots: &[u32], token: u32) -> Result<u8, String> {
+    slots
+        .iter()
+        .position(|s| *s == token)
+        .map(|i| i as u8)
+        .ok_or_else(|| format!("declared response word {token} is not a learned slot"))
+}
+
+/// Historical authored target sentences, retained for exposed replay. Current/history wording is
+/// explicit; computed `became`/`still` distinguish route keys on self-valued fixtures, not a
+/// committed temporal change. These targets do not constitute an independent semantic oracle.
+fn slx_render(view: SlxView, derived: bool, changed: bool, value: &str) -> String {
+    match (view, derived) {
+        (SlxView::Initial, false) => format!("at first it was {value}"),
+        (SlxView::Previous, false) => format!("it was {value}"),
+        (SlxView::Current, false) => format!("it is {value}"),
+        (SlxView::Current, true) if changed => format!("it became {value}"),
+        (SlxView::Current, true) => format!("it is still {value}"),
+        _ => format!("it is {value}"),
+    }
+}
+
+/// Derive one teacher-forced sequence from the **declared response text**: tokenize the sentence,
+/// locate the exact owned payload inside it, and read one action per emitted token. `res` carries the
+/// computation operand's tokens so the learner can see the value the computation started from.
+fn slx_text_sequence(
+    tokenizer: &HfBpeTokenizer,
+    slots: &[u32],
+    view: SlxView,
+    derived: bool,
+    changed: bool,
+    value: &str,
+    res: &[u32],
+    prior_differs: bool,
+) -> Result<SlSequence, String> {
+    let payload = tokenizer.encode(&format!(" {value}"));
+    let text = slx_render(view, derived, changed, value);
+    let tokens = tokenizer.encode(&format!(" {text}"));
+    let pos = tokens
+        .windows(payload.len())
+        .position(|w| w == payload.as_slice())
+        .ok_or_else(|| format!("declared response {text:?} does not contain its owned payload"))?;
+    let mut actions = Vec::with_capacity(tokens.len() + 1);
+    for token in &tokens[..pos] {
+        actions.push(RealizationAction::Insert(slx_slot_of(slots, *token)?));
+    }
+    actions.extend(vec![RealizationAction::Copy; payload.len()]);
+    for token in &tokens[pos + payload.len()..] {
+        actions.push(RealizationAction::Insert(slx_slot_of(slots, *token)?));
+    }
+    actions.push(RealizationAction::Stop);
+    Ok(SlSequence {
+        sel: payload,
+        res: res.to_vec(),
+        history: view.code(),
+        derived,
+        prior_differs,
+        actions,
+    })
+}
+
+/// The grounded computation backend and its lexicon, built exactly as the retained consumed-state
+/// path builds them, so the state-lexical section composes with the same artifacts.
+#[allow(clippy::type_complexity)]
+fn slx_artifacts(
+    tokenizer: &HfBpeTokenizer,
+) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>, ComputationBackend, Vec<u32>), String> {
+    let action = CgsAction::build()?;
+    let examples = cgs_examples(&action)?;
+    let (factorization, _) =
+        factor_observed_graph(&examples, false).map_err(|e| format!("factorization: {e}"))?;
+    let backend = ComputationBackend::Signed(Box::new(factorization));
+
+    let mut surface: Vec<(Vec<u8>, u32)> = CGS_OPS
+        .iter()
+        .map(|(word, id)| (word.as_bytes().to_vec(), *id))
+        .collect();
+    for (index, label) in CGS_LABELS.iter().enumerate() {
+        surface.push((label.as_bytes().to_vec(), index as u32));
+    }
+    let canonical: Vec<(u32, Vec<u8>)> = CGS_LABELS
+        .iter()
+        .enumerate()
+        .map(|(index, label)| (index as u32, label.as_bytes().to_vec()))
+        .collect();
+    let lexicon = GroundingLexicon::from_observations(&surface, &canonical)
+        .map_err(|e| format!("lexicon: {e}"))?;
+
+    let (dev_clauses, supervision) = combined_development_supervision(tokenizer)?;
+    let labels: Vec<ClauseLabel> = supervision.iter().map(|s| s.label.clone()).collect();
+    let (model, _) = fit_observed_text_model(&dev_clauses, &labels, false)
+        .map_err(|e| format!("binder: {e}"))?;
+    let cue_spans: Vec<(usize, usize)> = supervision
+        .iter()
+        .map(|s| (s.label.marker.0 as usize, s.label.marker.1))
+        .collect();
+    let intent_examples: Vec<IntentExample> = supervision
+        .iter()
+        .map(|s| IntentExample {
+            question: s.question,
+            intent: s.intent,
+        })
+        .collect();
+    let (intent, _) = fit_intent_model(&dev_clauses, &cue_spans, &intent_examples, VOCAB)
+        .map_err(|e| format!("intent: {e}"))?;
+
+    let slots = slx_slots(tokenizer)?;
+    Ok((
+        model.to_bytes().map_err(|e| e.to_string())?,
+        intent.to_bytes().map_err(|e| e.to_string())?,
+        lexicon.to_bytes().map_err(|e| e.to_string())?,
+        backend,
+        slots,
+    ))
+}
+
+/// Build one document's exact store by passing its assertions through the **loaded observe+ingest
+/// path**. Every label gets an office equal to itself so a consumed computation can read its result;
+/// the document's own entity then takes the declared successive values.
+fn slx_doc_store(
+    tokenizer: &HfBpeTokenizer,
+    doc: &SlxDoc,
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lexicon_bytes: &[u8],
+    backend: &ComputationBackend,
+) -> Result<Vec<u8>, String> {
+    let mut runtime = ScopedMemoryRuntime::load_grounded(
+        model_bytes,
+        intent_bytes,
+        Some(lexicon_bytes),
+        backend.clone(),
+        None,
+        OutputContract::LegacyWords,
+        Memory::new(doc.lineage, 16),
+        doc.lineage,
+        MemoryControl::Normal,
+        VOCAB,
+        Some(SLX_EOS),
+    )
+    .map_err(|e| e.to_string())?;
+    let mut turn = 0u64;
+    for label in CGS_LABELS {
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::AssertOffice, label, label)?;
+        runtime.observe(&clause).map_err(|e| e.to_string())?;
+        runtime
+            .ingest(&clause, doc.scope.as_bytes(), turn)
+            .map_err(|e| e.to_string())?;
+        turn += 1;
+    }
+    for value in doc.values {
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::AssertOffice, doc.entity, value)?;
+        runtime.observe(&clause).map_err(|e| e.to_string())?;
+        runtime
+            .ingest(&clause, doc.scope.as_bytes(), turn)
+            .map_err(|e| e.to_string())?;
+        turn += 1;
+    }
+    runtime.store_bytes().map_err(|e| e.to_string())
+}
+
+fn slx_load(
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lexicon_bytes: &[u8],
+    backend: &ComputationBackend,
+    lexical_bytes: Option<&[u8]>,
+    contract: OutputContract,
+    control: MemoryControl,
+    store: &[u8],
+    lineage: u64,
+) -> Result<ScopedMemoryRuntime, String> {
+    let memory = Memory::from_bytes(store).map_err(|e| e.to_string())?;
+    ScopedMemoryRuntime::load_grounded(
+        model_bytes,
+        intent_bytes,
+        Some(lexicon_bytes),
+        backend.clone(),
+        lexical_bytes,
+        contract,
+        memory,
+        lineage,
+        control,
+        VOCAB,
+        Some(SLX_EOS),
+    )
+    .map_err(|e| e.to_string())
+}
+
+/// Historical fixture target membership. Shares target design with `slx_render`; it does not
+/// independently establish truthful meaning for arbitrary downstream computed values.
+fn slx_oracle(
+    slots: &[u32],
+    view: SlxView,
+    derived: bool,
+    changed: bool,
+    payload: &[u32],
+) -> Vec<u32> {
+    let slot = |i: usize| slots[i];
+    let mut out = Vec::new();
+    match (view, derived) {
+        (SlxView::Initial, false) => {
+            out.extend([slot(6), slot(5), slot(0), slot(2)]);
+        }
+        (SlxView::Previous, false) => {
+            out.extend([slot(0), slot(2)]);
+        }
+        (SlxView::Current, false) => {
+            out.extend([slot(0), slot(1)]);
+        }
+        (SlxView::Current, true) if changed => {
+            out.extend([slot(0), slot(4)]);
+        }
+        // The consumed computation left the same office in force, so the answer reports persistence.
+        (SlxView::Current, true) => {
+            out.extend([slot(0), slot(1), slot(3)]);
+        }
+        (_, true) => {
+            out.extend([slot(0), slot(1)]);
+        }
+    }
+    out.extend_from_slice(payload);
+    out
+}
+
+/// One probed computation for a document: the op word, whether it changed the consumed address, the
+/// exact answer payload, and the operand payload the computation started from.
+struct SlxProbe {
+    op: &'static str,
+    changed: bool,
+    payload: Vec<u32>,
+    operand_payload: Vec<u32>,
+}
+
+/// Run one computation request under the retained legacy contract and read its actual effect.
+fn slx_probe_compute(
+    tokenizer: &HfBpeTokenizer,
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lexicon_bytes: &[u8],
+    backend: &ComputationBackend,
+    store: &[u8],
+    doc: &SlxDoc,
+    op: &'static str,
+) -> Result<Option<SlxProbe>, String> {
+    let mut runtime = slx_load(
+        model_bytes,
+        intent_bytes,
+        lexicon_bytes,
+        backend,
+        None,
+        OutputContract::LegacyWords,
+        MemoryControl::Normal,
+        store,
+        doc.lineage,
+    )?;
+    let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::Compute, doc.entity, op)?;
+    let mut session = runtime
+        .ask(&clause, doc.scope.as_bytes())
+        .map_err(|e| format!("compute ask: {e}"))?;
+    runtime
+        .run(&mut session)
+        .map_err(|e| format!("compute run: {e}"))?;
+    if session.terminal != Some(ScopedTerminal::Complete) {
+        return Ok(None);
+    }
+    let Some(computed) = session.computation.as_ref() else {
+        return Ok(None);
+    };
+    let Some(capture) = session.captured.as_ref() else {
+        return Ok(None);
+    };
+    Ok(Some(SlxProbe {
+        op,
+        changed: computed.derived_key != computed.operand_key,
+        payload: capture.payload.clone(),
+        operand_payload: computed.operand_payload.clone(),
+    }))
+}
+
+/// One evaluated case.
+#[allow(clippy::too_many_arguments)]
+fn slx_case(
+    tokenizer: &HfBpeTokenizer,
+    model_bytes: &[u8],
+    intent_bytes: &[u8],
+    lexicon_bytes: &[u8],
+    backend: &ComputationBackend,
+    slots: &[u32],
+    realization_bytes: Option<&[u8]>,
+    contract: OutputContract,
+    control: MemoryControl,
+    doc: &SlxDoc,
+    store: &[u8],
+    case: &str,
+    view: SlxView,
+    op: Option<&str>,
+    expected_payload: &[u32],
+    derived: bool,
+    changed: bool,
+) -> Result<serde_json::Value, String> {
+    let mut runtime = slx_load(
+        model_bytes,
+        intent_bytes,
+        lexicon_bytes,
+        backend,
+        realization_bytes,
+        contract,
+        control.clone(),
+        store,
+        doc.lineage,
+    )?;
+    let control_name = format!("{control:?}");
+    let mut session = if let Some(op) = op {
+        let (clause, _) = cgs_clause(tokenizer, 0, CgsForm::Compute, doc.entity, op)?;
+        runtime
+            .ask(&clause, doc.scope.as_bytes())
+            .map_err(|e| format!("ask: {e}"))?
+    } else {
+        runtime
+            .ask_view(
+                doc.scope.as_bytes(),
+                0,
+                doc.entity.as_bytes(),
+                view.history(),
+            )
+            .map_err(|e| format!("ask_view: {e}"))?
+    };
+    let effects = runtime.run(&mut session).map_err(|e| format!("run: {e}"))?;
+    let mut expected_with_eos = if matches!(contract, OutputContract::LegacyWords) {
+        expected_payload.to_vec()
+    } else {
+        slx_oracle(slots, view, derived, changed, expected_payload)
+    };
+    expected_with_eos.push(SLX_EOS);
+    let stop_from_table = effects
+        .iter()
+        .filter(|e| {
+            e.realization
+                .is_some_and(|d| d.action == RealizationAction::Stop && d.from_table)
+        })
+        .count();
+    let stop_total = effects
+        .iter()
+        .filter(|e| {
+            e.realization
+                .is_some_and(|d| d.action == RealizationAction::Stop)
+        })
+        .count();
+    Ok(json!({
+        "document": doc.name,
+        "fit_document": doc.fit,
+        "case": case,
+        "view": view.name(),
+        "op": op,
+        "derived": derived,
+        "changed": changed,
+        "contract": format!("{contract:?}"),
+        "control": control_name,
+        "terminal": format!("{:?}", session.terminal),
+        "emitted": session.emitted,
+        "expected": expected_with_eos,
+        "ok": session.terminal == Some(ScopedTerminal::Complete) && session.emitted == expected_with_eos,
+        "learned_stop": stop_from_table,
+        "stop_steps": stop_total,
+        "sl_state_len": session.sl_state.len(),
+        "final_session": session,
+        "effects": effects,
+        "text": cgs_text(tokenizer, &session),
+    }))
+}
+
+/// Small declared-environment readers so a fit configuration can be swept without a rebuild.
+fn slx_env_usize(key: &str, default: usize) -> usize {
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+}
+
+fn slx_env_f32(key: &str, default: f32) -> f32 {
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+}
+
+/// The full state-lexical section.
+fn slx_run() -> Result<ExitCode, String> {
+    let mut root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-1",
+    );
+    let mut source_root: Option<PathBuf> = None;
+    let mut reload_dir: Option<PathBuf> = None;
+    let mut reuse_root: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                "--reload-check" => reload_dir = Some(PathBuf::from(a.next().ok_or("value")?)),
+                "--reuse-artifact-root" => {
+                    reuse_root = Some(PathBuf::from(a.next().ok_or("value")?))
+                }
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    if let Some(dir) = reload_dir {
+        return slx_reload_check(&dir);
+    }
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    if sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?) != DERIVED_SHA {
+        return Err("derived tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let source_files: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+
+    let (model_bytes, intent_bytes, lexicon_bytes, backend, slots) = slx_artifacts(&tokenizer)?;
+    write_checked(&root, "artifacts/model.json", &model_bytes)?;
+    write_checked(&root, "artifacts/intent.json", &intent_bytes)?;
+    write_checked(&root, "artifacts/lexicon.json", &lexicon_bytes)?;
+
+    // ---- per-document stores and computation probes ----
+    let mut stores: BTreeMap<&'static str, Vec<u8>> = BTreeMap::new();
+    let mut probes: BTreeMap<&'static str, Vec<SlxProbe>> = BTreeMap::new();
+    let mut ingest_receipts = Vec::new();
+    for doc in SLX_DOCS.iter() {
+        let store = slx_doc_store(
+            &tokenizer,
+            doc,
+            &model_bytes,
+            &intent_bytes,
+            &lexicon_bytes,
+            &backend,
+        )?;
+        let mut doc_probes = Vec::new();
+        if doc.computed {
+            for op in ["e", "i", "j"] {
+                if let Some(probe) = slx_probe_compute(
+                    &tokenizer,
+                    &model_bytes,
+                    &intent_bytes,
+                    &lexicon_bytes,
+                    &backend,
+                    &store,
+                    doc,
+                    op,
+                )? {
+                    doc_probes.push(probe);
+                }
+            }
+        }
+        ingest_receipts.push(json!({
+            "document": doc.name,
+            "scope": doc.scope,
+            "entity": doc.entity,
+            "values": doc.values,
+            "fit": doc.fit,
+            "computed": doc.computed,
+            "store_bytes": store.len(),
+            "probes": doc_probes.iter().map(|p| json!({
+                "op": p.op, "changed": p.changed,
+                "answer": cgs_decode_trim(&tokenizer, &p.payload),
+            })).collect::<Vec<_>>(),
+        }));
+        stores.insert(doc.name, store);
+        probes.insert(doc.name, doc_probes);
+    }
+
+    // ---- declared development text -> teacher-forced sequences (fit documents only) ----
+    //
+    // Each tag records the declared *meaning* the sentence expresses, so the training set can be
+    // balanced and the unidentified-content regime exercised without inventing targets.
+    let mut tagged: Vec<(SlSequence, &'static str, RealizationContext)> = Vec::new();
+    let mut fit_text_receipts = Vec::new();
+    for doc in SLX_DOCS.iter().filter(|d| d.fit) {
+        // Observe the comparator's actual serving context from the same loaded session. Its
+        // capture/history observations come from serving, rather than the authored answer family;
+        // a historical capture can itself have a different predecessor.
+        let context_for = |view: SlxView, op: Option<&str>| -> Result<RealizationContext, String> {
+            let mut runtime = slx_load(
+                &model_bytes,
+                &intent_bytes,
+                &lexicon_bytes,
+                &backend,
+                None,
+                OutputContract::LegacyWords,
+                MemoryControl::Normal,
+                &stores[doc.name],
+                doc.lineage,
+            )?;
+            let mut session = if let Some(op) = op {
+                let (clause, _) = cgs_clause(&tokenizer, 0, CgsForm::Compute, doc.entity, op)?;
+                runtime
+                    .ask(&clause, doc.scope.as_bytes())
+                    .map_err(|e| e.to_string())?
+            } else {
+                runtime
+                    .ask_view(
+                        doc.scope.as_bytes(),
+                        0,
+                        doc.entity.as_bytes(),
+                        view.history(),
+                    )
+                    .map_err(|e| e.to_string())?
+            };
+            runtime.run(&mut session).map_err(|e| e.to_string())?;
+            Ok(runtime.realization_context(&session))
+        };
+        let prior_differs = doc.values.len() >= 2
+            && doc.values[doc.values.len() - 2] != doc.values[doc.values.len() - 1];
+        // current
+        let current = doc.values.last().copied().unwrap();
+        let seq = slx_text_sequence(
+            &tokenizer,
+            &slots,
+            SlxView::Current,
+            false,
+            false,
+            current,
+            &[],
+            prior_differs,
+        )?;
+        fit_text_receipts.push(json!({"document": doc.name, "case": "current", "text": slx_render(SlxView::Current, false, false, current)}));
+        tagged.push((seq, "flag", context_for(SlxView::Current, None)?));
+        // previous and initial
+        if doc.values.len() >= 2 {
+            let prev = doc.values[doc.values.len() - 2];
+            let seq = slx_text_sequence(
+                &tokenizer,
+                &slots,
+                SlxView::Previous,
+                false,
+                false,
+                prev,
+                &[],
+                false,
+            )?;
+            fit_text_receipts.push(json!({"document": doc.name, "case": "previous", "text": slx_render(SlxView::Previous, false, false, prev)}));
+            tagged.push((seq, "flag", context_for(SlxView::Previous, None)?));
+        }
+        let first = doc.values[0];
+        let seq = slx_text_sequence(
+            &tokenizer,
+            &slots,
+            SlxView::Initial,
+            false,
+            false,
+            first,
+            &[],
+            false,
+        )?;
+        fit_text_receipts.push(json!({"document": doc.name, "case": "initial", "text": slx_render(SlxView::Initial, false, false, first)}));
+        tagged.push((seq, "flag", context_for(SlxView::Initial, None)?));
+        // consumed computations discovered through the retained session
+        for probe in probes.get(doc.name).map(Vec::as_slice).unwrap_or(&[]) {
+            let answer = cgs_decode_trim(&tokenizer, &probe.payload);
+            let seq = slx_text_sequence(
+                &tokenizer,
+                &slots,
+                SlxView::Current,
+                true,
+                probe.changed,
+                &answer,
+                &probe.operand_payload,
+                false,
+            )?;
+            let tag = if probe.changed {
+                "changed"
+            } else {
+                "unchanged"
+            };
+            fit_text_receipts.push(json!({
+                "document": doc.name, "case": if probe.changed {"derived_changed"} else {"derived_unchanged"},
+                "op": probe.op, "text": slx_render(SlxView::Current, true, probe.changed, &answer),
+            }));
+            tagged.push((seq, tag, context_for(SlxView::Current, Some(probe.op))?));
+        }
+    }
+    // Two declared balancing decisions, made before fitting and reported with the corpus:
+    // * every flag-only sentence is also presented with no fitted content, so an unfamiliar value
+    //   degrades to the flag-driven sequence instead of an arbitrary one;
+    // * the change-reporting branch is rare in the declared text (one identity operation per
+    //   document against two moving ones), so it is repeated to the same order as its siblings
+    //   rather than left for the majority class to drown.
+    let declared_sequences = tagged.len();
+    let mut fit_sequences: Vec<SlSequence> = Vec::new();
+    let mut comparator_contexts = Vec::new();
+    for (seq, tag, context) in &tagged {
+        fit_sequences.push(seq.clone());
+        comparator_contexts.push(*context);
+        if *tag == "flag" {
+            let mut blank = seq.clone();
+            blank.sel.clear();
+            blank.res.clear();
+            fit_sequences.push(blank);
+            comparator_contexts.push(*context);
+        }
+        if *tag == "unchanged" {
+            for _ in 0..3 {
+                fit_sequences.push(seq.clone());
+                comparator_contexts.push(*context);
+            }
+        }
+        if *tag == "changed" {
+            // The moving operations are twice as frequent as the identity one, so the identity branch
+            // is repeated above and the moving branch once here to reach the same order.
+            fit_sequences.push(seq.clone());
+            comparator_contexts.push(*context);
+        }
+    }
+
+    let cfg = SlFitConfig {
+        epochs: slx_env_usize("SLX_EPOCHS", 12000),
+        h_dim: slx_env_usize("SLX_H", 24),
+        e_dim: slx_env_usize("SLX_E", 24),
+        lr: slx_env_f32("SLX_LR", 0.01),
+        seed: slx_env_usize("SLX_SEED", 0x5eed_1eaf) as u64,
+        stop_weight: slx_env_f32("SLX_STOP", 4.0),
+        insert_weight: slx_env_f32("SLX_INS", 2.0),
+    };
+    let outcome = if let Some(parent) = &reuse_root {
+        let unlisted = verify(parent).map_err(|e| format!("parent seal: {e}"))?;
+        if !unlisted.is_empty() {
+            return Err(format!("parent has unlisted files: {unlisted:?}"));
+        }
+        let result: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(parent.join("result.json")).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        for (name, bytes) in [
+            ("model.json", model_bytes.as_slice()),
+            ("intent.json", intent_bytes.as_slice()),
+            ("lexicon.json", lexicon_bytes.as_slice()),
+        ] {
+            if std::fs::read(parent.join("artifacts").join(name)).map_err(|e| e.to_string())?
+                != bytes
+            {
+                return Err(format!("reconstructed parent {name} differs"));
+            }
+        }
+        SlFitOutcome {
+            model: StateLexicalModel::from_bytes(
+                &std::fs::read(parent.join("artifacts/state_lexical.json"))
+                    .map_err(|e| e.to_string())?,
+                VOCAB,
+            )
+            .map_err(|e| e.to_string())?,
+            // Historical diagnostics are preserved as inherited, never labelled as a new fit.
+            report: serde_json::from_value(result["fit"].clone()).map_err(|e| e.to_string())?,
+        }
+    } else {
+        let tries = slx_env_usize("SLX_TRIES", 12);
+        let mut best: Option<SlFitOutcome> = None;
+        for k in 0..tries {
+            let mut attempt = cfg;
+            attempt.seed = cfg
+                .seed
+                .wrapping_add((k as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15));
+            let out = fit_state_lexical(
+                &fit_sequences,
+                VOCAB,
+                slots.clone(),
+                SLX_MAX_INSERT,
+                &attempt,
+            )
+            .map_err(|e| format!("state-lexical fit: {e}"))?;
+            // Selection is on the declared *training* objective only; the evaluation cases below are not
+            // consulted. A tiny ternary objective is seed-sensitive, so the best of a few declared seeds
+            // is taken rather than a single draw.
+            let better = match &best {
+                None => true,
+                Some(b) => {
+                    out.report.action_correct > b.report.action_correct
+                        || (out.report.action_correct == b.report.action_correct
+                            && out.report.served_loss < b.report.served_loss)
+                }
+            };
+            if better {
+                best = Some(out);
+            }
+        }
+        best.ok_or("no state-lexical fit attempt")?
+    };
+    let realization_bytes = outcome.model.to_bytes().map_err(|e| e.to_string())?;
+    write_checked(&root, "artifacts/state_lexical.json", &realization_bytes)?;
+    let reloaded = StateLexicalModel::from_bytes(
+        &std::fs::read(root.join("artifacts/state_lexical.json")).map_err(|e| e.to_string())?,
+        VOCAB,
+    )
+    .map_err(|e| e.to_string())?;
+    if reloaded != outcome.model {
+        return Err("state-lexical artifact reload mismatch".into());
+    }
+
+    let teacher_forced_replay = reloaded.teacher_forced_agreement(&fit_sequences);
+
+    // ---- the retained finite-table comparator, fitted on the same declared text ----
+    let mut comparator_examples: Vec<RealizationExample> = Vec::new();
+    assert_eq!(fit_sequences.len(), comparator_contexts.len());
+    for (ex, context) in fit_sequences.iter().zip(&comparator_contexts) {
+        let stages = ex.copy_stages();
+        let mut inserted = 0usize;
+        for (i, action) in ex.actions.iter().enumerate() {
+            comparator_examples.push(RealizationExample {
+                context: RealizationContext {
+                    copy_stage: stages[i],
+                    emitted_bucket: inserted.min(3) as u8,
+                    ..*context
+                },
+                action: *action,
+            });
+            if matches!(action, RealizationAction::Insert(_)) {
+                inserted += 1;
+            }
+        }
+    }
+    let comparator = fit_realization(&comparator_examples, VOCAB, slots.clone(), 8)
+        .map_err(|e| format!("comparator fit: {e}"))?;
+    let comparator_bytes = comparator.to_bytes().map_err(|e| e.to_string())?;
+    write_checked(&root, "artifacts/comparator.json", &comparator_bytes)?;
+
+    // ---- evaluation: retained copy, retained finite table, learned state decoder, and controls ----
+    let mut cases: Vec<serde_json::Value> = Vec::new();
+    for doc in SLX_DOCS.iter() {
+        let store = &stores[doc.name];
+        let current = doc.values.last().copied().unwrap();
+        // current / previous / initial
+        let mut views = vec![(SlxView::Current, doc.values.len() - 1)];
+        if doc.values.len() >= 2 {
+            views.push((SlxView::Previous, doc.values.len() - 2));
+        }
+        views.push((SlxView::Initial, 0));
+        for (view, idx) in views {
+            let value = doc.values[idx];
+            let payload = tokenizer.encode(&format!(" {value}"));
+            for (contract, control, lex) in [
+                (OutputContract::LegacyWords, MemoryControl::Normal, None),
+                (
+                    OutputContract::RealizedV1,
+                    MemoryControl::Normal,
+                    Some(comparator_bytes.as_slice()),
+                ),
+                (
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::Normal,
+                    Some(realization_bytes.as_slice()),
+                ),
+                (
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::RealizationContextDisabled,
+                    Some(realization_bytes.as_slice()),
+                ),
+                (
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::RecurrenceDisabled,
+                    Some(realization_bytes.as_slice()),
+                ),
+            ] {
+                let case = slx_case(
+                    &tokenizer,
+                    &model_bytes,
+                    &intent_bytes,
+                    &lexicon_bytes,
+                    &backend,
+                    &slots,
+                    lex,
+                    contract,
+                    control,
+                    doc,
+                    store,
+                    view.name(),
+                    view,
+                    None,
+                    &payload,
+                    false,
+                    false,
+                )?;
+                cases.push(case);
+            }
+        }
+        // consumed computations on the documents whose values are groundable
+        for probe in probes.get(doc.name).map(Vec::as_slice).unwrap_or(&[]) {
+            for (contract, control, lex) in [
+                (OutputContract::LegacyWords, MemoryControl::Normal, None),
+                (
+                    OutputContract::RealizedV1,
+                    MemoryControl::Normal,
+                    Some(comparator_bytes.as_slice()),
+                ),
+                (
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::Normal,
+                    Some(realization_bytes.as_slice()),
+                ),
+                (
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::RealizationContextDisabled,
+                    Some(realization_bytes.as_slice()),
+                ),
+                (
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::RecurrenceDisabled,
+                    Some(realization_bytes.as_slice()),
+                ),
+            ] {
+                let case = slx_case(
+                    &tokenizer,
+                    &model_bytes,
+                    &intent_bytes,
+                    &lexicon_bytes,
+                    &backend,
+                    &slots,
+                    lex,
+                    contract,
+                    control,
+                    doc,
+                    store,
+                    if probe.changed {
+                        "derived_changed"
+                    } else {
+                        "derived_unchanged"
+                    },
+                    SlxView::Current,
+                    Some(probe.op),
+                    &probe.payload,
+                    true,
+                    probe.changed,
+                )?;
+                cases.push(case);
+            }
+        }
+    }
+
+    // ---- panels ----
+    let panel = |filter: &dyn Fn(&serde_json::Value) -> bool| -> serde_json::Value {
+        let rows: Vec<&serde_json::Value> = cases.iter().filter(|c| filter(c)).collect();
+        let ok = rows.iter().filter(|c| c["ok"] == json!(true)).count();
+        json!({"cases": rows.len(), "ok": ok, "complete": ok == rows.len() && !rows.is_empty()})
+    };
+    let panels = json!({
+        "legacy_copy_retained": panel(&|c| c["contract"] == json!("LegacyWords")),
+        "retained_finite_table": panel(&|c| c["contract"] == json!("RealizedV1") && c["control"] == json!("Normal")),
+        "learned_state_lexical": panel(&|c| c["contract"] == json!("StateLexicalV1") && c["control"] == json!("Normal")),
+        "learned_fit_documents": panel(&|c| c["contract"] == json!("StateLexicalV1") && c["control"] == json!("Normal") && c["fit_document"] == json!(true)),
+        "learned_held_out_documents": panel(&|c| c["contract"] == json!("StateLexicalV1") && c["control"] == json!("Normal") && c["fit_document"] == json!(false)),
+        "context_disabled": panel(&|c| c["control"] == json!("RealizationContextDisabled")),
+        "recurrence_disabled": panel(&|c| c["control"] == json!("RecurrenceDisabled")),
+    });
+
+    // ---- the value-sensitive comparison: derived answers with identical flags ----
+    let mut value_sensitive = Vec::new();
+    for doc in SLX_DOCS.iter().filter(|d| d.fit && d.computed) {
+        let doc_probes = probes.get(doc.name).map(Vec::as_slice).unwrap_or(&[]);
+        let unchanged = doc_probes.iter().find(|p| !p.changed);
+        let changed = doc_probes.iter().find(|p| p.changed);
+        if let (Some(u), Some(c)) = (unchanged, changed) {
+            let run = |probe: &SlxProbe| -> Result<(Vec<u32>, Vec<i32>), String> {
+                let mut runtime = slx_load(
+                    &model_bytes,
+                    &intent_bytes,
+                    &lexicon_bytes,
+                    &backend,
+                    Some(&realization_bytes),
+                    OutputContract::StateLexicalV1,
+                    MemoryControl::Normal,
+                    &stores[doc.name],
+                    doc.lineage,
+                )?;
+                let (clause, _) =
+                    cgs_clause(&tokenizer, 0, CgsForm::Compute, doc.entity, probe.op)?;
+                let mut session = runtime
+                    .ask(&clause, doc.scope.as_bytes())
+                    .map_err(|e| e.to_string())?;
+                runtime.run(&mut session).map_err(|e| e.to_string())?;
+                Ok((session.emitted, session.sl_state))
+            };
+            let (u_emitted, u_state) = run(u)?;
+            let (c_emitted, c_state) = run(c)?;
+            value_sensitive.push(json!({
+                "document": doc.name,
+                "flags_held_equal": "derived=true, history=current, prior_differs=false for both",
+                "unchanged_op": u.op, "changed_op": c.op,
+                "unchanged_emitted": u_emitted, "changed_emitted": c_emitted,
+                "differ": u_emitted != c_emitted,
+                "final_recurrent_state_differs": u_state != c_state,
+            }));
+        }
+    }
+
+    // ---- restart: every emission boundary in process, and one cross-process resume ----
+    let restart_doc = SLX_DOCS
+        .iter()
+        .find(|d| d.fit && d.computed)
+        .ok_or("no computed fitting document")?;
+    let restart_runtime = slx_load(
+        &model_bytes,
+        &intent_bytes,
+        &lexicon_bytes,
+        &backend,
+        Some(&realization_bytes),
+        OutputContract::StateLexicalV1,
+        MemoryControl::Normal,
+        &stores[restart_doc.name],
+        restart_doc.lineage,
+    )?;
+    let restart_store = &stores[restart_doc.name];
+    let mut session = restart_runtime
+        .ask_view(
+            restart_doc.scope.as_bytes(),
+            0,
+            restart_doc.entity.as_bytes(),
+            HistoryView::Initial,
+        )
+        .map_err(|e| e.to_string())?;
+    // Collect a snapshot at every boundary, then restore each and run to completion.
+    let mut frames: Vec<(Vec<u8>, serde_json::Value)> = Vec::new();
+    loop {
+        let bytes = restart_runtime
+            .snapshot(&session)
+            .map_err(|e| e.to_string())?;
+        let mut copy = restart_runtime.restore(&bytes).map_err(|e| e.to_string())?;
+        let remaining = restart_runtime.run(&mut copy).map_err(|e| e.to_string())?;
+        frames.push((
+            bytes,
+            json!({"session": copy, "remaining_effects": remaining}),
+        ));
+        if session.terminal.is_some() {
+            break;
+        }
+        restart_runtime
+            .step(&mut session)
+            .map_err(|e| e.to_string())?;
+    }
+    let final_emitted = session.emitted.clone();
+    let restart_ok = frames
+        .iter()
+        .all(|(_, continuation)| continuation["session"] == json!(session));
+    // Persist the frames and the artifacts so a separate process can resume them.
+    let restart_dir = root.join("restart");
+    std::fs::create_dir_all(&restart_dir).map_err(|e| e.to_string())?;
+    write_checked(&root, "restart/model.json", &model_bytes)?;
+    write_checked(&root, "restart/intent.json", &intent_bytes)?;
+    write_checked(&root, "restart/lexicon.json", &lexicon_bytes)?;
+    write_checked(&root, "restart/state_lexical.json", &realization_bytes)?;
+    write_checked(&root, "restart/store.bin", &stores[restart_doc.name])?;
+    let snapshots: Vec<serde_json::Value> = frames
+        .iter()
+        .enumerate()
+        .map(|(i, (bytes, continuation))| -> Result<serde_json::Value, String> {
+            let name = format!("restart/frame-{i:03}.json");
+            write_checked(&root, &name, bytes)?;
+            Ok(json!({"index": i, "frame": format!("frame-{i:03}.json"), "continuation": continuation}))
+        })
+        .collect::<Result<_, _>>()?;
+    write_json(
+        &root,
+        "restart/manifest.json",
+        &json!({
+            "lineage": restart_doc.lineage,
+            "scope": restart_doc.scope,
+            "entity": restart_doc.entity,
+            "view": "initial",
+            "expected": final_emitted,
+            "frames": snapshots,
+        }),
+    )?;
+    let child = std::process::Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
+        .args([
+            "--mode=state-lexical",
+            "--reload-check",
+            restart_dir.to_str().ok_or("restart dir")?,
+        ])
+        .output()
+        .map_err(|e| format!("child: {e}"))?;
+    let child_ok = child.status.success();
+    let child_report: serde_json::Value = if child_ok {
+        serde_json::from_slice(
+            &std::fs::read(restart_dir.join("child.json")).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?
+    } else {
+        json!({"error": String::from_utf8_lossy(&child.stderr).to_string()})
+    };
+
+    // Exact representational diagnostics on the loaded candidate, not language acceptance.
+    let unknown: Vec<u32> = (0..VOCAB as u32)
+        .filter(|t| !reloaded.content_tokens.contains(t))
+        .take(2)
+        .collect();
+    let known: Vec<u32> = reloaded.content_tokens.iter().copied().take(4).collect();
+    let mut reversed = known.clone();
+    reversed.reverse();
+    let mut longer = known.clone();
+    if let Some(t) = known.get(1) {
+        longer.push(*t);
+    }
+    let unknown_alias = if unknown.len() == 2 {
+        Some(
+            reloaded.content_feature(&unknown[..1], &unknown[..1])
+                == reloaded.content_feature(&unknown[..1], &unknown[1..]),
+        )
+    } else {
+        None
+    };
+    let representation_diagnostics = json!({
+        "unknown_token_ids": unknown,
+        "equal_and_unequal_unknown_pairs_alias": unknown_alias,
+        "known_token_ids": known,
+        "reordered_known_tokens_alias": reloaded.content_feature(&known, &[]) == reloaded.content_feature(&reversed, &[]),
+        "suffix_after_four_tokens_alias": if known.len() == 4 { Some(reloaded.content_feature(&known, &[]) == reloaded.content_feature(&longer, &[])) } else { None },
+        "copy_token_feedback": "one shared action symbol; copied token identity absent",
+        "scope": "loaded representation witnesses only; not a language-quality panel",
+    });
+
+    // ---- checks ----
+    let holds = |name: &str| panels[name]["complete"] == json!(true);
+    let checks = json!({
+        "learned_fit_documents_all_expected": holds("learned_fit_documents"),
+        "legacy_copy_retained": holds("legacy_copy_retained"),
+        "value_sensitive_effect": value_sensitive.iter().any(|v| v["differ"] == json!(true)),
+        "recurrence_ablation_changes_output": panels["recurrence_disabled"]["cases"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+            && panels["recurrence_disabled"]["complete"] == json!(false),
+        "context_ablation_changes_output": panels["context_disabled"]["cases"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+            && panels["context_disabled"]["complete"] == json!(false),
+        "restart_all_boundaries": restart_ok,
+        "restart_child_process": child_ok && child_report["ok"] == json!(true),
+        "artifact_reload_identity": true,
+    });
+
+    let payload = json!({
+        "schema": "uor-r4.state-lexical/1",
+        "source_files": source_files,
+        "executable_sha256": sha256_hex(&std::fs::read(std::env::current_exe().map_err(|e| e.to_string())?).map_err(|e| e.to_string())?),
+        "reuse_artifact_root": reuse_root,
+        "fit_diagnostics_inherited_without_neural_refit": reuse_root.is_some(),
+        "teacher_forced_replay": {"correct": teacher_forced_replay.0, "total": teacher_forced_replay.1},
+        "evaluation_exposure": "exposed authored panel; replay is not a fresh acceptance draw",
+        "finite_comparator_fit": "shared runtime causal context; actual inserted-count and copy-stage progress",
+        "finite_comparator_training_contexts": comparator_contexts,
+
+        "artifact_sha256": {
+            "model.json": sha256_hex(&model_bytes),
+            "intent.json": sha256_hex(&intent_bytes),
+            "lexicon.json": sha256_hex(&lexicon_bytes),
+            "state_lexical.json": sha256_hex(&realization_bytes),
+            "comparator.json": sha256_hex(&comparator_bytes),
+        },
+        "slots": slots,
+        "fit": {
+            "sequences": outcome.report.sequences,
+            "steps": outcome.report.steps,
+            "epochs": outcome.report.epochs,
+            "first_loss": outcome.report.first_loss,
+            "final_loss": outcome.report.final_loss,
+            "served_loss": outcome.report.served_loss,
+            "action_correct": outcome.report.action_correct,
+            "action_total": outcome.report.action_total,
+            "h_dim": outcome.report.h_dim,
+            "e_dim": outcome.report.e_dim,
+            "content_tokens": outcome.report.content_tokens,
+        },
+        "corpus": {
+            "documents": SLX_DOCS.len(),
+            "fit_documents": SLX_DOCS.iter().filter(|d| d.fit).count(),
+            "held_out_documents": SLX_DOCS.iter().filter(|d| !d.fit).count(),
+            "declared_sequences": declared_sequences,
+            "training_sequences": outcome.report.sequences,
+            "declared_text": fit_text_receipts,
+            "documents_detail": ingest_receipts,
+        },
+        "panels": panels,
+        "value_sensitive": value_sensitive,
+        "representation_diagnostics": representation_diagnostics,
+        "restart": {
+            "boundaries": frames.len(),
+            "all_equal_final": restart_ok,
+            "child_process": child_ok,
+            "child": child_report,
+        },
+        "cases": cases,
+        "checks": checks,
+        "checks_all_expected": checks.as_object().map(|m| m.values().all(|v| v == &json!(true))).unwrap_or(false),
+        "scope": "exposed authored response fixture over a small declared state world; a learned low-bit state-conditioned decoder selects shared vocabulary words around the exact owned span, from Insert-slot/Copy-class feedback and a truncated fitted-token content embedding of the selected evidence. Not general prose, no geometric advantage claimed, and the held-out-document panel transfers entity/value strings rather than the value-sensitive computation association.",
+    });
+    write_json(&root, "result.json", &payload)?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "state-lexical: fit {} seq {} steps {}/{} | panels {:?} | sealed {} unlisted | {:.1}s",
+        outcome.report.sequences,
+        outcome.report.steps,
+        outcome.report.action_correct,
+        outcome.report.action_total,
+        panels,
+        unlisted.len(),
+        started.elapsed().as_secs_f32()
+    );
+    if !(payload["checks_all_expected"] == json!(true)) {
+        return Err(format!("sealed contract failure: {}", payload["checks"]));
+    }
+    let _ = (started, unlisted);
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Resume saved frames in a separate process and report the completed emissions for each.
+fn slx_reload_check(dir: &std::path::Path) -> Result<ExitCode, String> {
+    let model_bytes = std::fs::read(dir.join("model.json")).map_err(|e| e.to_string())?;
+    let intent_bytes = std::fs::read(dir.join("intent.json")).map_err(|e| e.to_string())?;
+    let lexicon_bytes = std::fs::read(dir.join("lexicon.json")).map_err(|e| e.to_string())?;
+    let realization_bytes =
+        std::fs::read(dir.join("state_lexical.json")).map_err(|e| e.to_string())?;
+    let store = std::fs::read(dir.join("store.bin")).map_err(|e| e.to_string())?;
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(dir.join("manifest.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let lineage = manifest["lineage"].as_u64().ok_or("lineage")?;
+    let expected = manifest["expected"].clone();
+
+    let tokenizer = {
+        let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| e.to_string())?;
+        derive_tokenizer(&tb, VOCAB).map_err(|e| e.to_string())?
+    };
+    let _ = tokenizer;
+    let action = CgsAction::build()?;
+    let examples = cgs_examples(&action)?;
+    let (factorization, _) =
+        factor_observed_graph(&examples, false).map_err(|e| format!("factorization: {e}"))?;
+    let backend = ComputationBackend::Signed(Box::new(factorization));
+
+    let mut frames_ok = 0usize;
+    let mut frames = Vec::new();
+    for entry in manifest["frames"].as_array().ok_or("frames")? {
+        let path = dir.join(entry["frame"].as_str().ok_or("frame path")?);
+        let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+        let runtime = slx_load(
+            &model_bytes,
+            &intent_bytes,
+            &lexicon_bytes,
+            &backend,
+            Some(&realization_bytes),
+            OutputContract::StateLexicalV1,
+            MemoryControl::Normal,
+            &store,
+            lineage,
+        )?;
+        let mut session = runtime.restore(&bytes).map_err(|e| e.to_string())?;
+        let remaining = runtime.run(&mut session).map_err(|e| e.to_string())?;
+        let continuation = json!({"session": session, "remaining_effects": remaining});
+        let full_parity = entry.get("continuation").map(|v| *v == continuation);
+        let ok = json!(session.emitted) == expected && full_parity.unwrap_or(true);
+        if ok {
+            frames_ok += 1;
+        }
+        frames.push(json!({"index": entry["index"], "emitted": session.emitted, "ok": ok, "full_continuation_equal": full_parity, "continuation": continuation}));
+    }
+    write_json(
+        dir,
+        "child.json",
+        &json!({
+            "frames": frames,
+            "frames_ok": frames_ok,
+            "expected": expected,
+            "ok": frames_ok == manifest["frames"].as_array().map(Vec::len).unwrap_or(0),
+            "pid": std::process::id(),
+        }),
+    )?;
+    if frames.is_empty() || frames_ok != frames.len() {
+        return Err("state-lexical child continuation mismatch".into());
+    }
+    Ok(ExitCode::SUCCESS)
 }

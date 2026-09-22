@@ -1,0 +1,72 @@
+# Principal review of PR #1351: recurrent realizer retained; transferable lexical learning still open
+
+September 22, 2026. Reviewed submission `711334f50853d48b8a201539c07667014ae81c55`, based on protected PR #1350 merge `6295510d20509c2af604781fe374ab0beb477665`. Live GitHub owns delivery. This review qualifies the [submitted result](state-conditioned-lexical-result-2026-09-22.md), with an [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected execution receipt](../evidence/state-lexical-principal-checks-2026-09-22.json). Original sealed roots and fitted parameters remain preserved.
+
+## Decision and architectural position
+
+Retain the learned seven-slot integer recurrent realizer as a useful component. It generates variable-length preludes and halts around an owned copied value. It advances the previous clipped-count policy. It does **not** complete the prior truthful state-conditioned language milestone. The next task remains [one transferable lexical learner](deepseek-transferable-lexical-step-2026-09-22.md), combining actual emitted-token feedback, accurate observed meaning and ordinary source-separated text with grounded responses. Executed Rust follows useful language through this interface; attaching another authored answer family now would conceal the unresolved dependency.
+
+The larger architecture remains coherent: exact addresses/version ownership preserve evidence, learned observation and selection choose what to read, signed shared operators compute, and a lexical model must express the resulting meaning. The repeated systemic problem is substituting small authored witnesses for the interface that connects these responsibilities. Progress should be judged on that connection, not how many fixture families have accumulated.
+
+## What the returned measurements establish
+
+The submitted root `state-lexical-1` contains 25 sealed files. The learned arm reconstructs 31/31 authored target sequences: 23 cases from four fitting worlds and eight cases from three other worlds. These are case counts, not 23 training documents plus eight test documents. Twelve computation cases and all four content-sensitive comparisons are fitting cases. The eight other cases are typed current/previous/initial requests with unfamiliar copied values. They do not test computed relation transfer or natural-text language modeling.
+
+The same lexical artifact and panel outputs already occur in `slx-sweep`; the final root is an exposed replay after a child-path correction. Preserve the disclosed approximately 40 development runs and identify the missing full selection/configuration receipts. Final source hashes match the submitted source, but the original sealed evidence does not bind an executable-byte hash. A release executable preserved during review is not retroactive proof of which binary produced that root.
+
+The recurrence ablation scores 0/31 target-correct answers; all these outputs still reach `Complete`. The context ablation scores 7/31. These show that the recurrence and context participate in the authored result. They do not isolate general content understanding. Original ten child restores check final emitted words for one typed Initial request. They do not by themselves qualify mixed correction/computation or full-state continuation.
+
+The 31/31 `LegacyWords` rows pass `None` for the lexical artifact, and compare the old copy contract. They are not retention with the new realizer bound. The loader selects artifact format from output contract and cannot bind the new lexical format under LegacyWords. This is an unfinished same-candidate interface obligation, not permission to call old-path success new-artifact preservation.
+
+## The finite reference was fitted incorrectly
+
+Every submitted comparator training example sets `emitted_bucket: 0`; serving uses the actual number of inserted words clipped at 3. Its 0/31 is therefore a fitting/serving support defect. It cannot substantiate the claim that the finite reference necessarily fails all cases because recurrence is absent.
+
+The first review replay repairs the count and gives 10/31, preserving 31/31 for the original recurrent artifact. A second support mismatch is then isolated: historical training examples hardcode `prior_differs=false`, although the selected previous record can itself have a different predecessor (Oren and Silas). Saved computation flags agree with serving; their failures arise from value-blind tied rows, not a missing derived flag. The final reference uses the runtime's own causal context function on executed fitting sessions, overriding only teacher-forced copy/count progress. Historical neural supervision also contains the predecessor-flag mismatch, so its 322/322 is agreement on historical teacher-forced observations, not universal fit/serve parity.
+
+The principal runner fixes the count from prior Insert actions and supports `--reuse-artifact-root`: verify the sealed parent, load unchanged lexical parameters, reconstruct and byte-check parent binder/intent/lexicon, refit only the small count-table reference, and replay the exposed panels into a new exclusive root. The final corrected reference scores **12/31**, while the unchanged learned artifact retains **31/31** and the exported teacher-forced replay retains **322/322**. All 124 non-reference rows retain the original emitted bytes and terminal outcomes. Both review roots are exposed replays, not fresh acceptance. This remains a retained architectural reference with less content/state information, not an equal-information geometric comparison. The old incorrect count table and results are retained.
+
+## Representation and semantics: distinctions must survive before learning
+
+The decoder is a mathematically dense ternary recurrent network. Its 24×43 input, 24×33 transition and 9×70 output maps contain 2,454 ternary weights. Add/subtract/shift implementation is permitted by D0-b, but does not make the mathematical maps sparse or non-dense. Table packing, parameter traffic, allocations and whole-path instruction costs still need measurement.
+
+Inserted vocabulary slots have different feedback symbols. All copied tokens share one Copy symbol. Thus the state consumes **action feedback**, not the identity of every token emitted. Every target has the shape Insert* Copy* Stop. There is no meaningful later vocabulary decision testing continuation after copied content. Two equal-length copied strings induce the same transition-symbol sequence, regardless of their bytes.
+
+Context sums embeddings of at most the first four fitted tokens on each side, with unknown tokens skipped. It is permutation invariant, loses suffixes, and makes wholly unknown values zero. The disagreement count compares these compressed vectors; it is not exact value equality. In particular, both `(unknown_A, unknown_A)` and `(unknown_A, unknown_B)` can have identical features. No optimizer can distinguish these observations. More fitting or extra coordinates after this collapse cannot solve the obstruction.
+
+The target label `changed` is derived from **computed address inequality**, whereas the decoder compares the **final downstream payload** against the operand payload. The fixture sets every label's office equal to itself, making those different relations coincide. Non-self-valued records break the equivalence. Apply computes a query key and follows it; it does not commit a temporal office change. Accordingly, the corrected current/history wording is useful, but “became”/“still” cannot be promoted as truthful office-change semantics. Preserve those targets as authored route fixtures, not independently validated propositions.
+
+The E/S artifacts remain present at the runner's declared paths (454,788 and 53,555 bytes respectively). They were not loaded in this experiment; this is NOT_RUN, not a measured unavailability or a refutation of the donor.
+
+The proper correction is to expose causally available typed distinctions: request history; input versus derived key; selected downstream value; exact equality of relevant full identities; and whether a mutation was actually committed. Exact byte/key comparison is legitimate input infrastructure. It is not a gold response class. Learn verbalization and sequence behavior from these facts, rather than asking a compressed embedding to rediscover equality or supplying an evaluator-selected answer family.
+
+## Correctness repairs in this review
+
+The submitted restore check rebuilt emission state but omitted `sl_state` from equality. A same-width forged recurrent vector could pass. The newly owned computation operand payload also lacked a provenance check although it affected lexical output. The review binds the recurrent state to actual replay and the operand bytes to the retained source witness, preserving historical nonlexical snapshots that did not contain this feature. Artifact dimensional/arithmetic validation is strengthened before inference to reject overflow-producing parameters.
+
+The training forward also used raw float biases while export rounded them, and backward divided examples by a growing epoch weight sum rather than the stationary objective normalizer. Correct these training definitions prospectively, retaining the historical fitted artifact. A saved model can be a valid executed component even when the procedure that fitted it needs correction. No new training result is claimed merely because the trainer source is fixed.
+
+The runner records actual effects and final sessions, source and executable hashes, inherited fit diagnostics versus new execution, and full parent/child continuation parity. The review executes **46 distinct library tests** (10 state-lexical and 36 scoped-memory, including seven new tests), a release runner build and the unchanged-artifact replay. Ten parent checkpoints and ten separate-process child continuations match full effects and final sessions for the selected typed Initial scenario. This improves the restore instrument without qualifying the broader mixed-session contract. The checks receipt binds exact source and executable identities and distinguishes the library-test source from the final comparator-only interface change. Queue compatibility acknowledgements are not these tests. No full-library or whole-path efficiency qualification is implied.
+
+## Geometric mechanisms and external research
+
+Geometry remains a preferred research mechanism, not a decoration or a capability claim. Prime/UOR identity belongs to exact ownership and equality; it is not semantic distance. Signed Q8/H4 supplies the retained ordered composition witness, with a competent finite comparator tie. Relative `q⁻¹k` is common-left invariant for an associative group, but removing central sign or Hopf fiber may erase distinctions needed downstream. A quaternionic transport recurrence or shared contextual vocabulary residual is a plausible structured lexical candidate beside the ternary recurrence; compare identical observed information, supervision and useful outputs.
+
+S7, the paired-H4/icosian construction and finite harmonic banks remain available for compact multi-relation state or interference control. Orthogonality of functions under an integration measure does not automatically give independent semantic memory slots. Normalization can discard amplitude; a static token role does not solve contextual role assignment; finite channels still collide when multiple live instances share a role. Use these tools where an order/role/interference or measured cost limitation is explicit, and preserve exact evidence separately. The earlier [mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md) and [Hopf/spin review](structural-memory-hopf-direction-2026-09-20.md) retain the broader research map. They are not superseded by this ordinary recurrent baseline.
+
+Primary literature checked for this decision:
+
+- [Scalable MatMul-free Language Modeling, v7](https://arxiv.org/abs/2406.02528v7): ternary recurrent language computation can be useful at scale. Its hardware energy/throughput results do not transfer to this implementation or laptop without measurement.
+- [CopyNet](https://aclanthology.org/P16-1154/): joint copying and learned vocabulary continuation is an established modeling responsibility. The paper supplies a conceptual comparison, not a dense-model dependency for UOR-R4.
+- [A Hippocampus for Linear Attention](https://arxiv.org/abs/2607.02303): a recent primary preprint separates compressed recurrent state and exact memory. This supports investigating their complementary roles; it neither validates our candidate nor replaces owned versioned records.
+- [Spectral Representations for Group Composition, v2](https://arxiv.org/abs/2606.02993v2): projected-flow results on finite-group composition motivate structured feature learning. Their population/group assumptions do not prove quantized lexical convergence or semantic generalization here.
+
+These are bounded research implications. No quantum effect, general-relativity model of language, unique geometric advantage, general prose, whole-path D0-b or energy saving is established.
+
+## Next coherent sequence
+
+1. Complete one transferable lexical learner: preserved exact meaning, actual generated/copied-token feedback, source-separated ordinary text plus grounded supervision, meaningful continuation after copying, and loaded E/S reference or a measured reason to adapt it. Correctness tests are early development instruments within this task, not its endpoint.
+2. Demonstrate useful broader conversation and executable Rust through that same candidate, preserving older memory/intent/computation behavior with the candidate actually bound. Do not use typed API calls or host rendering as evidence of learned raw-language behavior.
+3. Scale access only for measured bottlenecks and qualify whole-model cost and product delivery: latency, RAM, state/table traffic, physical energy and API/WASM/Studio behavior at useful quality.
+
+DeepSeek can alter the optimizer, shared representation, supervision mix or donor after a source-grounded reduced diagnostic. A practical quality threshold may be revised prospectively with a reason; wrong temporal meaning, source identity or a blinded comparator are correctness defects. No arbitrary time window or retry quota substitutes for research judgment. Necessary local allowance extensions remain authorized when recorded before use, with measured disk headroom and preservation of unique research.

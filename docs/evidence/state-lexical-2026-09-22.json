@@ -1,0 +1,516 @@
+{
+  "artifact_sha256": {
+    "comparator.json": "40930793853156bca21500046a3125a243657a50d795a84d35d5deba54163bb4",
+    "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+    "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+    "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+    "state_lexical.json": "65762a8f89d5ea69733c63176c13048e5599cdb3aea35f4aa6a7edd0cd96c43e"
+  },
+  "base_commit": "6295510d20509c2af604781fe374ab0beb477665",
+  "checks": {
+    "artifact_reload_identity": true,
+    "context_ablation_changes_output": true,
+    "learned_fit_documents_all_expected": true,
+    "legacy_copy_retained": true,
+    "recurrence_ablation_changes_output": true,
+    "restart_all_boundaries": true,
+    "restart_child_process": true,
+    "value_sensitive_effect": true
+  },
+  "checks_all_expected": true,
+  "corpus": {
+    "declared_sequences": 23,
+    "documents": 7,
+    "documents_detail": [
+      {
+        "computed": true,
+        "document": "mara",
+        "entity": "Mara",
+        "fit": true,
+        "probes": [
+          {
+            "answer": "Bert",
+            "changed": false,
+            "op": "e"
+          },
+          {
+            "answer": "Cora",
+            "changed": true,
+            "op": "i"
+          },
+          {
+            "answer": "Elin",
+            "changed": true,
+            "op": "j"
+          }
+        ],
+        "scope": "alpha",
+        "store_bytes": 3916,
+        "values": [
+          "Alma",
+          "Bert"
+        ]
+      },
+      {
+        "computed": true,
+        "document": "ivo",
+        "entity": "Ivo",
+        "fit": true,
+        "probes": [
+          {
+            "answer": "Cora",
+            "changed": false,
+            "op": "e"
+          },
+          {
+            "answer": "Alma",
+            "changed": true,
+            "op": "i"
+          },
+          {
+            "answer": "Gwen",
+            "changed": true,
+            "op": "j"
+          }
+        ],
+        "scope": "beta",
+        "store_bytes": 3509,
+        "values": [
+          "Cora"
+        ]
+      },
+      {
+        "computed": true,
+        "document": "cedar",
+        "entity": "Cedar",
+        "fit": true,
+        "probes": [
+          {
+            "answer": "Dane",
+            "changed": false,
+            "op": "e"
+          },
+          {
+            "answer": "Bert",
+            "changed": true,
+            "op": "i"
+          },
+          {
+            "answer": "Holt",
+            "changed": true,
+            "op": "j"
+          }
+        ],
+        "scope": "gamma",
+        "store_bytes": 3931,
+        "values": [
+          "Dane",
+          "Dane"
+        ]
+      },
+      {
+        "computed": true,
+        "document": "oren",
+        "entity": "Oren",
+        "fit": true,
+        "probes": [
+          {
+            "answer": "Gwen",
+            "changed": false,
+            "op": "e"
+          },
+          {
+            "answer": "Elin",
+            "changed": true,
+            "op": "i"
+          },
+          {
+            "answer": "Dane",
+            "changed": true,
+            "op": "j"
+          }
+        ],
+        "scope": "delta",
+        "store_bytes": 4285,
+        "values": [
+          "Elin",
+          "Frey",
+          "Gwen"
+        ]
+      },
+      {
+        "computed": false,
+        "document": "una",
+        "entity": "Una",
+        "fit": false,
+        "probes": [],
+        "scope": "epsilon",
+        "store_bytes": 3783,
+        "values": [
+          "Larkspur"
+        ]
+      },
+      {
+        "computed": false,
+        "document": "pia",
+        "entity": "Pia",
+        "fit": false,
+        "probes": [],
+        "scope": "zeta",
+        "store_bytes": 3866,
+        "values": [
+          "Nettle",
+          "Umber"
+        ]
+      },
+      {
+        "computed": false,
+        "document": "silas",
+        "entity": "Silas",
+        "fit": false,
+        "probes": [],
+        "scope": "eta",
+        "store_bytes": 4151,
+        "values": [
+          "Vellum",
+          "Wren",
+          "Yarrow"
+        ]
+      }
+    ],
+    "fit_documents": 4,
+    "held_out_documents": 3,
+    "training_sequences": 54
+  },
+  "date": "2026-09-22",
+  "executed_checks": {
+    "cargo_fmt_check": "pass",
+    "check_claim_wording": "pass",
+    "git_diff_check": "pass",
+    "runner_standard_tests": "25 passed, 6 ignored (artifact-dependent)",
+    "scoped_memory_tests": "34 passed",
+    "state_lexical_module_tests": "5 passed"
+  },
+  "external_compute": "none",
+  "fit": {
+    "action_correct": 322,
+    "action_total": 322,
+    "content_tokens": 20,
+    "e_dim": 24,
+    "epochs": 12000,
+    "final_loss": 1.1729891014056193e-07,
+    "first_loss": 18.09635353088379,
+    "h_dim": 24,
+    "sequences": 54,
+    "served_loss": 7.222460851608048e-08,
+    "steps": 322
+  },
+  "limitations": [
+    "Development-scope authored language; not general prose and no geometric advantage claimed.",
+    "The held-out-document panel transfers unfamiliar entity and value strings through the learned flag-driven sequence; the change/still distinction depends on fitted content embeddings and is not claimed to transfer to wholly unfamiliar computed values.",
+    "The retained finite-table comparator scores 0/31 on the corrected language: it cannot emit the four-word prelude or the value-sensitive distinction. That is a comparator result, not a claim about all finite tables.",
+    "The E/S local vocabulary donor was not loaded as a comparator; the retained finite table and the copy-only contract are the executed comparators.",
+    "Whole-path multiplier-free D0-b was not measured; the served decoder uses ternary maps, i8 table reads, integer add/subtract/compare and no floating point.",
+    "Energy UNAVAILABLE; no paid or external compute."
+  ],
+  "manifest": {
+    "files": [
+      {
+        "blake3": "126d602fe2041c9ec9ec7ea171732c4a2046f2fed643f859d62e231424abfb2c",
+        "bytes": 823,
+        "path": "artifacts/comparator.json"
+      },
+      {
+        "blake3": "79cea11512d84d23576e4df85563523686891f9df2dbcc8046cbf87bc8139183",
+        "bytes": 1764,
+        "path": "artifacts/intent.json"
+      },
+      {
+        "blake3": "e1bdbc8f1c556722750cab7f3eb64b26243965a76bf262d5d4136d5863543728",
+        "bytes": 413,
+        "path": "artifacts/lexicon.json"
+      },
+      {
+        "blake3": "17681732ed6844457d5811c089820dcc2b1ebf3dbdac62d4fb61ee1b65470290",
+        "bytes": 13503,
+        "path": "artifacts/model.json"
+      },
+      {
+        "blake3": "9660555e09b755ed4fe7f3fff9bcb46eb4a828d539c39d8e21c314b4fc945cd6",
+        "bytes": 2861,
+        "path": "artifacts/state_lexical.json"
+      },
+      {
+        "blake3": "529a6f6c52fd96aaa7559370795bdfe1ac50c6ddfd3926a0ec9646687ff8851d",
+        "bytes": 470,
+        "path": "attempt.json"
+      },
+      {
+        "blake3": "afd4824e88e73760fca53e87cfc11b6e2614cfa4216e767bb5c8337885ccab77",
+        "bytes": 1911,
+        "path": "restart/child.json"
+      },
+      {
+        "blake3": "730344aaf62f08d20f0c2332bba50f652cbdc5ebbb880af98473fc8c6130ecc0",
+        "bytes": 1148,
+        "path": "restart/frame-000.json"
+      },
+      {
+        "blake3": "54ba773c976cfa0c36829cfc3154b2e9ab720b1a9759c1322e689278cb0e2b4f",
+        "bytes": 1320,
+        "path": "restart/frame-001.json"
+      },
+      {
+        "blake3": "dd51bb3d5224fbb65f8284b8c478992176b81c1e9b379b82ff4c79f4763f7d4a",
+        "bytes": 1395,
+        "path": "restart/frame-002.json"
+      },
+      {
+        "blake3": "0126fc44a6d3bfd1300aea37ff66243c63eff56ba17149477b7f7f2e95619426",
+        "bytes": 1422,
+        "path": "restart/frame-003.json"
+      },
+      {
+        "blake3": "152922e54451b88ba17dc9eabe2f35070e59b8643240f624de6dcb15753dc27f",
+        "bytes": 1435,
+        "path": "restart/frame-004.json"
+      },
+      {
+        "blake3": "8e6d656c29d4d0e9dc98cf678feb38d7a3d5131ed6d8106a5685872c1fe9fc1d",
+        "bytes": 1441,
+        "path": "restart/frame-005.json"
+      },
+      {
+        "blake3": "a060a97b686f76a81f6d75e30e7847f2fe6e0bc95e9fcc42e93659c9cde87544",
+        "bytes": 1448,
+        "path": "restart/frame-006.json"
+      },
+      {
+        "blake3": "4fc2ddb3b75ec0c61360c6547d2339eb19ced4d53ff538f077c66289a08c07cf",
+        "bytes": 1447,
+        "path": "restart/frame-007.json"
+      },
+      {
+        "blake3": "d3f86252f8afccc88b218d4d6e938b555edd7b2443974e3f5f06bfc709cc57d0",
+        "bytes": 1447,
+        "path": "restart/frame-008.json"
+      },
+      {
+        "blake3": "60da27fe16efe1e81e20f874d35fbb0a466273b84e00c7123746ce40b219b9db",
+        "bytes": 1464,
+        "path": "restart/frame-009.json"
+      },
+      {
+        "blake3": "79cea11512d84d23576e4df85563523686891f9df2dbcc8046cbf87bc8139183",
+        "bytes": 1764,
+        "path": "restart/intent.json"
+      },
+      {
+        "blake3": "e1bdbc8f1c556722750cab7f3eb64b26243965a76bf262d5d4136d5863543728",
+        "bytes": 413,
+        "path": "restart/lexicon.json"
+      },
+      {
+        "blake3": "ec3206a1a33f1b551093e7d51a78e21c36cc67780d97a2731cec01e443fc0944",
+        "bytes": 821,
+        "path": "restart/manifest.json"
+      },
+      {
+        "blake3": "17681732ed6844457d5811c089820dcc2b1ebf3dbdac62d4fb61ee1b65470290",
+        "bytes": 13503,
+        "path": "restart/model.json"
+      },
+      {
+        "blake3": "9660555e09b755ed4fe7f3fff9bcb46eb4a828d539c39d8e21c314b4fc945cd6",
+        "bytes": 2861,
+        "path": "restart/state_lexical.json"
+      },
+      {
+        "blake3": "45d793589130b03eef6b8549436b2d76b3823e7640df5c3809e0e3ab6e4e5358",
+        "bytes": 3916,
+        "path": "restart/store.bin"
+      },
+      {
+        "blake3": "5cc421eb8f7583559114a1ba1a1788b40c74fdf5993884bd309adba4a473dd5d",
+        "bytes": 110945,
+        "path": "result.json"
+      }
+    ],
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-1",
+    "schema": "uor-r4.report-manifest/1",
+    "sealed_at": "1790114286"
+  },
+  "panels": {
+    "context_disabled": {
+      "cases": 31,
+      "complete": false,
+      "ok": 7
+    },
+    "learned_fit_documents": {
+      "cases": 23,
+      "complete": true,
+      "ok": 23
+    },
+    "learned_held_out_documents": {
+      "cases": 8,
+      "complete": true,
+      "ok": 8
+    },
+    "learned_state_lexical": {
+      "cases": 31,
+      "complete": true,
+      "ok": 31
+    },
+    "legacy_copy_retained": {
+      "cases": 31,
+      "complete": true,
+      "ok": 31
+    },
+    "recurrence_disabled": {
+      "cases": 31,
+      "complete": false,
+      "ok": 0
+    },
+    "retained_finite_table": {
+      "cases": 31,
+      "complete": false,
+      "ok": 0
+    }
+  },
+  "restart": {
+    "all_equal_final": true,
+    "boundaries": 10,
+    "child_frames_ok": 10,
+    "child_ok": true,
+    "child_process": true
+  },
+  "schema": "uor-r4.state-lexical-executed/1",
+  "sealed_files": 25,
+  "sealed_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-1",
+  "slots": [
+    357,
+    314,
+    436,
+    1361,
+    2163,
+    808,
+    418
+  ],
+  "source_sha256": {
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "6bfb4cb08272f92d31248c1b2ddd482733ec3cf00a244c2e49de7150b206d58a",
+    "crates/uor-r4-core/src/native_geometric/learner/mod.rs": "a08886d5f94da5c170b650c2ba9be469da7fe606d9707cbdb62f678cd86fac2b",
+    "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs": "a3f67f26233fe66467142f1d0cb10e22ad12d51040b71495df4472c77504b22c",
+    "crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs": "943a44180758fd1055bc4e9a3a39efc50f9f92852a470b710a268c8686f3d841"
+  },
+  "value_sensitive": [
+    {
+      "changed_emitted": [
+        357,
+        2163,
+        340,
+        270,
+        81,
+        4294967294
+      ],
+      "changed_op": "i",
+      "content_differs": false,
+      "differ": true,
+      "document": "mara",
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both",
+      "unchanged_emitted": [
+        357,
+        314,
+        1361,
+        389,
+        730,
+        4294967294
+      ],
+      "unchanged_op": "e"
+    },
+    {
+      "changed_emitted": [
+        357,
+        2163,
+        1065,
+        2432,
+        4294967294
+      ],
+      "changed_op": "i",
+      "content_differs": true,
+      "differ": true,
+      "document": "ivo",
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both",
+      "unchanged_emitted": [
+        357,
+        314,
+        1361,
+        340,
+        270,
+        81,
+        4294967294
+      ],
+      "unchanged_op": "e"
+    },
+    {
+      "changed_emitted": [
+        357,
+        2163,
+        389,
+        730,
+        4294967294
+      ],
+      "changed_op": "i",
+      "content_differs": true,
+      "differ": true,
+      "document": "cedar",
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both",
+      "unchanged_emitted": [
+        357,
+        314,
+        1361,
+        422,
+        1674,
+        4294967294
+      ],
+      "unchanged_op": "e"
+    },
+    {
+      "changed_emitted": [
+        357,
+        2163,
+        3906,
+        254,
+        4294967294
+      ],
+      "changed_op": "i",
+      "content_differs": true,
+      "differ": true,
+      "document": "oren",
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both",
+      "unchanged_emitted": [
+        357,
+        314,
+        1361,
+        452,
+        103,
+        264,
+        4294967294
+      ],
+      "unchanged_op": "e"
+    }
+  ],
+  "principal_review": {
+    "source_submission": "711334f50853d48b8a201539c07667014ae81c55",
+    "status": "EXPOSED_RECURRENT_COMPONENT_LEXICAL_MILESTONE_INCOMPLETE",
+    "review": "docs/integration/state-conditioned-lexical-review-2026-09-22.md",
+    "audit": "docs/evidence/state-lexical-principal-audit-2026-09-22.json",
+    "checks": "docs/evidence/state-lexical-principal-checks-2026-09-22.json",
+    "qualifications": [
+      "Original measurements retained; finite0/31 comparison misfitted emitted-count key.",
+      "Insert-slot and Copy-class feedback; no copied-token feedback or post-copy language evidence.",
+      "All computed cases fitting worlds; eight other cases unfamiliar values with familiar forms; finalroot exposed after slx-sweep.",
+      "Computed address inequality is not downstream value inequality or a committed historical mutation.",
+      "LegacyWords loads no lexical artifact; same-candidate preservation incomplete."
+    ]
+  }
+}
