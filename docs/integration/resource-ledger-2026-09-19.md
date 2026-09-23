@@ -2535,3 +2535,24 @@ the first arm's prose bar was not met, and the probe's four-minute state-recordi
 avoided by measuring served loss through `run()`'s own panels. Physical free after the work is 53,048,876
 KiB, above the 24 GiB working reserve plus the 128 MiB stop margin. No paid or external compute, and no
 unique artifact or preserved root was modified.
+
+## Protected merge delivery of the four September 23 PRs, 2026-09-23
+
+At the owner's direction, the four pending protected PRs were delivered **through the merge queue**
+(`main: required checks + merge queue`, squash, ALLGREEN) in order, with **no** admin merge and **no**
+protection bypass: **#1363 → `8deb92f9`, #1364 → `91339b47`, #1365 → `05243622`, #1366 → `ba664585`**.
+Because each later PR was stacked on its predecessor's unmerged head, the three stacked branches were
+**rebased onto the new main** (`git rebase --onto origin/main <base>`) and force-pushed with
+`--force-with-lease` before each enqueue, which is the standard handling for stacked PRs after a squash
+merge. One genuine authoring defect was caught and fixed before the final PR landed: the joint-fit edit to
+`current-state.md` had accidentally dropped the rest of the file (the joint-fit section was written
+without appending the history), and the file was rebuilt from main's complete version with only the
+joint-fit section prepended — the delivered file on main is complete (4,072 lines).
+
+Charge for the merge orchestration: **1,500,000 ms** (rebase and force-push of the three stacked
+branches, three merge-queue enqueues, watching and per-merge verification of tree and content equality,
+and the `current-state.md` rebuild). The cumulative advanced from **425,415,640** to **426,915,640 /
+431,500,000 ms**. Merge-group CI completed in 7–16 seconds per PR once a runner was available; the only
+wait was the GitHub-hosted runner queue. No model compute was used, and no paid or external compute
+followed. origin/main is now `ba664585`; all four sealed evidence families and every prior root are
+untouched.
