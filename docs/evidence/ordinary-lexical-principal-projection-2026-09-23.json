@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.local-work-projection/1",
+  "recorded_utc": "2026-09-23T04:13:00Z",
+  "scope": "Principal audit of merged PRs 1353 and 1354, bounded artifact-validation correction, documentation and protected delivery; no new model fit or paid compute",
+  "live_cumulative_ms_before": 377915640,
+  "live_limit_ms": 390700000,
+  "projected_increment_ms": 3600000,
+  "projected_cumulative_ms": 381515640,
+  "cpu_threads": 2,
+  "peak_ram_bytes": 4294967296,
+  "maximum_new_temporary_storage_bytes": 1073741824,
+  "maximum_new_retained_storage_bytes": 134217728,
+  "physical_free_kib_before": 31456116,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "run_scope": "Focused Rust tests and checks for the changed module; no corpus refit or full test suite",
+  "stop_condition": "Stop before the cumulative limit or physical reserve plus margin; charge actual work once."
+}

@@ -1,5 +1,7 @@
 # EVIDENCE
 
+**PRs #1353/#1354 principal qualification:** the shared ordinary/grounded artifact improves over unigram but loses to a tuned two-token count reference; development generation collapses. The post-copy class panel jointly changes pre-copy evidence and feedback, so emitted-token feedback causality is unverified. Most main-runner panels used the in-memory model; separate-process replay checks only 36 fitted cases. [Original result](ordinary-lexical-result-2026-09-23.md) · [principal review](ordinary-lexical-principal-review-2026-09-23.md) · [successor brief](deepseek-ordinary-lexical-successor-2026-09-23.md).
+
 **PR #1352 principal review:** V3 retains a learned lexical interface at 31/31 exposed authored responses, with fitted token feedback and a post-copy action. All computed examples were fitted; the held-out eight use familiar non-computed forms. The 4/4 paired requests change key_changed as well as payload; ordinary-text learning is NOT_RUN. The next complete milestone is shared open-vocabulary Generate/Copy/Stop over source-separated prose and grounded exact spans. [Review](transferable-lexical-principal-review-2026-09-23.md) · [DeepSeek brief](deepseek-ordinary-lexical-step-2026-09-23.md).
 
 ## September22 principal update — PR #1351 lexical component

@@ -1,5 +1,7 @@
 # One shared Generate/Copy/Stop path: ordinary-text continuation and grounded exact copying
 
+**Subsequent principal qualification:** [the September 23 review](ordinary-lexical-principal-review-2026-09-23.md) preserves these measurements but narrows post-copy feedback, loaded-artifact, mixed-session and cost claims. This original submission is retained as historical evidence; its dated next step is superseded by the [current plan](project-track.md).
+
 September 23, 2026. Base: protected PR #1352 merge `44c2ccd27cea5d0178f19cca2f33332db4a95ce1`.
 Delivered through protected PR #1353, merged as `126a8d9ae3fe422980071830862030dd5d46c312`; the merged
 `origin/main` tree equals the delivered source tree.
@@ -109,10 +111,10 @@ selection rule and exposure are pinned in the receipt.
 
 Paired document-cluster bootstrap intervals (2,000 draws):
 
-* shared model − unigram: **+1.7105 bits/target** [+1.4973, +1.9359] — excludes zero, improving.
-* shared model − count reference: **−2.2505** [−2.4454, −2.0734] — excludes zero, **the model is
+* unigram − shared model: **+1.7105 bits/target** [+1.4973, +1.9359] — excludes zero, improving.
+* count reference − shared model: **−2.2505** [−2.4454, −2.0734] — excludes zero, **the model is
   worse than the count reference**.
-* shared model − donor E: **−0.5021** [−0.5777, −0.4234] — excludes zero, **worse than E**.
+* donor E − shared model: **−0.5021** [−0.5777, −0.4234] — excludes zero, **worse than E**.
 
 Document-level variation is wide: per-document bits range 5.64 to 8.71, median 7.37.
 

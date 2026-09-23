@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current principal review:** PR #1352 retains an executed V3 lexical interface at authored-task scope; ordinary-text learning and equal-information geometric comparison remain open. [Review](integration/transferable-lexical-principal-review-2026-09-23.md) · [next DeepSeek brief](integration/deepseek-ordinary-lexical-step-2026-09-23.md).
+**Current principal review:** merged PRs #1353/#1354 add a shared ordinary-text and authored-grounded Generate/Copy/Stop learner. It beats unigram on open development text but loses badly to a tuned two-token count reference, and greedy generation collapses. Learned post-copy feedback causality and broad loaded-artifact parity remain unverified. First diagnose exact local-token competence; geometric signed transport follows a witnessed structural need with matched controls. [Review](integration/ordinary-lexical-principal-review-2026-09-23.md) · [next DeepSeek brief](integration/deepseek-ordinary-lexical-successor-2026-09-23.md).
 
 ## September22 principal update — PR #1351 lexical component
 

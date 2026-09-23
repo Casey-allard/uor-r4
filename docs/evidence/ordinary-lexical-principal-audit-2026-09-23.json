@@ -1,0 +1,54 @@
+{
+  "schema": "uor-r4.ordinary-lexical-principal-audit/1",
+  "base_main": "d8a2e539e4aa2240923958ecebc1f87fef3f14d5",
+  "reviewed_prs": [1353, 1354],
+  "preserved_artifact_sha256": "fe3e8a638cd50a19741065cb00ac787b63bb59f8ad5776fd8bfcb162c37a912a",
+  "preserved_roots": ["ordinary-lexical-1", "ordinary-lexical-2", "ordinary-lexical-3"],
+  "independent_checks": {
+    "prs_merged_and_tree_equal": true,
+    "seal_file_count": 6,
+    "seal_unlisted_files": 0,
+    "recorded_document_hashes_checked": 429,
+    "fit_tune_development_documents": [355, 38, 36],
+    "fit_tune_separation_for_count_reference": true,
+    "same_development_targets": 5376,
+    "separate_process_replay": "REPLAY_OK 36 fitted grounded cases only",
+    "main_headline_panels_deserialized_before_evaluation": false,
+    "post_copy_feedback_isolated": false,
+    "mixed_session_persistent_model_state": false,
+    "tested_executable_sha256_recorded_in_original_seal": false
+  },
+  "reported_development_bits_per_target": {
+    "shared_model_full_action": 7.3722,
+    "fit_only_unigram_token_only": 9.0827,
+    "donor_E_token_only": 6.8701,
+    "tuned_two_token_count_token_only": 5.1217,
+    "population": "24 open development documents; 5376 targets",
+    "token_conditional_shared_model": "NOT_RUN"
+  },
+  "interpretation": "Improvement over unigram and large deficit to exact two-token count are credible in open development. Deficit source is not identified; long-range geometry is not established as the remedy. Class preflight changes both evidence fingerprint and emitted-token feedback, so its learned post-copy feedback role is UNVERIFIED. All three greedy continuations collapse.",
+  "served_cost_scope": {
+    "rollout_only_us_per_token": 673.6,
+    "nonzero_coefficients": 56457,
+    "packed_coefficient_inspections_per_generated_step": 611814,
+    "whole_path_latency": "UNAVAILABLE",
+    "energy": "UNAVAILABLE"
+  },
+  "principal_correction": {
+    "source": "crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs",
+    "source_sha256_after_edit": "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250",
+    "change": "Include bh/bo in checked served i32 bounds; use an explicit embedding shift; rename the joint-intervention test to match what it proves.",
+    "validation": "12 transferable_lexical focused library tests passed; cargo fmt --check and scripts/check_claim_wording.py passed. The first new bias test failed because its hand model had zero readout weights; after adding one nonzero coefficient, the test passed. No general-language refit was run."
+  },
+  "resource_reconciliation": {
+    "reported_deepseek_increment_ms": 3500000,
+    "live_cumulative_ms_before_principal_charge": 377915640,
+    "limit_ms": 390700000,
+    "removed_only_reproducible_compiler_output": true,
+    "first_cleanup_physical_bytes": 8354021376,
+    "second_cleanup_physical_bytes": 6123388928,
+    "physical_free_bytes_after_second_cleanup": 33261809664,
+    "unique_artifacts_deleted": 0,
+    "paid_compute": false
+  }
+}

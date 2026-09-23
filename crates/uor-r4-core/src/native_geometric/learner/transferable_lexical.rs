@@ -349,7 +349,7 @@ impl TlEmbed {
     /// The served value of one embedding entry: `code << shift[row]`.
     #[inline]
     pub fn value(&self, row: usize, col: usize) -> i32 {
-        self.codes[row * self.cols + col] as i32 * (1i32 << self.shift[row])
+        (self.codes[row * self.cols + col] as i32) << self.shift[row]
     }
 
     /// Bytes of embedding storage.
@@ -959,17 +959,35 @@ impl TlModel {
         let h_bound = self.h_clamp as u128;
         let mut bounds_init = vec![m_bound; h];
         bounds_init.extend(std::iter::repeat_n(fact_bound, f));
-        check_range("wi", &self.wi, &bounds_init, 0)?;
-        check_range("wh", &self.wh, &vec![h_bound; h], 0)?;
+        let wi_bounds = check_range("wi", &self.wi, &bounds_init)?;
+        let wh_bounds = check_range("wh", &self.wh, &vec![h_bound; h])?;
         let mut bounds_fact = vec![m_bound; h];
         bounds_fact.extend(std::iter::repeat_n(fact_bound, f));
         bounds_fact.extend(std::iter::repeat_n(1u128, TL_EVENTS));
-        check_range("wf", &self.wf, &bounds_fact, 0)?;
+        let wf_bounds = check_range("wf", &self.wf, &bounds_fact)?;
         let mut bounds_out = vec![h_bound; h];
         bounds_out.extend(vec![m_bound; h]);
         bounds_out.extend(std::iter::repeat_n(fact_bound, f));
         bounds_out.extend(std::iter::repeat_n(1u128, TL_EVENTS));
-        check_range("wo", &self.wo, &bounds_out, 0)?;
+        let wo_bounds = check_range("wo", &self.wo, &bounds_out)?;
+        let embedding_bound = (TL_EMB_BOUND as u128) << TL_EMB_MAX_SHIFT;
+        for r in 0..h {
+            let bias = self.bh[r].unsigned_abs() as u128;
+            if wi_bounds[r] + bias > i32::MAX as u128 {
+                return Err(format!("initial state row {r} can overflow i32"));
+            }
+            // An arithmetic right shift has magnitude at most ceil(bound / 2^shift).
+            let shift = self.recurrent_shift;
+            let recurrent_bound = (wh_bounds[r] + ((1u128 << shift) - 1)) >> shift;
+            if embedding_bound + recurrent_bound + wf_bounds[r] + bias > i32::MAX as u128 {
+                return Err(format!("state update row {r} can overflow i32"));
+            }
+        }
+        for (r, bound) in wo_bounds.iter().enumerate() {
+            if bound + self.bo[r].unsigned_abs() as u128 > i32::MAX as u128 {
+                return Err(format!("readout row {r} can overflow i32"));
+            }
+        }
         Ok(())
     }
 
@@ -1158,10 +1176,11 @@ fn check_linear(name: &str, map: &TlLinear, rows: usize, cols: usize) -> Result<
     Ok(())
 }
 
-/// Certify that every addition and the final shift plus bias fit the declared `i32` envelope,
-/// without running the kernel.
-fn check_range(name: &str, map: &TlLinear, bounds: &[u128], _bias: i64) -> Result<(), String> {
+/// Certify each map's accumulation and shifted output, returning row bounds so callers can
+/// additionally certify the sums with their biases and other map outputs.
+fn check_range(name: &str, map: &TlLinear, bounds: &[u128]) -> Result<Vec<u128>, String> {
     let limit = (i32::MAX / 4) as u128;
+    let mut row_bounds = Vec::with_capacity(map.rows);
     for r in 0..map.rows {
         let mut sum = 0u128;
         for c in 0..map.cols {
@@ -1179,8 +1198,9 @@ fn check_range(name: &str, map: &TlLinear, bounds: &[u128], _bias: i64) -> Resul
                 "{name}: row {r} shifted bound {shifted} exceeds the declared envelope"
             ));
         }
+        row_bounds.push(shifted);
     }
-    Ok(())
+    Ok(row_bounds)
 }
 
 /// Clamp a vector into `[-bound, bound]`.
@@ -2331,6 +2351,23 @@ mod tests {
     }
 
     #[test]
+    fn artifact_rejects_biases_that_can_overflow_served_accumulators() {
+        let mut model = hand_model(16, 8);
+        assert!(model.validate().is_ok());
+        let mut codes = vec![0i8; model.wo.rows * model.wo.cols];
+        codes[0] = 1;
+        model.wo.packed = pack_ternary(&codes);
+        model.bo[0] = i32::MAX;
+        assert!(model.validate().is_err());
+        assert!(TlModel::from_bytes(&model.to_bytes()).is_err());
+
+        let mut model = hand_model(16, 8);
+        model.bh[0] = i32::MAX;
+        assert!(model.validate().is_err());
+        assert!(TlModel::from_bytes(&model.to_bytes()).is_err());
+    }
+
+    #[test]
     fn declared_low_bit_bounds_hold() {
         let t = TlTrainer::new(cfg(64, 16), TlTrainConfig::default()).unwrap();
         let m = t.model().unwrap();
@@ -2416,9 +2453,9 @@ mod tests {
     }
 
     #[test]
-    fn the_post_copy_vocabulary_decision_depends_on_the_copied_identity() {
-        // Two grounded cases with identical request, typed facts, copy length and events; only the
-        // copied token identity differs, and the accepted post-copy word is authored from it.
+    fn joint_source_and_feedback_identity_changes_fitted_actions() {
+        // The selected-source fingerprint and copied-token feedback both change between these
+        // cases. This tests fitted identity sensitivity, not isolated post-copy feedback use.
         let mut t = TlTrainer::new(
             cfg(16, 16),
             TlTrainConfig {
@@ -2448,8 +2485,8 @@ mod tests {
         assert_eq!(ra.tokens, vec![3, 5], "loaded true arm A");
         assert_eq!(rb.tokens, vec![4, 6], "loaded true arm B");
         assert_ne!(ra.state_digest, rb.state_digest);
-        // Identity-erased arm: evidence and feedback lose the copied token identity. The copied
-        // surface is still exact, so the comparison is on the *learned* post-copy word.
+        // Identity-erased arm removes both evidence and feedback identity. The following-action
+        // comparison cannot by itself attribute the difference to the copied-token transition.
         let ba = m.rollout(&a.sel, &[], a.facts, &[], &a.sel, 3, true, false);
         let bb = m.rollout(&b.sel, &[], b.facts, &[], &b.sel, 3, true, false);
         assert_eq!(
