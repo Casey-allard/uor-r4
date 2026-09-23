@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Active — V3 lexical interface reviewed; transferable language remains open
+## Active — one shared Generate/Copy/Stop path executed; ordinary continuation still loses to a count reference
+
+**This task, executed (`ordinary-lexical-3`, artifact `sha256:fe3e8a63…`, exposed roots `1` and `2` preserved):** one shared served model now chooses `Generate(token)` over the whole pinned 4096-token vocabulary, `Copy(owned occurrence)` and `Stop` through a single ternary recurrence whose state consumes the token **actually emitted** under an exact 15-coordinate typed block, with the owned span, version authority and copy cursor outside the compressed state. Ordinary source-separated prose and an authored grounded world train **one** artifact. **Preflight A: 32/32 authored temporal regimes exact** on the loaded artifact, with the four typed regimes separated and identity-balanced, and the retained route-key rule contradicted on 16 of them. **Preflight B: 2/2 actual arms exact; identity-erased arms alias; source-disabled loses the exact copy** — the post-copy vocabulary decision uses the token that was copied. **Three held-out source/relation compositions are 3/3 exact.** One loaded mixed session runs five phases with a separate-process restore of all 36 cases.
+
+**Measured negative, plainly:** on 24 held-out development documents the shared model reaches **7.3722 bits/target** against a **tuned interpolated `(prev,cur)` count reference at 5.1217** (paired interval [−2.4454, −2.0734]) and the retained donor prior E at 6.8701. It beats the fit-only unigram by +1.7105 [+1.4973, +1.9359]. Greedy generation **collapses** in all three loaded continuations. Per-document bits range 5.64–8.71. [Result](ordinary-lexical-result-2026-09-23.md) and [evidence](../evidence/ordinary-lexical-2026-09-23.json) own the exact scope.
+
+**Cost on the named M1:** 673.6 µs/token served, artifact 466,711 B, 466,622 B of table, 56,457 nonzero weight reads per served step, peak RSS **93.9 MiB** measured externally, 0 quantised embedding collisions, energy **UNAVAILABLE**. Dense additive maps, no multiplier or float in the declared kernel; no geometric mechanism participates and none is claimed.
+
+**Prospective oracle revision, recorded:** the temporal oracle originally required `!key_changed` as well as `committed && prior_differs`; a held-out composition with a superseded older value reached through a changed derived key exposed that conjunct as over-specified, so the rule was revised after that exposure and the typed regimes are unchanged. The receipt records the revision.
+
+**Next:** the measured obstruction is a context/order capacity gap against a local count reference. Test ordered signed transport or a shared geometric residual as the **context-mixing operator** against an equal-information ordinary recurrent control, on the same corpus, tokenizer, denominator and tuned count reference; keep the grounded Generate/Copy/Stop path and the two preflights fixed. Donor adaptation, sampling, broader conversation and executed Rust remain open.
+
+**Leadership and resources:** principal mathematical/ML/systems review governs sequencing; DeepSeek has substantive representation, data and optimization discretion. Necessary local extensions are authorized prospectively with cumulative accounting and measured physical reserve. No arbitrary short timer or retry quota, no paid compute, and no deletion of unique research. Separate learned behavior, exact infrastructure and supplied supervision.
+
+## Previous active — V3 lexical interface reviewed; transferable language remains open
 
 **Principal review of PR #1352:** V3 repairs the observation/feedback interface and retains 31/31 exposed authored outcomes. The eight held-out cases are non-computed familiar forms; all post-copy computed cases are fitted. The 4/4 pair changes operation and typed key_changed alongside payload, so content use is unisolated. An eight-slot authored head and ~2% prose-token coverage leave ordinary-text learning **NOT_RUN**. The 20/31 finite comparator has less information; neither transferable language nor geometric advantage is qualified. [Review](transferable-lexical-principal-review-2026-09-23.md) and [next brief](deepseek-ordinary-lexical-step-2026-09-23.md) own the correction.
 

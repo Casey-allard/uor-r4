@@ -32,6 +32,7 @@ pub mod result_decoder;
 pub mod scoped_memory;
 pub mod shared_transition;
 pub mod state_lexical;
+pub mod transferable_lexical;
 pub mod transition_table;
 pub mod vsa_codes;
 
@@ -63,6 +64,9 @@ pub use occurrence::{OccurrenceArtifact, OccurrenceRing, Selector, SelectorTrain
 pub use prior_learning::{PriorCore, PriorTrainer};
 pub use query_read::{QueryArm, QueryHard, QueryTrainer};
 pub use relational::{RelationalSelector, RelationalTrainer, ACTS, CTX_BUCKETS};
+pub use transferable_lexical::{
+    TlAction, TlConfig, TlExample, TlModel, TlRollout, TlTrainConfig, TlTrainer,
+};
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,
 };

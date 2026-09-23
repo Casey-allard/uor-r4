@@ -1,0 +1,106 @@
+{
+  "schema": "uor-r4.ordinary-lexical-evidence/1",
+  "recorded_utc": "2026-09-23T00:00:00Z",
+  "protected_base": "44c2ccd27cea5d0178f19cca2f33332db4a95ce1",
+  "pr": "pending",
+  "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
+  "exposed_development_roots": [
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-2"
+  ],
+  "artifact_sha256": "fe3e8a638cd50a19741065cb00ac787b63bb59f8ad5776fd8bfcb162c37a912a",
+  "artifact_bytes": 466711,
+  "determinism": "roots ordinary-lexical-2 and ordinary-lexical-3 produced a byte-identical artifact",
+  "receipt_sha256": "2e5724990610305cba6baa96f7cac6cb25d55821f4b82869ced8ec304d61e107",
+  "grounded_panel_sha256": "4c107e11c9b8950b3e7493d19b4795a5fee256ce372f4972217371dd2ef29805",
+  "manifest_sha256": "e945d505222d9af28d2156d4d7141356ed03b9b6bc57ee7e7aaad9c8aa851e54",
+  "tokenizer_source_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+  "tokenizer_derived_sha256": "a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f",
+  "corpus": {
+    "documents_collected": 429,
+    "documents_unique": 429,
+    "exact_duplicates_grouped": 0,
+    "fit_documents": 355,
+    "tune_documents": 38,
+    "development_documents": 24,
+    "fit_windows_used": 6000,
+    "fit_windows_available": 38948,
+    "fit_scored_targets": 334796,
+    "dev_scored_targets": 5376,
+    "split_rule": "sha256(content)[0] % 10 < 8 fit, == 8 tune, == 9 development",
+    "source_groups": "top-level path groups recorded in receipt.json corpus.source_groups"
+  },
+  "config": {
+    "vocab": 4096, "window": 64, "prefix": 8, "h_dim": 64, "h_clamp": 256,
+    "m_clamp": 4096, "recurrent_shift": 3, "score_shift": 4, "steps": 2000,
+    "batch": 4, "seed": 13, "lr": 0.02, "bias_scale": 16.0, "ground_weight": 4.0,
+    "phase1_steps": 900, "phase2_end": 1700, "lr_phase3_scale": 0.6,
+    "fit_seconds": 469.84, "run_seconds": 494.5
+  },
+  "preflight_a": {
+    "rule": "committed && prior_differs",
+    "rule_revision": "an earlier oracle required !key_changed; revised after a held-out composition exposed the conjunct as over-specified",
+    "regimes": 32, "exact": 32,
+    "typed_blocks_separate_regimes": true,
+    "typed_blocks_identical_within_a_regime": true,
+    "retained_route_key_rule_contradictions": 16
+  },
+  "preflight_b": {
+    "actual_arms_exact": "2/2",
+    "identity_blinded_arms_alias": true,
+    "source_disabled_loses_exact_copy": true,
+    "declared": "post-copy words are declared class labels, not semantic claims"
+  },
+  "development": {
+    "untrained_cold_start_bits_per_target": 9.08298,
+    "model_bits_per_target": 7.3722,
+    "unigram_bits_per_target": 9.0827,
+    "count_reference_bits_per_target": 5.1217,
+    "donor_E_bits_per_target": 6.8701,
+    "lambdas": [0.7, 0.4],
+    "gain_vs_unigram": [1.7105, 1.4973, 1.9359],
+    "gain_vs_count": [-2.2505, -2.4454, -2.0734],
+    "gain_vs_E": [-0.5021, -0.5777, -0.4234],
+    "per_document_bits_min_median_max": [5.64, 7.37, 8.71]
+  },
+  "held_out_composition": {"cases": 3, "exact": 3, "unseen_requested_views": [1, 3]},
+  "generation": {
+    "loaded_greedy_prompts": 3,
+    "collapsed": true,
+    "note": "all three continuations collapse into a repeated token after a locally plausible prefix; the count reference degrades similarly on the same prompts; sampling NOT_RUN"
+  },
+  "session": {
+    "phases": 5, "served_decisions": 32,
+    "separate_process_restore": "REPLAY_OK 36 cases including served actions, emitted tokens and final state digests"
+  },
+  "costs": {
+    "served_us_per_token": 673.6,
+    "served_tokens_per_second": 1484.6,
+    "table_bytes": 466622,
+    "nonzero_reads_per_step": 56457,
+    "peak_rss_bytes": 98435072,
+    "peak_rss_measurement": "/usr/bin/time -l maximum resident set size",
+    "declared_heap_allocations_per_served_token": 8,
+    "allocation_measurement": "structural declared count, not counter-measured (counting allocator needs unsafe; binary is forbid(unsafe_code))",
+    "multiplier_in_kernel": false,
+    "float_in_kernel": false,
+    "energy": "UNAVAILABLE"
+  },
+  "embedding_collisions": {"colliding_pairs": 0, "colliding_tokens": 0, "distinct_rows": 4097},
+  "local_validation": {
+    "transferable_lexical_tests": "11 passed",
+    "cargo_fmt_check": "PASS",
+    "offline_release_build": "PASS",
+    "sealed_root_verify": "0 unlisted files",
+    "energy": "UNAVAILABLE"
+  },
+  "claim_limits": {
+    "corpus": "small pinned local corpus; general conversation NOT established",
+    "grounded_world": "authored; only the ordinary-text half is learned from real text",
+    "count_reference": "the shared model is worse than the tuned count reference by 2.25 bits/target",
+    "donor_adaptation": "NOT_RUN; no compatible donor-conditioned emission interface was built",
+    "geometric_advantage": "none claimed; no geometric mechanism participates in this serving path",
+    "sampling": "NOT_RUN",
+    "executed_rust": "NOT_RUN"
+  }
+}
