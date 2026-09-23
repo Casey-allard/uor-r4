@@ -2,7 +2,10 @@
   "schema": "uor-r4.ordinary-lexical-evidence/1",
   "recorded_utc": "2026-09-23T00:00:00Z",
   "protected_base": "44c2ccd27cea5d0178f19cca2f33332db4a95ce1",
-  "pr": "pending",
+  "pr": 1353,
+  "merge_commit": "126a8d9ae3fe422980071830862030dd5d46c312",
+  "merge_verified": "origin/main tree b4d3e930a416292299ed4c4144593fd2690989bc equals the delivered source tree",
+  "merged_at": "2026-09-23T04:01:51Z",
   "report_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
   "exposed_development_roots": [
     "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-1",

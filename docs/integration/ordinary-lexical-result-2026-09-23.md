@@ -1,6 +1,8 @@
 # One shared Generate/Copy/Stop path: ordinary-text continuation and grounded exact copying
 
 September 23, 2026. Base: protected PR #1352 merge `44c2ccd27cea5d0178f19cca2f33332db4a95ce1`.
+Delivered through protected PR #1353, merged as `126a8d9ae3fe422980071830862030dd5d46c312`; the merged
+`origin/main` tree equals the delivered source tree.
 This step executes the [next DeepSeek brief](deepseek-ordinary-lexical-step-2026-09-23.md) that the
 [principal V3 review](transferable-lexical-principal-review-2026-09-23.md) set for
 [PR #1352](transferable-lexical-result-2026-09-22.md).
