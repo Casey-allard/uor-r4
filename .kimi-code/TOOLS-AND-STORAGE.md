@@ -1,0 +1,33 @@
+# Tools, GitHub and local storage runbook
+
+This is operational guidance for the Kimi team. Root `AGENTS.md` and the live protected repository override it. The lead should use a tool because it answers a specific research or delivery question, not because it is installed.
+
+| Need | Tool and use | Trust boundary |
+| --- | --- | --- |
+| Current source and exact call path | `rg`, `rg --files`, `git show`, focused file reads; inspect implementation and caller, not only a design note | Current worktree and revision must be named. A compiled binary is not the tested source unless its identity is bound. |
+| Research history and prior negatives | `uor_knowledge` MCP, `uor-memory-bridge`, project research ledger and sealed records | Snapshot/index only. Open cited source and refresh live GitHub before a decision. |
+| Current external math and ML | Kimi WebBridge in the signed-in Chrome browser; original papers, official docs, exact theorem statements/equations | Search snippets and analogies are leads, not proof. Record direct URLs and distinguish source statement from inference. |
+| Exact small mathematics | SymPy skill and `/Users/casey.allard/.kimi-code/venvs/math/bin/python`; original `Z[phi]` or other Rust exact implementations for product code | Symbolic/numeric examples test a claim at stated range; they do not establish a universal theorem. No Python model or serving dependency. |
+| Formal proof or Lean source | Existing Rust/Lean files; enable local `lean_lsp` MCP for a specific Lean task, then check `/mcp` in a new session | Compilation/theorem dependency and assumptions must match the project claim. Lean tools are configured locally but normally disabled to save context. |
+| Code graph exploration | `rg` first; optional GitNexus only after a bounded fresh index of the current worktree | Current GitNexus graph is from September 2–3 with unknown commits and is disabled. Do not use it as live architecture truth. |
+| Rust implementation and evidence | `cargo fmt --check`, touched-package check/tests, focused release build, actual deserialized artifact rollout, row-level comparator and causal controls | CI historical status names are queue compatibility acknowledgements, not executed tests. Record commands, inputs, source/executable/artifact hashes and NOT_RUN gaps. |
+| Whole-laptop cost | `df`, `du`, `ps`, project resource ledger, measured full-path latency/RAM/energy when instrumentation exists | Do not infer energy from op count or rollout-only timing. Project cumulative costs before heavy runs. |
+| GitHub issues and PRs | authenticated `gh` CLI from the worktree | Use live issue/PR state, protected PR queue and content/tree verification. Do not direct-push main or admin-merge. |
+
+## Protected GitHub sequence
+
+1. `git fetch origin main`; inspect `git status --short`, branch, worktree and `git log -1`. Start an isolated `codex/...` branch from refreshed `origin/main` for each reviewable result. Preserve the owner checkout, unique artifacts and intentional dirty files.
+2. Inspect the owning live issue with `gh issue view N --json title,state,body,comments`; issue #820 is the programme tracker. Read linked acceptance before claiming it complete. A partial result references, rather than closes, the issue.
+3. Make scoped changes; run the relevant local checks and actual model behavior. Stage named paths; inspect `git diff --cached --check` and `git diff --cached --stat`; commit and push the branch. For multiline PR text, use a body file or structured argument rather than shell interpolation.
+4. `gh pr create --base main --head BRANCH --title ... --body-file ...`; inspect `gh pr view N --json state,mergeStateStatus,statusCheckRollup,headRefOid,baseRefOid`. The repository's historical CI names mostly acknowledge queue compatibility; cite local executed checks separately. Use normal protected merge/queue only. A queued or open PR is pending, even if `gh pr merge` returned success.
+5. After the queue completes, refresh `origin/main`; verify merged PR state, merge commit and that every delivered file exists with the intended bytes. Then update the owning issue with exact result, limitations, artifact and next step. Update `current-state.md`, roadmap and README only where the project's claims/direction changed. Record a short local handoff; do not let the issue comment replace repository evidence.
+
+## Storage discipline and safe cleanup
+
+Before a build or training run, measure current free bytes with `df -k`, the projected temporary/new/retained bytes, peak RAM, and the ledger's cumulative allowance. Preserve the 128 MiB physical stop margin and use the standing owner authorization for necessary *local* extensions, recorded prospectively. There is no arbitrary short timer or one-retry quota. No external paid compute follows from this authorization.
+
+At the September 23 harness setup the data volume had about 26 GiB free. The original repository reports 55 GiB by `du`, of which `.uor-models` is about 20 GiB and `.worktrees` about 28 GiB; APFS clones and shared extents mean those directory sums are **not** an estimate of reclaimable physical bytes. Preserve model parents, sealed roots, source, worktree branches, receipt files, Codex/Kimi memory, and Downloads. An ignored path is not evidence it is disposable. Check active processes and Git status before touching build output.
+
+Reclaim only specifically identified, reproducible, inactive caches or compiled `target` output after confirming no unique artifact or process depends on them. Measure each candidate and actual free space before/after; record exact paths, bytes and reason. Do not blanket-clean `~/.codex`, `~/.kimi-code`, `.uor-models`, `.worktrees`, user Downloads or all `target` directories. If no safe large candidate exists, report the constraint and adjust the next run's projected storage rather than pretending a `du` sum is freeable. On September 23 the inactive OpenCode pending updater cache was removed: 215,185,388 bytes; free blocks increased by about 210 MiB. The Kimi worktree and research artifacts were untouched.
+
+Local connection details live outside Git in `~/.kimi-code/`: enabled read-only `uor_knowledge` MCP, Kimi WebBridge plugin/Chrome extension, a one-message `Proceed UOR-R4` prompt hook, model pool, skills and short handoff index. Config changes join **new sessions**, so check `/mcp` and the model selector when starting the next Desktop run. Never paste API keys or commit config/session traces. Codex-only plugins, app auth and Mathbox MCP are not automatically available in Kimi; only the portable Markdown workflows and the verified local tools above are present.
