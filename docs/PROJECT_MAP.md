@@ -1,5 +1,7 @@
 # UOR-R4 Geometric Language Model — project map
 
+The [research-leader handoff](integration/research-leader-handoff-2026-09-23.md) connects the historical model paths, current blocker, conditional geometric options and durable-memory method for a new lead. This map and the [current state](integration/current-state.md) remain navigation and result authorities.
+
 **Current navigation, after merged PRs #1359/#1360:** the saved ordinary/grounded Generate/Copy/Stop artifact reproduces all reported panels after fresh-process reload. It still scores 7.3722 Generate-action bits/target on open-development prose and greedy continuation collapses. A corrected Generate-only score is 7.3719. The prose-only full-context recurrence diagnostic scores 6.2039, but is not a grounded successor; a direct two-token channel worsened that fit to 6.6732 in the tested configuration. The next dependency is to test that full-context formulation in the **same grounded learner** while retaining Copy/Stop. [Audit and correction](integration/ordinary-lexical-audit-2026-09-23.md) · [current state](integration/current-state.md) · [canonical plan](integration/project-track.md). Dated “next” statements below are historical unless the live plan repeats them.
 
 ## Historical September 22 principal update — PR #1351 lexical component
