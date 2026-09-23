@@ -17,7 +17,7 @@ The owner confirmed [DECISIONS.md D0-b](docs/integration/DECISIONS.md#d0-b--what
 - Geometric routing and selected work remain preferred. No floating-point serving or hidden runtime teacher/provider is part of the target.
 - Energy savings require physical measurement on a named machine, together with useful output quality.
 
-This is a **multiplier-free serving target**, not a mathematical prohibition on every linear map. Whole-path compliance is not yet established for every experimental or shipped path. Allocation tests, symbol-level instruction checks and arithmetic parity tests support only their tested boundaries. The separate frozen TLA/R4G1 runtime retains its own stricter scoped contract. See [AGENTS.md](AGENTS.md) and the [execution policy](docs/integration/agent-execution-policy.md).
+**Owner direction (2026-09-23):** the ultimate goal is a **fully transformerless geometric language model in which geometry *replaces* floating-point matrix multiplication** — not merely a table-native output layer. Training may use float and matmul; the declared serving kernel may not. This is a **multiplier-free serving target**, not a mathematical prohibition on every linear map. Whole-path compliance is not yet established for every experimental or shipped path. Allocation tests, symbol-level instruction checks and arithmetic parity tests support only their tested boundaries. The separate frozen TLA/R4G1 runtime retains its own stricter scoped contract. See [AGENTS.md](AGENTS.md) and the [execution policy](docs/integration/agent-execution-policy.md).
 
 ## Three model paths and their evidence
 

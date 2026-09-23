@@ -12,7 +12,10 @@ Prepare data, train, construct artifacts and run inference in Rust. Training may
 use floating point and matrix multiplication. Final inference executes learned
 geometric operators through bounded routes, state transitions and integer/table
 lookup; a dense transformer stored behind a lookup interface does not satisfy
-that target. Keep prior Python/dense artifacts as comparison evidence and do
+that target. **Owner direction (2026-09-23):** the programme's ultimate goal is a **fully
+transformerless geometric language model in which geometry *replaces* floating-point matrix
+multiplication**; the serving contract below is the intended end-state, not only a boundary on the
+current prototype. Keep prior Python/dense artifacts as comparison evidence and do
 not add a Python model dependency. Owner-adopted [D0-b](DECISIONS.md) permits
 bounded <=4-bit integer/ternary linear maps implemented by add/subtract/shift/lookup.
 The declared numerical kernel must execute no multiplier instruction. Served
