@@ -2556,3 +2556,31 @@ and the `current-state.md` rebuild). The cumulative advanced from **425,415,640*
 wait was the GitHub-hosted runner queue. No model compute was used, and no paid or external compute
 followed. origin/main is now `ba664585`; all four sealed evidence families and every prior root are
 untouched.
+
+## Projection recorded before use — count-prior blend diagnostic, 2026-09-23
+
+**Reason.** The named next milestone after the joint fit is the **count-prior blend**: measure, on the
+served window conditioning, a log-linear pool of the frozen artifact's served readout `A` with the tuned
+`(prev, cur)` count prior `C`, and decide **complementarity** vs **domination**, with the exact oracle
+criterion `mean_kl_pC_pA > (b_A − b_C)` and the `blend(E1,C)` and duplicate-count-null controls. This
+one measurement decides whether an exact addressed local read belongs inside the served readout.
+
+**Scope and projection (complete, before execution).** One standalone `--count-blend` diagnostic run of
+the existing binary on the frozen `olx-form-2` artifact and the pinned local corpus: dev-state recording
+(5,376) + tune-state recording (≤2,048 windows) + the KL/pool/control arithmetic. Projected wall time
+**≤ 600,000 ms** (measured smoke 78 s on 53 docs; projected ≲ 350 s on the frozen corpus); peak RAM
+≪ 1 GiB (tens of MB of new scratch); ≤ 2.5 MB new retained storage in a fresh sealed report root; no
+training, no artifact change, one process, ≤ 2 threads, no paid/external compute; the 128 MiB storage stop
+margin is untouched.
+
+**Budget.** Live ledger before this run: `436,479,582 / 437,500,000 ms` (1,020,418 ms remaining). The
+projection fits **without an allowance extension**; this entry therefore records a projection and uses no
+increment. The measured charge is recorded after the run. Rebuild/test cycles are engineering, not model
+time, and are not charged.
+
+**Charges recorded — count-prior blend diagnostic, 2026-09-23.** One `--count-blend` run on the frozen
+`olx-form-2` artifact completed in **189.8 s** wall (`185.96 s user`, one process, ≤2 threads, ≪1 GiB), and two
+release smoke runs on a temporary corpus totalled ≈156 s. Charged **346,000 ms**; the cumulative advanced from
+**436,479,582** to **436,825,582 / 437,500,000 ms** (674,418 ms remaining). No allowance increment was used.
+New retained storage is ≈2.4 MB in the sealed root `.uor-models/realtext-prior-2026-09-20/olx-count-blend-1`;
+no model artifact, no training, no paid/external compute; the 128 MiB storage stop margin is untouched.

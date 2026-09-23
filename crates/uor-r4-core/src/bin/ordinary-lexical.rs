@@ -33,7 +33,8 @@ use sha2::{Digest, Sha256};
 
 use uor_r4_core::native_geometric::learner::prior_learning::PriorCore;
 use uor_r4_core::native_geometric::learner::realtext_support::{
-    ctx2, family_p, reconstruct_corpus, tune_lambdas, Cond, Split, Uni, LAMBDA_GRID, VOCAB,
+    ctx2, family_p, reconstruct_corpus, tune_lambdas, xorshift, Cond, Split, Uni, LAMBDA_GRID,
+    VOCAB,
 };
 use uor_r4_core::native_geometric::learner::state_lexical::SlFacts;
 use uor_r4_core::native_geometric::learner::transferable_lexical::{
@@ -150,6 +151,12 @@ struct Args {
     probe_skip_null: bool,
     /// `--readout-refit`: after the probe machinery, refit the readout *inside* a servable alphabet.
     readout_refit: bool,
+    /// `--count-blend`: standalone, default-off diagnostic. On the frozen artifact it records the
+    /// served states of the dev and (capped) tune splits, then measures whether a log-linear
+    /// (geometric) pool of the served readout `A` with the tuned `(prev, cur)` count prior `C` can
+    /// beat `C`, with two attribution controls. The report root is `--root`; no artifact is written
+    /// and no serving path changes. The mode is a measurement, not a capability claim.
+    count_blend: bool,
     /// `--refit-scope {kclass,servable}`: `kclass` refits the K restricted vocabulary rows and scores the
     /// K-class softmax; `servable` refits every vocabulary row and scores the artifact's full legal row
     /// set, with the `Copy` and `Stop` rows frozen at the artifact's own values.
@@ -193,6 +200,7 @@ fn parse_args() -> Result<Args, String> {
     let mut probe_init = String::from(PROBE_INIT);
     let mut probe_skip_null = false;
     let mut readout_refit = false;
+    let mut count_blend = false;
     let mut refit_scope = String::from(REFIT_SCOPE_SERVABLE);
     let mut refit_alphabet = String::from(REFIT_ALPHABET_TERNARY);
     let mut refit_epochs = REFIT_EPOCHS;
@@ -216,6 +224,11 @@ fn parse_args() -> Result<Args, String> {
         }
         if k == "--readout-refit" {
             readout_refit = true;
+            i += 1;
+            continue;
+        }
+        if k == "--count-blend" {
+            count_blend = true;
             i += 1;
             continue;
         }
@@ -366,6 +379,7 @@ fn parse_args() -> Result<Args, String> {
         probe_init,
         probe_skip_null,
         readout_refit,
+        count_blend,
         refit_scope,
         refit_alphabet,
         refit_epochs,
@@ -8085,6 +8099,1233 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+// ---------------------------------------------------------------------------
+// Count-prior blend mode: does a log-linear pool of the served readout with the
+// tuned (prev, cur) count prior beat the count prior?
+// ---------------------------------------------------------------------------
+//
+// One instrument, one question. The frozen `olx-form-2` artifact's served readout scores ~6.69-7.37
+// bits/target on open development prose while the fit/tune-separated tuned `(prev, cur)` count
+// reference reaches ~5.12. A log-linear (geometric) pool `p_lambda ∝ p_A^(1-lambda) p_C^lambda` can
+// beat `C` only if `C` carries information the readout does not already have. Because
+// `b(lambda) = (1-lambda) b_A + lambda b_C + E_c[log2 Z_c(lambda)]` is convex on [0,1] and
+// `b(1) = b_C`, the exact oracle criterion is `b'(1) = (b_C - b_A) + E_c[KL_bits(p_C ‖ p_A)] > 0`,
+// i.e. `mean_kl > b_A - b_C`. The full curve distinguishes **complementarity**
+// (`m* < min(b_A, b_C)`) from **domination** (`m* ≈ b_C`).
+//
+// The mode is a diagnostic: it fits nothing, writes no artifact and adds no serving path. The
+// artifact is read, hashed and probed in place; the report is claimed, written and sealed.
+
+/// The exact source bytes of the served model, bound into the receipt at compile time.
+const MODEL_SOURCE_BYTES: &[u8] =
+    include_bytes!("../native_geometric/learner/transferable_lexical.rs");
+/// The declared identity of the model source this diagnostic is compiled against.
+const EXPECTED_MODEL_SOURCE_SHA256: &str =
+    "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250";
+/// The declared identity of the frozen `olx-form-2` artifact this diagnostic measures.
+const EXPECTED_ARTIFACT_SHA256: &str =
+    "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9";
+/// The pool's lambda grid. `lambda = 0` is the served readout `A`, `lambda = 1` the count prior `C`.
+const BLEND_K: usize = 11;
+const BLEND_LAMBDA_GRID: [f64; BLEND_K] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+/// Declared even-stride cap on the recorded tune-state population.
+const BLEND_TUNE_MAX_WINDOWS: usize = 2048;
+/// Declared stride of the tune-side `score_example` recording control.
+const BLEND_TUNE_CONTROL_STRIDE: usize = 20;
+/// Declared seed of the per-document paired bootstrap used for every curve interval.
+const BLEND_BOOTSTRAP_SEED: u64 = 0x0B1E_5D00_0000_0001;
+/// Declared seed of the duplicate-count null's 50/50 fit-window shuffle.
+const BLEND_NULL_SPLIT_SEED: u64 = 0x0B1E_5D00_0000_0002;
+/// Declared tolerance of the pool normalisation guard.
+const BLEND_NORMALISATION_TOL: f64 = 1e-9;
+
+/// The log-linear (geometric) pool's bits at one target: `logsumexp2(s_lambda) - s_lambda[target]`
+/// with `s_lambda(x) = (1 - lambda) log2 a[x] + lambda log2 b[x]`.
+fn pool_bits(log2a: &[f64], log2b: &[f64], lambda: f64, target: usize) -> f64 {
+    let mut m = f64::NEG_INFINITY;
+    for x in 0..log2a.len() {
+        let s = (1.0 - lambda) * log2a[x] + lambda * log2b[x];
+        if s > m {
+            m = s;
+        }
+    }
+    if !m.is_finite() {
+        return f64::INFINITY;
+    }
+    let mut z = 0.0f64;
+    for x in 0..log2a.len() {
+        let s = (1.0 - lambda) * log2a[x] + lambda * log2b[x];
+        z += (s - m).exp2();
+    }
+    let st = (1.0 - lambda) * log2a[target] + lambda * log2b[target];
+    m + z.log2() - st
+}
+
+/// The full declared grid of pool bits at one target.
+fn pool_curve(log2a: &[f64], log2b: &[f64], target: usize) -> [f64; BLEND_K] {
+    let mut out = [0.0f64; BLEND_K];
+    for (i, l) in BLEND_LAMBDA_GRID.iter().enumerate() {
+        out[i] = pool_bits(log2a, log2b, *l, target);
+    }
+    out
+}
+
+/// Merge duplicate successor counts of one context and sort by token id.
+fn aggregate_counts(v: &mut Vec<(u32, u32)>) {
+    v.sort_unstable_by_key(|(t, _)| *t);
+    let mut out: Vec<(u32, u32)> = Vec::with_capacity(v.len());
+    for &(t, c) in v.iter() {
+        if let Some(last) = out.last_mut() {
+            if last.0 == t {
+                last.1 += c;
+                continue;
+            }
+        }
+        out.push((t, c));
+    }
+    *v = out;
+}
+
+fn row_total(row: &HashMap<u64, Vec<(u32, u32)>>, key: u64) -> u64 {
+    row.get(&key)
+        .map(|v| v.iter().map(|(_, c)| u64::from(*c)).sum())
+        .unwrap_or(0)
+}
+
+/// The dense 4096-token distribution of `family_p` at one context, built from the sparse count index.
+///
+/// The per-x convention is exactly `family_p`'s: the count terms are added only where a successor was
+/// observed, and the unigram share is carried by the context-total-dependent base coefficient. The
+/// unit test `dense_pc_builder_equals_family_p` checks this identity over all 4096 tokens.
+fn pc_dense_into(
+    row1: &HashMap<u64, Vec<(u32, u32)>>,
+    row2: &HashMap<u64, Vec<(u32, u32)>>,
+    uni: &Uni,
+    prev: usize,
+    cur: usize,
+    l: (f64, f64),
+    out: &mut [f64],
+) {
+    let key2 = ctx2(prev, cur);
+    let t1 = row_total(row1, cur as u64);
+    let t2 = row_total(row2, key2);
+    let base = (if t2 == 0 { l.1 } else { 0.0 })
+        + (1.0 - l.1) * ((if t1 == 0 { l.0 } else { 0.0 }) + (1.0 - l.0));
+    for (x, o) in out.iter_mut().enumerate() {
+        *o = base * uni.p(x as u32);
+    }
+    if t2 > 0 {
+        if let Some(v) = row2.get(&key2) {
+            let inv = l.1 / t2 as f64;
+            for (x, c) in v {
+                out[*x as usize] += inv * f64::from(*c);
+            }
+        }
+    }
+    if t1 > 0 {
+        if let Some(v) = row1.get(&(cur as u64)) {
+            let inv = (1.0 - l.1) * l.0 / t1 as f64;
+            for (x, c) in v {
+                out[*x as usize] += inv * f64::from(*c);
+            }
+        }
+    }
+}
+
+/// The dense 4096-token `E1` distribution: unigram interpolated with the single-token bigram of `cur`.
+fn e1_dense_into(
+    row1: &HashMap<u64, Vec<(u32, u32)>>,
+    uni: &Uni,
+    cur: usize,
+    l: f64,
+    out: &mut [f64],
+) {
+    let t1 = row_total(row1, cur as u64);
+    if t1 == 0 {
+        for (x, o) in out.iter_mut().enumerate() {
+            *o = uni.p(x as u32);
+        }
+        return;
+    }
+    for (x, o) in out.iter_mut().enumerate() {
+        *o = (1.0 - l) * uni.p(x as u32);
+    }
+    if let Some(v) = row1.get(&(cur as u64)) {
+        let inv = l / t1 as f64;
+        for (x, c) in v {
+            out[*x as usize] += inv * f64::from(*c);
+        }
+    }
+}
+
+fn log2_into(dist: &[f64], out: &mut [f64]) {
+    for x in 0..dist.len() {
+        out[x] = if dist[x] > 0.0 {
+            dist[x].log2()
+        } else {
+            f64::NEG_INFINITY
+        };
+    }
+}
+
+/// `KL_bits(p ‖ q)` at one position, from the dense `p` and the two log2 distributions.
+fn kl_bits(p: &[f64], log2p: &[f64], log2q: &[f64]) -> f64 {
+    let mut kl = 0.0;
+    for x in 0..p.len() {
+        if p[x] > 0.0 {
+            kl += p[x] * (log2p[x] - log2q[x]);
+        }
+    }
+    kl
+}
+
+fn eval_new(docs: usize) -> Eval {
+    Eval {
+        per_doc: vec![(0.0, 0); docs],
+    }
+}
+
+fn eval_add(e: &mut Eval, doc: usize, bits: f64) {
+    e.per_doc[doc].0 += bits;
+    e.per_doc[doc].1 += 1;
+}
+
+/// One population's served readout `A`, count prior `C` and the pool curve.
+struct CurveBank {
+    base: Eval,
+    other: Eval,
+    pool: Vec<Eval>,
+}
+
+fn curve_bank_new(docs: usize) -> CurveBank {
+    CurveBank {
+        base: eval_new(docs),
+        other: eval_new(docs),
+        pool: (0..BLEND_K).map(|_| eval_new(docs)).collect(),
+    }
+}
+
+fn curve_bank_add(
+    b: &mut CurveBank,
+    doc: usize,
+    b_base: f64,
+    b_other: f64,
+    curve: &[f64; BLEND_K],
+) {
+    eval_add(&mut b.base, doc, b_base);
+    eval_add(&mut b.other, doc, b_other);
+    for (k, e) in b.pool.iter_mut().enumerate() {
+        eval_add(e, doc, curve[k]);
+    }
+}
+
+/// The in-sample oracle of one pool curve: `(lambda_argmin, min bits/target)` with the declared tie
+/// rule (smallest lambda within 1e-12).
+fn curve_oracle(pool: &[Eval]) -> (f64, f64) {
+    let mut best_i = 0usize;
+    let mut best = pool[0].micro();
+    for (i, e) in pool.iter().enumerate().skip(1) {
+        let v = e.micro();
+        if v < best - 1e-12 {
+            best = v;
+            best_i = i;
+        }
+    }
+    (BLEND_LAMBDA_GRID[best_i], best)
+}
+
+fn curve_json(pool: &[Eval], vs: &Eval, alt: Option<&Eval>) -> Vec<serde_json::Value> {
+    BLEND_LAMBDA_GRID
+        .iter()
+        .enumerate()
+        .map(|(i, l)| {
+            let (point, lo, hi) = paired_interval(&pool[i], vs, BLEND_BOOTSTRAP_SEED);
+            let mut o = serde_json::json!({
+                "lambda": l,
+                "bits_per_target": pool[i].micro(),
+                "vs": { "point": point, "lo": lo, "hi": hi },
+            });
+            if let Some(a) = alt {
+                let (p2, lo2, hi2) = paired_interval(&pool[i], a, BLEND_BOOTSTRAP_SEED);
+                o["vs_alternative"] = serde_json::json!({ "point": p2, "lo": lo2, "hi": hi2 });
+            }
+            o
+        })
+        .collect()
+}
+
+/// The exact oracle criterion `b'(1) = (b_other - b_base) + E[KL_bits(p_other ‖ p_base)]`.
+fn criterion_json(b_base: f64, b_other: f64, mean_kl_other_to_base: f64) -> serde_json::Value {
+    let gap = b_base - b_other;
+    serde_json::json!({
+        "b_base": b_base,
+        "b_other": b_other,
+        "gap_b_base_minus_b_other": gap,
+        "mean_kl_other_to_base_bits": mean_kl_other_to_base,
+        "b_prime_at_one_bits": (b_other - b_base) + mean_kl_other_to_base,
+        "possible_complementarity_of_other_over_base": mean_kl_other_to_base > gap,
+        "rule": "b'(1) = (b_other - b_base) + E[KL_bits(p_other || p_base)]; b(1) = b_other and b is \
+                 convex on [0,1], so an oracle lambda can beat the other model iff b'(1) > 0, i.e. \
+                 E[KL_bits(p_other || p_base)] > b_base - b_other. The KL side is label-free.",
+    })
+}
+
+/// The sparse count index of one population plus its unigram and two count levels.
+struct CountEstimate {
+    uni: Uni,
+    c1: Cond,
+    c2: Cond,
+    row1: HashMap<u64, Vec<(u32, u32)>>,
+    row2: HashMap<u64, Vec<(u32, u32)>>,
+}
+
+fn build_count_estimate(windows: &[ProseWindow]) -> CountEstimate {
+    let mut est = CountEstimate {
+        uni: Uni {
+            counts: vec![0u64; VOCAB],
+            total: 0,
+        },
+        c1: Cond::default(),
+        c2: Cond::default(),
+        row1: HashMap::new(),
+        row2: HashMap::new(),
+    };
+    for w in windows {
+        for k in PREFIX..w.tokens.len() {
+            let (prev, cur, next) = prose_position(w, k);
+            est.uni.counts[next as usize] += 1;
+            est.uni.total += 1;
+            est.c1.observe(cur as u64, next);
+            est.c2.observe(ctx2(prev, cur), next);
+            est.row1.entry(cur as u64).or_default().push((next, 1));
+            est.row2.entry(ctx2(prev, cur)).or_default().push((next, 1));
+        }
+    }
+    for v in est.row1.values_mut() {
+        aggregate_counts(v);
+    }
+    for v in est.row2.values_mut() {
+        aggregate_counts(v);
+    }
+    est
+}
+
+struct CountPriors<'a> {
+    full: &'a CountEstimate,
+    half1: &'a CountEstimate,
+    half2: &'a CountEstimate,
+    lambdas: (f64, f64),
+    e1_weight: f64,
+}
+
+struct BlendBuffers {
+    log2a: Vec<f64>,
+    dist_c: Vec<f64>,
+    log2c: Vec<f64>,
+    dist_c1: Vec<f64>,
+    log2c1: Vec<f64>,
+    dist_c2: Vec<f64>,
+    log2c2: Vec<f64>,
+    dist_e1: Vec<f64>,
+    log2e1: Vec<f64>,
+}
+
+impl BlendBuffers {
+    fn new() -> Self {
+        BlendBuffers {
+            log2a: vec![0.0; VOCAB],
+            dist_c: vec![0.0; VOCAB],
+            log2c: vec![0.0; VOCAB],
+            dist_c1: vec![0.0; VOCAB],
+            log2c1: vec![0.0; VOCAB],
+            dist_c2: vec![0.0; VOCAB],
+            log2c2: vec![0.0; VOCAB],
+            dist_e1: vec![0.0; VOCAB],
+            log2e1: vec![0.0; VOCAB],
+        }
+    }
+}
+
+struct BlendTerms {
+    b_a: f64,
+    b_c: f64,
+    b_c1: f64,
+    b_c2: f64,
+    b_e1: f64,
+    kl_pca: f64,
+    kl_pce1: f64,
+    kl_c1c2: f64,
+    kl_fvh: f64,
+    curve_pc: [f64; BLEND_K],
+    curve_e1: [f64; BLEND_K],
+    curve_null: [f64; BLEND_K],
+    curve_fvh: [f64; BLEND_K],
+    p_stop: f64,
+    sum_a: f64,
+    sum_c: f64,
+    sum_c1: f64,
+    sum_c2: f64,
+    sum_e1: f64,
+}
+
+/// Every pool quantity of one served state, computed from the exact recorded `h`, `m` and `f_block`.
+///
+/// `log2a` is the artifact's token-conditional distribution with the `Stop` row renormalised out:
+/// `log2a[x] = (logits[x] - max) * scale - log2(sum_{x < vocab} exp2((logits[x] - max) * scale))`.
+/// `p_stop` is the `Stop` row's mass under the same max-shift and is reported separately.
+///
+/// `aux` selects the attribution controls (the half estimates, `E1` and the three control curves and
+/// KLs). The tune pass only needs the primary pool, so it runs with `aux = false` and the auxiliary
+/// entries are left at zero; the development pass runs with `aux = true`.
+#[allow(clippy::too_many_arguments)]
+fn blend_terms(
+    model: &TlModel,
+    s: &ServedState,
+    m: &[i32],
+    f_block: &[i32],
+    cp: &CountPriors,
+    bufs: &mut BlendBuffers,
+    aux: bool,
+) -> Result<BlendTerms, String> {
+    let target = s.target as usize;
+    if target >= VOCAB {
+        return Err(format!("target id {} is outside the vocabulary", s.target));
+    }
+    let logits = model.readout(&s.h, m, f_block, s.event);
+    let scale = (-(model.score_shift as f64)).exp2();
+    let mut mx = i32::MIN;
+    for &l in logits.iter().take(VOCAB) {
+        if l > mx {
+            mx = l;
+        }
+    }
+    let mut z = 0.0f64;
+    for &l in logits.iter().take(VOCAB) {
+        z += (((l - mx) as f64) * scale).exp2();
+    }
+    if !z.is_finite() || z <= 0.0 {
+        return Err("the served token normalisation is not positive".into());
+    }
+    let lz = z.log2();
+    let mut sum_a = 0.0f64;
+    for (x, a) in bufs.log2a.iter_mut().enumerate() {
+        let v = ((logits[x] - mx) as f64) * scale - lz;
+        *a = v;
+        sum_a += v.exp2();
+    }
+    let p_stop = (((logits[model.stop_row()] - mx) as f64) * scale).exp2() / z;
+
+    let prev = s.prev.map(|v| v as usize).unwrap_or(VOCAB);
+    let cur = s.cur.map(|v| v as usize).unwrap_or(VOCAB);
+
+    pc_dense_into(
+        &cp.full.row1,
+        &cp.full.row2,
+        &cp.full.uni,
+        prev,
+        cur,
+        cp.lambdas,
+        &mut bufs.dist_c,
+    );
+    log2_into(&bufs.dist_c, &mut bufs.log2c);
+    if !bufs.log2c[target].is_finite() || !bufs.log2a[target].is_finite() {
+        return Err(format!(
+            "a prior assigned zero mass to target {target}; the pool is undefined there"
+        ));
+    }
+
+    let b_a = -bufs.log2a[target];
+    let b_c = -bufs.log2c[target];
+    let curve_pc = pool_curve(&bufs.log2a, &bufs.log2c, target);
+    let sum_c = bufs.dist_c.iter().sum();
+
+    if !aux {
+        return Ok(BlendTerms {
+            b_a,
+            b_c,
+            b_c1: 0.0,
+            b_c2: 0.0,
+            b_e1: 0.0,
+            kl_pca: 0.0,
+            kl_pce1: 0.0,
+            kl_c1c2: 0.0,
+            kl_fvh: 0.0,
+            curve_pc,
+            curve_e1: [0.0; BLEND_K],
+            curve_null: [0.0; BLEND_K],
+            curve_fvh: [0.0; BLEND_K],
+            p_stop,
+            sum_a,
+            sum_c,
+            sum_c1: 0.0,
+            sum_c2: 0.0,
+            sum_e1: 0.0,
+        });
+    }
+
+    pc_dense_into(
+        &cp.half1.row1,
+        &cp.half1.row2,
+        &cp.half1.uni,
+        prev,
+        cur,
+        cp.lambdas,
+        &mut bufs.dist_c1,
+    );
+    log2_into(&bufs.dist_c1, &mut bufs.log2c1);
+    pc_dense_into(
+        &cp.half2.row1,
+        &cp.half2.row2,
+        &cp.half2.uni,
+        prev,
+        cur,
+        cp.lambdas,
+        &mut bufs.dist_c2,
+    );
+    log2_into(&bufs.dist_c2, &mut bufs.log2c2);
+    e1_dense_into(
+        &cp.full.row1,
+        &cp.full.uni,
+        cur,
+        cp.e1_weight,
+        &mut bufs.dist_e1,
+    );
+    log2_into(&bufs.dist_e1, &mut bufs.log2e1);
+
+    if !bufs.log2c1[target].is_finite()
+        || !bufs.log2c2[target].is_finite()
+        || !bufs.log2e1[target].is_finite()
+    {
+        return Err(format!(
+            "a control prior assigned zero mass to target {target}; the control is undefined there"
+        ));
+    }
+
+    Ok(BlendTerms {
+        b_a,
+        b_c,
+        b_c1: -bufs.log2c1[target],
+        b_c2: -bufs.log2c2[target],
+        b_e1: -bufs.log2e1[target],
+        kl_pca: kl_bits(&bufs.dist_c, &bufs.log2c, &bufs.log2a),
+        kl_pce1: kl_bits(&bufs.dist_c, &bufs.log2c, &bufs.log2e1),
+        kl_c1c2: kl_bits(&bufs.dist_c1, &bufs.log2c1, &bufs.log2c2),
+        kl_fvh: kl_bits(&bufs.dist_c, &bufs.log2c, &bufs.log2c1),
+        curve_pc,
+        curve_e1: pool_curve(&bufs.log2e1, &bufs.log2c, target),
+        curve_null: pool_curve(&bufs.log2c1, &bufs.log2c2, target),
+        curve_fvh: pool_curve(&bufs.log2c, &bufs.log2c1, target),
+        p_stop,
+        sum_a,
+        sum_c,
+        sum_c1: bufs.dist_c1.iter().sum(),
+        sum_c2: bufs.dist_c2.iter().sum(),
+        sum_e1: bufs.dist_e1.iter().sum(),
+    })
+}
+
+fn shuffled_indices(n: usize, seed: u64) -> Vec<usize> {
+    let mut idx: Vec<usize> = (0..n).collect();
+    let mut st = seed | 1;
+    for i in (1..n).rev() {
+        let j = (xorshift(&mut st) as usize) % (i + 1);
+        idx.swap(i, j);
+    }
+    idx
+}
+
+fn current_git_head(fallback: &str) -> String {
+    std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            if fallback.is_empty() {
+                "unknown".to_string()
+            } else {
+                fallback.to_string()
+            }
+        })
+}
+
+fn count_blend_mode(args: &Args) -> Result<ExitCode, String> {
+    let root = args.root.clone();
+    if root.as_os_str().is_empty() {
+        return Err("--count-blend needs a new report root via --root".into());
+    }
+    if args.docs.as_os_str().is_empty() {
+        return Err("--docs is required with --count-blend".into());
+    }
+    let artifact_path = match args.artifact.clone() {
+        Some(p) if !p.as_os_str().is_empty() => p,
+        _ => {
+            return Err("--artifact (path to a .tlx file) is required with --count-blend".into());
+        }
+    };
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    println!(
+        "=== ordinary-lexical count-blend: is the tuned (prev, cur) prior complementary to the served readout? ==="
+    );
+
+    let tok_bytes = std::fs::read(&args.tokenizer).map_err(|e| format!("tokenizer: {e}"))?;
+    let tok_sha = sha256_hex(&Sha256::digest(&tok_bytes));
+    if tok_sha != EXPECTED_TOKENIZER_SHA256 {
+        return Err(format!(
+            "tokenizer sha256 {tok_sha} != expected {EXPECTED_TOKENIZER_SHA256}"
+        ));
+    }
+    let derived_bytes =
+        uor_r4_core::transformerless::bpe_derive::derive_tokenizer_json(&tok_bytes, VOCAB)
+            .map_err(|e| format!("derive bytes: {e}"))?;
+    let derived_sha = sha256_hex(&Sha256::digest(&derived_bytes));
+    let tokenizer = derive_tokenizer(&tok_bytes, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    write_checked(&root, "tokenizer_source.json", &tok_bytes)?;
+    write_checked(&root, "tokenizer_derived_v4096.json", &derived_bytes)?;
+
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_bytes = std::fs::read(&exe).map_err(|e| format!("read exe: {e}"))?;
+    let exe_sha = sha256_hex(&Sha256::digest(&exe_bytes));
+    let model_source_sha = sha256_hex(&Sha256::digest(MODEL_SOURCE_BYTES));
+    if model_source_sha != EXPECTED_MODEL_SOURCE_SHA256 {
+        return Err(format!(
+            "model source sha256 {model_source_sha} != expected {EXPECTED_MODEL_SOURCE_SHA256}"
+        ));
+    }
+    let artifact_bytes = std::fs::read(&artifact_path)
+        .map_err(|e| format!("artifact {}: {e}", artifact_path.display()))?;
+    let artifact_sha = sha256_hex(&Sha256::digest(&artifact_bytes));
+    if artifact_sha != EXPECTED_ARTIFACT_SHA256 {
+        return Err(format!(
+            "artifact sha256 {artifact_sha} != the frozen {EXPECTED_ARTIFACT_SHA256}; the pool \
+             receipt would not bind the artifact the criterion was frozen against"
+        ));
+    }
+    let model = TlModel::from_bytes(&artifact_bytes).map_err(|e| format!("deserialize: {e}"))?;
+    if model.vocab != VOCAB {
+        return Err(format!(
+            "artifact vocabulary {} != the {VOCAB}-token corpus vocabulary; the count reference and \
+             the served token rows would not be comparable",
+            model.vocab
+        ));
+    }
+
+    let (uniq, collected, duplicates) = reconstruct_corpus(&args.docs);
+    let mut fit_docs = Vec::new();
+    let mut tune_docs = Vec::new();
+    let mut dev_pool = Vec::new();
+    for (i, d) in uniq.iter().enumerate() {
+        match d.split {
+            Split::Fit => fit_docs.push(i),
+            Split::Tune => tune_docs.push(i),
+            Split::Dev => dev_pool.push(i),
+        }
+    }
+    if fit_docs.is_empty() || tune_docs.is_empty() || dev_pool.is_empty() {
+        return Err("corpus split has an empty fit, tune or development side".into());
+    }
+
+    let mut fit_windows: Vec<ProseWindow> = Vec::new();
+    for i in &fit_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), *i) {
+            fit_windows.push(w);
+        }
+    }
+    let all_fit_windows = fit_windows.len();
+    if fit_windows.len() > FIT_MAX_WINDOWS {
+        let stride = fit_windows.len() as f64 / FIT_MAX_WINDOWS as f64;
+        fit_windows = (0..FIT_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                fit_windows[idx].clone()
+            })
+            .collect();
+    }
+
+    let mut with_len: Vec<(usize, usize)> = dev_pool
+        .iter()
+        .map(|i| (*i, tokenizer.encode(&uniq[*i].text).len()))
+        .collect();
+    with_len.sort_by_key(|(_, n)| *n);
+    let take = DEV_MAX_DOCS.min(with_len.len());
+    let mut dev_windows: Vec<ProseWindow> = Vec::new();
+    let mut dev_names: Vec<String> = Vec::new();
+    for k in 0..take {
+        let (doc_idx, _) = with_len[k * with_len.len() / take.max(1)];
+        dev_names.push(uniq[doc_idx].path.clone());
+        for w in prose_windows(&tokenizer.encode(&uniq[doc_idx].text), k)
+            .into_iter()
+            .take(DEV_WINDOWS_PER_DOC)
+        {
+            dev_windows.push(w);
+        }
+    }
+
+    let mut tune_windows: Vec<Vec<u32>> = Vec::new();
+    for i in &tune_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), 0) {
+            tune_windows.push(w.tokens);
+        }
+    }
+    let mut tune_prose_windows: Vec<ProseWindow> = Vec::new();
+    for (k, i) in tune_docs.iter().enumerate() {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), k) {
+            tune_prose_windows.push(w);
+        }
+    }
+    let all_tune_blend_windows = tune_prose_windows.len();
+    if tune_prose_windows.len() > BLEND_TUNE_MAX_WINDOWS {
+        let stride = tune_prose_windows.len() as f64 / BLEND_TUNE_MAX_WINDOWS as f64;
+        tune_prose_windows = (0..BLEND_TUNE_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                tune_prose_windows[idx].clone()
+            })
+            .collect();
+    }
+
+    for w in fit_windows
+        .iter()
+        .chain(tune_prose_windows.iter())
+        .chain(dev_windows.iter())
+    {
+        if w.tokens.iter().any(|t| *t as usize >= VOCAB) {
+            return Err(format!(
+                "corpus token id outside the {VOCAB}-token vocabulary; the count reference is \
+                 undefined on it"
+            ));
+        }
+    }
+
+    let t_counts = Instant::now();
+    let full = build_count_estimate(&fit_windows);
+    let (lambdas, tune_bits) = tune_lambdas(&full.c1, &full.c2, &full.uni, &tune_windows);
+    let (e1_weight, e1_tune_bits) = tune_e1_weight(&full.c1, &full.uni, &tune_windows);
+    let order = shuffled_indices(fit_windows.len(), BLEND_NULL_SPLIT_SEED);
+    let half = order.len() / 2;
+    let h1: Vec<ProseWindow> = order[..half]
+        .iter()
+        .map(|i| fit_windows[*i].clone())
+        .collect();
+    let h2: Vec<ProseWindow> = order[half..]
+        .iter()
+        .map(|i| fit_windows[*i].clone())
+        .collect();
+    let half1 = build_count_estimate(&h1);
+    let half2 = build_count_estimate(&h2);
+    let counts_secs = t_counts.elapsed().as_secs_f64();
+
+    let mut freq = vec![0u64; VOCAB];
+    for w in &fit_windows {
+        for k in PREFIX..w.tokens.len() {
+            freq[w.tokens[k] as usize] += 1;
+        }
+    }
+    let mut ranked: Vec<u32> = (0..VOCAB as u32).collect();
+    ranked.sort_by(|a, b| {
+        freq[*b as usize]
+            .cmp(&freq[*a as usize])
+            .then_with(|| a.cmp(b))
+    });
+    let k_used = args.top_k.min(VOCAB);
+    let top_ids: Vec<u32> = ranked[..k_used].to_vec();
+    let mut in_top = vec![false; VOCAB];
+    for t in &top_ids {
+        in_top[*t as usize] = true;
+    }
+
+    let t_rec = Instant::now();
+    let dev_states = record_served_states(&model, &dev_windows);
+    let tune_states = record_served_states(&model, &tune_prose_windows);
+    let rec_secs = t_rec.elapsed().as_secs_f64();
+
+    let control = |windows: &[ProseWindow],
+                   states: &[ServedState],
+                   stride: usize|
+     -> (f64, f64, usize, usize, usize) {
+        let mut sx_bits = 0.0;
+        let mut rec_bits = 0.0;
+        let mut n = 0usize;
+        let mut states_seen = 0usize;
+        let mut checked_windows = 0usize;
+        let mut cursor = 0usize;
+        for (i, w) in windows.iter().enumerate() {
+            let here = w.tokens.len() - PREFIX;
+            let selected = stride == 0 || i % stride == 0 || w.terminal;
+            if selected {
+                let s = model.score_example(&prose_example(w));
+                sx_bits += s.bits_generate;
+                n += s.generate_targets;
+                for j in 0..here {
+                    rec_bits += states[cursor + j].bits;
+                }
+                states_seen += here;
+                checked_windows += 1;
+            }
+            cursor += here;
+        }
+        (sx_bits, rec_bits, n, states_seen, checked_windows)
+    };
+    let (dev_sx_bits, dev_rec_bits, dev_sx_n, dev_control_states, dev_control_windows) =
+        control(&dev_windows, &dev_states, 0);
+    let (tune_sx_bits, tune_rec_bits, tune_sx_n, tune_control_states, tune_control_windows) =
+        control(&tune_prose_windows, &tune_states, BLEND_TUNE_CONTROL_STRIDE);
+    let mismatch = |a: f64, b: f64| (a - b).abs() > 1e-9 * (1.0 + a.abs());
+    if mismatch(dev_sx_bits, dev_rec_bits) || mismatch(tune_sx_bits, tune_rec_bits) {
+        return Err(format!(
+            "served-state recording control failed: recorded bit sums {dev_rec_bits} / \
+             {tune_rec_bits} vs score_example {dev_sx_bits} / {tune_sx_bits}"
+        ));
+    }
+    if dev_sx_n != dev_control_states || dev_control_states != dev_states.len() {
+        return Err(format!(
+            "development recording control failed: {dev_sx_n} scored targets vs \
+             {dev_control_states} recorded states vs {} recorded",
+            dev_states.len()
+        ));
+    }
+    if tune_sx_n != tune_control_states {
+        return Err(format!(
+            "tune recording control failed: {tune_sx_n} scored targets vs {tune_control_states} \
+             recorded states in the checked windows"
+        ));
+    }
+
+    let cur_prev_control =
+        |windows: &[ProseWindow], states: &[ServedState]| -> Result<usize, String> {
+            let mut cursor = 0usize;
+            for w in windows {
+                let generates = w.tokens.len() - PREFIX;
+                for j in 0..generates {
+                    let k = PREFIX + j;
+                    let s = &states[cursor + j];
+                    let want_cur = Some(w.tokens[k - 1]);
+                    let want_prev = if k >= 2 { Some(w.tokens[k - 2]) } else { None };
+                    if s.cur != want_cur || s.prev != want_prev {
+                        return Err(format!(
+                            "recorded consumed-token history is off at window position {k}: got \
+                         (cur {:?}, prev {:?}), the window says ({want_cur:?}, {want_prev:?})",
+                            s.cur, s.prev
+                        ));
+                    }
+                }
+                cursor += generates;
+            }
+            if cursor != states.len() {
+                return Err(format!(
+                    "window walk covers {cursor} positions but {} states were recorded",
+                    states.len()
+                ));
+            }
+            Ok(cursor)
+        };
+    let dev_positions = cur_prev_control(&dev_windows, &dev_states)?;
+    let tune_positions = cur_prev_control(&tune_prose_windows, &tune_states)?;
+
+    let mut f_block: Option<Vec<i32>> = None;
+    for w in fit_windows
+        .iter()
+        .chain(tune_prose_windows.iter())
+        .chain(dev_windows.iter())
+    {
+        let ex = prose_example(w);
+        if ex.grounded || !ex.sel.is_empty() || !ex.res.is_empty() || ex.facts != SlFacts::default()
+        {
+            return Err(
+                "a prose example is grounded or carries evidence, so m and f are not the declared \
+                 constants"
+                    .into(),
+            );
+        }
+        let f = model.typed_block(&ex.sel, &ex.res, ex.facts);
+        match &f_block {
+            None => f_block = Some(f),
+            Some(previous) if *previous != f => {
+                return Err("the typed block differs between prose windows".into());
+            }
+            Some(_) => {}
+        }
+    }
+    let f_block = f_block.unwrap_or_default();
+    let m = vec![0i32; model.h_dim];
+
+    let cp = CountPriors {
+        full: &full,
+        half1: &half1,
+        half2: &half2,
+        lambdas,
+        e1_weight,
+    };
+
+    let t_tune = Instant::now();
+    let mut bufs = BlendBuffers::new();
+    let mut tune_primary = curve_bank_new(tune_docs.len());
+    for s in &tune_states {
+        let t = blend_terms(&model, s, &m, &f_block, &cp, &mut bufs, false)?;
+        curve_bank_add(&mut tune_primary, s.doc, t.b_a, t.b_c, &t.curve_pc);
+    }
+    let (lambda_star, tune_oracle_min) = curve_oracle(&tune_primary.pool);
+    let tune_secs = t_tune.elapsed().as_secs_f64();
+
+    let t_dev = Instant::now();
+    let mut dev_primary = curve_bank_new(take);
+    let mut dev_k1024 = curve_bank_new(take);
+    let mut dev_k1024_e1 = eval_new(take);
+    let mut dev_e1 = curve_bank_new(take);
+    let mut dev_null = curve_bank_new(take);
+    let mut dev_fvh = curve_bank_new(take);
+    let mut kl_pca_sum = 0.0f64;
+    let mut kl_pce1_sum = 0.0f64;
+    let mut kl_c1c2_sum = 0.0f64;
+    let mut kl_fvh_sum = 0.0f64;
+    let mut stop_sum = 0.0f64;
+    let mut stop_max = f64::NEG_INFINITY;
+    let (mut g_a, mut g_c, mut g_c1, mut g_c2, mut g_e1) = (0.0f64, 0.0f64, 0.0f64, 0.0f64, 0.0f64);
+    for s in &dev_states {
+        let t = blend_terms(&model, s, &m, &f_block, &cp, &mut bufs, true)?;
+        let doc = s.doc;
+        curve_bank_add(&mut dev_primary, doc, t.b_a, t.b_c, &t.curve_pc);
+        curve_bank_add(&mut dev_e1, doc, t.b_e1, t.b_c, &t.curve_e1);
+        curve_bank_add(&mut dev_null, doc, t.b_c2, t.b_c1, &t.curve_null);
+        curve_bank_add(&mut dev_fvh, doc, t.b_c1, t.b_c, &t.curve_fvh);
+        if in_top[s.target as usize] {
+            curve_bank_add(&mut dev_k1024, doc, t.b_a, t.b_c, &t.curve_pc);
+            eval_add(&mut dev_k1024_e1, doc, t.b_e1);
+        }
+        kl_pca_sum += t.kl_pca;
+        kl_pce1_sum += t.kl_pce1;
+        kl_c1c2_sum += t.kl_c1c2;
+        kl_fvh_sum += t.kl_fvh;
+        stop_sum += t.p_stop;
+        if t.p_stop > stop_max {
+            stop_max = t.p_stop;
+        }
+        g_a = g_a.max((t.sum_a - 1.0).abs());
+        g_c = g_c.max((t.sum_c - 1.0).abs());
+        g_c1 = g_c1.max((t.sum_c1 - 1.0).abs());
+        g_c2 = g_c2.max((t.sum_c2 - 1.0).abs());
+        g_e1 = g_e1.max((t.sum_e1 - 1.0).abs());
+    }
+    let dev_secs = t_dev.elapsed().as_secs_f64();
+
+    let dev_n = dev_primary.other.total().1;
+    let dev_k_n = dev_k1024.other.total().1;
+    if dev_n != dev_states.len() || dev_n != dev_positions {
+        return Err(format!(
+            "development bank counted {dev_n} positions but {} states / {dev_positions} walked",
+            dev_states.len()
+        ));
+    }
+    let frozen_population = dev_n == 5376 && dev_k_n == 4954;
+    if dev_n == 5376 && dev_k_n != 4954 {
+        return Err(format!(
+            "the top-{k_used} development population is {dev_k_n}, not the declared 4954; the \
+             frozen criterion would not be comparable"
+        ));
+    }
+    let guard_ok = [g_a, g_c, g_c1, g_c2, g_e1]
+        .iter()
+        .all(|d| *d <= BLEND_NORMALISATION_TOL);
+
+    let b_a = dev_primary.base.micro();
+    let b_c = dev_primary.other.micro();
+    let mean_kl_pca = kl_pca_sum / dev_n as f64;
+    let primary_criterion = serde_json::json!({
+        "population": "dev_full",
+        "b_A": b_a,
+        "b_C": b_c,
+        "gap_b_A_minus_b_C": b_a - b_c,
+        "mean_kl_pC_pA": mean_kl_pca,
+        "b_prime_at_one": (b_c - b_a) + mean_kl_pca,
+        "possible_complementarity_over_C": mean_kl_pca > (b_a - b_c),
+        "rule": "b(1) = b_C and b is convex on [0,1], so an oracle lambda can beat C iff \
+                 b'(1) = (b_C - b_A) + E[KL_bits(p_C || p_A)] > 0, i.e. mean_kl > b_A - b_C. \
+                 mean_kl is label-free (it does not use the target), so the criterion cannot be \
+                 won by leakage of the target label.",
+    });
+
+    let (dev_oracle_lambda, dev_oracle_min) = curve_oracle(&dev_primary.pool);
+    let dev_min_ac = b_a.min(b_c);
+    let (k_oracle_lambda, k_oracle_min) = curve_oracle(&dev_k1024.pool);
+    let k_b_a = dev_k1024.base.micro();
+    let k_b_c = dev_k1024.other.micro();
+    let k_min_ac = k_b_a.min(k_b_c);
+
+    let frozen_lambda_star = lambda_star;
+    let dev_star_primary = pool_star_bits(&dev_primary.pool, frozen_lambda_star);
+    let dev_star_k = pool_star_bits(&dev_k1024.pool, frozen_lambda_star);
+
+    let (e1_oracle_lambda, e1_oracle_min) = curve_oracle(&dev_e1.pool);
+    let e1_b = dev_e1.base.micro();
+    let e1_c = dev_e1.other.micro();
+    let mean_kl_pc_pe1 = kl_pce1_sum / dev_n as f64;
+
+    let (null_oracle_lambda, null_oracle_min) = curve_oracle(&dev_null.pool);
+    let null_b_base = dev_null.base.micro();
+    let null_b_other = dev_null.other.micro();
+    let mean_kl_pc_pcprime = kl_c1c2_sum / dev_n as f64;
+
+    let (fvh_oracle_lambda, fvh_oracle_min) = curve_oracle(&dev_fvh.pool);
+    let fvh_b_base = dev_fvh.base.micro();
+    let fvh_b_other = dev_fvh.other.micro();
+    let mean_kl_full_half = kl_fvh_sum / dev_n as f64;
+
+    let receipt = serde_json::json!({
+        "schema": "uor-r4.ordinary-lexical.count-blend/1",
+        "artifact": {
+            "path": artifact_path.display().to_string(),
+            "sha256": artifact_sha,
+            "expected_sha256": EXPECTED_ARTIFACT_SHA256,
+            "match": artifact_sha == EXPECTED_ARTIFACT_SHA256,
+            "vocab": model.vocab,
+            "h_dim": model.h_dim,
+            "score_shift": model.score_shift,
+        },
+        "tokenizer": {
+            "path": args.tokenizer.display().to_string(),
+            "source_sha256": tok_sha,
+            "derived_sha256": derived_sha,
+        },
+        "model_source": {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs",
+            "sha256": model_source_sha,
+            "expected_sha256": EXPECTED_MODEL_SOURCE_SHA256,
+            "match": model_source_sha == EXPECTED_MODEL_SOURCE_SHA256,
+            "binding": "compile-time include_bytes! of the served model source",
+        },
+        "executable_sha256": exe_sha,
+        "base_commit": current_git_head(&args.source_rev),
+        "source_rev_arg": args.source_rev,
+        "split": {
+            "docs_root": args.docs.display().to_string(),
+            "collected_docs": collected,
+            "duplicate_docs_dropped": duplicates,
+            "unique_docs": uniq.len(),
+            "fit_docs": fit_docs.len(),
+            "tune_docs": tune_docs.len(),
+            "dev_pool_docs": dev_pool.len(),
+            "rule": "hash[0] % 10 < 8 fit, == 8 tune, == 9 dev; exact-duplicate grouped",
+            "dev_doc_names": dev_names,
+        },
+        "seed": {
+            "probe_seed": PROBE_SEED,
+            "bootstrap_seed": BLEND_BOOTSTRAP_SEED,
+            "null_split_seed": BLEND_NULL_SPLIT_SEED,
+        },
+        "top_k": k_used,
+        "counts": {
+            "fit_windows_all": all_fit_windows,
+            "fit_windows_capped": fit_windows.len(),
+            "fit_cap": FIT_MAX_WINDOWS,
+            "tune_windows_raw": tune_windows.len(),
+            "tune_blend_windows_all": all_tune_blend_windows,
+            "tune_blend_windows_capped": tune_prose_windows.len(),
+            "tune_blend_cap": BLEND_TUNE_MAX_WINDOWS,
+            "dev_docs": take,
+            "dev_windows": dev_windows.len(),
+            "dev_windows_per_doc": DEV_WINDOWS_PER_DOC,
+            "dev_states": dev_states.len(),
+            "dev_positions_walked": dev_positions,
+            "dev_k_targets": dev_k_n,
+            "frozen_population_matches": frozen_population,
+            "frozen_population_declaration": "dev_full 5376 and dev_k1024 4954 on the frozen docs \
+                                              split",
+            "tune_states": tune_states.len(),
+            "tune_positions_walked": tune_positions,
+            "fit_positions": full.uni.total,
+            "half1_positions": half1.uni.total,
+            "half2_positions": half2.uni.total,
+            "dev_control_states": dev_control_states,
+            "dev_control_windows": dev_control_windows,
+            "tune_control_states": tune_control_states,
+            "tune_control_windows": tune_control_windows,
+            "tune_control_stride": BLEND_TUNE_CONTROL_STRIDE,
+        },
+        "pool": {
+            "definition": "p_lambda(x | c) ∝ p_A(x | c)^(1 - lambda) * p_C(x | c)^lambda, evaluated \
+                           in base-2 log space as s_lambda(x) = (1 - lambda) log2 p_A + lambda log2 p_C \
+                           and bits = logsumexp2(s_lambda) - s_lambda(target), subtracting the max.",
+            "lambda_grid": BLEND_LAMBDA_GRID,
+            "tie_rule": "smallest lambda within 1e-12 of the minimum",
+            "logsumexp_rule": "max over the 4096 declared token rows, then log2(sum exp2(s - max))",
+            "normalisation_guard": {
+                "tolerance": BLEND_NORMALISATION_TOL,
+                "max_abs_sum_minus_one_pA": g_a,
+                "max_abs_sum_minus_one_pC": g_c,
+                "max_abs_sum_minus_one_pC_half1": g_c1,
+                "max_abs_sum_minus_one_pC_half2": g_c2,
+                "max_abs_sum_minus_one_pE1": g_e1,
+                "passed": guard_ok,
+            },
+            "p_stop": {
+                "mean": stop_sum / dev_n as f64,
+                "max": stop_max,
+                "positions": dev_n,
+                "definition": "the Stop row's mass under the same max-shift as the token-conditional \
+                               normalisation; reported separately because it is renormalised out of \
+                               p_A and is not part of the 4096-token pool",
+            },
+        },
+        "tune": {
+            "population_states": tune_states.len(),
+            "population_windows": tune_prose_windows.len(),
+            "lambdas": { "lambda1_cur": lambdas.0, "lambda2_context": lambdas.1 },
+            "tuned_count_bits_per_target": tune_bits,
+            "e1_weight": e1_weight,
+            "e1_tune_bits_per_target": e1_tune_bits,
+            "chosen_lambda_star": lambda_star,
+            "tune_oracle_min_bits_per_target": tune_oracle_min,
+            "curve": BLEND_LAMBDA_GRID.iter().enumerate().map(|(i, l)| serde_json::json!({
+                "lambda": l, "tune_bits_per_target": tune_primary.pool[i].micro(),
+            })).collect::<Vec<_>>(),
+            "rule": "lambda_star = argmin over the declared grid of the micro pool loss on the \
+                     recorded tune states; frozen before any development number is read",
+        },
+        "oracle_criterion": primary_criterion,
+        "dev_full": {
+            "n": dev_n,
+            "docs": take,
+            "in_sample_bound": true,
+            "a_bits_per_target": b_a,
+            "c_bits_per_target": b_c,
+            "e1_bits_per_target": e1_b,
+            "frozen_lambda_star": frozen_lambda_star,
+            "frozen_lambda_star_bits_per_target": dev_star_primary,
+            "oracle_lambda": dev_oracle_lambda,
+            "oracle_min_bits_per_target": dev_oracle_min,
+            "complementarity_m_star_minus_min_AC": dev_oracle_min - dev_min_ac,
+            "curve": curve_json(&dev_primary.pool, &dev_primary.other, Some(&dev_primary.base)),
+        },
+        "dev_k1024": {
+            "n": dev_k_n,
+            "docs": take,
+            "in_sample_bound": true,
+            "a_bits_per_target": k_b_a,
+            "c_bits_per_target": k_b_c,
+            "e1_bits_per_target": dev_k1024_e1.micro(),
+            "frozen_lambda_star": frozen_lambda_star,
+            "frozen_lambda_star_bits_per_target": dev_star_k,
+            "oracle_lambda": k_oracle_lambda,
+            "oracle_min_bits_per_target": k_oracle_min,
+            "complementarity_m_star_minus_min_AC": k_oracle_min - k_min_ac,
+            "curve": curve_json(&dev_k1024.pool, &dev_k1024.other, Some(&dev_k1024.base)),
+        },
+        "controls": {
+            "blend_e1_c": {
+                "definition": "the log-linear pool of E1 (unigram + bigram(cur), tuned weight) with C, \
+                               the same criterion shape as the primary pool. Its complementarity bounds \
+                               how much of any A/C gain is unique to the served readout.",
+                "e1_weight": e1_weight,
+                "b_E1": e1_b,
+                "b_C": e1_c,
+                "gap_b_E1_minus_b_C": e1_b - e1_c,
+                "mean_kl_pC_pE1": mean_kl_pc_pe1,
+                "criterion": criterion_json(e1_b, e1_c, mean_kl_pc_pe1),
+                "oracle_lambda": e1_oracle_lambda,
+                "oracle_min_bits_per_target": e1_oracle_min,
+                "complementarity_m_star_minus_min_E1C": e1_oracle_min - e1_b.min(e1_c),
+                "curve": curve_json(&dev_e1.pool, &dev_e1.other, None),
+            },
+            "duplicate_count_null": {
+                "definition": "a seeded 50/50 shuffle of the fit windows gives two disjoint half \
+                               estimates of the same conditional; C = half 1, C' = half 2 (the \
+                               complement half), both at the SAME tuned lambdas. Pooling two \
+                               estimators of one conditional can genuinely denoise, so a non-zero \
+                               null gain is expected and bounds the pooling mechanism.",
+                "split_seed": BLEND_NULL_SPLIT_SEED,
+                "b_C_half1": null_b_other,
+                "b_Cprime_half2": null_b_base,
+                "b_Cprime_minus_b_C": null_b_base - null_b_other,
+                "mean_kl_pC_pCprime": mean_kl_pc_pcprime,
+                "criterion": criterion_json(null_b_base, null_b_other, mean_kl_pc_pcprime),
+                "oracle_lambda": null_oracle_lambda,
+                "oracle_min_bits_per_target": null_oracle_min,
+                "complementarity_m_star_minus_min_half12": null_oracle_min
+                    - null_b_base.min(null_b_other),
+                "curve": curve_json(&dev_null.pool, &dev_null.base, None),
+                "secondary_reading": {
+                    "definition": "the full-fit C pooled with the half-1 estimate C_h1, which isolates \
+                                   the effect of C's larger sample relative to a half fit",
+                    "b_C_full": fvh_b_other,
+                    "b_C_half1": fvh_b_base,
+                    "mean_kl_pC_full_pC_half1": mean_kl_full_half,
+                    "criterion": criterion_json(fvh_b_base, fvh_b_other, mean_kl_full_half),
+                    "oracle_lambda": fvh_oracle_lambda,
+                    "oracle_min_bits_per_target": fvh_oracle_min,
+                    "curve": curve_json(&dev_fvh.pool, &dev_fvh.base, None),
+                },
+            },
+        },
+        "rank_note": "A's score map is affine in h, so its rank is at most h_dim + 1 = 65; C is an \
+                      interpolated 4096 x 4096 (prev, cur) table. A rank-65 map cannot in general \
+                      reach a full table, which is why the pool's oracle criterion, not A's own loss, \
+                      is the question.",
+        "determinism": {
+            "bootstrap_seed": BLEND_BOOTSTRAP_SEED,
+            "null_split_seed": BLEND_NULL_SPLIT_SEED,
+            "logsumexp_rule": "two-pass, subtract the max, base-2; ascending x order",
+            "lambda_grid": BLEND_LAMBDA_GRID,
+            "tie_rule": "smallest lambda within 1e-12",
+            "bootstrap": "per-document cluster bootstrap of the loss difference, 2000 draws",
+            "null_split": "Fisher-Yates on xorshift with the declared seed; first half is C, second \
+                           half is C'",
+        },
+        "limitations": {
+            "bootstrap": "24-cluster percentile bootstrap; the interval is over documents, not \
+                          positions",
+            "top_k": "K = 1024 is fit-derived, so the k1024 population's restriction is not \
+                      independent of the fit split",
+            "dev_oracle": "the dev oracle m* is in-sample over the same development targets; the \
+                           frozen-lambda-star number is the tune-frozen reading",
+            "lambda": "lambda is tuned on the tune split only, never on dev",
+            "diagnostic": "floats over recorded states; no artifact is written, no session loads it \
+                           and no serving path changes. This is a measurement that selects the form \
+                           of the next architecture change, not a capability result",
+        },
+        "timings": {
+            "count_build_seconds": counts_secs,
+            "record_served_states_seconds": rec_secs,
+            "tune_eval_seconds": tune_secs,
+            "dev_eval_seconds": dev_secs,
+        },
+        "elapsed_seconds": started.elapsed().as_secs_f64(),
+    });
+    write_checked(
+        &root,
+        "receipt.json",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|e| e.to_string())?
+            .as_bytes(),
+    )?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "5. sealed {} with {} unlisted files; p_stop mean {:.3e}, dev_A {:.4}, dev_C {:.4}, \
+         oracle_min {:.4}; total {:.1}s",
+        root.display(),
+        unlisted.len(),
+        stop_sum / dev_n as f64,
+        b_a,
+        b_c,
+        dev_oracle_min,
+        started.elapsed().as_secs_f64()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+/// The pool bits at a fixed lambda, read off a curve bank (the grid holds exact `f64` values, so the
+/// index is recovered by the declared grid, not by an epsilon search).
+fn pool_star_bits(pool: &[Eval], lambda: f64) -> f64 {
+    let idx = BLEND_LAMBDA_GRID
+        .iter()
+        .position(|l| (l - lambda).abs() <= 1e-12)
+        .unwrap_or(0);
+    pool[idx].micro()
+}
+
 fn main() -> ExitCode {
     let args = match parse_args() {
         Ok(a) => a,
@@ -8142,6 +9383,15 @@ fn main() -> ExitCode {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("error: condition: {e}");
+                ExitCode::from(1)
+            }
+        };
+    }
+    if args.count_blend {
+        return match count_blend_mode(&args) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("error: count-blend: {e}");
                 ExitCode::from(1)
             }
         };
@@ -8940,5 +10190,155 @@ mod tests {
                 }
             }
         }
+    }
+
+    fn seeded_count_tables(
+        n: usize,
+        seed: u64,
+    ) -> (
+        Cond,
+        Cond,
+        Uni,
+        HashMap<u64, Vec<(u32, u32)>>,
+        HashMap<u64, Vec<(u32, u32)>>,
+    ) {
+        let mut c1 = Cond::default();
+        let mut c2 = Cond::default();
+        let mut uni = Uni {
+            counts: vec![0u64; VOCAB],
+            total: 0,
+        };
+        let mut row1: HashMap<u64, Vec<(u32, u32)>> = HashMap::new();
+        let mut row2: HashMap<u64, Vec<(u32, u32)>> = HashMap::new();
+        let mut st = seed | 1;
+        let (mut prev, mut cur) = (0usize, 0usize);
+        for i in 0..n {
+            let next = (xorshift(&mut st) % VOCAB as u64) as u32;
+            if i % 7 == 0 {
+                prev = (xorshift(&mut st) % VOCAB as u64) as usize;
+            }
+            if i % 3 == 0 {
+                cur = (xorshift(&mut st) % VOCAB as u64) as usize;
+            }
+            uni.counts[next as usize] += 1;
+            uni.total += 1;
+            c1.observe(cur as u64, next);
+            c2.observe(ctx2(prev, cur), next);
+            row1.entry(cur as u64).or_default().push((next, 1));
+            row2.entry(ctx2(prev, cur)).or_default().push((next, 1));
+        }
+        for v in row1.values_mut() {
+            aggregate_counts(v);
+        }
+        for v in row2.values_mut() {
+            aggregate_counts(v);
+        }
+        (c1, c2, uni, row1, row2)
+    }
+
+    fn seeded_normalised_log2(n: usize, seed: u64) -> Vec<f64> {
+        let mut st = seed | 1;
+        let raw: Vec<f64> = (0..n)
+            .map(|_| (xorshift(&mut st) % 8192) as f64 / 1024.0 - 4.0)
+            .collect();
+        let m = raw.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let z: f64 = raw.iter().map(|v| (v - m).exp2()).sum();
+        let lz = z.log2();
+        raw.iter().map(|v| v - m - lz).collect()
+    }
+
+    #[test]
+    fn dense_pc_builder_equals_family_p_over_all_tokens() {
+        let (c1, c2, uni, row1, row2) = seeded_count_tables(6000, 0xC0FF_EE01);
+        let mut contexts: Vec<(usize, usize)> = row2
+            .keys()
+            .take(8)
+            .map(|k| ((*k / VOCAB as u64) as usize, (*k % VOCAB as u64) as usize))
+            .collect();
+        contexts.extend(row1.keys().take(4).map(|k| (VOCAB / 3, *k as usize)));
+        contexts.push((17, VOCAB / 5));
+        contexts.push((11, 13));
+        let mut pc = vec![0.0f64; VOCAB];
+        for &(prev, cur) in &contexts {
+            for l in [(0.0, 0.0), (0.5, 0.5), (0.9, 0.9), (0.3, 0.6)] {
+                pc_dense_into(&row1, &row2, &uni, prev, cur, l, &mut pc);
+                let mut sum = 0.0;
+                for x in 0..VOCAB {
+                    let want = family_p(&c1, &c2, &uni, prev, cur, x as u32, l);
+                    assert!(
+                        (pc[x] - want).abs() <= 1e-15,
+                        "context ({prev}, {cur}) lambda {l:?} token {x}: dense {} != family_p {want}",
+                        pc[x]
+                    );
+                    sum += pc[x];
+                }
+                assert!(
+                    (sum - 1.0).abs() <= 1e-12,
+                    "context ({prev}, {cur}) lambda {l:?}: dense pc sums to {sum}, not 1"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn pool_endpoints_are_the_two_models() {
+        let log2a = seeded_normalised_log2(VOCAB, 0xABCD_0001);
+        let log2c = seeded_normalised_log2(VOCAB, 0xABCD_0002);
+        for target in [0usize, 1, 41, VOCAB / 2, VOCAB - 1] {
+            let b0 = pool_bits(&log2a, &log2c, 0.0, target);
+            let b1 = pool_bits(&log2a, &log2c, 1.0, target);
+            assert!(
+                (b0 - (-log2a[target])).abs() <= 1e-15,
+                "lambda = 0 must equal A at target {target}: got {b0}, want {}",
+                -log2a[target]
+            );
+            assert!(
+                (b1 - (-log2c[target])).abs() <= 1e-15,
+                "lambda = 1 must equal C at target {target}: got {b1}, want {}",
+                -log2c[target]
+            );
+        }
+    }
+
+    #[test]
+    fn pool_is_convex_in_lambda() {
+        let log2a = seeded_normalised_log2(VOCAB, 0x1234_0001);
+        let log2c = seeded_normalised_log2(VOCAB, 0x1234_0002);
+        for target in [0usize, 7, 999, VOCAB - 1] {
+            let b0 = pool_bits(&log2a, &log2c, 0.0, target);
+            let b1 = pool_bits(&log2a, &log2c, 1.0, target);
+            let bmid = pool_bits(&log2a, &log2c, 0.5, target);
+            assert!(
+                bmid <= (b0 + b1) / 2.0 + 1e-15,
+                "b(0.5) must be <= the chord at target {target}: {bmid} vs {}",
+                (b0 + b1) / 2.0
+            );
+        }
+    }
+
+    #[test]
+    fn kl_bits_is_non_negative() {
+        let log2a = seeded_normalised_log2(VOCAB, 0x5555_0001);
+        let log2c = seeded_normalised_log2(VOCAB, 0x5555_0002);
+        let pc: Vec<f64> = log2c.iter().map(|v| v.exp2()).collect();
+        let kl = kl_bits(&pc, &log2c, &log2a);
+        assert!(kl >= -1e-12, "KL_bits must be non-negative, got {kl}");
+    }
+
+    #[test]
+    fn lambda_star_tie_rule_takes_the_smallest_grid_value() {
+        let mut pool: Vec<Eval> = (0..BLEND_K)
+            .map(|_| Eval {
+                per_doc: vec![(2.0, 1)],
+            })
+            .collect();
+        pool[3].per_doc[0].0 = 1.0;
+        pool[7].per_doc[0].0 = 1.0;
+        let (lambda, best) = curve_oracle(&pool);
+        assert_eq!(
+            lambda, BLEND_LAMBDA_GRID[3],
+            "ties take the smallest lambda"
+        );
+        assert!((best - 1.0).abs() <= 1e-15);
     }
 }

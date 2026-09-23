@@ -1,0 +1,935 @@
+{
+  "artifact": {
+    "expected_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+    "h_dim": 64,
+    "match": true,
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+    "score_shift": 4,
+    "sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+    "vocab": 4096
+  },
+  "base_commit": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+  "controls": {
+    "blend_e1_c": {
+      "b_C": 5.121720706100631,
+      "b_E1": 5.922405895433657,
+      "complementarity_m_star_minus_min_E1C": 8.881784197001252e-16,
+      "criterion": {
+        "b_base": 5.922405895433657,
+        "b_other": 5.121720706100631,
+        "b_prime_at_one_bits": -0.24660964408155617,
+        "gap_b_base_minus_b_other": 0.8006851893330262,
+        "mean_kl_other_to_base_bits": 0.5540755452514701,
+        "possible_complementarity_of_other_over_base": false,
+        "rule": "b'(1) = (b_other - b_base) + E[KL_bits(p_other || p_base)]; b(1) = b_other and b is convex on [0,1], so an oracle lambda can beat the other model iff b'(1) > 0, i.e. E[KL_bits(p_other || p_base)] > b_base - b_other. The KL side is label-free."
+      },
+      "curve": [
+        {
+          "bits_per_target": 5.922405895433658,
+          "lambda": 0.0,
+          "vs": {
+            "hi": 0.9214840427645505,
+            "lo": 0.6923719164804005,
+            "point": 0.8006851893330271
+          }
+        },
+        {
+          "bits_per_target": 5.810975367086467,
+          "lambda": 0.1,
+          "vs": {
+            "hi": 0.7970122042302341,
+            "lo": 0.5923602293338153,
+            "point": 0.6892546609858359
+          }
+        },
+        {
+          "bits_per_target": 5.703962415282534,
+          "lambda": 0.2,
+          "vs": {
+            "hi": 0.6782701142214611,
+            "lo": 0.49607171537091155,
+            "point": 0.5822417091819032
+          }
+        },
+        {
+          "bits_per_target": 5.602005374824652,
+          "lambda": 0.3,
+          "vs": {
+            "hi": 0.5639055850075634,
+            "lo": 0.4059578520382754,
+            "point": 0.4802846687240212
+          }
+        },
+        {
+          "bits_per_target": 5.505881780749776,
+          "lambda": 0.4,
+          "vs": {
+            "hi": 0.454712458586064,
+            "lo": 0.32115465545291766,
+            "point": 0.3841610746491453
+          }
+        },
+        {
+          "bits_per_target": 5.416545574803057,
+          "lambda": 0.5,
+          "vs": {
+            "hi": 0.3530369356302119,
+            "lo": 0.24290637688595762,
+            "point": 0.29482486870242575
+          }
+        },
+        {
+          "bits_per_target": 5.3351703401319215,
+          "lambda": 0.6,
+          "vs": {
+            "hi": 0.25937560900310963,
+            "lo": 0.17214050143893633,
+            "point": 0.21344963403129036
+          }
+        },
+        {
+          "bits_per_target": 5.263190843360561,
+          "lambda": 0.7,
+          "vs": {
+            "hi": 0.17522362911928457,
+            "lo": 0.11116089541724872,
+            "point": 0.14147013725992963
+          }
+        },
+        {
+          "bits_per_target": 5.202321170415269,
+          "lambda": 0.8,
+          "vs": {
+            "hi": 0.1024172809935413,
+            "lo": 0.06076064547935811,
+            "point": 0.08060046431463785
+          }
+        },
+        {
+          "bits_per_target": 5.154503504681925,
+          "lambda": 0.9,
+          "vs": {
+            "hi": 0.04362435512644591,
+            "lo": 0.02299901497181267,
+            "point": 0.032782798581293626
+          }
+        },
+        {
+          "bits_per_target": 5.121720706100632,
+          "lambda": 1.0,
+          "vs": {
+            "hi": 4.440892098500626e-15,
+            "lo": -8.881784197001252e-16,
+            "point": 8.881784197001252e-16
+          }
+        }
+      ],
+      "definition": "the log-linear pool of E1 (unigram + bigram(cur), tuned weight) with C, the same criterion shape as the primary pool. Its complementarity bounds how much of any A/C gain is unique to the served readout.",
+      "e1_weight": 0.8,
+      "gap_b_E1_minus_b_C": 0.8006851893330262,
+      "mean_kl_pC_pE1": 0.5540755452514701,
+      "oracle_lambda": 1.0,
+      "oracle_min_bits_per_target": 5.121720706100632
+    },
+    "duplicate_count_null": {
+      "b_C_half1": 5.442558455253574,
+      "b_Cprime_half2": 5.539462725798253,
+      "b_Cprime_minus_b_C": 0.09690427054467854,
+      "complementarity_m_star_minus_min_half12": -0.2192958388297006,
+      "criterion": {
+        "b_base": 5.539462725798253,
+        "b_other": 5.442558455253574,
+        "b_prime_at_one_bits": 1.2073591378827118,
+        "gap_b_base_minus_b_other": 0.09690427054467854,
+        "mean_kl_other_to_base_bits": 1.3042634084273903,
+        "possible_complementarity_of_other_over_base": true,
+        "rule": "b'(1) = (b_other - b_base) + E[KL_bits(p_other || p_base)]; b(1) = b_other and b is convex on [0,1], so an oracle lambda can beat the other model iff b'(1) > 0, i.e. E[KL_bits(p_other || p_base)] > b_base - b_other. The KL side is label-free."
+      },
+      "curve": [
+        {
+          "bits_per_target": 5.4425584552535735,
+          "lambda": 0.0,
+          "vs": {
+            "hi": 0.0803056671436222,
+            "lo": -0.27940444555677235,
+            "point": -0.09690427054467943
+          }
+        },
+        {
+          "bits_per_target": 5.342339076509246,
+          "lambda": 0.1,
+          "vs": {
+            "hi": -0.03598610089896237,
+            "lo": -0.36426084405241355,
+            "point": -0.19712364928900694
+          }
+        },
+        {
+          "bits_per_target": 5.277328454862111,
+          "lambda": 0.2,
+          "vs": {
+            "hi": -0.11797288836998909,
+            "lo": -0.41548331096389735,
+            "point": -0.2621342709361416
+          }
+        },
+        {
+          "bits_per_target": 5.2395995442261905,
+          "lambda": 0.3,
+          "vs": {
+            "hi": -0.1732394540912825,
+            "lo": -0.4343413321877927,
+            "point": -0.2998631815720625
+          }
+        },
+        {
+          "bits_per_target": 5.223262616423874,
+          "lambda": 0.4,
+          "vs": {
+            "hi": -0.20562211830527666,
+            "lo": -0.4330111148993092,
+            "point": -0.31620010937437915
+          }
+        },
+        {
+          "bits_per_target": 5.224860652243349,
+          "lambda": 0.5,
+          "vs": {
+            "hi": -0.22139916873466348,
+            "lo": -0.41221509543194657,
+            "point": -0.3146020735549042
+          }
+        },
+        {
+          "bits_per_target": 5.243242721566017,
+          "lambda": 0.6,
+          "vs": {
+            "hi": -0.22013593271709642,
+            "lo": -0.37552409122415753,
+            "point": -0.2962200042322358
+          }
+        },
+        {
+          "bits_per_target": 5.279440940120703,
+          "lambda": 0.7,
+          "vs": {
+            "hi": -0.20257050672931332,
+            "lo": -0.3210080920856937,
+            "point": -0.26002178567754974
+          }
+        },
+        {
+          "bits_per_target": 5.336739913076182,
+          "lambda": 0.8,
+          "vs": {
+            "hi": -0.16372542739851248,
+            "lo": -0.24397487181654753,
+            "point": -0.2027228127220706
+          }
+        },
+        {
+          "bits_per_target": 5.420803221399881,
+          "lambda": 0.9,
+          "vs": {
+            "hi": -0.09849433095726923,
+            "lo": -0.13973308859848022,
+            "point": -0.11865950439837203
+          }
+        },
+        {
+          "bits_per_target": 5.53946272579825,
+          "lambda": 1.0,
+          "vs": {
+            "hi": 1.7763568394002505e-15,
+            "lo": -4.440892098500626e-15,
+            "point": -2.6645352591003757e-15
+          }
+        }
+      ],
+      "definition": "a seeded 50/50 shuffle of the fit windows gives two disjoint half estimates of the same conditional; C = half 1, C' = half 2 (the complement half), both at the SAME tuned lambdas. Pooling two estimators of one conditional can genuinely denoise, so a non-zero null gain is expected and bounds the pooling mechanism.",
+      "mean_kl_pC_pCprime": 1.3042634084273903,
+      "oracle_lambda": 0.4,
+      "oracle_min_bits_per_target": 5.223262616423874,
+      "secondary_reading": {
+        "b_C_full": 5.121720706100631,
+        "b_C_half1": 5.442558455253574,
+        "criterion": {
+          "b_base": 5.442558455253574,
+          "b_other": 5.121720706100631,
+          "b_prime_at_one_bits": 0.1839784622801085,
+          "gap_b_base_minus_b_other": 0.3208377491529433,
+          "mean_kl_other_to_base_bits": 0.5048162114330518,
+          "possible_complementarity_of_other_over_base": true,
+          "rule": "b'(1) = (b_other - b_base) + E[KL_bits(p_other || p_base)]; b(1) = b_other and b is convex on [0,1], so an oracle lambda can beat the other model iff b'(1) > 0, i.e. E[KL_bits(p_other || p_base)] > b_base - b_other. The KL side is label-free."
+        },
+        "curve": [
+          {
+            "bits_per_target": 5.121720706100632,
+            "lambda": 0.0,
+            "vs": {
+              "hi": -0.2436326535348945,
+              "lo": -0.39701846929792595,
+              "point": -0.3208377491529424
+            }
+          },
+          {
+            "bits_per_target": 5.114131058442513,
+            "lambda": 0.1,
+            "vs": {
+              "hi": -0.2580547650931839,
+              "lo": -0.3988641100659329,
+              "point": -0.3284273968110618
+            }
+          },
+          {
+            "bits_per_target": 5.123717181514244,
+            "lambda": 0.2,
+            "vs": {
+              "hi": -0.2552771213977021,
+              "lo": -0.3828893432456333,
+              "point": -0.3188412737393307
+            }
+          },
+          {
+            "bits_per_target": 5.145200141943349,
+            "lambda": 0.3,
+            "vs": {
+              "hi": -0.24120551329633777,
+              "lo": -0.35399158049542034,
+              "point": -0.2973583133102258
+            }
+          },
+          {
+            "bits_per_target": 5.174994550519269,
+            "lambda": 0.4,
+            "vs": {
+              "hi": -0.21906544013585982,
+              "lo": -0.3164582207620157,
+              "point": -0.26756390473430525
+            }
+          },
+          {
+            "bits_per_target": 5.210782374308406,
+            "lambda": 0.5,
+            "vs": {
+              "hi": -0.19095268329803883,
+              "lo": -0.2729949805386527,
+              "point": -0.23177608094516877
+            }
+          },
+          {
+            "bits_per_target": 5.251084772924965,
+            "lambda": 0.6,
+            "vs": {
+              "hi": -0.1585751936785389,
+              "lo": -0.22484481556182612,
+              "point": -0.19147368232860984
+            }
+          },
+          {
+            "bits_per_target": 5.294948933147099,
+            "lambda": 0.7,
+            "vs": {
+              "hi": -0.12282923658247302,
+              "lo": -0.17283758046890263,
+              "point": -0.1476095221064755
+            }
+          },
+          {
+            "bits_per_target": 5.3417462745281155,
+            "lambda": 0.8,
+            "vs": {
+              "hi": -0.08425262410663237,
+              "lo": -0.11777282515850906,
+              "point": -0.10081218072545894
+            }
+          },
+          {
+            "bits_per_target": 5.391049444746057,
+            "lambda": 0.9,
+            "vs": {
+              "hi": -0.043197212855989875,
+              "lo": -0.06005416934345753,
+              "point": -0.05150901050751777
+            }
+          },
+          {
+            "bits_per_target": 5.4425584552535735,
+            "lambda": 1.0,
+            "vs": {
+              "hi": 1.7763568394002505e-15,
+              "lo": -5.329070518200751e-15,
+              "point": -8.881784197001252e-16
+            }
+          }
+        ],
+        "definition": "the full-fit C pooled with the half-1 estimate C_h1, which isolates the effect of C's larger sample relative to a half fit",
+        "mean_kl_pC_full_pC_half1": 0.5048162114330518,
+        "oracle_lambda": 0.1,
+        "oracle_min_bits_per_target": 5.114131058442513
+      },
+      "split_seed": 801180038299910146
+    }
+  },
+  "counts": {
+    "dev_control_states": 5376,
+    "dev_control_windows": 96,
+    "dev_docs": 24,
+    "dev_k_targets": 4954,
+    "dev_positions_walked": 5376,
+    "dev_states": 5376,
+    "dev_windows": 96,
+    "dev_windows_per_doc": 4,
+    "fit_cap": 6000,
+    "fit_positions": 334796,
+    "fit_windows_all": 38948,
+    "fit_windows_capped": 6000,
+    "frozen_population_declaration": "dev_full 5376 and dev_k1024 4954 on the frozen docs split",
+    "frozen_population_matches": true,
+    "half1_positions": 167439,
+    "half2_positions": 167357,
+    "tune_blend_cap": 2048,
+    "tune_blend_windows_all": 3856,
+    "tune_blend_windows_capped": 2048,
+    "tune_control_states": 6116,
+    "tune_control_stride": 20,
+    "tune_control_windows": 115,
+    "tune_positions_walked": 114364,
+    "tune_states": 114364,
+    "tune_windows_raw": 3856
+  },
+  "determinism": {
+    "bootstrap": "per-document cluster bootstrap of the loss difference, 2000 draws",
+    "bootstrap_seed": 801180038299910145,
+    "lambda_grid": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "logsumexp_rule": "two-pass, subtract the max, base-2; ascending x order",
+    "null_split": "Fisher-Yates on xorshift with the declared seed; first half is C, second half is C'",
+    "null_split_seed": 801180038299910146,
+    "tie_rule": "smallest lambda within 1e-12"
+  },
+  "dev_full": {
+    "a_bits_per_target": 6.684102040621672,
+    "c_bits_per_target": 5.121720706100631,
+    "complementarity_m_star_minus_min_AC": -0.025180920897037495,
+    "curve": [
+      {
+        "bits_per_target": 6.684102040621672,
+        "lambda": 0.0,
+        "vs": {
+          "hi": 1.7717657443494987,
+          "lo": 1.3718357504624006,
+          "point": 1.5623813345210404
+        },
+        "vs_alternative": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "point": 0.0
+        }
+      },
+      {
+        "bits_per_target": 6.38921546371199,
+        "lambda": 0.1,
+        "vs": {
+          "hi": 1.4530411154713399,
+          "lo": 1.0990365901358992,
+          "point": 1.2674947576113587
+        },
+        "vs_alternative": {
+          "hi": -0.2722436114175082,
+          "lo": -0.3189464530655952,
+          "point": -0.2948865769096818
+        }
+      },
+      {
+        "bits_per_target": 6.120555352953935,
+        "lambda": 0.2,
+        "vs": {
+          "hi": 1.1607747443432475,
+          "lo": 0.8533148223020577,
+          "point": 0.9988346468533038
+        },
+        "vs_alternative": {
+          "hi": -0.5188437225945686,
+          "lo": -0.6113027686039025,
+          "point": -0.5635466876677366
+        }
+      },
+      {
+        "bits_per_target": 5.878335587283795,
+        "lambda": 0.3,
+        "vs": {
+          "hi": 0.8974131649165491,
+          "lo": 0.6321265418317301,
+          "point": 0.7566148811831637
+        },
+        "vs_alternative": {
+          "hi": -0.739694372896146,
+          "lo": -0.8767636792866291,
+          "point": -0.8057664533378768
+        }
+      },
+      {
+        "bits_per_target": 5.663412250860304,
+        "lambda": 0.4,
+        "vs": {
+          "hi": 0.6587621379709052,
+          "lo": 0.43757944601614174,
+          "point": 0.5416915447596731
+        },
+        "vs_alternative": {
+          "hi": -0.9332832258175126,
+          "lo": -1.1141398359152106,
+          "point": -1.0206897897613674
+        }
+      },
+      {
+        "bits_per_target": 5.477461179178809,
+        "lambda": 0.5,
+        "vs": {
+          "hi": 0.45145679587748155,
+          "lo": 0.2709238140135941,
+          "point": 0.35574047307817747
+        },
+        "vs_alternative": {
+          "hi": -1.0988612324921814,
+          "lo": -1.3216983784879446,
+          "point": -1.206640861442863
+        }
+      },
+      {
+        "bits_per_target": 5.323166955939082,
+        "lambda": 0.6,
+        "vs": {
+          "hi": 0.2763208889847366,
+          "lo": 0.13518127639811528,
+          "point": 0.20144624983845105
+        },
+        "vs_alternative": {
+          "hi": -1.2342108805793428,
+          "lo": -1.497512007902456,
+          "point": -1.3609350846825894
+        }
+      },
+      {
+        "bits_per_target": 5.204445995793885,
+        "lambda": 0.7,
+        "vs": {
+          "hi": 0.13693373097100547,
+          "lo": 0.03425499520248643,
+          "point": 0.08272528969325421
+        },
+        "vs_alternative": {
+          "hi": -1.3355926804308904,
+          "lo": -1.6366553268812707,
+          "point": -1.4796560448277862
+        }
+      },
+      {
+        "bits_per_target": 5.126648449372082,
+        "lambda": 0.8,
+        "vs": {
+          "hi": 0.0405270171245915,
+          "lo": -0.026228148805141238,
+          "point": 0.004927743271450957
+        },
+        "vs_alternative": {
+          "hi": -1.395411689309637,
+          "lo": -1.7334250681017362,
+          "point": -1.5574535912495895
+        }
+      },
+      {
+        "bits_per_target": 5.096539785203594,
+        "lambda": 0.9,
+        "vs": {
+          "hi": -0.007841496135316817,
+          "lo": -0.040194582662293143,
+          "point": -0.025180920897037495
+        },
+        "vs_alternative": {
+          "hi": -1.409764061298164,
+          "lo": -1.7802668130395363,
+          "point": -1.587562255418078
+        }
+      },
+      {
+        "bits_per_target": 5.121720706100632,
+        "lambda": 1.0,
+        "vs": {
+          "hi": 4.440892098500626e-15,
+          "lo": -8.881784197001252e-16,
+          "point": 8.881784197001252e-16
+        },
+        "vs_alternative": {
+          "hi": -1.371013912578288,
+          "lo": -1.7711130014278114,
+          "point": -1.5623813345210396
+        }
+      }
+    ],
+    "docs": 24,
+    "e1_bits_per_target": 5.922405895433657,
+    "frozen_lambda_star": 0.8,
+    "frozen_lambda_star_bits_per_target": 5.126648449372082,
+    "in_sample_bound": true,
+    "n": 5376,
+    "oracle_lambda": 0.9,
+    "oracle_min_bits_per_target": 5.096539785203594
+  },
+  "dev_k1024": {
+    "a_bits_per_target": 6.055953314027584,
+    "c_bits_per_target": 4.784593396981419,
+    "complementarity_m_star_minus_min_AC": -0.04696217328857344,
+    "curve": [
+      {
+        "bits_per_target": 6.055953314027584,
+        "lambda": 0.0,
+        "vs": {
+          "hi": 1.457304200807883,
+          "lo": 1.1048863195695589,
+          "point": 1.2713599170461647
+        },
+        "vs_alternative": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "point": 0.0
+        }
+      },
+      {
+        "bits_per_target": 5.793388971120132,
+        "lambda": 0.1,
+        "vs": {
+          "hi": 1.1735450023146816,
+          "lo": 0.8622705329730245,
+          "point": 1.0087955741387127
+        },
+        "vs_alternative": {
+          "hi": -0.24225588389660224,
+          "lo": -0.2836789639137276,
+          "point": -0.262564342907452
+        }
+      },
+      {
+        "bits_per_target": 5.556809264451796,
+        "lambda": 0.2,
+        "vs": {
+          "hi": 0.9161777570915977,
+          "lo": 0.6453366544136196,
+          "point": 0.7722158674703765
+        },
+        "vs_alternative": {
+          "hi": -0.45934496755982046,
+          "lo": -0.5411809505867309,
+          "point": -0.4991440495757882
+        }
+      },
+      {
+        "bits_per_target": 5.346355545597224,
+        "lambda": 0.3,
+        "vs": {
+          "hi": 0.68528236468521,
+          "lo": 0.4534282285773843,
+          "point": 0.5617621486158049
+        },
+        "vs_alternative": {
+          "hi": -0.6508457254981073,
+          "lo": -0.771650568241764,
+          "point": -0.7095977684303598
+        }
+      },
+      {
+        "bits_per_target": 5.162783634508117,
+        "lambda": 0.4,
+        "vs": {
+          "hi": 0.48202152552534283,
+          "lo": 0.2881247494358572,
+          "point": 0.3781902375266979
+        },
+        "vs_alternative": {
+          "hi": -0.8168192837848167,
+          "lo": -0.9747665280605542,
+          "point": -0.8931696795194668
+        }
+      },
+      {
+        "bits_per_target": 5.007623195493976,
+        "lambda": 0.5,
+        "vs": {
+          "hi": 0.30833595000929925,
+          "lo": 0.1496197749926944,
+          "point": 0.2230297985125569
+        },
+        "vs_alternative": {
+          "hi": -0.9554769631574516,
+          "lo": -1.1497123318137712,
+          "point": -1.0483301185336078
+        }
+      },
+      {
+        "bits_per_target": 4.883335885226718,
+        "lambda": 0.6,
+        "vs": {
+          "hi": 0.16533863155440454,
+          "lo": 0.042074548278406176,
+          "point": 0.09874248824529896
+        },
+        "vs_alternative": {
+          "hi": -1.0631305672742544,
+          "lo": -1.2928096904106203,
+          "point": -1.1726174288008657
+        }
+      },
+      {
+        "bits_per_target": 4.79348948953795,
+        "lambda": 0.7,
+        "vs": {
+          "hi": 0.05731850342434974,
+          "lo": -0.032618487301378174,
+          "point": 0.008896092556530455
+        },
+        "vs_alternative": {
+          "hi": -1.1364140999247825,
+          "lo": -1.4002956288373278,
+          "point": -1.2624638244896342
+        }
+      },
+      {
+        "bits_per_target": 4.742902654430452,
+        "lambda": 0.8,
+        "vs": {
+          "hi": -0.010631848089939666,
+          "lo": -0.06855398147789504,
+          "point": -0.041690742550967386
+        },
+        "vs_alternative": {
+          "hi": -1.1730949613271466,
+          "lo": -1.467383574865976,
+          "point": -1.313050659597132
+        }
+      },
+      {
+        "bits_per_target": 4.737631223692846,
+        "lambda": 0.9,
+        "vs": {
+          "hi": -0.03195864443135665,
+          "lo": -0.06000663342119861,
+          "point": -0.04696217328857344
+        },
+        "vs_alternative": {
+          "hi": -1.1634486451387076,
+          "lo": -1.4880861674215966,
+          "point": -1.3183220903347381
+        }
+      },
+      {
+        "bits_per_target": 4.784593396981421,
+        "lambda": 1.0,
+        "vs": {
+          "hi": 1.7763568394002505e-15,
+          "lo": -1.7763568394002505e-15,
+          "point": 1.7763568394002505e-15
+        },
+        "vs_alternative": {
+          "hi": -1.104537891608289,
+          "lo": -1.4564630599350723,
+          "point": -1.271359917046163
+        }
+      }
+    ],
+    "docs": 24,
+    "e1_bits_per_target": 5.5651227489555835,
+    "frozen_lambda_star": 0.8,
+    "frozen_lambda_star_bits_per_target": 4.742902654430452,
+    "in_sample_bound": true,
+    "n": 4954,
+    "oracle_lambda": 0.9,
+    "oracle_min_bits_per_target": 4.737631223692846
+  },
+  "elapsed_seconds": 189.76633875,
+  "executable_sha256": "135fbb2cdd6cb0c788a28a9bdafbe786b58d0c579e7101a7958091dde5fd6618",
+  "limitations": {
+    "bootstrap": "24-cluster percentile bootstrap; the interval is over documents, not positions",
+    "dev_oracle": "the dev oracle m* is in-sample over the same development targets; the frozen-lambda-star number is the tune-frozen reading",
+    "diagnostic": "floats over recorded states; no artifact is written, no session loads it and no serving path changes. This is a measurement that selects the form of the next architecture change, not a capability result",
+    "lambda": "lambda is tuned on the tune split only, never on dev",
+    "top_k": "K = 1024 is fit-derived, so the k1024 population's restriction is not independent of the fit split"
+  },
+  "model_source": {
+    "binding": "compile-time include_bytes! of the served model source",
+    "expected_sha256": "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250",
+    "match": true,
+    "path": "crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs",
+    "sha256": "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250"
+  },
+  "oracle_criterion": {
+    "b_A": 6.684102040621672,
+    "b_C": 5.121720706100631,
+    "b_prime_at_one": 0.5530263002373061,
+    "gap_b_A_minus_b_C": 1.5623813345210404,
+    "mean_kl_pC_pA": 2.1154076347583466,
+    "population": "dev_full",
+    "possible_complementarity_over_C": true,
+    "rule": "b(1) = b_C and b is convex on [0,1], so an oracle lambda can beat C iff b'(1) = (b_C - b_A) + E[KL_bits(p_C || p_A)] > 0, i.e. mean_kl > b_A - b_C. mean_kl is label-free (it does not use the target), so the criterion cannot be won by leakage of the target label."
+  },
+  "pool": {
+    "definition": "p_lambda(x | c) ∝ p_A(x | c)^(1 - lambda) * p_C(x | c)^lambda, evaluated in base-2 log space as s_lambda(x) = (1 - lambda) log2 p_A + lambda log2 p_C and bits = logsumexp2(s_lambda) - s_lambda(target), subtracting the max.",
+    "lambda_grid": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "logsumexp_rule": "max over the 4096 declared token rows, then log2(sum exp2(s - max))",
+    "normalisation_guard": {
+      "max_abs_sum_minus_one_pA": 4.54081217071689e-14,
+      "max_abs_sum_minus_one_pC": 5.0182080713057076e-14,
+      "max_abs_sum_minus_one_pC_half1": 6.583622536027178e-14,
+      "max_abs_sum_minus_one_pC_half2": 2.964295475749168e-14,
+      "max_abs_sum_minus_one_pE1": 5.0182080713057076e-14,
+      "passed": true,
+      "tolerance": 1e-9
+    },
+    "p_stop": {
+      "definition": "the Stop row's mass under the same max-shift as the token-conditional normalisation; reported separately because it is renormalised out of p_A and is not part of the 4096-token pool",
+      "max": 0.000011428134475487205,
+      "mean": 2.021162255223538e-6,
+      "positions": 5376
+    },
+    "tie_rule": "smallest lambda within 1e-12 of the minimum"
+  },
+  "rank_note": "A's score map is affine in h, so its rank is at most h_dim + 1 = 65; C is an interpolated 4096 x 4096 (prev, cur) table. A rank-65 map cannot in general reach a full table, which is why the pool's oracle criterion, not A's own loss, is the question.",
+  "schema": "uor-r4.ordinary-lexical.count-blend/1",
+  "seed": {
+    "bootstrap_seed": 801180038299910145,
+    "null_split_seed": 801180038299910146,
+    "probe_seed": 13
+  },
+  "source_rev_arg": "34bbe2ae",
+  "split": {
+    "collected_docs": 429,
+    "dev_doc_names": [
+      "integration/review-2026-09-16/README-FOR-AGENTS.md",
+      "transformerless/LOCAL_ONLY.md",
+      "prime_router_geometric_context_evidence.md",
+      "segment_lane_886_spotcheck.md",
+      "skipmix_gap_diagnostic_904.md",
+      "native_geometric_query_owner_selection_973.md",
+      "native_geometric_language_relation_973.md",
+      "native_geometric_role_read_1137.md",
+      "context_horizon_424.md",
+      "native_geometric_truncated_history_abstention_973.md",
+      "native_geometric_occurrence_973.md",
+      "serving_release_packaging_655_d.md",
+      "r4_retained_assembly_1094_review.md",
+      "integration/model-direction-2026-09.md",
+      "r4_isolated_runtime_readiness_1096.md",
+      "native_geometric_head_reassertion_973.md",
+      "transformerless/PROOF.md",
+      "r4_group_addressed_retention_973.md",
+      "r4_zoology_query_readout_1067.md",
+      "r4_zoology_optimizer_clock_1055.md",
+      "w33_geometry_qualification_spec_845.md",
+      "integration/handoff-2026-09-07.md",
+      "integration/review-2026-09-16/02-architecture-as-implemented.md",
+      "integration/review-2026-09-16/04-mathematics-audit.md"
+    ],
+    "dev_pool_docs": 36,
+    "docs_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/inputs/docs",
+    "duplicate_docs_dropped": 0,
+    "fit_docs": 355,
+    "rule": "hash[0] % 10 < 8 fit, == 8 tune, == 9 dev; exact-duplicate grouped",
+    "tune_docs": 38,
+    "unique_docs": 429
+  },
+  "timings": {
+    "count_build_seconds": 2.354436833,
+    "dev_eval_seconds": 7.512794375,
+    "record_served_states_seconds": 74.495797709,
+    "tune_eval_seconds": 90.695210292
+  },
+  "tokenizer": {
+    "derived_sha256": "a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct/tokenizer.json",
+    "source_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c"
+  },
+  "top_k": 1024,
+  "tune": {
+    "chosen_lambda_star": 0.8,
+    "curve": [
+      {
+        "lambda": 0.0,
+        "tune_bits_per_target": 7.117387523900115
+      },
+      {
+        "lambda": 0.1,
+        "tune_bits_per_target": 6.857438648346349
+      },
+      {
+        "lambda": 0.2,
+        "tune_bits_per_target": 6.623355567093894
+      },
+      {
+        "lambda": 0.3,
+        "tune_bits_per_target": 6.415575190322265
+      },
+      {
+        "lambda": 0.4,
+        "tune_bits_per_target": 6.235178161130282
+      },
+      {
+        "lambda": 0.5,
+        "tune_bits_per_target": 6.084061819183429
+      },
+      {
+        "lambda": 0.6,
+        "tune_bits_per_target": 5.96513292206872
+      },
+      {
+        "lambda": 0.7,
+        "tune_bits_per_target": 5.882547968770729
+      },
+      {
+        "lambda": 0.8,
+        "tune_bits_per_target": 5.841927531018294
+      },
+      {
+        "lambda": 0.9,
+        "tune_bits_per_target": 5.85031025059778
+      },
+      {
+        "lambda": 1.0,
+        "tune_bits_per_target": 5.915503430434059
+      }
+    ],
+    "e1_tune_bits_per_target": 6.417813081107939,
+    "e1_weight": 0.8,
+    "lambdas": {
+      "lambda1_cur": 0.7,
+      "lambda2_context": 0.4
+    },
+    "population_states": 114364,
+    "population_windows": 2048,
+    "rule": "lambda_star = argmin over the declared grid of the micro pool loss on the recorded tune states; frozen before any development number is read",
+    "tune_oracle_min_bits_per_target": 5.841927531018294,
+    "tuned_count_bits_per_target": 5.927645175488135
+  }
+}
