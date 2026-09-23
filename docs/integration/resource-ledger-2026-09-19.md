@@ -2452,3 +2452,56 @@ independent review before implementation, and design for the instrument's conver
 version. Physical free after the work is 53,817,400 KiB, far above the 24 GiB working reserve plus the
 128 MiB stop margin. No paid or external compute, and no unique artifact or preserved root was modified;
 the diagnostic is a float instrument over recorded states and is not a serving or product dependency.
+
+## In-class readout-refit milestone projection, 2026-09-23
+
+The recorded next milestone is to test whether the served output layer can be refit **in its own
+alphabet** on the frozen state to recover the ≥0.40 bits the converged float readout already
+demonstrates is available, and to reconcile the state probe's artifact-initialisation normalisation
+discrepancy (its epoch-0 value exceeded the served reference, which renormalisation forbids).
+
+Complete projection: **5,000,000 ms** (recon and code review 400,000; one implementation round for the
+reconciliation and the in-class refit 1,500,000; release build and unit tests 300,000; one diagnostic run
+covering recording, in-class training and integer rescoring 1,300,000; interpretation, evidence and
+result documentation 900,000; protected PR, ledger and handoff 600,000). One model process at a time, two
+threads, peak incremental RAM 2 GiB, at most 1 GiB temporary build growth and 32 MiB new retained sealed
+evidence. No model-source change and no training of the recurrence or the embeddings. Physical free
+before this work is 53,813,648 KiB, above the 24 GiB working reserve plus the 128 MiB stop margin. The
+live balance of 1,284,360 ms cannot cover this block, so the standing owner authorization was applied
+**prospectively** and the owner ledger JSON advanced from **416,000,000** to **421,000,000 ms**
+(cumulative unchanged at **414,715,640 ms**) before execution.
+
+This projection is deliberately tighter than the previous milestone's, which overran by 12,000,000 ms:
+this milestone uses **one** implementation round and **no** independent architecture review, because an
+independent K3 review already recommended exactly this refit ladder and no geometric mechanism or
+roadmap pivot is involved. No paid or external compute follows and no unique artifact is deleted.
+Charge actual complete work once after delivery; the retained projection is
+`docs/evidence/lexical-refit-milestone-projection-2026-09-23.json`.
+
+## Readout-refit milestone projection and charge, 2026-09-23
+
+The recorded next milestone was to test whether the served output layer can be refit **in its own
+alphabet** on the frozen state to recover the ≥0.40 bits the converged float readout demonstrates is
+available, and to reconcile the state probe's artifact-initialisation discrepancy.
+
+Projection as first recorded: **5,000,000 ms** at 13:48Z, with the owner ledger advanced
+**416,000,000 → 421,000,000 ms** before any of that work was used. Two further extensions were recorded
+prospectively during the milestone — **→ 424,000,000 ms** at 15:10Z (to cover a corrected-alphabet run
+after the ternary refit came in short) and **→ 427,000,000 ms** at 15:29Z (to cover the protected delivery
+and handoff). The cumulative stayed at 414,715,640 ms throughout those extensions.
+
+**Final charge: 8,200,000 ms**, recorded once after the work completed, raising the cumulative to
+**422,915,640 ms** against the 427,000,000-ms limit. Measured machine time is about **3,900,000 ms** of
+it (five sealed smoke runs at ≈1,000 s each and one full-coverage run); the remainder is agent inference.
+The milestone exceeded its projection by 3,200,000 ms, and the cause is the same one already recorded for
+the previous milestone and is now doubly confirmed: **one implementation round ran past 100 minutes**, and
+the diagnostic's four-minute state-recording phase dominates the wall clock of every arm, so five smokes
+plus two full runs cost far more than the training they contain. Three process remedies are recorded in
+the result document and the handoff: sequence an independent architecture review **before** implementation;
+design for the instrument's convergence — and for the artifact-initialised side of every comparison — in
+the first version; and **price the recording phase into the arm count before dispatching**. One arm
+(`olx-refit-1`) was stopped deliberately before sealing rather than paying for a redundant third pass whose
+null control had already passed; its numbers are quoted from its own stdout and labelled as unsealed, and
+the durable end-to-end decisions come from the sealed smoke `olx-sp-e`. Physical free after the work is
+53,727,544 KiB, far above the 24 GiB working reserve plus the 128 MiB stop margin. No paid or external
+compute, and no unique artifact, preserved root or owner checkout was modified.

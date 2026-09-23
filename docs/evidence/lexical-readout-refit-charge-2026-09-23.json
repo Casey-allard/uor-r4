@@ -1,0 +1,49 @@
+{
+  "schema": "uor-r4.local-work-charge/1",
+  "recorded_utc": "2026-09-23T15:45:00Z",
+  "scope": "September 23 in-class readout-refit milestone: reconciliation of the state probe's artifact-initialisation discrepancy (a softmax base convention of exactly ln 2), construction and validation of an in-class served-alphabet readout refit on the frozen state, two full-coverage runs, five sealed smoke runs, one implementation round that overran, evidence, documentation, claim propagation and protected delivery. The independent architecture review for this milestone was already spent in the previous milestone; no new review was dispatched and no geometric mechanism or roadmap pivot was involved. Local only; no paid or external compute.",
+  "cumulative_before_ms": 414715640,
+  "limit_ms": 427000000,
+  "charged_increment_ms": 8200000,
+  "cumulative_after_ms": 422915640,
+  "charge_components": {
+    "authority_recon_and_source_inspection_ms": 600000,
+    "implementation_round_reconciliation_and_in_class_refit_ms": 4600000,
+    "release_build_and_unit_tests_ms": 300000,
+    "smoke_runs_five_sealed_ms": 2100000,
+    "full_coverage_runs_ms": 1800000,
+    "interpretation_including_the_two_scope_retractions_ms": 600000,
+    "evidence_result_documentation_and_public_claim_propagation_ms": 900000,
+    "protected_pr_ledger_and_handoff_ms": 500000
+  },
+  "measured_machine_time_ms": {
+    "sealed_smoke_runs": 2100000,
+    "olx_refit_1_full_coverage_both_scopes": 1800000,
+    "note": "the implementation round was the dominant cost at about 4,600,000 ms of agent time, past 100 minutes of wall clock, because the refit's own initialisation defect was found only at the end of that round and was reported rather than fixed"
+  },
+  "timing_precision": "UTC wall-clock of this milestone, measured from the recorded projection timestamp to the charge timestamp. The overrun against the five-million-millisecond projection is almost entirely agent inference time in one implementation round, not machine time: the machine component is about 3,900,000 ms of the 8,200,000 ms charged.",
+  "extension_recorded_prospectively": {
+    "projection_recorded_utc": "2026-09-23T13:48:00Z",
+    "projection_increment_ms": 5000000,
+    "second_extension_utc": "2026-09-23T15:10:00Z",
+    "second_extension_limit_ms": 424000000,
+    "third_extension_utc": "2026-09-23T15:29:00Z",
+    "third_extension_limit_ms": 427000000,
+    "final_limit_ms": 427000000,
+    "actual_increment_ms": 8200000,
+    "note": "the milestone exceeded its projection by 3,200,000 ms. Two extensions were recorded before the work they covered was used. The cause is the same one already recorded for the previous milestone and is now doubly confirmed: a single implementation round that ran past 100 minutes, and a diagnostic whose recording phase alone costs four minutes per run and which needed five smokes plus two full runs. The process remedies are recorded in the record: sequence the independent review before implementation, design for the instrument's convergence in its first version, and price the recording phase into the arm count before dispatching."
+  },
+  "new_paid_compute": false,
+  "physical_free_kib_after": 53727544,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "new_retained_evidence_bytes_estimate": 6710886,
+  "unique_evidence_deleted": false,
+  "preserved_roots_untouched": [
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-channel-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-audit-4",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-probe-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-probe-4"
+  ]
+}

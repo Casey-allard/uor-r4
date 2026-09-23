@@ -71,6 +71,9 @@ const PROBE_SEED: u64 = 13;
 const PROBE_INIT: &str = PROBE_INIT_RIDGE;
 const PROBE_INIT_RIDGE: &str = "ridge";
 const PROBE_INIT_ARTIFACT: &str = "artifact";
+/// Declared alphabet names of the refit, matching the servable schemes the repricing knows.
+const REFIT_ALPHABET_TERNARY: &str = "ternary";
+const REFIT_ALPHABET_FOUR_BIT: &str = "four_bit";
 const PROBE_BATCH: usize = 256;
 const ADAM_BETA1: f64 = 0.9;
 const ADAM_BETA2: f64 = 0.999;
@@ -145,6 +148,22 @@ struct Args {
     /// `--probe-skip-null`: do not run the null probe in this attempt. The receipt then records that the
     /// control was not run and cites the sealed attempts where the identical machinery was validated.
     probe_skip_null: bool,
+    /// `--readout-refit`: after the probe machinery, refit the readout *inside* a servable alphabet.
+    readout_refit: bool,
+    /// `--refit-scope {kclass,servable}`: `kclass` refits the K restricted vocabulary rows and scores the
+    /// K-class softmax; `servable` refits every vocabulary row and scores the artifact's full legal row
+    /// set, with the `Copy` and `Stop` rows frozen at the artifact's own values.
+    refit_scope: String,
+    /// `--refit-alphabet {ternary,four_bit}`: the D0-b alphabet the refit trains in.
+    refit_alphabet: String,
+    /// `--refit-epochs <n>` / `--refit-lr <f>` / `--refit-stride <n>` / `--refit-init {artifact,zero}`.
+    refit_epochs: usize,
+    refit_lr: f64,
+    refit_stride: usize,
+    refit_init: String,
+    /// `--refit-eval-stride <n>`: declared stride of the *reported* fit-side loss (dev is always
+    /// complete). Declared default `REFIT_EVAL_STRIDE`.
+    refit_eval_stride: usize,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -173,6 +192,14 @@ fn parse_args() -> Result<Args, String> {
     let mut probe_seed = PROBE_SEED;
     let mut probe_init = String::from(PROBE_INIT);
     let mut probe_skip_null = false;
+    let mut readout_refit = false;
+    let mut refit_scope = String::from(REFIT_SCOPE_SERVABLE);
+    let mut refit_alphabet = String::from(REFIT_ALPHABET_TERNARY);
+    let mut refit_epochs = REFIT_EPOCHS;
+    let mut refit_lr = REFIT_LR;
+    let mut refit_stride = REFIT_STRIDE;
+    let mut refit_init = String::from(REFIT_INIT_ARTIFACT);
+    let mut refit_eval_stride = REFIT_EVAL_STRIDE;
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
     while i < argv.len() {
@@ -184,6 +211,11 @@ fn parse_args() -> Result<Args, String> {
         }
         if k == "--probe-skip-null" {
             probe_skip_null = true;
+            i += 1;
+            continue;
+        }
+        if k == "--readout-refit" {
+            readout_refit = true;
             i += 1;
             continue;
         }
@@ -223,6 +255,21 @@ fn parse_args() -> Result<Args, String> {
                 probe_seed = v()?.parse().map_err(|e| format!("--probe-seed: {e}"))?
             }
             "--probe-init" => probe_init = v()?,
+            "--refit-scope" => refit_scope = v()?,
+            "--refit-alphabet" => refit_alphabet = v()?,
+            "--refit-init" => refit_init = v()?,
+            "--refit-epochs" => {
+                refit_epochs = v()?.parse().map_err(|e| format!("--refit-epochs: {e}"))?
+            }
+            "--refit-lr" => refit_lr = v()?.parse().map_err(|e| format!("--refit-lr: {e}"))?,
+            "--refit-stride" => {
+                refit_stride = v()?.parse().map_err(|e| format!("--refit-stride: {e}"))?
+            }
+            "--refit-eval-stride" => {
+                refit_eval_stride = v()?
+                    .parse()
+                    .map_err(|e| format!("--refit-eval-stride: {e}"))?
+            }
             "--steps" => steps = v()?.parse().map_err(|e| format!("--steps: {e}"))?,
             "--batch" => batch = v()?.parse().map_err(|e| format!("--batch: {e}"))?,
             "--seed" => seed = v()?.parse().map_err(|e| format!("--seed: {e}"))?,
@@ -250,6 +297,41 @@ fn parse_args() -> Result<Args, String> {
         return Err(format!(
             "--probe-lr must be positive and finite, got {probe_lr}"
         ));
+    }
+    if refit_scope != REFIT_SCOPE_KCLASS
+        && refit_scope != REFIT_SCOPE_SERVABLE
+        && refit_scope != REFIT_SCOPE_BOTH
+    {
+        return Err(format!(
+            "--refit-scope must be {}, {} or {}, got {refit_scope:?}",
+            REFIT_SCOPE_KCLASS, REFIT_SCOPE_SERVABLE, REFIT_SCOPE_BOTH
+        ));
+    }
+    if refit_alphabet != REFIT_ALPHABET_TERNARY && refit_alphabet != REFIT_ALPHABET_FOUR_BIT {
+        return Err(format!(
+            "--refit-alphabet must be {} or {}, got {refit_alphabet:?}",
+            REFIT_ALPHABET_TERNARY, REFIT_ALPHABET_FOUR_BIT
+        ));
+    }
+    if refit_init != REFIT_INIT_ARTIFACT && refit_init != REFIT_INIT_ZERO {
+        return Err(format!(
+            "--refit-init must be {} or {}, got {refit_init:?}",
+            REFIT_INIT_ARTIFACT, REFIT_INIT_ZERO
+        ));
+    }
+    if refit_epochs == 0 {
+        return Err("--refit-epochs must be at least 1".into());
+    }
+    if !(refit_lr.is_finite() && refit_lr > 0.0) {
+        return Err(format!(
+            "--refit-lr must be positive and finite, got {refit_lr}"
+        ));
+    }
+    if refit_stride == 0 {
+        return Err("--refit-stride must be at least 1".into());
+    }
+    if refit_eval_stride == 0 {
+        return Err("--refit-eval-stride must be at least 1".into());
     }
     if probe_init != PROBE_INIT_RIDGE && probe_init != PROBE_INIT_ARTIFACT {
         return Err(format!(
@@ -283,6 +365,14 @@ fn parse_args() -> Result<Args, String> {
         probe_seed,
         probe_init,
         probe_skip_null,
+        readout_refit,
+        refit_scope,
+        refit_alphabet,
+        refit_epochs,
+        refit_lr,
+        refit_stride,
+        refit_init,
+        refit_eval_stride,
     })
 }
 
@@ -3782,6 +3872,648 @@ fn fit_float_probe(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Task B: an in-class refit of the readout inside a servable alphabet
+// ---------------------------------------------------------------------------
+//
+// Post-hoc quantisation of a fitted float readout is not a fair test of an alphabet: the alphabet can
+// only be judged by training inside it, with the artifact's own conventions. This refit does exactly the
+// artifact's own thing -- float masters, a per-row power-of-two scale recomputed from the masters at
+// every step by the artifact's own rule, a straight-through gradient in the master space with no
+// quantiser Jacobian, and an integer bias -- over the frozen recorded states, and it reports the loss in
+// the artifact's own base-2 dyadic convention so the numbers are directly comparable with `A`.
+
+/// Declared defaults of the in-class refit, and the accepted values of its flags.
+const REFIT_EPOCHS: usize = 12;
+const REFIT_LR: f64 = 0.01;
+const REFIT_STRIDE: usize = 1;
+const REFIT_SCOPE_KCLASS: &str = "kclass";
+const REFIT_SCOPE_SERVABLE: &str = "servable";
+/// `--refit-scope both`: run the `kclass` and the `servable` scopes in one attempt.
+const REFIT_SCOPE_BOTH: &str = "both";
+const REFIT_INIT_ARTIFACT: &str = "artifact";
+const REFIT_INIT_ZERO: &str = "zero";
+const REFIT_BATCH: usize = 256;
+/// Declared default stride of the *reported* fit-side evaluation (dev is always complete). The fit-side
+/// sample is a systematic stride of the fit positions: with a per-position loss standard deviation of
+/// order 0.05-0.1 bits, a stride of 8 leaves a standard error of order 0.0005 bits on the reported fit
+/// loss, far below any effect the refit is being asked to measure, while a complete fit-side evaluation of
+/// the servable scope costs ~85 G operations per report.
+const REFIT_EVAL_STRIDE: usize = 8;
+/// Declared cap on how many positions per scored set are re-run through the artifact's own integer
+/// kernel as a cross-check of the served arithmetic (the kernel's per-position cost is the dominant
+/// evaluation cost, and it computes exactly `(sum code * u) << shift + round(b)`).
+const REFIT_KERNEL_SAMPLE: usize = 64;
+/// The declared margin by which a refit must beat its reference to count as a real gain.
+const REFIT_DECISION_MARGIN: f64 = 0.30;
+
+/// One readout being refit inside a servable alphabet, in the artifact's own parameterisation: float
+/// masters, an integer bias, and a per-row power-of-two scale recomputed from the masters at every step.
+struct Refit {
+    alphabet: CodeAlphabet,
+    rows: usize,
+    d: usize,
+    w: Vec<f64>,
+    b: Vec<f64>,
+    frozen: Vec<bool>,
+    mw: Vec<f64>,
+    vw: Vec<f64>,
+    mb: Vec<f64>,
+    vb: Vec<f64>,
+    steps: u32,
+    bias_frozen: bool,
+    /// Distinct positions the training pass actually visited.
+    distinct_positions: usize,
+}
+
+impl Refit {
+    fn new(
+        alphabet: CodeAlphabet,
+        rows: usize,
+        d: usize,
+        w: Vec<f64>,
+        b: Vec<f64>,
+        frozen: Vec<bool>,
+        bias_frozen: bool,
+    ) -> Result<Self, String> {
+        if w.len() != rows * d || b.len() != rows || frozen.len() != rows {
+            return Err("refit readout shape mismatch".into());
+        }
+        let (nw, nb) = (w.len(), b.len());
+        Ok(Self {
+            alphabet,
+            rows,
+            d,
+            w,
+            b,
+            frozen,
+            mw: vec![0.0; nw],
+            vw: vec![0.0; nw],
+            mb: vec![0.0; nb],
+            vb: vec![0.0; nb],
+            steps: 0,
+            bias_frozen,
+            distinct_positions: 0,
+        })
+    }
+
+    /// The alphabet's own per-row scale and codes, recomputed from the current masters exactly as the
+    /// artifact's `quantize_ternary` / `TlEmbed::quantize` do.
+    fn quantise(&self) -> (Vec<i8>, Vec<u32>) {
+        let mut codes = vec![0i8; self.rows * self.d];
+        let mut shift = vec![0u32; self.rows];
+        for r in 0..self.rows {
+            let row = &self.w[r * self.d..(r + 1) * self.d];
+            let s = self.alphabet.rule_shift(row);
+            shift[r] = s;
+            let q = self.alphabet.quantize_row(row, s);
+            codes[r * self.d..(r + 1) * self.d].copy_from_slice(&q);
+        }
+        (codes, shift)
+    }
+
+    /// Integer logits `(sum_c code_c u_c) << s_r + round(b_r)` over the raw integer input `u = [h, ev]`:
+    /// the served integer score before the artifact's declared dyadic scale.
+    fn integer_logits(&self, codes: &[i8], shift: &[u32], u: &[i32], out: &mut [i64]) {
+        for r in 0..self.rows {
+            let mut acc: i64 = 0;
+            for c in 0..self.d {
+                let x = u[c] as i64;
+                if x != 0 {
+                    acc += codes[r * self.d + c] as i64 * x;
+                }
+            }
+            out[r] = (acc << shift[r].min(31)) + self.b[r].round() as i64;
+        }
+    }
+
+    /// One Adam step on the batch-mean straight-through gradient, in the artifact's own convention:
+    /// `p` from a base-2 softmax at the declared dyadic scale, `dlogits[r] = (p_r - onehot_r) * 2^-ss`,
+    /// then `g.w[r][c] += dlogits[r] * u[c]` and `g.b[r] += dlogits[r]`, with no quantiser Jacobian.
+    /// Frozen rows (the artifact's `Copy` and `Stop` rows) receive no gradient.
+    fn step(
+        &mut self,
+        u: &[i32],
+        y: &[usize],
+        idx: &[usize],
+        eval_rows: &[usize],
+        dscale: f64,
+        lr: f64,
+    ) {
+        if idx.is_empty() {
+            return;
+        }
+        let (gw, gb) = self.gradient(u, y, idx, eval_rows, dscale);
+        self.steps += 1;
+        let b1t = 1.0 - ADAM_BETA1.powi(self.steps as i32);
+        let b2t = 1.0 - ADAM_BETA2.powi(self.steps as i32);
+        for r in 0..self.rows {
+            if self.frozen[r] {
+                continue;
+            }
+            for c in 0..self.d {
+                let i = r * self.d + c;
+                let g = gw[i];
+                let m = ADAM_BETA1 * self.mw[i] + (1.0 - ADAM_BETA1) * g;
+                let v = ADAM_BETA2 * self.vw[i] + (1.0 - ADAM_BETA2) * g * g;
+                self.mw[i] = m;
+                self.vw[i] = v;
+                self.w[i] -= lr * (m / b1t) / ((v / b2t).sqrt() + ADAM_EPS);
+            }
+            if self.bias_frozen {
+                continue;
+            }
+            let g = gb[r];
+            let m = ADAM_BETA1 * self.mb[r] + (1.0 - ADAM_BETA1) * g;
+            let v = ADAM_BETA2 * self.vb[r] + (1.0 - ADAM_BETA2) * g * g;
+            self.mb[r] = m;
+            self.vb[r] = v;
+            self.b[r] -= lr * (m / b1t) / ((v / b2t).sqrt() + ADAM_EPS);
+        }
+    }
+
+    /// The batch-mean straight-through gradient of the base-2 softmax cross-entropy with respect to the
+    /// pre-quantisation masters, in the artifact's own convention: `dlogits[r] = (p_r - onehot_r) * 2^-ss`
+    /// on the evaluated class set, then `g.w[r][c] += dlogits[r] * u[c]` and `g.b[r] += dlogits[r]`, with
+    /// **no quantiser Jacobian**. Frozen rows get no gradient.
+    fn gradient(
+        &self,
+        u: &[i32],
+        y: &[usize],
+        idx: &[usize],
+        eval_rows: &[usize],
+        dscale: f64,
+    ) -> (Vec<f64>, Vec<f64>) {
+        let (codes, shift) = self.quantise();
+        let mut gw = vec![0.0; self.w.len()];
+        let mut gb = vec![0.0; self.b.len()];
+        if idx.is_empty() {
+            return (gw, gb);
+        }
+        let inv = 1.0 / idx.len() as f64;
+        let mut z = vec![0i64; self.rows];
+        let mut p = vec![0.0f64; self.rows];
+        for &i in idx {
+            let ui = &u[i * self.d..(i + 1) * self.d];
+            self.integer_logits(&codes, &shift, ui, &mut z);
+            let m = eval_rows.iter().map(|r| z[*r]).max().unwrap_or(0);
+            let mut den = 0.0f64;
+            for &r in eval_rows {
+                let v = ((z[r] - m) as f64 * dscale).exp2();
+                p[r] = v;
+                den += v;
+            }
+            if !(den > 0.0) {
+                continue;
+            }
+            let target = y[i];
+            for &r in eval_rows {
+                if self.frozen[r] {
+                    continue;
+                }
+                let dl = (p[r] / den - if r == target { 1.0 } else { 0.0 }) * dscale;
+                if dl == 0.0 {
+                    continue;
+                }
+                gb[r] += dl * inv;
+                for c in 0..self.d {
+                    let x = ui[c] as f64;
+                    if x != 0.0 {
+                        gw[r * self.d + c] += dl * x * inv;
+                    }
+                }
+            }
+        }
+        (gw, gb)
+    }
+
+    /// The integer logits of one input through the *artifact's own kernel*: `TlLinear::forward_i32` for
+    /// the ternary alphabet (built from the artifact's public fields, with the packing re-verified), and
+    /// `TlEmbed::value` accumulation for the 4-bit alphabet, plus the integer bias.
+    fn kernel_logits(&self, codes: &[i8], shift: &[u32], u: &[i32]) -> Result<Vec<i64>, String> {
+        let mut out = vec![0i64; self.rows];
+        match self.alphabet {
+            CodeAlphabet::Ternary => {
+                let linear = TlLinear {
+                    rows: self.rows,
+                    cols: self.d,
+                    packed: pack_ternary_codes(codes),
+                    shift: shift.to_vec(),
+                };
+                let probe_x: Vec<i32> = (0..self.d).map(|c| ((c % 7) as i32) - 3).collect();
+                verify_ternary_packing(&linear, codes, self.d, &probe_x)?;
+                for r in 0..self.rows {
+                    out[r] = linear.forward_i32(u)?[r] as i64 + self.b[r].round() as i64;
+                }
+            }
+            CodeAlphabet::FourBit => {
+                let table = TlEmbed {
+                    rows: self.rows,
+                    cols: self.d,
+                    codes: codes.to_vec(),
+                    shift: shift.to_vec(),
+                };
+                for r in 0..self.rows {
+                    let mut acc: i64 = 0;
+                    for c in 0..self.d {
+                        acc += table.value(r, c) as i64 * u[c] as i64;
+                    }
+                    out[r] = acc + self.b[r].round() as i64;
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    /// Mean bits/target of this readout over `idx`, in the artifact's own base-2 dyadic convention.
+    fn score_bits(
+        &self,
+        u: &[i32],
+        y: &[usize],
+        idx: &[usize],
+        eval_rows: &[usize],
+        dscale: f64,
+    ) -> f64 {
+        if idx.is_empty() {
+            return f64::NAN;
+        }
+        let (codes, shift) = self.quantise();
+        let mut z = vec![0i64; self.rows];
+        let mut total = 0.0f64;
+        for &i in idx {
+            self.integer_logits(&codes, &shift, &u[i * self.d..(i + 1) * self.d], &mut z);
+            let m = eval_rows.iter().map(|r| z[*r]).max().unwrap_or(0);
+            let mut den = 0.0f64;
+            for &r in eval_rows {
+                den += ((z[r] - m) as f64 * dscale).exp2();
+            }
+            let pt = ((z[y[i]] - m) as f64 * dscale).exp2();
+            total -= (pt / den).max(f64::MIN_POSITIVE).log2();
+        }
+        total / idx.len() as f64
+    }
+
+    fn code_report(&self) -> (usize, usize, Vec<u32>) {
+        let (codes, shift) = self.quantise();
+        let nonzero = codes.iter().filter(|c| **c != 0).count();
+        let mut scales = shift;
+        scales.sort_unstable();
+        scales.dedup();
+        (nonzero, codes.len(), scales)
+    }
+}
+
+/// One split's refit population: the declared integer inputs `[h, event one-hot]`, the target *row* of
+/// each position (the class index in the `kclass` scope, the vocabulary row in the `servable` scope) and
+/// whether the position's target is in the restricted class set (for the servable scope's restricted
+/// reference).
+#[derive(Default, Clone)]
+struct RefitSplit {
+    u: Vec<i32>,
+    y: Vec<usize>,
+    in_top: Vec<bool>,
+    n: usize,
+    d: usize,
+}
+
+/// Gather one split's refit population. `restricted_only` gives the `kclass` scope (restricted targets,
+/// class indices); otherwise every recorded position is kept with its vocabulary row.
+fn gather_refit_split(
+    model: &TlModel,
+    states: &[ServedState],
+    class_of: &[usize],
+    in_top: &[bool],
+    restricted_only: bool,
+) -> Result<RefitSplit, String> {
+    let d = model.h_dim + PROBE_EVENT_DIMS;
+    let mut out = RefitSplit {
+        d,
+        ..RefitSplit::default()
+    };
+    for s in states {
+        let restricted = in_top[s.target as usize];
+        if restricted_only && !restricted {
+            continue;
+        }
+        out.u.extend_from_slice(&s.h);
+        for e in 0..PROBE_EVENT_DIMS {
+            out.u
+                .push(i32::from(e == s.event.min(PROBE_EVENT_DIMS - 1)));
+        }
+        let row = if restricted_only {
+            match class_of.get(s.target as usize) {
+                Some(c) if *c != usize::MAX => *c,
+                _ => return Err("a restricted position has no class index".into()),
+            }
+        } else {
+            model.token_row(s.target)
+        };
+        out.y.push(row);
+        out.in_top.push(restricted);
+        out.n += 1;
+    }
+    if out.u.len() != out.n * d {
+        return Err("refit population width mismatch".into());
+    }
+    Ok(out)
+}
+
+/// The result of the refit-initialisation control: the initialised refit's own logits against the
+/// artifact's readout, row by row, on the refit's own input.
+#[derive(Default, Clone)]
+struct RefitInitCheck {
+    positions: usize,
+    rows_compared: usize,
+    worst_absolute_deviation: i64,
+    first_offender: Option<(usize, usize, i64, i64)>,
+}
+
+/// Compare the refit's own parameterisation against the artifact's readout.
+///
+/// For each sampled position the refit's logits are `(sum_c code_c * u_c) << shift_r + round(b_r)` with
+/// `u = [h, event one-hot]` -- its own input, its own alphabet, its own rounded bias -- and they must equal
+/// `TlModel::readout`'s integer logits for the same recorded state at the mapped row. Both sides are
+/// integers, so the expected deviation is exactly zero.
+fn verify_refit_init(
+    model: &TlModel,
+    refit: &Refit,
+    pop: &RefitSplit,
+    idx: &[usize],
+    rows_map: &[usize],
+    f_block: &[i32],
+) -> Result<RefitInitCheck, String> {
+    let h_dim = model.h_dim;
+    let m = vec![0i32; h_dim];
+    let (codes, shift) = refit.quantise();
+    let mut z = vec![0i64; refit.rows];
+    let mut out = RefitInitCheck::default();
+    for &i in idx {
+        let ui = &pop.u[i * refit.d..(i + 1) * refit.d];
+        // Recover the state and the event symbol from the refit's own input vector.
+        let h: Vec<i32> = ui[..h_dim].to_vec();
+        let event = ui[h_dim..]
+            .iter()
+            .position(|v| *v != 0)
+            .unwrap_or(0)
+            .min(TL_EVENTS - 1);
+        let served = model.readout(&h, &m, f_block, event);
+        refit.integer_logits(&codes, &shift, ui, &mut z);
+        for r in 0..refit.rows {
+            let row = *rows_map
+                .get(r)
+                .ok_or("refit row mapping is shorter than the readout")?;
+            let want = served[row] as i64;
+            let dev = (z[r] - want).abs();
+            out.rows_compared += 1;
+            if dev > out.worst_absolute_deviation {
+                out.worst_absolute_deviation = dev;
+                if out.first_offender.is_none() {
+                    out.first_offender = Some((i, r, z[r], want));
+                }
+            }
+        }
+        out.positions += 1;
+    }
+    Ok(out)
+}
+
+/// One refit readout's scored report, in the artifact's own base-2 dyadic convention.
+#[derive(Default, Clone)]
+struct RefitReport {
+    label: String,
+    fit_bits: f64,
+    fit_positions: usize,
+    dev_bits: f64,
+    dev_positions: usize,
+    dev_top1: f64,
+    /// Servable scope only: the same dev logits scored over the restricted development positions, for
+    /// comparability with the artifact's restricted reference.
+    dev_bits_restricted: f64,
+    dev_restricted_positions: usize,
+    nonzero: usize,
+    entries: usize,
+    density: f64,
+    distinct_row_scales: Vec<u32>,
+    bytes_information: usize,
+    bytes_container: usize,
+    logit_min: i64,
+    logit_max: i64,
+    max_row_bound: i128,
+    envelope_ok: bool,
+    frozen_rows: usize,
+    /// The artifact's own integer kernel was re-run on this many positions and agreed with the served
+    /// arithmetic to this worst absolute deviation.
+    kernel_sample_positions: usize,
+    kernel_worst_deviation: f64,
+    /// Share of the fit population the training pass actually visited: distinct positions over the run
+    /// divided by the fit population. Below 1.0 the refit is under-trained by construction, which is not
+    /// evidence against the alphabet.
+    visited_share: f64,
+}
+
+impl RefitReport {
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "label": self.label,
+            "fit_bits_per_target": self.fit_bits,
+            "fit_positions_scored": self.fit_positions,
+            "dev_bits_per_target": self.dev_bits,
+            "dev_positions_scored": self.dev_positions,
+            "dev_top1": self.dev_top1,
+            "dev_bits_restricted_positions": if self.dev_restricted_positions == 0 { serde_json::json!(null) } else { serde_json::json!(self.dev_bits_restricted) },
+            "dev_restricted_positions": self.dev_restricted_positions,
+            "nonzero_codes": self.nonzero,
+            "code_entries": self.entries,
+            "code_density": self.density,
+            "distinct_row_scales": self.distinct_row_scales,
+            "bytes_packed_information": self.bytes_information,
+            "bytes_artifact_container": self.bytes_container,
+            "integer_logit_min": self.logit_min,
+            "integer_logit_max": self.logit_max,
+            "max_row_accumulator_bound": self.max_row_bound.to_string(),
+            "envelope_ok": self.envelope_ok,
+            "frozen_rows": self.frozen_rows,
+            "kernel_check_positions": self.kernel_sample_positions,
+            "kernel_check_worst_deviation": self.kernel_worst_deviation,
+            "visited_share_of_fit_population": self.visited_share,
+        })
+    }
+}
+
+/// Score one refit readout through the artifact's kernel over a position list.
+#[allow(clippy::too_many_arguments)]
+fn evaluate_refit(
+    refit: &Refit,
+    label: &str,
+    fit: (&[i32], &[usize], &[usize]),
+    dev: (&[i32], &[usize], &[usize]),
+    restricted_dev_idx: &[usize],
+    fit_population: usize,
+    eval_rows: &[usize],
+    h_clamp: i32,
+    dscale: f64,
+) -> Result<RefitReport, String> {
+    // `fit` and `dev` each carry their own inputs, targets and index list. They must not be shared: an
+    // earlier revision scored the development set with the fit population's arrays and its index range,
+    // which silently reported a different (and meaningless) population.
+    let (fit_u, fit_y, fit_idx) = fit;
+    let (dev_u, dev_y, dev_idx) = dev;
+    let mut rep = RefitReport {
+        label: label.to_string(),
+        ..RefitReport::default()
+    };
+    // The readout's codes are quantised once, not once per position, and the artifact's own kernel is
+    // checked against the served arithmetic on a declared sample of positions below.
+    let (codes, shift) = refit.quantise();
+    let mut z = vec![0i64; refit.rows];
+    let mut kernel_checked = 0usize;
+    let mut kernel_worst = 0.0f64;
+    let mut score_set =
+        |u: &[i32], y: &[usize], idx: &[usize]| -> Result<(f64, f64, usize, i64, i64), String> {
+            let mut bits = 0.0f64;
+            let mut correct = 0usize;
+            let (mut lo, mut hi) = (i64::MAX, i64::MIN);
+            for &i in idx {
+                let ui = &u[i * refit.d..(i + 1) * refit.d];
+                refit.integer_logits(&codes, &shift, ui, &mut z);
+                let z = &z;
+                let m = eval_rows.iter().map(|r| z[*r]).max().unwrap_or(0);
+                let mut den = 0.0f64;
+                for &r in eval_rows {
+                    den += ((z[r] - m) as f64 * dscale).exp2();
+                }
+                let target = y[i];
+                let pt = ((z[target] - m) as f64 * dscale).exp2();
+                bits -= (pt / den).max(f64::MIN_POSITIVE).log2();
+                let mut best = eval_rows[0];
+                for &r in eval_rows {
+                    if z[r] > z[best] {
+                        best = r;
+                    }
+                }
+                if best == target {
+                    correct += 1;
+                }
+                for &r in eval_rows {
+                    lo = lo.min(z[r]);
+                    hi = hi.max(z[r]);
+                }
+                // The artifact's own kernel on a declared sample of the same positions.
+                if kernel_checked < REFIT_KERNEL_SAMPLE {
+                    let via_kernel = refit.kernel_logits(&codes, &shift, ui)?;
+                    for &r in eval_rows {
+                        kernel_worst = kernel_worst.max(((z[r] - via_kernel[r]) as f64).abs());
+                    }
+                    kernel_checked += 1;
+                }
+            }
+            let n = idx.len().max(1);
+            Ok((bits, correct as f64 / idx.len().max(1) as f64, n, lo, hi))
+        };
+    let (fit_bits, _, fit_n, lo, hi) = score_set(fit_u, fit_y, fit_idx)?;
+    rep.fit_bits = fit_bits / fit_n as f64;
+    rep.fit_positions = fit_idx.len();
+    let (dev_bits, top1, dev_n, lo2, hi2) = score_set(dev_u, dev_y, dev_idx)?;
+    rep.dev_bits = dev_bits / dev_n as f64;
+    rep.dev_positions = dev_idx.len();
+    rep.dev_top1 = top1;
+    rep.logit_min = lo.min(lo2);
+    rep.logit_max = hi.max(hi2);
+    if !restricted_dev_idx.is_empty() {
+        let (rb, _, rn, _, _) = score_set(dev_u, dev_y, restricted_dev_idx)?;
+        rep.dev_bits_restricted = rb / rn as f64;
+        rep.dev_restricted_positions = restricted_dev_idx.len();
+    }
+    let (nonzero, entries, scales) = refit.code_report();
+    rep.nonzero = nonzero;
+    rep.entries = entries;
+    rep.density = nonzero as f64 / entries.max(1) as f64;
+    rep.distinct_row_scales = scales;
+    rep.bytes_information = entries * refit.alphabet.bits_per_entry() / 8;
+    rep.bytes_container = rep.bytes_information + 4 * refit.rows + 4 * refit.rows;
+    rep.frozen_rows = refit.frozen.iter().filter(|f| **f).count();
+    rep.visited_share = if fit_population == 0 {
+        f64::NAN
+    } else {
+        refit.distinct_positions as f64 / fit_population as f64
+    };
+    rep.kernel_sample_positions = kernel_checked;
+    rep.kernel_worst_deviation = kernel_worst;
+    let (codes, shift) = refit.quantise();
+    // Decode the codes back for the envelope: the declared D0-b row accumulator bound.
+    let mut bound: i128 = 0;
+    let h_dim = refit.d - PROBE_EVENT_DIMS;
+    for r in 0..refit.rows {
+        let mut sum: i128 = 0;
+        for c in 0..refit.d {
+            let b = if c < h_dim { h_clamp as i128 } else { 1 };
+            sum += (codes[r * refit.d + c] as i128).abs() * b;
+        }
+        bound = bound.max(sum << shift[r].min(31));
+    }
+    rep.max_row_bound = bound;
+    rep.envelope_ok = bound <= (i32::MAX / 4) as i128;
+    Ok(rep)
+}
+
+/// Train one refit readout: `epochs` passes over the (strided) training positions in minibatches of
+/// `REFIT_BATCH`, Adam on the masters, labels optionally permuted and the bias optionally frozen.
+#[allow(clippy::too_many_arguments)]
+fn train_refit(
+    mut refit: Refit,
+    u: &[i32],
+    y: &[usize],
+    pop_len: usize,
+    stride: usize,
+    eval_rows: &[usize],
+    dscale: f64,
+    epochs: usize,
+    lr: f64,
+    seed: u64,
+    label: &str,
+    verbose: bool,
+    dev_probe: Option<(&[i32], &[usize], &[usize])>,
+) -> Refit {
+    let stride = stride.max(1);
+    let mut st = seed ^ 0x5DEE_CE66;
+    let mut visited = vec![false; pop_len];
+    let mut distinct = 0usize;
+    for epoch in 0..epochs {
+        // The declared stride rotates its phase each epoch, so a run that trains on 1 / stride of the
+        // positions per epoch still covers the whole split once every `stride` epochs instead of
+        // re-fitting the same slice.
+        let phase = epoch % stride;
+        let mut order: Vec<usize> = (phase..pop_len).step_by(stride).collect();
+        shuffle(&mut order, &mut st);
+        for &i in order.iter() {
+            if !visited[i] {
+                visited[i] = true;
+                distinct += 1;
+            }
+        }
+        for batch in order.chunks(REFIT_BATCH) {
+            refit.step(u, y, batch, eval_rows, dscale, lr);
+        }
+        if let Some((du, dy, didx)) = dev_probe {
+            let bits = refit.score_bits(du, dy, didx, eval_rows, dscale);
+            println!(
+                "    {label} epoch {:>2}/{epochs}  dev {bits:.4} bits/target, distinct positions seen \
+                 {distinct}",
+                epoch + 1
+            );
+        } else if verbose {
+            let (nonzero, entries, _) = refit.code_report();
+            println!(
+                "    {label} epoch {:>2}/{epochs}  codes nonzero {nonzero}/{entries}, distinct \
+                 positions seen {distinct}",
+                epoch + 1
+            );
+        }
+    }
+    refit.distinct_positions = distinct;
+    refit
+}
+
 /// The declared rule that decides whether the fit is still moving at the last epoch, in bits/target.
 const PROBE_CONVERGED_BITS: f64 = 0.01;
 /// The declared margin below the unigram-over-`k` level at which the null probe is called a leak.
@@ -3843,9 +4575,14 @@ const FIT_CONTROL_STRIDE: usize = 20;
 /// (`TlLinear::forward_reference` on unit vectors), so no packing or dequantisation convention is
 /// reimplemented here. `state_column_scale` folds the probe's `1 / h_clamp` input scaling back in.
 struct ArtifactReadoutInit {
-    /// `k x d`, class-major.
+    /// `k x d`, class-major: the coefficient of the probe's input `[h / h_clamp, event one-hot]`.
     w: Vec<f64>,
     b: Vec<f64>,
+    /// The same readout rows in the *served* integer basis: the coefficient of the artifact's own input
+    /// `[h, event]` (i.e. `w << shift`) and the integer bias `f_const + bo`, so that
+    /// `sum_j served_w[c][j] * u[j] + served_b[c]` is exactly `TlModel::readout`'s integer logit.
+    served_w: Vec<f64>,
+    served_b: Vec<f64>,
     state_columns: usize,
     m_columns_dropped: usize,
     f_columns_folded: usize,
@@ -3856,11 +4593,11 @@ struct ArtifactReadoutInit {
 
 fn artifact_readout_init(
     model: &TlModel,
-    top_ids: &[u32],
+    class_rows: &[usize],
     f_block: &[i32],
     h_clamp: i32,
 ) -> Result<ArtifactReadoutInit, String> {
-    let (k, h_dim, f_dim) = (top_ids.len(), model.h_dim, model.f_dim);
+    let (k, h_dim, f_dim) = (class_rows.len(), model.h_dim, model.f_dim);
     let d = h_dim + PROBE_EVENT_DIMS;
     let cols = model.wo.cols;
     if cols != 2 * h_dim + f_dim + TL_EVENTS {
@@ -3875,10 +4612,21 @@ fn artifact_readout_init(
             f_block.len()
         ));
     }
-    let rows: Vec<usize> = top_ids.iter().map(|t| model.token_row(*t)).collect();
-    let score_scale = (2.0f64).powi(-(model.score_shift as i32));
+    let rows: Vec<usize> = class_rows.to_vec();
+    // The probe's softmax is base-e; the artifact's served distribution is base-2 on its declared dyadic
+    // scale (`log2_softmax_row` scores `exp2((logit - max) * 2^-score_shift)`). `2^x = e^(x ln 2)`, so the
+    // probe's logits must be the artifact's served logits **times ln 2** for its base-e softmax to
+    // reproduce the artifact's own distribution exactly. This factor is a pure scale: it is absorbable by
+    // `W` and `b`, so it changes no converged loss and only makes the epoch-0 diagnostic the artifact's
+    // own number instead of the artifact's logits sharpened by 1 / ln 2.
+    let score_scale = (2.0f64).powi(-(model.score_shift as i32)) * LN2;
     let mut w = vec![0.0f64; k * d];
     let mut b = vec![0.0f64; k];
+    // The same coefficients in the *served* basis: the raw dequantised row `w << shift` that multiplies
+    // the artifact's own integer input `[h, m, f, ev]`, with the integer bias `f_const + bo`. The
+    // refit's integer path consumes these directly.
+    let mut served_w = vec![0.0f64; k * d];
+    let mut served_b = vec![0.0f64; k];
     let mut unit = vec![0.0f64; cols];
     // State block: one unit-vector probe per column, through the artifact's own dequantisation.
     for j in 0..h_dim {
@@ -3887,6 +4635,7 @@ fn artifact_readout_init(
         unit[j] = 0.0;
         for (c, r) in rows.iter().enumerate() {
             w[c * d + j] = out[*r] * h_clamp as f64 * score_scale;
+            served_w[c * d + j] = out[*r];
         }
     }
     // Event block: unscaled, the probe's one-hot is the artifact's one-hot.
@@ -3897,6 +4646,7 @@ fn artifact_readout_init(
         unit[col] = 0.0;
         for (c, r) in rows.iter().enumerate() {
             w[c * d + h_dim + e] = out[*r] * score_scale;
+            served_w[c * d + h_dim + e] = out[*r];
         }
     }
     // Constant typed block: a per-row constant, folded into the bias.
@@ -3917,11 +4667,14 @@ fn artifact_readout_init(
     }
     for (c, r) in rows.iter().enumerate() {
         b[c] = (f_const[c] + model.bo[*r] as f64) * score_scale;
+        served_b[c] = f_const[c] + model.bo[*r] as f64;
     }
     let f_bias_from_constant_block = f_const.iter().map(|v| v.abs()).fold(0.0f64, f64::max);
     Ok(ArtifactReadoutInit {
         w,
         b,
+        served_w,
+        served_b,
         state_columns: h_dim,
         m_columns_dropped: h_dim,
         f_columns_folded,
@@ -3929,6 +4682,155 @@ fn artifact_readout_init(
         event_columns: PROBE_EVENT_DIMS,
         score_scale,
     })
+}
+
+/// The natural logarithm of two: the exact conversion between the artifact's base-2 served softmax and
+/// the probe's base-`e` softmax.
+const LN2: f64 = std::f64::consts::LN_2;
+
+/// Declared scale of the probe's logits relative to the artifact's served logits: the probe reproduces
+/// the artifact's base-2 distribution with base-`e` logits scaled by this factor.
+fn probe_scale_vs_served() -> f64 {
+    LN2
+}
+
+/// Declared stride and cap of the `A_kclass` reference on the fit split (dev is always complete).
+const FIT_KCLASS_STRIDE: usize = 8;
+
+/// The declared `A_kclass` reference: the artifact's own readout loss under **the probe's K-class
+/// softmax**, computed from the artifact's own integer logits (`TlModel::readout`) at its declared
+/// dyadic score scale and temperature 1, restricted to the K class rows and to the restricted targets
+/// of one split.
+///
+/// It also recomputes the full-legal-row loss on the same positions, the mass the restriction keeps, and
+/// the structural facts the inequality `A_kclass <= A_restricted` rests on: the class rows must be
+/// **distinct** and must lie **inside the artifact's legal row set**, because the K-class softmax is then
+/// exactly the artifact's own distribution renormalised onto a subset, which can only lower the loss.
+#[derive(Default, Clone)]
+struct KClassReference {
+    n: usize,
+    kclass_bits: f64,
+    full_bits: f64,
+    recorded_bits: f64,
+    mean_mass_log2: f64,
+    worst_mass_log2: f64,
+    worst_position: usize,
+    worst_mass: f64,
+    distinct_rows: usize,
+    rows_outside_legal: usize,
+    duplicate_rows: usize,
+    first_positions: Vec<(u32, f64, f64, f64, f64)>,
+    /// The recorded-state indices this reference actually scored, ascending, so a probe-side loss can be
+    /// compared on the *identical* positions instead of on a different sample.
+    states_scored: Vec<usize>,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn kclass_reference(
+    model: &TlModel,
+    states: &[ServedState],
+    in_top: &[bool],
+    rows: &[usize],
+    f_block: &[i32],
+    stride: usize,
+    cap: usize,
+) -> Result<KClassReference, String> {
+    let h_dim = model.h_dim;
+    let m = vec![0i32; h_dim];
+    let scale = (2.0f64).powi(-(model.score_shift as i32));
+    let legal = model.legal_rows(false);
+    let mut legal_set = vec![false; model.wo.rows];
+    for r in &legal {
+        let slot = legal_set.get_mut(*r).ok_or_else(|| {
+            format!(
+                "legal row {r} exceeds the artifact readout's {} rows",
+                model.wo.rows
+            )
+        })?;
+        *slot = true;
+    }
+    let mut seen = vec![false; model.wo.rows];
+    let mut distinct_rows = 0usize;
+    let mut duplicate_rows = 0usize;
+    let mut rows_outside_legal = 0usize;
+    for r in rows {
+        let slot = seen.get_mut(*r).ok_or_else(|| {
+            format!(
+                "class row {r} exceeds the artifact readout's {} rows",
+                model.wo.rows
+            )
+        })?;
+        if *slot {
+            duplicate_rows += 1;
+        } else {
+            *slot = true;
+            distinct_rows += 1;
+            if !legal_set[*r] {
+                rows_outside_legal += 1;
+            }
+        }
+    }
+    let mut out = KClassReference {
+        distinct_rows,
+        duplicate_rows,
+        rows_outside_legal,
+        worst_mass_log2: f64::NEG_INFINITY,
+        ..KClassReference::default()
+    };
+    let stride = stride.max(1);
+    for (i, s) in states.iter().enumerate() {
+        if !in_top[s.target as usize] || i % stride != 0 {
+            continue;
+        }
+        if out.n >= cap {
+            break;
+        }
+        let logits = model.readout(&s.h, &m, f_block, s.event);
+        let mstar = legal.iter().map(|r| logits[*r]).max().unwrap_or(0);
+        let scaled = |r: usize| (((logits[r] - mstar) as f64) * scale).exp2();
+        let den: f64 = legal.iter().map(|r| scaled(*r)).sum();
+        let num: f64 = rows.iter().map(|r| scaled(*r)).sum();
+        let pt = scaled(model.token_row(s.target));
+        if !(den > 0.0) || !(num > 0.0) {
+            return Err(format!(
+                "degenerate softmax denominator at recorded state {i}"
+            ));
+        }
+        let mass = num / den;
+        let mass_log2 = mass.max(f64::MIN_POSITIVE).log2();
+        out.full_bits -= (pt / den).max(f64::MIN_POSITIVE).log2();
+        out.kclass_bits -= (pt / num).max(f64::MIN_POSITIVE).log2();
+        out.recorded_bits += s.bits;
+        out.mean_mass_log2 += mass_log2;
+        if mass_log2 > out.worst_mass_log2 {
+            out.worst_mass_log2 = mass_log2;
+            out.worst_position = i;
+            out.worst_mass = mass;
+        }
+        if out.first_positions.len() < 3 {
+            out.first_positions.push((
+                s.target,
+                (pt / den).max(f64::MIN_POSITIVE),
+                (pt / num).max(f64::MIN_POSITIVE),
+                mass,
+                s.bits,
+            ));
+        }
+        out.states_scored.push(i);
+        out.n += 1;
+    }
+    if out.n == 0 {
+        return Err("the K-class reference covered no positions".into());
+    }
+    if !out.worst_mass_log2.is_finite() {
+        out.worst_mass_log2 = f64::NEG_INFINITY;
+    }
+    let n = out.n as f64;
+    out.full_bits /= n;
+    out.kclass_bits /= n;
+    out.recorded_bits /= n;
+    out.mean_mass_log2 /= n;
+    Ok(out)
 }
 
 /// The control that the rearrangement above is the artifact's own readout: on real recorded states the
@@ -5414,8 +6316,9 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
 
     // The artifact's own readout rearranged into the probe's layout, built once here and used either as
     // the refinement's starting point (`--probe-init artifact`) or only for the control below.
-    let artifact_init = artifact_readout_init(&model, &top_ids, &f_block, model.h_clamp)?;
     let artifact_init_rows: Vec<usize> = top_ids.iter().map(|t| model.token_row(*t)).collect();
+    let artifact_init =
+        artifact_readout_init(&model, &artifact_init_rows, &f_block, model.h_clamp)?;
 
     let fit = probe_set(&fit_states, &class_of, model.h_clamp);
     let dev = probe_set(&dev_states, &class_of, model.h_clamp);
@@ -5494,12 +6397,197 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
         ));
     }
 
+    // ---- the declared `A_kclass` reference, and the structural facts the inequality rests on ----
+    // ---- per-row comparison of the initialised probe against the artifact, at the same states ----
+    // The logit-level control above builds its own feature vector from the state; this closes the loop by
+    // comparing the *probe's own* evaluation of the *probe set's* rows with the artifact's readout at the
+    // recorded state each row came from, position by position.
+    let init_row_probe_bits;
+    let init_row_readout_bits;
+    let init_row_worst_gap;
+    let init_row_logit_gap;
+    let t_rowse = Instant::now();
+    {
+        let init_probe =
+            FloatProbe::from_readout(k_used, d_probe, &artifact_init.w, &artifact_init.b)?;
+        let mut scratch = vec![0.0; k_used];
+        let m = vec![0i32; model.h_dim];
+        let legal = model.legal_rows(false);
+        // The probe's convention: the artifact's served logits times ln 2 (see softmax_convention).
+        let probe_scale = (2.0f64).powi(-(model.score_shift as i32)) * LN2;
+        let scale = (2.0f64).powi(-(model.score_shift as i32));
+        let (mut sum_probe, mut sum_readout, mut worst) = (0.0f64, 0.0f64, 0.0f64);
+        let mut logit_gap = 0.0f64;
+        for i in 0..dev.n {
+            let st = &dev_states[dev.state_index[i]];
+            let xi = &dev.x[i * d_probe..(i + 1) * d_probe];
+            init_probe.scores(xi, &mut scratch);
+            let maxp = scratch.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let zp: f64 = scratch.iter().map(|v| (v - maxp).exp()).sum();
+            let lp = -(((scratch[dev.y[i]] - maxp).exp() / zp).max(f64::MIN_POSITIVE)).log2();
+            let logits = model.readout(&st.h, &m, &f_block, st.event);
+            let mstar = legal.iter().map(|r| logits[*r]).max().unwrap_or(0);
+            let sc = |r: usize| (((logits[r] - mstar) as f64) * scale).exp2();
+            let den: f64 = artifact_init_rows.iter().map(|r| sc(*r)).sum();
+            let lr = -((sc(model.token_row(st.target)) / den).max(f64::MIN_POSITIVE)).log2();
+            let _ = &probe_scale;
+            sum_probe += lp;
+            sum_readout += lr;
+            worst = worst.max((lp - lr).abs());
+            // The missing link: the probe's own feature vector against the artifact's served logits.
+            for c in 0..k_used {
+                let gap = (scratch[c] - logits[artifact_init_rows[c]] as f64 * probe_scale).abs();
+                logit_gap = logit_gap.max(gap);
+            }
+        }
+        init_row_probe_bits = sum_probe / dev.n as f64;
+        init_row_readout_bits = sum_readout / dev.n as f64;
+        init_row_worst_gap = worst;
+        init_row_logit_gap = logit_gap;
+    }
+    let rowse_secs = t_rowse.elapsed().as_secs_f64();
+    println!(
+        "   per-row init check (probe's own feature rows vs the artifact at the same recorded states): \
+         probe loss {:.6} vs artifact loss {:.6}, worst row loss gap {:.3e}, worst probe-vs-artifact \
+         LOGIT gap {:.3e}; first rows: y {:?} -> class rows {:?}, targets {:?}, events {:?}",
+        init_row_probe_bits,
+        init_row_readout_bits,
+        init_row_worst_gap,
+        init_row_logit_gap,
+        [dev.y[0], dev.y[1], dev.y[2]],
+        [
+            artifact_init_rows[dev.y[0]],
+            artifact_init_rows[dev.y[1]],
+            artifact_init_rows[dev.y[2]]
+        ],
+        [dev.target[0], dev.target[1], dev.target[2]],
+        [dev_states[dev.state_index[0]].event, dev_states[dev.state_index[1]].event]
+    );
+    println!(
+        "   first probe row x[0..6] = {:?} (h[0..6] = {:?} / h_clamp = {:?}), event entries {:?}",
+        &dev.x[0..6],
+        &dev_states[dev.state_index[0]].h[0..6],
+        dev_states[dev.state_index[0]]
+            .h
+            .iter()
+            .take(6)
+            .map(|v| *v as f64 / model.h_clamp as f64)
+            .collect::<Vec<f64>>(),
+        &dev.x[d_probe - PROBE_EVENT_DIMS..d_probe]
+    );
+
+    let t_kclass = Instant::now();
+    let kclass_dev = kclass_reference(
+        &model,
+        &dev_states,
+        &in_top,
+        &artifact_init_rows,
+        &f_block,
+        1,
+        usize::MAX,
+    )?;
+    let kclass_fit = kclass_reference(
+        &model,
+        &fit_states,
+        &in_top,
+        &artifact_init_rows,
+        &f_block,
+        FIT_KCLASS_STRIDE,
+        usize::MAX,
+    )?;
+    let kclass_secs = t_kclass.elapsed().as_secs_f64();
+    println!(
+        "   A_kclass (the artifact's own logits under the probe's K-class softmax): dev {:.6} over {} \
+         positions, fit {:.6} over {} positions (every {FIT_KCLASS_STRIDE}th restricted fit position)",
+        kclass_dev.kclass_bits, kclass_dev.n, kclass_fit.kclass_bits, kclass_fit.n
+    );
+    println!(
+        "   same positions, artifact full-legal-row loss: dev {:.6} (recorded {:.6}), fit {:.6} (recorded \
+         {:.6}); mass kept by the restriction: dev {:.6} bits, fit {:.6} bits",
+        kclass_dev.full_bits,
+        kclass_dev.recorded_bits,
+        kclass_fit.full_bits,
+        kclass_fit.recorded_bits,
+        kclass_dev.mean_mass_log2,
+        kclass_fit.mean_mass_log2
+    );
+    println!(
+        "   class rows: {} distinct of {} ({} duplicates), {} outside the artifact's legal row set; \
+         worst log2 mass {:.9} at recorded state {} (mass {:.9})",
+        kclass_dev.distinct_rows,
+        k_used,
+        kclass_dev.duplicate_rows,
+        kclass_dev.rows_outside_legal,
+        kclass_dev.worst_mass_log2,
+        kclass_dev.worst_position,
+        kclass_dev.worst_mass
+    );
+    if kclass_dev.rows_outside_legal > 0 || kclass_dev.duplicate_rows > 0 {
+        return Err(format!(
+            "the probe's class rows are not a clean subset of the artifact's legal row set: \
+             {} outside it and {} duplicated, so the K-class softmax is not the artifact's own \
+             distribution renormalised onto a subset and A_kclass is not comparable with A_restricted",
+            kclass_dev.rows_outside_legal, kclass_dev.duplicate_rows
+        ));
+    }
+    if kclass_dev.mean_mass_log2 > 1e-9
+        || kclass_fit.mean_mass_log2 > 1e-9
+        || kclass_dev.worst_mass_log2 > 1e-9
+        || kclass_fit.worst_mass_log2 > 1e-9
+    {
+        return Err(format!(
+            "A_kclass control failed: the restricted class set holds more mass than the artifact's own \
+             softmax (dev worst log2 mass {:.9} at recorded state {}, fit worst {:.9} at {}), so the \
+             renormalisation is not a subset restriction. First positions (target, p_full, p_kclass, \
+             mass, recorded bits): {:?}",
+            kclass_dev.worst_mass_log2,
+            kclass_dev.worst_position,
+            kclass_fit.worst_mass_log2,
+            kclass_fit.worst_position,
+            kclass_dev.first_positions
+        ));
+    }
+    if kclass_dev.kclass_bits > kclass_dev.full_bits + 1e-9
+        || kclass_fit.kclass_bits > kclass_fit.full_bits + 1e-9
+    {
+        return Err(format!(
+            "A_kclass exceeds the artifact's own restricted loss on the same positions \
+             (dev {:.6} vs {:.6}, fit {:.6} vs {:.6}), which a subset renormalisation cannot do",
+            kclass_dev.kclass_bits,
+            kclass_dev.full_bits,
+            kclass_fit.kclass_bits,
+            kclass_fit.full_bits
+        ));
+    }
+
     // ---- the integers the served readout would be given, for the servable repricing ----
     let fit_ids: Vec<usize> = (0..fit.n).collect();
     let dev_ids: Vec<usize> = (0..dev.n).collect();
     let fit_temp_idx = declared_subset(&fit_ids, RIDGE_TEMP_CAP);
     let fit_reprice_u = integer_inputs(&fit_states, &fit, &fit_temp_idx);
     let dev_u = integer_inputs(&dev_states, &dev, &dev_ids);
+
+    // ---- Task B populations, gathered while the state vectors are still resident ----
+    let wants_kclass = args.readout_refit
+        && (args.refit_scope == REFIT_SCOPE_KCLASS || args.refit_scope == REFIT_SCOPE_BOTH);
+    let wants_servable = args.readout_refit
+        && (args.refit_scope == REFIT_SCOPE_SERVABLE || args.refit_scope == REFIT_SCOPE_BOTH);
+    let (refit_fit_kclass, refit_dev_kclass) = if wants_kclass {
+        (
+            gather_refit_split(&model, &fit_states, &class_of, &in_top, true)?,
+            gather_refit_split(&model, &dev_states, &class_of, &in_top, true)?,
+        )
+    } else {
+        (RefitSplit::default(), RefitSplit::default())
+    };
+    let (refit_fit_all, refit_dev_all) = if wants_servable {
+        (
+            gather_refit_split(&model, &fit_states, &class_of, &in_top, false)?,
+            gather_refit_split(&model, &dev_states, &class_of, &in_top, false)?,
+        )
+    } else {
+        (RefitSplit::default(), RefitSplit::default())
+    };
     drop(fit_states);
     drop(dev_states);
 
@@ -5621,6 +6709,47 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
         args.probe_seed,
         "probe",
     );
+    // The fit-side `A_kclass` reference is scored on a declared stride sample of the restricted fit
+    // positions, so the comparison must be made on the *identical* positions: map the sampled states to
+    // the probe set's rows and score the initialised readout there.
+    let init_probe_for_check =
+        FloatProbe::from_readout(k_used, d_probe, &artifact_init.w, &artifact_init.b)?;
+    let fit_rows_on_sample: Vec<usize> = kclass_fit
+        .states_scored
+        .iter()
+        .map(|st| {
+            fit.state_index
+                .binary_search(st)
+                .map_err(|_| format!("sampled fit state {st} is not in the probe's restricted set"))
+        })
+        .collect::<Result<Vec<usize>, String>>()?;
+    let mut check_scratch = vec![0.0; k_used];
+    let init_fit_on_sample_bits =
+        init_probe_for_check.nll_bits(&fit.x, &fit.y, &fit_rows_on_sample, &mut check_scratch);
+    let epoch0_gap_dev = probe_fit.init_dev_bits - kclass_dev.kclass_bits;
+    let epoch0_gap_fit = probe_fit.init_fit_bits - kclass_fit.kclass_bits;
+    let epoch0_gap_fit_sample = init_fit_on_sample_bits - kclass_fit.kclass_bits;
+    let epoch0_equals_akclass = epoch0_gap_dev.abs() <= 1e-9 && epoch0_gap_fit_sample.abs() <= 1e-9;
+    if args.probe_init == PROBE_INIT_ARTIFACT && !epoch0_equals_akclass {
+        return Err(format!(
+            "the artifact-initialised probe does not reproduce A_kclass at epoch 0 (dev gap {:+.6e}, \
+             fit gap {:+.6e}): the initialisation and the k-class reference are not in the same \
+             temperature convention",
+            epoch0_gap_dev, epoch0_gap_fit
+        ));
+    }
+    println!(
+        "   initialisation check: dev init {:.6} vs A_kclass dev {:.6} (gap {:+.3e}, complete on both); \
+         fit init on the same sampled positions {:.6} vs A_kclass fit {:.6} (gap {:+.3e}); complete-fit \
+         init {:.6} for reference; equal within 1e-9 = {epoch0_equals_akclass}",
+        probe_fit.init_dev_bits,
+        kclass_dev.kclass_bits,
+        epoch0_gap_dev,
+        init_fit_on_sample_bits,
+        kclass_fit.kclass_bits,
+        epoch0_gap_fit_sample,
+        probe_fit.init_fit_bits
+    );
     let probe_dev_top1 = probe_fit
         .probe
         .top1(&dev.x, &dev.y, &dev_ids, &mut ridge_scratch);
@@ -5688,6 +6817,367 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
     let (e1_weight, e1_tune_bits) = tune_e1_weight(&c1, &uni, &tune_windows);
     let fit_e1 = e1_reference(&fit_windows, &c1, &uni, e1_weight, &in_top);
     let dev_e1 = e1_reference(&dev_windows, &c1, &uni, e1_weight, &in_top);
+
+    // ---- Task B: an in-class refit of the readout inside a servable alphabet ----
+    let mut refit_report: Option<serde_json::Value> = None;
+    if args.readout_refit {
+        let alphabet = if args.refit_alphabet == REFIT_ALPHABET_FOUR_BIT {
+            CodeAlphabet::FourBit
+        } else {
+            CodeAlphabet::Ternary
+        };
+        // The artifact's own dyadic score scale: the refit's objective and every reported loss use its
+        // base-2 convention, so the numbers are directly comparable with the artifact's own.
+        let dscale = (2.0f64).powi(-(model.score_shift as i32));
+        let scopes: Vec<&str> = match args.refit_scope.as_str() {
+            REFIT_SCOPE_KCLASS => vec![REFIT_SCOPE_KCLASS],
+            REFIT_SCOPE_SERVABLE => vec![REFIT_SCOPE_SERVABLE],
+            _ => vec![REFIT_SCOPE_KCLASS, REFIT_SCOPE_SERVABLE],
+        };
+        let mut scope_reports: Vec<serde_json::Value> = Vec::new();
+        for scope in scopes {
+            let kclass = scope == REFIT_SCOPE_KCLASS;
+            let (pop_fit, pop_dev) = if kclass {
+                (&refit_fit_kclass, &refit_dev_kclass)
+            } else {
+                (&refit_fit_all, &refit_dev_all)
+            };
+            if pop_fit.n == 0 || pop_dev.n == 0 {
+                return Err(format!("the {scope} refit population is empty"));
+            }
+            let (rows, eval_rows, init_w, init_b, frozen) = if kclass {
+                (
+                    k_used,
+                    (0..k_used).collect::<Vec<usize>>(),
+                    artifact_init.served_w.clone(),
+                    artifact_init.served_b.clone(),
+                    vec![false; k_used],
+                )
+            } else {
+                let all_rows = model.vocab + 2;
+                let served = artifact_readout_init(
+                    &model,
+                    &(0..all_rows).collect::<Vec<usize>>(),
+                    &f_block,
+                    model.h_clamp,
+                )?;
+                let mut frozen = vec![false; all_rows];
+                frozen[model.copy_row()] = true;
+                frozen[model.stop_row()] = true;
+                (
+                    all_rows,
+                    model.legal_rows(false),
+                    served.served_w.clone(),
+                    served.served_b.clone(),
+                    frozen,
+                )
+            };
+            let (init_w, init_b) = if args.refit_init == REFIT_INIT_ZERO {
+                (vec![0.0; rows * pop_fit.d], vec![0.0; rows])
+            } else {
+                (init_w, init_b)
+            };
+            let fit_eval_idx: Vec<usize> = (0..pop_fit.n).step_by(args.refit_eval_stride).collect();
+            let dev_eval_idx: Vec<usize> = (0..pop_dev.n).collect();
+            let restricted_dev_idx: Vec<usize> =
+                (0..pop_dev.n).filter(|i| pop_dev.in_top[*i]).collect();
+            // ---- the refit-initialisation control, before anything is trained ----
+            // The initialised refit must reproduce the artifact's own logits exactly (integers, so the
+            // expected deviation is zero). This is the check whose absence let an evaluation-wiring
+            // defect masquerade as an initialisation gap.
+            let rows_map: Vec<usize> = if kclass {
+                artifact_init_rows.clone()
+            } else {
+                (0..rows).collect()
+            };
+            let init_check = if args.refit_init == REFIT_INIT_ARTIFACT {
+                let probe = Refit::new(
+                    alphabet,
+                    rows,
+                    pop_fit.d,
+                    init_w.clone(),
+                    init_b.clone(),
+                    frozen.clone(),
+                    false,
+                )?;
+                let sample: Vec<usize> = declared_subset(&(0..pop_dev.n).collect::<Vec<_>>(), 64);
+                let seen =
+                    verify_refit_init(&model, &probe, &pop_dev, &sample, &rows_map, &f_block)?;
+                if seen.worst_absolute_deviation > 0 {
+                    let (i, r, got, want) = seen.first_offender.unwrap_or((0, 0, 0, 0));
+                    return Err(format!(
+                        "refit initialisation control failed for scope {scope}: the initialised refit \
+                         does not reproduce the artifact's own logits (worst absolute deviation {}, \
+                         first offender at dev position {i} row {r}: refit {} vs artifact {want})",
+                        seen.worst_absolute_deviation, got
+                    ));
+                }
+                println!(
+                    "   {scope} refit initialisation control: {} positions x {} rows = {} logits \
+                     compared with TlModel::readout, worst absolute deviation {}",
+                    seen.positions, rows, seen.rows_compared, seen.worst_absolute_deviation
+                );
+                seen
+            } else {
+                RefitInitCheck::default()
+            };
+
+            let t_scope = Instant::now();
+            println!(
+                "5b. in-class refit, scope {scope}, alphabet {}: {rows} rows x {} features, {} frozen \
+                 rows, {} fit positions (stride {}, {} trained per epoch), {} dev positions ({} in the \
+                 restricted set), Adam lr {} x {} epochs, base-2 softmax at the artifact's dyadic scale \
+                 2^-{}",
+                args.refit_alphabet,
+                pop_fit.d,
+                frozen.iter().filter(|f| **f).count(),
+                pop_fit.n,
+                args.refit_stride,
+                pop_fit.n.div_ceil(args.refit_stride),
+                pop_dev.n,
+                restricted_dev_idx.len(),
+                args.refit_lr,
+                args.refit_epochs,
+                model.score_shift
+            );
+            let run_one = |label: &str,
+                           train_y: &[usize],
+                           bias_frozen: bool,
+                           score_init: bool|
+             -> Result<(RefitReport, RefitReport), String> {
+                let init = Refit::new(
+                    alphabet,
+                    rows,
+                    pop_fit.d,
+                    init_w.clone(),
+                    init_b.clone(),
+                    frozen.clone(),
+                    bias_frozen,
+                )?;
+                let init_rep = if score_init {
+                    evaluate_refit(
+                        &init,
+                        &format!("{label} init"),
+                        (&pop_fit.u, &pop_fit.y, &fit_eval_idx),
+                        (&pop_dev.u, &pop_dev.y, &dev_eval_idx),
+                        &restricted_dev_idx,
+                        pop_fit.n,
+                        &eval_rows,
+                        model.h_clamp,
+                        dscale,
+                    )?
+                } else {
+                    RefitReport {
+                        label: format!("{label} init (not scored)"),
+                        ..RefitReport::default()
+                    }
+                };
+                let trained = train_refit(
+                    init,
+                    &pop_fit.u,
+                    train_y,
+                    pop_fit.n,
+                    args.refit_stride,
+                    &eval_rows,
+                    dscale,
+                    args.refit_epochs,
+                    args.refit_lr,
+                    args.probe_seed,
+                    label,
+                    false,
+                    Some((&pop_dev.u, &pop_dev.y, &dev_eval_idx)),
+                );
+                let final_rep = evaluate_refit(
+                    &trained,
+                    &format!("{label} final"),
+                    (&pop_fit.u, &pop_fit.y, &fit_eval_idx),
+                    (&pop_dev.u, &pop_dev.y, &dev_eval_idx),
+                    &restricted_dev_idx,
+                    pop_fit.n,
+                    &eval_rows,
+                    model.h_clamp,
+                    dscale,
+                )?;
+                Ok((init_rep, final_rep))
+            };
+            let (main_init, main_final) = run_one("refit", &pop_fit.y, false, true)?;
+            let (frozen_init, frozen_final) =
+                run_one("refit frozen-bias", &pop_fit.y, true, false)?;
+            let mut permuted = pop_fit.y.clone();
+            let mut pst = args.probe_seed ^ 0x1F2E_3D4C_5B6A_7988;
+            shuffle(&mut permuted, &mut pst);
+            let (null_init, null_final) =
+                run_one("refit permuted-target null", &permuted, false, false)?;
+            let scope_secs = t_scope.elapsed().as_secs_f64();
+            let (ref_kclass, ref_restricted, ref_unrestricted) = (
+                kclass_dev.kclass_bits,
+                dev_served.restricted(),
+                dev_served.all(),
+            );
+            let beats = |loss: f64, reference: f64| loss < reference - REFIT_DECISION_MARGIN;
+            let unigram_reference = if kclass {
+                dev_uni.restricted()
+            } else {
+                dev_uni.all()
+            };
+            // The leak control's floor. For an artifact-initialised refit the unigram is *not* the right
+            // floor: the initialisation alone already beats it, so a null that lands between the two
+            // would look like a leak while being exactly what training on noise must do. The floor is
+            // therefore the better of the readout's own initialisation and the restricted unigram.
+            let null_reference = main_init.dev_bits.min(unigram_reference);
+            let null_ok = null_final.dev_bits >= null_reference - 1e-9;
+            println!(
+                "   {}	init dev {:.4} -> final dev {:.4} bits/target (top-1 {:.4}), fit {:.4}; \
+                 restricted-position dev {:.4}",
+                format!("{scope} main"),
+                main_init.dev_bits,
+                main_final.dev_bits,
+                main_final.dev_top1,
+                main_final.fit_bits,
+                if main_final.dev_restricted_positions == 0 {
+                    f64::NAN
+                } else {
+                    main_final.dev_bits_restricted
+                }
+            );
+            println!(
+                "   {scope} ablation/controls: frozen-bias final dev {:.4}; permuted-target null final \
+                 dev {:.4} vs floor {:.4} (min of init {:.4} and unigram {:.4}; ok={null_ok}); kernel \
+                 cross-check on {} positions, worst deviation {:.3e}",
+                frozen_final.dev_bits, null_final.dev_bits, null_reference, main_init.dev_bits,
+                unigram_reference, main_final.kernel_sample_positions,
+                main_final.kernel_worst_deviation
+            );
+            println!(
+                "   {scope} coverage: the refit visited {:.1}% of its {} fit positions ({:.2} epochs' \
+                 worth); codes: density {:.4}, nonzero {}/{}, distinct row scales {:?}, bytes {} \
+                 (information) / {} (artifact container), logits [{}, {}], envelope_ok {}",
+                main_final.visited_share * 100.0,
+                pop_fit.n,
+                main_final.visited_share,
+                main_final.density,
+                main_final.nonzero,
+                main_final.entries,
+                main_final.distinct_row_scales,
+                main_final.bytes_information,
+                main_final.bytes_container,
+                main_final.logit_min,
+                main_final.logit_max,
+                main_final.envelope_ok
+            );
+            println!(
+                "   {scope} decision: refit dev {:.4} vs A_kclass {ref_kclass:.4} (gap {:+.4}, beats by \
+                 >= {REFIT_DECISION_MARGIN:.2}: {}) / served restricted {ref_restricted:.4} (gap {:+.4}, \
+                 beats: {}) / served unrestricted {ref_unrestricted:.4} (gap {:+.4}, beats: {})",
+                main_final.dev_bits,
+                main_final.dev_bits - ref_kclass,
+                beats(main_final.dev_bits, ref_kclass),
+                main_final.dev_bits - ref_restricted,
+                beats(main_final.dev_bits, ref_restricted),
+                main_final.dev_bits - ref_unrestricted,
+                beats(main_final.dev_bits, ref_unrestricted)
+            );
+            // With the initialisation exact, the initialised refit's dev loss must equal the artifact's
+            // own reference on the same population; report the gap so a wiring defect can never hide
+            // behind a small-looking difference again.
+            let init_vs_reference =
+                main_init.dev_bits - if kclass { ref_kclass } else { ref_unrestricted };
+            if init_vs_reference.abs() > 1e-6 {
+                println!(
+                    "   WARNING: the initialised refit's dev loss differs from the artifact's own \
+                     reference by {init_vs_reference:+.6} bits even though its logits match exactly; \
+                     check the scored population"
+                );
+            }
+            scope_reports.push(serde_json::json!({
+                "scope": scope,
+                "kclass": kclass,
+                "rows": rows,
+                "evaluated_rows": eval_rows.len(),
+                "frozen_rows": frozen.iter().filter(|f| **f).count(),
+                "initialisation_control": {
+                    "definition": "the initialised refit's own logits, (sum code * u) << shift + \
+                                   round(b) with u = [h, event one-hot], against TlModel::readout's \
+                                   integer logits for the same recorded state at the mapped row; both \
+                                   sides are integers, so the expected deviation is exactly zero and a \
+                                   non-zero worst deviation aborts the run",
+                    "positions": init_check.positions,
+                    "rows_compared": init_check.rows_compared,
+                    "worst_absolute_deviation": init_check.worst_absolute_deviation,
+                    "equals_artifact_readout_exactly": init_check.positions > 0
+                        && init_check.worst_absolute_deviation == 0,
+                },
+                "initialised_dev_minus_reference": if args.refit_init == REFIT_INIT_ARTIFACT {
+                    serde_json::json!(init_vs_reference)
+                } else {
+                    serde_json::json!(null)
+                },
+                "fit_positions": pop_fit.n,
+                "dev_positions": pop_dev.n,
+                "dev_restricted_positions": restricted_dev_idx.len(),
+                "train_stride": args.refit_stride,
+                "trained_positions_per_epoch": pop_fit.n.div_ceil(args.refit_stride),
+                "evaluation_strides": {"fit": args.refit_eval_stride, "dev": 1},
+                "kernel_check_positions_cap": REFIT_KERNEL_SAMPLE,
+                "control_init_evaluations_skipped": "the frozen-bias ablation and the permuted-target \
+                                                     null are scored on their final readouts only; the \
+                                                     init/final pair is reported for the refit itself",
+                "seconds": scope_secs,
+                "main": {"init": main_init.json(), "final": main_final.json()},
+                "frozen_bias_ablation": {"init": frozen_init.json(), "final": frozen_final.json()},
+                "permuted_target_null": {"init": null_init.json(), "final": null_final.json()},
+                "decision": {
+                    "margin_bits": REFIT_DECISION_MARGIN,
+                    "reference_kclass": ref_kclass,
+                    "reference_served_restricted": ref_restricted,
+                    "reference_served_unrestricted": ref_unrestricted,
+                    "final_minus_kclass": main_final.dev_bits - ref_kclass,
+                    "final_minus_served_restricted": main_final.dev_bits - ref_restricted,
+                    "final_minus_served_unrestricted": main_final.dev_bits - ref_unrestricted,
+                    "beats_kclass": beats(main_final.dev_bits, ref_kclass),
+                    "beats_served_restricted": beats(main_final.dev_bits, ref_restricted),
+                    "beats_served_unrestricted": beats(main_final.dev_bits, ref_unrestricted),
+                },
+                "null_control": {
+                    "unigram_reference": unigram_reference,
+                    "initialisation_dev_bits": main_init.dev_bits,
+                    "floor": null_reference,
+                    "null_dev_bits_per_target": null_final.dev_bits,
+                    "null_minus_unigram": null_final.dev_bits - unigram_reference,
+                    "null_minus_floor": null_final.dev_bits - null_reference,
+                    "not_below_floor": null_ok,
+                    "definition": "the identical loop on permuted fit labels, evaluated on the REAL dev \
+                                   pairs. Its floor is min(its own initialisation, the restricted \
+                                   unigram) rather than the unigram alone, because an \
+                                   artifact-initialised readout already beats the unigram before any \
+                                   training: a null above the floor cannot have learned the real labels \
+                                   from the permuted ones.",
+                },
+            }));
+        }
+        refit_report = Some(serde_json::json!({
+            "run": true,
+            "scope": args.refit_scope,
+            "alphabet": args.refit_alphabet,
+            "epochs": args.refit_epochs,
+            "lr": args.refit_lr,
+            "stride": args.refit_stride,
+            "init": args.refit_init,
+            "minibatch": REFIT_BATCH,
+            "adam": {"beta1": ADAM_BETA1, "beta2": ADAM_BETA2, "eps": ADAM_EPS},
+            "conventions": {
+                "objective": "softmax cross-entropy over the evaluated class set on the fit positions, in                               the artifact's own base-2 convention: the served score is                               (integer logit) * 2^-score_shift and the softmax is a base-2 softmax at                               that declared dyadic scale, exactly as TlModel::readout's logits are                               scored by log2_softmax_row",
+                "straight_through": "the forward pass uses the quantised codes; the backward pass takes                                      the gradient with respect to the pre-quantisation masters, with no                                      quantiser Jacobian, exactly as the artifact's own trainer does                                      (dlogits[r] = (p - onehot) * 2^-score_shift, then                                      g.w[r][c] += dlogits[r] * u[c] and g.b[r] += dlogits[r])",
+                "per_row_scale": "one power-of-two scale per row, recomputed from the current masters at                                   every step by the artifact's own rule (quantize_ternary for ternary,                                   TlEmbed::quantize for the 4-bit alphabet); the scale is not learned",
+                "bias": "b is stored and used as the artifact stores bo: an integer added to the integer                          logits (the master is float and is rounded on every use, which is exactly how                          TlModel::build rounds bo_master), so every reported number is the servable one",
+                "input": "the artifact's own integer input u = [h, event one-hot], h a the recorded                           clipped state -- not the float probe's h / h_clamp basis, so the dequantised                           row w << shift is the coefficient that multiplies h directly",
+                "evaluation": "every reported loss is rescored through the artifact's own integer kernel:                                TlLinear::forward_i32 for the ternary alphabet (with the packing                                re-verified against that kernel) and TlEmbed::value for the 4-bit                                alphabet, plus the rounded integer bias",
+                "copy_stop_rows": "in the servable scope the vocabulary rows are refit and the Copy and                                    Stop rows keep the artifact's own values and receive no gradient",
+            },
+            "declared": "this refit is an OFFLINE DIAGNOSTIC in the served alphabet. It is a runner-side                          object: it is not saved into an artifact, not loaded by a session and not a                          serving path or product dependency. The artifact under test is read, hashed                          and compared against only; it is never modified, rewritten or re-sealed, and                          the recurrence, the embeddings and every other served parameter are untouched.",
+            "scopes": scope_reports,
+        }));
+    }
 
     // ---- servable repricings of the better float readout ----
     // `P_softmax` beats `P_ridge` on the fit states here, so the repricings start from it.
@@ -6202,12 +7692,36 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
                 "dev_worst_absolute_deviation": init_check_dev_worst,
                 "passed": true,
             },
+            "epoch_zero_equals_akclass": epoch0_equals_akclass,
+            "epoch_zero_gap_dev": epoch0_gap_dev,
+            "epoch_zero_gap_fit": epoch0_gap_fit,
+            "epoch_zero_gap_fit_sampled": epoch0_gap_fit_sample,
+            "epoch_zero_fit_positions_compared": kclass_fit.n,
+            "epoch_zero_fit_note": "the fit-side comparison is made on the identical declared stride \
+                                    sample of restricted fit positions that A_kclass scores; the \
+                                    dev-side comparison is complete on both sides",
+            "softmax_convention": {
+                "probe": "base-e softmax of the probe's logits",
+                "artifact_served": "base-2 softmax of the artifact's integer logits at its declared \
+                                    dyadic score scale (TlModel::readout's logits scored by \
+                                    log2_softmax_row, i.e. exp2((logit - max) * 2^-score_shift))",
+                "conversion": "2^x = e^(x ln 2), so the artifact initialisation scales its logits by \
+                               ln 2 = 0.6931471805599453 relative to the artifact's served logits. It is \
+                               a pure scale, absorbable by W and by b: it changes no converged loss and \
+                               is what makes the epoch-0 diagnostic the artifact's own number rather \
+                               than the artifact's logits sharpened by 1 / ln 2 (which is what an \
+                               unscaled initialisation would have been)",
+                "probe_scale_vs_served": probe_scale_vs_served(),
+                "verified_by": "the epoch-0 loss is asserted equal to A_kclass within 1e-9 when \
+                                --probe-init artifact is set",
+            },
             "epoch_zero_note": "the refinement prints and records its fit/dev loss at the declared \
                                 initialisation before any epoch; with --probe-init artifact that number \
                                 is the artifact's own readout evaluated in the probe's K-class softmax \
-                                at the artifact's declared dyadic scale, which is the directly \
-                                comparable baseline for the probe's own losses (the artifact's served \
-                                reference A is normalised over its full legal action set instead)",
+                                at the artifact's declared dyadic scale (see softmax_convention), which \
+                                is the directly comparable baseline for the probe's own losses (the \
+                                artifact's served reference A is normalised over its full legal action \
+                                set instead)",
         },
         "probe_input": {
             "form": "[h / h_clamp, event one-hot]",
@@ -6384,6 +7898,10 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
                 "next_cos_top1": nearest_fit.2.cos_top1,
             },
         },
+        "readout_refit": refit_report.unwrap_or(serde_json::json!({
+            "run": false,
+            "note": "--readout-refit was not set, so no in-class refit ran in this attempt",
+        })),
         "declared_comparisons": {
             "ladder": "A = the artifact's own served readout (restricted and unrestricted); P_ridge and \
                        P_softmax = converged float linear readouts of the recorded state; P_ternary and \
@@ -6496,12 +8014,21 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
         },
         "references_dev": {
             "artifact_served_readout": dev_served.json(),
+            "artifact_served_kclass": kclass_dev.kclass_bits,
+            "artifact_served_kclass_note": "the artifact's own readout loss under the probe's K-class \
+                                            softmax, from its own integer logits at its declared dyadic \
+                                            score scale and temperature 1, over the same restricted \
+                                            development positions. It must be <= the restricted value \
+                                            above, because a subset renormalisation can only lower it.",
             "tuned_two_token_count": dev_cnt.json(),
             "fit_only_unigram": dev_uni.json(),
             "unigram_renormalised_over_k": dev_uni_topk.json(),
         },
         "references_fit": {
             "artifact_served_readout": fit_served.json(),
+            "artifact_served_kclass": kclass_fit.kclass_bits,
+            "artifact_served_kclass_positions": kclass_fit.n,
+            "artifact_served_kclass_stride": FIT_KCLASS_STRIDE,
             "tuned_two_token_count": fit_cnt.json(),
             "fit_only_unigram": fit_uni.json(),
         },
@@ -6530,6 +8057,8 @@ fn state_probe_mode(args: &Args) -> Result<ExitCode, String> {
         "timings": {
             "record_served_states_seconds": rec_secs,
             "nearest_embedding_decode_seconds": embed_secs,
+            "kclass_reference_seconds": kclass_secs,
+            "per_row_init_check_seconds": rowse_secs,
             "ridge_readout_seconds": ridge_secs,
             "softmax_refinement_seconds": probe_secs,
             "null_probe_seconds": if args.probe_skip_null { serde_json::json!(null) } else { serde_json::json!(null_secs) },
@@ -7130,9 +8659,9 @@ mod tests {
         let model = probe_control_model(24, 8).expect("hand model builds");
         let top_ids: Vec<u32> = (0..model.vocab as u32).collect();
         let f_block = model.typed_block(&[], &[], SlFacts::default());
-        let init = artifact_readout_init(&model, &top_ids, &f_block, model.h_clamp)
-            .expect("the artifact readout rearranges");
         let rows: Vec<usize> = top_ids.iter().map(|t| model.token_row(*t)).collect();
+        let init = artifact_readout_init(&model, &rows, &f_block, model.h_clamp)
+            .expect("the artifact readout rearranges");
         assert_eq!(init.state_columns, model.h_dim);
         assert_eq!(init.m_columns_dropped, model.h_dim);
         assert_eq!(init.event_columns, TL_EVENTS);
@@ -7194,5 +8723,222 @@ mod tests {
             generations > 0,
             "the fixture must produce at least one Generate decision to compare against"
         );
+    }
+
+    /// The quantise/dequantise round trip of both servable alphabets, against the artifact's own rules.
+    ///
+    /// For each alphabet the row scale must be the rule the artifact uses (`floor(log2 amax)` capped at
+    /// the schema's shift bound for ternary, `floor(log2(amax / bound))` capped for 4-bit), the codes must
+    /// stay inside the alphabet's bound, and dequantising must reproduce `Σ codes * u << shift` exactly
+    /// through the artifact's own kernel (the ternary map is built from its public fields and its packing
+    /// is verified against `TlLinear::forward_i32`; the 4-bit table is read through `TlEmbed::value`).
+    #[test]
+    fn servable_alphabets_round_trip_through_the_artifact_kernel() {
+        // A row whose largest entry is 2^3 in magnitude gives the ternary rule shift 3; a row of zeros
+        // must give shift 0 and no codes; the third row exercises the 4-bit path where amax <= bound.
+        let rows: Vec<Vec<f64>> = vec![
+            vec![8.0, -4.0, 0.4, -0.4, 0.0, 2.0, -1.0, 0.6],
+            vec![0.0; 8],
+            vec![3.0, -3.0, 1.5, -0.5, 0.0, 0.0, 1.0, -1.0],
+        ];
+        let d = 8usize;
+        let u: Vec<i32> = vec![3, -1, 2, 0, 5, -2, 1, 4];
+        for alphabet in [CodeAlphabet::Ternary, CodeAlphabet::FourBit] {
+            for row in rows.iter() {
+                let shift = alphabet.rule_shift(row);
+                let codes = alphabet.quantize_row(row, shift);
+                assert_eq!(codes.len(), d);
+                assert!(
+                    codes.iter().all(|c| (*c as i32).abs() <= alphabet.bound()),
+                    "{alphabet:?}: a code left the alphabet's bound"
+                );
+                assert!(
+                    shift <= alphabet.max_shift(),
+                    "{alphabet:?}: shift above the cap"
+                );
+                let amax = row.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+                if matches!(alphabet, CodeAlphabet::Ternary) {
+                    // Round trip through the artifact's own ternary kernel.
+                    let linear = TlLinear {
+                        rows: 1,
+                        cols: d,
+                        packed: pack_ternary_codes(&codes),
+                        shift: vec![shift],
+                    };
+                    verify_ternary_packing(&linear, &codes, d, &u)
+                        .expect("the pack/unpack round trip must match the artifact kernel");
+                    let got = linear.forward_i32(&u).expect("the kernel runs");
+                    let want: i32 = (0..d).map(|c| codes[c] as i32 * u[c]).sum::<i32>() << shift;
+                    assert_eq!(got[0], want, "dequantised note must equal codes << shift");
+                } else {
+                    let table = TlEmbed {
+                        rows: 1,
+                        cols: d,
+                        codes: codes.clone(),
+                        shift: vec![shift],
+                    };
+                    let want: i64 =
+                        (0..d).map(|c| codes[c] as i64 * u[c] as i64).sum::<i64>() << shift.min(31);
+                    let got: i64 = (0..d).map(|c| table.value(0, c) as i64 * u[c] as i64).sum();
+                    assert_eq!(got, want, "TlEmbed::value must be codes << shift");
+                }
+                if amax == 0.0 {
+                    assert_eq!(
+                        shift, 0,
+                        "{alphabet:?}: a zero row must take the unit scale"
+                    );
+                    assert!(
+                        codes.iter().all(|c| *c == 0),
+                        "{alphabet:?}: a zero row quantises to zero"
+                    );
+                }
+                // A row exactly at the ternary rule's scale keeps unit codes; a row that would need to
+                // scale *down* cannot, because the rule never scales below one.
+                if matches!(alphabet, CodeAlphabet::Ternary) && amax >= 0.5 {
+                    assert!(shift <= amax.log2().floor().max(0.0) as u32);
+                }
+            }
+        }
+        // The declared rule for a row whose largest entry is 8.0 is shift 3 for both alphabets' rule shape.
+        assert_eq!(CodeAlphabet::Ternary.rule_shift(&rows[0]), 3);
+        assert_eq!(CodeAlphabet::FourBit.rule_shift(&rows[0]), 0);
+    }
+
+    /// The straight-through gradient on a tiny softmax whose analytic value can be written down.
+    ///
+    /// Two rows, one feature, `u = [1]`, masters `w = [[0.6], [-0.6]]`, `b = 0`, and a *unit* dyadic scale
+    /// (`dscale = 1`, so the softmax is base-2 over `z`). Both rows take shift 0, so the codes are
+    /// `[1]` and `[-1]` and the integer logits are `[1, -1]`. The base-2 softmax is then
+    /// `p = [2/2.5, 0.5/2.5] = [0.8, 0.2]`, and the artifact's convention gives
+    /// `g.w[0] = (0.8 - 1) * 1 * 1 = -0.2`, `g.w[1] = (0.2 - 0) * 1 * 1 = 0.2`, `g.b = [-0.2, 0.2]`.
+    /// A small step leaves the codes unchanged (the quantiser is locally constant), which is exactly what
+    /// the straight-through estimator assumes; and Adam's first step is `-lr * sign(g)` in every
+    /// coordinate, so the observed move must be `+lr` for row 0 and `-lr` for row 1.
+    #[test]
+    fn straight_through_gradient_matches_the_hand_computed_value() {
+        let d = 1usize;
+        let refit = Refit::new(
+            CodeAlphabet::Ternary,
+            2,
+            d,
+            vec![0.6, -0.6],
+            vec![0.0, 0.0],
+            vec![false, false],
+            false,
+        )
+        .expect("the refit builds");
+        let u = vec![1i32];
+        let y = vec![0usize];
+        let idx = vec![0usize];
+        let eval_rows = vec![0usize, 1usize];
+        let (gw, gb) = refit.gradient(&u, &y, &idx, &eval_rows, 1.0);
+        assert!(
+            (gw[0] - (-0.2)).abs() < 1e-12,
+            "g.w[0] must be (p0 - 1) * dscale * u = -0.2, got {}",
+            gw[0]
+        );
+        assert!(
+            (gw[1] - 0.2).abs() < 1e-12,
+            "g.w[1] must be (p1 - 0) * dscale * u = +0.2, got {}",
+            gw[1]
+        );
+        assert!((gb[0] - (-0.2)).abs() < 1e-12 && (gb[1] - 0.2).abs() < 1e-12);
+        // The quantiser is locally constant, so a small step cannot change the codes or the loss.
+        let mut stepped = Refit::new(
+            CodeAlphabet::Ternary,
+            2,
+            d,
+            vec![0.6, -0.6],
+            vec![0.0, 0.0],
+            vec![false, false],
+            false,
+        )
+        .expect("the refit builds");
+        let before = stepped.quantise();
+        stepped.step(&u, &y, &idx, &eval_rows, 1.0, 0.01);
+        assert_eq!(
+            stepped.quantise(),
+            before,
+            "a 0.01 step must not move the codes"
+        );
+        // Adam's first step is exactly -lr * sign(g) per coordinate.
+        assert!(
+            (stepped.w[0] - (0.6 + 0.01)).abs() < 1e-9,
+            "row 0 must move up by lr (g < 0), got {}",
+            stepped.w[0]
+        );
+        assert!(
+            (stepped.w[1] - (-0.6 - 0.01)).abs() < 1e-9,
+            "row 1 must move down by lr (g > 0), got {}",
+            stepped.w[1]
+        );
+        assert!((stepped.b[0] - 0.01).abs() < 1e-9 && (stepped.b[1] + 0.01).abs() < 1e-9);
+        // A frozen row and a frozen bias receive nothing.
+        let mut frozen = Refit::new(
+            CodeAlphabet::Ternary,
+            2,
+            d,
+            vec![0.6, -0.6],
+            vec![0.0, 0.0],
+            vec![false, true],
+            true,
+        )
+        .expect("the refit builds");
+        frozen.step(&u, &y, &idx, &eval_rows, 1.0, 0.01);
+        assert_eq!(frozen.w[1], -0.6, "a frozen row must not move");
+        assert_eq!(frozen.b, vec![0.0, 0.0], "a frozen bias must not move");
+        assert!(frozen.w[0] > 0.6, "the unfrozen row still moves");
+    }
+
+    /// The refit's own parameterisation must reproduce the artifact's readout exactly.
+    ///
+    /// The refit consumes the *served* coefficients (`w << shift`, plus the `f`-constant-folded integer
+    /// bias) and re-quantises them with the alphabet's own rule, so the identity under test is
+    /// `(sum code * u) << shift + round(b) == TlModel::readout`, row by row, on the refit's own input
+    /// `u = [h, event one-hot]`.
+    #[test]
+    fn artifact_initialised_refit_reproduces_the_artifact_readout() {
+        let model = probe_control_model(24, 8).expect("hand model builds");
+        let rows: Vec<usize> = (0..model.vocab)
+            .map(|t| model.token_row(t as u32))
+            .collect();
+        let f_block = model.typed_block(&[], &[], SlFacts::default());
+        let init = artifact_readout_init(&model, &rows, &f_block, model.h_clamp)
+            .expect("the artifact readout rearranges");
+        let d = model.h_dim + PROBE_EVENT_DIMS;
+        for alphabet in [CodeAlphabet::Ternary, CodeAlphabet::FourBit] {
+            let refit = Refit::new(
+                alphabet,
+                rows.len(),
+                d,
+                init.served_w.clone(),
+                init.served_b.clone(),
+                vec![false; rows.len()],
+                false,
+            )
+            .expect("the refit builds");
+            let (codes, shift) = refit.quantise();
+            let m = vec![0i32; model.h_dim];
+            for event in 0..TL_EVENTS {
+                let mut h = model.init_state(&m, &f_block);
+                for t in [3u32, 5, 8] {
+                    h = model.transition(&h, event, Some(t), &m, &f_block);
+                }
+                let mut u: Vec<i32> = h.clone();
+                for e in 0..PROBE_EVENT_DIMS {
+                    u.push(i32::from(e == event.min(PROBE_EVENT_DIMS - 1)));
+                }
+                let served = model.readout(&h, &m, &f_block, event);
+                let mut z = vec![0i64; refit.rows];
+                refit.integer_logits(&codes, &shift, &u, &mut z);
+                for (c, r) in rows.iter().enumerate() {
+                    assert_eq!(
+                        z[c], served[*r] as i64,
+                        "{alphabet:?}, event {event}: refit row {c} (artifact row {r}) must equal the \
+                         artifact's own logit"
+                    );
+                }
+            }
+        }
     }
 }

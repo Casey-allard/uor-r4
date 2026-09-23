@@ -1,0 +1,362 @@
+{
+  "schema": "uor-r4.ordinary-lexical-readout-refit/1",
+  "recorded_utc": "2026-09-23T15:42:24Z",
+  "base_commit": "67f2e3507b055a44ccd94cdfccd6f63ee7bdc9c7",
+  "base_note": "stacked on open PRs #1363 and #1364; protected main is 79b5d50c",
+  "tested_source": {
+    "runner": "crates/uor-r4-core/src/bin/ordinary-lexical.rs",
+    "runner_sha256": "1e13d1141e1b41512b1c1783372075c3c9743083906f8fb8ac2e13ee8a61ac20",
+    "model_source_sha256": "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250",
+    "model_source_unchanged": true,
+    "new_flags": [
+      "--readout-refit",
+      "--refit-scope kclass|servable|both",
+      "--refit-alphabet ternary|four_bit",
+      "--refit-epochs",
+      "--refit-lr",
+      "--refit-stride",
+      "--refit-init artifact|zero",
+      "--probe-init artifact|ridge",
+      "--probe-skip-null"
+    ],
+    "diagnostic_only": "the refit is a runner-side offline diagnostic in the served alphabet; it is not saved into an artifact, not loaded by a session, and not a serving path or product dependency. No sealed artifact is modified or re-sealed."
+  },
+  "milestone_question": "Can the served output layer be refit IN ITS OWN ALPHABET on the frozen state to recover the >=0.40 bits of headroom the converged float readout demonstrates, and can the state probe's artifact-initialisation discrepancy be reconciled?",
+  "task_A_reconciliation": {
+    "cause": "a softmax BASE convention: FloatProbe::nll_bits normalises with the natural exponential while the artifact's log2_softmax_row normalises with base 2 over logits scaled by 2^-score_shift. The initialised probe's distribution was therefore the artifact's at a temperature 1/ln2 too small (sharper); because the artifact's dyadic scale sits at its own NLL optimum, sharpening could only raise the loss, which is exactly why the epoch-0 loss exceeded A_restricted.",
+    "evidence_chain": [
+      "the pre-existing logit control already showed the column rearrangement was right (worst deviation 0.0 over 131072 values at K=1024)",
+      "the new A_kclass reference was validated three ways: its full-legal side reproduces the recorded A_restricted exactly (dev 6.055956, fit 6.018168), the identity kclass = full + mean(log2 mass) holds exactly, and the class rows are distinct, inside the legal set, with mass <= 1 (worst 0.998)",
+      "a new per-row check showed identical logits (1.1e-14) but different losses (K=64: probe 4.072948 vs artifact 3.762429, worst row gap 5.65 bits), leaving only the exponent base",
+      "multiplying the initialisation's W and b by ln2 collapsed the per-row gap to 7.1e-15"
+    ],
+    "fix": "score_scale = 2^-score_shift * ln2 in artifact_readout_init, with the invariant now ASSERTED (--probe-init artifact aborts unless the initialised probe matches A_kclass on the identical position sets)",
+    "corrected_reference_A_kclass_dev": 5.977039,
+    "corrected_reference_A_kclass_fit": 6.018168,
+    "class_restriction_mass_bits": 0.078917,
+    "prefix_epoch0_inflation_bits": 0.6183,
+    "epoch_zero_equals_akclass": true,
+    "previous_milestone_headroom_confirmed_bits": 0.4634,
+    "previous_milestone_headroom_note": "published as '>=0.40 bits'; the direct matched measurement is A_kclass - P = 5.977039 - 5.5136 = 0.4634, inside the published bound, so the previous claim needs no correction, only the tighter number",
+    "receipt": {
+      "artifact": "the artifact's own served readout, dequantised into the probe's feature layout. Mapping, exactly: the probe's input is [h / h_clamp, event one-hot] (d) and the artifact's readout input is [h, m, f, event] (2*h_dim + f_dim + 4) through a per-row-scaled ternary map plus an i32 bias bo. (i) state columns 0..h_dim are taken as (w << shift) * h_clamp, the factor h_clamp undoing the probe's own 1 / h_clamp input scaling; (ii) event columns 2*h_dim + f_dim .. + 4 are taken unscaled; (iii) the h_dim m columns are dropped entirely because m is identically zero for ordinary prose, so they contribute exactly zero; (iv) the f_dim columns of the constant typed block are folded into b as sum_f (w_(r,f) << shift_(r)) * f0[f]; (v) the artifact's bo of the same row is added into b; (vi) every coefficient is multiplied by 2^-score_shift, the artifact's declared dyadic score scale, so the initial logits are the SERVED logits in float form. Every coefficient is read from the artifact's own float evaluation of its packed map (TlLinear::forward_reference on unit vectors), so no packing or dequantisation convention is reimplemented",
+      "artifact_bo_entries_added": 256,
+      "artifact_score_shift": 4,
+      "chosen": "artifact",
+      "dyadic_score_scale": 0.04332169878499658,
+      "epoch_zero_equals_akclass": true,
+      "epoch_zero_fit_note": "the fit-side comparison is made on the identical declared stride sample of restricted fit positions that A_kclass scores; the dev-side comparison is complete on both sides",
+      "epoch_zero_fit_positions_compared": 28424,
+      "epoch_zero_gap_dev": 0.0,
+      "epoch_zero_gap_fit": 0.014071969210545987,
+      "epoch_zero_gap_fit_sampled": 0.0,
+      "epoch_zero_note": "the refinement prints and records its fit/dev loss at the declared initialisation before any epoch; with --probe-init artifact that number is the artifact's own readout evaluated in the probe's K-class softmax at the artifact's declared dyadic scale (see softmax_convention), which is the directly comparable baseline for the probe's own losses (the artifact's served reference A is normalised over its full legal action set instead)",
+      "event_columns_taken": 4,
+      "f_columns_folded_into_bias": 1,
+      "f_constant_block_max_weighted_magnitude": 8.0,
+      "m_columns_dropped_as_zero": 64,
+      "rearrangement_control": {
+        "definition": "on real recorded states the initialised readout's logits must equal TlModel::readout's logits at the artifact's declared dyadic scale, entry by entry; a deviation above 1e-6 aborts the run",
+        "dev_positions_checked": 128,
+        "dev_values_compared": 32768,
+        "dev_worst_absolute_deviation": 8.881784197001252e-15,
+        "fit_positions_checked": 128,
+        "fit_values_compared": 32768,
+        "fit_worst_absolute_deviation": 8.881784197001252e-15,
+        "passed": true
+      },
+      "ridge": "the closed-form least-squares readout of the recorded states, fitted on this run's fit split (the P_ridge row above)",
+      "row_of_class": "token_row(top_ids[c]): the artifact readout row of the c-th restricted class",
+      "softmax_convention": {
+        "artifact_served": "base-2 softmax of the artifact's integer logits at its declared dyadic score scale (TlModel::readout's logits scored by log2_softmax_row, i.e. exp2((logit - max) * 2^-score_shift))",
+        "conversion": "2^x = e^(x ln 2), so the artifact initialisation scales its logits by ln 2 = 0.6931471805599453 relative to the artifact's served logits. It is a pure scale, absorbable by W and by b: it changes no converged loss and is what makes the epoch-0 diagnostic the artifact's own number rather than the artifact's logits sharpened by 1 / ln 2 (which is what an unscaled initialisation would have been)",
+        "probe": "base-e softmax of the probe's logits",
+        "probe_scale_vs_served": 0.6931471805599453,
+        "verified_by": "the epoch-0 loss is asserted equal to A_kclass within 1e-9 when --probe-init artifact is set"
+      },
+      "state_column_scale": "h_clamp = 256 then 2^-score_shift",
+      "state_columns_taken": 64,
+      "values": [
+        "ridge",
+        "artifact"
+      ]
+    }
+  },
+  "task_B_refit": {
+    "sealed_evidence_root": "/tmp/olx-sp-e",
+    "receipt_sha256": "75628af2525ed6e35fa1e74304a303c22101de7bd9b8439c9e807386127b40c2",
+    "manifest_sha256": "5a13cc724fee9d700e9835b373194035551933bce8c372c0a964f2b3c0e249dc",
+    "schedule": {
+      "scope": "both",
+      "alphabet": "ternary",
+      "init": "artifact",
+      "epochs": 6,
+      "stride": 8,
+      "lr": 0.01,
+      "minibatch": 256,
+      "adam": {
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "eps": 1e-08
+      }
+    },
+    "scopes": {
+      "kclass": {
+        "rows": 256,
+        "evaluated_rows": 256,
+        "frozen_rows": 0,
+        "fit_positions": 228009,
+        "dev_positions": 3731,
+        "train_stride": 8,
+        "trained_positions_per_epoch": 28502,
+        "init": {
+          "dev_bits_per_target": 4.918837172341583,
+          "dev_bits_restricted_positions": 4.918837172341583,
+          "code_density": 0.29245174632352944,
+          "bytes_artifact_container": 6400
+        },
+        "final": {
+          "dev_bits_per_target": 4.772143773367826,
+          "dev_bits_restricted_positions": 4.772143773367826,
+          "code_density": 0.3019875919117647,
+          "bytes_artifact_container": 6400,
+          "dev_top1": 0.26561243634414367
+        },
+        "decision": {
+          "beats_kclass": false,
+          "beats_served_restricted": true,
+          "beats_served_unrestricted": true,
+          "final_minus_kclass": -0.007115665346834277,
+          "final_minus_served_restricted": -0.4382026234711498,
+          "final_minus_served_unrestricted": -1.911961183169101,
+          "margin_bits": 0.3,
+          "reference_kclass": 4.77925943871466,
+          "reference_served_restricted": 5.210346396838975,
+          "reference_served_unrestricted": 6.684104956536927
+        },
+        "frozen_bias_ablation_final_dev_bits": 4.75124777955858,
+        "permuted_target_null_final_dev_bits": 6.470976679876903,
+        "null_floor": 4.918837172341583,
+        "seconds": 14.235473542,
+        "float_surrogate_dev_trajectory_from_stdout": []
+      },
+      "servable": {
+        "rows": 4098,
+        "evaluated_rows": 4097,
+        "frozen_rows": 2,
+        "fit_positions": 334796,
+        "dev_positions": 5376,
+        "train_stride": 8,
+        "trained_positions_per_epoch": 41850,
+        "init": {
+          "dev_bits_per_target": 6.894130629139082,
+          "dev_bits_restricted_positions": 6.899312108213285,
+          "code_density": 0.11642336290299429,
+          "bytes_artifact_container": 102450
+        },
+        "final": {
+          "dev_bits_per_target": 6.774125851184361,
+          "dev_bits_restricted_positions": 6.77668134350905,
+          "code_density": 0.13985301294749233,
+          "bytes_artifact_container": 102450,
+          "dev_top1": 0.19587053571428573
+        },
+        "decision": {
+          "beats_kclass": false,
+          "beats_served_restricted": false,
+          "beats_served_unrestricted": false,
+          "final_minus_kclass": 1.994866412469701,
+          "final_minus_served_restricted": 1.5637794543453856,
+          "final_minus_served_unrestricted": 0.09002089464743435,
+          "margin_bits": 0.3,
+          "reference_kclass": 4.77925943871466,
+          "reference_served_restricted": 5.210346396838975,
+          "reference_served_unrestricted": 6.684104956536927
+        },
+        "frozen_bias_ablation_final_dev_bits": 6.7831111710052205,
+        "permuted_target_null_final_dev_bits": 8.390294060935641,
+        "null_floor": 6.894130629139082,
+        "seconds": 676.798752583,
+        "float_surrogate_dev_trajectory_from_stdout": []
+      }
+    },
+    "interpretation": "the K-class scope's float surrogate reached 4.6357 while its integer realisation reached 4.7721 against A_kclass 4.7793; the servable scope's integer realisation reached 6.7741 against the artifact's served unrestricted 6.6841. The internal pattern is the load-bearing one: the fit is not the limit, the integer realisation is.",
+    "caveat": "the refit's own INITIAL readout is worse than the artifact's own readout (kclass 4.9188 vs A_kclass 4.7793; servable 6.8941 vs 6.6841), a defect found while auditing the construction and NOT fixed in this milestone. The end-to-end comparison therefore carries a handicap against the refit and the negative is NOT yet scoped to the alphabet; only the within-run float-versus-integer comparison is.",
+    "predeclared_bar": "served loss below olx-form-2's 6.6841 by >= 0.30 bits",
+    "bar_met": false,
+    "float_surrogate_vs_integer_note": "the per-epoch dev line printed during training is the refit's FLOAT surrogate; the reported init/final dev bits are the served INTEGER realisation. The gap between them is the realisation cost, and it is the load-bearing internal comparison of this milestone.",
+    "pre_fix_generation_note": "the sealed smoke olx-sp-e below was produced by an EARLIER build whose refit initialisation sat 0.14-0.21 bits above the artifact's own readout. Its end-to-end numbers are superseded by the delivered-source generation and its inference of a ~0.27-bit realisation cost is RETRACTED.",
+    "delivered_source_generation": {
+      "kclass": {
+        "root": "/tmp/olx-sp-parity",
+        "receipt_sha256": "017110b10e4615bfc5d644596a7586eed3d39e1c5ae24409037f71f1b887b7cd",
+        "manifest_sha256": "35f220c6864651edd8be88c8991ce92465e4e8e982744fe0234663d54f6dad8a",
+        "tested_executable_sha256": "7cec87f13712a283b1db908b12633f81b5cfe1245fafa7e8f10c33f4e5605611",
+        "epochs": 6,
+        "stride": 8,
+        "scopes": {
+          "kclass": {
+            "init_dev_bits": 4.77925943871466,
+            "init_dev_bits_restricted": 4.77925943871466,
+            "final_dev_bits": 4.635737644263657,
+            "final_dev_top1": 0.2680246582685607,
+            "code_density": 0.3019875919117647,
+            "decision": {
+              "beats_kclass": false,
+              "beats_served_restricted": true,
+              "beats_served_unrestricted": true,
+              "final_minus_kclass": -0.14352179445100255,
+              "final_minus_served_restricted": -0.5746087525753181,
+              "final_minus_served_unrestricted": -2.0483673122732693,
+              "margin_bits": 0.3,
+              "reference_kclass": 4.77925943871466,
+              "reference_served_restricted": 5.210346396838975,
+              "reference_served_unrestricted": 6.684104956536927
+            },
+            "frozen_bias_ablation_final_dev_bits": 4.6231535295239405,
+            "permuted_target_null_final_dev_bits": 6.418772428724933,
+            "trained_positions_per_epoch": 28502,
+            "dev_positions": 3731,
+            "seconds": 14.998931083
+          }
+        },
+        "artifact_init_worst_logit_deviation": 0.0
+      },
+      "servable": {
+        "root": "/tmp/olx-sp-parity-serv",
+        "receipt_sha256": "1829b9fc7ad21ed251e4cd5adb34946f06a7d7d94f30dd656de49141b5396b5c",
+        "manifest_sha256": "82a15210147ead15d98fb1d021612c885ce24e176a825985f2024b5960dcf315",
+        "tested_executable_sha256": "7cec87f13712a283b1db908b12633f81b5cfe1245fafa7e8f10c33f4e5605611",
+        "epochs": 6,
+        "stride": 8,
+        "scopes": {
+          "servable": {
+            "init_dev_bits": 6.684104956536927,
+            "init_dev_bits_restricted": 5.210346396838975,
+            "final_dev_bits": 6.5527588107172035,
+            "final_dev_top1": 0.21614583333333334,
+            "code_density": 0.13985301294749233,
+            "decision": {
+              "beats_kclass": false,
+              "beats_served_restricted": false,
+              "beats_served_unrestricted": false,
+              "final_minus_kclass": 1.7734993720025436,
+              "final_minus_served_restricted": 1.342412413878228,
+              "final_minus_served_unrestricted": -0.13134614581972315,
+              "margin_bits": 0.3,
+              "reference_kclass": 4.77925943871466,
+              "reference_served_restricted": 5.210346396838975,
+              "reference_served_unrestricted": 6.684104956536927
+            },
+            "frozen_bias_ablation_final_dev_bits": 6.554396373467682,
+            "permuted_target_null_final_dev_bits": 8.274353210867122,
+            "trained_positions_per_epoch": 41850,
+            "dev_positions": 5376,
+            "seconds": 690.373629
+          }
+        },
+        "artifact_init_worst_logit_deviation": 0.0
+      },
+      "headline": "with an exactly-asserted initialisation the in-class ternary refit improves the SERVED readout by 0.131315 bits/target end-to-end through the integer kernel (6.5528 vs the artifact's 6.684104956536927) over all 5376 development targets and all 4098 legal rows, and by 0.143522 in the matched K-class scope (4.6357 vs A_kclass 4.7793); in both scopes the integer realisation equals the float surrogate, so the served alphabet is not the constraint",
+      "predeclared_bar_met": false,
+      "predeclared_bar": "served loss below olx-form-2's 6.6841 by >= 0.30 bits",
+      "interpretation": "a frozen-state output-layer refit buys about a quarter of the 0.4634 bits those states support under a matched float readout; the rest needs different states, i.e. a joint fit or a changed input"
+    }
+  },
+  "full_coverage_attempt": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-refit-1",
+    "status": "INTERRUPTED before sealing by the lead, to stop a redundant third pass; its receipt is NOT a durable record and the numbers below are quoted from its own stdout, not from a sealed receipt",
+    "schedule": {
+      "top_k": 1024,
+      "scope": "both",
+      "alphabet": "ternary",
+      "init": "artifact",
+      "epochs": 8,
+      "stride": 4,
+      "visited_distinct_positions": 305842
+    },
+    "kclass": {
+      "init_dev_bits": 6.1932,
+      "final_dev_bits": 6.0715,
+      "float_surrogate_best_epoch_dev_bits": 5.7984,
+      "A_kclass_dev_bits": 5.977039,
+      "decision_gap_vs_A_kclass": 0.0945,
+      "decision_gap_vs_served_restricted": 0.0156,
+      "decision_gap_vs_served_unrestricted": -0.6126,
+      "float_surrogate_dev_trajectory": [
+        6.1932,
+        5.9167,
+        5.8411,
+        5.7948,
+        5.7563,
+        5.7218,
+        5.6911,
+        5.6631,
+        5.6376,
+        5.6139,
+        5.5922,
+        5.5716,
+        5.5529,
+        5.5349,
+        5.518,
+        5.5021,
+        5.4874,
+        5.4731,
+        5.4596,
+        5.4469,
+        5.4349
+      ]
+    },
+    "servable": {
+      "float_surrogate_best_epoch_dev_bits": 6.5383,
+      "last_epoch_dev_bits": 6.5516,
+      "artifact_served_unrestricted_bits": 6.684104956536927
+    },
+    "internal_comparison": "at K=1024 the refit's float surrogate is 0.1786 bits BETTER than the artifact's own readout (5.7984 vs 5.977039) while its integer realisation is 0.0945 bits WORSE (6.0715) -- a realisation cost of about 0.27 bits",
+    "note": "the trajectory quoted for the interrupted attempt is its own stdout; the sealed olx-sp-e receipt is the durable record for the end-to-end decisions"
+  },
+  "scope_retractions": [
+    "the previous milestone's post-hoc re-pricing figures (8.6058 ternary / 7.6181 ternary+offsets / 8.9683 four-bit) came from a DEGENERATE quantisation at K=1024: code density 0.0088, 614 of ~70000 codes non-zero, logits in [-18, 5]. They are not evidence about the 4-bit or ternary alphabets. At K=256 with a working pre-scale the same machinery gives code density 0.30 and a usable readout.",
+    "the previous milestone's null criterion ('must not fall below the restricted unigram') is the wrong floor for an artifact-initialised refit, because the initialisation alone already beats the unigram by ~2.8 bits at K=256; the floor is now min(its own initialisation, the restricted unigram), and both are reported."
+  ],
+  "controls": {
+    "artifact_init_identity": "the initialised probe reproduces the artifact's logits to 1.243e-14 and its loss to 0.0 (asserted)",
+    "kernel_cross_check": "worst deviation 0.0 on the declared 64-position sample",
+    "unit_tests": [
+      "servable_alphabets_round_trip_through_the_artifact_kernel",
+      "straight_through_gradient_matches_the_hand_computed_value"
+    ],
+    "frozen_bias_ablation": "reported per scope; in the smoke the frozen-bias arm was BETTER than the learned-bias arm (kclass 4.7512 vs 4.7721), so the learned bias is not helping",
+    "permuted_target_null": "passes against the corrected floor in both scopes",
+    "dev_is_complete": "every reported dev loss is over the complete development split; the fit-side loss uses a declared stride sample"
+  },
+  "cost": {
+    "smoke_run_seconds": 994.223451833,
+    "timings": {
+      "decode_ridge_seconds": 5.797270541,
+      "kclass_reference_seconds": 18.387988041,
+      "nearest_embedding_decode_seconds": 7.538318417,
+      "null_probe_seconds": null,
+      "per_row_init_check_seconds": 2.125438,
+      "record_served_states_seconds": 213.352361833,
+      "ridge_readout_seconds": 5.764997667,
+      "servable_repricing_seconds": 2.499710625,
+      "softmax_refinement_seconds": 10.172673583
+    },
+    "vocabulary_wide_refit_note": "the servable refit is 4098x68 and costs about 0.9 ms per training position; a converged vocabulary-wide refit is not affordable in a 20-minute run, which is why the visited share is now printed and why an under-trained arm must not be read as a class limit"
+  },
+  "limits": [
+    "scoped to olx-form-2, the served window conditioning, teacher-forced states, one corpus, one split, one seed",
+    "the K-class figures cover 68% of development targets at K=256 and 92% at K=1024; the servable scope always evaluates all 5376 development targets over all 4098 legal rows",
+    "the end-to-end refit comparison is provisional because of the refit's own initialisation defect",
+    "the pre-declared >=0.30-bit bar is not met and, given the caveat, is not yet a scoped rejection",
+    "greedy generation still collapses; sampling NOT_RUN; energy UNAVAILABLE",
+    "the refit is an offline diagnostic in the served alphabet and is not a serving path"
+  ],
+  "claim_boundaries": {
+    "measured": "the ln2 base-convention cause and its exact resolution; the matched reference A_kclass and the class restriction's mass value; that the refit's float surrogate beats the artifact while its integer realisation does not; a realisation cost of about 0.27 bits at K=1024 on this state",
+    "provisional": "the end-to-end refit comparison, because the refit's own initialisation is 0.2162 bits worse than the artifact's",
+    "not_claimed": "general language, reasoning, chat, geometric advantage or energy"
+  },
+  "retraction_of_this_records_first_draft": "This record's first draft concluded that 'the fit is not the limit; the integer realisation is', quoting a realisation cost of about 0.27 bits. That conclusion was WRONG and is withdrawn: it was inferred from a single instrument generation whose refit initialisation was 0.14-0.21 bits worse than the artifact's own readout. With an exact initialisation the realisation cost vanishes. The defect was found by the implementation round auditing its own construction, and the delivered source carries the fix and an assertion."
+}

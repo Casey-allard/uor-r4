@@ -1,0 +1,32 @@
+{
+  "schema": "uor-r4.local-work-projection/1",
+  "recorded_utc": "2026-09-23T13:48:00Z",
+  "scope": "In-class (served-alphabet) readout refit on the frozen served state, plus the reconciliation of the state-probe's artifact-initialisation normalisation discrepancy. One implementation round, one release build, one diagnostic run with a tiny smoke, evidence, documentation and protected delivery. No model-source change; the probe and the refit are runner-only diagnostics over recorded states. No paid or external compute.",
+  "authority": "Standing owner authorization 2026-09-06; docs/integration/agent-execution-policy.md; AGENTS.md resources section",
+  "live_ledger_path": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+  "live_cumulative_ms_before": 414715640,
+  "live_limit_ms_before": 416000000,
+  "projected_increment_ms": 5000000,
+  "projected_limit_ms_after": 421000000,
+  "projected_cumulative_ms_after": 419715640,
+  "projection_components_ms": {
+    "authority_recon_source_inspection_and_code_review": 400000,
+    "one_implementation_round_reconciliation_and_in_class_refit": 1500000,
+    "release_build_and_unit_tests": 300000,
+    "diagnostic_run_recording_in_class_training_and_integer_rescoring": 1300000,
+    "interpretation_evidence_and_result_documentation": 900000,
+    "protected_pr_ledger_and_handoff": 600000
+  },
+  "cpu_threads": 2,
+  "peak_ram_bytes": 2147483648,
+  "maximum_new_temporary_storage_bytes": 1073741824,
+  "maximum_new_retained_storage_bytes": 33554432,
+  "physical_free_kib_before": 53813648,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "run_scope": "One model process at a time, no training of the recurrence or the embeddings, at most one full diagnostic run plus one tiny smoke",
+  "extension_reason": "The live balance of 1,284,360 ms cannot cover the recorded next milestone (an in-class readout refit on the frozen state with the state-probe's normalisation discrepancy reconciled). The increment is prospective and local. It is deliberately tighter than the previous milestone's projection because the last one overran: this milestone uses ONE implementation round with no independent architecture review, since an independent K3 review already recommended this exact refit ladder and no geometric mechanism or roadmap pivot is involved.",
+  "new_paid_compute": false,
+  "unique_evidence_deleted": false,
+  "stop_condition": "Stop before the cumulative limit or the 24 GiB working reserve plus 128 MiB margin; charge actual complete work once after delivery."
+}
