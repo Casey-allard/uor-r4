@@ -2335,3 +2335,14 @@ the original 180,000-ms delivery component. The complete projection is revised t
 issue-body and handoff verification). The additional projection remains within the existing
 4,284,360-ms balance; there is no allowance extension or external spend. Keep the 16 MiB retained
 evidence and 256 MiB temporary build projections, 2 GiB incremental RAM and one worker/process.
+
+**Final charge after protected PR #1359 merged and issues #820/#973 were reconciled:**
+1,200,000 ms for the complete principal source review, release build, 61.1-second fresh-process
+denominator replay, sign/claim correction, documentation, PR queue and public issue delivery.
+This conservative block is charged once at 2026-09-23T06:04Z; the owner JSON was atomically
+updated under its lock from **386,415,640** to **387,615,640 / 390,700,000 ms**, leaving
+**3,084,360 ms**. This is separate from, and does not duplicate, the already reconciled
+5,500,000-ms DeepSeek charge. `olx-audit-5` retains 2,720 KiB; physical free after the replay
+was 29,279,876 KiB, above the 24 GiB working reserve plus 128 MiB stop margin. No paid compute
+or unique-artifact deletion occurred. The present ledger-only protected delivery does not run a
+new model fit or replay.
