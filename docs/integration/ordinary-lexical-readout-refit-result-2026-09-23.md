@@ -141,4 +141,7 @@ pre-declaring **served loss below 6.6841 by ≥0.30 bits with preflight A 32/32,
 retained**, and reporting the same three numbers this record does — the matched reference, the float
 surrogate and the integer realisation — so a shortfall is attributable rather than ambiguous. If a joint fit
 also stalls near 0.13 bits, the remaining branch is the input side: explicit **second-order local access**,
-since a training-free decode recovers `cur` at 96.7% and `prev` at 2.1%.
+since a training-free **raw-embedding** decode recovers `cur` at 96.7% and `prev` at 2.1% — **corrected
+2026-09-23:** a transport-aware decoder recovers `prev` at **75.90 %** on the same states, so the premise
+"the state does not retain `prev`" is withdrawn for the training-free observer class; see the
+[state-probe correction](ordinary-lexical-state-probe-result-2026-09-23.md).

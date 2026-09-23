@@ -1,5 +1,23 @@
 # The local prose deficit is in the output layer, and the state does not retain the second-most-recent token — September 23, 2026
 
+> **Correction — 2026-09-23 (K3 architecture review, follow-up to PR #1368).** The title's second clause is
+> **contested and refuted for the training-free observer class**. An unmerged controlled diagnostic
+> (`codex/observer-transport-20260923`) run on **byte-identical dev states** (SHA `c5334071…992f`, matching this
+> record's sealed `olx-probe-4` `recorded_states_sha256.dev`) recovers `prev = x_(t-2)` at **75.90 %**
+> (3,209/4,228) with a **transport-aware** decoder, against this record's **raw-embedding** **2.06 %** (87/4,228)
+> on the same denominator, with rotated-label (0.67 %) and wrong-frame (0.14 %) controls and an
+> uncentered-transport step still at 70.4 %. The recurrence writes `E[x_(t-1)]` at full scale and contracts
+> `x_(t-2)` by `Wh >> 3`, so `prev` **is** present in the state in contracted, `Wh`-mixed coordinates —
+> invisible to a nearest-*embedding* probe (and to any **linear** readout) but recoverable through the model's
+> own map.
+>
+> **What stands unchanged:** `prev` is not available to the served **linear readout class** (the `P − C = +0.729`
+> gap stands), and the **raw-embedding** decode of `prev` is 2.1 %. **Withdrawn as general statements:** the title
+> clause "the state does not retain the second-most-recent token" and §3's "the token before it is not
+> [available]". The measured numbers in this record are unchanged; this is a claim-scope correction. The
+> contradicting evidence is **unmerged and not yet reproduced on main**; its independent adjudication (with a
+> transport-decode depth ladder) is the ordered next milestone in [current state](current-state.md).
+
 This record answers one consequential uncertainty that the previous milestone left open and that
 decides which remedy to build next: is the shared model's ~1.5-bit deficit against a tuned two-token
 count reference a limit of the **served recurrent state** or of its **trained output layer**?
@@ -71,7 +89,11 @@ The softmax refinement is at its floor: the last epoch moved the fit loss by **0
 not the under-trained probe of the first run; the artifact-initialised run reached 5.5136 where the
 ridge-initialised 12-epoch run had reached 5.9284.
 
-## 3. The state carries the last token and does not carry the one before it
+## 3. The state carries the last token and does not expose the one before it to a raw-embedding probe
+
+> **Correction (see the banner at the top):** the *retention* reading of this section is withdrawn — `prev` is
+> recoverable through the model's own transport at 75.90 % on these same states. The *raw-embedding and linear
+> readout* results below stand exactly as measured.
 
 On the same 4,228 decodable dev positions (`cur`, `prev` and the target all inside the class set), a
 **training-free nearest-embedding rule** over the artifact's own 4,096 embedding rows gives:
