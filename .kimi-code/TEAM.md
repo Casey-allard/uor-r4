@@ -1,0 +1,30 @@
+# One-window UOR-R4 research team
+
+DeepSeek V4.1 Flash High is the economical day-to-day lead in Kimi Desktop. It owns live-state recovery, experiment coordination, implementation, integration and truthful handoff. Kimi K3 Max is an on-demand architecture reviewer for difficult math, structural mechanisms, roadmap pivots and disputed research claims. The configured subagent model pool lets the lead explicitly select `moonshot-ai/kimi-k3` for `uor-architect-reviewer`; most other work stays on `DeepSeek/deepseek-flash`. A second model opinion is not proof. The owner retains strategic authority, and Codex remains the returning principal investigator who should revisit major pivots.
+
+The lead should not launch every role on every turn. A healthy research run has three dependency waves:
+
+1. **Recover and challenge in parallel.** Ask `uor-history-curator` to retrieve relevant prior positives/negatives and issue context, `uor-literature-scout` to inspect exact primary papers relevant to the current hypothesis, and `uor-source-falsifier` or `uor-experiment-designer` to find the cheapest counterexample/control. Skip a role when its question is already answered by current source/evidence. The lead personally reads the live canonical plan/current state and source; it does not outsource judgment. If the outcome would change core geometry or the roadmap, send the compact evidence packet to `uor-architect-reviewer` on K3 Max before committing the pivot.
+2. **Build and measure.** Give `uor-implementer` an owned Rust seam and a falsifiable task; use DeepSeek Flash by default. A separate `uor-systems-cost` task can inspect operation counts, cache traffic, storage and full-path measurement if it has no conflicting edits. The lead resolves disagreements, inspects the patch, and executes or verifies the decisive loaded behavior. A negative result is a completed result, not a reason to fabricate a better score.
+3. **Audit and deliver.** Ask `uor-evidence-auditor` to challenge artifacts, controls and claims, and `uor-delivery-reviewer` to check the PR/issue/doc relationship. Re-open the code/evidence or ask a new independent review when they identify a material gap. For a promotion or disputed interpretation, pass the compact audit to K3. The run lead owns protected PR and GitHub updates, local handoff index, and user report. The next run starts from the merged tree and unresolved decision, never a dated brief alone.
+
+Every subagent receives the same minimal **task packet** in its request, because it cannot see the lead's conversation history:
+
+```text
+Role and exact question:
+Worktree, base commit, current branch, and relevant live PR/issue:
+Read first: root AGENTS.md, current-state/roadmap, then exact source/evidence paths:
+Hypothesis or disputed claim, predicted observation, and cheapest rejection test:
+Control/data/artifact identities and acceptance scope (development or fresh):
+Owned files/output location; other agents' file ownership; allowed mutations:
+Resource/paid-compute and preservation constraints:
+Return: conclusion, contrary evidence, exact source/commands/results, limitations, next decision.
+```
+
+The lead's **decision record** after each wave should say what was believed, what new measurement changed, whether the mechanism is promoted/retained/retired/conditional, and which dependency is next. Put exact measurements and negative findings in repository evidence/current-state through protected PR. Put only a short pointer in `~/.kimi-code/UOR-R4-HANDOFF.md`. If Codex returns, it can recover the same authority chain and challenge the result without relying on a private chat history.
+
+**Anti-loop and autonomy rule.** Do not spawn agents merely because a role exists, repeat broad audits at every run, or refine a mechanism because the last run did so. First ask: What observation would change the current decision? If no proposed run can answer that, step back to the information bottleneck and select a different hypothesis. Check cheap actual-artifact behavior early, then commit the useful successor and one fresh evaluation rather than ending at instrumentation. A negative result advances the programme only at its tested scope; inspect instrument validity and alternative causes before demoting a broader family. Continue through the current authorized milestone without asking the owner for routine implementation choices, already authorized local resource extensions or protected PR delivery. End with one recommended separate next milestone and wait for `Proceed UOR-R4`. Ask the owner only when a genuinely missing preference, external paid resource, destructive action or protected permission boundary makes the dependent work impossible. The owner can override a test threshold after seeing the full evidence; do not quietly relax it to claim success. See `.kimi-code/RESEARCH-PROTOCOL.md`.
+
+The full programme remains in `docs/integration/project-track.md`: one native Rust learned model, local language competence, contextual selection and causal state, versioned exact memory, typed dependent composition, useful prose/chat and executed coding, then complete laptop speed/RAM/energy qualification. Prime/zeta/R4/S3/H4/icosian mechanisms are research ingredients with scoped evidence. Exotic geometry enters only when a specific information, interference, order or capacity failure survives a simpler matched comparator.
+
+Tool routing: source and issue truth from `git`, `rg`, `gh` and current repo; historical retrieval from `uor_knowledge`/Codex memory with source verification; current papers through the Kimi browser extension and original publications; exact algebra through the installed SymPy venv or Lean for a proof task; focused Rust checks for implementation; actual loaded generation for language claims. `gitnexus` currently indexes only old snapshots and is disabled; Lean MCP is configured but disabled until a Lean task. Codex's proprietary app/tool authentication does not transfer automatically. Check `/mcp` and skill discovery in a new Kimi session after configuration changes.

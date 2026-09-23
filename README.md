@@ -126,6 +126,7 @@ The [structural-memory/Hopf direction](docs/integration/structural-memory-hopf-d
 - [Geometric-attention synthesis](docs/integration/geometric-attention-research-2026-09/README.md) and [mathematical foundations](docs/integration/geometric-attention-research-2026-09/mathematical-foundations.md): exact constructions, proposed bridges and missing learning evidence.
 - [Research archive](research/README.md), [research ledger](docs/RESEARCH.md), [September 16 review](docs/integration/review-2026-09-16/00-project-brain-index.md) and [experiment cards](docs/integration/cards/): preserved historical evidence. Dated recommendations do not override current owner direction.
 - [Formal vocabulary](docs/formal_vocabulary.md): distinguish definitions, assumptions, proof, empirical results and objectives.
+- [Kimi Code research workspace](.kimi-code/README.md): an optional one-window DeepSeek/K3 team workflow, scoped specialist roles and handoff pattern. It supplements the live project authority; local credentials and private session traces are never part of the repository.
 
 Use focused compilation/tests and actual generated behavior for changed model paths; use allocation, serialization and operation checks where the changed boundary warrants them. Queue compatibility acknowledgements are not tests. The [historical qualification driver](scripts/verify_qualification.sh) has local evidence dependencies and tests the retained dependent-language family; it is not qualification of every model in the repository.
 
