@@ -2346,3 +2346,16 @@ updated under its lock from **386,415,640** to **387,615,640 / 390,700,000 ms**,
 was 29,279,876 KiB, above the 24 GiB working reserve plus 128 MiB stop margin. No paid compute
 or unique-artifact deletion occurred. The present ledger-only protected delivery does not run a
 new model fit or replay.
+
+## Public entrypoint handoff reconciliation, 2026-09-23
+
+After PR #1360, a read-only sweep found that `docs/PROJECT_MAP.md`,
+`docs/integration/EVIDENCE.md`, `docs/integration/CONTINUE.md` and `ROADMAP.md` still led with
+superseded “current” or “next” statements. The bounded documentation-only correction projects
+300,000 ms for source/claim reconciliation, wording/link checks, a protected PR and queue
+verification, with one process, negligible incremental RAM and less than 1 MiB retained Git
+content; no model execution, external compute, cache deletion or new artifact. This complete
+conservative block is charged once at 2026-09-23T06:09Z: owner JSON atomically advanced from
+**387,615,640** to **387,915,640 / 390,700,000 ms**, leaving **2,784,360 ms**. It does not
+duplicate PR #1360's principal audit charge. Physical free remains about 29 GiB, above the
+24 GiB working reserve plus 128 MiB stop margin; refresh before the next expensive run.
