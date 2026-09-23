@@ -1,0 +1,27 @@
+{
+ "after": {
+  "cumulative_ms": 372836017,
+  "limit_ms": 390700000
+ },
+ "basis": "Measured wall time from the recorded prospective projection (2026-09-22T22:50Z) to delivery. Concurrent build/test/fit work counted once. Estimates are not described as measured.",
+ "before": {
+  "cumulative_ms": 364136017,
+  "limit_ms": 390700000
+ },
+ "charge_ms": 8700000,
+ "components": {
+  "delivery_allowance_ms": 100000,
+  "measured_elapsed_since_projection_clock_ms": 8600000
+ },
+ "deletions": "none",
+ "external_compute": "none",
+ "free_bytes": 35558273024,
+ "limit_increment_ms": 0,
+ "limit_increment_recorded_before_execution": true,
+ "new_retained_bytes": 0,
+ "note": "The 18,000,000 ms increment recorded prospectively before execution was sufficient; no further increment was used. All runs charged: state-lexical v3-1..v3-10 fits, controls, reuse replays, builds and focused tests. Report artifacts live under the gitignored .uor-models store; tracked evidence is bounded to docs/.",
+ "recorded_at": "2026-09-23T01:16:00Z",
+ "stop_margin_bytes": 134217728,
+ "task": "One transferable lexical learner through the retained observed-memory/computation session: corrected typed observation, emitted-token feedback, post-copy continuation, loaded E/S assessment, ordinary-text exposure, documentation and protected delivery",
+ "working_reserve_bytes": 25769803776
+}

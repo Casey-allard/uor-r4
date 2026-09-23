@@ -1,5 +1,7 @@
 # UOR-R4 Geometric Language Model — project map
 
+**Current principal review:** PR #1352 retains an executed V3 lexical interface at authored-task scope; ordinary-text learning and equal-information geometric comparison remain open. [Review](integration/transferable-lexical-principal-review-2026-09-23.md) · [next DeepSeek brief](integration/deepseek-ordinary-lexical-step-2026-09-23.md).
+
 ## September22 principal update — PR #1351 lexical component
 
 **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](integration/state-conditioned-lexical-review-2026-09-22.md), [independent audit](evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. Original artifacts remain preserved.

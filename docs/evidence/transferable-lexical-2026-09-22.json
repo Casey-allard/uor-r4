@@ -1,0 +1,207 @@
+{
+  "artifact_sha256": {
+    "comparator.json": "304818a16f3eb5688b6bf934fc0910437e23e1385edc6b8946270e3f9c8320b2",
+    "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+    "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+    "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+    "state_lexical.json": "10560889f05e7d0125d7377cb69830df00dae302c5d53afb878837a328ed5405"
+  },
+  "base_merge": "6ae7625ffa11e86eeb176e45e22d6fef609b8ac6",
+  "checks": {
+    "artifact_reload_identity": true,
+    "context_ablation_changes_output": true,
+    "learned_fit_documents_all_expected": true,
+    "legacy_copy_retained": true,
+    "recurrence_ablation_changes_output": true,
+    "restart_all_boundaries": true,
+    "restart_child_process": true,
+    "value_sensitive_effect": true
+  },
+  "checks_all_expected": true,
+  "date": "2026-09-22",
+  "es_reference": {
+    "continuation_tokens_in_declared_slots": 0,
+    "donor_continuation": [
+      198,
+      198,
+      504,
+      260
+    ],
+    "e_bytes": 454788,
+    "e_sha_matches_pin": true,
+    "e_valid": true,
+    "load_and_probe_ms": 9,
+    "probe_prompt": [
+      357,
+      2163
+    ],
+    "s_bytes": 53555,
+    "s_sha_matches_pin": true,
+    "status": "E_GENERATED_S_LOADED_VALIDATED_IN_SUBMITTED_ROOT",
+    "verdict": "The submitted root generated four tokens with E. S was deserialized/validated against E and tokenizer identity but no S query-read method was called. The principal replay performs an actual separate S probe. Neither probe is a matched scoped-span language-quality comparison.",
+    "original_submitted_status": "LOADED_AND_EXECUTED"
+  },
+  "evaluation_exposure": "exposed authored panel; replay is not a fresh acceptance draw",
+  "executable_sha256": "a73bf9bad830dbeba81a4d6b7769b71b5cfdbc81f84245eeb2d198b4558dd2f3",
+  "external_compute": "none",
+  "fit": {
+    "action_correct": 791,
+    "action_total": 791,
+    "content_tokens": 20,
+    "e_dim": 48,
+    "epochs": 16000,
+    "final_loss": 0.0,
+    "first_loss": 1186.6910400390625,
+    "h_dim": 48,
+    "sequences": 122,
+    "served_loss": 3.208183772893808e-13,
+    "steps": 791
+  },
+  "ordinary_text_exposure": {
+    "documents": [
+      {
+        "fitted_fraction": 0.021143486831418448,
+        "fitted_tokens": 4816,
+        "path": "docs/integration/current-state.md",
+        "tokens": 227777
+      },
+      {
+        "fitted_fraction": 0.018712666097769108,
+        "fitted_tokens": 307,
+        "path": "docs/integration/project-track.md",
+        "tokens": 16406
+      }
+    ],
+    "population": "source-separated local project documentation, distinct from the authored state world",
+    "verdict": "NOT_RUN as a learning task. The scoped contract supervises an exactly owned span, not open prose continuation, and the fitted content index does not cover ordinary vocabulary (measured coverage above). Ordinary-text learning through the retained session remains the open remainder of the milestone and is the first item of the recorded next step."
+  },
+  "panels": {
+    "context_disabled": {
+      "cases": 31,
+      "complete": false,
+      "ok": 6
+    },
+    "learned_fit_documents": {
+      "cases": 23,
+      "complete": true,
+      "ok": 23
+    },
+    "learned_held_out_documents": {
+      "cases": 8,
+      "complete": true,
+      "ok": 8
+    },
+    "learned_state_lexical": {
+      "cases": 31,
+      "complete": true,
+      "ok": 31
+    },
+    "legacy_copy_retained": {
+      "cases": 31,
+      "complete": true,
+      "ok": 31
+    },
+    "recurrence_disabled": {
+      "cases": 31,
+      "complete": false,
+      "ok": 0
+    },
+    "retained_finite_table": {
+      "cases": 31,
+      "complete": false,
+      "ok": 20
+    }
+  },
+  "report_root": "state-lexical-v3-10 (reused sealed artifact from state-lexical-v3-8; no neural refit)",
+  "representation_diagnostics": {
+    "content_only_unknown_pair_alias": true,
+    "copy_token_feedback": "the emitted token's shared learned identity enters the recurrence; an unfitted token shares the reserved OOV row",
+    "equal_and_unequal_unknown_pairs_alias": false,
+    "known_token_ids": [
+      389,
+      730,
+      1065,
+      2432
+    ],
+    "reordered_known_tokens_alias": false,
+    "scope": "loaded representation witnesses only; not a language-quality panel",
+    "suffix_after_four_tokens_alias": false,
+    "tail_position": "a payload longer than four tokens carries its final token in a dedicated tail position",
+    "unknown_token_ids": [
+      1,
+      2
+    ]
+  },
+  "restart": {
+    "all_equal_final": true,
+    "boundaries": 10,
+    "child_process": true
+  },
+  "restart_child_process": true,
+  "schema": "uor-r4.transferable-lexical-evidence/1",
+  "scope": "exposed authored response fixture over a small declared state world; a learned low-bit state-conditioned decoder selects shared vocabulary words around the exact owned span, and continues after the span, from position-resolved content, the actual emitted token identity, and an exact typed causal block. Not general prose and no geometric advantage claimed; the held-out-document panel transfers the sentence form to unfamiliar entity/value strings of unseen length, not an unfamiliar computed relation.",
+  "slots": [
+    357,
+    314,
+    436,
+    1361,
+    2163,
+    808,
+    418,
+    1209
+  ],
+  "source_files": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
+      "sha256": "e558751a6a60a1eb305ee70acf93cc820bd7bbba809bd03309a994e618907df9"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs",
+      "sha256": "d4114cb592891c15a47da6cf1d5d7ee8448c8d68d2cdfb8af21de3af58b8883d"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+      "sha256": "4233a85736fec1d888f931dcbe6ea4e4c2d00eee0fde4bf10a3694cca58445db"
+    }
+  ],
+  "teacher_forced_replay": {
+    "correct": 791,
+    "total": 791
+  },
+  "value_sensitive": [
+    {
+      "differ": true,
+      "document": "mara",
+      "final_recurrent_state_differs": true,
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
+    },
+    {
+      "differ": true,
+      "document": "ivo",
+      "final_recurrent_state_differs": true,
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
+    },
+    {
+      "differ": true,
+      "document": "cedar",
+      "final_recurrent_state_differs": true,
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
+    },
+    {
+      "differ": true,
+      "document": "oren",
+      "final_recurrent_state_differs": true,
+      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
+    }
+  ],
+  "worktree": "/Users/casey.allard/uor-r4/.worktrees/transferable-lexical",
+  "principal_review_qualification": {
+    "review": "docs/integration/transferable-lexical-principal-review-2026-09-23.md",
+    "submitted_root": "state-lexical-v3-10",
+    "exact_scope": "31/31 exposed authored responses; all computed cases fitted; eight held-out cases reuse non-computed current/previous/initial forms",
+    "teacher_scope": "791/791 in-sample exported-artifact agreement",
+    "paired_computed_request_scope": "The 4/4 pair changes operation, key_changed and payload together; no isolated content effect",
+    "finite_comparator_scope": "20/31 lower-information flag-key table, not a matched architecture comparison",
+    "ordinary_text": "NOT_RUN as a learning task; document coverage is a pre-final-source-snapshot diagnostic"
+  }
+}

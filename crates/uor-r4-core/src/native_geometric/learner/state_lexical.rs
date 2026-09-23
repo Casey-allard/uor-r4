@@ -19,23 +19,29 @@
 //! h_0     = learned_init(c)
 //! a_t     = learned_readout(h_t, c, exact_copy_state)
 //! x_t     = execute(a_t)          // a generated token, an exact owned token, or Stop
-//! h_(t+1) = learned_transition(h_t, action_symbol(a_t))
+//! h_(t+1) = learned_transition(h_t, action_symbol(a_t), emitted_token_row, typed_facts)
 //! ```
 //!
-//! * `c` is a *content* vector: a learned embedding of the selected owned payload tokens and, for a
-//!   consumed computation, of the operand the computation started from. The evidence value is
-//!   therefore an input, not a reported class, so changing the value can change an uncopied word with
-//!   the provenance flags held equal. It is not a supplied `changed` flag: the learner must discover
-//!   the composition from declared text.
-//! * `h_t` is a bounded integer state vector. `learned_transition` consumes the executed insert-slot
-//!   or Copy action. Different inserted slots can advance state differently, but every copied token
-//!   has the same Copy symbol. This version does not supply copied-token identity or ordering to the
-//!   recurrence. The content feature is a truncated bag of fitted tokens, not an exact identity.
+//! * `c` is a *content* vector: a position-resolved embedding of the selected owned payload tokens
+//!   and, for a consumed computation, of the operand the computation started from, plus a **typed
+//!   causal block**. Position-dependent rows make the feature order-sensitive, a dedicated tail
+//!   position carries the final token of a truncated payload, and an unfitted token occupies an
+//!   explicit reserved row rather than contributing nothing. The typed block exposes exact,
+//!   causally-available distinctions the compressed embedding cannot rediscover: requested history,
+//!   whether the answer is derived, whether an older committed value was superseded, whether a store
+//!   mutation was actually committed, whether the derived query key differs from the operand key, and
+//!   the exact equality / prefix / divergence of the selected and operand identities. These are typed
+//!   observations, not a supplied answer class: the learner still decides whether and how to verbalise
+//!   them.
+//! * `h_t` is a bounded integer state vector. `learned_transition` consumes the executed action event
+//!   *and the actual emitted token identity*, so an inserted word and a copied word both advance the
+//!   recurrence by the learned row of the token the session really emitted. Two equal-length copied
+//!   spans over different fitted tokens therefore reach different states. An unfitted copied token
+//!   still shares the reserved row; that residual collision is declared, not hidden.
 //!
 //! Exact copy identity, cursor and payload bytes stay separately owned by the scoped session; this
-//! decoder never replaces identity with lossy state. `Copy` enters the recurrence as one symbol whose
-//! payload is owned elsewhere, so the decoder learns *when* to copy and when to interleave a word, not
-//! which byte to copy.
+//! decoder never replaces identity with lossy state. A copied token carries both its exact byte (owned
+//! elsewhere) and its learned identity into the recurrence.
 //!
 //! # Serving contract (D0-b)
 //!
@@ -60,13 +66,29 @@ use super::lexical_realization::RealizationAction;
 use super::lowbit::TernaryLinear;
 
 /// Artifact format version.
-pub const SL_VERSION: u8 = 2;
+///
+/// Version 3 corrects three observation defects of version 2 with the same retained recurrence and
+/// integer serving path: the content feature is position-resolved (so reordered payloads differ), the
+/// final token of a long payload is carried in a dedicated tail position (so a truncated suffix is
+/// not erased), and unfitted tokens occupy an explicit reserved row rather than contributing zero.
+/// Version 3 additionally consumes the actual emitted token identity in the recurrent feedback and
+/// exposes exact typed causal facts instead of relying on a compressed embedding to rediscover them.
+pub const SL_VERSION: u8 = 3;
 /// Declared maximum number of shared learned vocabulary slots.
 pub const SL_MAX_SLOTS: usize = 8;
 /// Declared bound on how many content tokens of one evidence item enter the content feature. The
 /// selected payload and the operand are each truncated to this many tokens, so a long payload cannot
 /// make the served feature width unbounded.
 pub const SL_MAX_CONTENT_TOKENS: usize = 4;
+/// Declared number of content positions: the first `SL_MAX_CONTENT_TOKENS` tokens plus one dedicated
+/// tail position carrying the final token, so a long payload's suffix survives truncation.
+pub const SL_CONTENT_POSITIONS: usize = SL_MAX_CONTENT_TOKENS + 1;
+/// Width of the typed causal block: requested history, provenance (`derived`, `prior_differs`,
+/// `committed`, `key_changed`) and the exact selected/operand identity relations.
+pub const SL_F_DIM: usize = 15;
+/// The reserved content row index for any token that was not fitted. It is a real learned row, so an
+/// unsupported token is distinct from a meaningful zero.
+pub const SL_OOV_ROW: usize = 0;
 /// Declared bound on the magnitude of `i8` embedding entries (a 4-bit signed range).
 pub const SL_EMB_BOUND: i32 = 7;
 /// Declared upper bound on a ternary row's power-of-two scale, so `acc << shift` cannot overflow an
@@ -101,6 +123,12 @@ pub struct SlSequence {
     pub derived: bool,
     /// An older committed value for the same address was superseded before this one.
     pub prior_differs: bool,
+    /// A store mutation was actually committed for this address before this answer. Distinct from
+    /// `prior_differs`: a superseded record with an equal value still committed a mutation.
+    pub committed: bool,
+    /// The computation's derived query key differs exactly from the operand key. Distinct from
+    /// `derived`: a computation may follow a key back to the operand's own address.
+    pub key_changed: bool,
     /// The realized action sequence, one action per emission step, ending in `Stop`.
     pub actions: Vec<RealizationAction>,
 }
@@ -140,6 +168,86 @@ impl SlSequence {
             .filter(|a| matches!(a, RealizationAction::Copy))
             .count()
     }
+
+    /// The typed causal facts of this example.
+    pub fn facts(&self) -> SlFacts {
+        SlFacts {
+            history: self.history,
+            derived: self.derived,
+            prior_differs: self.prior_differs,
+            committed: self.committed,
+            key_changed: self.key_changed,
+        }
+    }
+
+    /// The token the session actually emits at step `i`, given the shared vocabulary slots. A `Copy`
+    /// step emits the next owned payload token in cursor order; an `Insert(slot)` step emits that
+    /// slot's token. This is the identity the recurrence consumes, shared with the content embedding.
+    pub fn emitted_token(&self, i: usize, slots: &[u32]) -> Option<u32> {
+        match self.actions.get(i)? {
+            RealizationAction::Copy => {
+                let cursor = self.actions[..i]
+                    .iter()
+                    .filter(|a| matches!(a, RealizationAction::Copy))
+                    .count();
+                self.sel.get(cursor).copied()
+            }
+            RealizationAction::Insert(slot) => slots.get(*slot as usize).copied(),
+            RealizationAction::Stop => None,
+        }
+    }
+}
+
+/// The causally available typed facts of one answer. Every field is an exact observation of the
+/// session, not a supplied answer class: the learner still decides whether and how to verbalise them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub struct SlFacts {
+    pub history: u8,
+    pub derived: bool,
+    pub prior_differs: bool,
+    pub committed: bool,
+    pub key_changed: bool,
+}
+
+/// The typed causal block for one example. `known` reports whether a token was fitted; it is used
+/// only for bounded counts and never to change an equality or a provenance fact.
+pub fn typed_causal_block(
+    sel: &[u32],
+    res: &[u32],
+    facts: SlFacts,
+    known: &dyn Fn(u32) -> bool,
+) -> Vec<i32> {
+    let cap = SL_MAX_CONTENT_TOKENS as i32;
+    let mut f = vec![0i32; SL_F_DIM];
+    f[(facts.history as usize).min(3)] = 1;
+    f[4] = i32::from(facts.derived);
+    f[5] = i32::from(facts.prior_differs);
+    f[6] = i32::from(facts.committed);
+    f[7] = i32::from(facts.key_changed);
+    f[8] = i32::from(!sel.is_empty() && sel == res);
+    f[9] = sel
+        .iter()
+        .zip(res)
+        .take_while(|(a, b)| a == b)
+        .count()
+        .min(SL_MAX_CONTENT_TOKENS) as i32;
+    f[10] = (0..sel.len().max(res.len()))
+        .filter(|i| sel.get(*i) != res.get(*i))
+        .count()
+        .min(SL_MAX_CONTENT_TOKENS) as i32;
+    f[11] = (sel.len() as i32).min(cap);
+    f[12] = (res.len() as i32).min(cap);
+    f[13] = sel
+        .iter()
+        .filter(|t| !known(**t))
+        .count()
+        .min(SL_MAX_CONTENT_TOKENS) as i32;
+    f[14] = res
+        .iter()
+        .filter(|t| !known(**t))
+        .count()
+        .min(SL_MAX_CONTENT_TOKENS) as i32;
+    f
 }
 
 /// Fit configuration. Every field is declared before fitting and stored with the report.
@@ -230,8 +338,9 @@ pub struct StateLexicalModel {
     pub vocab: usize,
     /// Learned shared insert vocabulary, one token per slot.
     pub slots: Vec<u32>,
-    /// Content-token index: position `i` holds the token id whose learned row is row `i`.
-    /// Unseen tokens contribute zero; row 0 is the ordinary token-0 row, not an OOV embedding.
+    /// Content-token index: index 0 is reserved for an unfitted token (the OOV row) and holds no
+    /// token id; index `c >= 1` holds the token id whose learned rows are
+    /// `c * SL_CONTENT_POSITIONS + p` for position `p`.
     pub content_tokens: Vec<u32>,
     pub h_dim: usize,
     pub e_dim: usize,
@@ -241,11 +350,14 @@ pub struct StateLexicalModel {
     pub h_clamp: i32,
     /// Bound on the integer content feature magnitude.
     pub m_clamp: i32,
-    /// The one shared learned content embedding, row-major `content_tokens.len() * (e_dim / 2)`.
-    /// The selected payload contributes to the first half of the content feature and the consumed
-    /// computation's operand to the second, so "the value did not change" is a relation the served
-    /// integer readout can express as a difference between the two halves rather than a supplied
-    /// flag.
+    /// The one shared learned content embedding, row-major
+    /// `content_tokens.len() * SL_CONTENT_POSITIONS * (e_dim / 2)`. A token's row is
+    /// position-dependent, so a reordered payload produces a different feature; position
+    /// `SL_MAX_CONTENT_TOKENS` is the tail slot carrying a truncated payload's final token. The
+    /// selected payload contributes to the first half of the content feature and the consumed
+    /// computation's operand to the second. The same rows also feed the recurrent token-identity
+    /// block, so a learned token identity is shared between the content observation and the emitted
+    /// feedback.
     pub e: Vec<i8>,
     pub wi: SlLinear,
     pub wt: SlLinear,
@@ -264,7 +376,7 @@ impl StateLexicalModel {
     }
 
     fn flag_dim() -> usize {
-        6
+        SL_F_DIM
     }
 
     fn copy_dim() -> usize {
@@ -272,17 +384,17 @@ impl StateLexicalModel {
     }
 
     /// Width of the derived selected-minus-operand block. It is the declared difference between the
-    /// two content halves, so the bounded clamp can threshold "the value did not change" directly.
+    /// two content halves, so the bounded clamp can threshold a content difference directly.
     fn diff_dim(&self) -> usize {
         self.e_dim / 2
     }
 
     fn readout_cols(&self) -> usize {
-        self.h_dim + self.e_dim + self.diff_dim() + 1 + Self::flag_dim() + Self::copy_dim()
+        self.h_dim + self.e_dim + self.diff_dim() + Self::flag_dim() + Self::copy_dim()
     }
 
     fn init_cols(&self) -> usize {
-        self.e_dim + self.diff_dim() + 1 + Self::flag_dim()
+        self.e_dim + self.diff_dim() + Self::flag_dim()
     }
 
     /// The declared difference between the selected and operand content halves.
@@ -291,64 +403,77 @@ impl StateLexicalModel {
         (0..half).map(|i| m[i] - m[half + i]).collect()
     }
 
-    /// The declared number of content coordinates on which the selected value and the consumed
-    /// operand disagree. Equal token sequences produce zero, but zero does not establish equality:
-    /// truncation, bag ordering, unknown-token omission and learned collisions can also erase a
-    /// distinction. This is a comparison over lossy content features, not an exact change witness;
-    /// whether a disagreement is reported and how it is worded remain learned.
-    fn disagreement(&self, m: &[i32]) -> i32 {
-        let half = self.e_dim / 2;
-        (0..half).filter(|i| m[*i] != m[half + *i]).count() as i32
-    }
-
     fn transition_cols(&self) -> usize {
-        self.h_dim + Self::symbol_dim(self.slots.len())
+        self.h_dim + Self::symbol_dim(self.slots.len()) + self.diff_dim() + Self::flag_dim()
     }
 
     fn symbol_dim(n_slots: usize) -> usize {
         SL_SYM_INSERT_BASE + n_slots
     }
 
-    /// The internal embedding row for a token id, or `None` when no row was fitted for it. An
-    /// unknown token contributes nothing rather than a random initialised row, so a held-out
-    /// document degrades to the flag-driven sequence instead of an arbitrary one.
+    /// The learned content row index for a token id, or `None` when no row was fitted for it. Index
+    /// 0 is reserved for unfitted tokens, so it is never returned here.
     fn embed_row(&self, token: u32) -> Option<usize> {
-        self.content_tokens.iter().position(|t| *t == token)
+        self.content_tokens
+            .iter()
+            .enumerate()
+            .skip(1)
+            .find(|(_, t)| **t == token)
+            .map(|(i, _)| i)
     }
 
-    /// The content feature `m` for a selected payload and a computation operand: the sum of the
-    /// learned embeddings of every *fitted* token, bounded. `res` is empty for a direct read, and an
-    /// unfitted token is skipped.
+    /// The embedding row for `token` at content position `p`. An unfitted token uses the reserved
+    /// OOV row, so unsupported content is a real learned row rather than a meaningful zero.
+    #[allow(dead_code)]
+    fn content_row(&self, token: u32, p: usize) -> usize {
+        let c = self.embed_row(token).unwrap_or(SL_OOV_ROW);
+        c * SL_CONTENT_POSITIONS + p.min(SL_CONTENT_POSITIONS - 1)
+    }
+
+    /// The ordered (token-row, position) terms of one token slice: the first `SL_MAX_CONTENT_TOKENS`
+    /// tokens in order, plus the final token in the dedicated tail position when the slice is longer.
+    fn content_terms(&self, tokens: &[u32]) -> Vec<(usize, usize)> {
+        let mut out: Vec<(usize, usize)> = tokens
+            .iter()
+            .take(SL_MAX_CONTENT_TOKENS)
+            .enumerate()
+            .map(|(p, t)| (self.embed_row(*t).unwrap_or(SL_OOV_ROW), p))
+            .collect();
+        if tokens.len() > SL_MAX_CONTENT_TOKENS {
+            let last = tokens[tokens.len() - 1];
+            out.push((
+                self.embed_row(last).unwrap_or(SL_OOV_ROW),
+                SL_MAX_CONTENT_TOKENS,
+            ));
+        }
+        out
+    }
+
+    /// The content feature `m` for a selected payload and a computation operand. Each token
+    /// contributes its learned row for its own position, so reordering changes the feature and a
+    /// truncated payload keeps its final token in the tail position. `res` is empty for a direct read.
     pub fn content_feature(&self, sel: &[u32], res: &[u32]) -> Vec<i32> {
         let half = self.e_dim / 2;
         let mut m = vec![0i32; self.e_dim];
-        for token in sel.iter().take(SL_MAX_CONTENT_TOKENS) {
-            if let Some(row) = self.embed_row(*token) {
-                let row = row * half;
-                for (d, v) in self.e[row..row + half].iter().enumerate() {
-                    m[d] += i32::from(*v);
-                }
+        for (c, p) in self.content_terms(sel) {
+            let row = (c * SL_CONTENT_POSITIONS + p) * half;
+            for (d, v) in self.e[row..row + half].iter().enumerate() {
+                m[d] += i32::from(*v);
             }
         }
-        for token in res.iter().take(SL_MAX_CONTENT_TOKENS) {
-            if let Some(row) = self.embed_row(*token) {
-                let row = row * half;
-                for (d, v) in self.e[row..row + half].iter().enumerate() {
-                    m[half + d] += i32::from(*v);
-                }
+        for (c, p) in self.content_terms(res) {
+            let row = (c * SL_CONTENT_POSITIONS + p) * half;
+            for (d, v) in self.e[row..row + half].iter().enumerate() {
+                m[half + d] += i32::from(*v);
             }
         }
         clamp_in_place(&mut m, self.m_clamp);
         m
     }
 
-    /// The causal flag block: requested-history one-hot, derived, prior-differs.
-    pub fn flags(history: u8, derived: bool, prior_differs: bool) -> Vec<i32> {
-        let mut f = vec![0i32; Self::flag_dim()];
-        f[(history as usize).min(3)] = 1;
-        f[4] = i32::from(derived);
-        f[5] = i32::from(prior_differs);
-        f
+    /// The typed causal block, using this artifact's content rows for the bounded unknown counts.
+    pub fn typed_block(&self, sel: &[u32], res: &[u32], facts: SlFacts) -> Vec<i32> {
+        typed_causal_block(sel, res, facts, &|t| self.embed_row(t).is_some())
     }
 
     /// `h_0 = learned_init(c)`.
@@ -356,7 +481,6 @@ impl StateLexicalModel {
         let mut input = Vec::with_capacity(self.init_cols());
         input.extend_from_slice(m);
         input.extend_from_slice(&self.difference_block(m));
-        input.push(self.disagreement(m));
         input.extend_from_slice(f);
         let mut h = self
             .wi
@@ -375,7 +499,6 @@ impl StateLexicalModel {
         input.extend_from_slice(h);
         input.extend_from_slice(m);
         input.extend_from_slice(&self.difference_block(m));
-        input.push(self.disagreement(m));
         input.extend_from_slice(f);
         let mut copy = vec![0i32; Self::copy_dim()];
         copy[(copy_stage as usize).min(2)] = 1;
@@ -390,15 +513,25 @@ impl StateLexicalModel {
         logits
     }
 
-    /// `h_(t+1) = learned_transition(h_t, action_symbol)` for the executed action event.
-    /// All copied token identities share one symbol in this artifact version.
-    pub fn transition(&self, h: &[i32], symbol: usize) -> Vec<i32> {
+    /// `h_(t+1) = learned_transition(h_t, action_symbol, emitted_token, c)` for the executed event.
+    /// The actual emitted token's shared learned identity and the typed causal block both advance the
+    /// state, so a copied token is not collapsed into one Copy symbol and the post-copy decision can
+    /// read the causal facts from the state as well as from the readout. An unfitted token uses the
+    /// reserved row.
+    pub fn transition(&self, h: &[i32], symbol: usize, token: Option<u32>, f: &[i32]) -> Vec<i32> {
+        let half = self.e_dim / 2;
         let mut input = Vec::with_capacity(self.transition_cols());
         input.extend_from_slice(h);
         let mut x = vec![0i32; Self::symbol_dim(self.slots.len())];
         let idx = symbol.min(x.len() - 1);
         x[idx] = 1;
         input.extend_from_slice(&x);
+        // The identity block reuses the token's position-0 learned row, so content and feedback share
+        // one learned token representation.
+        let c = token.and_then(|t| self.embed_row(t)).unwrap_or(SL_OOV_ROW);
+        let row = (c * SL_CONTENT_POSITIONS) * half;
+        input.extend(self.e[row..row + half].iter().map(|v| i32::from(*v)));
+        input.extend_from_slice(f);
         let mut next = self
             .wt
             .forward_i32(&input)
@@ -489,16 +622,19 @@ impl StateLexicalModel {
         let embedding_len = self
             .content_tokens
             .len()
-            .checked_mul(half)
+            .checked_mul(SL_CONTENT_POSITIONS)
+            .and_then(|n| n.checked_mul(half))
             .ok_or("state-lexical embedding dimensions overflow")?;
         let init_cols = self
             .e_dim
             .checked_add(half)
-            .and_then(|n| n.checked_add(1 + Self::flag_dim()))
+            .and_then(|n| n.checked_add(Self::flag_dim()))
             .ok_or("state-lexical input dimensions overflow")?;
         let transition_cols = self
             .h_dim
             .checked_add(Self::symbol_dim(self.slots.len()))
+            .and_then(|n| n.checked_add(half))
+            .and_then(|n| n.checked_add(Self::flag_dim()))
             .ok_or("state-lexical transition dimensions overflow")?;
         let readout_cols = self
             .h_dim
@@ -547,16 +683,15 @@ impl StateLexicalModel {
         // Certify the accumulator before executing add/sub/shift and adding a bias. A shift
         // bound alone is insufficient: a valid-shaped artifact can contain i32::MAX biases or
         // an unsafe recurrent clamp. These conservative absolute bounds cover every causal input.
-        let content_bound = self
-            .m_clamp
-            .min(SL_EMB_BOUND * SL_MAX_CONTENT_TOKENS as i32);
+        let content_bound = self.m_clamp.min(SL_EMB_BOUND * SL_CONTENT_POSITIONS as i32);
         let mut context_bounds = vec![content_bound as u128; self.e_dim];
         context_bounds.extend(vec![2 * content_bound as u128; half]);
-        context_bounds.push(half as u128);
-        context_bounds.extend([1; 6]);
+        context_bounds.extend(vec![SL_MAX_CONTENT_TOKENS.max(1) as u128; Self::flag_dim()]);
         validate_affine_range(&self.wi, &self.bi, &context_bounds)?;
         let mut transition_bounds = vec![self.h_clamp as u128; self.h_dim];
         transition_bounds.extend(vec![1; Self::symbol_dim(self.slots.len())]);
+        transition_bounds.extend(vec![SL_EMB_BOUND as u128; half]);
+        transition_bounds.extend(vec![SL_MAX_CONTENT_TOKENS.max(1) as u128; Self::flag_dim()]);
         validate_affine_range(&self.wt, &self.bt, &transition_bounds)?;
         let mut readout_bounds = vec![self.h_clamp as u128; self.h_dim];
         readout_bounds.extend(context_bounds);
@@ -586,7 +721,7 @@ impl StateLexicalModel {
         let mut total = 0usize;
         for ex in examples {
             let m = self.content_feature(&ex.sel, &ex.res);
-            let f = Self::flags(ex.history, ex.derived, ex.prior_differs);
+            let f = self.typed_block(&ex.sel, &ex.res, ex.facts());
             let mut h = self.init_state(&m, &f);
             let stages = ex.copy_stages();
             for (i, action) in ex.actions.iter().enumerate() {
@@ -595,7 +730,12 @@ impl StateLexicalModel {
                     correct += 1;
                 }
                 total += 1;
-                h = self.transition(&h, Self::symbol_of(*action));
+                h = self.transition(
+                    &h,
+                    Self::symbol_of(*action),
+                    ex.emitted_token(i, &self.slots),
+                    &f,
+                );
             }
         }
         (correct, total)
@@ -767,14 +907,14 @@ struct FloatModel {
 }
 
 impl FloatModel {
-    fn new(content_len: usize, n_slots: usize, cfg: &SlFitConfig, rng: &mut Rng) -> Self {
+    fn new(content_rows: usize, n_slots: usize, cfg: &SlFitConfig, rng: &mut Rng) -> Self {
         let h_dim = cfg.h_dim;
         let e_dim = cfg.e_dim;
-        let (f_dim, c_dim) = (6usize, 3usize);
+        let (f_dim, c_dim) = (SL_F_DIM, 3usize);
         let n_actions = SL_INSERT_BASE + n_slots;
         let half = e_dim / 2;
-        let mut emb = Vec::with_capacity(content_len * half);
-        for _ in 0..content_len * half {
+        let mut emb = Vec::with_capacity(content_rows * half);
+        for _ in 0..content_rows * half {
             emb.push(rng.scaled(2.4));
         }
         let mk =
@@ -789,9 +929,12 @@ impl FloatModel {
             h_clamp: 255.0,
             m_clamp: 255.0,
             e: emb,
-            wi: mk(h_dim * (e_dim + half + 1 + f_dim), rng),
-            wt: mk(h_dim * (h_dim + SL_SYM_INSERT_BASE + n_slots), rng),
-            wo: mk(n_actions * (h_dim + e_dim + half + 1 + f_dim + c_dim), rng),
+            wi: mk(h_dim * (e_dim + half + f_dim), rng),
+            wt: mk(
+                h_dim * (h_dim + SL_SYM_INSERT_BASE + n_slots + half + f_dim),
+                rng,
+            ),
+            wo: mk(n_actions * (h_dim + e_dim + half + f_dim + c_dim), rng),
             bi: vec![0.0; h_dim],
             bt: vec![0.0; h_dim],
             bo: vec![0.0; n_actions],
@@ -802,13 +945,13 @@ impl FloatModel {
         self.e_dim / 2
     }
     fn wi_cols(&self) -> usize {
-        self.e_dim + self.diff_dim() + 1 + self.f_dim
+        self.e_dim + self.diff_dim() + self.f_dim
     }
     fn wt_cols(&self) -> usize {
-        self.h_dim + SL_SYM_INSERT_BASE + self.n_slots
+        self.h_dim + SL_SYM_INSERT_BASE + self.n_slots + self.diff_dim() + self.f_dim
     }
     fn wo_cols(&self) -> usize {
-        self.h_dim + self.e_dim + self.diff_dim() + 1 + self.f_dim + self.c_dim
+        self.h_dim + self.e_dim + self.diff_dim() + self.f_dim + self.c_dim
     }
 }
 
@@ -845,13 +988,16 @@ pub struct SlFitOutcome {
 /// Fit the state-conditioned decoder by teacher forcing with Adam and quantisation-aware STEs.
 ///
 /// The content-token index is taken from the examples, with an ordinary token-0 row retained.
-/// Every distinct observed token adds one row; unknown serving tokens are omitted from the feature.
+/// `oov_tokens` declares token ids that must stay *unfamiliar*: they are excluded from the content
+/// index so an unknown-token control is faithful rather than silently fitted. Every other distinct
+/// observed token adds one row; unknown serving tokens use the reserved OOV row.
 pub fn fit_state_lexical(
     examples: &[SlSequence],
     vocab: usize,
     slots: Vec<u32>,
     max_insert_words: u8,
     cfg: &SlFitConfig,
+    oov_tokens: &[u32],
 ) -> Result<SlFitOutcome, String> {
     if examples.is_empty() {
         return Err("state-lexical fit requires at least one example".into());
@@ -901,14 +1047,16 @@ pub fn fit_state_lexical(
     if !total_weight.is_finite() || total_weight <= 0.0 {
         return Err("state-lexical objective weight is not finite and positive".into());
     }
+    let half = cfg.e_dim / 2;
     let init_cols = cfg
         .e_dim
-        .checked_add(cfg.e_dim / 2)
-        .and_then(|n| n.checked_add(7))
+        .checked_add(half)
+        .and_then(|n| n.checked_add(SL_F_DIM))
         .ok_or("state-lexical fit input dimensions overflow")?;
     let transition_cols = cfg
         .h_dim
         .checked_add(SL_SYM_INSERT_BASE + slots.len())
+        .and_then(|n| n.checked_add(half))
         .ok_or("state-lexical fit transition dimensions overflow")?;
     let readout_cols = cfg
         .h_dim
@@ -924,22 +1072,52 @@ pub fn fit_state_lexical(
     (SL_INSERT_BASE + slots.len())
         .checked_mul(readout_cols)
         .ok_or("state-lexical fit readout size overflows")?;
+    // Index 0 is the reserved OOV row (it holds a placeholder, never a fitted token).
     let mut content_tokens = vec![0u32];
     for ex in examples {
         for t in ex.sel.iter().chain(ex.res.iter()) {
-            if !content_tokens.contains(t) {
+            if !oov_tokens.contains(t) && !content_tokens[1..].contains(t) {
                 content_tokens.push(*t);
             }
         }
     }
     let content_len = content_tokens.len();
-    content_len
-        .checked_mul(cfg.e_dim / 2)
+    let content_rows = content_len
+        .checked_mul(SL_CONTENT_POSITIONS)
+        .ok_or("state-lexical fit content rows overflow")?;
+    content_rows
+        .checked_mul(half)
         .ok_or("state-lexical fit embedding size overflows")?;
-    let content_row = |t: u32| content_tokens.iter().position(|c| *c == t).unwrap_or(0);
+    // The learned row of `t` at content position `p`; an unfitted token uses the reserved row.
+    let content_row = |t: u32, p: usize| {
+        let c = content_tokens
+            .iter()
+            .enumerate()
+            .skip(1)
+            .find(|(_, x)| **x == t)
+            .map(|(i, _)| i)
+            .unwrap_or(SL_OOV_ROW);
+        c * SL_CONTENT_POSITIONS + p.min(SL_CONTENT_POSITIONS - 1)
+    };
+    let terms = |tokens: &[u32]| -> Vec<(usize, usize)> {
+        let mut out: Vec<(usize, usize)> = tokens
+            .iter()
+            .take(SL_MAX_CONTENT_TOKENS)
+            .enumerate()
+            .map(|(p, t)| (content_row(*t, p), p))
+            .collect();
+        if tokens.len() > SL_MAX_CONTENT_TOKENS {
+            out.push((
+                content_row(tokens[tokens.len() - 1], SL_MAX_CONTENT_TOKENS),
+                SL_MAX_CONTENT_TOKENS,
+            ));
+        }
+        out
+    };
+    let known = |t: u32| !oov_tokens.contains(&t) && content_tokens[1..].contains(&t);
 
     let mut rng = Rng(cfg.seed);
-    let mut fm = FloatModel::new(content_len, slots.len(), cfg, &mut rng);
+    let mut fm = FloatModel::new(content_rows, slots.len(), cfg, &mut rng);
 
     let n_wi = fm.wi.len();
     let n_wt = fm.wt.len();
@@ -978,31 +1156,32 @@ pub fn fit_state_lexical(
             // ---- forward, keeping per-step activations ----
             let half = fm.e_dim / 2;
             let mut m = vec![0f32; fm.e_dim];
-            for t in ex.sel.iter().take(SL_MAX_CONTENT_TOKENS) {
-                let row = content_row(*t) * half;
+            let sel_terms = terms(&ex.sel);
+            let res_terms = terms(&ex.res);
+            for (row, _) in &sel_terms {
+                let base = row * half;
                 for d in 0..half {
-                    m[d] += e_q[row + d];
+                    m[d] += e_q[base + d];
                 }
             }
-            for t in ex.res.iter().take(SL_MAX_CONTENT_TOKENS) {
-                let row = content_row(*t) * half;
+            for (row, _) in &res_terms {
+                let base = row * half;
                 for d in 0..half {
-                    m[half + d] += e_q[row + d];
+                    m[half + d] += e_q[base + d];
                 }
             }
             let m_mask: Vec<bool> = m.iter().map(|v| v.abs() < fm.m_clamp).collect();
             clamp_in_place_f(&mut m, fm.m_clamp);
-            let f: Vec<f32> = {
-                let fi = StateLexicalModel::flags(ex.history, ex.derived, ex.prior_differs);
-                fi.iter().map(|v| *v as f32).collect()
-            };
+            let f: Vec<f32> = typed_causal_block(&ex.sel, &ex.res, ex.facts(), &known)
+                .iter()
+                .map(|v| *v as f32)
+                .collect();
             let mut u0 = vec![0f32; wi_cols];
             u0[..fm.e_dim].copy_from_slice(&m);
             for i in 0..half {
                 u0[fm.e_dim + i] = m[i] - m[half + i];
             }
-            u0[fm.e_dim + half] = (0..half).filter(|i| m[*i] != m[half + *i]).count() as f32;
-            u0[fm.e_dim + half + 1..].copy_from_slice(&f);
+            u0[fm.e_dim + half..].copy_from_slice(&f);
             let mut h = quantized_affine(&wi_q, &u0, &fm.bi);
             let mut h_hist: Vec<Vec<f32>> = Vec::with_capacity(ex.actions.len() + 1);
             let mut h_masks: Vec<Vec<bool>> = Vec::with_capacity(ex.actions.len() + 1);
@@ -1025,7 +1204,6 @@ pub fn fit_state_lexical(
                 for i in 0..half {
                     z.push(m[i] - m[half + i]);
                 }
-                z.push((0..half).filter(|i| m[*i] != m[half + *i]).count() as f32);
                 z.extend_from_slice(&f);
                 let mut copy = vec![0f32; fm.c_dim];
                 copy[(stages[i] as usize).min(2)] = 1.0;
@@ -1050,6 +1228,13 @@ pub fn fit_state_lexical(
                 let mut xs = vec![0f32; SL_SYM_INSERT_BASE + fm.n_slots];
                 xs[x] = 1.0;
                 input.extend_from_slice(&xs);
+                let tok_row = ex
+                    .emitted_token(i, &slots)
+                    .map(|t| content_row(t, 0))
+                    .unwrap_or(SL_OOV_ROW * SL_CONTENT_POSITIONS);
+                let tok_base = tok_row * half;
+                input.extend_from_slice(&e_q[tok_base..tok_base + half]);
+                input.extend_from_slice(&f);
                 h = quantized_affine(&wt_q, &input, &fm.bt);
                 let mut mask = Vec::with_capacity(fm.h_dim);
                 for r in 0..fm.h_dim {
@@ -1096,6 +1281,13 @@ pub fn fit_state_lexical(
                     let mut xs = vec![0f32; SL_SYM_INSERT_BASE + fm.n_slots];
                     xs[x] = 1.0;
                     input.extend_from_slice(&xs);
+                    let prev_tok_row = ex
+                        .emitted_token(t - 1, &slots)
+                        .map(|t| content_row(t, 0))
+                        .unwrap_or(SL_OOV_ROW * SL_CONTENT_POSITIONS);
+                    let prev_tok_base = prev_tok_row * half;
+                    input.extend_from_slice(&e_q[prev_tok_base..prev_tok_base + half]);
+                    input.extend_from_slice(&f);
                     let mut dpre = vec![0f32; fm.h_dim];
                     for r in 0..fm.h_dim {
                         dpre[r] = if h_masks[t][r] { gh[r] } else { 0.0 };
@@ -1103,6 +1295,15 @@ pub fn fit_state_lexical(
                         for c in 0..wt_cols {
                             g_wt[r * wt_cols + c] += dpre[r] * input[c];
                         }
+                    }
+                    // The emitted token's shared identity row receives the feedback gradient too.
+                    let emb_col = fm.h_dim + SL_SYM_INSERT_BASE + fm.n_slots;
+                    for j in 0..half {
+                        let mut acc = 0.0f32;
+                        for r in 0..fm.h_dim {
+                            acc += dpre[r] * wt_q[r * wt_cols + emb_col + j];
+                        }
+                        g_e[prev_tok_base + j] += acc;
                     }
                     let mut new_gh = vec![0f32; fm.h_dim];
                     for c in 0..fm.h_dim {
@@ -1142,19 +1343,19 @@ pub fn fit_state_lexical(
                 }
             }
             let half = fm.e_dim / 2;
-            for d in 0..half {
-                let dsum = if m_mask[d] { gm[d] } else { 0.0 };
-                if dsum != 0.0 {
-                    for t in ex.sel.iter().take(SL_MAX_CONTENT_TOKENS) {
-                        let row = content_row(*t) * half;
-                        g_e[row + d] += dsum;
+            for (row, _p) in &sel_terms {
+                let base = row * half;
+                for d in 0..half {
+                    if m_mask[d] && gm[d] != 0.0 {
+                        g_e[base + d] += gm[d];
                     }
                 }
-                let dsum = if m_mask[half + d] { gm[half + d] } else { 0.0 };
-                if dsum != 0.0 {
-                    for t in ex.res.iter().take(SL_MAX_CONTENT_TOKENS) {
-                        let row = content_row(*t) * half;
-                        g_e[row + d] += dsum;
+            }
+            for (row, _p) in &res_terms {
+                let base = row * half;
+                for d in 0..half {
+                    if m_mask[half + d] && gm[half + d] != 0.0 {
+                        g_e[base + d] += gm[half + d];
                     }
                 }
             }
@@ -1262,7 +1463,7 @@ fn served_cross_entropy(
     let mut weight_sum = 0f32;
     for ex in examples {
         let m = model.content_feature(&ex.sel, &ex.res);
-        let f = StateLexicalModel::flags(ex.history, ex.derived, ex.prior_differs);
+        let f = model.typed_block(&ex.sel, &ex.res, ex.facts());
         let mut h = model.init_state(&m, &f);
         let stages = ex.copy_stages();
         for (i, action) in ex.actions.iter().enumerate() {
@@ -1277,7 +1478,12 @@ fn served_cross_entropy(
             let w = action_weight(*action, stop_weight, insert_weight);
             loss += w * nll as f32;
             weight_sum += w;
-            h = model.transition(&h, StateLexicalModel::symbol_of(*action));
+            h = model.transition(
+                &h,
+                StateLexicalModel::symbol_of(*action),
+                ex.emitted_token(i, &model.slots),
+                &f,
+            );
         }
     }
     loss / weight_sum.max(1e-9)
@@ -1292,10 +1498,11 @@ mod tests {
     }
 
     /// A tiny declared language. Slot 0 opens, slot 1 is the present copula, slot 2 the past copula,
-    /// slot 3 the unchanged-connective and slot 4 the changed-connective. The last two are selected by
-    /// the *content* of the consumed computation with every provenance flag held equal.
+    /// slot 3 the unchanged-connective, slot 4 the changed-connective and slot 5 a trailing word that
+    /// follows the copied span. The last three are selected by the *content* and the emitted stream
+    /// with every provenance flag held equal.
     fn slots() -> Vec<u32> {
-        vec![101, 102, 103, 104, 105]
+        vec![101, 102, 103, 104, 105, 106]
     }
 
     fn direct(value: &[u32]) -> SlSequence {
@@ -1308,6 +1515,8 @@ mod tests {
             history: 0,
             derived: false,
             prior_differs: false,
+            committed: false,
+            key_changed: false,
             actions: a,
         }
     }
@@ -1322,12 +1531,17 @@ mod tests {
             history: 1,
             derived: false,
             prior_differs: true,
+            committed: true,
+            key_changed: false,
             actions: a,
         }
     }
 
     /// A consumed computation: `operand` is where the computation started, `sel` is the result it
-    /// consumed. When `operand == sel` the value is unchanged.
+    /// consumed. When `operand == sel` the value is unchanged and the derived key resolved back to
+    /// the operand's own address. A committed change is additionally *continued after the copied
+    /// span* with a trailing marker, so the learner exercises a vocabulary decision that follows the
+    /// owned tokens and is conditioned on the computation's actual effect.
     fn derived(operand: &[u32], value: &[u32], unchanged: bool) -> SlSequence {
         let word = if unchanged { 3 } else { 4 };
         let mut a = vec![
@@ -1335,6 +1549,9 @@ mod tests {
             RealizationAction::Insert(word),
         ];
         a.extend(copy(value.len()));
+        if !unchanged {
+            a.push(RealizationAction::Insert(5));
+        }
         a.push(RealizationAction::Stop);
         SlSequence {
             sel: value.to_vec(),
@@ -1342,6 +1559,8 @@ mod tests {
             history: 0,
             derived: true,
             prior_differs: false,
+            committed: false,
+            key_changed: !unchanged,
             actions: a,
         }
     }
@@ -1354,20 +1573,22 @@ mod tests {
             out.push(previous(v));
             out.push(derived(v, v, true));
         }
-        // A changed consumed value: the operand differs from the result it consumed.
+        // A changed consumed value: the operand differs from the result it consumed, so the answer is
+        // continued after the copied span.
         out.push(derived(&[41, 42], &[11, 12], false));
         out.push(derived(&[43], &[21], false));
+        out.push(derived(&[44, 45, 46], &[31, 32, 33], false));
         out
     }
 
     fn fit() -> (StateLexicalModel, SlFitReport) {
         let cfg = SlFitConfig {
-            epochs: 900,
-            h_dim: 24,
-            e_dim: 24,
+            epochs: 8000,
+            h_dim: 48,
+            e_dim: 48,
             ..Default::default()
         };
-        let out = fit_state_lexical(&examples(), 4096, slots(), 4, &cfg).expect("fit");
+        let out = fit_state_lexical(&examples(), 4096, slots(), 4, &cfg, &[]).expect("fit");
         (out.model, out.report)
     }
 
@@ -1375,12 +1596,12 @@ mod tests {
     /// span and `Stop` is forced before it is complete.
     fn rollout(model: &StateLexicalModel, ex: &SlSequence) -> Vec<RealizationAction> {
         let m = model.content_feature(&ex.sel, &ex.res);
-        let f = StateLexicalModel::flags(ex.history, ex.derived, ex.prior_differs);
+        let f = model.typed_block(&ex.sel, &ex.res, ex.facts());
         let mut h = model.init_state(&m, &f);
         let total = ex.copy_count();
         let mut copied = 0usize;
         let mut actions = Vec::new();
-        for _ in 0..32 {
+        for step in 0..32 {
             let stage = if copied == 0 {
                 0
             } else if copied < total {
@@ -1405,7 +1626,12 @@ mod tests {
             if copied > total {
                 break;
             }
-            h = model.transition(&h, StateLexicalModel::symbol_of(action));
+            h = model.transition(
+                &h,
+                StateLexicalModel::symbol_of(action),
+                ex.emitted_token(step, &model.slots),
+                &f,
+            );
         }
         actions
     }
@@ -1422,20 +1648,21 @@ mod tests {
             version: SL_VERSION,
             vocab: 4096,
             slots: vec![101],
-            content_tokens: vec![11],
+            // Index 0 is the reserved OOV row; index 1 is token 11.
+            content_tokens: vec![0, 11],
             h_dim: 1,
             e_dim: 2,
-            f_dim: 6,
+            f_dim: SL_F_DIM,
             c_dim: 3,
             h_clamp: 255,
             m_clamp: 255,
-            e: vec![1],
-            wi: map(1, 10),
-            wt: map(1, 4),
-            wo: map(3, 14),
+            e: vec![1; 2 * SL_CONTENT_POSITIONS],
+            wi: map(1, 2 + 1 + SL_F_DIM),
+            wt: map(1, 1 + SL_SYM_INSERT_BASE + 1 + 1 + SL_F_DIM),
+            wo: map(SL_INSERT_BASE + 1, 1 + (2 + 1 + SL_F_DIM) + 3),
             bi: vec![0],
             bt: vec![0],
-            bo: vec![0; 3],
+            bo: vec![0; SL_INSERT_BASE + 1],
             max_insert_words: 4,
         }
     }
@@ -1526,6 +1753,8 @@ mod tests {
             history: 0,
             derived: false,
             prior_differs: false,
+            committed: false,
+            key_changed: false,
             actions: vec![RealizationAction::Stop],
         };
         let loss = served_cross_entropy(&model, &[example], 1.0, 1.0);
@@ -1549,18 +1778,36 @@ mod tests {
         let mut bad_slot = valid.clone();
         bad_slot.actions[0] = RealizationAction::Insert(255);
         for ex in [no_stop, bad_slot] {
-            assert!(fit_state_lexical(&[ex], 4096, slots(), 4, &cfg).is_err());
+            assert!(fit_state_lexical(&[ex], 4096, slots(), 4, &cfg, &[]).is_err());
         }
         let invalid_cfg = SlFitConfig {
             lr: f32::NAN,
             ..cfg
         };
-        assert!(fit_state_lexical(&[valid], 4096, slots(), 4, &invalid_cfg).is_err());
+        assert!(fit_state_lexical(&[valid], 4096, slots(), 4, &invalid_cfg, &[]).is_err());
     }
 
     #[test]
     fn the_fitted_decoder_reproduces_every_declared_sequence_through_the_served_path() {
         let (model, report) = fit();
+        if report.action_correct != report.action_total {
+            let (m_, f_) = (&model, report);
+            for ex in examples() {
+                let got = rollout(m_, &ex);
+                if got != ex.actions {
+                    eprintln!(
+                        "MISMATCH sel={:?} res={:?} hist={} facts={:?} got={:?} want={:?}",
+                        ex.sel,
+                        ex.res,
+                        ex.history,
+                        ex.facts(),
+                        got,
+                        ex.actions
+                    );
+                }
+            }
+            eprintln!("report {}/{}", f_.action_correct, f_.action_total);
+        }
         assert_eq!(
             report.action_correct, report.action_total,
             "served teacher-forced accuracy {}/{}",
@@ -1576,28 +1823,126 @@ mod tests {
         }
     }
 
+    /// A declared witness that the recurrent transition consumes *both* the action symbol and the
+    /// emitted token identity. The learned evidence that this capacity is used is
+    /// `copied_token_identity_enters_the_recurrence`; this test pins the representation itself.
+    fn transition_witness() -> StateLexicalModel {
+        let row = |values: &[f32], cols: usize| {
+            SlLinear::from_ternary(&TernaryLinear::quantize(values, 1, cols))
+        };
+        let ones = |rows: usize, cols: usize| {
+            SlLinear::from_ternary(&TernaryLinear::quantize(
+                &vec![1.0; rows * cols],
+                rows,
+                cols,
+            ))
+        };
+        let half = 1usize;
+        let cols = 3usize; // content rows: OOV, token 11, token 12
+        let mut e = vec![0i8; cols * SL_CONTENT_POSITIONS * half];
+        e[1 * SL_CONTENT_POSITIONS * half] = 2; // token 11, position 0
+        e[2 * SL_CONTENT_POSITIONS * half] = -2; // token 12, position 0
+        StateLexicalModel {
+            version: SL_VERSION,
+            vocab: 4096,
+            slots: vec![101, 102],
+            content_tokens: vec![0, 11, 12],
+            h_dim: 1,
+            e_dim: 2,
+            f_dim: SL_F_DIM,
+            c_dim: 3,
+            h_clamp: 255,
+            m_clamp: 255,
+            e,
+            wi: ones(1, 2 + half + SL_F_DIM),
+            // Columns: h, start, copy, insert-slot-0, insert-slot-1, emitted-token identity, typed block.
+            wt: {
+                let mut w = vec![0.0f32; 6];
+                w[2] = 1.0;
+                w[3] = -1.0;
+                w[5] = 1.0;
+                w.extend(std::iter::repeat(0.0).take(SL_F_DIM));
+                row(&w, 6 + SL_F_DIM)
+            },
+            wo: ones(SL_INSERT_BASE + 2, 1 + (2 + half + SL_F_DIM) + 3),
+            bi: vec![0],
+            bt: vec![0],
+            bo: vec![0; SL_INSERT_BASE + 2],
+            max_insert_words: 4,
+        }
+    }
+
     #[test]
     fn equal_length_prefixes_over_different_symbols_reach_different_states() {
-        // The old clipped-count key aliased these: both prefixes emit two vocabulary words in the same
-        // copy stage, so its key was identical. The recurrence consumes the actual symbols, so the
-        // states must diverge.
-        let (model, _) = fit();
-        let m = model.content_feature(&[11, 12], &[]);
-        let f = StateLexicalModel::flags(0, false, false);
+        // The old clipped-count key aliased equal-length prefixes. The transition consumes the actual
+        // action symbol and the emitted token identity, so both must be able to change the next state.
+        let model = transition_witness();
+        model.validate(4096).unwrap();
+        let f = model.typed_block(&[], &[], SlFacts::default());
+        let m = model.content_feature(&[], &[]);
         let h0 = model.init_state(&m, &f);
-        let open = model.transition(&h0, SL_SYM_INSERT_BASE);
-        let present = model.transition(&open, SL_SYM_INSERT_BASE + 1);
-        let past = model.transition(&open, SL_SYM_INSERT_BASE + 2);
+        let slot0 = model.transition(&h0, SL_SYM_INSERT_BASE, Some(11), &f);
+        let slot1 = model.transition(&h0, SL_SYM_INSERT_BASE + 1, Some(11), &f);
         assert_ne!(
-            present, past,
-            "the actual emitted symbol must enter the decoder state"
+            slot0, slot1,
+            "the emitted action symbol must enter the state"
+        );
+        let tok11 = model.transition(&h0, SL_SYM_INSERT_BASE, Some(11), &f);
+        let tok12 = model.transition(&h0, SL_SYM_INSERT_BASE, Some(12), &f);
+        assert_ne!(
+            tok11, tok12,
+            "the emitted token identity must enter the state"
         );
     }
 
     #[test]
-    fn content_selects_the_uncopied_word_with_provenance_flags_held_equal() {
-        // Both probes are derived, current-history, prior_differs = false. Only the consumed operand
-        // content differs, and the learned decode must follow the declared language.
+    fn copied_token_identity_enters_the_recurrence() {
+        // Two equal-length copied spans whose tokens are distinct fitted values. Version 2 collapsed
+        // both to one Copy symbol; version 3 feeds the emitted token's shared learned identity, so the
+        // states after the same number of copies must differ.
+        let (model, _) = fit();
+        let f = model.typed_block(&[], &[], SlFacts::default());
+        let m = model.content_feature(&[], &[]);
+        let h0 = model.init_state(&m, &f);
+        let a = model.transition(&h0, SL_SYM_COPY, Some(11), &f);
+        let b = model.transition(&h0, SL_SYM_COPY, Some(21), &f);
+        assert_ne!(
+            a, b,
+            "a copied token's identity must advance the recurrence differently"
+        );
+    }
+
+    #[test]
+    fn the_content_feature_is_ordered_suffix_aware_and_distinguishes_unknowns() {
+        let (model, _) = fit();
+        // Reordered payloads over the same tokens must not share a feature.
+        assert_ne!(
+            model.content_feature(&[11, 12], &[]),
+            model.content_feature(&[12, 11], &[])
+        );
+        // A suffix beyond the truncation window survives in the tail position.
+        assert_ne!(
+            model.content_feature(&[11, 12, 21, 31, 41], &[]),
+            model.content_feature(&[11, 12, 21, 31, 99], &[])
+        );
+        // A repeated unknown is exactly equal to itself but not to a different unknown, and the typed
+        // block records the exact relation even where the content rows collide.
+        let known = |t: u32| model.embed_row(t).is_some();
+        let same = typed_causal_block(&[900, 901], &[900, 901], SlFacts::default(), &known);
+        let diff = typed_causal_block(&[900, 901], &[900, 902], SlFacts::default(), &known);
+        assert_ne!(
+            same, diff,
+            "exact unknown identity relation must be observable"
+        );
+        assert_eq!(same[8], 1, "exact equality is reported");
+        assert_eq!(diff[8], 0);
+    }
+
+    #[test]
+    fn authored_derived_key_cases_select_different_uncopied_words() {
+        // Both probes are derived, current-history, prior_differs = false. Their
+        // content AND key_changed differ, so this checks fitted case behavior,
+        // not an isolated content effect.
         let (model, _) = fit();
         let unchanged = derived(&[11, 12], &[11, 12], true);
         let changed = derived(&[41, 42], &[11, 12], false);
@@ -1606,7 +1951,7 @@ mod tests {
         assert_ne!(
             rollout(&model, &unchanged),
             rollout(&model, &changed),
-            "content alone must be able to change an uncopied word"
+            "the authored derived-key cases must choose different words"
         );
     }
 
@@ -1617,7 +1962,7 @@ mod tests {
         let reloaded = StateLexicalModel::from_bytes(&bytes, 4096).expect("reload");
         assert_eq!(model, reloaded);
         let mut corrupt = model.clone();
-        corrupt.version = 3;
+        corrupt.version = SL_VERSION + 1;
         assert!(corrupt.validate(4096).is_err());
         let mut wide = model.clone();
         wide.wi.shift[0] = 99;

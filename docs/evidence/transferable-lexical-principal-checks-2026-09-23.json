@@ -1,0 +1,173 @@
+{
+  "claim_limits": {
+    "energy": "UNAVAILABLE",
+    "es": "E and S separately executed as components; neither controls scoped span and no matched quality comparison",
+    "finite_comparator": "Less information than neural arm; no unique recurrent or geometric advantage",
+    "four_pairs": "Operation and key_changed changed with payload; not a content-only intervention",
+    "held_out_cases": "8 familiar non-computed forms only; all computed and post-copy now cases fitted",
+    "ordinary_text": "Vocabulary exposure only; learning NOT_RUN",
+    "teacher_forced": "In-sample export/reload parity, not held-out language",
+    "temporal_wording": "Changed derived key does not commit an entity correction"
+  },
+  "delivery_directory": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-principal-delivery",
+  "delivery_files": {
+    "build.log": {
+      "bytes": 8985,
+      "sha256": "cfe192493ae40935c3c76f146dd89835966dbbb1d1c19930b06fccde68da2214"
+    },
+    "competitive-reader-reviewed": {
+      "bytes": 5578096,
+      "sha256": "b0df551ed6e2d8763d9b63c5d2e6435a9abed8298eb798cf5362d4e17c2063fa"
+    },
+    "replay.log": {
+      "bytes": 764,
+      "sha256": "239fddf04d96800b45d2ba78ff875f91b583e41308a06c2e868604fbe0aa786d"
+    },
+    "scoped-tests.log": {
+      "bytes": 6128,
+      "sha256": "fd38bc7deeb319a941d0b13ac091e316ca7037e12875986f0c60efb7302667d8"
+    },
+    "statelex-tests.log": {
+      "bytes": 3519,
+      "sha256": "906fdf454a6e18a4b30b715b6b73239202c02f2e26c92373f586f57f03879836"
+    }
+  },
+  "local_validation": {
+    "actual_replay": "PASS",
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "distinct_passed": 48,
+    "failed": 0,
+    "git_diff_check": "PASS",
+    "json_parse": "PASS",
+    "offline_release_build": "PASS",
+    "overlap": 3,
+    "scoped_memory_filter_passed": 36,
+    "state_lexical_filter_passed": 15
+  },
+  "pr": 1352,
+  "protected_base": "6ae7625ffa11e86eeb176e45e22d6fef609b8ac6",
+  "recorded_utc": "2026-09-23T01:45:19.014656+00:00",
+  "replay": {
+    "artifact_sha256": {
+      "comparator.json": "304818a16f3eb5688b6bf934fc0910437e23e1385edc6b8946270e3f9c8320b2",
+      "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
+      "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
+      "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
+      "state_lexical.json": "10560889f05e7d0125d7377cb69830df00dae302c5d53afb878837a328ed5405"
+    },
+    "context_disabled": {
+      "cases": 31,
+      "complete": false,
+      "ok": 6
+    },
+    "es_reference": {
+      "continuation_tokens_in_declared_slots": 0,
+      "donor_continuation": [
+        253,
+        198,
+        29,
+        1903
+      ],
+      "e_bytes": 454788,
+      "e_sha_matches_pin": true,
+      "e_valid": true,
+      "load_and_probe_ms": 15,
+      "probe_prompt": [
+        357,
+        2163,
+        314
+      ],
+      "s_bytes": 53555,
+      "s_continuation": [
+        216,
+        33,
+        28,
+        32
+      ],
+      "s_inference_rows": [
+        59,
+        0
+      ],
+      "s_sha_matches_pin": true,
+      "status": "E_AND_S_COMPONENT_PROBED",
+      "verdict": "E and S load and execute separate full-vocabulary continuation probes. S older-prefix inference rows are recorded. Neither donor emits or owns the session's exact copied span, and this is not a matched lexical-quality comparison. A donor-conditioned vocabulary decision over an exactly owned span remains an interface hypothesis."
+    },
+    "executable_sha256": "b0df551ed6e2d8763d9b63c5d2e6435a9abed8298eb798cf5362d4e17c2063fa",
+    "learned_fit": {
+      "cases": 23,
+      "complete": true,
+      "ok": 23
+    },
+    "learned_held_out": {
+      "cases": 8,
+      "complete": true,
+      "ok": 8
+    },
+    "learned_normal": {
+      "cases": 31,
+      "complete": true,
+      "ok": 31
+    },
+    "legacy_copy": {
+      "cases": 31,
+      "complete": true,
+      "ok": 31
+    },
+    "neural_refit": false,
+    "new_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-principal-1",
+    "recurrence_disabled": {
+      "cases": 31,
+      "complete": false,
+      "ok": 0
+    },
+    "restore_boundaries": 10,
+    "retained_finite": {
+      "cases": 31,
+      "complete": false,
+      "ok": 20
+    },
+    "reuse_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-8",
+    "same_case_rows_as_submitted_root_10": true,
+    "same_child_frame_contents_as_submitted_root_10": true,
+    "same_panels_as_submitted_root_10": true,
+    "same_teacher_parity_as_submitted_root_10": true,
+    "separate_process_child": true,
+    "source_files_sha256_match": true,
+    "teacher_forced_replay": {
+      "correct": 791,
+      "total": 791
+    }
+  },
+  "root_verification": [
+    {
+      "absolute_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-8",
+      "actual_files_excluding_root_manifest": 24,
+      "blake3_or_size_mismatches": 0,
+      "listed_files": 24,
+      "manifest_sha256": "040b8eaa8fb515919aaa7ac476a81b92d4392de0aab2f9a10f1bb7c6e1f76b08",
+      "missing_or_unlisted": 0,
+      "name": "state-lexical-v3-8"
+    },
+    {
+      "absolute_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-10",
+      "actual_files_excluding_root_manifest": 24,
+      "blake3_or_size_mismatches": 0,
+      "listed_files": 24,
+      "manifest_sha256": "bbbb8a2c00e3b24f8bc6d8198e7fe4d9e9c1a7f7b0cef34dc9a0bf2794eef26e",
+      "missing_or_unlisted": 0,
+      "name": "state-lexical-v3-10"
+    },
+    {
+      "absolute_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-principal-1",
+      "actual_files_excluding_root_manifest": 24,
+      "blake3_or_size_mismatches": 0,
+      "listed_files": 24,
+      "manifest_sha256": "0a666d92ca43de65ab65781f2959e259cd2bd383f9dcb9b3287bbc7312de735a",
+      "missing_or_unlisted": 0,
+      "name": "state-lexical-v3-principal-1"
+    }
+  ],
+  "schema": "uor-r4.transferable-lexical-principal-checks/1",
+  "submitted_head": "3aa2f4784af63fa0c4dad4856a1f488c5b5c5988"
+}

@@ -52,7 +52,7 @@ use super::observed_text_session::{
 };
 use super::realtext_support::sha256_hex;
 use super::shared_transition::{SharedTransitionModel, StExample};
-use super::state_lexical::StateLexicalModel;
+use super::state_lexical::{SlFacts, StateLexicalModel};
 
 /// Classified failures at the scoped-memory boundary.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -3607,17 +3607,47 @@ impl ScopedMemoryRuntime {
         (sel, res)
     }
 
-    /// The causal flag block the decoder consumes, under the context control.
-    fn state_lexical_flags(&self, session: &ScopedSession) -> Vec<i32> {
-        let disabled = matches!(self.control, MemoryControl::RealizationContextDisabled);
-        let history = if disabled {
-            0
-        } else {
-            Self::history_code(session)
-        };
-        let derived = session.derived && !disabled;
-        let prior = !disabled && self.prior_differs(session);
-        StateLexicalModel::flags(history, derived, prior)
+    /// The causal typed block the decoder consumes, under the context control. Every fact is an exact
+    /// observation of the session; none of them names an answer class.
+    fn state_lexical_facts(&self, session: &ScopedSession) -> SlFacts {
+        if matches!(self.control, MemoryControl::RealizationContextDisabled) {
+            return SlFacts::default();
+        }
+        // A store mutation was actually committed for this address when a previous record exists at the
+        // pinned view. Distinct from `prior_differs`, which additionally requires a different value.
+        let committed = session.captured.as_ref().is_some_and(|capture| {
+            capture.commit != 0
+                && !capture.key.is_empty()
+                && matches!(
+                    self.memory.lookup_identity(
+                        &capture.key,
+                        capture.commit,
+                        HistoryView::PreviousAssertion
+                    ),
+                    Lookup::Found(_)
+                )
+        });
+        // The computation followed a derived key that differs exactly from the operand key it started
+        // from. Distinct from `derived`: a computation may follow a key back to the operand's address.
+        let key_changed = session.derived
+            && session.computation.as_ref().is_some_and(|computed| {
+                !computed.derived_key.is_empty() && computed.derived_key != computed.operand_key
+            });
+        SlFacts {
+            history: Self::history_code(session),
+            derived: session.derived,
+            prior_differs: self.prior_differs(session),
+            committed,
+            key_changed,
+        }
+    }
+
+    /// The exact typed causal facts an external evaluator can read from the executed session, under the
+    /// same definitions the `StateLexicalV1` decoder consumes. Exposed so a training observation is
+    /// built from the runtime's own causal interface rather than from an authored answer-family label.
+    pub fn observed_lexical_facts(&self, session: &ScopedSession) -> (bool, bool, bool) {
+        let facts = self.state_lexical_facts(session);
+        (facts.committed, facts.prior_differs, facts.key_changed)
     }
 
     /// One realized emission step under the versioned `StateLexicalV1` contract.
@@ -3627,7 +3657,8 @@ impl ScopedMemoryRuntime {
     /// owned structural invariants as `RealizedV1` keep the span exact: `Copy` is forced inside the
     /// payload; a premature Stop is replaced with Copy. The decoder's state advances with the
     /// executed insert-slot/Copy event, so the reachability replay and a restored snapshot agree
-    /// with serving. Copied-token identity is not part of this artifact's recurrent feedback.
+    /// with serving. Fitted copied-token identity enters the recurrent feedback; unfitted copied
+    /// tokens still share one reserved OOV row.
     fn state_lexical_emit(
         &self,
         session: &mut ScopedSession,
@@ -3640,7 +3671,7 @@ impl ScopedMemoryRuntime {
         })?;
         let (sel, res) = self.state_lexical_content(session);
         let m = model.content_feature(&sel, &res);
-        let f = self.state_lexical_flags(session);
+        let f = model.typed_block(&sel, &res, self.state_lexical_facts(session));
         if session.sl_state.is_empty() {
             session.sl_state = model.init_state(&m, &f);
         }
@@ -3669,6 +3700,7 @@ impl ScopedMemoryRuntime {
             key: StateLexicalModel::state_digest(&session.sl_state),
             evidence_class: 0,
         });
+        let mut emitted: Option<u32> = None;
         match action {
             RealizationAction::Copy => {
                 let token = *session
@@ -3681,6 +3713,7 @@ impl ScopedMemoryRuntime {
                 session.emitted.push(token);
                 session.cursor += 1;
                 effect.emitted = Some(token);
+                emitted = Some(token);
             }
             RealizationAction::Insert(slot) => {
                 let token = *model.slots.get(slot as usize).ok_or_else(|| {
@@ -3692,18 +3725,24 @@ impl ScopedMemoryRuntime {
                     session.prelude_words += 1;
                 }
                 effect.emitted = Some(token);
+                emitted = Some(token);
             }
             RealizationAction::Stop => {
                 session.pending = SessionAction::Stop;
             }
         }
-        // Advance by the executed action event. Copy uses one shared symbol regardless of its token;
-        // the recurrence control holds the initial state instead.
+        // Advance by the executed action event *and* the actual emitted token's shared learned
+        // identity, so a copied token is not collapsed into one Copy symbol. The recurrence control
+        // holds the initial state instead.
         if !matches!(action, RealizationAction::Stop)
             && !matches!(self.control, MemoryControl::RecurrenceDisabled)
         {
-            session.sl_state =
-                model.transition(&session.sl_state, StateLexicalModel::symbol_of(action));
+            session.sl_state = model.transition(
+                &session.sl_state,
+                StateLexicalModel::symbol_of(action),
+                emitted,
+                &f,
+            );
         }
         Ok(())
     }
@@ -4246,6 +4285,8 @@ mod tests {
                         history,
                         derived,
                         prior_differs: prior,
+                        committed: prior,
+                        key_changed: derived,
                         actions,
                     });
                 }
@@ -4257,7 +4298,7 @@ mod tests {
             e_dim: 16,
             ..Default::default()
         };
-        fit_state_lexical(&examples, 4096, vec![11, 12, 13], 4, &cfg)
+        fit_state_lexical(&examples, 4096, vec![11, 12, 13], 4, &cfg, &[])
             .unwrap()
             .model
     }
@@ -4293,24 +4334,26 @@ mod tests {
             packed: vec![0; (rows * cols).div_ceil(4)],
             shift: vec![0; rows],
         };
-        let mut wo = zero(3, 14);
-        // Stop beats Copy only when the complete-copy-stage feature is one.
-        let stop_complete = 14 + 13;
+        let mut wo = zero(3, 22);
+        // Stop beats Copy only when the complete-copy-stage feature is one. Layout: h(1), m(2),
+        // difference(1), typed block(15), copy-stage one-hot(3).
+        let stop_complete = 22 + 21;
         wo.packed[stop_complete >> 2] |= 1 << ((stop_complete & 3) * 2);
         StateLexicalModel {
             version: SL_VERSION,
             vocab: 4096,
             slots: vec![11],
-            content_tokens: vec![11],
+            content_tokens: vec![0, 11],
             h_dim: 1,
             e_dim: 2,
-            f_dim: 6,
+            f_dim: super::super::state_lexical::SL_F_DIM,
             c_dim: 3,
             h_clamp: 255,
             m_clamp: 255,
-            e: vec![1],
-            wi: zero(1, 10),
-            wt: zero(1, 4),
+            e: vec![1; 2 * super::super::state_lexical::SL_CONTENT_POSITIONS],
+            wi: zero(1, 2 + 1 + super::super::state_lexical::SL_F_DIM),
+            // h(1) + {start, copy, insert}(3) + emitted-token identity(1) + typed block(15)
+            wt: zero(1, 1 + 3 + 1 + super::super::state_lexical::SL_F_DIM),
             wo,
             bi: vec![0],
             bt: vec![0],

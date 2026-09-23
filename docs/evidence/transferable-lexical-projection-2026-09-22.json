@@ -1,0 +1,30 @@
+{
+  "recorded_at": "2026-09-22T22:50:00Z",
+  "task": "One transferable lexical learner through the retained observed-memory/computation session: corrected typed causal observation, actual emitted/copied token feedback, post-copy continuation, source-separated ordinary text, loaded E/S assessment, documentation and protected delivery",
+  "base": "6ae7625ffa11e86eeb176e45e22d6fef609b8ac6",
+  "worktree": "/Users/casey.allard/uor-r4/.worktrees/transferable-lexical",
+  "ledger_before": {
+    "cumulative_ms": 364136017,
+    "limit_ms": 372700000
+  },
+  "projected_total_ms": 18000000,
+  "limit_increment_ms": 18000000,
+  "limit_after_increment_ms": 390700000,
+  "increment_reason": "The remaining allowance at recovery (8,563,983 ms) is below the coherent projection for one implementation + actual loaded evaluation + restart + documentation + protected delivery cycle. The standing owner authorization permits this class of necessary local extension when the complete projection, reason, increment and updated cumulative limit are recorded before use.",
+  "accounting": "cumulative elapsed wall time including shared build, focused tests, fitting, evaluation, restart, retries and delivery; no artificial timeout or retry quota",
+  "compiler_workers": 1,
+  "experiment_workers": 1,
+  "cargo_target_dir": "/Users/casey.allard/uor-r4/target",
+  "cargo_profile": "release",
+  "cargo_incremental": "0",
+  "free_before_build_bytes": 28394344448,
+  "working_reserve_bytes": 25769803776,
+  "stop_margin_bytes": 134217728,
+  "headroom_above_reserve_bytes": 2624540672,
+  "new_retained_output_bytes": 67108864,
+  "temporary_build_allowance_bytes": 1073741824,
+  "reserve_authorization": "Standing owner authorization for necessary local storage allowances. Free physical space measured at 28.39 GB. This task works under the revised 24 GiB working reserve plus a 128 MiB stop margin; new retained report output is bounded to 64 MiB and temporary build output to 1 GiB. This projection does not claim a 30+ GiB reserve is restored. Preserve every model, artifact, executable, source, worktree and the owner checkout.",
+  "external_compute": "none",
+  "deletions": "none",
+  "scope": "Implement and execute the corrected lexical observation/action contract, a source-separated ordinary-text split, an actual loaded E/S assessment and the retained mixed-session/restart interactions; retain prior artifacts and evidence."
+}

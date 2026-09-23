@@ -1,0 +1,20 @@
+{
+  "schema": "uor-r4.transferable-lexical-principal-charge/1",
+  "recorded_utc": "2026-09-23T01:51:17.623231+00:00",
+  "projection_record": "docs/evidence/transferable-lexical-principal-projection-2026-09-22.json",
+  "before_cumulative_ms": 372836017,
+  "measured_since_recovery_ms": 1159623,
+  "earlier_recovery_estimate_ms": 120000,
+  "protected_delivery_allowance_ms": 300000,
+  "charged_ms": 1579623,
+  "after_cumulative_ms": 374415640,
+  "limit_ms": 390700000,
+  "limit_increment_ms": 0,
+  "free_bytes_at_charge": 34188107776,
+  "working_reserve_bytes": 25769803776,
+  "stop_margin_bytes": 134217728,
+  "new_sealed_replay": "state-lexical-v3-principal-1",
+  "unique_artifact_deletion": false,
+  "paid_compute": false,
+  "note": "Charge once for independent review, release build, focused tests, unchanged-artifact replay, docs, six issue bodies, five knowledge records/five edges and protected delivery allowance. The mistaken +12,000,000-ms projection revision was withdrawn before any use; the live limit remains 390,700,000 ms."
+}
