@@ -1,0 +1,29 @@
+{
+  "scope": "Independent server-side checks from native per-document sums and independently constructed arithmetic oracles",
+  "warm_bootstrap": {
+    "draws": 50000,
+    "rng": "numpy PCG64 seed20260923",
+    "documents": 24,
+    "targets_per_document": 224,
+    "decay_minus_parent_bits": -0.7589718529366962,
+    "decay_minus_parent_ci95": [-0.822380907098755, -0.6949981124717441],
+    "documents_improved_parent": 24,
+    "decay_minus_previous_prose_bits": -0.41039799687764944,
+    "decay_minus_previous_prose_ci95": [-0.4883398697917211, -0.33022258728254733],
+    "documents_improved_previous_prose": 23,
+    "limits": "Descriptive paired intervals on exposed development, not uncertainty across unknown corpora or adaptive selection history"
+  },
+  "fresh_source_comparison": {
+    "ratio_minus_count_mean_bits": -0.11866402611950276,
+    "warm_minus_parent_mean_bits": -0.5650404128753098,
+    "source_families_improved": 4,
+    "source_families_total": 4,
+    "limits": "Four independent book sources are too few for a broad language qualification; no narrow confidence interval is claimed"
+  },
+  "cost_relative_overhead_percent": 8.480080369597776,
+  "hamilton_checks": {"pure_generators_skew": true,"squares_minus_identity": true,"H_iK_hermitian": true,"q8_associativity_cases":512,"common_rotation_preserves_inner_products":true},
+  "grid_factorization_max_absolute_error": 6.661338147750939e-16,
+  "integer_logmass_random_cases":100,
+  "integer_logmass_exact_codes":true,
+  "integer_logmass_max_float_discrepancy_bits":0.0003161985499051667
+}

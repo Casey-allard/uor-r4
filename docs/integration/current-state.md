@@ -1,6 +1,16 @@
 # Current native geometric AI work
 
-## Active — no material, tune-robust complementarity: the count prior is at least as good locally, September 23
+## Principal continuation, September 23: recovered native learning and integer marginal-relative readout
+
+The latest executed result is [principal-continuation-result-2026-09-23.md](principal-continuation-result-2026-09-23.md), with [the continuation handoff](principal-handoff-2026-09-23.md). A 128-update exact served-weight warm start with grounded rehearsal reaches **6.27371 bits/target**, retains authored temporal32/32, training36/36, class4/4 and held-out3/3, and reproduces byte-for-byte. A second shuffle seed confirms the decaying recipe; constant-rate candidates lose one held-out case.
+
+Full-Tune adjudication now uses all **114,364 declared targets**. A raw count/artifact product has a rare-tail regression and is not promoted. The marginal-relative correction `C^alpha (A/U)^gamma`, selected on Tune, scores **5.03801** through an integer loadable bundle; unchanged coefficients transferred to the warm native model score **5.01774**, with those authored grounding panels retained. Four source-family evaluations and actual generation are recorded. The output remains repetitive; native isolated copied-token feedback remains unresolved; no broad-language, H4/Hamilton superiority or energy claim follows. The old blanket optimization-exhaustion claim is not a valid description of the new warm recipe.
+
+The terminal objective remains geometry replacing floating-point matrix multiplication in a fully transformerless model. These are measured components, not a table-only replacement goal. Old experiment records below retain their exact scope. The four external books are now exposed and must not be reused as a new blind test.
+
+---
+
+## Previous active — no material, tune-robust complementarity: the count prior is at least as good locally, September 23
 
 > **Direction review (2026-09-23):** a whole-repository review and staged proposal is at
 > [repo-review-direction-2026-09-23](repo-review-direction-2026-09-23.md) (owner decisions requested; not yet

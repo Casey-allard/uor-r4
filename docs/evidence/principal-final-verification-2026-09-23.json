@@ -1,0 +1,39 @@
+{
+  "recorded_at": "2026-09-23T23:12:44.530609+00:00",
+  "focused_tests": [
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "99c588179c99cce4eee0f874998a874a3fba04fb200cb60b76daa3912e904363",
+      "filter": "native_geometric::learner::lexical_residual",
+      "result": "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 1103 filtered out; finished in 0.00s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "99c588179c99cce4eee0f874998a874a3fba04fb200cb60b76daa3912e904363",
+      "filter": "native_geometric::learner::hamilton_transport",
+      "result": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1104 filtered out; finished in 0.00s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "99c588179c99cce4eee0f874998a874a3fba04fb200cb60b76daa3912e904363",
+      "filter": "native_geometric::learner::transferable_lexical",
+      "result": "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 1097 filtered out; finished in 0.03s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/ordinary_lexical-1d14a51685f055e2",
+      "binary_sha256": "d70c0c117ae69d39418b37f5e360e5a57ff60c29a553ecd3c0dd15a83df72e79",
+      "filter": null,
+      "result": "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+    }
+  ],
+  "owner_extra_files_hashed": 44,
+  "owner_files_changed": [
+    ".omo/run-continuation/ses_f3016b9e8ffedo6N44Qba48qVo.json"
+  ],
+  "owner_runtime_change_note": "The listed live .omo continuation record changed during the session; this investigation did not write or restore it. All other snapshotted file hashes match.",
+  "owner_tracked_diff_identical": true,
+  "rebase_rust_diff_identical": true,
+  "format_diff_claim_checks_passed": true,
+  "physical_free_bytes": 52269768704,
+  "scope": "Tests executed from retained release test executables. Rebase changed commit identities and owner-direction documents, not Rust content; no blanket repository-suite claim."
+}

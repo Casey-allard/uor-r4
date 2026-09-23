@@ -201,3 +201,7 @@ must not become the newcomer quickstart for the native model.
 ## Historical review after PR #1306
 
 The [principal review](integration/readout-result-review-2026-09-20.md) verifies prefix recovery and the empirical-head gain, corrects actual-teacher/exposure/KL and export metadata claims, and withdraws the dominant feature-rank diagnosis. The [next prompt](integration/deepseek-head-projection-step-2026-09-20.md) specifies Q0/QG projection of the retained floating head into the existing ternary CPL2 path. Common source: `learner/lowbit.rs`, `learner/prior_learning.rs`, `learner/realtext_support.rs`, `bin/readout-diagnostic.rs`. Existing `prefix_artifact.rs` owns CPX2 recovery. That projection was subsequently executed with a reduced seed search; the complete prescribed search remains unrun. The active post-#1312 occurrence-reader prompt is linked above.
+
+## September23 principal continuation components
+
+`native_geometric/learner/lexical_residual.rs` owns sparse integer local-prior composition; `hamilton_transport.rs` owns finite signed quaternion vector actions. `TlTrainer::from_model_fresh_optimizer` supplies exact served-weight warm initialization, not optimizer checkpoint resume. `bin/support/principal_continuation.rs` contains the explicit research modes. The [principal handoff](integration/principal-handoff-2026-09-23.md) binds retained candidates, evidence, tests and remaining limits. None of these components silently changes the default serving model.

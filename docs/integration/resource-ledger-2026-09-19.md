@@ -2584,3 +2584,9 @@ release smoke runs on a temporary corpus totalled ≈156 s. Charged **346,000 ms
 **436,479,582** to **436,825,582 / 437,500,000 ms** (674,418 ms remaining). No allowance increment was used.
 New retained storage is ≈2.4 MB in the sealed root `.uor-models/realtext-prior-2026-09-20/olx-count-blend-1`;
 no model artifact, no training, no paid/external compute; the 128 MiB storage stop margin is untouched.
+
+## Principal continuation checkpoint, September 23, 2026
+
+The complete elapsed session from 2026-09-23T21:43:12+00:00 through 2026-09-23T23:14:24.321749+00:00 is charged once: **5,472,321 ms**, moving the live cumulative ledger from **436,825,582 to 442,297,903 / 444,700,000 ms**. The prospective task cap remains7,200,000ms; the protected-delivery tail after this checkpoint is not included and will receive a separate receipt. Concurrent earlier charges are preserved.
+
+Verified cleanup brought physical free space to55.10GB; current measured free space is **51.421GB**. Unique uncommitted material was archived and hash-verified before duplicate checkout removal. All candidate model stores and research evidence remain. The initial2GiB compile-memory projection was exceeded and disclosed; subsequent compilation was allowed4GiB, while model execution retained2GiB. No energy or zero-allocation claim follows. [Exact checkpoint and cleanup/recovery record](../evidence/principal-resource-checkpoint-2026-09-23.json) · [Executed tests and owner-preservation differences](../evidence/principal-final-verification-2026-09-23.json) · [Result](principal-continuation-result-2026-09-23.md).

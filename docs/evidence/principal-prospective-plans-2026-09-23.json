@@ -1,0 +1,106 @@
+{
+  "schema": "uor-r4.principal-prospective-plans/1",
+  "plans": {
+    "memory-projection-addendum.json": {
+      "recorded_after_observation_utc": "2026-09-23T22:09:11Z",
+      "phase": "Optimized compilation of the large existing uor-r4-core library",
+      "original_incremental_ram_projection_bytes": 2147483648,
+      "observed_rustc_rss_kib": 2844960,
+      "revised_compilation_ram_limit_bytes": 4294967296,
+      "reason": "Release compilation exceeded the original 2 GiB projection. This is disclosed as an observed overrun, not rewritten as prospective compliance. Reserve up to 4 GiB for subsequent compile/test work on the 16 GiB machine. Model evaluation/training keeps the 2 GiB limit.",
+      "storage_and_wall_limits": "unchanged",
+      "authorization": "Standing local resource-allowance authorization; no paid compute or unique-data deletion."
+    },
+    "warm-replication-plan.json": {
+      "declared_after": "Initial exact warm starts: constant schedule 6.30038 with 2/3 held-out grounding; decaying schedule 6.27371 with 3/3, both train36/36 and class4/4.",
+      "replication": "Repeat seed20260923 in a fresh process to verify both exact artifact hashes. Separately run seed20260924, changing only the Fisher-Yates fit-window order; initialization, doses and both learning-rate schedules remain fixed.",
+      "dose": "128 updates per schedule, four prose windows plus two grounded examples per update; 4.0 grounded weight; fresh optimizer moments and exact exported-weight initialization.",
+      "report": "Every arm, not just the strongest. Saved artifacts, per-document native-scored NLL, head/tail, temporal32, class4, held-out3, crossed-feedback controls and raw generations. Keep lost-grounding outcomes visible.",
+      "inference": "This tests an executable fresh-optimizer warm recipe. It does not separately identify reset, latent-master re-anchoring, extra data exposure or training-objective effects.",
+      "data": "Existing development is exposed. No source-disjoint test text is consulted for this decision.",
+      "resource": "Four additional bounded fits within existing session wall/storage allowance, sequential model work, no paid compute."
+    },
+    "freeze-fresh-evaluation.json": {
+      "freeze_scope": "Before downloading or inspecting any new source text",
+      "primary_integer_readout": "Full-Tune-selected marginal-relative correction, selection ratio-adjudication-1/selection.json, alpha28/32 gamma8/32; use only if same-population count interpolation remains (0.7,0.4). If interpolation changes, refit coefficients on the same predeclared Tune population before opening sources.",
+      "retained_warm_model": "warm-1/warm-schedule-1.tlx; SHA256 69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+      "warm_selection": "The predeclared decaying learning-rate recipe retained all grounded gates at both shuffle seeds. Retain the first seed's artifact, not the best source-evaluation result.",
+      "native_comparators": [
+        "original grounded olx-form-4",
+        "original prose olx-form-2",
+        "first-seed warm decaying artifact"
+      ],
+      "count_comparator": "Full-Tune-selected count exponent; no source-based recalibration",
+      "sources": "Four Project Gutenberg classical prose source families specified in fresh-sources-plan.json; exact external files retained with license and hashes, not committed as model training data.",
+      "promotion": "No product release or geometric-advantage qualification. Report all source-family outcomes, head/tail and raw generations, including failures."
+    },
+    "projection.json": {
+      "start_utc": "2026-09-23T21:43:12Z",
+      "wall_cap_ms": 7200000,
+      "threads": 2,
+      "peak_incremental_ram_limit_bytes": 2147483648,
+      "new_storage_limit_bytes": 2147483648,
+      "reserve_bytes": 25904021504,
+      "desired_free_bytes": 50000000000,
+      "scope": "Reconcile all five workstreams, sparse integer local prior/correction, matched full-tune controls, transported depth tests, warm-start schedules with grounded preservation, fresh-source generation and Hamilton-vector operator tests. Commit and protected delivery; archive unique work before reclaiming duplicate worktrees/caches.",
+      "paid_compute": false,
+      "ledger_before": {
+        "cumulative_ms": 436825582,
+        "limit_ms": 437500000
+      },
+      "ledger_after": {
+        "cumulative_ms": 436825582,
+        "limit_ms": 444700000
+      },
+      "standing_authorized_extension_ms": 7200000
+    },
+    "likelihood-ratio-followup-plan.json": {
+      "schema": "uor-r4.likelihood-ratio-followup/1",
+      "declared_after": "Primary 114364-target full-Tune adjudication: aggregate gain -0.05252 bits, rare-tail harm +0.65741 bits. No fresh-source text has been loaded.",
+      "hypothesis": "The local count prior already includes the Fit marginal. Multiplying it by the entire learned distribution may count marginal frequency twice. Test a learned correction relative to the same Fit-only unigram, without claiming conditional independence.",
+      "candidate": "Normalize C^alpha * (A/U)^gamma over Generate, then restore the unchanged native Generate/Copy/Stop group mass.",
+      "controls": [
+        "last-two-only A divided by U",
+        "reversed-older-state A divided by U",
+        "U/U (count-temperature-only)",
+        "cur-only E1 divided by U"
+      ],
+      "parameter_grid": "Same alpha numerators [28,30,32,34,36,38,40]/32 and gamma [0..8]/32 for every input; full 2048-window Tune selection only.",
+      "report": "Overall and head/tail losses, paired document intervals, boundary optima and same-information controls. First measurement is offline; integer implementation requires its own parity tests.",
+      "data_policy": "Exploratory follow-up on exposed development; final source-disjoint corpus stays unopened until final design and coefficients are frozen.",
+      "promotion": "No promotion based on aggregate gain that conceals rare-token harm or grounded regression.",
+      "resource_scope": "Within the existing 2-hour session projection, one two-thread model run at a time, no paid compute."
+    },
+    "fresh-sources-plan.json": {
+      "schema": "uor-r4.principal-fresh-source-plan/1",
+      "selection_rule": "Load no source text until the full-Tune coefficient selection and candidate.prc are written and hash-bound. Do not change coefficients after reading this evaluation.",
+      "sources": [
+        {
+          "id": 11,
+          "title": "Alice's Adventures in Wonderland",
+          "url": "https://www.gutenberg.org/ebooks/11.txt.utf-8"
+        },
+        {
+          "id": 84,
+          "title": "Frankenstein",
+          "url": "https://www.gutenberg.org/ebooks/84.txt.utf-8"
+        },
+        {
+          "id": 1342,
+          "title": "Pride and Prejudice",
+          "url": "https://www.gutenberg.org/ebooks/1342.txt.utf-8"
+        },
+        {
+          "id": 1661,
+          "title": "The Adventures of Sherlock Holmes",
+          "url": "https://www.gutenberg.org/ebooks/1661.txt.utf-8"
+        }
+      ],
+      "selection": "16 evenly spaced 64-token windows per source, first eight tokens observed; use pinned derived 4096-token tokenizer and no fresh fitting.",
+      "comparison": "Frozen native baseline, full-Tune-selected integer residual, full-Tune-calibrated count-only. Include head/rare-tail and actual 48-token continuations, not just teacher forcing.",
+      "licensing": "Retain Project Gutenberg headers and license with downloaded source; verify published status before downloading. Do not commit complete book text to GitHub.",
+      "scope": "A small source-family-disjoint classical-prose evaluation, not a general-language benchmark or unseen-pretraining claim.",
+      "promotion": "None automatic. Accuracy, free generation and grounded retention are separate acceptance dimensions. Preserve negative results."
+    }
+  }
+}

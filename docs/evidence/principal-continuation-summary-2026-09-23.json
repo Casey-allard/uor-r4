@@ -1,0 +1,5330 @@
+{
+  "schema": "uor-r4.principal-continuation-summary/1",
+  "recorded_at": "2026-09-23T22:59:31.601040+00:00",
+  "base_revision": "f5fa0977a106598b97f161bf63de4cf5130e521a",
+  "history_main_commits_reviewed": 86,
+  "history_scope": "All five-day main commit messages reviewed, critical source and evidence traced; not an every-line diff review of all branches.",
+  "pinned_corpus_hashes_verified": 429,
+  "native_verification": {
+    "reports": [
+      {
+        "manifest_sha256": "47aa0bc389482717824cf82060083d9f73d5533382e2465bfa36f465d239989d",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/adjudication-1",
+        "top_level_entries": 8
+      },
+      {
+        "manifest_sha256": "238430efab8fb4b119dee89291ca872e2508a7ce20d62b91f6bd2ee108ea1538",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/cost-1",
+        "top_level_entries": 4
+      },
+      {
+        "manifest_sha256": "3b2f905d90d20d5e65cb65a0f34d8e3c23200710923cd8ac786e2afbf7128d54",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/count-calibration-1",
+        "top_level_entries": 4
+      },
+      {
+        "manifest_sha256": "c03902976a90c1e7de043d569f2f63295238593ee49efbe7564923fb2d279643",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/fresh-parent-1",
+        "top_level_entries": 6
+      },
+      {
+        "manifest_sha256": "4754dfef8b5f362844479939492120d58fab20f66e13e2899c8eac5c252e9574",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/fresh-ratio-1",
+        "top_level_entries": 6
+      },
+      {
+        "manifest_sha256": "9d891682ed14a529578b5071d062333a9d81b8f3bd7d712439c2cd9f40fc8b25",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/fresh-warm-1",
+        "top_level_entries": 6
+      },
+      {
+        "manifest_sha256": "274f39e3ef30bfa225039436adaa6e3d06e2c4f67c6a20674fb6994cb185e122",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/fresh-warm-composite-followup",
+        "top_level_entries": 6
+      },
+      {
+        "manifest_sha256": "2c459c274c2144ba381e23042cf9bd8c72c5d1c0f6aea031bf425ea103ef4b65",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/grounded-parent-1",
+        "top_level_entries": 6
+      },
+      {
+        "manifest_sha256": "9bf8e88ae39871816480b268d2c153986a5689d02b3c88f7441d0b4be1c4716f",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/grounded-warm-1",
+        "top_level_entries": 6
+      },
+      {
+        "manifest_sha256": "3a7759140de6a5ff37e1306c435de4eeac60621f27c753ed37d877f3ab3e3e7e",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/grounded-warm-2",
+        "top_level_entries": 7
+      },
+      {
+        "manifest_sha256": "aae3c3e0a92339ba688e7e16ba81f325751bc86decf7e139a031c368c1e984b8",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/ratio-adjudication-1",
+        "top_level_entries": 5
+      },
+      {
+        "manifest_sha256": "c5454b37282663dfa070109bae4ad74c2ecc86408811d59bb3d88b84579e04b8",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/ratio-integer-1",
+        "top_level_entries": 7
+      },
+      {
+        "manifest_sha256": "75bc3942c52ec72b4736f1dd56d7b0c562bf9a1d879cbcaef3bdc50553d46cc0",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/score-best-prose",
+        "top_level_entries": 4
+      },
+      {
+        "manifest_sha256": "0119fa192c8b1d16247042344cf44a52f8b999a8cf308cc02c23e71f5ffe157e",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/score-constant",
+        "top_level_entries": 4
+      },
+      {
+        "manifest_sha256": "2107798f8f6e4736444a0dc3493c5c31e85ceba1df7bfd13eed1d0b4f6d56edf",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/score-decay",
+        "top_level_entries": 4
+      },
+      {
+        "manifest_sha256": "5f7bead1e8bc49f52065c8bccb0bb1507a0236ab1f4ed26bb7e73ad2a75e0852",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/score-parent",
+        "top_level_entries": 4
+      },
+      {
+        "manifest_sha256": "c12bdbd6ca4cd839af0acf57b4611f17d912fe41e38ec83a8b1c81e37c27e298",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1",
+        "top_level_entries": 9
+      },
+      {
+        "manifest_sha256": "cd1ded9c8cd57634bb53df009439057c6a4c7b8405dba8887e1a6767214238bd",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-seed-20260923",
+        "top_level_entries": 9
+      },
+      {
+        "manifest_sha256": "97608278d59298b2a15640c576cf90225a43961b9b99137b0108f2029861ba46",
+        "root": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-seed-20260924",
+        "top_level_entries": 9
+      }
+    ],
+    "retained_report_verified": true,
+    "retained_root": "/Users/casey.allard/uor-r4/.uor-models/principal-continuation-2026-09-23",
+    "warm_model_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e"
+  },
+  "warm_replay_artifacts_exact": true,
+  "transferred_bundle_replay_exact": true,
+  "source_population_identity_all_evaluations_equal": true,
+  "server_validation": {
+    "scope": "Independent server-side checks from native per-document sums and independently constructed arithmetic oracles",
+    "warm_bootstrap": {
+      "draws": 50000,
+      "rng": "numpy PCG64 seed20260923",
+      "documents": 24,
+      "targets_per_document": 224,
+      "decay_minus_parent_bits": -0.7589718529366962,
+      "decay_minus_parent_ci95": [
+        -0.822380907098755,
+        -0.6949981124717441
+      ],
+      "documents_improved_parent": 24,
+      "decay_minus_previous_prose_bits": -0.41039799687764944,
+      "decay_minus_previous_prose_ci95": [
+        -0.4883398697917211,
+        -0.33022258728254733
+      ],
+      "documents_improved_previous_prose": 23,
+      "limits": "Descriptive paired intervals on exposed development, not uncertainty across unknown corpora or adaptive selection history"
+    },
+    "fresh_source_comparison": {
+      "ratio_minus_count_mean_bits": -0.11866402611950276,
+      "warm_minus_parent_mean_bits": -0.5650404128753098,
+      "source_families_improved": 4,
+      "source_families_total": 4,
+      "limits": "Four independent book sources are too few for a broad language qualification; no narrow confidence interval is claimed"
+    },
+    "cost_relative_overhead_percent": 8.480080369597776,
+    "hamilton_checks": {
+      "pure_generators_skew": true,
+      "squares_minus_identity": true,
+      "H_iK_hermitian": true,
+      "q8_associativity_cases": 512,
+      "common_rotation_preserves_inner_products": true
+    },
+    "grid_factorization_max_absolute_error": 6.661338147750939e-16,
+    "integer_logmass_random_cases": 100,
+    "integer_logmass_exact_codes": true,
+    "integer_logmass_max_float_discrepancy_bits": 0.0003161985499051667
+  },
+  "experiments": {
+    "adjudication-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "adjudicate",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "eb4eabab9bc4bedb4f66aa7b8a76415ee92dd7ea",
+        "source_sha256": "c0ff58eedd87d9eddd29957525f99bd519f0b66975d89ec8dd41243449ea9c31",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 375.800655125,
+      "result": {
+        "bundle_bytes": 2735769,
+        "bundle_sha256": "cb3068c2544f1f3b83e3e1ecd9033654775a4fcbba8b849b341444dc5487e836",
+        "calibrated_count_bits": 5.121723622015945,
+        "comparisons": [
+          {
+            "alpha": 28,
+            "bits": 5.069201610009237,
+            "denominator": 32,
+            "documents": [
+              [
+                1215.6970704823666,
+                224
+              ],
+              [
+                1130.6449800904195,
+                224
+              ],
+              [
+                1462.7668969418492,
+                224
+              ],
+              [
+                1120.4773676123707,
+                224
+              ],
+              [
+                1122.0810917407116,
+                224
+              ],
+              [
+                1067.7449916889905,
+                224
+              ],
+              [
+                996.8410254283477,
+                224
+              ],
+              [
+                1029.213047987822,
+                224
+              ],
+              [
+                1177.1101312444957,
+                224
+              ],
+              [
+                1115.4101730536963,
+                224
+              ],
+              [
+                1059.906403815268,
+                224
+              ],
+              [
+                1285.045014475668,
+                224
+              ],
+              [
+                1029.5360595445038,
+                224
+              ],
+              [
+                1085.417536170684,
+                224
+              ],
+              [
+                1138.5110147597604,
+                224
+              ],
+              [
+                1431.3404322268589,
+                224
+              ],
+              [
+                1121.7352465458152,
+                224
+              ],
+              [
+                758.9157846208394,
+                224
+              ],
+              [
+                1032.4191232904238,
+                224
+              ],
+              [
+                1073.8721689119882,
+                224
+              ],
+              [
+                1052.3502851696298,
+                224
+              ],
+              [
+                1413.6948102399735,
+                224
+              ],
+              [
+                1160.5665377777648,
+                224
+              ],
+              [
+                1170.7306615894177,
+                224
+              ]
+            ],
+            "gamma": 6,
+            "head_bits": 4.67159913309278,
+            "head_delta_raw_count": -0.11299705848164532,
+            "head_n": 4954,
+            "kind": "full_state",
+            "minus_calibrated_count": [
+              -0.052522012006707364,
+              -0.08033878939492034,
+              -0.02461459457091575
+            ],
+            "minus_full_state": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tail_bits": 9.73679087693852,
+            "tail_delta_raw_count": 0.6574149079859453,
+            "tail_n": 422
+          },
+          {
+            "alpha": 28,
+            "bits": 5.099933963164973,
+            "denominator": 32,
+            "documents": [
+              [
+                1217.3727490714714,
+                224
+              ],
+              [
+                1137.7158142404294,
+                224
+              ],
+              [
+                1463.9361976678551,
+                224
+              ],
+              [
+                1127.8091041942928,
+                224
+              ],
+              [
+                1128.9162228011205,
+                224
+              ],
+              [
+                1070.8730409885895,
+                224
+              ],
+              [
+                1007.3966097183908,
+                224
+              ],
+              [
+                1039.9254677757285,
+                224
+              ],
+              [
+                1185.1081450140605,
+                224
+              ],
+              [
+                1121.9619503965807,
+                224
+              ],
+              [
+                1068.9002026070107,
+                224
+              ],
+              [
+                1290.2276520937694,
+                224
+              ],
+              [
+                1038.8270160134962,
+                224
+              ],
+              [
+                1092.4279478781652,
+                224
+              ],
+              [
+                1153.2800185873418,
+                224
+              ],
+              [
+                1430.8513677724034,
+                224
+              ],
+              [
+                1128.9048327090318,
+                224
+              ],
+              [
+                776.0289029461603,
+                224
+              ],
+              [
+                1045.0410900669142,
+                224
+              ],
+              [
+                1086.9913717137536,
+                224
+              ],
+              [
+                1056.3647257344776,
+                224
+              ],
+              [
+                1418.8327512477138,
+                224
+              ],
+              [
+                1160.3165713393273,
+                224
+              ],
+              [
+                1169.2352333968038,
+                224
+              ]
+            ],
+            "gamma": 5,
+            "head_bits": 4.718338937629963,
+            "head_delta_raw_count": -0.06625725394446214,
+            "head_n": 4954,
+            "kind": "last_two_only",
+            "minus_calibrated_count": [
+              -0.02178965885097206,
+              -0.04467892251185912,
+              0.0010882827477489698
+            ],
+            "minus_full_state": [
+              0.030732353155735304,
+              0.022317356900594554,
+              0.0394073831251216
+            ],
+            "tail_bits": 9.579606371933554,
+            "tail_delta_raw_count": 0.5002304029809803,
+            "tail_n": 422
+          },
+          {
+            "alpha": 28,
+            "bits": 5.099141079891659,
+            "denominator": 32,
+            "documents": [
+              [
+                1221.6359681493163,
+                224
+              ],
+              [
+                1137.5277649939367,
+                224
+              ],
+              [
+                1467.8964769637307,
+                224
+              ],
+              [
+                1127.371545747461,
+                224
+              ],
+              [
+                1128.8871297117482,
+                224
+              ],
+              [
+                1076.738407706106,
+                224
+              ],
+              [
+                1004.8205342815024,
+                224
+              ],
+              [
+                1033.8888322317307,
+                224
+              ],
+              [
+                1182.099328270185,
+                224
+              ],
+              [
+                1121.8857104536264,
+                224
+              ],
+              [
+                1063.5581374887227,
+                224
+              ],
+              [
+                1291.4084882847499,
+                224
+              ],
+              [
+                1036.4485853214992,
+                224
+              ],
+              [
+                1093.243204418968,
+                224
+              ],
+              [
+                1151.2070230345087,
+                224
+              ],
+              [
+                1440.6369534084567,
+                224
+              ],
+              [
+                1127.418371028351,
+                224
+              ],
+              [
+                770.1149763637361,
+                224
+              ],
+              [
+                1040.646683312647,
+                224
+              ],
+              [
+                1083.369631901657,
+                224
+              ],
+              [
+                1055.870970850597,
+                224
+              ],
+              [
+                1415.5809620928424,
+                224
+              ],
+              [
+                1165.6710250886363,
+                224
+              ],
+              [
+                1175.055734392852,
+                224
+              ]
+            ],
+            "gamma": 6,
+            "head_bits": 4.7015352267060155,
+            "head_delta_raw_count": -0.08306096486840975,
+            "head_n": 4954,
+            "kind": "older_reversed",
+            "minus_calibrated_count": [
+              -0.022582542124285787,
+              -0.04945507794991233,
+              0.004486216958862421
+            ],
+            "minus_full_state": [
+              0.029939469882421577,
+              0.025684344998547992,
+              0.03437651745985093
+            ],
+            "tail_bits": 9.766769981981035,
+            "tail_delta_raw_count": 0.6873940130284613,
+            "tail_n": 422
+          },
+          {
+            "alpha": 32,
+            "bits": 5.121723622015945,
+            "denominator": 32,
+            "documents": [
+              [
+                1221.2308625758196,
+                224
+              ],
+              [
+                1147.352015652914,
+                224
+              ],
+              [
+                1479.5812407611375,
+                224
+              ],
+              [
+                1141.713734053876,
+                224
+              ],
+              [
+                1146.9895972819695,
+                224
+              ],
+              [
+                1045.7372171003717,
+                224
+              ],
+              [
+                1017.813860706648,
+                224
+              ],
+              [
+                1061.3958775927879,
+                224
+              ],
+              [
+                1192.2475109359884,
+                224
+              ],
+              [
+                1125.0515782373566,
+                224
+              ],
+              [
+                1081.0220960189235,
+                224
+              ],
+              [
+                1313.690413993294,
+                224
+              ],
+              [
+                1038.062065187098,
+                224
+              ],
+              [
+                1084.1063948100386,
+                224
+              ],
+              [
+                1171.1902211220063,
+                224
+              ],
+              [
+                1430.3582419229626,
+                224
+              ],
+              [
+                1139.681872365558,
+                224
+              ],
+              [
+                774.4459470875323,
+                224
+              ],
+              [
+                1051.2981718801975,
+                224
+              ],
+              [
+                1105.8347022635623,
+                224
+              ],
+              [
+                1041.8948333686667,
+                224
+              ],
+              [
+                1426.5118455945324,
+                224
+              ],
+              [
+                1148.3355231787532,
+                224
+              ],
+              [
+                1148.8403682657179,
+                224
+              ]
+            ],
+            "gamma": 0,
+            "head_bits": 4.784596191574425,
+            "head_delta_raw_count": 0.0,
+            "head_n": 4954,
+            "kind": "unigram",
+            "minus_calibrated_count": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "minus_full_state": [
+              0.052522012006707364,
+              0.024802659161451857,
+              0.08034451674402288
+            ],
+            "tail_bits": 9.079375968952574,
+            "tail_delta_raw_count": 0.0,
+            "tail_n": 422
+          },
+          {
+            "alpha": 32,
+            "bits": 5.10825060317988,
+            "denominator": 32,
+            "documents": [
+              [
+                1219.3784856942332,
+                224
+              ],
+              [
+                1142.8597650581876,
+                224
+              ],
+              [
+                1481.9854530600594,
+                224
+              ],
+              [
+                1137.7081653963014,
+                224
+              ],
+              [
+                1143.318916260696,
+                224
+              ],
+              [
+                1044.306082901286,
+                224
+              ],
+              [
+                1012.9626300486793,
+                224
+              ],
+              [
+                1054.150190119439,
+                224
+              ],
+              [
+                1189.1065714345134,
+                224
+              ],
+              [
+                1121.694760046883,
+                224
+              ],
+              [
+                1076.5105644313924,
+                224
+              ],
+              [
+                1312.8981558827545,
+                224
+              ],
+              [
+                1033.1888507386825,
+                224
+              ],
+              [
+                1080.0584386160538,
+                224
+              ],
+              [
+                1167.129196300113,
+                224
+              ],
+              [
+                1432.8633527705576,
+                224
+              ],
+              [
+                1134.9977008723295,
+                224
+              ],
+              [
+                766.0324279170487,
+                224
+              ],
+              [
+                1045.2606782122173,
+                224
+              ],
+              [
+                1100.7583284981038,
+                224
+              ],
+              [
+                1038.9563569050576,
+                224
+              ],
+              [
+                1428.7870197844563,
+                224
+              ],
+              [
+                1147.9331959259664,
+                224
+              ],
+              [
+                1149.1099558200256,
+                224
+              ]
+            ],
+            "gamma": 1,
+            "head_bits": 4.761421172276904,
+            "head_delta_raw_count": -0.023175019297521082,
+            "head_n": 4954,
+            "kind": "cur_only",
+            "minus_calibrated_count": [
+              -0.013473018836064554,
+              -0.01848461538238766,
+              -0.008371966543639253
+            ],
+            "minus_full_state": [
+              0.03904899317064281,
+              0.012669491771932329,
+              0.06480268408857448
+            ],
+            "tail_bits": 9.179797998187734,
+            "tail_delta_raw_count": 0.10042202923516008,
+            "tail_n": 422
+          }
+        ],
+        "depth": {
+          "correct": [
+            4884,
+            3737,
+            933,
+            30
+          ],
+          "lag_tokens": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "positions": 4992,
+          "rotated_label": [
+            56,
+            46,
+            13,
+            9
+          ],
+          "scope": "approximate finite transported prototypes, open-development lower bound on recoverable identity, not a universal absence test",
+          "side_information": "hidden state and fixed Generate event offset only; no true token passed to self-decoder",
+          "wrong_frame": [
+            4884,
+            6,
+            1,
+            0
+          ]
+        },
+        "grid_scope": "bounded coefficients; an endpoint optimum is not an unrestricted optimum",
+        "grounded": {
+          "composite_class": {
+            "correct": 0,
+            "total": 4
+          },
+          "composite_heldout": {
+            "correct": 0,
+            "total": 3
+          },
+          "composite_train": {
+            "correct": 0,
+            "total": 36
+          },
+          "native_class": {
+            "correct": 0,
+            "total": 4
+          },
+          "native_heldout": {
+            "correct": 0,
+            "total": 3
+          },
+          "native_train": {
+            "correct": 0,
+            "total": 36
+          }
+        },
+        "integer": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            23143.081604285653,
+            4954
+          ],
+          "ideal_bits": 5.069201610009237,
+          "ideal_documents": [
+            [
+              1215.697070482366,
+              224
+            ],
+            [
+              1130.6449800904186,
+              224
+            ],
+            [
+              1462.7668969418492,
+              224
+            ],
+            [
+              1120.4773676123714,
+              224
+            ],
+            [
+              1122.081091740712,
+              224
+            ],
+            [
+              1067.744991688989,
+              224
+            ],
+            [
+              996.8410254283476,
+              224
+            ],
+            [
+              1029.2130479878213,
+              224
+            ],
+            [
+              1177.1101312444955,
+              224
+            ],
+            [
+              1115.4101730536966,
+              224
+            ],
+            [
+              1059.906403815268,
+              224
+            ],
+            [
+              1285.0450144756694,
+              224
+            ],
+            [
+              1029.5360595445031,
+              224
+            ],
+            [
+              1085.4175361706843,
+              224
+            ],
+            [
+              1138.5110147597602,
+              224
+            ],
+            [
+              1431.340432226858,
+              224
+            ],
+            [
+              1121.7352465458162,
+              224
+            ],
+            [
+              758.9157846208395,
+              224
+            ],
+            [
+              1032.4191232904243,
+              224
+            ],
+            [
+              1073.8721689119886,
+              224
+            ],
+            [
+              1052.3502851696298,
+              224
+            ],
+            [
+              1413.6948102399735,
+              224
+            ],
+            [
+              1160.566537777764,
+              224
+            ],
+            [
+              1170.7306615894174,
+              224
+            ]
+          ],
+          "integer_bits": 5.069196879921934,
+          "integer_documents": [
+            [
+              1215.6936307501976,
+              224
+            ],
+            [
+              1130.6425127322757,
+              224
+            ],
+            [
+              1462.7687226736036,
+              224
+            ],
+            [
+              1120.4760687686082,
+              224
+            ],
+            [
+              1122.0813212994278,
+              224
+            ],
+            [
+              1067.742709979352,
+              224
+            ],
+            [
+              996.8400519573698,
+              224
+            ],
+            [
+              1029.2128267691974,
+              224
+            ],
+            [
+              1177.1111855706652,
+              224
+            ],
+            [
+              1115.4093945813358,
+              224
+            ],
+            [
+              1059.9049904699398,
+              224
+            ],
+            [
+              1285.0445710750785,
+              224
+            ],
+            [
+              1029.534717989131,
+              224
+            ],
+            [
+              1085.413248632561,
+              224
+            ],
+            [
+              1138.5135089721769,
+              224
+            ],
+            [
+              1431.3404658014733,
+              224
+            ],
+            [
+              1121.7346150920666,
+              224
+            ],
+            [
+              758.912174461765,
+              224
+            ],
+            [
+              1032.4191851252867,
+              224
+            ],
+            [
+              1073.8696502426528,
+              224
+            ],
+            [
+              1052.3501763148142,
+              224
+            ],
+            [
+              1413.69314586252,
+              224
+            ],
+            [
+              1160.5648992731212,
+              224
+            ],
+            [
+              1170.7286520656942,
+              224
+            ]
+          ],
+          "integer_minus_native": [
+            -1.6149080766150021,
+            -1.790644905647345,
+            -1.4281871826744714
+          ],
+          "max_per_target_quantization_error_bits": 0.0003227988854472841,
+          "native_bits": 6.684104956536936,
+          "raw_top1_changes": 3064,
+          "seconds": 3.940679875,
+          "tail": [
+            4108.9208221746485,
+            422
+          ]
+        },
+        "native_bits": 6.684104956536936,
+        "raw_count_bits": 5.121723622015898,
+        "selection": {
+          "alpha": 28,
+          "alpha_numerators": [
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40
+          ],
+          "calibrated_count_alpha_numerator": 32,
+          "calibrated_count_index": 18,
+          "denominator": 32,
+          "gamma": 6,
+          "gamma_numerators": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "kinds": [
+            "full_state",
+            "last_two_only",
+            "older_reversed",
+            "unigram",
+            "cur_only"
+          ],
+          "selected_indices": [
+            6,
+            5,
+            6,
+            18,
+            19
+          ],
+          "selection": "Tune only; fixed dyadic 7x9 grid separately for five explanatory inputs",
+          "tune_counts": 5.915506661922832,
+          "tune_native": 7.117390755388887
+        }
+      },
+      "receipt_sha256": "7eebf478558c5a2529b33a0f5836fe9e83d017f193bd4e503b815934dc0e924d"
+    },
+    "ratio-adjudication-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "adjudicate",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "586fa5aaea22a6b143f79c2d46baedf1f1a5e998",
+        "source_sha256": "95bdd311ad22acf45874150bdc9962a9b4ca5b53c727a00a059a5890a93e627d",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 360.554266959,
+      "result": {
+        "calibrated_count_bits": 5.121723622015945,
+        "comparisons": [
+          {
+            "alpha": 28,
+            "bits": 5.038016932941294,
+            "denominator": 32,
+            "documents": [
+              [
+                1238.247992353402,
+                224
+              ],
+              [
+                1119.3474650321575,
+                224
+              ],
+              [
+                1445.6172560545494,
+                224
+              ],
+              [
+                1120.5349418855096,
+                224
+              ],
+              [
+                1122.5885917459734,
+                224
+              ],
+              [
+                1048.5315730528635,
+                224
+              ],
+              [
+                973.3808097423168,
+                224
+              ],
+              [
+                1042.5649792274723,
+                224
+              ],
+              [
+                1184.6304793625927,
+                224
+              ],
+              [
+                1108.3659056877939,
+                224
+              ],
+              [
+                1049.2259899245353,
+                224
+              ],
+              [
+                1274.4517810536468,
+                224
+              ],
+              [
+                1021.2705847667258,
+                224
+              ],
+              [
+                1075.0971565319671,
+                224
+              ],
+              [
+                1123.3694215043638,
+                224
+              ],
+              [
+                1418.769950849066,
+                224
+              ],
+              [
+                1115.583402233568,
+                224
+              ],
+              [
+                746.0764180961792,
+                224
+              ],
+              [
+                1036.17684635282,
+                224
+              ],
+              [
+                1058.1146922010867,
+                224
+              ],
+              [
+                1038.9325461017247,
+                224
+              ],
+              [
+                1396.2804447018675,
+                224
+              ],
+              [
+                1160.456817557061,
+                224
+              ],
+              [
+                1166.7629854731563,
+                224
+              ]
+            ],
+            "gamma": 8,
+            "head_bits": 4.696495681155629,
+            "head_delta_raw_count": -0.08810051041879596,
+            "head_n": 4954,
+            "kind": "full_state",
+            "minus_calibrated_count": [
+              -0.08370668907465095,
+              -0.11637504610785587,
+              -0.05104547480556931
+            ],
+            "minus_full_state": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tail_bits": 9.0472498271266,
+            "tail_delta_raw_count": -0.032126141825973065,
+            "tail_n": 422
+          },
+          {
+            "alpha": 28,
+            "bits": 5.061941380004113,
+            "denominator": 32,
+            "documents": [
+              [
+                1238.1224490081468,
+                224
+              ],
+              [
+                1123.3637185317582,
+                224
+              ],
+              [
+                1449.6046739446206,
+                224
+              ],
+              [
+                1123.9888581312593,
+                224
+              ],
+              [
+                1124.7749582831261,
+                224
+              ],
+              [
+                1055.094178081281,
+                224
+              ],
+              [
+                979.7019430065424,
+                224
+              ],
+              [
+                1045.6719192072503,
+                224
+              ],
+              [
+                1194.4344077975697,
+                224
+              ],
+              [
+                1112.4890264756775,
+                224
+              ],
+              [
+                1054.2059428152165,
+                224
+              ],
+              [
+                1276.8997879890926,
+                224
+              ],
+              [
+                1026.985233038903,
+                224
+              ],
+              [
+                1080.5459321301369,
+                224
+              ],
+              [
+                1136.2832594815125,
+                224
+              ],
+              [
+                1422.512791855181,
+                224
+              ],
+              [
+                1118.946217695397,
+                224
+              ],
+              [
+                758.7109785044139,
+                224
+              ],
+              [
+                1045.938848130772,
+                224
+              ],
+              [
+                1066.4724266893752,
+                224
+              ],
+              [
+                1044.0511190607979,
+                224
+              ],
+              [
+                1405.5617013978792,
+                224
+              ],
+              [
+                1160.526116931198,
+                224
+              ],
+              [
+                1168.1103707150082,
+                224
+              ]
+            ],
+            "gamma": 8,
+            "head_bits": 4.720110040524056,
+            "head_delta_raw_count": -0.06448615105036914,
+            "head_n": 4954,
+            "kind": "last_two_only",
+            "minus_calibrated_count": [
+              -0.05978224201183213,
+              -0.09011127795653184,
+              -0.029634802764967105
+            ],
+            "minus_full_state": [
+              0.02392444706281882,
+              0.017962741061767318,
+              0.03096797640667237
+            ],
+            "tail_bits": 9.07481449797613,
+            "tail_delta_raw_count": -0.004561470976444326,
+            "tail_n": 422
+          },
+          {
+            "alpha": 30,
+            "bits": 5.037500608061794,
+            "denominator": 32,
+            "documents": [
+              [
+                1235.3934303664164,
+                224
+              ],
+              [
+                1120.122407238607,
+                224
+              ],
+              [
+                1457.2624252922285,
+                224
+              ],
+              [
+                1120.8806813605922,
+                224
+              ],
+              [
+                1123.7807637197923,
+                224
+              ],
+              [
+                1046.1977127403077,
+                224
+              ],
+              [
+                975.4874984809453,
+                224
+              ],
+              [
+                1036.2049258146917,
+                224
+              ],
+              [
+                1184.5574300921312,
+                224
+              ],
+              [
+                1105.8859220268696,
+                224
+              ],
+              [
+                1047.3118883345437,
+                224
+              ],
+              [
+                1281.7942029783153,
+                224
+              ],
+              [
+                1016.2392088305961,
+                224
+              ],
+              [
+                1070.2296476225572,
+                224
+              ],
+              [
+                1134.3294917724363,
+                224
+              ],
+              [
+                1429.5841646021113,
+                224
+              ],
+              [
+                1113.532484806527,
+                224
+              ],
+              [
+                740.8987731129262,
+                224
+              ],
+              [
+                1033.6009139501357,
+                224
+              ],
+              [
+                1063.4566870321873,
+                224
+              ],
+              [
+                1029.7537104922205,
+                224
+              ],
+              [
+                1403.2752228178479,
+                224
+              ],
+              [
+                1153.8045989821865,
+                224
+              ],
+              [
+                1158.019076473031,
+                224
+              ]
+            ],
+            "gamma": 7,
+            "head_bits": 4.683257754779959,
+            "head_delta_raw_count": -0.10133843679446652,
+            "head_n": 4954,
+            "kind": "older_reversed",
+            "minus_calibrated_count": [
+              -0.08422301395415044,
+              -0.11199864655000447,
+              -0.0570840157726602
+            ],
+            "minus_full_state": [
+              -0.0005163248794994857,
+              -0.010975968472028086,
+              0.010405579026037337
+            ],
+            "tail_bits": 9.196076662939182,
+            "tail_delta_raw_count": 0.11670069398660843,
+            "tail_n": 422
+          },
+          {
+            "alpha": 32,
+            "bits": 5.121723622015945,
+            "denominator": 32,
+            "documents": [
+              [
+                1221.2308625758196,
+                224
+              ],
+              [
+                1147.352015652914,
+                224
+              ],
+              [
+                1479.5812407611375,
+                224
+              ],
+              [
+                1141.713734053876,
+                224
+              ],
+              [
+                1146.9895972819695,
+                224
+              ],
+              [
+                1045.7372171003717,
+                224
+              ],
+              [
+                1017.813860706648,
+                224
+              ],
+              [
+                1061.3958775927879,
+                224
+              ],
+              [
+                1192.2475109359884,
+                224
+              ],
+              [
+                1125.0515782373566,
+                224
+              ],
+              [
+                1081.0220960189235,
+                224
+              ],
+              [
+                1313.690413993294,
+                224
+              ],
+              [
+                1038.062065187098,
+                224
+              ],
+              [
+                1084.1063948100386,
+                224
+              ],
+              [
+                1171.1902211220063,
+                224
+              ],
+              [
+                1430.3582419229626,
+                224
+              ],
+              [
+                1139.681872365558,
+                224
+              ],
+              [
+                774.4459470875323,
+                224
+              ],
+              [
+                1051.2981718801975,
+                224
+              ],
+              [
+                1105.8347022635623,
+                224
+              ],
+              [
+                1041.8948333686667,
+                224
+              ],
+              [
+                1426.5118455945324,
+                224
+              ],
+              [
+                1148.3355231787532,
+                224
+              ],
+              [
+                1148.8403682657179,
+                224
+              ]
+            ],
+            "gamma": 0,
+            "head_bits": 4.784596191574425,
+            "head_delta_raw_count": 0.0,
+            "head_n": 4954,
+            "kind": "unigram",
+            "minus_calibrated_count": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "minus_full_state": [
+              0.08370668907465095,
+              0.05120750054898693,
+              0.11645473196214962
+            ],
+            "tail_bits": 9.079375968952574,
+            "tail_delta_raw_count": 0.0,
+            "tail_n": 422
+          },
+          {
+            "alpha": 32,
+            "bits": 5.099556220449358,
+            "denominator": 32,
+            "documents": [
+              [
+                1225.0457750370863,
+                224
+              ],
+              [
+                1138.8823232265713,
+                224
+              ],
+              [
+                1480.6578029584837,
+                224
+              ],
+              [
+                1137.1641224401894,
+                224
+              ],
+              [
+                1143.9114510647123,
+                224
+              ],
+              [
+                1039.4321041424316,
+                224
+              ],
+              [
+                1006.0648267369252,
+                224
+              ],
+              [
+                1056.0335525728722,
+                224
+              ],
+              [
+                1190.9057102877134,
+                224
+              ],
+              [
+                1119.2375780369305,
+                224
+              ],
+              [
+                1072.780009952769,
+                224
+              ],
+              [
+                1312.565278038648,
+                224
+              ],
+              [
+                1028.8578921211367,
+                224
+              ],
+              [
+                1075.2503899505869,
+                224
+              ],
+              [
+                1163.120119379587,
+                224
+              ],
+              [
+                1431.5980906263878,
+                224
+              ],
+              [
+                1132.7466353514858,
+                224
+              ],
+              [
+                759.5237573795962,
+                224
+              ],
+              [
+                1045.029110315776,
+                224
+              ],
+              [
+                1096.4366007037606,
+                224
+              ],
+              [
+                1035.0523996370107,
+                224
+              ],
+              [
+                1426.9682242140539,
+                224
+              ],
+              [
+                1149.0743564629233,
+                224
+              ],
+              [
+                1148.8761304981097,
+                224
+              ]
+            ],
+            "gamma": 2,
+            "head_bits": 4.764098854897145,
+            "head_delta_raw_count": -0.020497336677280487,
+            "head_n": 4954,
+            "kind": "cur_only",
+            "minus_calibrated_count": [
+              -0.022167401566586697,
+              -0.030607774209924443,
+              -0.01401628626824003
+            ],
+            "minus_full_state": [
+              0.061539287508064255,
+              0.03208276165955137,
+              0.09121984921307824
+            ],
+            "tail_bits": 9.037603113685481,
+            "tail_delta_raw_count": -0.04177285526709262,
+            "tail_n": 422
+          }
+        ],
+        "native_bits": 6.684104956536936,
+        "raw_count_bits": 5.121723622015898,
+        "scope": "Exploratory full-Tune follow-up, not a new blind evaluation",
+        "selection": {
+          "alpha": 28,
+          "alpha_numerators": [
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40
+          ],
+          "calibrated_count_alpha_numerator": 32,
+          "calibrated_count_index": 18,
+          "denominator": 32,
+          "gamma": 8,
+          "gamma_numerators": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "kinds": [
+            "full_state",
+            "last_two_only",
+            "older_reversed",
+            "unigram",
+            "cur_only"
+          ],
+          "likelihood_ratio_to_fit_unigram": true,
+          "selected_indices": [
+            8,
+            8,
+            16,
+            18,
+            20
+          ],
+          "selection": "Tune only; fixed dyadic 7x9 grid separately for five explanatory inputs",
+          "tune_counts": 5.915506661922832,
+          "tune_native": 7.117390755388887
+        },
+        "serving": "NOT_IMPLEMENTED for this ratio diagnostic; no candidate.prc was written"
+      },
+      "receipt_sha256": "93eb9cf1ed5cf390140fb3fc48c4e4b8f89cae524aba67e38b2ba14ed4306cfd"
+    },
+    "ratio-integer-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "realize",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 7.108346458,
+      "result": {
+        "alpha": 28,
+        "bundle_bytes": 2735770,
+        "bundle_sha256": "af276a1c1207f48a14ceec339c4b59d1438b7ada72068b99ae55b000ded9949f",
+        "denominator": 32,
+        "frozen_selection_source": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/ratio-adjudication-1/selection.json",
+        "gamma": 8,
+        "integer": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            23266.410976351115,
+            4954
+          ],
+          "ideal_bits": 5.038016932941296,
+          "ideal_documents": [
+            [
+              1238.247992353402,
+              224
+            ],
+            [
+              1119.3474650321582,
+              224
+            ],
+            [
+              1445.6172560545497,
+              224
+            ],
+            [
+              1120.5349418855105,
+              224
+            ],
+            [
+              1122.5885917459732,
+              224
+            ],
+            [
+              1048.531573052863,
+              224
+            ],
+            [
+              973.3808097423176,
+              224
+            ],
+            [
+              1042.5649792274726,
+              224
+            ],
+            [
+              1184.6304793625932,
+              224
+            ],
+            [
+              1108.3659056877939,
+              224
+            ],
+            [
+              1049.2259899245353,
+              224
+            ],
+            [
+              1274.4517810536468,
+              224
+            ],
+            [
+              1021.2705847667272,
+              224
+            ],
+            [
+              1075.097156531967,
+              224
+            ],
+            [
+              1123.3694215043631,
+              224
+            ],
+            [
+              1418.7699508490662,
+              224
+            ],
+            [
+              1115.5834022335682,
+              224
+            ],
+            [
+              746.0764180961787,
+              224
+            ],
+            [
+              1036.1768463528197,
+              224
+            ],
+            [
+              1058.1146922010873,
+              224
+            ],
+            [
+              1038.9325461017245,
+              224
+            ],
+            [
+              1396.2804447018677,
+              224
+            ],
+            [
+              1160.4568175570603,
+              224
+            ],
+            [
+              1166.7629854731565,
+              224
+            ]
+          ],
+          "integer_bits": 5.038010615822656,
+          "integer_documents": [
+            [
+              1238.2467277714068,
+              224
+            ],
+            [
+              1119.3440880004996,
+              224
+            ],
+            [
+              1445.6176818024248,
+              224
+            ],
+            [
+              1120.5329439562588,
+              224
+            ],
+            [
+              1122.5865789005409,
+              224
+            ],
+            [
+              1048.5273651781522,
+              224
+            ],
+            [
+              973.3782055959481,
+              224
+            ],
+            [
+              1042.5638289822652,
+              224
+            ],
+            [
+              1184.6305553399689,
+              224
+            ],
+            [
+              1108.364175919501,
+              224
+            ],
+            [
+              1049.2246870049032,
+              224
+            ],
+            [
+              1274.4521018675102,
+              224
+            ],
+            [
+              1021.2671738026788,
+              224
+            ],
+            [
+              1075.0929966313868,
+              224
+            ],
+            [
+              1123.3705911063796,
+              224
+            ],
+            [
+              1418.7679988094012,
+              224
+            ],
+            [
+              1115.5814417865704,
+              224
+            ],
+            [
+              746.0723290354837,
+              224
+            ],
+            [
+              1036.1768833449853,
+              224
+            ],
+            [
+              1058.1134924606104,
+              224
+            ],
+            [
+              1038.932929421977,
+              224
+            ],
+            [
+              1396.2794532115336,
+              224
+            ],
+            [
+              1160.457728977632,
+              224
+            ],
+            [
+              1166.7631117545777,
+              224
+            ]
+          ],
+          "integer_minus_native": [
+            -1.6460943407142805,
+            -1.8321719312218656,
+            -1.4545858006375445
+          ],
+          "max_per_target_quantization_error_bits": 0.00041779717706669217,
+          "native_bits": 6.684104956536936,
+          "raw_top1_changes": 3165,
+          "seconds": 4.131893584,
+          "tail": [
+            3817.934094311508,
+            422
+          ]
+        },
+        "relative_to_fit_unigram": true,
+        "scope": "Frozen selected function implemented in integer lookup arithmetic; no new fit or source-disjoint selection",
+        "selection_sha256": "6468520a99db798de4dd6474272f3b9358dbfa80b404ea0d3c543786d75ffc7d"
+      },
+      "receipt_sha256": "94a397cb08c1e43a5f26e6592e25c9e8557fad150e6c1866230a617647fa8d14"
+    },
+    "count-calibration-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "count-calibration",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 3.7351602919999998,
+      "result": {
+        "equal_to_legacy": true,
+        "evaluation": [
+          {
+            "dev_bits": 5.121720706100631,
+            "documents": [
+              [
+                1221.2302622127029,
+                224
+              ],
+              [
+                1147.3512060388628,
+                224
+              ],
+              [
+                1479.5803535467412,
+                224
+              ],
+              [
+                1141.713037806111,
+                224
+              ],
+              [
+                1146.9890043359028,
+                224
+              ],
+              [
+                1045.7365308890244,
+                224
+              ],
+              [
+                1017.8132532689131,
+                224
+              ],
+              [
+                1061.395390242655,
+                224
+              ],
+              [
+                1192.2470921853046,
+                224
+              ],
+              [
+                1125.0507829297562,
+                224
+              ],
+              [
+                1081.0214966955984,
+                224
+              ],
+              [
+                1313.6897584959706,
+                224
+              ],
+              [
+                1038.0614048653724,
+                224
+              ],
+              [
+                1084.1056263207806,
+                224
+              ],
+              [
+                1171.1896967830119,
+                224
+              ],
+              [
+                1430.3574205832267,
+                224
+              ],
+              [
+                1139.6810879826326,
+                224
+              ],
+              [
+                774.4456278260568,
+                224
+              ],
+              [
+                1051.2976987887428,
+                224
+              ],
+              [
+                1105.8340716471496,
+                224
+              ],
+              [
+                1041.894249205964,
+                224
+              ],
+              [
+                1426.510883869989,
+                224
+              ],
+              [
+                1148.334890003813,
+                224
+              ],
+              [
+                1148.8396894727098,
+                224
+              ]
+            ],
+            "lambdas": [
+              0.7,
+              0.4
+            ]
+          },
+          {
+            "dev_bits": 5.121720706100631,
+            "documents": [
+              [
+                1221.2302622127029,
+                224
+              ],
+              [
+                1147.3512060388628,
+                224
+              ],
+              [
+                1479.5803535467412,
+                224
+              ],
+              [
+                1141.713037806111,
+                224
+              ],
+              [
+                1146.9890043359028,
+                224
+              ],
+              [
+                1045.7365308890244,
+                224
+              ],
+              [
+                1017.8132532689131,
+                224
+              ],
+              [
+                1061.395390242655,
+                224
+              ],
+              [
+                1192.2470921853046,
+                224
+              ],
+              [
+                1125.0507829297562,
+                224
+              ],
+              [
+                1081.0214966955984,
+                224
+              ],
+              [
+                1313.6897584959706,
+                224
+              ],
+              [
+                1038.0614048653724,
+                224
+              ],
+              [
+                1084.1056263207806,
+                224
+              ],
+              [
+                1171.1896967830119,
+                224
+              ],
+              [
+                1430.3574205832267,
+                224
+              ],
+              [
+                1139.6810879826326,
+                224
+              ],
+              [
+                774.4456278260568,
+                224
+              ],
+              [
+                1051.2976987887428,
+                224
+              ],
+              [
+                1105.8340716471496,
+                224
+              ],
+              [
+                1041.894249205964,
+                224
+              ],
+              [
+                1426.510883869989,
+                224
+              ],
+              [
+                1148.334890003813,
+                224
+              ],
+              [
+                1148.8396894727098,
+                224
+              ]
+            ],
+            "lambdas": [
+              0.7,
+              0.4
+            ]
+          }
+        ],
+        "legacy_lambdas": [
+          0.7,
+          0.4
+        ],
+        "scope": "Interpolation selected on exactly the declared full served-conditioning Tune population; no development selection.",
+        "selected_lambdas": [
+          0.7,
+          0.4
+        ],
+        "tune_targets": 114364
+      },
+      "receipt_sha256": "d813cfcb2474b3a03554ab7df8458f3bc71d8232b62d696b3f09bcda4c103317"
+    },
+    "warm-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4/artifacts/model.tlx",
+        "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "warm",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "eb4eabab9bc4bedb4f66aa7b8a76415ee92dd7ea",
+        "source_sha256": "c0ff58eedd87d9eddd29957525f99bd519f0b66975d89ec8dd41243449ea9c31",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 130.846934083,
+      "result": {
+        "arms": [
+          {
+            "artifact": "warm-schedule-0.tlx",
+            "class": {
+              "correct": 4,
+              "total": 4
+            },
+            "crossed_feedback": {
+              "arm_actual_a": "Generate(808)",
+              "arm_actual_b": "Generate(1361)",
+              "arm_identity_erased_a": "Generate(30)",
+              "arm_identity_erased_b": "Generate(30)",
+              "arm_no_copy_event": "Generate(808)",
+              "arm_swapped_feedback_only": "Generate(808)",
+              "arm_swapped_fingerprint_only": "Generate(1361)",
+              "classification": {
+                "decision_tracks_feedback": false,
+                "decision_tracks_fingerprint": true,
+                "feedback_arm_follows_b": false,
+                "fingerprint_arm_follows_b": true,
+                "identity_erased_alias": true,
+                "no_copy_event_matches_actual": true
+              },
+              "declared": "the post-copy words remain declared class labels, not semantic claims",
+              "fingerprint_identical_across_cases": false,
+              "forced_action": "Copy",
+              "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+              "tok_a": 2382,
+              "tok_b": 4081,
+              "typed_facts_fixed_across_cases": true
+            },
+            "ground_examples": 256,
+            "heldout": {
+              "correct": 2,
+              "total": 3
+            },
+            "initialization_exact": true,
+            "prose_bits": 6.300379318055646,
+            "prose_examples": 512,
+            "schedule": 0,
+            "seconds": 56.784901167,
+            "sha256": "19abf540643ce35e05f209c2f9dc3b7dccfc24e57535ddb72f30a59841273160",
+            "steps": 128,
+            "train": {
+              "correct": 36,
+              "total": 36
+            }
+          },
+          {
+            "artifact": "warm-schedule-1.tlx",
+            "class": {
+              "correct": 4,
+              "total": 4
+            },
+            "crossed_feedback": {
+              "arm_actual_a": "Generate(808)",
+              "arm_actual_b": "Generate(1361)",
+              "arm_identity_erased_a": "Generate(30)",
+              "arm_identity_erased_b": "Generate(30)",
+              "arm_no_copy_event": "Generate(808)",
+              "arm_swapped_feedback_only": "Generate(808)",
+              "arm_swapped_fingerprint_only": "Generate(1361)",
+              "classification": {
+                "decision_tracks_feedback": false,
+                "decision_tracks_fingerprint": true,
+                "feedback_arm_follows_b": false,
+                "fingerprint_arm_follows_b": true,
+                "identity_erased_alias": true,
+                "no_copy_event_matches_actual": true
+              },
+              "declared": "the post-copy words remain declared class labels, not semantic claims",
+              "fingerprint_identical_across_cases": false,
+              "forced_action": "Copy",
+              "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+              "tok_a": 2382,
+              "tok_b": 4081,
+              "typed_facts_fixed_across_cases": true
+            },
+            "ground_examples": 256,
+            "heldout": {
+              "correct": 3,
+              "total": 3
+            },
+            "initialization_exact": true,
+            "prose_bits": 6.273706959659286,
+            "prose_examples": 512,
+            "schedule": 1,
+            "seconds": 57.904432084,
+            "sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+            "steps": 128,
+            "train": {
+              "correct": 36,
+              "total": 36
+            }
+          }
+        ],
+        "capability_scope": "128-update matched fresh-optimizer experiments, not convergence or a global optimizer limitation",
+        "initial": {
+          "class": {
+            "correct": 4,
+            "total": 4
+          },
+          "crossed_feedback": {
+            "arm_actual_a": "Generate(808)",
+            "arm_actual_b": "Generate(1361)",
+            "arm_identity_erased_a": "Generate(30)",
+            "arm_identity_erased_b": "Generate(30)",
+            "arm_no_copy_event": "Generate(808)",
+            "arm_swapped_feedback_only": "Generate(808)",
+            "arm_swapped_fingerprint_only": "Generate(1361)",
+            "classification": {
+              "decision_tracks_feedback": false,
+              "decision_tracks_fingerprint": true,
+              "feedback_arm_follows_b": false,
+              "fingerprint_arm_follows_b": true,
+              "identity_erased_alias": true,
+              "no_copy_event_matches_actual": true
+            },
+            "declared": "the post-copy words remain declared class labels, not semantic claims",
+            "fingerprint_identical_across_cases": false,
+            "forced_action": "Copy",
+            "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+            "tok_a": 2382,
+            "tok_b": 4081,
+            "typed_facts_fixed_across_cases": true
+          },
+          "heldout": {
+            "correct": 3,
+            "total": 3
+          },
+          "prose_bits": 7.032678812595985,
+          "train": {
+            "correct": 36,
+            "total": 36
+          }
+        }
+      },
+      "receipt_sha256": "822fc49f9c65296558ca33bd713c18a43026c0068f35ebc1bc5099d77a31191f"
+    },
+    "warm-seed-20260923": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4/artifacts/model.tlx",
+        "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "warm",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "99b8a0e19acf97014df15b73b959ec0f5f4abcf6",
+        "source_sha256": "25aed4485bc8f4616580a6a95b707a1086a5332f2ee4eb34ba4b6f5469510063",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 130.147698625,
+      "result": {
+        "arms": [
+          {
+            "artifact": "warm-schedule-0.tlx",
+            "class": {
+              "correct": 4,
+              "total": 4
+            },
+            "crossed_feedback": {
+              "arm_actual_a": "Generate(808)",
+              "arm_actual_b": "Generate(1361)",
+              "arm_identity_erased_a": "Generate(30)",
+              "arm_identity_erased_b": "Generate(30)",
+              "arm_no_copy_event": "Generate(808)",
+              "arm_swapped_feedback_only": "Generate(808)",
+              "arm_swapped_fingerprint_only": "Generate(1361)",
+              "classification": {
+                "decision_tracks_feedback": false,
+                "decision_tracks_fingerprint": true,
+                "feedback_arm_follows_b": false,
+                "fingerprint_arm_follows_b": true,
+                "identity_erased_alias": true,
+                "no_copy_event_matches_actual": true
+              },
+              "declared": "the post-copy words remain declared class labels, not semantic claims",
+              "fingerprint_identical_across_cases": false,
+              "forced_action": "Copy",
+              "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+              "tok_a": 2382,
+              "tok_b": 4081,
+              "typed_facts_fixed_across_cases": true
+            },
+            "ground_examples": 256,
+            "heldout": {
+              "correct": 2,
+              "total": 3
+            },
+            "initialization_exact": true,
+            "prose_bits": 6.300379318055646,
+            "prose_examples": 512,
+            "schedule": 0,
+            "seconds": 57.106879166,
+            "sha256": "19abf540643ce35e05f209c2f9dc3b7dccfc24e57535ddb72f30a59841273160",
+            "steps": 128,
+            "train": {
+              "correct": 36,
+              "total": 36
+            }
+          },
+          {
+            "artifact": "warm-schedule-1.tlx",
+            "class": {
+              "correct": 4,
+              "total": 4
+            },
+            "crossed_feedback": {
+              "arm_actual_a": "Generate(808)",
+              "arm_actual_b": "Generate(1361)",
+              "arm_identity_erased_a": "Generate(30)",
+              "arm_identity_erased_b": "Generate(30)",
+              "arm_no_copy_event": "Generate(808)",
+              "arm_swapped_feedback_only": "Generate(808)",
+              "arm_swapped_fingerprint_only": "Generate(1361)",
+              "classification": {
+                "decision_tracks_feedback": false,
+                "decision_tracks_fingerprint": true,
+                "feedback_arm_follows_b": false,
+                "fingerprint_arm_follows_b": true,
+                "identity_erased_alias": true,
+                "no_copy_event_matches_actual": true
+              },
+              "declared": "the post-copy words remain declared class labels, not semantic claims",
+              "fingerprint_identical_across_cases": false,
+              "forced_action": "Copy",
+              "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+              "tok_a": 2382,
+              "tok_b": 4081,
+              "typed_facts_fixed_across_cases": true
+            },
+            "ground_examples": 256,
+            "heldout": {
+              "correct": 3,
+              "total": 3
+            },
+            "initialization_exact": true,
+            "prose_bits": 6.273706959659286,
+            "prose_examples": 512,
+            "schedule": 1,
+            "seconds": 57.025607708,
+            "sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+            "steps": 128,
+            "train": {
+              "correct": 36,
+              "total": 36
+            }
+          }
+        ],
+        "capability_scope": "128-update matched fresh-optimizer experiments, not convergence or a global optimizer limitation",
+        "initial": {
+          "class": {
+            "correct": 4,
+            "total": 4
+          },
+          "crossed_feedback": {
+            "arm_actual_a": "Generate(808)",
+            "arm_actual_b": "Generate(1361)",
+            "arm_identity_erased_a": "Generate(30)",
+            "arm_identity_erased_b": "Generate(30)",
+            "arm_no_copy_event": "Generate(808)",
+            "arm_swapped_feedback_only": "Generate(808)",
+            "arm_swapped_fingerprint_only": "Generate(1361)",
+            "classification": {
+              "decision_tracks_feedback": false,
+              "decision_tracks_fingerprint": true,
+              "feedback_arm_follows_b": false,
+              "fingerprint_arm_follows_b": true,
+              "identity_erased_alias": true,
+              "no_copy_event_matches_actual": true
+            },
+            "declared": "the post-copy words remain declared class labels, not semantic claims",
+            "fingerprint_identical_across_cases": false,
+            "forced_action": "Copy",
+            "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+            "tok_a": 2382,
+            "tok_b": 4081,
+            "typed_facts_fixed_across_cases": true
+          },
+          "heldout": {
+            "correct": 3,
+            "total": 3
+          },
+          "prose_bits": 7.032678812595985,
+          "train": {
+            "correct": 36,
+            "total": 36
+          }
+        },
+        "warm_seed": 20260923
+      },
+      "receipt_sha256": "264b96e163c3a0b2f67f80311c6f13305292f3aa9fea3ea35df735f407a4c94a"
+    },
+    "warm-seed-20260924": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4/artifacts/model.tlx",
+        "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "warm",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "99b8a0e19acf97014df15b73b959ec0f5f4abcf6",
+        "source_sha256": "25aed4485bc8f4616580a6a95b707a1086a5332f2ee4eb34ba4b6f5469510063",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 130.957300625,
+      "result": {
+        "arms": [
+          {
+            "artifact": "warm-schedule-0.tlx",
+            "class": {
+              "correct": 4,
+              "total": 4
+            },
+            "crossed_feedback": {
+              "arm_actual_a": "Generate(808)",
+              "arm_actual_b": "Generate(1361)",
+              "arm_identity_erased_a": "Generate(30)",
+              "arm_identity_erased_b": "Generate(30)",
+              "arm_no_copy_event": "Generate(808)",
+              "arm_swapped_feedback_only": "Generate(808)",
+              "arm_swapped_fingerprint_only": "Generate(1361)",
+              "classification": {
+                "decision_tracks_feedback": false,
+                "decision_tracks_fingerprint": true,
+                "feedback_arm_follows_b": false,
+                "fingerprint_arm_follows_b": true,
+                "identity_erased_alias": true,
+                "no_copy_event_matches_actual": true
+              },
+              "declared": "the post-copy words remain declared class labels, not semantic claims",
+              "fingerprint_identical_across_cases": false,
+              "forced_action": "Copy",
+              "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+              "tok_a": 2382,
+              "tok_b": 4081,
+              "typed_facts_fixed_across_cases": true
+            },
+            "ground_examples": 256,
+            "heldout": {
+              "correct": 2,
+              "total": 3
+            },
+            "initialization_exact": true,
+            "prose_bits": 6.261867704673539,
+            "prose_examples": 512,
+            "schedule": 0,
+            "seconds": 57.251398209,
+            "sha256": "2ef76aea0ce62e432705cb9bbf3596845b651191c2b3084d7a4921f955cf2bc2",
+            "steps": 128,
+            "train": {
+              "correct": 36,
+              "total": 36
+            }
+          },
+          {
+            "artifact": "warm-schedule-1.tlx",
+            "class": {
+              "correct": 4,
+              "total": 4
+            },
+            "crossed_feedback": {
+              "arm_actual_a": "Generate(808)",
+              "arm_actual_b": "Generate(1361)",
+              "arm_identity_erased_a": "Generate(30)",
+              "arm_identity_erased_b": "Generate(30)",
+              "arm_no_copy_event": "Generate(808)",
+              "arm_swapped_feedback_only": "Generate(808)",
+              "arm_swapped_fingerprint_only": "Generate(1361)",
+              "classification": {
+                "decision_tracks_feedback": false,
+                "decision_tracks_fingerprint": true,
+                "feedback_arm_follows_b": false,
+                "fingerprint_arm_follows_b": true,
+                "identity_erased_alias": true,
+                "no_copy_event_matches_actual": true
+              },
+              "declared": "the post-copy words remain declared class labels, not semantic claims",
+              "fingerprint_identical_across_cases": false,
+              "forced_action": "Copy",
+              "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+              "tok_a": 2382,
+              "tok_b": 4081,
+              "typed_facts_fixed_across_cases": true
+            },
+            "ground_examples": 256,
+            "heldout": {
+              "correct": 3,
+              "total": 3
+            },
+            "initialization_exact": true,
+            "prose_bits": 6.269843012827648,
+            "prose_examples": 512,
+            "schedule": 1,
+            "seconds": 57.552758875,
+            "sha256": "62307c4c28697a956b5fc6bda2f5360cd0a9aa3fd2c61b2490666969adc967b0",
+            "steps": 128,
+            "train": {
+              "correct": 36,
+              "total": 36
+            }
+          }
+        ],
+        "capability_scope": "128-update matched fresh-optimizer experiments, not convergence or a global optimizer limitation",
+        "initial": {
+          "class": {
+            "correct": 4,
+            "total": 4
+          },
+          "crossed_feedback": {
+            "arm_actual_a": "Generate(808)",
+            "arm_actual_b": "Generate(1361)",
+            "arm_identity_erased_a": "Generate(30)",
+            "arm_identity_erased_b": "Generate(30)",
+            "arm_no_copy_event": "Generate(808)",
+            "arm_swapped_feedback_only": "Generate(808)",
+            "arm_swapped_fingerprint_only": "Generate(1361)",
+            "classification": {
+              "decision_tracks_feedback": false,
+              "decision_tracks_fingerprint": true,
+              "feedback_arm_follows_b": false,
+              "fingerprint_arm_follows_b": true,
+              "identity_erased_alias": true,
+              "no_copy_event_matches_actual": true
+            },
+            "declared": "the post-copy words remain declared class labels, not semantic claims",
+            "fingerprint_identical_across_cases": false,
+            "forced_action": "Copy",
+            "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+            "tok_a": 2382,
+            "tok_b": 4081,
+            "typed_facts_fixed_across_cases": true
+          },
+          "heldout": {
+            "correct": 3,
+            "total": 3
+          },
+          "prose_bits": 7.032678812595985,
+          "train": {
+            "correct": 36,
+            "total": 36
+          }
+        },
+        "warm_seed": 20260924
+      },
+      "receipt_sha256": "1d41e86990aecd162226e685d4a15e1200d04e200316b23300c4520dff49f063"
+    },
+    "score-parent": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4/artifacts/model.tlx",
+        "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "score",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "99b8a0e19acf97014df15b73b959ec0f5f4abcf6",
+        "source_sha256": "25aed4485bc8f4616580a6a95b707a1086a5332f2ee4eb34ba4b6f5469510063",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 23.784989875,
+      "result": {
+        "bits": 7.032678812595982,
+        "class": {
+          "correct": 4,
+          "total": 4
+        },
+        "crossed_feedback": {
+          "arm_actual_a": "Generate(808)",
+          "arm_actual_b": "Generate(1361)",
+          "arm_identity_erased_a": "Generate(30)",
+          "arm_identity_erased_b": "Generate(30)",
+          "arm_no_copy_event": "Generate(808)",
+          "arm_swapped_feedback_only": "Generate(808)",
+          "arm_swapped_fingerprint_only": "Generate(1361)",
+          "classification": {
+            "decision_tracks_feedback": false,
+            "decision_tracks_fingerprint": true,
+            "feedback_arm_follows_b": false,
+            "fingerprint_arm_follows_b": true,
+            "identity_erased_alias": true,
+            "no_copy_event_matches_actual": true
+          },
+          "declared": "the post-copy words remain declared class labels, not semantic claims",
+          "fingerprint_identical_across_cases": false,
+          "forced_action": "Copy",
+          "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+          "tok_a": 2382,
+          "tok_b": 4081,
+          "typed_facts_fixed_across_cases": true
+        },
+        "documents": [
+          {
+            "bits_sum": 1671.86726548931,
+            "name": "integration/review-2026-09-16/README-FOR-AGENTS.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1570.3689261692266,
+            "name": "transformerless/LOCAL_ONLY.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1836.0258029486217,
+            "name": "prime_router_geometric_context_evidence.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1518.7123369293245,
+            "name": "segment_lane_886_spotcheck.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1551.546342752298,
+            "name": "skipmix_gap_diagnostic_904.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1689.9062524857109,
+            "name": "native_geometric_query_owner_selection_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1403.7007641788405,
+            "name": "native_geometric_language_relation_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1305.5149279484715,
+            "name": "native_geometric_role_read_1137.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1491.1084204389774,
+            "name": "context_horizon_424.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1577.1077073187444,
+            "name": "native_geometric_truncated_history_abstention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1384.9861077678572,
+            "name": "native_geometric_occurrence_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1688.8435119959145,
+            "name": "serving_release_packaging_655_d.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1494.2811145009073,
+            "name": "r4_retained_assembly_1094_review.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1644.9018161336369,
+            "name": "integration/model-direction-2026-09.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1506.7227652577421,
+            "name": "r4_isolated_runtime_readiness_1096.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1897.7999167000344,
+            "name": "native_geometric_head_reassertion_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1600.99450316643,
+            "name": "transformerless/PROOF.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1156.8888877025652,
+            "name": "r4_group_addressed_retention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1333.2349821944774,
+            "name": "r4_zoology_query_readout_1067.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1436.132640463463,
+            "name": "r4_zoology_optimizer_clock_1055.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1639.3324253957162,
+            "name": "w33_geometry_qualification_spec_845.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1831.0634502464457,
+            "name": "integration/handoff-2026-09-07.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1747.6445933282314,
+            "name": "integration/review-2026-09-16/02-architecture-as-implemented.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1828.995835003059,
+            "name": "integration/review-2026-09-16/04-mathematics-audit.md",
+            "targets": 224
+          }
+        ],
+        "head_bits": 6.5536927086005585,
+        "head_n": 4954,
+        "heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "saturated_coordinates": 0,
+        "state_sha256": "cf2e404972c0fe85bdd89cbe29365df20831b6206c7fdc404e2331e850d09905",
+        "tail_bits": 12.65565786281711,
+        "tail_n": 422,
+        "temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "train": {
+          "correct": 36,
+          "total": 36
+        }
+      },
+      "receipt_sha256": "dbffce77f044977a005c52eccbab0656cf789bb0890596a0783d4889caeb7fab"
+    },
+    "score-best-prose": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "score",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "99b8a0e19acf97014df15b73b959ec0f5f4abcf6",
+        "source_sha256": "25aed4485bc8f4616580a6a95b707a1086a5332f2ee4eb34ba4b6f5469510063",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 12.903585334,
+      "result": {
+        "bits": 6.684104956536936,
+        "class": {
+          "correct": 0,
+          "total": 4
+        },
+        "crossed_feedback": {
+          "arm_actual_a": "Generate(323)",
+          "arm_actual_b": "Generate(99)",
+          "arm_identity_erased_a": "Generate(990)",
+          "arm_identity_erased_b": "Generate(990)",
+          "arm_no_copy_event": "Generate(323)",
+          "arm_swapped_feedback_only": "Generate(323)",
+          "arm_swapped_fingerprint_only": "Generate(358)",
+          "classification": {
+            "decision_tracks_feedback": false,
+            "decision_tracks_fingerprint": true,
+            "feedback_arm_follows_b": false,
+            "fingerprint_arm_follows_b": false,
+            "identity_erased_alias": true,
+            "no_copy_event_matches_actual": true
+          },
+          "declared": "the post-copy words remain declared class labels, not semantic claims",
+          "fingerprint_identical_across_cases": false,
+          "forced_action": "Copy",
+          "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+          "tok_a": 2382,
+          "tok_b": 4081,
+          "typed_facts_fixed_across_cases": true
+        },
+        "documents": [
+          {
+            "bits_sum": 1564.8281086623065,
+            "name": "integration/review-2026-09-16/README-FOR-AGENTS.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1509.4373232610997,
+            "name": "transformerless/LOCAL_ONLY.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1744.6810412480968,
+            "name": "prime_router_geometric_context_evidence.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1452.2113357895007,
+            "name": "segment_lane_886_spotcheck.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1422.67703672234,
+            "name": "skipmix_gap_diagnostic_904.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1654.8276504620005,
+            "name": "native_geometric_query_owner_selection_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1346.4292018053416,
+            "name": "native_geometric_language_relation_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1241.8039658478763,
+            "name": "native_geometric_role_read_1137.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1462.0474980741526,
+            "name": "context_horizon_424.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1510.8515095840967,
+            "name": "native_geometric_truncated_history_abstention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1357.2652572711659,
+            "name": "native_geometric_occurrence_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1531.4509908177445,
+            "name": "serving_release_packaging_655_d.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1447.2721781373268,
+            "name": "r4_retained_assembly_1094_review.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1550.073842357326,
+            "name": "integration/model-direction-2026-09.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1350.9475842563122,
+            "name": "r4_isolated_runtime_readiness_1096.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1827.1180429265955,
+            "name": "native_geometric_head_reassertion_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1476.7167240709791,
+            "name": "transformerless/PROOF.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1150.6460718966239,
+            "name": "r4_group_addressed_retention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1312.6980453903627,
+            "name": "r4_zoology_query_readout_1067.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1347.7944374499664,
+            "name": "r4_zoology_optimizer_clock_1055.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1530.1672961313534,
+            "name": "w33_geometry_qualification_spec_845.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1733.6042540539565,
+            "name": "integration/handoff-2026-09-07.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1679.151932577988,
+            "name": "integration/review-2026-09-16/02-architecture-as-implemented.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1729.046917548058,
+            "name": "integration/review-2026-09-16/04-mathematics-audit.md",
+            "targets": 224
+          }
+        ],
+        "head_bits": 6.055956108620541,
+        "head_n": 4954,
+        "heldout": {
+          "correct": 0,
+          "total": 3
+        },
+        "saturated_coordinates": 0,
+        "state_sha256": "c5334071ed4191be99e9c4b4a36c5b46ca53069308a8c440d852d7cc8fb6992f",
+        "tail_bits": 14.05815564984923,
+        "tail_n": 422,
+        "temporal": {
+          "correct": 0,
+          "total": 32
+        },
+        "train": {
+          "correct": 0,
+          "total": 36
+        }
+      },
+      "receipt_sha256": "083010e3d8be36acdd80083ddcad5a5dc464e606bc525f652c76fd3eabf3a160"
+    },
+    "score-constant": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1/warm-schedule-0.tlx",
+        "artifact_sha256": "19abf540643ce35e05f209c2f9dc3b7dccfc24e57535ddb72f30a59841273160",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "score",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "99b8a0e19acf97014df15b73b959ec0f5f4abcf6",
+        "source_sha256": "25aed4485bc8f4616580a6a95b707a1086a5332f2ee4eb34ba4b6f5469510063",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 24.764976208,
+      "result": {
+        "bits": 6.300379318055645,
+        "class": {
+          "correct": 4,
+          "total": 4
+        },
+        "crossed_feedback": {
+          "arm_actual_a": "Generate(808)",
+          "arm_actual_b": "Generate(1361)",
+          "arm_identity_erased_a": "Generate(30)",
+          "arm_identity_erased_b": "Generate(30)",
+          "arm_no_copy_event": "Generate(808)",
+          "arm_swapped_feedback_only": "Generate(808)",
+          "arm_swapped_fingerprint_only": "Generate(1361)",
+          "classification": {
+            "decision_tracks_feedback": false,
+            "decision_tracks_fingerprint": true,
+            "feedback_arm_follows_b": false,
+            "fingerprint_arm_follows_b": true,
+            "identity_erased_alias": true,
+            "no_copy_event_matches_actual": true
+          },
+          "declared": "the post-copy words remain declared class labels, not semantic claims",
+          "fingerprint_identical_across_cases": false,
+          "forced_action": "Copy",
+          "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+          "tok_a": 2382,
+          "tok_b": 4081,
+          "typed_facts_fixed_across_cases": true
+        },
+        "documents": [
+          {
+            "bits_sum": 1515.0637764147543,
+            "name": "integration/review-2026-09-16/README-FOR-AGENTS.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1360.9647416565824,
+            "name": "transformerless/LOCAL_ONLY.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1665.9249805557126,
+            "name": "prime_router_geometric_context_evidence.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1360.1922321356376,
+            "name": "segment_lane_886_spotcheck.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1411.0663074477966,
+            "name": "skipmix_gap_diagnostic_904.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1536.8905058305727,
+            "name": "native_geometric_query_owner_selection_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1258.6742419525458,
+            "name": "native_geometric_language_relation_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1144.1979143568967,
+            "name": "native_geometric_role_read_1137.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1344.2868334808384,
+            "name": "context_horizon_424.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1370.602447079879,
+            "name": "native_geometric_truncated_history_abstention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1273.6472153051802,
+            "name": "native_geometric_occurrence_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1481.8254545602658,
+            "name": "serving_release_packaging_655_d.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1358.2366554423622,
+            "name": "r4_retained_assembly_1094_review.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1436.7547047827097,
+            "name": "integration/model-direction-2026-09.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1316.831229089342,
+            "name": "r4_isolated_runtime_readiness_1096.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1745.8787977383363,
+            "name": "native_geometric_head_reassertion_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1388.1887753828187,
+            "name": "transformerless/PROOF.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1003.0630150422834,
+            "name": "r4_group_addressed_retention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1195.1846003981136,
+            "name": "r4_zoology_query_readout_1067.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1257.7181918982785,
+            "name": "r4_zoology_optimizer_clock_1055.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1442.764686876306,
+            "name": "w33_geometry_qualification_spec_845.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1674.8458807031932,
+            "name": "integration/handoff-2026-09-07.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1640.064687240347,
+            "name": "integration/review-2026-09-16/02-architecture-as-implemented.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1687.9713384963936,
+            "name": "integration/review-2026-09-16/04-mathematics-audit.md",
+            "targets": 224
+          }
+        ],
+        "head_bits": 5.786393863469764,
+        "head_n": 4954,
+        "heldout": {
+          "correct": 2,
+          "total": 3
+        },
+        "saturated_coordinates": 0,
+        "state_sha256": "7c7a91727fa8464caf68e7251654f1a9a4c0b479b0299cfcb05b251419418c2b",
+        "tail_bits": 12.334227521890961,
+        "tail_n": 422,
+        "temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "train": {
+          "correct": 36,
+          "total": 36
+        }
+      },
+      "receipt_sha256": "6fd7d87624fe4a361cfe4d8da55819886c7f05ce8d9007589eb02bd08c4e6bf1"
+    },
+    "score-decay": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1/warm-schedule-1.tlx",
+        "artifact_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "mode": "score",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "99b8a0e19acf97014df15b73b959ec0f5f4abcf6",
+        "source_sha256": "25aed4485bc8f4616580a6a95b707a1086a5332f2ee4eb34ba4b6f5469510063",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 24.1833585,
+      "result": {
+        "bits": 6.273706959659286,
+        "class": {
+          "correct": 4,
+          "total": 4
+        },
+        "crossed_feedback": {
+          "arm_actual_a": "Generate(808)",
+          "arm_actual_b": "Generate(1361)",
+          "arm_identity_erased_a": "Generate(30)",
+          "arm_identity_erased_b": "Generate(30)",
+          "arm_no_copy_event": "Generate(808)",
+          "arm_swapped_feedback_only": "Generate(808)",
+          "arm_swapped_fingerprint_only": "Generate(1361)",
+          "classification": {
+            "decision_tracks_feedback": false,
+            "decision_tracks_fingerprint": true,
+            "feedback_arm_follows_b": false,
+            "fingerprint_arm_follows_b": true,
+            "identity_erased_alias": true,
+            "no_copy_event_matches_actual": true
+          },
+          "declared": "the post-copy words remain declared class labels, not semantic claims",
+          "fingerprint_identical_across_cases": false,
+          "forced_action": "Copy",
+          "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed facts, prefix and the chosen Copy action fixed and changes only the token handed to transition; the fingerprint-only arm holds the feedback token fixed and changes only the evidence fingerprint m",
+          "tok_a": 2382,
+          "tok_b": 4081,
+          "typed_facts_fixed_across_cases": true
+        },
+        "documents": [
+          {
+            "bits_sum": 1546.656117499668,
+            "name": "integration/review-2026-09-16/README-FOR-AGENTS.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1354.2854485719229,
+            "name": "transformerless/LOCAL_ONLY.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1658.6976954730292,
+            "name": "prime_router_geometric_context_evidence.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1373.4776457543696,
+            "name": "segment_lane_886_spotcheck.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1428.808819396571,
+            "name": "skipmix_gap_diagnostic_904.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1532.9600887994027,
+            "name": "native_geometric_query_owner_selection_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1244.575734568338,
+            "name": "native_geometric_language_relation_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1134.5201123457505,
+            "name": "native_geometric_role_read_1137.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1343.7925290909145,
+            "name": "context_horizon_424.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1353.314662032655,
+            "name": "native_geometric_truncated_history_abstention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1256.0778926406838,
+            "name": "native_geometric_occurrence_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1496.8794018783808,
+            "name": "serving_release_packaging_655_d.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1339.5913477426873,
+            "name": "r4_retained_assembly_1094_review.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1409.4802787610427,
+            "name": "integration/model-direction-2026-09.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1304.657125807659,
+            "name": "r4_isolated_runtime_readiness_1096.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1707.0238102639607,
+            "name": "native_geometric_head_reassertion_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1387.5192632180188,
+            "name": "transformerless/PROOF.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 983.865466526013,
+            "name": "r4_group_addressed_retention_973.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1204.325020643694,
+            "name": "r4_zoology_query_readout_1067.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1234.6283067851223,
+            "name": "r4_zoology_optimizer_clock_1055.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1449.233684702345,
+            "name": "w33_geometry_qualification_spec_845.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1650.880941310442,
+            "name": "integration/handoff-2026-09-07.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1654.8386561693167,
+            "name": "integration/review-2026-09-16/02-architecture-as-implemented.md",
+            "targets": 224
+          },
+          {
+            "bits_sum": 1677.3585651463395,
+            "name": "integration/review-2026-09-16/04-mathematics-audit.md",
+            "targets": 224
+          }
+        ],
+        "head_bits": 5.748189716505595,
+        "head_n": 4954,
+        "heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "saturated_coordinates": 0,
+        "state_sha256": "b55cc24e02fb3710760dddc5b2a2dd50e720c8ef21ae64f587f85d14a2f99ea7",
+        "tail_bits": 12.442930709857004,
+        "tail_n": 422,
+        "temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "train": {
+          "correct": 36,
+          "total": 36
+        }
+      },
+      "receipt_sha256": "d121bd98237b9c17355b48fc8dad84dd4bd954f094ac748c59abc2597465d904"
+    },
+    "fresh-ratio-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "fresh",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 8.391627166,
+      "result": {
+        "calibrated_count": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19070.87075378745,
+            2230
+          ],
+          "ideal_bits": 11.543091908003984,
+          "ideal_documents": [
+            [
+              10771.62081603926,
+              896
+            ],
+            [
+              10391.409295789801,
+              896
+            ],
+            [
+              10145.862881572979,
+              896
+            ],
+            [
+              10061.548404884235,
+              896
+            ]
+          ],
+          "integer_bits": 11.543064941644916,
+          "integer_documents": [
+            [
+              10771.587587739383,
+              896
+            ],
+            [
+              10391.387236277502,
+              896
+            ],
+            [
+              10145.840231964323,
+              896
+            ],
+            [
+              10061.529694874176,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -1.1961047074961932,
+            -1.2477581789687164,
+            -1.1314771001292154
+          ],
+          "max_per_target_quantization_error_bits": 0.0003767644455026087,
+          "native_bits": 12.73916964914111,
+          "raw_top1_changes": 2155,
+          "seconds": 2.664722292,
+          "tail": [
+            22299.473997067955,
+            1354
+          ]
+        },
+        "calibrated_count_alpha_numerator": 32,
+        "calibration_note": "Full-tune selected count exponent frozen before source loading; not selected on fresh text",
+        "candidate": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19000.126742305816,
+            2230
+          ],
+          "ideal_bits": 11.424443725839412,
+          "ideal_documents": [
+            [
+              10619.317971066517,
+              896
+            ],
+            [
+              10297.518486315996,
+              896
+            ],
+            [
+              10052.616081823751,
+              896
+            ],
+            [
+              9975.753774202189,
+              896
+            ]
+          ],
+          "integer_bits": 11.424400915525414,
+          "integer_documents": [
+            [
+              10619.269818573423,
+              896
+            ],
+            [
+              10297.481143072782,
+              896
+            ],
+            [
+              10052.577911131866,
+              896
+            ],
+            [
+              9975.724008465015,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -1.3147687336156952,
+            -1.3661177047314315,
+            -1.2365768270091433
+          ],
+          "max_per_target_quantization_error_bits": 0.00046677838251785175,
+          "native_bits": 12.73916964914111,
+          "raw_top1_changes": 1907,
+          "seconds": 2.714854,
+          "tail": [
+            21944.926138937324,
+            1354
+          ]
+        },
+        "evaluated_native_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "frozen_bundle_path": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/ratio-integer-1/candidate.prc",
+        "frozen_bundle_sha256": "af276a1c1207f48a14ceec339c4b59d1438b7ada72068b99ae55b000ded9949f",
+        "native_only": false,
+        "scope": "Source-disjoint classical prose, no claim of broad domain transfer; old model may have encountered analogous public text in tokenizer source, not trained model weights",
+        "sources": [
+          {
+            "bytes": 174311,
+            "filename": "pg11.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e"
+          },
+          {
+            "bytes": 772386,
+            "filename": "pg1342.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "3f6bb9d6f78e0293b56acd4714dd68cb7d6d1d293402031ce9d5a216bcaf9d75"
+          },
+          {
+            "bytes": 607606,
+            "filename": "pg1661.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "922e2a12ccb43a4c9544c260b2166c6ad2097aeb5957faeee113f173bb857cd0"
+          },
+          {
+            "bytes": 448885,
+            "filename": "pg84.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3"
+          }
+        ]
+      },
+      "receipt_sha256": "0e5f27594ad5c6f899fd50abb003a98daa9b55c453c5e966dcb0052d3e756c48"
+    },
+    "fresh-parent-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4/artifacts/model.tlx",
+        "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "fresh",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 13.10811,
+      "result": {
+        "calibrated_count": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19070.885426335753,
+            2230
+          ],
+          "ideal_bits": 11.543099324200126,
+          "ideal_documents": [
+            [
+              10771.628039855716,
+              896
+            ],
+            [
+              10391.417303405819,
+              896
+            ],
+            [
+              10145.868973935576,
+              896
+            ],
+            [
+              10061.55366073614,
+              896
+            ]
+          ],
+          "integer_bits": 11.543072357693944,
+          "integer_documents": [
+            [
+              10771.594811233957,
+              896
+            ],
+            [
+              10391.39524370589,
+              896
+            ],
+            [
+              10145.846324354618,
+              896
+            ],
+            [
+              10061.534950680627,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -1.437290466389209,
+            -1.5441794263707873,
+            -1.3690670502847233
+          ],
+          "max_per_target_quantization_error_bits": 0.0003767740045557133,
+          "native_bits": 12.980362824083153,
+          "raw_top1_changes": 2928,
+          "seconds": 4.947394709,
+          "tail": [
+            22299.485903639266,
+            1354
+          ]
+        },
+        "calibrated_count_alpha_numerator": 32,
+        "calibration_note": "Full-tune selected count exponent frozen before source loading; not selected on fresh text",
+        "candidate": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            21514.2177488606,
+            2230
+          ],
+          "ideal_bits": 12.980362824083153,
+          "ideal_documents": [
+            [
+              12201.508964294559,
+              896
+            ],
+            [
+              11606.394261042498,
+              896
+            ],
+            [
+              11390.442929285713,
+              896
+            ],
+            [
+              11323.274206891248,
+              896
+            ]
+          ],
+          "integer_bits": 12.98036282408315,
+          "integer_documents": [
+            [
+              12201.508964294555,
+              896
+            ],
+            [
+              11606.394261042497,
+              896
+            ],
+            [
+              11390.442929285713,
+              896
+            ],
+            [
+              11323.274206891248,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -3.552713678800501e-15,
+            -5.329070518200751e-15,
+            0.0
+          ],
+          "max_per_target_quantization_error_bits": 3.552713678800501e-15,
+          "native_bits": 12.980362824083153,
+          "raw_top1_changes": 0,
+          "seconds": 4.93243775,
+          "tail": [
+            25007.402612653434,
+            1354
+          ]
+        },
+        "evaluated_native_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "frozen_bundle_path": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/ratio-integer-1/candidate.prc",
+        "frozen_bundle_sha256": "af276a1c1207f48a14ceec339c4b59d1438b7ada72068b99ae55b000ded9949f",
+        "native_only": true,
+        "scope": "Source-disjoint classical prose, no claim of broad domain transfer; old model may have encountered analogous public text in tokenizer source, not trained model weights",
+        "sources": [
+          {
+            "bytes": 174311,
+            "filename": "pg11.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e"
+          },
+          {
+            "bytes": 772386,
+            "filename": "pg1342.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "3f6bb9d6f78e0293b56acd4714dd68cb7d6d1d293402031ce9d5a216bcaf9d75"
+          },
+          {
+            "bytes": 607606,
+            "filename": "pg1661.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "922e2a12ccb43a4c9544c260b2166c6ad2097aeb5957faeee113f173bb857cd0"
+          },
+          {
+            "bytes": 448885,
+            "filename": "pg84.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3"
+          }
+        ]
+      },
+      "receipt_sha256": "cba33b27d2840137ecd7c0f2180d6b3bb04e96e6e4c4c4b6fa31c582b75cd1d4"
+    },
+    "fresh-warm-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1/warm-schedule-1.tlx",
+        "artifact_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "fresh",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 13.401960083,
+      "result": {
+        "calibrated_count": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19070.88773179598,
+            2230
+          ],
+          "ideal_bits": 11.543099912689062,
+          "ideal_documents": [
+            [
+              10771.629361514884,
+              896
+            ],
+            [
+              10391.417921999016,
+              896
+            ],
+            [
+              10145.869195497822,
+              896
+            ],
+            [
+              10061.553608065882,
+              896
+            ]
+          ],
+          "integer_bits": 11.543072946080132,
+          "integer_documents": [
+            [
+              10771.596132767212,
+              896
+            ],
+            [
+              10391.395862210864,
+              896
+            ],
+            [
+              10145.846545803694,
+              896
+            ],
+            [
+              10061.534897969428,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -0.8722494651277088,
+            -0.8877806617754995,
+            -0.8509351821517281
+          ],
+          "max_per_target_quantization_error_bits": 0.0003767826018892251,
+          "native_bits": 12.41532241120784,
+          "raw_top1_changes": 2275,
+          "seconds": 5.084120334,
+          "tail": [
+            22299.485706955165,
+            1354
+          ]
+        },
+        "calibrated_count_alpha_numerator": 32,
+        "calibration_note": "Full-tune selected count exponent frozen before source loading; not selected on fresh text",
+        "candidate": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19579.158578683753,
+            2230
+          ],
+          "ideal_bits": 12.41532241120784,
+          "ideal_documents": [
+            [
+              11571.383362385382,
+              896
+            ],
+            [
+              11182.38599147094,
+              896
+            ],
+            [
+              10898.767066994269,
+              896
+            ],
+            [
+              10843.97910091831,
+              896
+            ]
+          ],
+          "integer_bits": 12.41532241120784,
+          "integer_documents": [
+            [
+              11571.383362385382,
+              896
+            ],
+            [
+              11182.38599147094,
+              896
+            ],
+            [
+              10898.767066994269,
+              896
+            ],
+            [
+              10843.979100918312,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            0.0,
+            0.0,
+            3.552713678800501e-15
+          ],
+          "max_per_target_quantization_error_bits": 3.552713678800501e-15,
+          "native_bits": 12.41532241120784,
+          "raw_top1_changes": 0,
+          "seconds": 5.160468958,
+          "tail": [
+            24917.356943085164,
+            1354
+          ]
+        },
+        "evaluated_native_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "frozen_bundle_path": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/ratio-integer-1/candidate.prc",
+        "frozen_bundle_sha256": "af276a1c1207f48a14ceec339c4b59d1438b7ada72068b99ae55b000ded9949f",
+        "native_only": true,
+        "scope": "Source-disjoint classical prose, no claim of broad domain transfer; old model may have encountered analogous public text in tokenizer source, not trained model weights",
+        "sources": [
+          {
+            "bytes": 174311,
+            "filename": "pg11.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e"
+          },
+          {
+            "bytes": 772386,
+            "filename": "pg1342.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "3f6bb9d6f78e0293b56acd4714dd68cb7d6d1d293402031ce9d5a216bcaf9d75"
+          },
+          {
+            "bytes": 607606,
+            "filename": "pg1661.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "922e2a12ccb43a4c9544c260b2166c6ad2097aeb5957faeee113f173bb857cd0"
+          },
+          {
+            "bytes": 448885,
+            "filename": "pg84.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3"
+          }
+        ]
+      },
+      "receipt_sha256": "0512c427e9e0195b7bd358c4cd4fb3594922b68184634c66b4407bdca72f70b7"
+    },
+    "grounded-parent-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4/artifacts/model.tlx",
+        "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "grounded",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 11.215200208,
+      "result": {
+        "alpha": 28,
+        "bundle_bytes": 2735770,
+        "bundle_sha256": "cb2e5043b5e94d579830ab142137800bb33278deb76102f8c15eebd58c40c9f4",
+        "composite_class": {
+          "correct": 4,
+          "total": 4
+        },
+        "composite_heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "composite_temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "composite_train": {
+          "correct": 36,
+          "total": 36
+        },
+        "denominator": 32,
+        "gamma": 8,
+        "integer_prose": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            23468.67174772034,
+            4954
+          ],
+          "ideal_bits": 5.050024904956338,
+          "ideal_documents": [
+            [
+              1237.0925715863539,
+              224
+            ],
+            [
+              1124.631052177,
+              224
+            ],
+            [
+              1452.9052117939025,
+              224
+            ],
+            [
+              1120.204142691968,
+              224
+            ],
+            [
+              1134.934317044828,
+              224
+            ],
+            [
+              1041.090350343482,
+              224
+            ],
+            [
+              971.9883938163331,
+              224
+            ],
+            [
+              1039.5639624576097,
+              224
+            ],
+            [
+              1170.2122286060876,
+              224
+            ],
+            [
+              1107.7637992127593,
+              224
+            ],
+            [
+              1038.3504082989543,
+              224
+            ],
+            [
+              1291.7392345807104,
+              224
+            ],
+            [
+              1012.4909182885535,
+              224
+            ],
+            [
+              1081.3700687999603,
+              224
+            ],
+            [
+              1141.9868023935524,
+              224
+            ],
+            [
+              1420.0551979853333,
+              224
+            ],
+            [
+              1127.6203617825824,
+              224
+            ],
+            [
+              734.7259776518739,
+              224
+            ],
+            [
+              1027.8486883971266,
+              224
+            ],
+            [
+              1068.096126001331,
+              224
+            ],
+            [
+              1050.791215956916,
+              224
+            ],
+            [
+              1410.221137260742,
+              224
+            ],
+            [
+              1164.4073252423539,
+              224
+            ],
+            [
+              1178.8443966749571,
+              224
+            ]
+          ],
+          "integer_bits": 5.050018463544312,
+          "integer_documents": [
+            [
+              1237.091247453677,
+              224
+            ],
+            [
+              1124.6273015905492,
+              224
+            ],
+            [
+              1452.905468820002,
+              224
+            ],
+            [
+              1120.202687643137,
+              224
+            ],
+            [
+              1134.932731778715,
+              224
+            ],
+            [
+              1041.0859732835129,
+              224
+            ],
+            [
+              971.9860648870756,
+              224
+            ],
+            [
+              1039.5625143091447,
+              224
+            ],
+            [
+              1170.2127448519527,
+              224
+            ],
+            [
+              1107.7621933791738,
+              224
+            ],
+            [
+              1038.3489477998403,
+              224
+            ],
+            [
+              1291.7391397688264,
+              224
+            ],
+            [
+              1012.4878413732945,
+              224
+            ],
+            [
+              1081.3660290327189,
+              224
+            ],
+            [
+              1141.987567910873,
+              224
+            ],
+            [
+              1420.0526011381153,
+              224
+            ],
+            [
+              1127.6183018060394,
+              224
+            ],
+            [
+              734.7226744592616,
+              224
+            ],
+            [
+              1027.8484762714895,
+              224
+            ],
+            [
+              1068.0951926232872,
+              224
+            ],
+            [
+              1050.7910262630764,
+              224
+            ],
+            [
+              1410.2204944907364,
+              224
+            ],
+            [
+              1164.407905638296,
+              224
+            ],
+            [
+              1178.8441334414222,
+              224
+            ]
+          ],
+          "integer_minus_native": [
+            -1.9826603490516703,
+            -2.160980304542923,
+            -1.8026686472883435
+          ],
+          "max_per_target_quantization_error_bits": 0.00043369287902228493,
+          "native_bits": 7.032678812595982,
+          "raw_top1_changes": 3519,
+          "seconds": 7.516533833,
+          "tail": [
+            3680.2275122938,
+            422
+          ]
+        },
+        "native_class": {
+          "correct": 4,
+          "total": 4
+        },
+        "native_heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "native_temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "native_train": {
+          "correct": 36,
+          "total": 36
+        },
+        "scope": "Same loaded grounded model and readout; altered Generate ranking can change action choices despite preserved group mass. No automatic replacement.",
+        "selection": "Transferred unchanged from the full-Tune prose selection; not retuned on grounded panels"
+      },
+      "receipt_sha256": "b62186dc1cef7aeaa26ae47851ee523f39d93500f0acf9783efddc4709ac70f9"
+    },
+    "grounded-warm-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1/warm-schedule-1.tlx",
+        "artifact_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "grounded",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 11.312856708,
+      "result": {
+        "alpha": 28,
+        "bundle_bytes": 2735770,
+        "bundle_sha256": "aebb701a4d9675d6f85247f5c79f6905222e39600d7b0f55d759db780f136803",
+        "composite_class": {
+          "correct": 4,
+          "total": 4
+        },
+        "composite_heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "composite_temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "composite_train": {
+          "correct": 36,
+          "total": 36
+        },
+        "denominator": 32,
+        "gamma": 8,
+        "integer_prose": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            23251.494602996056,
+            4954
+          ],
+          "ideal_bits": 5.017743315081335,
+          "ideal_documents": [
+            [
+              1247.2516518860693,
+              224
+            ],
+            [
+              1104.0647186729095,
+              224
+            ],
+            [
+              1442.3285978295337,
+              224
+            ],
+            [
+              1120.7999573419522,
+              224
+            ],
+            [
+              1140.6963480598104,
+              224
+            ],
+            [
+              1037.3322175918875,
+              224
+            ],
+            [
+              967.8709986338959,
+              224
+            ],
+            [
+              1030.4886804347693,
+              224
+            ],
+            [
+              1172.03882666302,
+              224
+            ],
+            [
+              1091.1312695684146,
+              224
+            ],
+            [
+              1037.1734251640428,
+              224
+            ],
+            [
+              1281.4309346436091,
+              224
+            ],
+            [
+              1006.363218967066,
+              224
+            ],
+            [
+              1057.7596876923728,
+              224
+            ],
+            [
+              1128.1374815009083,
+              224
+            ],
+            [
+              1410.4225008228284,
+              224
+            ],
+            [
+              1110.8600422858672,
+              224
+            ],
+            [
+              729.0460009940667,
+              224
+            ],
+            [
+              1029.1679795807136,
+              224
+            ],
+            [
+              1051.9093695364406,
+              224
+            ],
+            [
+              1039.3777294494503,
+              224
+            ],
+            [
+              1391.918109702781,
+              224
+            ],
+            [
+              1173.2154877204903,
+              224
+            ],
+            [
+              1174.6028271343587,
+              224
+            ]
+          ],
+          "integer_bits": 5.017738004826835,
+          "integer_documents": [
+            [
+              1247.2505378070537,
+              224
+            ],
+            [
+              1104.06129733921,
+              224
+            ],
+            [
+              1442.3292690861447,
+              224
+            ],
+            [
+              1120.7986075693202,
+              224
+            ],
+            [
+              1140.6947620725846,
+              224
+            ],
+            [
+              1037.3278433002606,
+              224
+            ],
+            [
+              967.8686809081075,
+              224
+            ],
+            [
+              1030.4878425096756,
+              224
+            ],
+            [
+              1172.039926054746,
+              224
+            ],
+            [
+              1091.1297836195358,
+              224
+            ],
+            [
+              1037.1720794401444,
+              224
+            ],
+            [
+              1281.4313601811216,
+              224
+            ],
+            [
+              1006.3601725512464,
+              224
+            ],
+            [
+              1057.756117662884,
+              224
+            ],
+            [
+              1128.1387274197828,
+              224
+            ],
+            [
+              1410.4200987180577,
+              224
+            ],
+            [
+              1110.8583072836877,
+              224
+            ],
+            [
+              729.0425631481654,
+              224
+            ],
+            [
+              1029.1682273056756,
+              224
+            ],
+            [
+              1051.908643795994,
+              224
+            ],
+            [
+              1039.3778379212913,
+              224
+            ],
+            [
+              1391.9174349635023,
+              224
+            ],
+            [
+              1173.216487113745,
+              224
+            ],
+            [
+              1174.6029061771264,
+              224
+            ]
+          ],
+          "integer_minus_native": [
+            -1.2559689548324506,
+            -1.4382857901110127,
+            -1.075542078887631
+          ],
+          "max_per_target_quantization_error_bits": 0.00041537096576682586,
+          "native_bits": 6.273706959659286,
+          "raw_top1_changes": 2922,
+          "seconds": 7.712145541,
+          "tail": [
+            3723.864910953005,
+            422
+          ]
+        },
+        "native_class": {
+          "correct": 4,
+          "total": 4
+        },
+        "native_heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "native_temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "native_train": {
+          "correct": 36,
+          "total": 36
+        },
+        "scope": "Same loaded grounded model and readout; altered Generate ranking can change action choices despite preserved group mass. No automatic replacement.",
+        "selection": "Transferred unchanged from the full-Tune prose selection; not retuned on grounded panels"
+      },
+      "receipt_sha256": "e534f9e6dd20719cd63d83554be253ef5e96abd2de1520a90bde374816d960ed"
+    },
+    "grounded-warm-2": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1/warm-schedule-1.tlx",
+        "artifact_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "grounded",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "fc843a012241474a55e460b53235ad36418a7936",
+        "source_sha256": "da2d10ad800d4bc7e801cee40ab84f26ee9bac0f10b868ce2ac25894952dbf65",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 12.873081875,
+      "result": {
+        "alpha": 28,
+        "bundle_bytes": 2735770,
+        "bundle_sha256": "aebb701a4d9675d6f85247f5c79f6905222e39600d7b0f55d759db780f136803",
+        "composite_class": {
+          "correct": 4,
+          "total": 4
+        },
+        "composite_heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "composite_temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "composite_train": {
+          "correct": 36,
+          "total": 36
+        },
+        "denominator": 32,
+        "gamma": 8,
+        "integer_prose": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            23251.494602996056,
+            4954
+          ],
+          "ideal_bits": 5.017743315081335,
+          "ideal_documents": [
+            [
+              1247.2516518860693,
+              224
+            ],
+            [
+              1104.0647186729095,
+              224
+            ],
+            [
+              1442.3285978295337,
+              224
+            ],
+            [
+              1120.7999573419522,
+              224
+            ],
+            [
+              1140.6963480598104,
+              224
+            ],
+            [
+              1037.3322175918875,
+              224
+            ],
+            [
+              967.8709986338959,
+              224
+            ],
+            [
+              1030.4886804347693,
+              224
+            ],
+            [
+              1172.03882666302,
+              224
+            ],
+            [
+              1091.1312695684146,
+              224
+            ],
+            [
+              1037.1734251640428,
+              224
+            ],
+            [
+              1281.4309346436091,
+              224
+            ],
+            [
+              1006.363218967066,
+              224
+            ],
+            [
+              1057.7596876923728,
+              224
+            ],
+            [
+              1128.1374815009083,
+              224
+            ],
+            [
+              1410.4225008228284,
+              224
+            ],
+            [
+              1110.8600422858672,
+              224
+            ],
+            [
+              729.0460009940667,
+              224
+            ],
+            [
+              1029.1679795807136,
+              224
+            ],
+            [
+              1051.9093695364406,
+              224
+            ],
+            [
+              1039.3777294494503,
+              224
+            ],
+            [
+              1391.918109702781,
+              224
+            ],
+            [
+              1173.2154877204903,
+              224
+            ],
+            [
+              1174.6028271343587,
+              224
+            ]
+          ],
+          "integer_bits": 5.017738004826835,
+          "integer_documents": [
+            [
+              1247.2505378070537,
+              224
+            ],
+            [
+              1104.06129733921,
+              224
+            ],
+            [
+              1442.3292690861447,
+              224
+            ],
+            [
+              1120.7986075693202,
+              224
+            ],
+            [
+              1140.6947620725846,
+              224
+            ],
+            [
+              1037.3278433002606,
+              224
+            ],
+            [
+              967.8686809081075,
+              224
+            ],
+            [
+              1030.4878425096756,
+              224
+            ],
+            [
+              1172.039926054746,
+              224
+            ],
+            [
+              1091.1297836195358,
+              224
+            ],
+            [
+              1037.1720794401444,
+              224
+            ],
+            [
+              1281.4313601811216,
+              224
+            ],
+            [
+              1006.3601725512464,
+              224
+            ],
+            [
+              1057.756117662884,
+              224
+            ],
+            [
+              1128.1387274197828,
+              224
+            ],
+            [
+              1410.4200987180577,
+              224
+            ],
+            [
+              1110.8583072836877,
+              224
+            ],
+            [
+              729.0425631481654,
+              224
+            ],
+            [
+              1029.1682273056756,
+              224
+            ],
+            [
+              1051.908643795994,
+              224
+            ],
+            [
+              1039.3778379212913,
+              224
+            ],
+            [
+              1391.9174349635023,
+              224
+            ],
+            [
+              1173.216487113745,
+              224
+            ],
+            [
+              1174.6029061771264,
+              224
+            ]
+          ],
+          "integer_minus_native": [
+            -1.2559689548324506,
+            -1.4382857901110127,
+            -1.075542078887631
+          ],
+          "max_per_target_quantization_error_bits": 0.00041537096576682586,
+          "native_bits": 6.273706959659286,
+          "raw_top1_changes": 2922,
+          "seconds": 8.476537834,
+          "tail": [
+            3723.864910953005,
+            422
+          ]
+        },
+        "native_class": {
+          "correct": 4,
+          "total": 4
+        },
+        "native_heldout": {
+          "correct": 3,
+          "total": 3
+        },
+        "native_temporal": {
+          "correct": 32,
+          "total": 32
+        },
+        "native_train": {
+          "correct": 36,
+          "total": 36
+        },
+        "scope": "Same loaded grounded model and readout; altered Generate ranking can change action choices despite preserved group mass. No automatic replacement.",
+        "selection": "Transferred unchanged from the full-Tune prose selection; not retuned on grounded panels"
+      },
+      "receipt_sha256": "5fec4787cacd5074e151d88c04aa54a07e02c9d1815c18693cfaecfabe0c93f7"
+    },
+    "fresh-warm-composite-followup": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/warm-1/warm-schedule-1.tlx",
+        "artifact_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "fresh",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "fc843a012241474a55e460b53235ad36418a7936",
+        "source_sha256": "da2d10ad800d4bc7e801cee40ab84f26ee9bac0f10b868ce2ac25894952dbf65",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 16.238727625,
+      "result": {
+        "calibrated_count": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19070.88773179598,
+            2230
+          ],
+          "ideal_bits": 11.543099912689062,
+          "ideal_documents": [
+            [
+              10771.629361514884,
+              896
+            ],
+            [
+              10391.417921999016,
+              896
+            ],
+            [
+              10145.869195497822,
+              896
+            ],
+            [
+              10061.553608065882,
+              896
+            ]
+          ],
+          "integer_bits": 11.543072946080132,
+          "integer_documents": [
+            [
+              10771.596132767212,
+              896
+            ],
+            [
+              10391.395862210864,
+              896
+            ],
+            [
+              10145.846545803694,
+              896
+            ],
+            [
+              10061.534897969428,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -0.8722494651277088,
+            -0.8877806617754995,
+            -0.8509351821517281
+          ],
+          "max_per_target_quantization_error_bits": 0.0003767826018892251,
+          "native_bits": 12.41532241120784,
+          "raw_top1_changes": 2275,
+          "seconds": 5.738579083,
+          "tail": [
+            22299.485706955165,
+            1354
+          ]
+        },
+        "calibrated_count_alpha_numerator": 32,
+        "calibration_note": "Full-tune selected count exponent frozen before source loading; not selected on fresh text",
+        "candidate": {
+          "generate_logmass_error_codes": 0,
+          "head": [
+            19040.439946842343,
+            2230
+          ],
+          "ideal_bits": 11.396326120547789,
+          "ideal_documents": [
+            [
+              10589.107743313005,
+              896
+            ],
+            [
+              10255.534956682597,
+              896
+            ],
+            [
+              10027.04780059552,
+              896
+            ],
+            [
+              9972.742315452155,
+              896
+            ]
+          ],
+          "integer_bits": 11.396281573598229,
+          "integer_documents": [
+            [
+              10589.058599704325,
+              896
+            ],
+            [
+              10255.495598731672,
+              896
+            ],
+            [
+              10027.008312869413,
+              896
+            ],
+            [
+              9972.71064847064,
+              896
+            ]
+          ],
+          "integer_minus_native": [
+            -1.0190408376096123,
+            -1.0654947104263481,
+            -0.9726714322391317
+          ],
+          "max_per_target_quantization_error_bits": 0.0005961713710398442,
+          "native_bits": 12.41532241120784,
+          "raw_top1_changes": 1968,
+          "seconds": 5.95261775,
+          "tail": [
+            21803.83321293368,
+            1354
+          ]
+        },
+        "evaluated_native_sha256": "69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+        "frozen_bundle_path": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/grounded-warm-2/grounded-candidate.prc",
+        "frozen_bundle_sha256": "aebb701a4d9675d6f85247f5c79f6905222e39600d7b0f55d759db780f136803",
+        "native_only": false,
+        "scope": "Source-disjoint classical prose, no claim of broad domain transfer; old model may have encountered analogous public text in tokenizer source, not trained model weights",
+        "sources": [
+          {
+            "bytes": 174311,
+            "filename": "pg11.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e"
+          },
+          {
+            "bytes": 772386,
+            "filename": "pg1342.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "3f6bb9d6f78e0293b56acd4714dd68cb7d6d1d293402031ce9d5a216bcaf9d75"
+          },
+          {
+            "bytes": 607606,
+            "filename": "pg1661.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "922e2a12ccb43a4c9544c260b2166c6ad2097aeb5957faeee113f173bb857cd0"
+          },
+          {
+            "bytes": 448885,
+            "filename": "pg84.txt",
+            "selection": "up to16 evenly-spaced nonoverlapping64-token windows, excluding PG wrappers",
+            "sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3"
+          }
+        ]
+      },
+      "receipt_sha256": "1526447a24496391b0c16af29a975bad69417d41a4f6ca908f6a0b129026c696"
+    },
+    "cost-1": {
+      "metadata": {
+        "artifact": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2/artifacts/model.tlx",
+        "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+        "collected": 429,
+        "count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "dev_targets": 5376,
+        "duplicates": 0,
+        "fit_targets": 334796,
+        "legacy_count_lambdas": [
+          0.7,
+          0.4
+        ],
+        "matched_count_tuning": false,
+        "mode": "cost",
+        "prior_serialized_bytes": 2269044,
+        "source_revision": "58e1b913f93fd9e075947cdd715cecade6d3acfa",
+        "source_sha256": "872b3e20797e6478b43b54b9b32676d0f3841379137f6ae6decb2aa861042810",
+        "sparse_count_entries": 250559,
+        "tokenizer_sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+        "tune_targets": 114364,
+        "tune_windows": 2048
+      },
+      "seconds": 3.082066041,
+      "result": {
+        "checksum": 18446744073709550482,
+        "conditions": [
+          "native_readout_plus_update",
+          "integer_prior_composite_plus_update"
+        ],
+        "context_count": 64,
+        "interleaved_rounds": 9,
+        "median_microseconds": [
+          610.4609375,
+          662.228515625
+        ],
+        "microseconds_per_step_rounds": [
+          [
+            611.416015625,
+            603.58984375,
+            604.315765625,
+            608.240890625,
+            614.055984375,
+            613.595703125,
+            610.4609375,
+            603.3815,
+            611.0299531249999
+          ],
+          [
+            662.228515625,
+            661.7298125,
+            667.443359375,
+            667.399734375,
+            669.56315625,
+            667.305984375,
+            660.869796875,
+            657.5110625,
+            661.795578125
+          ]
+        ],
+        "scope": "Warm CPU microbenchmark of readout plus one update over stored contexts, excluding prompt ingestion and allocation setup; includes per-step allocations. Not whole-system energy or equal-quality incumbent comparison."
+      },
+      "receipt_sha256": "2e5c388dc92115d193cd0cb771ac75da9117579f2286612a8f5e60abb3a2c80c"
+    }
+  },
+  "storage": {
+    "start_free_bytes": 32709423104,
+    "after_cleanup_free_bytes": 55097618432,
+    "removed_debug_caches": [
+      {
+        "path": "/Users/casey.allard/uor-r4/target/debug",
+        "allocated_bytes_before": 2242899968,
+        "reason": "Recreatable Cargo debug output; release caches and unique artifacts preserved"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-kimi/target/debug",
+        "allocated_bytes_before": 4942008320,
+        "reason": "Recreatable Cargo debug output; release caches and unique artifacts preserved"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/debug",
+        "allocated_bytes_before": 5098196992,
+        "reason": "Recreatable Cargo debug output; release caches and unique artifacts preserved"
+      }
+    ],
+    "removed_worktrees": [
+      {
+        "path": "/Users/casey.allard/.codex/worktrees/uor-r4-ordinary-principal-1353",
+        "head": "5caecae5d3fbd69652e81b6685293182d4a61986",
+        "retained_ref": "refs/heads/archive/principal-20260923/uor-r4-ordinary-principal-1353",
+        "extra_files": 0,
+        "verified_archive": null
+      },
+      {
+        "path": "/Users/casey.allard/.codex/worktrees/uor-r4-v3-principal-1352",
+        "head": "fe79249b443158534fe0a2f75b26920e76f3d419",
+        "retained_ref": "refs/heads/archive/principal-20260923/uor-r4-v3-principal-1352",
+        "extra_files": 0,
+        "verified_archive": null
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/20260923-state-observability/worktree",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/worktree",
+        "extra_files": 0,
+        "verified_archive": null
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/astra-breakthrough-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/astra-breakthrough-20260923",
+        "extra_files": 11,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/astra-breakthrough-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/interaction-audit-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/interaction-audit-20260923",
+        "extra_files": 19,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/interaction-audit-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/observability-breakthrough-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/observability-breakthrough-20260923",
+        "extra_files": 43,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/observability-breakthrough-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/observer-breakthrough-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/observer-breakthrough-20260923",
+        "extra_files": 3,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/observer-breakthrough-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/prev-retention-correction-20260923",
+        "head": "939ee4645609bb86ff6f9e965cec4827df4c34a3",
+        "retained_ref": "refs/heads/archive/principal-20260923/prev-retention-correction-20260923",
+        "extra_files": 0,
+        "verified_archive": null
+      }
+    ],
+    "recovery_directory": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives",
+    "unique_uncommitted_files_archived_before_removal": true
+  },
+  "constraints": {
+    "default_serving_unchanged": true,
+    "no_external_model_inference": true,
+    "no_claims": [
+      "general conversation",
+      "general coding",
+      "H4 or Hamiltonian predictive superiority",
+      "whole-path multiplier-free binary",
+      "energy advantage",
+      "zero-allocation serving"
+    ],
+    "generation": "Retained outputs are repetitive and drift to the repository-document training domain.",
+    "rare_tail": "Original uncorrected residual harms rare tokens; ratio family has a small improving point estimate, not a separately established tail confidence interval.",
+    "order_control": "Retuned reversed-history ratio ties the full-history ratio; no unique chronological-order claim.",
+    "warm_recipe": "Fresh optimizer plus re-anchored exported masters, served window objective, extra exposure and grounded rehearsal. No single-cause optimizer attribution and no checkpoint-continuation claim.",
+    "fresh_secondary": "The warm-composite follow-up uses the now-exposed books with unchanged transferred coefficients; it is not another blind draw.",
+    "generation_population": "The original six-prompt generator covers two of the four book sources; NLL covers all four. No all-source generation coverage claim."
+  },
+  "owner_direction_integrated": {
+    "commit": "d5c83bf94d17b35d22b4ce61fccd84399577cc4f",
+    "rust_diff_unchanged_across_rebase": true,
+    "original_experiment_source_ref": "archive/principal-evidence-source-20260923"
+  }
+}

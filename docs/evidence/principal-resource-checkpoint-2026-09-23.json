@@ -1,0 +1,141 @@
+{
+  "schema": "uor-r4.principal-resource-checkpoint/1",
+  "started_at": "2026-09-23T21:43:12+00:00",
+  "accounted_through": "2026-09-23T23:14:24.321749+00:00",
+  "complete_elapsed_charge_ms": 5472321,
+  "task_wall_cap_ms": 7200000,
+  "ledger_before": {
+    "cumulative_ms": 436825582,
+    "limit_ms": 444700000
+  },
+  "ledger_after": {
+    "cumulative_ms": 442297903,
+    "limit_ms": 444700000
+  },
+  "charge_basis": "Complete elapsed session wall through this checkpoint, including overlapping native/server work without double-counting it. Protected-delivery tail is not yet included and will be charged separately.",
+  "physical_free_bytes": 51420532736,
+  "model_ram_limit_bytes": 2147483648,
+  "compilation_ram_limit_after_disclosed_overrun_bytes": 4294967296,
+  "compile_projection_overrun_disclosed": true,
+  "paid_compute": false,
+  "storage_cleanup": {
+    "start_free_bytes": 32709423104,
+    "started_at": "2026-09-23T21:48:06.292575+00:00",
+    "removed_caches": [
+      {
+        "path": "/Users/casey.allard/uor-r4/target/debug",
+        "allocated_bytes_before": 2242899968,
+        "reason": "Recreatable Cargo debug output; release caches and unique artifacts preserved"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-kimi/target/debug",
+        "allocated_bytes_before": 4942008320,
+        "reason": "Recreatable Cargo debug output; release caches and unique artifacts preserved"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/debug",
+        "allocated_bytes_before": 5098196992,
+        "reason": "Recreatable Cargo debug output; release caches and unique artifacts preserved"
+      }
+    ],
+    "archived_worktrees": [
+      {
+        "path": "/Users/casey.allard/.codex/worktrees/uor-r4-ordinary-principal-1353",
+        "head": "5caecae5d3fbd69652e81b6685293182d4a61986",
+        "retained_ref": "refs/heads/archive/principal-20260923/uor-r4-ordinary-principal-1353",
+        "extra_files": 0,
+        "verified_archive": null
+      },
+      {
+        "path": "/Users/casey.allard/.codex/worktrees/uor-r4-v3-principal-1352",
+        "head": "fe79249b443158534fe0a2f75b26920e76f3d419",
+        "retained_ref": "refs/heads/archive/principal-20260923/uor-r4-v3-principal-1352",
+        "extra_files": 0,
+        "verified_archive": null
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/20260923-state-observability/worktree",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/worktree",
+        "extra_files": 0,
+        "verified_archive": null
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/astra-breakthrough-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/astra-breakthrough-20260923",
+        "extra_files": 11,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/astra-breakthrough-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/interaction-audit-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/interaction-audit-20260923",
+        "extra_files": 19,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/interaction-audit-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/observability-breakthrough-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/observability-breakthrough-20260923",
+        "extra_files": 43,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/observability-breakthrough-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/observer-breakthrough-20260923",
+        "head": "34bbe2ae952763a0431b5b9dba3e0b2ead098a52",
+        "retained_ref": "refs/heads/archive/principal-20260923/observer-breakthrough-20260923",
+        "extra_files": 3,
+        "verified_archive": "/Users/casey.allard/uor-r4-investigations/principal-20260923T214312/worktree-archives/observer-breakthrough-20260923.tar.gz"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/prev-retention-correction-20260923",
+        "head": "939ee4645609bb86ff6f9e965cec4827df4c34a3",
+        "retained_ref": "refs/heads/archive/principal-20260923/prev-retention-correction-20260923",
+        "extra_files": 0,
+        "verified_archive": null
+      }
+    ],
+    "end_free_bytes": 55097618432,
+    "finished_at": "2026-09-23T21:48:35.723426+00:00"
+  },
+  "verification": {
+    "recorded_at": "2026-09-23T23:12:44.530609+00:00",
+    "focused_tests": [
+      {
+        "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+        "binary_sha256": "99c588179c99cce4eee0f874998a874a3fba04fb200cb60b76daa3912e904363",
+        "filter": "native_geometric::learner::lexical_residual",
+        "result": "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 1103 filtered out; finished in 0.00s"
+      },
+      {
+        "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+        "binary_sha256": "99c588179c99cce4eee0f874998a874a3fba04fb200cb60b76daa3912e904363",
+        "filter": "native_geometric::learner::hamilton_transport",
+        "result": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1104 filtered out; finished in 0.00s"
+      },
+      {
+        "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+        "binary_sha256": "99c588179c99cce4eee0f874998a874a3fba04fb200cb60b76daa3912e904363",
+        "filter": "native_geometric::learner::transferable_lexical",
+        "result": "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 1097 filtered out; finished in 0.03s"
+      },
+      {
+        "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/ordinary_lexical-1d14a51685f055e2",
+        "binary_sha256": "d70c0c117ae69d39418b37f5e360e5a57ff60c29a553ecd3c0dd15a83df72e79",
+        "filter": null,
+        "result": "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+      }
+    ],
+    "owner_extra_files_hashed": 44,
+    "owner_files_changed": [
+      ".omo/run-continuation/ses_f3016b9e8ffedo6N44Qba48qVo.json"
+    ],
+    "owner_runtime_change_note": "The listed live .omo continuation record changed during the session; this investigation did not write or restore it. All other snapshotted file hashes match.",
+    "owner_tracked_diff_identical": true,
+    "rebase_rust_diff_identical": true,
+    "format_diff_claim_checks_passed": true,
+    "physical_free_bytes": 52269768704,
+    "scope": "Tests executed from retained release test executables. Rebase changed commit identities and owner-direction documents, not Rust content; no blanket repository-suite claim."
+  }
+}

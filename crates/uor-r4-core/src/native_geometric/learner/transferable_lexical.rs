@@ -1403,6 +1403,45 @@ pub struct TlTrainer {
 }
 
 impl TlTrainer {
+    /// A new optimization experiment from served weights, not checkpoint continuation.
+    pub fn from_model_fresh_optimizer(
+        model: &TlModel,
+        tcfg: TlTrainConfig,
+    ) -> Result<Self, String> {
+        model.validate()?;
+        let cfg = TlConfig {
+            vocab: model.vocab,
+            h_dim: model.h_dim,
+            h_clamp: model.h_clamp,
+            m_clamp: model.m_clamp,
+            recurrent_shift: model.recurrent_shift,
+            score_shift: model.score_shift,
+        };
+        let mut t = Self::new(cfg, tcfg)?;
+        let expand = |map: &TlLinear| -> Vec<f32> {
+            (0..map.rows)
+                .flat_map(|r| {
+                    (0..map.cols).map(move |c| {
+                        (unpack_ternary(&map.packed, r, c, map.cols) << map.shift[r]) as f32
+                    })
+                })
+                .collect()
+        };
+        t.e = (0..model.e.rows)
+            .flat_map(|r| (0..model.e.cols).map(move |c| model.e.value(r, c) as f32))
+            .collect();
+        t.wi = expand(&model.wi);
+        t.wh = expand(&model.wh);
+        t.wf = expand(&model.wf);
+        t.wo = expand(&model.wo);
+        t.bh = model.bh.iter().map(|x| *x as f32).collect();
+        t.bo = model.bo.iter().map(|x| *x as f32).collect();
+        if t.model()? != *model {
+            return Err("saved model cannot be re-quantized exactly for a fresh optimizer".into());
+        }
+        Ok(t)
+    }
+
     /// A fresh trainer with sign-varied masters, so the quantised codes are not all zero.
     pub fn new(cfg: TlConfig, tcfg: TlTrainConfig) -> Result<Self, String> {
         cfg.validate()?;
@@ -2497,5 +2536,33 @@ mod tests {
             ba.actions[1] != ra.actions[1] || bb.actions[1] != rb.actions[1],
             "erasing copied identity must cost the distinction"
         );
+    }
+}
+
+#[cfg(test)]
+mod warmstart_tests {
+    use super::*;
+    #[test]
+    fn fresh_optimizer_preserves_all_served_weights_and_resets_history() {
+        let first = TlTrainer::new(
+            TlConfig::new(8),
+            TlTrainConfig {
+                seed: 13,
+                ..TlTrainConfig::default()
+            },
+        )
+        .unwrap();
+        let source = first.model().unwrap();
+        let second = TlTrainer::from_model_fresh_optimizer(
+            &source,
+            TlTrainConfig {
+                seed: 71,
+                ..TlTrainConfig::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(second.model().unwrap(), source);
+        assert_eq!(second.step, 0);
+        assert!(second.me.iter().chain(&second.ve).all(|v| *v == 0.0));
     }
 }

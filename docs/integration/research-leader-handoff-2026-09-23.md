@@ -1,5 +1,15 @@
 # Research-leader handoff: UOR-R4 Geometric Language Model
 
+## Principal continuation, September 23: recovered native learning and integer marginal-relative readout
+
+The latest executed result is [principal-continuation-result-2026-09-23.md](principal-continuation-result-2026-09-23.md), with [the continuation handoff](principal-handoff-2026-09-23.md). A 128-update exact served-weight warm start with grounded rehearsal reaches **6.27371 bits/target**, retains authored temporal32/32, training36/36, class4/4 and held-out3/3, and reproduces byte-for-byte. A second shuffle seed confirms the decaying recipe; constant-rate candidates lose one held-out case.
+
+Full-Tune adjudication now uses all **114,364 declared targets**. A raw count/artifact product has a rare-tail regression and is not promoted. The marginal-relative correction `C^alpha (A/U)^gamma`, selected on Tune, scores **5.03801** through an integer loadable bundle; unchanged coefficients transferred to the warm native model score **5.01774**, with those authored grounding panels retained. Four source-family evaluations and actual generation are recorded. The output remains repetitive; native isolated copied-token feedback remains unresolved; no broad-language, H4/Hamilton superiority or energy claim follows. The old blanket optimization-exhaustion claim is not a valid description of the new warm recipe.
+
+The terminal objective remains geometry replacing floating-point matrix multiplication in a fully transformerless model. These are measured components, not a table-only replacement goal. Old experiment records below retain their exact scope. The four external books are now exposed and must not be reused as a new blind test.
+
+---
+
 This is a durable **navigation and decision record** for the temporary Kimi/DeepSeek research lead and the returning principal investigator. It is not a replacement for the owner, live repository, artifacts, or sealed evidence. Read the [root agent contract](../../AGENTS.md), [owner decisions](DECISIONS.md), [canonical plan](project-track.md), [current state](current-state.md), [direction assessment](model-direction-2026-09.md), [project map](../PROJECT_MAP.md), and relevant source before acting. Refresh `origin/main`, GitHub issues/PRs, the actual model ledger and physical free space. A dated result or “next” does not outrank those live authorities.
 
 ## Mission and non-negotiable distinction
