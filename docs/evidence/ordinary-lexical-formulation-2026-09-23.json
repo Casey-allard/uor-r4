@@ -1,0 +1,947 @@
+{
+  "schema": "uor-r4.ordinary-lexical-formulation/1",
+  "recorded_utc": "2026-09-23T08:06:55Z",
+  "base_main": "79b5d50ce74fabd997a23226263f4407df7e38e2",
+  "tested_source": {
+    "runner": "crates/uor-r4-core/src/bin/ordinary-lexical.rs",
+    "runner_sha256": "0728949e09ac7e39e5fd62c806e428c0065316b55d19cd88b42633cf0a96c63b",
+    "model_source": "crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs",
+    "model_source_sha256": "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250",
+    "model_source_unchanged_from_delivered": true,
+    "tested_executable_sha256": "2909efd4ae60b19e2b3d29a7626bf2e285b0a56aff41d4459c1e2edd76fe9e5c",
+    "new_flags": [
+      "--objective window|position",
+      "--curriculum delivered|interleaved",
+      "--prose-slots",
+      "--ground-slots",
+      "--ground-weight",
+      "--condition <new root>",
+      "--artifact <path>"
+    ]
+  },
+  "preserved_roots": {
+    "delivered_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
+    "delivered_artifact_sha256": "fe3e8a638cd50a19741065cb00ac787b63bb59f8ad5776fd8bfcb162c37a912a",
+    "retained_local_channel_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-channel-1",
+    "retained_audit_roots": [
+      "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-audit-4",
+      "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-audit-5"
+    ],
+    "note": "all preserved roots and the owner checkout are unmodified"
+  },
+  "baseline_guard": {
+    "claim": "the extended runner's default path is behaviourally identical to the delivered one",
+    "artifact_sha256_equals_delivered": true,
+    "window_conditioning_bits_per_target": 7.372198274238398,
+    "delivered_stored_bits_per_target": 7.372198274238398,
+    "guard_step_probe_window": [
+      {
+        "step": 0,
+        "window": 8.9283,
+        "position": 8.9283,
+        "grounded": "0/88"
+      },
+      {
+        "step": 800,
+        "window": 7.108,
+        "position": 7.1601,
+        "grounded": "0/88"
+      },
+      {
+        "step": 900,
+        "window": 7.1275,
+        "position": 7.1769,
+        "grounded": "0/88"
+      },
+      {
+        "step": 1000,
+        "window": 7.1855,
+        "position": 7.1839,
+        "grounded": "85/88"
+      },
+      {
+        "step": 1300,
+        "window": 7.1204,
+        "position": 7.177,
+        "grounded": "88/88"
+      },
+      {
+        "step": 1500,
+        "window": 7.0038,
+        "position": 7.0067,
+        "grounded": "88/88"
+      },
+      {
+        "step": 1700,
+        "window": 7.501,
+        "position": 7.3073,
+        "grounded": "88/88"
+      },
+      {
+        "step": 1900,
+        "window": 7.3672,
+        "position": 7.264,
+        "grounded": "88/88"
+      },
+      {
+        "step": 1999,
+        "window": 7.3672,
+        "position": 7.264,
+        "grounded": "88/88"
+      }
+    ],
+    "interpretation": "the delivered schedule reaches its best probe during the prose warm-up (7.1080 at step 800) and never materially below it; grounded supervision is saturated by about step 1300, and the grounded-only final phase from step 1700 ends at 7.3672 rather than restoring prose. The final stored full-development value is reproduced exactly."
+  },
+  "arms": {
+    "A0_baseline_guard_delivered_schedule": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-1",
+      "objective": "window",
+      "curriculum": "delivered",
+      "prose_slots": 4,
+      "ground_slots": 0,
+      "ground_weight": 4.0,
+      "grounded_gradient_weight_share": 0.0,
+      "prose_example_count": 6000,
+      "steps": 2000,
+      "batch": 4,
+      "seed": 13,
+      "fit_seconds": 500.169638792,
+      "run_seconds": 541.299694625,
+      "artifact_sha256": "fe3e8a638cd50a19741065cb00ac787b63bb59f8ad5776fd8bfcb162c37a912a",
+      "artifact_bytes": 466711,
+      "window_conditioning_bits_per_target": 7.372198274238398,
+      "window_conditioning_targets": 5376,
+      "position_conditioning_bits_per_target": 7.25728759399574,
+      "position_minus_window": [
+        -0.11491068024265783,
+        -0.13355043300382885,
+        -0.09676811530053975
+      ],
+      "gain_vs_unigram": [
+        1.7104716318634807,
+        1.4972865702317604,
+        1.9358587894186927
+      ],
+      "gain_vs_count": [
+        -2.250477568137767,
+        -2.44536829604072,
+        -2.073410840051711
+      ],
+      "gain_vs_donor_E": [
+        -0.5020669213119326,
+        -0.577650007719213,
+        -0.4233728268920762
+      ],
+      "per_document_window_bits": [
+        7.349056497689312,
+        7.385324667909158,
+        8.713519666862735,
+        7.18655506083265,
+        7.362243387342801,
+        8.01624736449973,
+        6.973402766478697,
+        6.115878964151804,
+        7.4712466712495,
+        7.2764027055542835,
+        6.9635065888722725,
+        7.679469887726607,
+        6.956417471771557,
+        7.744475474900279,
+        6.823183832226986,
+        8.435503847212617,
+        7.469919532315852,
+        5.635057582777791,
+        6.674341012505752,
+        6.668006695115316,
+        7.574709772809436,
+        8.25475473874007,
+        7.95426977197122,
+        8.249264620205176
+      ],
+      "preflight_a_exact_of": [
+        32,
+        32
+      ],
+      "preflight_b_exact_of": [
+        2,
+        2
+      ],
+      "held_out_exact_of": [
+        3,
+        3
+      ],
+      "training_panel_exact_of": [
+        36,
+        36
+      ],
+      "class_panel_exact_of": [
+        4,
+        4
+      ],
+      "held_out_detail": [
+        {
+          "name": "heldout_previous_view_committed_correction",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Generate(1209)",
+            "Stop"
+          ]
+        },
+        {
+          "name": "heldout_initial_view_committed_via_changed_key",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Generate(1209)",
+            "Stop"
+          ]
+        },
+        {
+          "name": "heldout_previous_view_observed_change_without_commit",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Stop"
+          ]
+        }
+      ],
+      "generation": [
+        {
+          "prompt_text": "# For any agent working in this repo (Antigrav",
+          "model_text": "# For any agent working in this repo (Antigrav, 5, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,"
+        },
+        {
+          "prompt_text": "0-project-brain-index.md` (2 min",
+          "model_text": "0-project-brain-index.md` (2 min 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, "
+        },
+        {
+          "prompt_text": " where the project actually stands, root causes R1\u2013R5, path",
+          "model_text": " where the project actually stands, root causes R1\u2013R5, path, 3, 2, 2, 2, 2, 2, 2, 2, 23, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2"
+        }
+      ],
+      "separate_process_restore": null,
+      "costs": {
+        "allocation_note": "structural count of the served call path (init/readout/transition vectors); not counter-measured, because a counting allocator needs unsafe code and this binary is forbid(unsafe_code)",
+        "artifact_bytes": 466711,
+        "declared_heap_allocations_per_served_token": 8,
+        "energy": "UNAVAILABLE",
+        "float_in_kernel": false,
+        "multiplier_in_kernel": false,
+        "nonzero_reads_per_step": 56457,
+        "peak_rss": "MEASURED_EXTERNALLY: run this binary under /usr/bin/time -l and read maximum resident set size",
+        "served_reps": 40,
+        "served_tokens": 1280,
+        "served_tokens_per_second": 1405.0170083894884,
+        "served_us_per_token": 711.73515625,
+        "table_bytes": 466622
+      },
+      "energy": "UNAVAILABLE"
+    },
+    "A1_window_objective_prose_only": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2",
+      "objective": "window",
+      "curriculum": "interleaved",
+      "prose_slots": 4,
+      "ground_slots": 0,
+      "ground_weight": 4.0,
+      "grounded_gradient_weight_share": 0.0,
+      "prose_example_count": 6000,
+      "steps": 2000,
+      "batch": 4,
+      "seed": 13,
+      "fit_seconds": 695.712613667,
+      "run_seconds": 736.072328834,
+      "artifact_sha256": "f89d4499ec2a974c2b92aec31e0f363c21835b169b002b11db0175022be4aaa9",
+      "artifact_bytes": 466711,
+      "window_conditioning_bits_per_target": 6.684104956536935,
+      "window_conditioning_targets": 5376,
+      "position_conditioning_bits_per_target": 6.729613752544977,
+      "position_minus_window": [
+        0.045508796008042474,
+        0.026541850192774774,
+        0.06443554117162087
+      ],
+      "gain_vs_unigram": [
+        2.3985649495649444,
+        2.171223042098493,
+        2.63204647373769
+      ],
+      "gain_vs_count": [
+        -1.5623842504363035,
+        -1.7722227649770108,
+        -1.3602554660612416
+      ],
+      "gain_vs_donor_E": [
+        0.186026396389531,
+        0.0835292614588452,
+        0.28033902487039164
+      ],
+      "per_document_window_bits": [
+        6.985839770813869,
+        6.738559478844195,
+        7.788754648429006,
+        6.483086320488842,
+        6.351236771081871,
+        7.387623439562499,
+        6.0108446509167015,
+        5.543767704678016,
+        6.526997759259612,
+        6.744872810643291,
+        6.059219898531993,
+        6.8368347804363605,
+        6.461036509541638,
+        6.919972510523776,
+        6.031016001144252,
+        8.156776977350875,
+        6.592485375316875,
+        5.136812820967075,
+        5.860259131206975,
+        6.016939452901637,
+        6.831104000586402,
+        7.739304705598018,
+        7.496213984723157,
+        7.718959453339535
+      ],
+      "preflight_a_exact_of": [
+        0,
+        32
+      ],
+      "preflight_b_exact_of": [
+        0,
+        2
+      ],
+      "held_out_exact_of": [
+        0,
+        3
+      ],
+      "training_panel_exact_of": [
+        0,
+        36
+      ],
+      "class_panel_exact_of": [
+        0,
+        4
+      ],
+      "held_out_detail": [
+        {
+          "name": "heldout_previous_view_committed_correction",
+          "exact": false,
+          "served": [
+            "Generate(274)",
+            "Generate(750)",
+            "Generate(318)",
+            "Generate(750)",
+            "Generate(383)"
+          ]
+        },
+        {
+          "name": "heldout_initial_view_committed_via_changed_key",
+          "exact": false,
+          "served": [
+            "Generate(611)",
+            "Generate(589)",
+            "Generate(589)",
+            "Generate(2642)",
+            "Generate(3911)"
+          ]
+        },
+        {
+          "name": "heldout_previous_view_observed_change_without_commit",
+          "exact": false,
+          "served": [
+            "Generate(2401)",
+            "Generate(1425)",
+            "Generate(83)",
+            "Generate(83)"
+          ]
+        }
+      ],
+      "generation": [
+        {
+          "prompt_text": "# For any agent working in this repo (Antigrav",
+          "model_text": "# For any agent working in this repo (Antigrav`,\n`** (1744070770707707707707707707707707707707707707077077077077"
+        },
+        {
+          "prompt_text": "0-project-brain-index.md` (2 min",
+          "model_text": "0-project-brain-index.md` (2 minusal\n\n## Existing, not\n\n\n## Existing, not\n\n\n## Existing orstruction\n\n**Definition. Its the\n\n\n## Existing orstruction\n\n**Definition. Its the\n\n\n"
+        },
+        {
+          "prompt_text": " where the project actually stands, root causes R1\u2013R5, path",
+          "model_text": " where the project actually stands, root causes R1\u2013R5, paths, 17,077.0707707707707.0707007707707707707707417c97077077070770"
+        }
+      ],
+      "separate_process_restore": null,
+      "costs": {
+        "allocation_note": "structural count of the served call path (init/readout/transition vectors); not counter-measured, because a counting allocator needs unsafe code and this binary is forbid(unsafe_code)",
+        "artifact_bytes": 466711,
+        "declared_heap_allocations_per_served_token": 8,
+        "energy": "UNAVAILABLE",
+        "float_in_kernel": false,
+        "multiplier_in_kernel": false,
+        "nonzero_reads_per_step": 38459,
+        "peak_rss": "MEASURED_EXTERNALLY: run this binary under /usr/bin/time -l and read maximum resident set size",
+        "served_reps": 40,
+        "served_tokens": 1280,
+        "served_tokens_per_second": 1619.8164292412298,
+        "served_us_per_token": 617.35390625,
+        "table_bytes": 466622
+      },
+      "energy": "UNAVAILABLE"
+    },
+    "A2_window_objective_two_grounded_slots": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-3",
+      "objective": "window",
+      "curriculum": "interleaved",
+      "prose_slots": 4,
+      "ground_slots": 2,
+      "ground_weight": 4.0,
+      "grounded_gradient_weight_share": 0.6666666666666666,
+      "prose_example_count": 6000,
+      "steps": 2000,
+      "batch": 4,
+      "seed": 13,
+      "fit_seconds": 697.146536791,
+      "run_seconds": 736.772713084,
+      "artifact_sha256": "e1762e54856123ce7a36e4f0be9871238ca4ef785ff0eb3fefc468aee82c73ae",
+      "artifact_bytes": 466711,
+      "window_conditioning_bits_per_target": 6.96857647608259,
+      "window_conditioning_targets": 5376,
+      "position_conditioning_bits_per_target": 7.018670515874346,
+      "position_minus_window": [
+        0.050094039791756195,
+        0.03350668033657733,
+        0.06572200171285925
+      ],
+      "gain_vs_unigram": [
+        2.114093430019289,
+        1.905615843785295,
+        2.3350169211335468
+      ],
+      "gain_vs_count": [
+        -1.8468557699819588,
+        -2.047937064530501,
+        -1.6677181064962525
+      ],
+      "gain_vs_donor_E": [
+        -0.0984451231561243,
+        -0.17008413637786024,
+        -0.025289603383035875
+      ],
+      "per_document_window_bits": [
+        7.079062518062865,
+        7.0110107430867075,
+        8.11323022260834,
+        6.895111568909792,
+        6.800958820038231,
+        7.58463448786646,
+        6.478754329682094,
+        5.859485203252419,
+        6.904359344881036,
+        7.014272026676315,
+        6.317107048469869,
+        7.331713948798645,
+        6.98237384182274,
+        7.181753061595576,
+        6.266913997958312,
+        8.180800423058798,
+        6.974485709806644,
+        5.351926027246692,
+        6.100848543755153,
+        6.334386956270941,
+        6.988711630629164,
+        7.9537202106423806,
+        7.655138630192147,
+        7.8850761306708295
+      ],
+      "preflight_a_exact_of": [
+        31,
+        32
+      ],
+      "preflight_b_exact_of": [
+        2,
+        2
+      ],
+      "held_out_exact_of": [
+        1,
+        3
+      ],
+      "training_panel_exact_of": [
+        35,
+        36
+      ],
+      "class_panel_exact_of": [
+        4,
+        4
+      ],
+      "held_out_detail": [
+        {
+          "name": "heldout_previous_view_committed_correction",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Generate(1209)",
+            "Stop"
+          ]
+        },
+        {
+          "name": "heldout_initial_view_committed_via_changed_key",
+          "exact": false,
+          "served": [
+            "Generate(318)",
+            "Copy",
+            "Stop"
+          ]
+        },
+        {
+          "name": "heldout_previous_view_observed_change_without_commit",
+          "exact": false,
+          "served": [
+            "Copy",
+            "Generate(1209)",
+            "Stop"
+          ]
+        }
+      ],
+      "generation": [
+        {
+          "prompt_text": "# For any agent working in this repo (Antigrav",
+          "model_text": "# For any agent working in this repo (Antigrav) and the\n  20.16000.1% | 6,66666666666666666666666666666666666666666666"
+        },
+        {
+          "prompt_text": "0-project-brain-index.md` (2 min",
+          "model_text": "0-project-brain-index.md` (2 minus.\n\n** 1, and 0.\n\n** 120.16.1%) | 10.1% | 1,0.17.0.0000.1%) | 1,66666666"
+        },
+        {
+          "prompt_text": " where the project actually stands, root causes R1\u2013R5, path",
+          "model_text": " where the project actually stands, root causes R1\u2013R5, path, and the 0.\n\n** 20.066666666666666666666666666666666666666666666666666"
+        }
+      ],
+      "separate_process_restore": null,
+      "costs": {
+        "allocation_note": "structural count of the served call path (init/readout/transition vectors); not counter-measured, because a counting allocator needs unsafe code and this binary is forbid(unsafe_code)",
+        "artifact_bytes": 466711,
+        "declared_heap_allocations_per_served_token": 8,
+        "energy": "UNAVAILABLE",
+        "float_in_kernel": false,
+        "multiplier_in_kernel": false,
+        "nonzero_reads_per_step": 52681,
+        "peak_rss": "MEASURED_EXTERNALLY: run this binary under /usr/bin/time -l and read maximum resident set size",
+        "served_reps": 40,
+        "served_tokens": 1280,
+        "served_tokens_per_second": 1523.3361253466278,
+        "served_us_per_token": 656.4539390625,
+        "table_bytes": 466622
+      },
+      "energy": "UNAVAILABLE"
+    },
+    "A3_position_objective_with_grounded_supervision": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4",
+      "objective": "position",
+      "curriculum": "interleaved",
+      "prose_slots": 224,
+      "ground_slots": 24,
+      "ground_weight": 4.0,
+      "grounded_gradient_weight_share": 0.3,
+      "prose_example_count": 334796,
+      "steps": 2000,
+      "batch": 224,
+      "seed": 13,
+      "fit_seconds": 1285.287050625,
+      "run_seconds": 1340.030194417,
+      "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+      "artifact_bytes": 466711,
+      "window_conditioning_bits_per_target": 7.032678812595982,
+      "window_conditioning_targets": 5376,
+      "position_conditioning_bits_per_target": 6.338701254984009,
+      "position_minus_window": [
+        -0.6939775576119729,
+        -0.7516951684244706,
+        -0.6343385225676075
+      ],
+      "gain_vs_unigram": [
+        2.0499910935058967,
+        1.795341297907684,
+        2.322343543246693
+      ],
+      "gain_vs_count": [
+        -1.9109581064953511,
+        -2.1231965193443694,
+        -1.7110751180986217
+      ],
+      "gain_vs_donor_E": [
+        -0.16254745966951667,
+        -0.2883658245249645,
+        -0.04932369734990516
+      ],
+      "per_document_window_bits": [
+        7.463693149505846,
+        7.010575563255471,
+        8.196543763163492,
+        6.779965789863056,
+        6.92654617300133,
+        7.544224341454068,
+        6.266521268655542,
+        5.828191642627106,
+        6.656734019816861,
+        7.04065940767296,
+        6.182973695392221,
+        7.539479964267476,
+        6.67089783259334,
+        7.343311679168019,
+        6.726440916329211,
+        8.472321056696583,
+        7.1472968891358475,
+        5.16468253438645,
+        5.951941884796775,
+        6.411306430640465,
+        7.318448327659447,
+        8.174390402885921,
+        7.80198479164389,
+        8.165159977692225
+      ],
+      "preflight_a_exact_of": [
+        32,
+        32
+      ],
+      "preflight_b_exact_of": [
+        2,
+        2
+      ],
+      "held_out_exact_of": [
+        3,
+        3
+      ],
+      "training_panel_exact_of": [
+        36,
+        36
+      ],
+      "class_panel_exact_of": [
+        4,
+        4
+      ],
+      "held_out_detail": [
+        {
+          "name": "heldout_previous_view_committed_correction",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Generate(1209)",
+            "Stop"
+          ]
+        },
+        {
+          "name": "heldout_initial_view_committed_via_changed_key",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Generate(1209)",
+            "Stop"
+          ]
+        },
+        {
+          "name": "heldout_previous_view_observed_change_without_commit",
+          "exact": true,
+          "served": [
+            "Copy",
+            "Stop"
+          ]
+        }
+      ],
+      "generation": [
+        {
+          "prompt_text": "# For any agent working in this repo (Antigrav",
+          "model_text": "# For any agent working in this repo (Antigravidence/1/100000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "prompt_text": "0-project-brain-index.md` (2 min",
+          "model_text": "0-project-brain-index.md` (2 minus/10/10000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "prompt_text": " where the project actually stands, root causes R1\u2013R5, path",
+          "model_text": " where the project actually stands, root causes R1\u2013R5, path.\n-rr//uoricalr4/100000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "separate_process_restore": null,
+      "costs": {
+        "allocation_note": "structural count of the served call path (init/readout/transition vectors); not counter-measured, because a counting allocator needs unsafe code and this binary is forbid(unsafe_code)",
+        "artifact_bytes": 466711,
+        "declared_heap_allocations_per_served_token": 8,
+        "energy": "UNAVAILABLE",
+        "float_in_kernel": false,
+        "multiplier_in_kernel": false,
+        "nonzero_reads_per_step": 147456,
+        "peak_rss": "MEASURED_EXTERNALLY: run this binary under /usr/bin/time -l and read maximum resident set size",
+        "served_reps": 40,
+        "served_tokens": 1280,
+        "served_tokens_per_second": 757.875764868279,
+        "served_us_per_token": 1319.4774742187499,
+        "table_bytes": 466622
+      },
+      "energy": "UNAVAILABLE"
+    },
+    "A5_position_objective_prose_only": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-5",
+      "objective": "position",
+      "curriculum": "interleaved",
+      "prose_slots": 224,
+      "ground_slots": 0,
+      "ground_weight": 4.0,
+      "grounded_gradient_weight_share": 0.0,
+      "prose_example_count": 334796,
+      "steps": 2000,
+      "batch": 224,
+      "seed": 13,
+      "fit_seconds": 1364.803719458,
+      "run_seconds": 1414.012093209,
+      "artifact_sha256": "05b6fc93eb112d976cc6d9d8dffc1e12453ce4b8536ea9a37495a11bf2f08e8b",
+      "artifact_bytes": 466711,
+      "window_conditioning_bits_per_target": 6.6903113844186946,
+      "window_conditioning_targets": 5376,
+      "position_conditioning_bits_per_target": 6.203876300792837,
+      "position_minus_window": [
+        -0.4864350836258575,
+        -0.5469936698089519,
+        -0.4206339006806674
+      ],
+      "gain_vs_unigram": [
+        2.3923585216831844,
+        2.154786804741657,
+        2.630021492413464
+      ],
+      "gain_vs_count": [
+        -1.5685906783180634,
+        -1.7661525910120348,
+        -1.382471565982895
+      ],
+      "gain_vs_donor_E": [
+        0.17981996850777104,
+        0.06508815569169002,
+        0.2950058429408724
+      ],
+      "per_document_window_bits": [
+        6.994962588028934,
+        6.4023629506144655,
+        8.003806279649972,
+        6.37664758880902,
+        6.557928562695011,
+        7.095477679469348,
+        6.172034242226959,
+        5.447478164262478,
+        6.556823796539111,
+        6.339032767037203,
+        6.316794652167805,
+        7.440349073148475,
+        6.7203498369069505,
+        6.546878312291379,
+        6.2759529104581855,
+        8.170689771248435,
+        6.549869188199303,
+        5.231027694458305,
+        5.515645705034099,
+        6.10637589174329,
+        6.76685079235332,
+        7.674809060663542,
+        7.499873917835099,
+        7.80545180020802
+      ],
+      "preflight_a_exact_of": [
+        0,
+        32
+      ],
+      "preflight_b_exact_of": [
+        0,
+        2
+      ],
+      "held_out_exact_of": [
+        0,
+        3
+      ],
+      "training_panel_exact_of": [
+        0,
+        36
+      ],
+      "class_panel_exact_of": [
+        0,
+        4
+      ],
+      "held_out_detail": [
+        {
+          "name": "heldout_previous_view_committed_correction",
+          "exact": false,
+          "served": [
+            "Generate(277)",
+            "Generate(49)",
+            "Generate(2790)",
+            "Generate(2504)",
+            "Generate(2504)"
+          ]
+        },
+        {
+          "name": "heldout_initial_view_committed_via_changed_key",
+          "exact": false,
+          "served": [
+            "Generate(409)",
+            "Generate(60)",
+            "Generate(60)",
+            "Generate(60)",
+            "Generate(60)"
+          ]
+        },
+        {
+          "name": "heldout_previous_view_observed_change_without_commit",
+          "exact": false,
+          "served": [
+            "Generate(611)",
+            "Generate(272)",
+            "Generate(524)",
+            "Generate(828)"
+          ]
+        }
+      ],
+      "generation": [
+        {
+          "prompt_text": "# For any agent working in this repo (Antigrav",
+          "model_text": "# For any agent working in this repo (Antigrav) |\n|\n\nThe-r4/cfix-fix-fix-20/0000000000000000000000000000000000000000"
+        },
+        {
+          "prompt_text": "0-project-brain-index.md` (2 min",
+          "model_text": "0-project-brain-index.md` (2 minus-cfix-fix-fix-fix-2000000000000000000000000000000000000000000000000"
+        },
+        {
+          "prompt_text": " where the project actually stands, root causes R1\u2013R5, path",
+          "model_text": " where the project actually stands, root causes R1\u2013R5, paths,\n\nThe-r4-cfix-fix-fix-200000000000000000000000000000000000000000000"
+        }
+      ],
+      "separate_process_restore": null,
+      "costs": {
+        "allocation_note": "structural count of the served call path (init/readout/transition vectors); not counter-measured, because a counting allocator needs unsafe code and this binary is forbid(unsafe_code)",
+        "artifact_bytes": 466711,
+        "declared_heap_allocations_per_served_token": 8,
+        "energy": "UNAVAILABLE",
+        "float_in_kernel": false,
+        "multiplier_in_kernel": false,
+        "nonzero_reads_per_step": 85873,
+        "peak_rss": "MEASURED_EXTERNALLY: run this binary under /usr/bin/time -l and read maximum resident set size",
+        "served_reps": 40,
+        "served_tokens": 1280,
+        "served_tokens_per_second": 1015.3996325349644,
+        "served_us_per_token": 984.8339195312499,
+        "table_bytes": 466622
+      },
+      "energy": "UNAVAILABLE"
+    }
+  },
+  "cross_conditioning": {
+    "method": "the same development windows and the same 5,376 target identities scored under two conditioning events; window conditioning matches the served multi-token recurrence",
+    "delivered_artifact": {
+      "window_conditioning": 7.372198274238398,
+      "position_conditioning": 7.25728759399574,
+      "position_minus_window": [
+        -0.11491068024265783,
+        -0.13355043300382885,
+        -0.09676811530053975
+      ]
+    },
+    "retained_position_trained_prose_only_channel_arm": {
+      "window_conditioning_bits_per_target": 6.6903113844186946,
+      "position_conditioning_bits_per_target": 6.203876300792837
+    },
+    "correction_to_retained_audit": "the retained audit reported the per-position arm as recovering about 1.17 bits/target against the delivered 7.3722. That figure compares each artifact under its own conditioning. Under the served window conditioning the same artifact scores 6.6903, a 0.682-bit recovery; the ~0.49-bit remainder is the conditioning change, not a served gain."
+  },
+  "cross_arm_intervals_served_window_conditioning": {
+    "A0_baseline_guard_delivered_schedule minus delivered": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "A1_window_objective_prose_only minus delivered": [
+      -0.6880933177014638,
+      -0.7685594794026445,
+      -0.6090830019521191
+    ],
+    "A2_window_objective_two_grounded_slots minus delivered": [
+      -0.4036217981558104,
+      -0.46679441050933895,
+      -0.3411953739866676
+    ],
+    "A3_position_objective_with_grounded_supervision minus delivered": [
+      -0.3395194616424167,
+      -0.43875883968891444,
+      -0.244679239838534
+    ],
+    "A5_position_objective_prose_only minus delivered": [
+      -0.6818868898197038,
+      -0.7908489223909108,
+      -0.5810334256187575
+    ],
+    "A2 minus A1 (price of retaining grounded supervision)": [
+      0.2844715195456534,
+      0.2353786189877866,
+      0.33262032776526745
+    ],
+    "A3 minus A5 (price of retaining grounded supervision at the position objective)": [
+      0.3423674281772871,
+      0.25215739848083224,
+      0.4371237107822825
+    ],
+    "A5 minus A1 (position versus window objective, both prose-only, same schedule)": [
+      0.006206427881759957,
+      -0.08832119853549573,
+      0.10122819429805652
+    ],
+    "A3 minus A1 (position with grounded versus window prose-only)": [
+      0.34857385605904706,
+      0.28345697014461635,
+      0.42229233302735425
+    ],
+    "delivered minus retained_position_trained_channel_arm (served window conditioning)": [
+      0.6818868898197038,
+      0.5814155987971555,
+      0.7908987428706914
+    ]
+  },
+  "position_objective_reproduces_retained_channel_arm": {
+    "claim": "the new run() path with --objective position --ground-slots 0 reproduces the retained local_channel_mode arm olx-channel-1 recurrence_only exactly",
+    "form5_window": 6.6903113844186946,
+    "channel_window": 6.6903113844186946,
+    "form5_position": 6.203876300792837,
+    "channel_position": 6.203876300792837,
+    "exact_match": true
+  },
+  "fresh_process_audit_of_milestone_artifact": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4-audit",
+    "artifact_sha256": "68b300984f5101b2cadcd05e5029eeb1123ee55a955f1f7aa04314a7c23211c1",
+    "panel_replay_on_deserialized_artifact": {
+      "training": "36/36",
+      "held_out": "3/3",
+      "class": "4/4"
+    },
+    "preflight_a_exact_of": "32/32",
+    "preflight_b_actual_exact_of": "2/2",
+    "preflight_b_blinded_alias": true,
+    "preflight_b_source_disabled_loses_copy": true,
+    "panels_match_stored": true,
+    "mixed_session_matches_stored": true,
+    "elapsed_seconds": 86.4
+  },
+  "references_same_target_population": {
+    "unigram_bits_per_target": 9.082669906101879,
+    "tuned_two_token_count_bits_per_target": 5.121720706100631,
+    "donor_E_bits_per_target": 6.870131352926466,
+    "count_reference_note": "fit/tune-separated interpolated (prev,cur) count model; a strong local floor"
+  },
+  "limits": [
+    "one pinned local corpus, one fit/tune/development split, one seed per arm, one schedule family",
+    "the grounded world is authored and tiny; per-arm grounded retention is a fixture result, not general language",
+    "the tuned two-token count reference still beats every arm by at least 1.56 bits/target",
+    "greedy generation remains degenerate; sampling is NOT_RUN",
+    "energy remains UNAVAILABLE; the served kernel executes no multiplier and no floating-point arithmetic",
+    "the per-position conditioning is not the served recurrence for multi-token generation; it is a diagnostic"
+  ],
+  "claim_boundaries": {
+    "proved_or_measured": "artifact-level reproduction of the delivered baseline; the prose deficit is a training-formulation/curriculum effect on this corpus; the grounded-supervision price is measured",
+    "hypothesis": "that a larger grounded share plus the same prose exposure can retain the panels without giving back the prose recovery",
+    "not_claimed": "general prose, chat, reasoning, geometric advantage or energy"
+  }
+}

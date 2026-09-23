@@ -17,14 +17,49 @@ Keep six responsibilities separate in every design and claim: (1) exact occurren
 | September 13–19 learned read/update experiments | Bounded query-selectable reads, ordered occurrence matching, dependent updates, scheduling, spans and role repair. `%120` residue addressing, cold routes and bounded candidate admission were measured. | A static-residue count comparison is not a hard ceiling on a prefix-dependent trained memory; authored grammar panels are not general language. | [Canonical plan history](project-track.md), [takeover review](takeover-review-2026-09-19.md), [mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md) |
 | September 20–22 relational/structural memory | Relative H4/Q8 and role/scope/version mechanisms carry useful distinctions. Signed Q8 retains an answer-relevant order/sign distinction; the competent ordinary finite comparator ties on the authored computation task. Observation and computation were integrated across prior scoped scripts. | A geometric witness or a 38/38 authored lifecycle is not geometric superiority, open-ended reasoning or self-sufficient text understanding. Some earlier narrow-fit failures were supervision coverage, not geometric impossibility. | [Evidence index](EVIDENCE.md), [current-state history](current-state.md), [Hopf and role direction](structural-memory-hopf-direction-2026-09-20.md) |
 | September 22–23 shared lexical line | A single native Generate/Copy/Stop artifact was fitted on source-separated prose and authored grounded cases. The later independent audit verified all reported panels after fresh-process reload. | Exact loaded parity does not make its language useful: greedy continuations collapse, and learned post-copy feedback dependence remains unverified beyond the tested crossed pair. | [Principal review](ordinary-lexical-principal-review-2026-09-23.md), [audit/correction](ordinary-lexical-audit-2026-09-23.md), [current state](current-state.md) |
+| September 23 formulation milestone | Five matched arms re-tested the recorded per-position question inside the same grounded learner through one unchanged model source; the default path reproduces the delivered artifact bit for bit; on the served conditioning the prose-only window objective reaches 6.6841 and the per-position arm reaches 7.0327 with full grounded-panel retention. | The per-position objective is not the cause of the recovery (per-position minus window **+0.0641 [−0.0142, +0.1490]**), no arm beats the tuned two-token count reference (5.1217), and greedy generation still collapses. A repaired window objective that fully retains the grounded panels is untested. | [Result](ordinary-lexical-formulation-result-2026-09-23.md), [evidence](../evidence/ordinary-lexical-formulation-2026-09-23.json), [current state](current-state.md) |
 
 Do not fuse these artifact families into one claimed result. Historical branches, negative candidates and sealed roots are retained so a later model can inspect them. The [research ledger](../RESEARCH.md) and named experiment records own exact artifact, population and control scope.
 
-## Latest measured seam (September 23 snapshot; refresh before a run)
+## Latest measured seam (September 23 formulation milestone; refresh before a run)
 
-The saved ordinary/grounded artifact independently replays fit 36/36, held-out 3/3, class 4/4, preflight A 32/32, and the prose, generation and mixed-session reports. Its open-development prose loss is **7.372198 Generate-action bits/target** on 5,376 targets; truly Generate-conditional loss is **7.371855**, so Stop normalization explains only 0.000343 bits/target. The tuned two-token count control is **5.1217** on its declared token-only denominator, and greedy continuation collapses. On one crossed copy pair the next top-1 decision follows the source fingerprint; swapping only emitted-token feedback does not change it. This is a narrow causal observation, not a general feedback verdict.
+The recorded per-position question was executed inside the one shared grounded Generate/Copy/Stop
+learner, on protected main `79b5d50c`, through one **unchanged** model source
+(`learner/transferable_lexical.rs` sha256 `03f83eb8…b250`); only the runner gained `--objective`,
+`--curriculum`, `--prose-slots`, `--ground-slots`, `--ground-weight` and a read-only
+`--condition`/`--artifact` scoring mode. The default path reproduces the delivered artifact **bit for
+bit** (`olx-form-1`, sha256 `fe3e8a638cd50a19741065cb00ac787b63bb59f8ad5776fd8bfcb162c37a912a`,
+development `7.372198274238398`), so every arm is matched to the delivered baseline through one path.
 
-A separate **prose-only** full-context recurrence fit scores **6.2039** bits/target on the same development targets. Adding a direct two-token channel to that matched diagnostic worsens it to **6.6732** (channel minus recurrence **+0.469**, paired interval **[+0.410, +0.527]**). The earlier receipt reversed the interval label; the [audit](ordinary-lexical-audit-2026-09-23.md) corrected it. That diagnostic differs in context event and curriculum and lacks grounded Copy/Stop, so it is **not** the successor model. The immediate question is whether per-position full-context training improves the **same grounded learner** while retaining its observed memory/copy behavior and actual saved-artifact generation. The current [plan](project-track.md) and [state](current-state.md) own any later revision.
+On the **served** window conditioning — the recurrence the served multi-token path actually executes —
+and the same 5,376 development targets with paired document-cluster intervals: the per-position
+objective with grounded supervision scores **7.0327** against the delivered 7.3722
+(**−0.3395 [−0.4388, −0.2447]**) and **fully retains the grounded panels** (32/32 preflight A, 3/3
+held-out, 2/2 preflight B, 36/36 training, 4/4 class, `REPLAY_OK 36 cases`); a **prose-only window
+objective** reaches **6.6841** (−0.6881 [−0.7686, −0.6091]), crossing donor E (6.8701) for the first
+time; a window objective with two grounded draws per step reaches **6.9686** (−0.4036
+[−0.4668, −0.3412]) with 31/32, 1/3, 2/2. Per-position minus window at the same schedule is only
+**+0.0641 [−0.0142, +0.1490]**, so **the per-position objective is retired as a necessary training
+change** and retained as a diagnostic conditioning: the deficit was the grounded rehearsal mix and the
+grounded-only final phase. The guard run's step probe shows the delivered schedule reaching its best
+prose probe during the warm-up (7.1080 at step 800) and never better after grounded supervision
+saturates.
+
+**Erratum carried forward.** The retained audit's “about 1.17 bits” compared each artifact under its
+own conditioning. Under the served conditioning the per-position prose-only artifact (`olx-channel-1`)
+recovers **0.682 [0.581, 0.790]**, not 1.17; roughly 0.49 bits was the conditioning change, available to
+serving only for the first generated token. The audit's data set, artifact and sealed numbers are
+unchanged.
+
+**What still fails.** The fit/tune-separated tuned two-token count reference at **5.1217** still beats
+the best arm (6.6841) by **1.56 bits/target**, so the 64-coordinate ternary state under-uses the two
+tokens available at the decision point — a local-recency/optimization fact, not a long-range transport
+one. Greedy generation collapses on every arm; sampling NOT_RUN; energy UNAVAILABLE. The next bounded
+milestone is to keep the served window conditioning, raise the grounded presence until the authored
+panels are fully retained (the configuration `olx-form-3` was one case short of), pre-declaring 32/32
+preflight A, 3/3 held-out and 4/4 class as acceptance, and then attack the local deficit. The
+[result](ordinary-lexical-formulation-result-2026-09-23.md) and [evidence](../evidence/ordinary-lexical-formulation-2026-09-23.json)
+own the numbers; the [plan](project-track.md) and [state](current-state.md) own sequencing.
 
 ## Geometric mechanism decision tree
 

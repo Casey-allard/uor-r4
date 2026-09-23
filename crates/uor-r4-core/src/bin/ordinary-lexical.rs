@@ -90,6 +90,23 @@ struct Args {
     replay: Option<PathBuf>,
     audit: Option<PathBuf>,
     local_channel: Option<PathBuf>,
+    /// `--condition <root>`: score one existing sealed artifact under both prose conditionings. The
+    /// value is the **new** report root; `--root` is not used by that mode.
+    condition: Option<PathBuf>,
+    /// `--artifact <path>`: the `.tlx` file scored in `--condition` mode. Read in place, never copied
+    /// and never re-sealed.
+    artifact: Option<PathBuf>,
+    /// Declared prose formulation of `run()`: the delivered `window` conditioning or the per-position
+    /// `position` conditioning.
+    objective: String,
+    /// Declared batch schedule of `run()`: the delivered three phases or the interleaved mix.
+    curriculum: String,
+    /// Interleaved-schedule draws per step. Declared default `batch`.
+    prose_slots: Option<usize>,
+    /// Interleaved-schedule draws per step. Declared default `0`.
+    ground_slots: Option<usize>,
+    /// Supervision weight of one grounded example. Declared default `GROUND_WEIGHT`.
+    ground_weight: Option<f32>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -104,6 +121,13 @@ fn parse_args() -> Result<Args, String> {
     let mut replay = None;
     let mut audit = None;
     let mut local_channel = None;
+    let mut condition = None;
+    let mut artifact = None;
+    let mut objective = String::from("window");
+    let mut curriculum = String::from("delivered");
+    let mut prose_slots = None;
+    let mut ground_slots = None;
+    let mut ground_weight = None;
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
     while i < argv.len() {
@@ -123,15 +147,38 @@ fn parse_args() -> Result<Args, String> {
             "--replay" => replay = Some(PathBuf::from(v()?)),
             "--audit" => audit = Some(PathBuf::from(v()?)),
             "--local-channel" => local_channel = Some(PathBuf::from(v()?)),
+            "--condition" => condition = Some(PathBuf::from(v()?)),
+            "--artifact" => artifact = Some(PathBuf::from(v()?)),
             "--docs" => docs = Some(PathBuf::from(v()?)),
             "--tokenizer" => tokenizer = PathBuf::from(v()?),
             "--source-rev" => source_rev = v()?,
+            "--objective" => objective = v()?,
+            "--curriculum" => curriculum = v()?,
+            "--prose-slots" => {
+                prose_slots = Some(v()?.parse().map_err(|e| format!("--prose-slots: {e}"))?)
+            }
+            "--ground-slots" => {
+                ground_slots = Some(v()?.parse().map_err(|e| format!("--ground-slots: {e}"))?)
+            }
+            "--ground-weight" => {
+                ground_weight = Some(v()?.parse().map_err(|e| format!("--ground-weight: {e}"))?)
+            }
             "--steps" => steps = v()?.parse().map_err(|e| format!("--steps: {e}"))?,
             "--batch" => batch = v()?.parse().map_err(|e| format!("--batch: {e}"))?,
             "--seed" => seed = v()?.parse().map_err(|e| format!("--seed: {e}"))?,
             other => return Err(format!("unknown argument {other}")),
         }
         i += 2;
+    }
+    if objective != "window" && objective != "position" {
+        return Err(format!(
+            "--objective must be window or position, got {objective:?}"
+        ));
+    }
+    if curriculum != "delivered" && curriculum != "interleaved" {
+        return Err(format!(
+            "--curriculum must be delivered or interleaved, got {curriculum:?}"
+        ));
     }
     Ok(Args {
         root: root.unwrap_or_else(|| PathBuf::from("")),
@@ -145,6 +192,13 @@ fn parse_args() -> Result<Args, String> {
         replay,
         audit,
         local_channel,
+        condition,
+        artifact,
+        objective,
+        curriculum,
+        prose_slots,
+        ground_slots,
+        ground_weight,
     })
 }
 
@@ -661,6 +715,16 @@ fn run(args: Args) -> Result<ExitCode, String> {
             dev_windows.push(w);
         }
     }
+    let dev_doc_count = dev_windows
+        .iter()
+        .map(|w| w.doc)
+        .max()
+        .map(|m| m + 1)
+        .unwrap_or(0);
+    // The per-position all-`OBSERVE` conditioning of the same development windows: one `Generate`
+    // target per position from `PREFIX` onward, over the identical 5,376 target identities. The
+    // window conditioning in `development.*` is unchanged and remains the served comparison.
+    let position_dev_examples = position_examples(&dev_windows, 0);
     let dev_targets: usize = dev_windows
         .iter()
         .map(|w| w.tokens.len().saturating_sub(PREFIX))
@@ -747,13 +811,43 @@ fn run(args: Args) -> Result<ExitCode, String> {
     log2_p.push(action_prior);
     trainer.set_output_bias(&log2_p, BIAS_SCALE)?;
     let untrained = trainer.model()?;
-    let prose_examples: Vec<TlExample> = fit_windows.iter().map(prose_example).collect();
+    // Declared prose formulation. `window` (default) is the delivered example builder, unchanged;
+    // `position` scores each window position from its whole preceding context under `OBSERVE`.
+    let prose_examples: Vec<TlExample> = match args.objective.as_str() {
+        "position" => position_examples(&fit_windows, 0),
+        _ => fit_windows.iter().map(prose_example).collect(),
+    };
+    // Effective grounded supervision weight. `None` is the declared constant, so the delivered path
+    // is unchanged.
+    let ground_weight = args.ground_weight.unwrap_or(GROUND_WEIGHT);
     // Declared phased curriculum into one served artifact: a prose warm-up, then a rehearsal mix in
     // which grounded supervision is interleaved so neither responsibility is forgotten.
     let phase1 = (args.steps as f64 * 0.45) as u64;
     let phase2_end = (args.steps as f64 * 0.85) as u64;
     let base_lr = trainer.tcfg.lr;
+    // The interleaved curriculum is a different declared schedule on the same examples: the first
+    // 45% of steps is the delivered prose warm-up, every later step draws `prose_slots` prose and
+    // `ground_slots` grounded examples with the learning rate held at `base_lr` (no phase-3 scale).
+    // Declared defaults (`prose_slots = batch`, `ground_slots = 0`) make that schedule pure prose.
+    let interleaved = args.curriculum == "interleaved";
+    let iw_prose_slots = args.prose_slots.unwrap_or(args.batch);
+    let iw_ground_slots = args.ground_slots.unwrap_or(0);
+    let grounded_gradient_weight_share = {
+        let g = iw_ground_slots as f64 * ground_weight as f64;
+        let d = iw_prose_slots as f64 + g;
+        if d == 0.0 {
+            0.0
+        } else {
+            g / d
+        }
+    };
     let probe_windows: Vec<ProseWindow> = dev_windows.iter().take(8).cloned().collect();
+    let probe_docs = probe_windows
+        .iter()
+        .map(|w| w.doc)
+        .max()
+        .map(|m| m + 1)
+        .unwrap_or(0);
     let mut order: Vec<usize> = (0..prose_examples.len()).collect();
     let mut cursor = 0usize;
     let mut schedule_rng = args.seed ^ 0x5DEE_CE66;
@@ -761,7 +855,13 @@ fn run(args: Args) -> Result<ExitCode, String> {
     let mut grounded_rot = 0usize;
     for step in 0..args.steps {
         let mut batch: Vec<TlExample> = Vec::new();
-        let (prose_slots, ground_slots) = if step < phase1 {
+        let (prose_slots, ground_slots) = if interleaved {
+            if step < phase1 {
+                (args.batch, 0)
+            } else {
+                (iw_prose_slots, iw_ground_slots)
+            }
+        } else if step < phase1 {
             (args.batch, 0)
         } else if step < phase2_end {
             (args.batch.saturating_sub(2).max(1), 6)
@@ -782,20 +882,22 @@ fn run(args: Args) -> Result<ExitCode, String> {
         for _ in 0..ground_slots {
             let g = &grounded_train[grounded_rot % grounded_train.len()];
             grounded_rot += 1;
-            batch.push(g.example(GROUND_WEIGHT, 0));
+            batch.push(g.example(ground_weight, 0));
         }
         let _report = trainer.train_batch(&batch);
         if step % 100 == 0 || step + 1 == args.steps {
             if let Ok(m) = trainer.model() {
                 let probe = evaluate_single(&m, &probe_windows);
+                let probe_position =
+                    eval_examples(&m, &position_examples(&probe_windows, 0), probe_docs).micro();
                 let examples: Vec<TlExample> = grounded_train
                     .iter()
-                    .map(|g| g.example(GROUND_WEIGHT, 0))
+                    .map(|g| g.example(ground_weight, 0))
                     .collect();
                 let total: usize = grounded_train.iter().map(|g| g.accepted.len()).sum();
                 let (exact, _) = m.teacher_forced_agreement(&examples);
                 println!(
-                    "step {step:>5} dev-probe bits/target {probe:.4} grounded actions {exact}/{total}"
+                    "step {step:>5} dev-probe bits/target window {probe:.4} position {probe_position:.4} grounded actions {exact}/{total}"
                 );
             }
         }
@@ -908,6 +1010,22 @@ fn run(args: Args) -> Result<ExitCode, String> {
     println!("  gain vs count    (ref - model) {:?}", vs_count);
     println!("  gain vs E        (ref - model) {:?}", vs_e);
 
+    // ---- the other prose conditioning of the same targets ------------------
+    // The token-only references above already share this target population (one Generate target per
+    // dev position), so they are reused rather than refitted.
+    let position_eval = eval_examples(&model, &position_dev_examples, dev_doc_count);
+    let position_bits = position_eval.micro();
+    let position_vs_window = paired_interval(&position_eval, &dev[0], 0x9E3779B9);
+    let untrained_position_bits =
+        eval_examples(&untrained, &position_dev_examples, dev_doc_count).micro();
+    println!(
+        "development bits/target: position conditioning {position_bits:.4} over {} targets | \
+         position minus window {:?} (negative = position lower)",
+        position_eval.total().1,
+        position_vs_window
+    );
+    println!("  untrained position conditioning {untrained_position_bits:.4}");
+
     // ---- loaded generation -------------------------------------------------
     let generation = generate_samples(&model, &tokenizer, &uni, &c1, &c2, lambdas, &dev_windows);
     for g in &generation {
@@ -1015,6 +1133,39 @@ fn run(args: Args) -> Result<ExitCode, String> {
             "gain_vs_E": [vs_e.0, vs_e.1, vs_e.2],
             "per_document_model_bits": dev[0].per_doc.iter().map(|(l, n)| if *n == 0 { f64::NAN } else { l / *n as f64 }).collect::<Vec<f64>>(),
             "documents": dev_names,
+        },
+        "development_position_conditioned": {
+            "model_bits_per_target": position_bits,
+            "targets": position_eval.total().1,
+            "paired_interval_position_minus_window": [position_vs_window.0, position_vs_window.1, position_vs_window.2],
+            "paired_interval_sign": "point = position minus window; negative means the position conditioning scores lower bits",
+            "unigram_bits_per_target": u_bits,
+            "tuned_two_token_count_bits_per_target": c_bits,
+            "donor_E_bits_per_target": e_bits,
+            "per_document_model_bits": position_eval.per_doc.iter().map(|(l, n)| if *n == 0 { f64::NAN } else { l / *n as f64 }).collect::<Vec<f64>>(),
+            "note": "the two conditionings share target identities (the same development targets, one \
+                      Generate target per position from PREFIX onward) but not the conditioning event of \
+                      the preceding context: the position conditioning feeds the whole preceding window \
+                      context with OBSERVE, so this is a different scoring event, not a rescoring of the \
+                      same sequence. The token-only references are shared because their target \
+                      population is identical.",
+        },
+        "untrained_position_bits_per_target": untrained_position_bits,
+        "formulation": {
+            "objective": args.objective.as_str(),
+            "curriculum": args.curriculum.as_str(),
+            "prose_slots": iw_prose_slots,
+            "ground_slots": iw_ground_slots,
+            "ground_weight": ground_weight,
+            "grounded_gradient_weight_share": grounded_gradient_weight_share,
+            "prose_example_count": prose_examples.len(),
+            "declared_note": "the per-position formulation feeds the whole preceding window context with \
+                              the OBSERVE event while the window formulation feeds the frozen prefix with \
+                              OBSERVE and later targets with GENERATE, so the two conditionings are not \
+                              interchangeable and only the window conditioning matches the served \
+                              multi-token recurrence; prose_slots and ground_slots are the effective \
+                              per-step draws of the interleaved schedule (defaults prose_slots = batch, \
+                              ground_slots = 0) and the delivered curriculum keeps its three fixed phases",
         },
         "generation": generation,
         "held_out_composition": panel_held_out,
@@ -2668,6 +2819,270 @@ fn local_channel_mode(args: &Args, root: &std::path::Path) -> Result<ExitCode, S
     Ok(ExitCode::SUCCESS)
 }
 
+// ---------------------------------------------------------------------------
+// Condition mode: score one existing sealed artifact under both prose conditionings
+// ---------------------------------------------------------------------------
+//
+// Two prose conditionings of the *same* development target identities, on an artifact that was
+// trained elsewhere. No training happens here, the source root and the artifact's own directory are
+// never written or re-sealed, and the artifact is read, hashed and scored in place: its identity is
+// recorded in the receipt instead of being copied into the new report root.
+
+fn condition_mode(args: &Args) -> Result<ExitCode, String> {
+    let root = args.condition.clone().unwrap_or_default();
+    if root.as_os_str().is_empty() {
+        return Err("--condition needs a new report root".into());
+    }
+    if args.docs.as_os_str().is_empty() {
+        return Err("--docs is required with --condition".into());
+    }
+    let artifact_path = match args.artifact.clone() {
+        Some(p) if !p.as_os_str().is_empty() => p,
+        _ => return Err("--artifact (path to a .tlx file) is required with --condition".into()),
+    };
+    // Claimed exclusively before any model work: an existing report is never reused or overwritten.
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    println!("=== ordinary-lexical condition: both prose conditionings of one sealed artifact ===");
+
+    // ---- tokenizer identity ------------------------------------------------
+    let tok_bytes = std::fs::read(&args.tokenizer).map_err(|e| format!("tokenizer: {e}"))?;
+    let tok_sha = sha256_hex(&Sha256::digest(&tok_bytes));
+    if tok_sha != EXPECTED_TOKENIZER_SHA256 {
+        return Err(format!(
+            "tokenizer sha256 {tok_sha} != expected {EXPECTED_TOKENIZER_SHA256}"
+        ));
+    }
+    let derived_bytes =
+        uor_r4_core::transformerless::bpe_derive::derive_tokenizer_json(&tok_bytes, VOCAB)
+            .map_err(|e| format!("derive bytes: {e}"))?;
+    let derived_sha = sha256_hex(&Sha256::digest(&derived_bytes));
+    let tokenizer = derive_tokenizer(&tok_bytes, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    write_checked(&root, "tokenizer_source.json", &tok_bytes)?;
+    write_checked(&root, "tokenizer_derived_v4096.json", &derived_bytes)?;
+
+    // ---- the artifact under test: read in place, never copied --------------
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_bytes = std::fs::read(&exe).map_err(|e| format!("read exe: {e}"))?;
+    let exe_sha = sha256_hex(&Sha256::digest(&exe_bytes));
+    let artifact_bytes = std::fs::read(&artifact_path)
+        .map_err(|e| format!("artifact {}: {e}", artifact_path.display()))?;
+    let artifact_sha = sha256_hex(&Sha256::digest(&artifact_bytes));
+    let model = TlModel::from_bytes(&artifact_bytes).map_err(|e| format!("deserialize: {e}"))?;
+
+    // ---- corpus, source-separated (mirrors the training run) ---------------
+    let (uniq, collected, duplicates) = reconstruct_corpus(&args.docs);
+    let mut fit_docs = Vec::new();
+    let mut tune_docs = Vec::new();
+    let mut dev_pool = Vec::new();
+    for (i, d) in uniq.iter().enumerate() {
+        match d.split {
+            Split::Fit => fit_docs.push(i),
+            Split::Tune => tune_docs.push(i),
+            Split::Dev => dev_pool.push(i),
+        }
+    }
+    if fit_docs.is_empty() || dev_pool.is_empty() {
+        return Err("corpus split has an empty fit or development side".into());
+    }
+    let mut fit_windows: Vec<ProseWindow> = Vec::new();
+    for i in &fit_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), *i) {
+            fit_windows.push(w);
+        }
+    }
+    let all_fit_windows = fit_windows.len();
+    if fit_windows.len() > FIT_MAX_WINDOWS {
+        let stride = fit_windows.len() as f64 / FIT_MAX_WINDOWS as f64;
+        fit_windows = (0..FIT_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                fit_windows[idx].clone()
+            })
+            .collect();
+    }
+    // Development: the same length-stratified document draw, in the same document order.
+    let mut with_len: Vec<(usize, usize)> = dev_pool
+        .iter()
+        .map(|i| (*i, tokenizer.encode(&uniq[*i].text).len()))
+        .collect();
+    with_len.sort_by_key(|(_, n)| *n);
+    let take = DEV_MAX_DOCS.min(with_len.len());
+    let mut dev_windows: Vec<ProseWindow> = Vec::new();
+    let mut dev_names: Vec<String> = Vec::new();
+    for k in 0..take {
+        let (doc_idx, _) = with_len[k * with_len.len() / take.max(1)];
+        dev_names.push(uniq[doc_idx].path.clone());
+        for w in prose_windows(&tokenizer.encode(&uniq[doc_idx].text), k)
+            .into_iter()
+            .take(DEV_WINDOWS_PER_DOC)
+        {
+            dev_windows.push(w);
+        }
+    }
+    let mut tune_windows: Vec<Vec<u32>> = Vec::new();
+    for i in &tune_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), 0) {
+            tune_windows.push(w.tokens);
+        }
+    }
+    // Count references fitted on the fit split only, exactly as the training run fits them.
+    let mut uni = Uni {
+        counts: vec![0u64; VOCAB],
+        total: 0,
+    };
+    let mut c1 = Cond::default();
+    let mut c2 = Cond::default();
+    for w in &fit_windows {
+        for k in PREFIX..w.tokens.len() {
+            let prev = if k == 1 {
+                VOCAB
+            } else {
+                (w.tokens[k - 2] as usize).min(VOCAB - 1)
+            };
+            let cur = (w.tokens[k - 1] as usize).min(VOCAB - 1);
+            let next = w.tokens[k];
+            uni.counts[next as usize] += 1;
+            uni.total += 1;
+            c1.observe(cur as u64, next);
+            c2.observe(ctx2(prev, cur), next);
+        }
+    }
+    let (lambdas, tune_bits) = tune_lambdas(&c1, &c2, &uni, &tune_windows);
+    let e_bytes = std::fs::read(E_ARTIFACT).map_err(|e| format!("E artifact: {e}"))?;
+    let e_core = PriorCore::from_bytes(&e_bytes).map_err(|e| format!("E load: {e}"))?;
+    let e_sha = sha256_hex(&Sha256::digest(&e_bytes));
+
+    let docs = dev_windows
+        .iter()
+        .map(|w| w.doc)
+        .max()
+        .map(|m| m + 1)
+        .unwrap_or(0);
+    let dev_targets: usize = dev_windows
+        .iter()
+        .map(|w| w.tokens.len().saturating_sub(PREFIX))
+        .sum();
+    let position_dev_examples = position_examples(&dev_windows, 0);
+
+    // ---- both conditionings over the same development windows --------------
+    let layers = evaluate_layers(&model, &dev_windows, &uni, &c1, &c2, lambdas, &e_core);
+    let window_eval = &layers[0];
+    let position_eval = eval_examples(&model, &position_dev_examples, docs);
+    let (u_bits, c_bits, e_bits) = (layers[1].micro(), layers[2].micro(), layers[3].micro());
+    let window_bits = window_eval.micro();
+    let position_bits = position_eval.micro();
+    let paired = paired_interval(&position_eval, window_eval, 0x9E3779B9);
+    let per_doc = |e: &Eval| -> Vec<f64> {
+        e.per_doc
+            .iter()
+            .map(|(l, n)| if *n == 0 { f64::NAN } else { l / *n as f64 })
+            .collect()
+    };
+    let (window_per_doc, position_per_doc) = (per_doc(window_eval), per_doc(&position_eval));
+
+    println!(
+        "1. artifact {} sha256 {artifact_sha} ({} B); tested executable sha256 {exe_sha}",
+        artifact_path.display(),
+        artifact_bytes.len()
+    );
+    println!(
+        "2. window   conditioning bits/target {window_bits:.4} over {} targets",
+        window_eval.total().1
+    );
+    println!(
+        "3. position conditioning bits/target {position_bits:.4} over {} targets",
+        position_eval.total().1
+    );
+    println!(
+        "4. paired position minus window [point, lo, hi] = [{:.6}, {:.6}, {:.6}] (negative = the position conditioning scores fewer bits)",
+        paired.0, paired.1, paired.2
+    );
+    println!(
+        "5. token-only references unigram {u_bits:.4} tuned-count {c_bits:.4} donor E {e_bits:.4}; \
+         dev docs {docs} over {dev_targets} targets; fit windows {} (of {all_fit_windows})",
+        fit_windows.len()
+    );
+
+    let receipt = serde_json::json!({
+        "schema": "uor-r4.ordinary-lexical-condition/1",
+        "source_rev": args.source_rev.as_str(),
+        "artifact": {
+            "path": artifact_path.display().to_string(),
+            "sha256": artifact_sha,
+            "bytes": artifact_bytes.len(),
+            "copied_into_report_root": false,
+            "note": "the artifact is read, hashed and scored in place; this attempt records its \
+                     identity and neither writes to nor re-seals the artifact's own directory",
+        },
+        "tested_executable_sha256": exe_sha,
+        "tokenizer_source_sha256": tok_sha,
+        "tokenizer_derived_sha256": derived_sha,
+        "corpus": {
+            "collected": collected,
+            "unique": uniq.len(),
+            "exact_duplicates_grouped": duplicates,
+            "fit_docs": fit_docs.len(),
+            "tune_docs": tune_docs.len(),
+            "dev_docs": dev_names.len(),
+            "fit_windows_used": fit_windows.len(),
+            "fit_windows_available": all_fit_windows,
+            "dev_windows": dev_windows.len(),
+            "dev_scored_targets": dev_targets,
+            "document_sha256": uniq.iter().map(|d| serde_json::json!({"path": d.path, "sha256": sha256_hex(&d.sha256)})).collect::<Vec<_>>(),
+        },
+        "dev_documents": dev_names,
+        "window_conditioning": {
+            "definition": "frozen prefix advanced with OBSERVE and later positions supervised as \
+                           GENERATE: the served multi-token recurrence",
+            "model_bits_per_target": window_bits,
+            "targets": window_eval.total().1,
+            "per_document_bits": window_per_doc,
+        },
+        "position_conditioning": {
+            "definition": "one Generate target per position from PREFIX onward with the whole \
+                           preceding window context advanced as OBSERVE",
+            "model_bits_per_target": position_bits,
+            "targets": position_eval.total().1,
+            "per_document_bits": position_per_doc,
+        },
+        "paired_interval_position_minus_window": [paired.0, paired.1, paired.2],
+        "paired_interval_sign": "point = position minus window; negative means the position conditioning scores lower bits",
+        "token_only_references_same_target_population": {
+            "unigram_bits_per_target": u_bits,
+            "tuned_two_token_count_bits_per_target": c_bits,
+            "donor_E_bits_per_target": e_bits,
+        },
+        "conditioning_note": "the two conditionings share target identities (one Generate target per \
+                              development position, the same scored targets) but not the conditioning \
+                              event of the preceding context: the position conditioning advances the \
+                              whole preceding window context with the OBSERVE event, so the two are not \
+                              interchangeable and only the window conditioning matches the served \
+                              multi-token recurrence. The token-only references share the target \
+                              population and are therefore reported once.",
+        "count_reference": {"lambdas": [lambdas.0, lambdas.1], "tune_bits_per_target": tune_bits},
+        "donor_E": {"path": E_ARTIFACT, "bytes": e_bytes.len(), "sha256": e_sha,
+                    "exposure": "trained on the pinned corpus; disclosed, not removed"},
+        "elapsed_seconds": started.elapsed().as_secs_f64(),
+    });
+    write_checked(
+        &root,
+        "receipt.json",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|e| e.to_string())?
+            .as_bytes(),
+    )?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "6. sealed {} with {} unlisted files; total {:.1}s",
+        root.display(),
+        unlisted.len(),
+        started.elapsed().as_secs_f64()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let args = match parse_args() {
         Ok(a) => a,
@@ -2716,6 +3131,15 @@ fn main() -> ExitCode {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("error: local-channel: {e}");
+                ExitCode::from(1)
+            }
+        };
+    }
+    if args.condition.is_some() {
+        return match condition_mode(&args) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("error: condition: {e}");
                 ExitCode::from(1)
             }
         };

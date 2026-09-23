@@ -1,0 +1,48 @@
+{
+  "schema": "uor-r4.local-work-charge/1",
+  "recorded_utc": "2026-09-23T08:07:07Z",
+  "scope": "Complete September 23 lexical training-formulation milestone: runner options and a read-only cross-conditioning mode, five matched model fits, a fresh-process artifact audit, two read-only scoring runs, evidence, result document, claim propagation across public entrypoints and protected delivery. Local only; no paid or external compute.",
+  "cumulative_before_ms": 387915640,
+  "limit_ms": 396700000,
+  "charged_increment_ms": 7300000,
+  "cumulative_after_ms": 395215640,
+  "charge_components": {
+    "authority_recon_and_source_inspection_ms": 900000,
+    "runner_implementation_and_release_build_ms": 900000,
+    "baseline_reproduction_guard_fit_ms": 541000,
+    "prose_only_window_control_fit_ms": 736000,
+    "window_objective_two_grounded_slots_fit_ms": 737000,
+    "per_position_objective_with_grounded_fit_ms": 1340000,
+    "per_position_prose_only_comparator_fit_ms": 1414000,
+    "cross_conditioning_scoring_runs_ms": 64000,
+    "fresh_process_audit_of_milestone_artifact_ms": 86000,
+    "focused_tests_format_and_claim_checks_ms": 240000,
+    "evidence_result_document_and_public_claim_propagation_ms": 900000,
+    "protected_pr_and_handoff_ms": 338000
+  },
+  "measured_machine_time_ms": {
+    "five_fits_plus_scoring_plus_audit": 4776000,
+    "note": "sum of the runners' own fit_seconds and elapsed_seconds as recorded in the sealed receipts"
+  },
+  "timing_precision": "UTC wall-clock of this work session, measured from the recorded projection timestamp to the charge timestamp; the fit and scoring components are the sealed receipts' own measured seconds and the reviewer/browser/authoring remainder is a conservative block.",
+  "extension_recorded_prospectively": {
+    "projection_recorded_utc": "2026-09-23T06:35:44Z",
+    "projection_increment_ms": 6000000,
+    "limit_before_extension_ms": 390700000,
+    "limit_after_extension_ms": 396700000,
+    "actual_increment_ms": 7300000,
+    "note": "the actual work exceeded the projection by 1,300,000 ms because the five-arm schedule (including the per-position prose-only comparator that independently reproduces the retained local-channel arm) was larger than projected; the balance remained positive throughout and no second extension was needed"
+  },
+  "new_paid_compute": false,
+  "physical_free_kib_after": 55628864,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "new_retained_evidence_bytes_estimate": 4194304,
+  "unique_evidence_deleted": false,
+  "preserved_roots_untouched": [
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-channel-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-audit-4",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-audit-5"
+  ]
+}

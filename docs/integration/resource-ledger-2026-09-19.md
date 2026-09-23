@@ -2359,3 +2359,42 @@ conservative block is charged once at 2026-09-23T06:09Z: owner JSON atomically a
 **387,615,640** to **387,915,640 / 390,700,000 ms**, leaving **2,784,360 ms**. It does not
 duplicate PR #1360's principal audit charge. Physical free remains about 29 GiB, above the
 24 GiB working reserve plus 128 MiB stop margin; refresh before the next expensive run.
+
+## Lexical training-formulation milestone projection, 2026-09-23
+
+The recorded next milestone is to test a per-position full-context prose objective **inside the same
+grounded Generate/Copy/Stop learner**, keeping Copy/Stop supervision and validating loaded
+generation, authored/held-out panels and fresh source-separated prose, with the prose-only control
+that separates the objective from the grounded curriculum. Complete projection: **6,000,000 ms**
+(release build/focused tests 600,000; baseline reproduction guard 520,000; prose-only window control
+520,000; window objective with balanced grounded supervision 560,000; per-position full-context with
+grounded supervision 1,400,000; a per-position prose-only comparator 1,300,000 if a decision needs
+it; cross-conditioning scoring of two existing artifacts 180,000; evidence, result documentation,
+protected PR, issue and handoff 900,000). One model process per arm, two CPU threads, peak
+incremental RAM 4 GiB, at most 2 GiB new temporary build growth and 128 MiB new retained sealed
+evidence. Physical free before this work is 59,119,020 KiB, above the 24 GiB working reserve plus the
+128 MiB stop margin. The live balance of 2,784,360 ms cannot cover this block, so the standing owner
+authorization was applied **prospectively** and the owner ledger JSON advanced from
+**390,700,000** to **396,700,000 ms** (cumulative unchanged at **387,915,640 ms**) before execution.
+No paid or external compute follows, and no unique artifact is deleted. Charge actual complete work
+once after delivery; the retained projection is
+`docs/evidence/lexical-formulation-projection-2026-09-23.json`.
+
+**Final charge for the lexical training-formulation milestone, 2026-09-23:** 7,300,000 ms for the
+complete milestone — authority recon and source inspection, runner options plus the read-only
+`--condition` mode, one release build, five matched model fits, two read-only cross-conditioning runs,
+a fresh-process audit of the milestone artifact, focused tests and format/claim checks, the evidence
+and result documents, claim propagation across the public entrypoints, and protected delivery. The five
+fits, the two scoring runs and the audit are **4,776,000 ms of measured machine time**, summed from the
+runners' own sealed `fit_seconds` and `elapsed_seconds`; the remainder is the reviewer, browser and
+authoring block and is a conservative estimate rather than a timer. The owner ledger JSON was advanced
+once at 2026-09-23T08:07Z from **387,915,640** to **395,215,640 / 396,700,000 ms**, leaving
+**1,484,360 ms**. This charge is separate from and does not duplicate the reconciled 3,000,000-ms
+principal audit charge or the 5,500,000-ms DeepSeek charge. The prospective projection (6,000,000 ms,
+recorded before any fit at 2026-09-23T06:35:44Z with the limit extended 390,700,000 → 396,700,000) was
+exceeded by 1,300,000 ms because the five-arm schedule was larger than projected; the balance stayed
+positive and no second extension was required. Physical free after the work is 55,628,864 KiB, above
+the 24 GiB working reserve plus the 128 MiB stop margin. New retained sealed evidence (`olx-form-1..5`,
+`olx-form-4-audit`, `olx-condition-1/2`) is a few megabytes. No paid or external compute, and no unique
+artifact or preserved root was modified; the delivered root `ordinary-lexical-3` is byte-identical to
+the new guard artifact `olx-form-1`.
