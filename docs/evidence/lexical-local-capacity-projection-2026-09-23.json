@@ -1,0 +1,32 @@
+{
+  "schema": "uor-r4.local-work-projection/1",
+  "recorded_utc": "2026-09-23T08:25:00Z",
+  "scope": "Decisive local-capacity diagnostic on the served ordinary-prose path: a float linear probe of the model's own served state against the artifact's own ternary readout and the tuned two-token count reference, on the same development targets, plus a shuffled-target null probe as the instrument control. Local Rust implementation, one release build, diagnostic runs on two sealed artifacts, evidence, documentation and protected delivery. No new model fit unless the diagnosis points at the readout, in which case one bounded matched arm is included below. No paid or external compute.",
+  "authority": "Standing owner authorization 2026-09-06; docs/integration/agent-execution-policy.md; AGENTS.md resources section",
+  "live_ledger_path": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+  "live_cumulative_ms_before": 395215640,
+  "live_limit_ms_before": 396700000,
+  "projected_increment_ms": 4000000,
+  "projected_limit_ms_after": 400700000,
+  "projected_cumulative_ms_after": 399215640,
+  "projection_components_ms": {
+    "authority_recon_and_source_inspection": 400000,
+    "state_probe_mode_implementation_and_release_build": 800000,
+    "probe_runs_on_two_sealed_artifacts_plus_null_and_controls": 400000,
+    "contingent_matched_readout_arm_if_the_diagnosis_points_at_the_output_layer": 1200000,
+    "evidence_result_documentation_and_public_claim_propagation": 800000,
+    "protected_pr_and_handoff": 400000
+  },
+  "cpu_threads": 2,
+  "peak_ram_bytes": 4294967296,
+  "maximum_new_temporary_storage_bytes": 1073741824,
+  "maximum_new_retained_storage_bytes": 67108864,
+  "physical_free_kib_before": 55673328,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "run_scope": "One model process at a time; the probe is a float diagnostic instrument over recorded states and is not a serving or product dependency; at most one bounded arm",
+  "extension_reason": "The live balance of 1,484,360 ms cannot cover the decisive local-capacity diagnostic and its delivery. The increment is prospective, local and required because two very different repaired training regimes both plateau at about 6.69 served bits/target while a tuned two-token count table reaches 5.1217, so the next remedy (architecture versus readout optimization) must be chosen on measurement rather than assumption.",
+  "new_paid_compute": false,
+  "unique_evidence_deleted": false,
+  "stop_condition": "Stop before the cumulative limit or the 24 GiB working reserve plus 128 MiB margin; charge actual complete work once after delivery."
+}

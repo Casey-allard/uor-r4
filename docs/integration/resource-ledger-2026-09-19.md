@@ -2398,3 +2398,57 @@ the 24 GiB working reserve plus the 128 MiB stop margin. New retained sealed evi
 `olx-form-4-audit`, `olx-condition-1/2`) is a few megabytes. No paid or external compute, and no unique
 artifact or preserved root was modified; the delivered root `ordinary-lexical-3` is byte-identical to
 the new guard artifact `olx-form-1`.
+
+## Local-capacity diagnostic milestone projection, 2026-09-23
+
+Two very different repaired training regimes both plateau at about **6.69 served bits/target** on the
+same development targets (a window objective at batch 4, and a per-position objective at batch 224),
+while the fit/tune-separated tuned two-token count reference reaches **5.1217** and the delivered
+curriculum 7.3722. Before choosing between an architecture remedy and a readout/optimization remedy,
+the next milestone measures whether the model's **own served state** supports local prediction, with a
+float linear probe of that state against the artifact's own ternary readout and the count reference on
+the same population, plus a shuffled-target null probe.
+
+Complete projection: **4,000,000 ms** (recon and source inspection 400,000; probe mode and release
+build 800,000; probe runs on two sealed artifacts with null and controls 400,000; one contingent
+bounded matched readout arm 1,200,000; evidence, result documentation and public claim propagation
+800,000; protected PR and handoff 400,000). One model process at a time, two threads, peak incremental
+RAM 4 GiB, at most 1 GiB temporary build growth and 64 MiB new retained sealed evidence. Physical free
+before this work is 55,673,328 KiB, above the 24 GiB working reserve plus the 128 MiB stop margin. The
+live balance of 1,484,360 ms cannot cover this block, so the standing owner authorization was applied
+**prospectively** and the owner ledger JSON advanced from **396,700,000** to **400,700,000 ms**
+(cumulative unchanged at **395,215,640 ms**) before execution. No paid or external compute follows and
+no unique artifact is deleted. The probe is a float diagnostic instrument over recorded states; it is
+not a serving or product dependency. Charge actual complete work once after delivery; the retained
+projection is `docs/evidence/lexical-local-capacity-projection-2026-09-23.json`.
+
+## State-probe diagnostic milestone projection and charge, 2026-09-23
+
+The recorded question was whether the shared model's ~1.5-bit deficit against the tuned two-token count
+reference is a limit of the **served recurrent state** or of its **trained output layer**. Two very
+different repaired training regimes both plateaued at about 6.69 served bits/target, which is one budget
+point, not two independent ceilings, so the next remedy had to be chosen on measurement: a float linear
+readout of the model's **own recorded served state**, with a training-free decode of the local context
+and a null probe as controls.
+
+Complete projection as first recorded: **4,000,000 ms**; a second prospective projection of
+**3,000,000 ms** was recorded at 13:03Z for the artifact-initialised re-run after the first full probe
+turned out to be under-converged. The owner ledger JSON was advanced **390,700,000 → 400,700,000** at
+08:25Z and **400,700,000 → 403,700,000** at 13:03Z, with the cumulative unchanged at 395,215,640 ms,
+before any of that work was used.
+
+**Final charge: 19,500,000 ms** (raw elapsed 19,060,286 ms, charged as a declared block), recorded once after the work completed. The milestone exceeded its two
+projections by 12,000,000 ms because two *measured* instrument defects forced extra rounds — the first
+full probe was under-converged (a least-squares initialisation is a poor starting point at 1,024
+classes), and post-hoc re-pricing of a fitted readout into the servable alphabets turned out to be
+destructive — and because one independent K3 architecture review changed the instrument twice after
+implementation had begun. **Measured machine time was 5,864,000 ms of that**: `olx-probe-2` 1,052 s,
+`olx-probe-3` 1,292 s, `olx-probe-4` 1,160 s, four sealed smokes ≈ 1,120 s, the interrupted
+`olx-probe-1` attempt ≈ 840 s, builds and tests ≈ 400 s. The remainder is agent inference, independent
+review, interpretation and authoring. The owner ledger JSON advanced **403,700,000 → 414,300,000 ms**
+with the cumulative raised to **414,715,640 ms**, then **414,300,000 → 416,000,000 ms** prospectively to
+cover the protected delivery and handoff, leaving 1,284,360 ms. Lesson recorded for the next milestone: sequence the
+independent review before implementation, and design for the instrument's convergence in its first
+version. Physical free after the work is 53,817,400 KiB, far above the 24 GiB working reserve plus the
+128 MiB stop margin. No paid or external compute, and no unique artifact or preserved root was modified;
+the diagnostic is a float instrument over recorded states and is not a serving or product dependency.

@@ -1,0 +1,58 @@
+{
+  "schema": "uor-r4.local-work-charge/1",
+  "recorded_utc": "2026-09-23T13:41:27Z",
+  "scope": "September 23 state-probe diagnostic milestone: a new read-only runner mode that records the exact served state, a converged float linear readout of that state, the state-side decode ladder, the servable-alphabet re-pricing, two independent-review-driven instrument revisions, evidence, result documentation, claim propagation across public entrypoints and protected delivery. Local only; no paid or external compute.",
+  "cumulative_before_ms": 395215640,
+  "limit_ms": 414300000,
+  "charged_increment_ms": 19500000,
+  "cumulative_after_ms": 414715640,
+  "charge_components": {
+    "authority_recon_source_inspection_and_prior_result_recovery_ms": 900000,
+    "state_probe_mode_first_implementation_plus_extension_and_release_builds_ms": 2600000,
+    "three_implementation_rounds_and_unit_tests_ms": 1600000,
+    "independent_k3_architecture_review_of_the_instrument_ms": 1400000,
+    "probe_runs_and_smokes_machine_time_ms": 5900000,
+    "interpretation_including_the_unresolved_initialisation_discrepancy_ms": 1200000,
+    "evidence_result_documentation_and_public_claim_propagation_ms": 2800000,
+    "protected_pr_ledger_and_handoff_ms": 1300000,
+    "planning_waiting_and_retry_overhead_ms": 1700000,
+    "confirmed_delivery_and_handoff_block_ms": 500000
+  },
+  "measured_machine_time_ms": {
+    "olx_probe_2_first_full_instrument_run": 1052000,
+    "olx_probe_3_decision_population_ridge_init": 1292000,
+    "olx_probe_4_decision_population_artifact_init": 1160000,
+    "four_sealed_smoke_runs": 1120000,
+    "interrupted_olx_probe_1_attempt": 840000,
+    "builds_and_tests_estimate": 400000,
+    "subtotal": 5864000,
+    "note": "sum of the runners' own sealed elapsed_seconds plus the interrupted attempt and a build/test estimate"
+  },
+  "timing_precision": "UTC wall-clock of this milestone, measured from the recorded projection timestamp to the charge timestamp (19,060,286 ms raw, charged as the declared 19,500,000-ms block); the machine component is the runners' own measured seconds and the remainder is agent inference, independent review and authoring.",
+  "extension_recorded_prospectively": {
+    "projection_recorded_utc": "2026-09-23T08:25:00Z",
+    "projection_increment_ms": 4000000,
+    "second_projection_utc": "2026-09-23T13:03:42Z",
+    "second_projection_increment_ms": 3000000,
+    "final_revision_utc": "2026-09-23T13:41:27Z",
+    "final_limit_ms": 414300000,
+    "actual_increment_ms": 19000000,
+    "note": "the milestone exceeded its two prospective projections by 12,000,000 ms. Two measured instrument defects forced extra rounds: the first full probe was under-converged (a least-squares initialisation is a poor starting point at 1,024 classes), and post-hoc re-pricing of a fitted readout into the servable alphabets turned out to be destructive. The independent K3 review also changed the instrument twice after implementation had begun. Sequencing that review before implementation, and designing for probe convergence in the first version, would have removed two rounds. Machine time was only 5,864,000 ms of the 19,000,000 ms charged."
+  },
+  "new_paid_compute": false,
+  "physical_free_kib_after": 53817400,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "new_retained_evidence_bytes_estimate": 8388608,
+  "unique_evidence_deleted": false,
+  "preserved_roots_untouched": [
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-channel-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-audit-4",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-5"
+  ]
+}

@@ -18,48 +18,58 @@ Keep six responsibilities separate in every design and claim: (1) exact occurren
 | September 20–22 relational/structural memory | Relative H4/Q8 and role/scope/version mechanisms carry useful distinctions. Signed Q8 retains an answer-relevant order/sign distinction; the competent ordinary finite comparator ties on the authored computation task. Observation and computation were integrated across prior scoped scripts. | A geometric witness or a 38/38 authored lifecycle is not geometric superiority, open-ended reasoning or self-sufficient text understanding. Some earlier narrow-fit failures were supervision coverage, not geometric impossibility. | [Evidence index](EVIDENCE.md), [current-state history](current-state.md), [Hopf and role direction](structural-memory-hopf-direction-2026-09-20.md) |
 | September 22–23 shared lexical line | A single native Generate/Copy/Stop artifact was fitted on source-separated prose and authored grounded cases. The later independent audit verified all reported panels after fresh-process reload. | Exact loaded parity does not make its language useful: greedy continuations collapse, and learned post-copy feedback dependence remains unverified beyond the tested crossed pair. | [Principal review](ordinary-lexical-principal-review-2026-09-23.md), [audit/correction](ordinary-lexical-audit-2026-09-23.md), [current state](current-state.md) |
 | September 23 formulation milestone | Five matched arms re-tested the recorded per-position question inside the same grounded learner through one unchanged model source; the default path reproduces the delivered artifact bit for bit; on the served conditioning the prose-only window objective reaches 6.6841 and the per-position arm reaches 7.0327 with full grounded-panel retention. | The per-position objective is not the cause of the recovery (per-position minus window **+0.0641 [−0.0142, +0.1490]**), no arm beats the tuned two-token count reference (5.1217), and greedy generation still collapses. A repaired window objective that fully retains the grounded panels is untested. | [Result](ordinary-lexical-formulation-result-2026-09-23.md), [evidence](../evidence/ordinary-lexical-formulation-2026-09-23.json), [current state](current-state.md) |
+| September 23 state-probe diagnostic | A new runner-only diagnostic recorded the exact served state at every scored prose position and decomposed the local deficit: the artifact's served readout 6.055956 versus a converged float linear readout of its own input at 5.5136 on the same 4,954 development targets; the state carries the immediately preceding token at 96.7% and the one before it at 2.1%. | About 0.54 bits of the gap is output-side and about 0.73 bits is second-order structure the state does not supply; post-hoc re-pricing into the servable alphabets is destructive and one initialisation discrepancy is unresolved; no in-class readout refit or second-order access has been run. | [Result](ordinary-lexical-state-probe-result-2026-09-23.md), [evidence](../evidence/ordinary-lexical-state-probe-2026-09-23.json), [current state](current-state.md) |
 
 Do not fuse these artifact families into one claimed result. Historical branches, negative candidates and sealed roots are retained so a later model can inspect them. The [research ledger](../RESEARCH.md) and named experiment records own exact artifact, population and control scope.
 
-## Latest measured seam (September 23 formulation milestone; refresh before a run)
+## Latest measured seam (September 23 state-probe diagnostic; refresh before a run)
 
-The recorded per-position question was executed inside the one shared grounded Generate/Copy/Stop
-learner, on protected main `79b5d50c`, through one **unchanged** model source
-(`learner/transferable_lexical.rs` sha256 `03f83eb8…b250`); only the runner gained `--objective`,
-`--curriculum`, `--prose-slots`, `--ground-slots`, `--ground-weight` and a read-only
-`--condition`/`--artifact` scoring mode. The default path reproduces the delivered artifact **bit for
-bit** (`olx-form-1`, sha256 `fe3e8a638cd50a19741065cb00ac787b63bb59f8ad5776fd8bfcb162c37a912a`,
-development `7.372198274238398`), so every arm is matched to the delivered baseline through one path.
+The local deficit against the tuned count reference was **decomposed** rather than assumed, with a new
+runner-only mode `--state-probe` that records the exact state vector `h` the served readout receives at
+every scored prose position (walks mirroring `score_example`), fits a float linear readout of it, decodes
+`cur`/`prev` from it and re-prices the fitted readout into the servable alphabets. Model source unchanged
+(`learner/transferable_lexical.rs` sha256 `03f83eb8…b250`); sealed roots `olx-probe-3` and `olx-probe-4`.
+An independent K3 architecture review corrected the instrument twice, and both corrections are
+load-bearing: a linear readout cannot in general reach a full count table (its score matrix has rank
+≤ `h_dim = 64`), so the decision rule is **`P` versus `A`** rather than "does `P` approach the count
+reference"; and the probe's class-restricted softmax needs the same normalisation as `A`.
 
-On the **served** window conditioning — the recurrence the served multi-token path actually executes —
-and the same 5,376 development targets with paired document-cluster intervals: the per-position
-objective with grounded supervision scores **7.0327** against the delivered 7.3722
-(**−0.3395 [−0.4388, −0.2447]**) and **fully retains the grounded panels** (32/32 preflight A, 3/3
-held-out, 2/2 preflight B, 36/36 training, 4/4 class, `REPLAY_OK 36 cases`); a **prose-only window
-objective** reaches **6.6841** (−0.6881 [−0.7686, −0.6091]), crossing donor E (6.8701) for the first
-time; a window objective with two grounded draws per step reaches **6.9686** (−0.4036
-[−0.4668, −0.3412]) with 31/32, 1/3, 2/2. Per-position minus window at the same schedule is only
-**+0.0641 [−0.0142, +0.1490]**, so **the per-position objective is retired as a necessary training
-change** and retained as a diagnostic conditioning: the deficit was the grounded rehearsal mix and the
-grounded-only final phase. The guard run's step probe shows the delivered schedule reaching its best
-prose probe during the warm-up (7.1080 at step 800) and never better after grounded supervision
-saturates.
+**Decision population**: K=1024, 4,954 of 5,376 development targets (92.15% coverage), bits/target,
+`A`/`E1`/`C`/`U` on the full-set normalisation and directly comparable — `A` the artifact's served
+readout **6.055956**, `E1` tuned unigram+bigram(`cur`) **5.565123**, `C` tuned `(prev, cur)` **4.784593**,
+`U` **8.669572**. `P_softmax`, a converged float linear readout of the artifact's **own input**, reaches
+**5.5136** (top-1 0.2618; last-epoch fit delta 0.0119 bits). So **`P − A = −0.5423`** and
+**`P − E1 = −0.0515`**; the probe's normalisation can account for at most ~0.14 bits, leaving **≥0.40
+bits of genuine output-side headroom on the same state**.
 
-**Erratum carried forward.** The retained audit's “about 1.17 bits” compared each artifact under its
-own conditioning. Under the served conditioning the per-position prose-only artifact (`olx-channel-1`)
-recovers **0.682 [0.581, 0.790]**, not 1.17; roughly 0.49 bits was the conditioning change, available to
-serving only for the first generated token. The audit's data set, artifact and sealed numbers are
-unchanged.
+**State content**, by a *training-free* nearest-embedding rule over the artifact's own rows: `cur =
+x_(t-1)` **0.9674** top-1 (majority 0.0381, chance 0.0087), `prev = x_(t-2)` **0.0206**, the generated
+target 0.0201; a ridge decode agrees on the ordering (4.0495 versus 6.4473 bits). **The state carries
+first-order local context and does not carry second-order context.**
 
-**What still fails.** The fit/tune-separated tuned two-token count reference at **5.1217** still beats
-the best arm (6.6841) by **1.56 bits/target**, so the 64-coordinate ternary state under-uses the two
-tokens available at the decision point — a local-recency/optimization fact, not a long-range transport
-one. Greedy generation collapses on every arm; sampling NOT_RUN; energy UNAVAILABLE. The next bounded
-milestone is to keep the served window conditioning, raise the grounded presence until the authored
-panels are fully retained (the configuration `olx-form-3` was one case short of), pre-declaring 32/32
-preflight A, 3/3 held-out and 4/4 class as acceptance, and then attack the local deficit. The
-[result](ordinary-lexical-formulation-result-2026-09-23.md) and [evidence](../evidence/ordinary-lexical-formulation-2026-09-23.json)
-own the numbers; the [plan](project-track.md) and [state](current-state.md) own sequencing.
+**Decomposition of the restricted gap to `C`:** about **0.54 bits (≥0.40 after the allowance) is
+output-side and recoverable on the same state**, and about **0.73 bits is second-order structure the
+state does not supply** to a linear readout. The earlier two-regime plateau at ≈6.69 (`olx-form-2`
+6.6841, `olx-form-5` 6.6903) is therefore a shared **output-layer** ceiling, not a recurrence limit —
+do not cite it as two independent confirmations of a representation ceiling.
+
+**Recorded negatives.** Post-hoc re-pricing of the fitted readout into the servable alphabets is
+destructive (**8.6058** ternary, **7.6181** ternary+offsets, **8.9683** 4-bit against the
+in-class-trained 6.055956), so only in-class training can judge the served class. The
+artifact-initialised probe's epoch-0 dev loss (**6.5954**) exceeds `A`, which the renormalisation
+identity forbids; that discrepancy is **unresolved and nothing is built on it** — reconciling the
+mapping is an obligation for the next probe run. Instrument controls passed: recorded per-position bits
+equal `score_example`'s own bits over 334,796 fit and 5,376 dev states; every state carries its window's
+`(cur, prev)`; the permuted-label null probe sits at the restricted unigram (8.5662 versus 8.5264,
+`leaking: false`).
+
+**Next.** Freeze the recurrence and embedding table and train the served readout **in class** on the
+frozen-state data, pre-declaring served loss below `olx-form-2`'s 6.6841 by ≥0.30 bits with preflight A
+32/32, held-out 3/3 and class 4/4 retained and the epoch-0 mapping reconciled. If in-class training
+cannot recover the headroom, the next branch is explicit second-order local access, since the state does
+not retain `prev`. Greedy generation still collapses, sampling is NOT_RUN and energy is UNAVAILABLE. The
+[result](ordinary-lexical-state-probe-result-2026-09-23.md) · [evidence](../evidence/ordinary-lexical-state-probe-2026-09-23.json) ·
+[plan](project-track.md) · [state](current-state.md) own the numbers and sequencing.
 
 ## Geometric mechanism decision tree
 
