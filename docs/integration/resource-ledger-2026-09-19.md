@@ -2281,3 +2281,57 @@ The principal review began with **25,114,939,392 bytes** physically free, below 
 The focused principal build consumed more temporary disk than the projected 1 GiB cache increment, reaching 6,102,492 KiB in the shared root `target/debug`. The tests finished while free space remained above the 24 GiB reserve plus 128 MiB stop margin; no further build was started. With no Cargo/Rust compiler process active, that reproducible debug cache was removed, reclaiming **6,123,388,928 physical bytes** (free space 27,138,420,736 → 33,261,809,664 bytes). This projection miss is disclosed, not hidden; the tests' executed result and all unique data remain preserved.
 
 Principal review charged **3,000,000 ms** once at 2026-09-23T04:23:17Z, taking the live cumulative from **377,915,640** to **380,915,640 / 390,700,000 ms**. The [charge receipt](../evidence/ordinary-lexical-principal-charge-2026-09-23.json) distinguishes 1,800,000 ms estimated pre-projection recovery/audit, 617,000 ms measured after projection and a 583,000-ms protected-delivery/issue/knowledge allowance. This is conservative reporting, not a model-fit timer. No time limit extension or paid compute was used.
+
+## Ordinary-lexical decisive audit — prospective projection and charge, 2026-09-23
+
+Before any build or run, live cumulative model time is **380,915,640 / 390,700,000 ms**, remaining
+**9,784,360 ms** (163.07 min). This focused audit projects **6,000,000 ms** for source investigation,
+a one-worker release build with the shared warm target, three cheap saved-artifact replays, one
+full-budget matched local-channel fit campaign, documentation, evidence and protected delivery. No
+allowance extension is required. The projection is neither a spending requirement nor a cutoff; charge
+actual work once, extending prospectively if needed under the standing owner authorization. CPU/build
+workers 1; audit replay single process at a time; peak incremental RAM about 2 GiB; temporary build
+growth bounded by reuse of the shared release target; new retained output is the sealed report roots
+only. Physical free before execution is **26,930,388 KiB** (about 25.68 GiB), above the adopted 24 GiB
+working reserve plus the 128 MiB stop margin but below the older 30 GiB target. No unique artifact,
+source, sealed report, worktree or Downloads deletion is authorized by this projection.
+
+**Charge at 2026-09-23T02:20:00Z: 5,500,000 ms**, comprising **3,120,000 ms** of measured
+build/replay/fit wall time (four audit replays 3.7 min, two probe runs 6.5 min, and the full-budget
+matched comparator 42.2 min, bound by the `olx-channel-1` manifest and receipt) plus **2,380,000 ms**
+of source investigation, authoring, evidence and protected delivery. New cumulative
+**386,415,640 / 390,700,000 ms**, remaining **4,284,360 ms**. New retained sealed roots
+`olx-audit-1..4`, `olx-channel-probe-1/2` and `olx-channel-1` total **13,644 KiB**; the produced model
+source `learner/transferable_lexical.rs` is unchanged (`sha256 03f83eb8…`), the artifact
+`fe3e8a63…` and roots `ordinary-lexical-1/2/3` are preserved, and the shared release target grew only
+with reproducible compiler output. No paid or external compute was used and no unique material was
+deleted.
+
+## Principal delivery correction and prospective denominator replay, 2026-09-23
+
+The preceding 5,500,000-ms charge was written to this ledger but **not** the owner checkout's
+authoritative `.uor-models/native-joint-learning-2026-09-04/model-time.json`. Before any further
+model execution, the owner JSON still read 380,915,640 / 390,700,000 ms. Under its lock, the
+principal reconciled that already-recorded charge **once** to 386,415,640 / 390,700,000 ms and
+read the value back. This is a bookkeeping repair, not an additional 5,500,000-ms charge.
+
+Source review also found that `bits_generate` scores Generate targets over legal Generate **and
+Stop** rows. Its equality with full-action NLL on a panel containing only Generate targets is an
+identity, not an independent conditional-denominator control. The local-channel receipt also
+misnames the sign of the paired difference: its saved negative value is recurrence-only minus
+two-token, while the key says two-token minus recurrence-only. Preserve the sealed receipts and
+correct the interpretation in a new audit root. Prospective complete replay/delivery projection:
+**600,000 ms** (source correction/build up to 240,000; loaded audit and checks up to 180,000;
+evidence/docs/PR/issue delivery up to 180,000), one compiler worker and one audit process, peak
+incremental RAM 2 GiB, at most 256 MiB temporary build growth and 16 MiB new retained sealed
+evidence. Physical free before this work is about 28 GiB, above the 24 GiB working reserve plus
+128 MiB stop margin. Current remaining model allowance is 4,284,360 ms; no time/storage
+extension or paid compute is required. Charge actual complete work once after the replay.
+
+At 2026-09-23T06:00Z, before the 600,000-ms projected block elapsed, principal review found
+that protected PR delivery and the public issue-body reconciliation would require more time than
+the original 180,000-ms delivery component. The complete projection is revised to **1,200,000 ms**
+(up to 300,000 build/replay; up to 300,000 evidence/source audit; up to 600,000 PR, queue,
+issue-body and handoff verification). The additional projection remains within the existing
+4,284,360-ms balance; there is no allowance extension or external spend. Keep the 16 MiB retained
+evidence and 256 MiB temporary build projections, 2 GiB incremental RAM and one worker/process.

@@ -34,7 +34,8 @@ use uor_r4_core::native_geometric::learner::realtext_support::{
 };
 use uor_r4_core::native_geometric::learner::state_lexical::SlFacts;
 use uor_r4_core::native_geometric::learner::transferable_lexical::{
-    TlAction, TlConfig, TlExample, TlModel, TlTrainConfig, TlTrainer,
+    state_digest, TlAction, TlConfig, TlExample, TlModel, TlTrainConfig, TlTrainer, TL_EVENTS,
+    TL_EV_COPY, TL_EV_GENERATE, TL_EV_OBSERVE, TL_F_DIM,
 };
 use uor_r4_core::report_output::{claim, seal, verify};
 use uor_r4_core::transformerless::bpe_derive::derive_tokenizer;
@@ -87,6 +88,8 @@ struct Args {
     seed: u64,
     probe_words: bool,
     replay: Option<PathBuf>,
+    audit: Option<PathBuf>,
+    local_channel: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -99,6 +102,8 @@ fn parse_args() -> Result<Args, String> {
     let mut seed = 13u64;
     let mut probe_words = false;
     let mut replay = None;
+    let mut audit = None;
+    let mut local_channel = None;
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
     while i < argv.len() {
@@ -116,6 +121,8 @@ fn parse_args() -> Result<Args, String> {
         match k {
             "--root" => root = Some(PathBuf::from(v()?)),
             "--replay" => replay = Some(PathBuf::from(v()?)),
+            "--audit" => audit = Some(PathBuf::from(v()?)),
+            "--local-channel" => local_channel = Some(PathBuf::from(v()?)),
             "--docs" => docs = Some(PathBuf::from(v()?)),
             "--tokenizer" => tokenizer = PathBuf::from(v()?),
             "--source-rev" => source_rev = v()?,
@@ -136,6 +143,8 @@ fn parse_args() -> Result<Args, String> {
         seed,
         probe_words,
         replay,
+        audit,
+        local_channel,
     })
 }
 
@@ -1464,6 +1473,1201 @@ fn replay_mode(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Audit mode: fresh process, deserialized artifact
+// ---------------------------------------------------------------------------
+//
+// One decision is `a_t = readout(h_t, m, f, event)` restricted to the legal rows, and the only way
+// the token an action **actually emitted** can influence the next decision is through
+// `h_(t+1) = transition(h_t, event, token, m, f)`, where `token` enters solely as the embedding row
+// `e[row(token)]`. This mode therefore isolates the two channels that the delivered preflight changed
+// together: the selected-source fingerprint `m` and the emitted-token feedback.
+
+fn prob_of(logits: &[i32], rows: &[usize], target: usize, score_shift: u32) -> f64 {
+    let scale = (-(score_shift as f64)).exp2();
+    let max = rows
+        .iter()
+        .map(|r| logits[*r])
+        .fold(i32::MIN, |a, b| a.max(b));
+    let mut z = 0f64;
+    for r in rows {
+        z += ((logits[*r] - max) as f64 * scale).exp2();
+    }
+    if z <= 0.0 {
+        return 0.0;
+    }
+    ((logits[target] - max) as f64 * scale).exp2() / z
+}
+
+fn count_clamp(v: &[i32], bound: i32) -> (usize, usize) {
+    let mut entries = 0usize;
+    let mut at = 0usize;
+    for x in v {
+        entries += 1;
+        if x.unsigned_abs() as i32 == bound {
+            at += 1;
+        }
+    }
+    (entries, at)
+}
+
+/// One walk of a supervised example that additionally reports the Stop mass and hidden clamp
+/// saturation at each decision.
+#[derive(Default)]
+struct WalkStats {
+    stop_mass: f64,
+    generate_conditional_bits: f64,
+    generate_targets: usize,
+    decisions: usize,
+    stop_chosen: usize,
+    h_entries: usize,
+    h_clamped: usize,
+    m_entries: usize,
+    m_clamped: usize,
+}
+
+fn walk_stats(model: &TlModel, ex: &TlExample) -> WalkStats {
+    let owned: &[u32] = if ex.grounded { &ex.sel } else { &[] };
+    let m = if ex.grounded {
+        model.content_feature(&ex.sel, &ex.res)
+    } else {
+        vec![0i32; model.h_dim]
+    };
+    let f = model.typed_block(&ex.sel, &ex.res, ex.facts);
+    let (me, mc) = count_clamp(&m, model.m_clamp);
+    let mut st = WalkStats {
+        m_entries: me,
+        m_clamped: mc,
+        ..WalkStats::default()
+    };
+    let mut h = model.init_state(&m, &f);
+    let (he, hc) = count_clamp(&h, model.h_clamp);
+    st.h_entries += he;
+    st.h_clamped += hc;
+    for t in &ex.observed {
+        h = model.transition(&h, TL_EV_OBSERVE, Some(*t), &m, &f);
+        let (he, hc) = count_clamp(&h, model.h_clamp);
+        st.h_entries += he;
+        st.h_clamped += hc;
+    }
+    for i in 0..ex.actions.len() {
+        let copy_legal = ex.copy_legal(i, owned);
+        let event = ex.prior_event(i);
+        let logits = model.readout(&h, &m, &f, event);
+        let rows = model.legal_rows(copy_legal);
+        let p_stop = prob_of(&logits, &rows, model.stop_row(), model.score_shift);
+        st.stop_mass += p_stop;
+        if let TlAction::Generate(token) = ex.actions[i] {
+            let p_action = prob_of(&logits, &rows, model.token_row(token), model.score_shift);
+            st.generate_conditional_bits -=
+                (p_action / (1.0 - p_stop).max(1e-300)).max(1e-300).log2();
+            st.generate_targets += 1;
+        }
+        st.decisions += 1;
+        if matches!(model.decide(&h, &m, &f, event, copy_legal), TlAction::Stop) {
+            st.stop_chosen += 1;
+        }
+        let emitted = if ex.grounded {
+            ex.emitted(i, owned)
+        } else {
+            match ex.actions[i] {
+                TlAction::Generate(v) => Some(v),
+                TlAction::Copy => ex.emitted(i, owned),
+                TlAction::Stop => None,
+            }
+        };
+        h = model.transition(&h, ex.actions[i].event(), emitted, &m, &f);
+        let (he, hc) = count_clamp(&h, model.h_clamp);
+        st.h_entries += he;
+        st.h_clamped += hc;
+    }
+    st
+}
+
+/// Build a state by observing `ctx` as source tokens and read the next-token decision. Used for the
+/// local-identity probes; the event is `OBSERVE`, exactly as the first prose decision uses.
+fn next_top1(model: &TlModel, ctx: &[u32]) -> (u32, u64) {
+    let m = vec![0i32; model.h_dim];
+    let f = model.typed_block(&[], &[], SlFacts::default());
+    let mut h = model.init_state(&m, &f);
+    for t in ctx {
+        h = model.transition(&h, TL_EV_OBSERVE, Some(*t), &m, &f);
+    }
+    let logits = model.readout(&h, &m, &f, TL_EV_OBSERVE);
+    let mut best = 0usize;
+    let mut bs = i32::MIN;
+    for r in 0..model.vocab {
+        if logits[r] > bs {
+            bs = logits[r];
+            best = r;
+        }
+    }
+    (best as u32, state_digest(&h))
+}
+
+fn cmp_panel(fresh: &[serde_json::Value], stored: &[serde_json::Value]) -> (usize, Vec<String>) {
+    let mut matched = 0usize;
+    let mut mismatches = Vec::new();
+    if fresh.len() != stored.len() {
+        mismatches.push(format!(
+            "panel length {} != stored {}",
+            fresh.len(),
+            stored.len()
+        ));
+    }
+    for i in 0..fresh.len().min(stored.len()) {
+        let a = &fresh[i];
+        let b = &stored[i];
+        if a["served_actions"] == b["served_actions"]
+            && a["served_tokens"] == b["served_tokens"]
+            && a["state_digest"] == b["state_digest"]
+        {
+            matched += 1;
+        } else {
+            mismatches.push(format!(
+                "{}: fresh actions={} tokens={} digest={} | stored actions={} tokens={} digest={}",
+                a["name"],
+                a["served_actions"],
+                a["served_tokens"],
+                a["state_digest"],
+                b["served_actions"],
+                b["served_tokens"],
+                b["state_digest"]
+            ));
+        }
+    }
+    (matched, mismatches)
+}
+
+/// The single-variable copied-token feedback intervention.
+///
+/// All four arms share the same typed facts, the same forced `Copy` action, the same learned
+/// initialization maps and the same readout. The only quantities that move are the evidence
+/// fingerprint `m` and the token supplied to `transition` (the emitted-token feedback).
+fn crossed_feedback(model: &TlModel, words: &Words) -> serde_json::Value {
+    let facts = SlFacts {
+        history: 2,
+        ..SlFacts::default()
+    };
+    let tok_a = words.values[0];
+    let tok_b = words.values[2];
+    let sel_a = vec![tok_a];
+    let sel_b = vec![tok_b];
+    let m_a = model.content_feature(&sel_a, &[]);
+    let m_b = model.content_feature(&sel_b, &[]);
+    let f_a = model.typed_block(&sel_a, &[], facts);
+    let f_b = model.typed_block(&sel_b, &[], facts);
+    let f_is_fixed = f_a == f_b;
+    let m_is_fixed = m_a == m_b;
+
+    // The post-copy decision: force the Copy action's transition with an explicit feedback token,
+    // then read the next vocabulary distribution. Copy is illegal after a length-1 owned span.
+    let post = |h0: &[i32], m: &[i32], f: &[i32], event: usize, feed: Option<u32>| {
+        let h1 = model.transition(h0, event, feed, m, f);
+        let logits = model.readout(&h1, m, f, event);
+        let action = model.decide(&h1, m, f, event, false);
+        (action, logits, h1)
+    };
+    let h0_a = model.init_state(&m_a, &f_a);
+    let h0_b = model.init_state(&m_b, &f_b);
+
+    let (act_a_own, _, _) = post(&h0_a, &m_a, &f_a, TL_EV_COPY, Some(tok_a));
+    let (act_b_own, _, _) = post(&h0_b, &m_b, &f_b, TL_EV_COPY, Some(tok_b));
+    // Arm FB: fingerprint fixed at A, only the feedback token changes A -> B.
+    let (act_a_xfb, _, _) = post(&h0_a, &m_a, &f_a, TL_EV_COPY, Some(tok_b));
+    // Arm M: feedback fixed at A, only the fingerprint changes A -> B.
+    let (act_b_xm, _, _) = post(&h0_b, &m_b, &f_b, TL_EV_COPY, Some(tok_a));
+    // No-copy control: identical feedback token, but the preceding action is Generate, not Copy.
+    let (act_nocopy, _, _) = post(&h0_a, &m_a, &f_a, TL_EV_GENERATE, Some(tok_a));
+    // Identity-erased control: fingerprint blinded and feedback removed (reserved row), for both cases.
+    let m_blind_a = model.content_feature_blind(&sel_a, &[]);
+    let m_blind_b = model.content_feature_blind(&sel_b, &[]);
+    let (act_blind_a, _, _) = post(
+        &model.init_state(&m_blind_a, &f_a),
+        &m_blind_a,
+        &f_a,
+        TL_EV_COPY,
+        None,
+    );
+    let (act_blind_b, _, _) = post(
+        &model.init_state(&m_blind_b, &f_b),
+        &m_blind_b,
+        &f_b,
+        TL_EV_COPY,
+        None,
+    );
+
+    // The decision tracks the fingerprint iff swapping only the fingerprint moves it away from the
+    // fingerprint-matching baseline; it tracks the feedback iff swapping only the feedback does.
+    let decision_tracks_fingerprint = act_b_xm != act_a_own;
+    let decision_tracks_feedback = act_a_xfb != act_a_own;
+    // Whether each single-variable arm reproduces the decision of the case it now matches.
+    let feedback_arm_follows_b = act_a_xfb == act_b_own;
+    let fingerprint_arm_follows_b = act_b_xm == act_b_own;
+    serde_json::json!({
+        "tok_a": tok_a,
+        "tok_b": tok_b,
+        "typed_facts_fixed_across_cases": f_is_fixed,
+        "fingerprint_identical_across_cases": m_is_fixed,
+        "forced_action": "Copy",
+        "arm_actual_a": action_name(&act_a_own),
+        "arm_actual_b": action_name(&act_b_own),
+        "arm_swapped_feedback_only": action_name(&act_a_xfb),
+        "arm_swapped_fingerprint_only": action_name(&act_b_xm),
+        "arm_no_copy_event": action_name(&act_nocopy),
+        "arm_identity_erased_a": action_name(&act_blind_a),
+        "arm_identity_erased_b": action_name(&act_blind_b),
+        "classification": {
+            "decision_tracks_fingerprint": decision_tracks_fingerprint,
+            "decision_tracks_feedback": decision_tracks_feedback,
+            "feedback_arm_follows_b": feedback_arm_follows_b,
+            "fingerprint_arm_follows_b": fingerprint_arm_follows_b,
+            "no_copy_event_matches_actual": act_nocopy == act_a_own,
+            "identity_erased_alias": act_blind_a == act_blind_b,
+        },
+        "interpretation": "single-variable: the feedback-only arm holds the evidence fingerprint, typed \
+                           facts, prefix and the chosen Copy action fixed and changes only the token \
+                           handed to transition; the fingerprint-only arm holds the feedback token fixed \
+                           and changes only the evidence fingerprint m",
+        "declared": "the post-copy words remain declared class labels, not semantic claims",
+    })
+}
+
+fn dev_denominators(
+    model: &TlModel,
+    dev: &[ProseWindow],
+    uni: &Uni,
+    c1: &Cond,
+    c2: &Cond,
+    lambdas: (f64, f64),
+    e_core: &PriorCore,
+) -> serde_json::Value {
+    let mut gen = (0f64, 0usize);
+    let mut all = (0f64, 0usize);
+    let mut stop_targets = 0usize;
+    let mut correct_stops = 0usize;
+    let mut correct = 0usize;
+    let mut stop_mass = 0f64;
+    let mut generate_conditional_bits = 0f64;
+    let mut generate_conditional_targets = 0usize;
+    let mut decisions = 0usize;
+    let mut stop_chosen = 0usize;
+    let mut h_entries = 0usize;
+    let mut h_clamped = 0usize;
+    let mut m_entries = 0usize;
+    let mut m_clamped = 0usize;
+    for w in dev {
+        let ex = prose_example(w);
+        let s = model.score_example(&ex);
+        gen.0 += s.bits_generate;
+        gen.1 += s.generate_targets;
+        all.0 += s.bits_all;
+        all.1 += s.scored;
+        stop_targets += s.stop_targets;
+        correct_stops += s.correct_stops;
+        correct += s.correct;
+        let ws = walk_stats(model, &ex);
+        stop_mass += ws.stop_mass;
+        generate_conditional_bits += ws.generate_conditional_bits;
+        generate_conditional_targets += ws.generate_targets;
+        decisions += ws.decisions;
+        stop_chosen += ws.stop_chosen;
+        h_entries += ws.h_entries;
+        h_clamped += ws.h_clamped;
+        m_entries += ws.m_entries;
+        m_clamped += ws.m_clamped;
+    }
+    // The token-only references share the Generate denominator only; report them on that boundary.
+    let refs = evaluate_layers(model, dev, uni, c1, c2, lambdas, e_core);
+    serde_json::json!({
+        "full_action_bits_per_target": if all.1 == 0 { f64::NAN } else { all.0 / all.1 as f64 },
+        "full_action_scored": all.1,
+        "generate_action_bits_per_target": if gen.1 == 0 { f64::NAN } else { gen.0 / gen.1 as f64 },
+        "generate_action_targets": gen.1,
+        "generate_conditional_bits_per_target": if generate_conditional_targets == 0 { f64::NAN } else { generate_conditional_bits / generate_conditional_targets as f64 },
+        "generate_conditional_targets": generate_conditional_targets,
+        "generated_actions": gen.1,
+        "action_accuracy": if all.1 == 0 { f64::NAN } else { correct as f64 / all.1 as f64 },
+        "stop_targets": stop_targets,
+        "correct_stops": correct_stops,
+        "mean_stop_probability": if decisions == 0 { f64::NAN } else { stop_mass / decisions as f64 },
+        "stop_chosen_fraction": if decisions == 0 { f64::NAN } else { stop_chosen as f64 / decisions as f64 },
+        "hidden_clamp_saturation": if h_entries == 0 { f64::NAN } else { h_clamped as f64 / h_entries as f64 },
+        "fingerprint_clamp_saturation": if m_entries == 0 { f64::NAN } else { m_clamped as f64 / m_entries as f64 },
+        "token_only_references_same_target_population": {
+            "unigram_bits_per_target": refs[1].micro(),
+            "tuned_two_token_count_bits_per_target": refs[2].micro(),
+            "donor_E_bits_per_target": refs[3].micro(),
+        },
+        "denominator_note": "full-action NLL scores every supervised action over legal rows; \
+                              generate-action NLL selects Generate targets but still normalizes over \
+                              Generate and Stop rows; generate-conditional NLL renormalizes over \
+                              Generate rows. Count and donor references are token-only on the same \
+                              target population as generate-conditional NLL.",
+    })
+}
+
+/// Token-conditional loss stratified by position within the window and by the fit-split frequency of
+/// the exact `(previous, current)` context. A deficit concentrated at low-frequency contexts is
+/// evidence for a local-identity/order problem; a deficit spread across frequent contexts is not.
+fn dev_stratified(model: &TlModel, dev: &[ProseWindow], c2: &Cond) -> serde_json::Value {
+    let mut by_pos: Vec<(f64, usize)> = vec![(0.0, 0usize); 8];
+    let mut by_freq: Vec<(f64, usize)> = vec![(0.0, 0usize); 4];
+    for w in dev {
+        let ex = prose_example(w);
+        let m = vec![0i32; model.h_dim];
+        let f = model.typed_block(&ex.sel, &ex.res, ex.facts);
+        let mut h = model.init_state(&m, &f);
+        for t in &ex.observed {
+            h = model.transition(&h, TL_EV_OBSERVE, Some(*t), &m, &f);
+        }
+        for i in 0..ex.actions.len() {
+            let copy_legal = ex.copy_legal(i, &[]);
+            let event = ex.prior_event(i);
+            let logits = model.readout(&h, &m, &f, event);
+            let rows = model.legal_rows(copy_legal);
+            let target = model.action_row(ex.actions[i]);
+            if let TlAction::Generate(_) = ex.actions[i] {
+                let bits = -prob_of(&logits, &rows, target, model.score_shift)
+                    .max(1e-300)
+                    .log2();
+                let pb = (i / 8).min(by_pos.len() - 1);
+                by_pos[pb].0 += bits;
+                by_pos[pb].1 += 1;
+                let k = PREFIX + i;
+                let prev = if k == 1 {
+                    VOCAB
+                } else {
+                    (w.tokens[k - 2] as usize).min(VOCAB - 1)
+                };
+                let cur = (w.tokens[k - 1] as usize).min(VOCAB - 1);
+                let observed = c2.total(ctx2(prev, cur));
+                let fb = match observed {
+                    0 => 0,
+                    1 => 1,
+                    2..=4 => 2,
+                    _ => 3,
+                };
+                by_freq[fb].0 += bits;
+                by_freq[fb].1 += 1;
+            }
+            let emitted = match ex.actions[i] {
+                TlAction::Generate(v) => Some(v),
+                _ => None,
+            };
+            h = model.transition(&h, ex.actions[i].event(), emitted, &m, &f);
+        }
+    }
+    let rate = |v: &Vec<(f64, usize)>| -> Vec<f64> {
+        v.iter()
+            .map(|(b, n)| if *n == 0 { f64::NAN } else { b / *n as f64 })
+            .collect()
+    };
+    serde_json::json!({
+        "generate_action_bits_by_position_bucket_8": rate(&by_pos),
+        "position_bucket_counts": by_pos.iter().map(|(_, n)| *n).collect::<Vec<usize>>(),
+        "generate_action_bits_by_context_frequency": rate(&by_freq),
+        "context_frequency_counts": by_freq.iter().map(|(_, n)| *n).collect::<Vec<usize>>(),
+        "context_frequency_buckets": "context = (previous token, current token), bucketed by its fit-split \
+                                       occurrence count: 0, 1, 2-4, 5+",
+        "position_buckets": "scored position i within the window, bucket i/8",
+    })
+}
+
+/// Local-identity diagnostic: does the state carry the exact last two token identities, and does the
+/// next-token decision move when only the penultimate (or only the last) token changes?
+fn local_identity_report(model: &TlModel, dev: &[ProseWindow]) -> serde_json::Value {
+    use std::collections::HashMap;
+    let mut ctxs: Vec<(u32, u32)> = Vec::new();
+    for w in dev {
+        for k in 2..w.tokens.len() {
+            ctxs.push((w.tokens[k - 2], w.tokens[k - 1]));
+        }
+    }
+    let mut top1: HashMap<(u32, u32), u32> = HashMap::new();
+    let mut digest: HashMap<(u32, u32), u64> = HashMap::new();
+    for (p, q) in &ctxs {
+        if top1.contains_key(&(*p, *q)) {
+            continue;
+        }
+        let (t, d) = next_top1(model, &[*p, *q]);
+        top1.insert((*p, *q), t);
+        digest.insert((*p, *q), d);
+    }
+    let mut penults_by_last: HashMap<u32, Vec<u32>> = HashMap::new();
+    let mut lasts_by_penult: HashMap<u32, Vec<u32>> = HashMap::new();
+    for (p, q) in &ctxs {
+        penults_by_last.entry(*q).or_default().push(*p);
+        lasts_by_penult.entry(*p).or_default().push(*q);
+    }
+    for v in penults_by_last.values_mut() {
+        v.sort_unstable();
+        v.dedup();
+    }
+    for v in lasts_by_penult.values_mut() {
+        v.sort_unstable();
+        v.dedup();
+    }
+    let mut penult_groups = 0usize;
+    let mut penult_top1_changes = 0usize;
+    let mut penult_digest_changes = 0usize;
+    for (q, ps) in &penults_by_last {
+        if ps.len() < 2 {
+            continue;
+        }
+        penult_groups += 1;
+        let tops: std::collections::BTreeSet<u32> = ps
+            .iter()
+            .filter_map(|p| top1.get(&(*p, *q)).copied())
+            .collect();
+        let digs: std::collections::BTreeSet<u64> = ps
+            .iter()
+            .filter_map(|p| digest.get(&(*p, *q)).copied())
+            .collect();
+        if tops.len() > 1 {
+            penult_top1_changes += 1;
+        }
+        if digs.len() > 1 {
+            penult_digest_changes += 1;
+        }
+    }
+    let mut last_groups = 0usize;
+    let mut last_top1_changes = 0usize;
+    for (p, qs) in &lasts_by_penult {
+        if qs.len() < 2 {
+            continue;
+        }
+        last_groups += 1;
+        let tops: std::collections::BTreeSet<u32> = qs
+            .iter()
+            .filter_map(|q| top1.get(&(*p, *q)).copied())
+            .collect();
+        if tops.len() > 1 {
+            last_top1_changes += 1;
+        }
+    }
+    serde_json::json!({
+        "distinct_two_token_contexts": top1.len(),
+        "penultimate_groups_same_last_token": penult_groups,
+        "penultimate_swap_changes_top1_fraction": frac(penult_top1_changes, penult_groups),
+        "penultimate_swap_changes_state_digest_fraction": frac(penult_digest_changes, penult_groups),
+        "last_token_groups_same_penultimate": last_groups,
+        "last_swap_changes_top1_fraction": frac(last_top1_changes, last_groups),
+        "interpretation": "a next-token decision insensitive to the penultimate token cannot recover \
+                           local order beyond the single last token; this is a local-identity probe of \
+                           the loaded artifact, not a language claim",
+    })
+}
+
+fn frac(a: usize, b: usize) -> f64 {
+    if b == 0 {
+        f64::NAN
+    } else {
+        a as f64 / b as f64
+    }
+}
+
+fn audit_mode(args: &Args, src: &std::path::Path) -> Result<ExitCode, String> {
+    if args.root.as_os_str().is_empty() || args.docs.as_os_str().is_empty() {
+        return Err("--root (new attempt) and --docs are required with --audit".into());
+    }
+    claim(&args.root).map_err(|e| format!("claim {}: {e}", args.root.display()))?;
+    let started = Instant::now();
+    let root = args.root.clone();
+    println!("=== ordinary-lexical audit: fresh-process deserialized artifact ===");
+
+    // ---- tokenizer identity ------------------------------------------------
+    let tok_bytes = std::fs::read(&args.tokenizer).map_err(|e| format!("tokenizer: {e}"))?;
+    let tok_sha = sha256_hex(&Sha256::digest(&tok_bytes));
+    if tok_sha != EXPECTED_TOKENIZER_SHA256 {
+        return Err(format!(
+            "tokenizer sha256 {tok_sha} != expected {EXPECTED_TOKENIZER_SHA256}"
+        ));
+    }
+    let derived_bytes =
+        uor_r4_core::transformerless::bpe_derive::derive_tokenizer_json(&tok_bytes, VOCAB)
+            .map_err(|e| format!("derive bytes: {e}"))?;
+    let derived_sha = sha256_hex(&Sha256::digest(&derived_bytes));
+    let tokenizer = derive_tokenizer(&tok_bytes, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    write_checked(&root, "tokenizer_source.json", &tok_bytes)?;
+    write_checked(&root, "tokenizer_derived_v4096.json", &derived_bytes)?;
+    let words = read_words(&tokenizer)?;
+
+    // ---- tested executable and source identity -----------------------------
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_bytes = std::fs::read(&exe).map_err(|e| format!("read exe: {e}"))?;
+    let exe_sha = sha256_hex(&Sha256::digest(&exe_bytes));
+    let src_artifact = src.join("artifacts/model.tlx");
+    let artifact = std::fs::read(&src_artifact)
+        .map_err(|e| format!("source artifact {}: {e}", src_artifact.display()))?;
+    let artifact_sha = sha256_hex(&Sha256::digest(&artifact));
+    let model = TlModel::from_bytes(&artifact).map_err(|e| format!("deserialize: {e}"))?;
+    write_checked(&root, "artifacts/model.tlx", &artifact)?;
+    println!(
+        "audit loaded {} B artifact sha256 {artifact_sha}; executable sha256 {exe_sha}",
+        artifact.len()
+    );
+
+    // ---- corpus, source-separated (mirrors the training run) ----------------
+    let (uniq, collected, duplicates) = reconstruct_corpus(&args.docs);
+    let mut fit_docs = Vec::new();
+    let mut tune_docs = Vec::new();
+    let mut dev_pool = Vec::new();
+    for (i, d) in uniq.iter().enumerate() {
+        match d.split {
+            Split::Fit => fit_docs.push(i),
+            Split::Tune => tune_docs.push(i),
+            Split::Dev => dev_pool.push(i),
+        }
+    }
+    let mut fit_windows: Vec<ProseWindow> = Vec::new();
+    for i in &fit_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), *i) {
+            fit_windows.push(w);
+        }
+    }
+    if fit_windows.len() > FIT_MAX_WINDOWS {
+        let stride = fit_windows.len() as f64 / FIT_MAX_WINDOWS as f64;
+        fit_windows = (0..FIT_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                fit_windows[idx].clone()
+            })
+            .collect();
+    }
+    let mut with_len: Vec<(usize, usize)> = dev_pool
+        .iter()
+        .map(|i| (*i, tokenizer.encode(&uniq[*i].text).len()))
+        .collect();
+    with_len.sort_by_key(|(_, n)| *n);
+    let take = DEV_MAX_DOCS.min(with_len.len());
+    let mut dev_windows: Vec<ProseWindow> = Vec::new();
+    let mut dev_names: Vec<String> = Vec::new();
+    for k in 0..take {
+        let (doc_idx, _) = with_len[k * with_len.len() / take.max(1)];
+        dev_names.push(uniq[doc_idx].path.clone());
+        for w in prose_windows(&tokenizer.encode(&uniq[doc_idx].text), k)
+            .into_iter()
+            .take(DEV_WINDOWS_PER_DOC)
+        {
+            dev_windows.push(w);
+        }
+    }
+    let mut tune_windows: Vec<Vec<u32>> = Vec::new();
+    for i in &tune_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), 0) {
+            tune_windows.push(w.tokens);
+        }
+    }
+    let mut uni = Uni {
+        counts: vec![0u64; VOCAB],
+        total: 0,
+    };
+    let mut c1 = Cond::default();
+    let mut c2 = Cond::default();
+    for w in &fit_windows {
+        for k in PREFIX..w.tokens.len() {
+            let prev = if k == 1 {
+                VOCAB
+            } else {
+                (w.tokens[k - 2] as usize).min(VOCAB - 1)
+            };
+            let cur = (w.tokens[k - 1] as usize).min(VOCAB - 1);
+            let next = w.tokens[k];
+            uni.counts[next as usize] += 1;
+            uni.total += 1;
+            c1.observe(cur as u64, next);
+            c2.observe(ctx2(prev, cur), next);
+        }
+    }
+    let (lambdas, tune_bits) = tune_lambdas(&c1, &c2, &uni, &tune_windows);
+    let e_bytes = std::fs::read(E_ARTIFACT).map_err(|e| format!("E artifact: {e}"))?;
+    let e_core = PriorCore::from_bytes(&e_bytes).map_err(|e| format!("E load: {e}"))?;
+    let e_sha = sha256_hex(&Sha256::digest(&e_bytes));
+    println!(
+        "corpus collected={collected} unique={} dev_docs={}",
+        uniq.len(),
+        dev_names.len()
+    );
+    println!("count references tuned lambdas={lambdas:?} tune bits/target={tune_bits:.4}");
+
+    // ---- stored evidence to compare against ---------------------------------
+    let stored_panel: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(src.join("grounded_panel.json"))
+            .map_err(|e| format!("stored panel: {e}"))?,
+    )
+    .map_err(|e| format!("stored panel parse: {e}"))?;
+    let stored_receipt: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(src.join("receipt.json")).map_err(|e| format!("stored receipt: {e}"))?,
+    )
+    .map_err(|e| format!("stored receipt parse: {e}"))?;
+
+    // ---- every authored panel, executed on the deserialized artifact --------
+    let (grounded_train, class_cases, held_out) = authored_world(&words);
+    let panel = grounded_panel(&model, &grounded_train);
+    let panel_held = grounded_panel(&model, &held_out);
+    let panel_class = grounded_panel(&model, &class_cases);
+    let (ok_t, mism_t) = cmp_panel(
+        &panel,
+        stored_panel["training_panel"]
+            .as_array()
+            .ok_or("stored training_panel")?,
+    );
+    let (ok_h, mism_h) = cmp_panel(
+        &panel_held,
+        stored_panel["held_out_panel"]
+            .as_array()
+            .ok_or("stored held_out_panel")?,
+    );
+    let (ok_c, mism_c) = cmp_panel(
+        &panel_class,
+        stored_panel["class_panel"]
+            .as_array()
+            .ok_or("stored class_panel")?,
+    );
+    println!(
+        "panel replay on deserialized artifact: training {ok_t}/{} held_out {ok_h}/{} class {ok_c}/{}",
+        panel.len(),
+        panel_held.len(),
+        panel_class.len()
+    );
+
+    // preflight A recomputed
+    let temporal: Vec<&serde_json::Value> = panel
+        .iter()
+        .filter(|v| v["role"] == "preflight_temporal")
+        .collect();
+    let temporal_exact = temporal
+        .iter()
+        .filter(|v| v["exact"] == serde_json::json!(true))
+        .count();
+    let route_key_failures = grounded_train
+        .iter()
+        .filter(|g| g.role == "preflight_temporal")
+        .filter(|g| g.facts.key_changed != TlModel::truthful_temporal_meaning(g.facts))
+        .count();
+    // preflight B recomputed
+    let pb = preflight_post_copy(&model, &class_cases[0], &class_cases[1]);
+    let stored_b = &stored_receipt["preflight_b"];
+    let pb_matches = pb.json["actual"] == stored_b["actual"]
+        && pb.json["identity_blinded"] == stored_b["identity_blinded"];
+    println!(
+        "preflight A {temporal_exact}/{}; preflight B actual {}/2 blinded-alias {} source-disabled-loses {}; matches stored {} ",
+        temporal.len(),
+        pb.actual_exact,
+        pb.blinded_alias,
+        pb.source_disabled_loses,
+        pb_matches
+    );
+
+    // ---- prose, denominators and references on the loaded artifact ----------
+    let dev = evaluate_layers(&model, &dev_windows, &uni, &c1, &c2, lambdas, &e_core);
+    let stored_dev = &stored_receipt["development"];
+    let model_bits = dev[0].micro();
+    let stored_model_bits = stored_dev["model_bits_per_target"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
+    let prose_matches = (model_bits - stored_model_bits).abs() < 1e-9;
+    let denominators = dev_denominators(&model, &dev_windows, &uni, &c1, &c2, lambdas, &e_core);
+    println!(
+        "prose: Generate-action {model_bits:.4} (stored {stored_model_bits:.4}, equal={prose_matches}); full-action {:.4} over {} scored; Generate-conditional {:.4}",
+        denominators["full_action_bits_per_target"].as_f64().unwrap_or(f64::NAN),
+        denominators["full_action_scored"],
+        denominators["generate_conditional_bits_per_target"].as_f64().unwrap_or(f64::NAN)
+    );
+    let local = local_identity_report(&model, &dev_windows);
+    println!("local identity: {local}");
+
+    // ---- crossed feedback intervention -------------------------------------
+    let crossed = crossed_feedback(&model, &words);
+    println!("crossed feedback: {crossed}");
+
+    // ---- generation and continuation on the loaded artifact ----------------
+    let generation = generate_samples(&model, &tokenizer, &uni, &c1, &c2, lambdas, &dev_windows);
+    let stored_gen = stored_receipt["generation"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let gen_matches = generation.len() == stored_gen.len()
+        && generation
+            .iter()
+            .zip(stored_gen.iter())
+            .all(|(a, b)| a["model_tokens"] == b["model_tokens"]);
+    for g in &generation {
+        println!(
+            "prompt {:?} -> model {:?}",
+            g["prompt_text"], g["model_text"]
+        );
+    }
+
+    // ---- mixed session on the loaded artifact ------------------------------
+    let prompt: Vec<u32> = dev_windows
+        .first()
+        .map(|w| w.tokens[..WINDOW.min(w.tokens.len())].to_vec())
+        .unwrap_or_default();
+    let session = mixed_session(&model, &words, &grounded_train, &held_out, &prompt);
+    let stored_session = &stored_receipt["session"];
+    let session_matches = session["phases"] == stored_session["phases"];
+    println!(
+        "mixed session steps={} matches stored={}",
+        session["steps"], session_matches
+    );
+
+    // ---- cost: rollout-only and whole-path, kept separate ------------------
+    let costs = measure_costs(&model, &tokenizer, &artifact);
+    let whole_path = {
+        let prompt = tokenizer.encode(" The model is");
+        let t0 = Instant::now();
+        let mut emitted = 0usize;
+        for _ in 0..40 {
+            let enc = tokenizer.encode(" The model is");
+            let r = model.rollout(&[], &[], SlFacts::default(), &enc, &[], 32, false, false);
+            let _ = tokenizer.decode(&r.tokens);
+            emitted += r.tokens.len();
+        }
+        let secs = t0.elapsed().as_secs_f64();
+        serde_json::json!({
+            "whole_path_us_per_token": if emitted == 0 { f64::NAN } else { secs * 1e6 / emitted as f64 },
+            "whole_path_tokens": emitted,
+            "includes": "tokenization + rollout + decode; excludes source selection and session bookkeeping",
+            "prompt": tokenizer.decode(&prompt),
+        })
+    };
+    let h = model.h_dim;
+    let f = TL_F_DIM;
+    let packed_inspections_per_step =
+        h * h + h * (h + f + TL_EVENTS) + model.action_rows() * (2 * h + f + TL_EVENTS);
+
+    // ---- seal ---------------------------------------------------------------
+    let receipt = serde_json::json!({
+        "schema": "uor-r4.ordinary-lexical-audit/1",
+        "source_root": src.display().to_string(),
+        "source_artifact_sha256": artifact_sha,
+        "source_artifact_bytes": artifact.len(),
+        "tested_executable_sha256": exe_sha,
+        "tested_source_rev": args.source_rev,
+        "tokenizer_source_sha256": tok_sha,
+        "tokenizer_derived_sha256": derived_sha,
+        "donor_E_sha256": e_sha,
+        "replay": {
+            "training_panel_matched": ok_t,
+            "training_panel_total": panel.len(),
+            "training_panel_mismatches": mism_t,
+            "held_out_panel_matched": ok_h,
+            "held_out_panel_total": panel_held.len(),
+            "held_out_panel_mismatches": mism_h,
+            "class_panel_matched": ok_c,
+            "class_panel_total": panel_class.len(),
+            "class_panel_mismatches": mism_c,
+            "preflight_a_exact": temporal_exact,
+            "preflight_a_total": temporal.len(),
+            "preflight_a_route_key_contradictions": route_key_failures,
+            "preflight_b_matches_stored": pb_matches,
+            "prose_generate_action_matches_stored": prose_matches,
+            "prose_model_bits_per_target": model_bits,
+            "prose_stored_bits_per_target": stored_model_bits,
+            "generation_matches_stored": gen_matches,
+            "mixed_session_matches_stored": session_matches,
+        },
+        "panels": {
+            "training_panel": panel,
+            "held_out_panel": panel_held,
+            "class_panel": panel_class,
+        },
+        "prose_denominators": denominators,
+        "prose_stratified": dev_stratified(&model, &dev_windows, &c2),
+        "local_identity": local,
+        "crossed_feedback": crossed,
+        "generation": generation,
+        "session": session,
+        "costs": {
+            "rollout_only": costs,
+            "whole_path": whole_path,
+            "packed_coefficient_inspections_per_step": packed_inspections_per_step,
+            "packed_inspection_note": "wi is init-only; per generated step the recurrent, fact and readout \
+                                        maps scan every packed coefficient including zero codes",
+            "energy": "UNAVAILABLE",
+        },
+        "count_reference": {"lambdas": [lambdas.0, lambdas.1], "tune_bits_per_target": tune_bits},
+        "corpus": {
+            "collected": collected,
+            "unique": uniq.len(),
+            "exact_duplicates_grouped": duplicates,
+            "fit_docs": fit_docs.len(),
+            "tune_docs": tune_docs.len(),
+            "dev_docs": dev_names.len(),
+            "dev_scored_targets": dev_windows.iter().map(|w| w.tokens.len().saturating_sub(PREFIX)).sum::<usize>(),
+            "document_sha256": uniq.iter().map(|d| serde_json::json!({"path": d.path, "sha256": sha256_hex(&d.sha256)})).collect::<Vec<_>>(),
+        },
+        "elapsed_seconds": started.elapsed().as_secs_f64(),
+    });
+    write_checked(
+        &root,
+        "receipt.json",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|e| e.to_string())?
+            .as_bytes(),
+    )?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "sealed audit {} with {} unlisted files; total {:.1}s",
+        root.display(),
+        unlisted.len(),
+        started.elapsed().as_secs_f64()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+// ---------------------------------------------------------------------------
+// Matched local-channel comparator
+// ---------------------------------------------------------------------------
+//
+// One ordinary learner (the retained `TlModel`/`TlTrainer`), one data split, one optimizer schedule,
+// one seed and one architecture. The **only** difference between the two arms is the bounded local
+// channel handed to the readout: the last token alone, or the last two tokens with the fixed order
+// rotation of the retained evidence-fingerprint construction. That construction is a clamped sum of
+// the served embedding rows, so the channel stays inside the 4-bit/ternary serving envelope.
+
+fn position_examples(windows: &[ProseWindow], local: usize) -> Vec<TlExample> {
+    let mut out = Vec::new();
+    for w in windows {
+        for k in PREFIX..w.tokens.len() {
+            let next = w.tokens[k];
+            let res = match local {
+                0 => Vec::new(),
+                1 => vec![w.tokens[k - 1]],
+                _ => vec![w.tokens[k - 2], w.tokens[k - 1]],
+            };
+            out.push(TlExample {
+                sel: Vec::new(),
+                res,
+                facts: SlFacts::default(),
+                observed: w.tokens[..k].to_vec(),
+                actions: vec![TlAction::Generate(next)],
+                weight: 1.0,
+                doc: w.doc,
+                grounded: true,
+                terminal_stop: false,
+            });
+        }
+    }
+    out
+}
+
+fn train_channel_learner(
+    examples: &[TlExample],
+    log2_p: &[f64],
+    seed: u64,
+    steps: u64,
+    batch: usize,
+) -> Result<TlModel, String> {
+    let cfg = TlConfig::new(VOCAB);
+    let mut trainer = TlTrainer::new(
+        cfg,
+        TlTrainConfig {
+            lr: 0.02,
+            seed,
+            ..Default::default()
+        },
+    )?;
+    trainer.set_output_bias(log2_p, BIAS_SCALE)?;
+    let mut order: Vec<usize> = (0..examples.len()).collect();
+    let mut rng = seed ^ 0x5DEE_CE66;
+    let mut cursor = 0usize;
+    for step in 0..steps {
+        let mut b: Vec<TlExample> = Vec::with_capacity(batch);
+        for _ in 0..batch {
+            if cursor >= order.len() {
+                shuffle(&mut order, &mut rng);
+                cursor = 0;
+            }
+            b.push(examples[order[cursor]].clone());
+            cursor += 1;
+        }
+        let r = trainer.train_batch(&b);
+        if step % 500 == 0 || step + 1 == steps {
+            println!(
+                "    step {step:>6} batch bits/target {:.4}",
+                r.bits_per_target()
+            );
+        }
+    }
+    trainer.model()
+}
+
+fn eval_examples(model: &TlModel, examples: &[TlExample], docs: usize) -> Eval {
+    let mut e = Eval::default();
+    e.per_doc = vec![(0.0, 0usize); docs];
+    for ex in examples {
+        let s = model.score_example(ex);
+        e.per_doc[ex.doc].0 += s.bits_generate;
+        e.per_doc[ex.doc].1 += s.generate_targets;
+    }
+    e
+}
+
+fn reference_evals(
+    dev: &[ProseWindow],
+    uni: &Uni,
+    c1: &Cond,
+    c2: &Cond,
+    lambdas: (f64, f64),
+) -> (Eval, Eval) {
+    let docs = dev.iter().map(|w| w.doc).max().map(|m| m + 1).unwrap_or(0);
+    let mut u = Eval::default();
+    u.per_doc = vec![(0.0, 0usize); docs];
+    let mut c = Eval::default();
+    c.per_doc = vec![(0.0, 0usize); docs];
+    for w in dev {
+        for k in PREFIX..w.tokens.len() {
+            let prev = if k == 1 {
+                VOCAB
+            } else {
+                (w.tokens[k - 2] as usize).min(VOCAB - 1)
+            };
+            let cur = (w.tokens[k - 1] as usize).min(VOCAB - 1);
+            let target = w.tokens[k];
+            u.per_doc[w.doc].0 -= uni.p(target).max(1e-300).log2();
+            u.per_doc[w.doc].1 += 1;
+            c.per_doc[w.doc].0 -= family_p(c1, c2, uni, prev, cur, target, lambdas)
+                .max(1e-300)
+                .log2();
+            c.per_doc[w.doc].1 += 1;
+        }
+    }
+    (u, c)
+}
+
+fn local_channel_mode(args: &Args, root: &std::path::Path) -> Result<ExitCode, String> {
+    if args.docs.as_os_str().is_empty() {
+        return Err("--docs is required with --local-channel".into());
+    }
+    claim(root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    println!("=== ordinary-lexical local-channel comparator ===");
+
+    let tok_bytes = std::fs::read(&args.tokenizer).map_err(|e| format!("tokenizer: {e}"))?;
+    let tok_sha = sha256_hex(&Sha256::digest(&tok_bytes));
+    if tok_sha != EXPECTED_TOKENIZER_SHA256 {
+        return Err(format!(
+            "tokenizer sha256 {tok_sha} != expected {EXPECTED_TOKENIZER_SHA256}"
+        ));
+    }
+    let tokenizer = derive_tokenizer(&tok_bytes, VOCAB).map_err(|e| format!("derive: {e}"))?;
+
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_bytes = std::fs::read(&exe).map_err(|e| format!("read exe: {e}"))?;
+    let exe_sha = sha256_hex(&Sha256::digest(&exe_bytes));
+
+    let (uniq, collected, duplicates) = reconstruct_corpus(&args.docs);
+    let mut fit_docs = Vec::new();
+    let mut tune_docs = Vec::new();
+    let mut dev_pool = Vec::new();
+    for (i, d) in uniq.iter().enumerate() {
+        match d.split {
+            Split::Fit => fit_docs.push(i),
+            Split::Tune => tune_docs.push(i),
+            Split::Dev => dev_pool.push(i),
+        }
+    }
+    let mut fit_windows: Vec<ProseWindow> = Vec::new();
+    for i in &fit_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), *i) {
+            fit_windows.push(w);
+        }
+    }
+    if fit_windows.len() > FIT_MAX_WINDOWS {
+        let stride = fit_windows.len() as f64 / FIT_MAX_WINDOWS as f64;
+        fit_windows = (0..FIT_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                fit_windows[idx].clone()
+            })
+            .collect();
+    }
+    let mut with_len: Vec<(usize, usize)> = dev_pool
+        .iter()
+        .map(|i| (*i, tokenizer.encode(&uniq[*i].text).len()))
+        .collect();
+    with_len.sort_by_key(|(_, n)| *n);
+    let take = DEV_MAX_DOCS.min(with_len.len());
+    let mut dev_windows: Vec<ProseWindow> = Vec::new();
+    for k in 0..take {
+        let (doc_idx, _) = with_len[k * with_len.len() / take.max(1)];
+        for w in prose_windows(&tokenizer.encode(&uniq[doc_idx].text), k)
+            .into_iter()
+            .take(DEV_WINDOWS_PER_DOC)
+        {
+            dev_windows.push(w);
+        }
+    }
+    let mut tune_windows: Vec<Vec<u32>> = Vec::new();
+    for i in &tune_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), 0) {
+            tune_windows.push(w.tokens);
+        }
+    }
+    let mut uni = Uni {
+        counts: vec![0u64; VOCAB],
+        total: 0,
+    };
+    let mut c1 = Cond::default();
+    let mut c2 = Cond::default();
+    for w in &fit_windows {
+        for k in PREFIX..w.tokens.len() {
+            let prev = if k == 1 {
+                VOCAB
+            } else {
+                (w.tokens[k - 2] as usize).min(VOCAB - 1)
+            };
+            let cur = (w.tokens[k - 1] as usize).min(VOCAB - 1);
+            let next = w.tokens[k];
+            uni.counts[next as usize] += 1;
+            uni.total += 1;
+            c1.observe(cur as u64, next);
+            c2.observe(ctx2(prev, cur), next);
+        }
+    }
+    let (lambdas, tune_bits) = tune_lambdas(&c1, &c2, &uni, &tune_windows);
+    let denom = uni.total as f64 + (VOCAB + 2) as f64;
+    let mut log2_p: Vec<f64> = (0..VOCAB)
+        .map(|t| ((uni.counts[t] as f64 + 1.0) / denom).log2())
+        .collect();
+    log2_p.push((1.0 / denom).log2());
+    log2_p.push((1.0 / denom).log2());
+
+    let docs = dev_windows
+        .iter()
+        .map(|w| w.doc)
+        .max()
+        .map(|m| m + 1)
+        .unwrap_or(0);
+    let fit0 = position_examples(&fit_windows, 0);
+    let fit2 = position_examples(&fit_windows, 2);
+    let dev0 = position_examples(&dev_windows, 0);
+    let dev2 = position_examples(&dev_windows, 2);
+    println!(
+        "corpus collected={collected} unique={} fit_windows={} dev_docs={} dev_targets={} tune_lambdas={lambdas:?} tune_bits={tune_bits:.4}",
+        uniq.len(),
+        fit_windows.len(),
+        take,
+        dev0.len()
+    );
+    let (uni_e, cnt_e) = reference_evals(&dev_windows, &uni, &c1, &c2, lambdas);
+
+    println!("arm recurrence-only (full preceding context, no direct local channel):");
+    let t1 = Instant::now();
+    let m1 = train_channel_learner(&fit0, &log2_p, args.seed, args.steps, args.batch)?;
+    let secs1 = t1.elapsed().as_secs_f64();
+    let e1 = eval_examples(&m1, &dev0, docs);
+    println!(
+        "  arm recurrence-only dev bits/target {:.4} in {secs1:.1}s",
+        e1.micro()
+    );
+
+    println!("arm recurrence + direct two-token channel (same task, same targets):");
+    let t2 = Instant::now();
+    let m2 = train_channel_learner(&fit2, &log2_p, args.seed, args.steps, args.batch)?;
+    let secs2 = t2.elapsed().as_secs_f64();
+    let e2 = eval_examples(&m2, &dev2, docs);
+    println!(
+        "  arm recurrence + two-token dev bits/target {:.4} in {secs2:.1}s",
+        e2.micro()
+    );
+
+    let u1 = paired_interval(&uni_e, &e1, 0xA11CE);
+    let c1g = paired_interval(&cnt_e, &e1, 0xB0B);
+    let u2 = paired_interval(&uni_e, &e2, 0xA11CE);
+    let c2g = paired_interval(&cnt_e, &e2, 0xB0B);
+    let d21 = paired_interval(&e2, &e1, 0xC0FFEE);
+    println!(
+        "recurrence-only: bits {:.4} | gain vs unigram {:?} | gain vs count (ref-model) {:?}",
+        e1.micro(),
+        u1,
+        c1g
+    );
+    println!(
+        "recurrence+two-token: bits {:.4} | gain vs unigram {:?} | gain vs count (ref-model) {:?}",
+        e2.micro(),
+        u2,
+        c2g
+    );
+    println!(
+        "two-token arm minus recurrence-only (two-token bits - recurrence-only bits) {:?}",
+        d21
+    );
+
+    let art1 = m1.to_bytes();
+    let art2 = m2.to_bytes();
+    let receipt = serde_json::json!({
+        "schema": "uor-r4.ordinary-lexical-local-channel/2",
+        "tested_source_rev": args.source_rev,
+        "tested_executable_sha256": exe_sha,
+        "tokenizer_source_sha256": tok_sha,
+        "corpus": {
+            "collected": collected,
+            "unique": uniq.len(),
+            "exact_duplicates_grouped": duplicates,
+            "fit_docs": fit_docs.len(),
+            "tune_docs": tune_docs.len(),
+            "dev_docs": take,
+            "fit_windows": fit_windows.len(),
+            "dev_targets": dev0.len(),
+        },
+        "schedule": {"steps": args.steps, "batch": args.batch, "seed": args.seed, "lr": 0.02},
+        "count_reference": {"lambdas": [lambdas.0, lambdas.1], "tune_bits_per_target": tune_bits},
+        "arms": {
+            "recurrence_only": {
+                "dev_bits_per_target": e1.micro(),
+                "gain_vs_unigram": [u1.0, u1.1, u1.2],
+                "gain_vs_count": [c1g.0, c1g.1, c1g.2],
+                "artifact_bytes": art1.len(),
+                "table_bytes": m1.table_bytes(),
+                "nonzero_per_step": m1.nonzero_per_step(),
+                "fit_seconds": secs1,
+            },
+            "recurrence_plus_two_token": {
+                "dev_bits_per_target": e2.micro(),
+                "gain_vs_unigram": [u2.0, u2.1, u2.2],
+                "gain_vs_count": [c2g.0, c2g.1, c2g.2],
+                "artifact_bytes": art2.len(),
+                "table_bytes": m2.table_bytes(),
+                "nonzero_per_step": m2.nonzero_per_step(),
+                "fit_seconds": secs2,
+            },
+            "two_token_minus_recurrence_only": [d21.0, d21.1, d21.2],
+        },
+        "unigram_bits_per_target": uni_e.micro(),
+        "count_bits_per_target": cnt_e.micro(),
+        "declared": "one ordinary learner, one data split, one schedule, one seed, one architecture; the \
+                     only change between arms is the bounded local channel (none vs the last two tokens \
+                     with a fixed order rotation) on the same full-context task and the same scored \
+                     targets. Positive gain_vs_count means the reference has more bits than the arm (the \
+                     arm is better). Positive two_token_minus_recurrence_only means the two-token arm \
+                     has more bits (is worse).",
+        "elapsed_seconds": started.elapsed().as_secs_f64(),
+    });
+    write_checked(root, "artifacts/recurrence_only.tlx", &art1)?;
+    write_checked(root, "artifacts/recurrence_plus_two_token.tlx", &art2)?;
+    write_checked(
+        root,
+        "receipt.json",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|e| e.to_string())?
+            .as_bytes(),
+    )?;
+    seal(root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "sealed {} with {} unlisted files; total {:.1}s",
+        root.display(),
+        unlisted.len(),
+        started.elapsed().as_secs_f64()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let args = match parse_args() {
         Ok(a) => a,
@@ -1489,11 +2693,29 @@ fn main() -> ExitCode {
         }
         return ExitCode::SUCCESS;
     }
-    if let Some(root) = args.replay {
+    if let Some(root) = args.replay.clone() {
         return match replay_mode(&root, &args.tokenizer) {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("error: replay: {e}");
+                ExitCode::from(1)
+            }
+        };
+    }
+    if let Some(src) = args.audit.clone() {
+        return match audit_mode(&args, &src) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("error: audit: {e}");
+                ExitCode::from(1)
+            }
+        };
+    }
+    if let Some(root) = args.local_channel.clone() {
+        return match local_channel_mode(&args, &root) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("error: local-channel: {e}");
                 ExitCode::from(1)
             }
         };
