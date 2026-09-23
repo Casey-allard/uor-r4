@@ -1,0 +1,20 @@
+{
+  "schema": "uor-r4.local-work-charge/1",
+  "recorded_utc": "2026-09-23T04:23:17Z",
+  "scope": "Principal source/evidence audit, focused served-validator correction, documentation, protected delivery and issue/knowledge synchronization",
+  "cumulative_before_ms": 377915640,
+  "limit_ms": 390700000,
+  "charged_increment_ms": 3000000,
+  "cumulative_after_ms": 380915640,
+  "charge_components": {
+    "pre_projection_recovery_and_audit_estimate_ms": 1800000,
+    "measured_from_projection_to_charge_ms": 617000,
+    "remaining_protected_delivery_and_synchronization_allowance_ms": 583000
+  },
+  "timing_precision": "The pre-projection work has no continuous timer and is explicitly estimated; post-projection interval is UTC wall-clock to the nearest second. The allowance is conservative and any overrun must be charged separately.",
+  "new_paid_compute": false,
+  "physical_free_bytes_after_build_cache_cleanup": 33261809664,
+  "unique_evidence_deleted": false,
+  "prior_deepseek_charge_ms": 3500000,
+  "prior_deepseek_charge_recorded_once": true
+}
