@@ -1,0 +1,91 @@
+{
+  "schema": "uor-r4.ordinary-lexical-joint-fit/1",
+  "recorded_utc": "2026-09-23T16:45:51Z",
+  "base_note": "stacked on open PRs #1363/#1364/#1365; protected main is 79b5d50c",
+  "tested_source": {
+    "runner": "crates/uor-r4-core/src/bin/ordinary-lexical.rs",
+    "runner_sha256": "1e13d1141e1b41512b1c1783372075c3c9743083906f8fb8ac2e13ee8a61ac20",
+    "model_source_sha256": "03f83eb8366d8fa710637e1941a2639c96ef603968cb0e8b31ce86d56fb2b250",
+    "model_source_unchanged": true,
+    "code_change": "none: the existing run() path with the existing declared flags",
+    "command": "--root <root> --docs <inputs/docs> --source-rev 0da2d61e --steps 4000 --batch 4 --seed 13 --objective window --curriculum interleaved --ground-slots 0"
+  },
+  "question": "Is the shared grounded learner under-trained? A longer joint fit must beat olx-form-2's 6.6841 by >= 0.30 bits on the served window conditioning, or training budget is ruled out.",
+  "arm": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-joint-1",
+    "steps": 4000,
+    "batch": 4,
+    "seed": 13,
+    "grounded_draws_per_step": 0,
+    "objective": "window",
+    "curriculum": "interleaved",
+    "fit_seconds": 1410.640234208,
+    "elapsed_seconds": 1453.846920958,
+    "artifact_sha256": "7cf22d8c0715295e71793eda9cae75387dcb2211994cf2352f6423df26082d50",
+    "served_window_dev_bits_per_target": 6.708962784338197,
+    "position_conditioning_bits_per_target": 6.798726720177727,
+    "preflight_a_exact_of": [
+      0,
+      32
+    ],
+    "gain_vs_count": [
+      -1.5872420782375656,
+      -1.7808186980011218,
+      -1.4027650538788796
+    ],
+    "gain_vs_donor_E": [
+      0.1611685685882689,
+      0.06755973692133832,
+      0.258477062604646
+    ],
+    "gain_vs_unigram": [
+      2.3737071217636823,
+      2.1451844161217375,
+      2.6238319548083355
+    ],
+    "unrestricted_references": {
+      "unigram": 9.082669906101879,
+      "tuned_two_token_count": 5.121720706100631,
+      "donor_E": 6.870131352926466
+    }
+  },
+  "comparisons": {
+    "baseline_olx_form_2_prose_only_2000_steps": 6.6841049565369355,
+    "J1_minus_olx_form_2": [
+      0.02485782780126063,
+      -0.04215839908815455,
+      0.09669740633564272
+    ],
+    "J1_minus_olx_form_3_window_two_grounded_2000_steps": [
+      -0.2596136917443928,
+      -0.33048862989292827,
+      -0.18253407933589375
+    ],
+    "J1_minus_delivered": [
+      -0.6632354899002032,
+      -0.7491328633175569,
+      -0.5770307555909936
+    ],
+    "late_trajectory_steps_2000_to_3900": {
+      "min": 6.6318,
+      "median": 6.7843,
+      "max": 6.9169,
+      "note": "the development probe oscillates with no trend; the 2000-step endpoint of the prior arm is reached and wandered through"
+    }
+  },
+  "decision": {
+    "predeclared_bar": "served loss below olx-form-2's 6.684104956536927 by >= 0.30 bits",
+    "bar_met": false,
+    "interpretation": "doubling the training budget yields no measurable change (+0.0249 [-0.0422, +0.0967], interval includes zero) and the trajectory oscillates rather than descends, so the model has converged operationally and training budget is not the binding constraint. The two cheapest output-side levers (an in-class readout refit and a longer schedule) are exhausted at about 0.13 of the 0.4634 matched headroom, and the binding constraint is the state/readout interface, not optimisation."
+  },
+  "limits": [
+    "one pinned local corpus, one split, one seed, one schedule family, the served window conditioning, prose-only supervision",
+    "the negative holds for 2,000-4,000 steps of this recipe; it does not rule out a very different recipe",
+    "the grounded panels were intentionally not run on a prose-only arm; preflight A correctly reports 0/32",
+    "greedy generation still collapses; sampling NOT_RUN; energy UNAVAILABLE"
+  ],
+  "claim_boundaries": {
+    "measured": "the joint fit's served loss and the paired interval against the same-recipe 2,000-step arm",
+    "not_claimed": "general language, reasoning, geometric advantage or energy"
+  }
+}

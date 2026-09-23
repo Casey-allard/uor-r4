@@ -2505,3 +2505,33 @@ null control had already passed; its numbers are quoted from its own stdout and 
 the durable end-to-end decisions come from the sealed smoke `olx-sp-e`. Physical free after the work is
 53,727,544 KiB, far above the 24 GiB working reserve plus the 128 MiB stop margin. No paid or external
 compute, and no unique artifact, preserved root or owner checkout was modified.
+
+## Joint-fit milestone projection, 2026-09-23
+
+The named next milestone is the **joint fit**: after the frozen-state readout refit bought only 0.1313
+bits while the same states support 0.4634, test whether the shared grounded learner is **under-trained**
+by fitting longer on the served window objective with the repaired curriculum. It uses the existing
+`run()` machinery with no code change, and it deliberately avoids the probe's four-minute state-recording
+phase, measuring served loss through `run()`'s own panels.
+
+Complete projection: **4,500,000 ms** (recon 200,000; a prose-only window-objective fit at 4,000 steps
+1,500,000; a contingent grounded-supervision arm at the same recipe 1,700,000; interpretation, evidence
+and documentation 800,000; protected PR and handoff 300,000). One fit at a time, two threads, peak
+incremental RAM 2 GiB, at most 512 MiB temporary build growth and 16 MiB new retained sealed evidence.
+Physical free before this work is 53,756,368 KiB, above the 24 GiB working reserve plus the 128 MiB stop
+margin. The live balance of 4,084,360 ms cannot cover this block, so the standing owner authorization was
+applied **prospectively** and the owner ledger JSON advanced from **427,000,000** to **431,500,000 ms**
+(cumulative unchanged at **422,915,640 ms**) before execution. The grounded arm is contingent on the
+first arm's outcome; a further extension would be recorded before it is taken. No paid or external
+compute and no deletion of unique artifacts. Charge actual complete work once after delivery.
+
+**Final charge for the joint-fit milestone, 2026-09-23:** 2,500,000 ms for one prose-only window-objective
+fit at 4,000 steps (`olx-joint-1`, 1,410.6 s of measured machine time from the runner's own sealed
+`fit_seconds`), its paired intervals and interpretation, the evidence and result documents, the public
+claim propagation and the protected delivery. The cumulative advanced from **422,915,640** to
+**425,415,640 / 431,500,000 ms**. The milestone came in **under** its 4,500,000-ms projection because it
+needed only one fit and no code change; the contingent grounded-supervision arm was **not** taken because
+the first arm's prose bar was not met, and the probe's four-minute state-recording phase was deliberately
+avoided by measuring served loss through `run()`'s own panels. Physical free after the work is 53,048,876
+KiB, above the 24 GiB working reserve plus the 128 MiB stop margin. No paid or external compute, and no
+unique artifact or preserved root was modified.

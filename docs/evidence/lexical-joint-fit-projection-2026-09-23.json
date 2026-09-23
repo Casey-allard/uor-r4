@@ -1,0 +1,30 @@
+{
+  "schema": "uor-r4.local-work-projection/1",
+  "recorded_utc": "2026-09-23T16:10:00Z",
+  "scope": "Joint fit: is the shared grounded learner under-trained? A longer window-objective fit on the served conditioning with the repaired curriculum, measured against olx-form-2's 6.6841, with grounded supervision for the panels in a contingent second arm. No code change: the existing run() path with the existing flags. Local only; no paid or external compute.",
+  "authority": "Standing owner authorization 2026-09-06; docs/integration/agent-execution-policy.md; AGENTS.md resources section",
+  "live_ledger_path": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+  "live_cumulative_ms_before": 422915640,
+  "live_limit_ms_before": 427000000,
+  "projected_increment_ms": 4500000,
+  "projected_limit_ms_after": 431500000,
+  "projection_components_ms": {
+    "authority_recon": 200000,
+    "J1_prose_only_window_objective_4000_steps": 1500000,
+    "J2_grounded_supervision_same_recipe_contingent": 1700000,
+    "interpretation_evidence_and_result_documentation": 800000,
+    "protected_pr_and_handoff": 300000
+  },
+  "cpu_threads": 2,
+  "peak_ram_bytes": 2147483648,
+  "maximum_new_temporary_storage_bytes": 536870912,
+  "maximum_new_retained_storage_bytes": 16777216,
+  "physical_free_kib_before": 53756368,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "run_scope": "One model fit per arm, one process at a time; J2 is contingent on J1's outcome; no probe recording phase is run (the 4-minute recording cost is deliberately avoided by measuring served loss through run()'s own panels)",
+  "extension_reason": "The live balance of 4,084,360 ms cannot cover one longer joint fit plus its panels and delivery. The increment is prospective, local, and required to test whether the shared learner is under-trained, which is the named next milestone after the frozen-state refit. The projection deliberately uses the existing run() machinery and avoids the probe's recording phase so the milestone is a training run, not another instrumentation round.",
+  "new_paid_compute": false,
+  "unique_evidence_deleted": false,
+  "stop_condition": "Stop before the cumulative limit or the 24 GiB working reserve plus 128 MiB margin; charge actual complete work once after delivery."
+}

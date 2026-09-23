@@ -1,0 +1,48 @@
+{
+  "schema": "uor-r4.local-work-charge/1",
+  "recorded_utc": "2026-09-23T16:50:00Z",
+  "scope": "September 23 joint-fit milestone: one longer window-objective fit on the served conditioning testing whether the shared learner is under-trained, its interpretation, a scoped negative, evidence, documentation and protected delivery. No code change, no subagent round, no probe recording phase. Local only; no paid or external compute.",
+  "cumulative_before_ms": 422915640,
+  "limit_ms": 431500000,
+  "charged_increment_ms": 2500000,
+  "cumulative_after_ms": 425415640,
+  "charge_components": {
+    "authority_recon_and_projection": 200000,
+    "j1_prose_only_window_objective_4000_steps_fit": 1454000,
+    "paired_intervals_and_interpretation": 300000,
+    "evidence_result_documentation_and_public_claim_propagation": 400000,
+    "protected_pr_and_handoff": 146000
+  },
+  "measured_machine_time_ms": {
+    "olx_joint_1_fit_seconds": 1410640,
+    "olx_joint_1_elapsed_seconds": 1453900,
+    "note": "the runner's own sealed fit_seconds and elapsed_seconds"
+  },
+  "timing_precision": "UTC wall-clock of this milestone, measured from the recorded projection timestamp to the charge timestamp. This milestone used no subagent round and no probe recording phase, which is why its charged time is dominated by the single fit rather than by implementation.",
+  "extension_recorded_prospectively": {
+    "projection_recorded_utc": "2026-09-23T16:10:00Z",
+    "projection_increment_ms": 4500000,
+    "limit_before_extension_ms": 427000000,
+    "limit_after_extension_ms": 431500000,
+    "actual_increment_ms": 2500000,
+    "note": "the milestone came in under its projection because it needed only one fit and no code change; the contingent grounded arm was not taken because the first arm's prose bar was not met, and the probe's recording phase was deliberately avoided by measuring served loss through run()'s own panels"
+  },
+  "new_paid_compute": false,
+  "physical_free_kib_after": 53048876,
+  "physical_working_reserve_bytes": 25769803776,
+  "additional_stop_margin_bytes": 134217728,
+  "new_retained_evidence_bytes_estimate": 838861,
+  "unique_evidence_deleted": false,
+  "preserved_roots_untouched": [
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/ordinary-lexical-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-2",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-4",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-form-5",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-channel-1",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-probe-3",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-probe-4",
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/olx-refit-1"
+  ]
+}
