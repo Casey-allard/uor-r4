@@ -1588,12 +1588,21 @@ impl TlTrainer {
 
     /// Forward and backward for one example against one quantised view.
     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+        self.example_with_feedback(q, ex, None)
+    }
+
+    fn example_with_feedback(
+        &self,
+        q: &TlQuant,
+        ex: &TlExample,
+        feedback: Option<&[u32]>,
+    ) -> TlGrads {
         let h_dim = self.cfg.h_dim;
         let f_dim = TL_F_DIM;
         let rs = self.cfg.recurrent_shift;
         let div = (1u64 << rs) as f64;
         let bound = self.cfg.h_clamp as f64;
-        let owned: &[u32] = if ex.grounded { &ex.sel } else { &[] };
+        let owned: &[u32] = feedback.unwrap_or(if ex.grounded { &ex.sel } else { &[] });
         let (m, m_mask) = self.content_feature(q, &ex.sel, &ex.res, self.cfg.vocab);
         let fblock = typed_causal_block(&ex.sel, &ex.res, ex.facts, &|t| {
             (t as usize) < self.cfg.vocab
@@ -1967,6 +1976,14 @@ impl TlTrainer {
 
     /// One Adam update over a batch of examples. Returns the batch's scored report.
     pub fn train_batch(&mut self, batch: &[TlExample]) -> TlBatchReport {
+        self.train_batch_impl(batch, &[])
+    }
+
+    fn train_batch_impl(
+        &mut self,
+        batch: &[TlExample],
+        feedback: &[Option<Vec<u32>>],
+    ) -> TlBatchReport {
         let q = self.quantized();
         let mut acc = TlReportAcc::default();
         let mut grads = TlGrads {
@@ -1983,8 +2000,9 @@ impl TlTrainer {
             correct: 0,
         };
         let mut total_weight = 0f64;
-        for ex in batch {
-            let g = self.example(&q, ex);
+        for (index, ex) in batch.iter().enumerate() {
+            let g =
+                self.example_with_feedback(&q, ex, feedback.get(index).and_then(|v| v.as_deref()));
             for (a, b) in grads.e.iter_mut().zip(&g.e) {
                 *a += b * ex.weight as f64;
             }
@@ -2566,3 +2584,13 @@ mod warmstart_tests {
         assert!(second.me.iter().chain(&second.ve).all(|v| *v == 0.0));
     }
 }
+
+#[path = "tl_checkpoint.rs"]
+mod checkpoint;
+pub use checkpoint::TrainingCursor;
+#[path = "tl_read_plan.rs"]
+mod read_plan;
+pub use read_plan::TlReadPlan;
+
+#[path = "tl_intervention.rs"]
+mod intervention;

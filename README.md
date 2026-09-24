@@ -39,9 +39,9 @@ The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measuremen
 
 ## Current research step
 
-**September23 principal continuation:** a native warm-start candidate improves the grounded lexical model from **7.03268 to 6.27371 bits/target**, retains the authored 32/36/4/3 panels and reproduces in a fresh process; a second shuffle seed confirms the decaying-rate recipe. An integer marginal-relative local correction is implemented and measured, with full-Tune controls, rare-token accounting, external-source evaluation and actual generation. It is a reusable component, not the project's terminal geometric architecture.
+**September24 UTC causal continuation:** the learned post-copy decision now follows emitted-token feedback rather than selected-source identity on the declared16-case intervention, retaining the historical grounded panels. Exact optimizer/data/schedule checkpoints reproduce a real mid-run restart. Optional compiled sparse readout preserves measured scores and generations with about10.4x lower time in the tested pre-tokenized prompt/generation loop. [Result](docs/integration/causal-continuation-result-2026-09-24.md) · [Current handoff](docs/integration/causal-continuation-handoff-2026-09-24.md).
 
-**Still unqualified:** free generation remains repetitive, native copied-token causal dependence is unresolved, and neither Hamilton/H4 superiority nor full-system energy advantage is established. The new vector operator preserves exact signed quaternion actions; a common rotation alone cannot improve attention. [Executed result](docs/integration/principal-continuation-result-2026-09-23.md) · [Handoff and retained artifacts](docs/integration/principal-handoff-2026-09-23.md) · [Evidence](docs/evidence/principal-continuation-summary-2026-09-23.json).
+**Still pre-alpha:** broader-source loss improves, but generated dialogue and all four unmodified Rust attempts fail. The new Q8 relation learner matches a competent ordinary control, not a unique geometric advantage. The causal candidate has a small repository-loss tradeoff. No default application model, full scoped-session qualification or energy claim is silently promoted; the terminal geometric objective remains unchanged.
 
 **Earlier component reviews remain historical:**
 

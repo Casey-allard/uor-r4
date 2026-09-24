@@ -1,5 +1,7 @@
 # Research-leader handoff: UOR-R4 Geometric Language Model
 
+> **Continuation update, September24 UTC:** read [the causal continuation handoff](causal-continuation-handoff-2026-09-24.md) before repeating work. Exact optimizer resume and the bounded feedback repair are now executed; generated language/coding and broader session qualification remain open. Earlier artifacts and their evidence below are preserved.
+
 ## Principal continuation, September 23: recovered native learning and integer marginal-relative readout
 
 The latest executed result is [principal-continuation-result-2026-09-23.md](principal-continuation-result-2026-09-23.md), with [the continuation handoff](principal-handoff-2026-09-23.md). A 128-update exact served-weight warm start with grounded rehearsal reaches **6.27371 bits/target**, retains authored temporal32/32, training36/36, class4/4 and held-out3/3, and reproduces byte-for-byte. A second shuffle seed confirms the decaying recipe; constant-rate candidates lose one held-out case.

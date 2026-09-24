@@ -1,0 +1,10 @@
+e7e7b8a143345a7deaf64163ea8a728526fe6d6af6e42f3a5191cd682ae0f268  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/fit/ch03-03-how-functions-work.md
+edd88c0a5be94e0b804d01121bab8d70f6732d75bfc988052d855e8b44920a90  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/fit/ch03-02-data-types.md
+5bc08275eacea8640b1aa185c645283bb8c564d7b23df6b03437d229b4fc6ebd  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/fit/pg120.txt
+d54c2b80d40a40b982cd88852c6180bb944d95acdb028af3d0e01a1750681784  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/fit/pg98.txt
+b4cbe7dcbbc7ae628db174c04bdaeed8a55edb1cb30ffd201919bdf73e66a58b  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/rust-book-revision.txt
+2892e919000e17c83e1dac51b30f4675db50536b644d7579fe8a89bb399a9bdc  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/tune/pg35.txt
+dcf589530b27653579874f189bf572600a3061712964f525a06844642a2defb6  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/tune/ch03-05-control-flow.md
+c0b0bc91c7695f9d01aacb240e82a9b559f57558f98ad0b1f167eba21f6be6f7  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/final/pg219.txt
+873724c6862ad0cc447becf0e818eb39a324c5d4bfa26ef721286aae1941c0ba  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/final/ch04-01-what-is-ownership.md
+74d77384b123a6360db9ab58463cff8b38df8525fbdc6000c81ee388e1f3cf10  /Users/casey.allard/uor-r4-investigations/causal-20260924T000007/data/final/pg74.txt

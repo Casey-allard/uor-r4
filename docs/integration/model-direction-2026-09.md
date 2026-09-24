@@ -1,5 +1,9 @@
 # UOR-R4 Geometric Language Model: direction and capability assessment
 
+## September24 causal continuation
+
+The latest component repairs the measured copied-feedback shortcut with intervention-based learning, adds exact optimizer/data continuation and compiles the existing readout for equal-output speed. Its independent relation-conditioned Q8 learner is tested against an equally informed ordinary permutation model, which matches it. None of these changes adopts a table-only terminal architecture or demonstrates useful general dialogue/code generation. The [result](causal-continuation-result-2026-09-24.md) keeps the causal improvement, text-loss tradeoff and cost boundaries separate.
+
 ## Principal continuation, September 23: recovered native learning and integer marginal-relative readout
 
 The latest executed result is [principal-continuation-result-2026-09-23.md](principal-continuation-result-2026-09-23.md), with [the continuation handoff](principal-handoff-2026-09-23.md). A 128-update exact served-weight warm start with grounded rehearsal reaches **6.27371 bits/target**, retains authored temporal32/32, training36/36, class4/4 and held-out3/3, and reproduces byte-for-byte. A second shuffle seed confirms the decaying recipe; constant-rate candidates lose one held-out case.

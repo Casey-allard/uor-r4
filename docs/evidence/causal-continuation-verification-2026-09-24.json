@@ -1,0 +1,51 @@
+{
+  "recorded_at": "2026-09-24T00:56:42.272481+00:00",
+  "focused_tests": [
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "290e140981b800c9a01c9caf8537ee35a735f7fbd9d58f2d300460c27e5a5176",
+      "filter": "native_geometric::learner::transferable_lexical",
+      "result": "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1099 filtered out; finished in 0.04s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "290e140981b800c9a01c9caf8537ee35a735f7fbd9d58f2d300460c27e5a5176",
+      "filter": "native_geometric::learner::relative_action_learning",
+      "result": "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1117 filtered out; finished in 0.00s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "290e140981b800c9a01c9caf8537ee35a735f7fbd9d58f2d300460c27e5a5176",
+      "filter": "native_geometric::learner::hamilton_transport",
+      "result": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1113 filtered out; finished in 0.00s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/uor_r4_core-9933e28ec116fa85",
+      "binary_sha256": "290e140981b800c9a01c9caf8537ee35a735f7fbd9d58f2d300460c27e5a5176",
+      "filter": "native_geometric::learner::lexical_residual",
+      "result": "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 1112 filtered out; finished in 0.00s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-kimi/target/release/deps/ordinary_lexical-1d14a51685f055e2",
+      "binary_sha256": "d6332bef0b5afccb822164d5e01ba71ce5b8d2d32a7a634dba25c14ff494665a",
+      "filter": null,
+      "result": "test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+    },
+    {
+      "binary": "/Users/casey.allard/uor-r4-investigations/causal-20260924T000007/allocation-census",
+      "binary_sha256": "4ae79cfcf8045429b6ab0721db721b4dad16a5b65d49b68c08b53b572cb946e1",
+      "filter": null,
+      "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    }
+  ],
+  "total_passed": 61,
+  "owner_extra_files_hashed": 55,
+  "owner_changed_files": [
+    ".omo/run-continuation/ses_f3016b9e8ffedo6N44Qba48qVo.json"
+  ],
+  "owner_tracked_diff_unchanged": true,
+  "experiment_core_and_harness_identical_to_frozen_commit": true,
+  "format_diff_claim_checks_passed": true,
+  "physical_free_bytes": 54630014976,
+  "scope": "Retained release test executables rerun, with pinned binary identities. No full-repository suite or whole-application qualification claim."
+}

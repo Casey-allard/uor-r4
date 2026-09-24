@@ -1,5 +1,7 @@
 # Principal handoff: September 23, 2026
 
+> **Continuation update, September24 UTC:** read [the causal continuation handoff](causal-continuation-handoff-2026-09-24.md) before repeating work. Exact optimizer resume and the bounded feedback repair are now executed; generated language/coding and broader session qualification remain open. Earlier artifacts and their evidence below are preserved.
+
 ## Start here
 Read [the executed result](principal-continuation-result-2026-09-23.md), [the machine evidence](../evidence/principal-continuation-summary-2026-09-23.json), and [the Hamilton-vector interpretation](hamilton-vector-interpretation-2026-09-23.md). The terminal objective is unchanged: useful, fully transformerless geometric language modeling, with geometry replacing floating-point matrix multiplication in serving. A count table is a comparator/component, not the final architecture.
 

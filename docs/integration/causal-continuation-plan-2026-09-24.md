@@ -1,0 +1,15 @@
+# Causal geometric continuation implementation plan
+
+Base: 7fb232ad. Owner-directed execution of the five prior workstreams; local date September 23, UTC September 24. No terminal-goal change: fully transformerless geometric language intelligence, exact addressed evidence and shared learned operations. New components stay opt-in until their actual integration checks pass.
+
+## Design and acceptance
+1. **Exact continuation.** Add a versioned bounded checkpoint of every latent parameter, both Adam moments, optimizer step/configuration and an explicit external data/schedule cursor with corpus/tokenizer bindings. Split/reloaded training must reproduce uninterrupted parameter bytes, not merely the served model. Reject corrupt, nonfinite, foreign and truncated input before allocation/mutation.
+2. **Causal feedback learning.** Add a training-only crossed-copy intervention with fixed selected evidence and independently varied copied feedback. Ordinary training/serving are unchanged by default. Check actual post-copy state/decision interventions, temporal32/class4/heldout3, and generation. Crossed teacher forcing is explicitly interventional, not a claim that the runtime may copy an unowned value.
+3. **Learned relative vector action.** Fit shared Q8 query-relative operators from source/query supervision; evaluate novel vectors, competing candidates and common-frame/disabled/categorical controls. Exact occurrence payloads remain distinct from vector ranking. This is a bounded learner, not a general-language or unique-geometric-advantage claim.
+4. **Broader exposed training.** Add source-separated prose/dialogue/code windows to the retained warm learner with grounded rehearsal and controlled feedback supervision. Keep source-level tune/final separation, checkpoint exact progress and retain all failures. Judge actual generated text and model-generated Rust compilation, not supplied answers.
+5. **Readout work reduction.** Compile packed ternary output weights into a bounded sparse integer read plan and use caller-owned scratch/output buffers. Verify exact all-row scores across native states and legal-action behavior; benchmark whole prompt-plus-generation path against the unchanged model, report storage separately and do not infer energy.
+
+## Execution
+Use the existing clean full worktree, two CPU workers maximum, one cargo process at a time. Worktree and unique artifacts are not deleted. Reclaim only audited recreatable caches or clean redundant checkouts with retained commit references. Seek roughly 50 decimal GB free. Full task projection and cumulative allowance are retained in the investigation directory before execution.
+
+Tests precede new mechanisms. Native Rust is used for model/data/training/serving; Python is limited to orchestration and independent analysis. Preserve corpus/model hashes and claim report roots exclusively, seal completed outputs. Publish code, failed and successful results, exact continuation instructions, resource/storage receipts and owning current-state updates through the protected PR queue. No automatic global model promotion.

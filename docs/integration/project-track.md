@@ -1,6 +1,16 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction: retain recovered learning and test useful geometric transport
+## Active: causal feedback, exact continuation and sparse readout, September24 UTC
+
+The [executed causal continuation](causal-continuation-result-2026-09-24.md) and [handoff](causal-continuation-handoff-2026-09-24.md) now own the latest results. Training-only crossed-feedback supervision reaches **16/16**, including four gradient-withheld combinations, versus8/16 for matched ordinary supervision; temporal32/train36/class4/historical-held-out3 remain retained. These are bounded exposed selection/regression panels, not general memory qualification.
+
+The new causal candidate trades a small repository-loss regression (6.34326 versus parent6.27371) for the repaired causal behavior and broader-source adaptation. On three newly frozen final files it scores10.61422 versus parent11.47179 and ordinary-control10.59886. **0/4 dialogue and0/4 unmodified generated Rust outputs pass.** Full scoped sessions and useful language remain open.
+
+An exact optimizer/data/schedule checkpoint reproduces the real run across a separate-process128-step restart. A compiled sparse read plan preserves all tested scores and generated sequences and measures about10.4x faster on the same pre-tokenized prompt/generation loop; only the successful readout is allocation-free. The learned Q8 relation-selection component matches a strengthened ordinary control at1,024/1,024, so no unique geometric predictive advantage is claimed. The geometry-first, fully transformerless terminal objective is unchanged, and no global serving default is replaced.
+
+---
+
+## Previous active direction: retain recovered learning and test useful geometric transport
 
 The terminal owner-directed goal remains a fully transformerless geometric language model in which geometry replaces floating-point matrix multiplication, not merely a table-native output layer. The September23 principal continuation supplies controlled components toward that goal, not a replacement objective.
 

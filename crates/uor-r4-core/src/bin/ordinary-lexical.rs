@@ -24,6 +24,8 @@
 // the bin's default macro recursion limit is too small for it.
 #![recursion_limit = "512"]
 
+#[path = "support/causal_continuation.rs"]
+mod causal_continuation;
 #[path = "support/observer_blend.rs"]
 mod observer_blend;
 #[path = "support/observer_transport.rs"]

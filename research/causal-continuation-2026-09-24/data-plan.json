@@ -1,0 +1,12 @@
+{
+ "schema":"uor-r4.causal-broadening-data/1",
+ "selection_before_download":true,
+ "training_sources":["Project Gutenberg pg120 Treasure Island","Project Gutenberg pg98 A Tale of Two Cities","rust-lang/book ch03-02-data-types.md","rust-lang/book ch03-03-how-functions-work.md"],
+ "tune_sources":["Project Gutenberg pg35 The Time Machine","rust-lang/book ch03-05-control-flow.md"],
+ "final_sources":["Project Gutenberg pg74 The Adventures of Tom Sawyer","Project Gutenberg pg219 Heart of Darkness","rust-lang/book ch04-01-what-is-ownership.md"],
+ "book_revision":"Resolve once before download; store returned commit and unmodified bytes.",
+ "authored_dialogue_code":"Finite prompt/answer templates generated in Rust with declared disjoint values; evaluate exact emitted text and compile only model-generated Rust. Not natural instruction-following qualification.",
+ "training_windows":"64-token nonoverlapping windows, prefix8, deterministic bounded even-stride selection; repository rehearsal retained separately.",
+ "final_evaluation":"Freeze the trained candidate by grounding plus tune loss before using final sources. Retain all negative generated outputs and exact source hashes. No fresh claim for the four books from the previous session.",
+ "runtime":"Native Rust tokenizer/model/training. Downloads and independent auditing may use shell/Python; they do not implement the model."
+}

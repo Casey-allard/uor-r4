@@ -1,0 +1,28 @@
+{
+  "schema": "uor-r4.causal-resource-checkpoint/1",
+  "start_utc": "2026-09-24T00:00:07+00:00",
+  "accounted_through": "2026-09-24T01:02:52.127009+00:00",
+  "elapsed_charge_ms": 3765127,
+  "task_wall_cap_ms": 5400000,
+  "ledger_before": {
+    "cumulative_ms": 442674193,
+    "limit_ms": 450100000
+  },
+  "ledger_after": {
+    "cumulative_ms": 446439320,
+    "limit_ms": 450100000
+  },
+  "physical_free_bytes": 54674399232,
+  "physical_stop_reserve_bytes": 25904021504,
+  "allocated_retained_paths": {
+    "/Users/casey.allard/uor-r4-investigations/causal-20260924T000007": 160518144,
+    "/Users/casey.allard/uor-r4/.uor-models/causal-continuation-2026-09-24": 22941696
+  },
+  "modified_release_cache_logical_bytes": 248712708,
+  "storage_note": "Modified-cache logical sizes conservatively count complete rewritten files, not a measured net increment or temporary peak. Retained-path allocations are measured separately; existing full worktree is reused.",
+  "model_ram_cap_bytes": 2147483648,
+  "compiler_ram_cap_bytes": 4294967296,
+  "threads": 2,
+  "paid_compute": false,
+  "charge_basis": "Complete elapsed wall, overlapping native and server work counted once, including the recovered connector interruption. Protected-delivery tail will be charged separately."
+}

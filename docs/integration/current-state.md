@@ -1,6 +1,16 @@
 # Current native geometric AI work
 
-## Principal continuation, September 23: recovered native learning and integer marginal-relative readout
+## Active: causal feedback, exact continuation and sparse readout, September24 UTC
+
+The [executed causal continuation](causal-continuation-result-2026-09-24.md) and [handoff](causal-continuation-handoff-2026-09-24.md) now own the latest results. Training-only crossed-feedback supervision reaches **16/16**, including four gradient-withheld combinations, versus8/16 for matched ordinary supervision; temporal32/train36/class4/historical-held-out3 remain retained. These are bounded exposed selection/regression panels, not general memory qualification.
+
+The new causal candidate trades a small repository-loss regression (6.34326 versus parent6.27371) for the repaired causal behavior and broader-source adaptation. On three newly frozen final files it scores10.61422 versus parent11.47179 and ordinary-control10.59886. **0/4 dialogue and0/4 unmodified generated Rust outputs pass.** Full scoped sessions and useful language remain open.
+
+An exact optimizer/data/schedule checkpoint reproduces the real run across a separate-process128-step restart. A compiled sparse read plan preserves all tested scores and generated sequences and measures about10.4x faster on the same pre-tokenized prompt/generation loop; only the successful readout is allocation-free. The learned Q8 relation-selection component matches a strengthened ordinary control at1,024/1,024, so no unique geometric predictive advantage is claimed. The geometry-first, fully transformerless terminal objective is unchanged, and no global serving default is replaced.
+
+---
+
+## Previous principal continuation, September 23: recovered native learning and integer marginal-relative readout
 
 The latest executed result is [principal-continuation-result-2026-09-23.md](principal-continuation-result-2026-09-23.md), with [the continuation handoff](principal-handoff-2026-09-23.md). A 128-update exact served-weight warm start with grounded rehearsal reaches **6.27371 bits/target**, retains authored temporal32/32, training36/36, class4/4 and held-out3/3, and reproduces byte-for-byte. A second shuffle seed confirms the decaying recipe; constant-rate candidates lose one held-out case.
 
