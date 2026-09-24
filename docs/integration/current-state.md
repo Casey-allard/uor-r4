@@ -7,7 +7,31 @@
 > Record: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md) · owner entries D4–D6 in
 > [DECISIONS.md](DECISIONS.md). The component results below retain their exact scope.
 
-## Active: frozen-state readout adjudication (M1 Part A), September 24 UTC
+## Active: KVAR — a gated overwrite addressed memory extends the horizon (M1 Part B′), September 24 UTC
+
+The [executed KVAR result](kvar-recall-result-2026-09-24.md) runs the amended M1 Part B: a synthetic **keyed
+variable-lag retrieval with rebinding** panel (V=64, `K∈{4,8}`, `lag∈{4,16,64}`, every key rebound, answer = most
+recent value). Panel validated: the order-2 count control is **at chance** (0/204; chance 1/64) and the hand-coded
+overwrite table is **1.0000** (204/204). With the plan-compliant **hard-select** served readout, the **gate +
+token-addressed overwrite store** arm reaches **0.8235 [0.7696, 0.8725]** and **0.7157 [0.6520, 0.7745]** (two seeds),
+**+3.75 / +3.24 bits** over the count control, while the current recurrence (0.0098) and the gate-only recurrence
+(0.0196) stay at chance. **Decision: `ACCEPT_MEMORY_MECHANISM`** — this is the memory mechanism the reviews predicted
+would be the lever, and it directly answers M1 Part A's "the lever is the state/horizon". Performance degrades with
+lag (0.94 at lag 4 → 0.59–0.71 at lag 64) but stays far above chance. Standalone harness
+(`crates/uor-r4-core/src/bin/kvar-recall.rs`); `transferable_lexical.rs` and `tl_execution.rs` byte-unchanged;
+evidence root `/Users/casey.allard/uor-r4-investigations/kvar-20260924` (`run4`).
+
+**Not established (recorded):** the **`(f)` ordinary equal-cost matched control is `NOT_RUN`**, so "the memory beats
+an ordinary equal-cost gated memory" is not yet shown — `(b)` (gate-only) is the current comparator. The **`(h)`
+geometry gate is `NOT_RUN`**, so the owner's vectors/Hamiltonians hypothesis is **not tested here**; this is a memory
+result, not a geometric one. No language, capability, reasoning or energy claim.
+
+**Next:** re-train (c) end-to-end with the hard-select readout as the training objective, then run `(f)` (equal-cost
+ordinary gated memory) and `(h)` (geometric parameterisation) on the same frozen panel to test the geometry gate.
+
+---
+
+## Previous active: frozen-state readout adjudication (M1 Part A), September 24 UTC
 
 The [executed adjudication](frozen-state-readout-adjudication-result-2026-09-24.md) runs Part A of the adopted
 [direction](direction-decision-2026-09-24.md): a read-only float diagnostic on the artifact's own recorded served

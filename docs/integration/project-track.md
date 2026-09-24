@@ -20,10 +20,15 @@ serving invariant** (D5) and the current served path is recorded as dense/non-co
      [result](frozen-state-readout-adjudication-result-2026-09-24.md). The state adds only **+0.022 bits** over a
      servable order-2 count table, and no readout (linear/quadratic/MLP) recovers more → the lever is the
      **state/horizon**.
-   - **M1 Part B — active next.** One gate × capacity arm on a synthetic induction panel where the count control is
-     at chance. The owner's **vectors/Hamiltonians** lead attaches here as a learned parameterisation of the
-     state/gate, compared against a matched ordinary parameterisation at equal parameters (its fixed-Q8 transport
-     form already ties an ordinary signed-permutation control).
+   - **M1 Part B′ — done (2026-09-24).** Keyed variable-lag retrieval (KVAR) with rebinding:
+     [result](kvar-recall-result-2026-09-24.md). A gated token-addressed **overwrite store** reaches **0.8235 /
+     0.7157** (two seeds) select-served, **+3.75 / +3.24 bits** over the order-2 count control, while the plain
+     recurrence and gate-only recurrence are at chance → **`ACCEPT_MEMORY_MECHANISM`**; the lever is the
+     memory/horizon, not the readout.
+   - **M1 Part B″ — active next.** Re-train (c) end-to-end with the hard-select readout as the objective; add the
+     deferred `(f)` equal-cost ordinary gated memory and `(h)` geometric parameterisation to run the **geometry
+     gate** (the owner's vectors/Hamiltonians lead; a tie is expected and retires the geometry claim, not the
+     memory).
 3. **M2 — one-variable gate + capacity ablation, crossed with corpus**, endpointed on the M1 probe, `repository_bits`
    a `+0.05` guard only. (Only if M1 leaves the branch open.)
 4. **M3 — cross-window state + the long-range objective** — the first milestone that can claim a capability.
