@@ -33,7 +33,8 @@
     "serving_weight_max_bits": 4,
     "geometric_routing_priority": true,
     "serving_floating_point_allowed": false,
-    "serving_transcendentals_allowed": false
+    "serving_transcendentals_allowed": false,
+    "offline_autodiff_training_allowed": true
   },
   "delivery": {
     "direct_push_to_main": false,
@@ -82,7 +83,14 @@
       "external_cost": "requires_explicit_owner_authorization",
       "global_fixed_time_or_retry_quota": false,
       "stop": "checkpoint_and_stop_at_configured_limits",
-      "standing_owner_authorization": "Necessary local model/time/storage extensions preauthorized 2026-09-06; record complete projection, reason, increment and updated cumulative limits before use; preserve 128 MiB stop margin; no deletion or paid/external compute."
+      "standing_owner_authorization": "Necessary local model/time/storage extensions preauthorized 2026-09-06; record complete projection, reason, increment and updated cumulative limits before use; preserve 128 MiB stop margin; no deletion or paid/external compute.",
+      "separate_measured_costs": [
+        "model_training",
+        "model_evaluation",
+        "local_accelerator",
+        "compilation",
+        "preparation_and_orchestration"
+      ]
     },
     "prohibited": [
       "blind_unchanged_failure_retries",
@@ -90,7 +98,8 @@
       "silent_external_spend",
       "python_model_implementation_or_product_dependency"
     ],
-    "verification": "focused_checks_for_changed_rust_path_and_actual_behavior_with_relevant_broader_checks"
+    "verification": "focused_checks_for_changed_rust_path_and_actual_behavior_with_relevant_broader_checks",
+    "learning_contract": "D8: persistent reference, native joint learning, explicit discretization and serving-mask ladder; actual language-to-context gradients and hard-path behavior required"
   },
   "mode": "native_geometric_ai",
   "project_track": {

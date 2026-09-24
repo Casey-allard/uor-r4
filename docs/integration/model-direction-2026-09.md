@@ -1,5 +1,10 @@
 # UOR-R4 Geometric Language Model: direction and capability assessment
 
+> **September 24 supersession:** [D8 and the canonical ladder](project-track.md)
+> now own implementation direction following the [stuck-point assessment](stuck-point-review-response-2026-09-24.md).
+> The [short current state](current-state.md) owns current artifacts/results.
+> Dated “latest” and “next” statements below are historical evidence, not active scheduling.
+
 ## September24 causal continuation
 
 The latest component repairs the measured copied-feedback shortcut with intervention-based learning, adds exact optimizer/data continuation and compiles the existing readout for equal-output speed. Its independent relation-conditioned Q8 learner is tested against an equally informed ordinary permutation model, which matches it. None of these changes adopts a table-only terminal architecture or demonstrates useful general dialogue/code generation. The [result](causal-continuation-result-2026-09-24.md) keeps the causal improvement, text-loss tradeoff and cost boundaries separate.

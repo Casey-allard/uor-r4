@@ -4,6 +4,8 @@
 
 The owner-directed mode is `native_geometric_ai`. Build a learned local language model using the project's prime/zeta/R4 geometry, exact addressed memory and shared typed operators. The objective is useful conversation/memory and coding/reasoning, ultimately frontier capability on consumer M1-class laptops with lower energy and wasted compute. The model remains pre-alpha.
 
+**September 24 learning correction:** [D8](docs/integration/DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) makes the canonical plan's reference/joint-learning/discretization ladder active. A1–A4 are retained scaffolds and negative language evidence; do not resume local selector tuning as the default next step. Use the offline Rust autodiff training tool, verify the actual language-to-context gradient and hard/relaxed bridge, preserve the #1017 language reference and fixed evaluator identities, and complete the declared rung before changing mechanism. A library, integrity check or small fixture is not a language result. Report actual training/evaluation/accelerator work separately from orchestration while retaining the cumulative ledger. The owner retains strategic authority; no transformer serving or new Python model dependency is adopted.
+
 ## Authority and recovery
 
 Read [README](README.md) → [canonical plan](docs/integration/project-track.md) → [current state](docs/integration/current-state.md) → [direction and capability assessment](docs/integration/model-direction-2026-09.md) → [project map](docs/PROJECT_MAP.md). Live GitHub owns issue status; #820 is the programme tracker. Current owner instructions and the stable policy override dated experiment scheduling. Historical negatives retain their exact technical scope.

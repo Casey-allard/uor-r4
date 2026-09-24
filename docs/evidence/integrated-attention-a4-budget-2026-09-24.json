@@ -1,0 +1,149 @@
+{
+  "schema": "uor-local-development-budget-v1",
+  "cycle": "integrated-attention-a4-20260924",
+  "started_utc": "2026-09-24T20:41:28+00:00",
+  "recorded_utc": "2026-09-24T20:46:06.032866+00:00",
+  "base_source": "015e4627b8d2d7550bc9d7b3c5567dbd1d4d9055",
+  "reason": "Owner-directed coupled candidate-or-NoRead successor and protected merge. The existing 79-minute balance is below the full 120-minute implementation, four-fit, replay and delivery projection. The necessary local extension uses standing authorization; no external cost.",
+  "cumulative_ms_before": 475856566,
+  "old_limit_ms": 480600000,
+  "increment_ms": 3600000,
+  "new_limit_ms": 484200000,
+  "complete_cycle_projection_ms": 7200000,
+  "stages_ms": {
+    "authority_design": 600000,
+    "implementation": 2700000,
+    "compile_focused_checks": 900000,
+    "four_matched_fits_replay_diagnosis": 1800000,
+    "delivery_merge": 1200000
+  },
+  "training_tokens_new_cycle_cap": 4500000,
+  "initial_four_fit_tokens": 4499104,
+  "parent_training_tokens_per_model": 1124776,
+  "fit_seconds_cap_each": 900,
+  "max_updates_each": 1500000,
+  "epochs_each": 8,
+  "context_tokens_max": 1024,
+  "natural_dev_context_max": 768,
+  "authored_context_max": 512,
+  "raw_event_capacity": 4096,
+  "candidate_cap": 64,
+  "generated_tokens_cap": 32,
+  "answer_head_repeats": 8,
+  "natural_selector_stride": 256,
+  "read_action_margin": 2,
+  "read_action_integer_steps_per_example": 4,
+  "one_cargo_process": true,
+  "threads": 2,
+  "cargo_incremental": false,
+  "peak_rss_target_bytes": 8589934592,
+  "new_storage_limits_bytes": {
+    "build": 1073741824,
+    "models_reports": 805306368,
+    "data": 268435456,
+    "temporary": 134217728
+  },
+  "physical_free_bytes_before": 28659195904,
+  "protected_physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "parent_artifacts": "Retained A3 models; new fits start from their own matched algebra parent. No repeated coarse fit.",
+  "comparison": "C120/2I x A4 unified selector/A3 continuation control. Both receive identical eight-epoch answer-balanced language adaptation. No fresh final draw. Each attempt is preserved.",
+  "delivery": "Extend open PR #1387 and complete protected merge after verification, as the owner explicitly requested. No direct main or admin merge.",
+  "storage_inventory": {
+    "schema": "uor-storage-inventory-v1",
+    "collected_at": "2026-09-24T20:42:45.005482+00:00",
+    "disk": {
+      "total_bytes": 245107195904,
+      "used_bytes": 216448000000,
+      "free_bytes": 28659195904
+    },
+    "proposed_reserve_bytes": 36766079385,
+    "below_proposed_reserve": true,
+    "paths": [
+      {
+        "label": "model_assets",
+        "path": "/Users/casey.allard/uor-r4/.uor-models",
+        "status": "LOWER_BOUND_OR_UNAVAILABLE",
+        "allocated_bytes": 21618814976,
+        "diagnostic_lines": 3
+      },
+      {
+        "label": "local_target",
+        "path": "/Users/casey.allard/uor-r4/target",
+        "status": "MEASURED",
+        "allocated_bytes": 1543704576,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "codex_worktrees",
+        "path": "/Users/casey.allard/.codex/worktrees",
+        "status": "MEASURED",
+        "allocated_bytes": 500805632,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "knowledge",
+        "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+        "status": "MEASURED",
+        "allocated_bytes": 2026692608,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "tooling",
+        "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+        "status": "MEASURED",
+        "allocated_bytes": 1207754752,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_tools",
+        "path": "/Users/casey.allard/.local/share/uv/tools",
+        "status": "MEASURED",
+        "allocated_bytes": 288870400,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_cache",
+        "path": "/Users/casey.allard/.cache/uv",
+        "status": "MEASURED",
+        "allocated_bytes": 221184,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_registry",
+        "path": "/Users/casey.allard/.cargo/registry",
+        "status": "MEASURED",
+        "allocated_bytes": 529661952,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_git",
+        "path": "/Users/casey.allard/.cargo/git",
+        "status": "MEASURED",
+        "allocated_bytes": 824213504,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "a3_parent",
+        "path": "/Users/casey.allard/uor-r4-investigations/integrated-attention-a3-20260924",
+        "status": "MEASURED",
+        "allocated_bytes": 185618432,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "active_build",
+        "path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target",
+        "status": "MEASURED",
+        "allocated_bytes": 2459553792,
+        "diagnostic_lines": 0
+      }
+    ],
+    "deletions": 0,
+    "notes": [
+      "Rows can overlap; do not sum them as exclusive volume usage.",
+      "du allocated-byte estimates may share APFS clone data.",
+      "Permission errors remain errors; no sealed paths are opened or unlocked.",
+      "Size alone does not make a path disposable. Review changes, evidence and references first."
+    ]
+  }
+}

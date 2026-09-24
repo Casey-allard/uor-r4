@@ -1,0 +1,195 @@
+{
+  "schema": "uor-r4.reference-autodiff-integrity-summary/1",
+  "recorded_utc": "2026-09-24T21:35:50.472956+00:00",
+  "decision": "REFERENCE_SOFT_ATTENTION_AUTODIFF_INTEGRITY_CONFIRMED; no new native learning or language quality result",
+  "source_commit": "e4f7e9d9dbf3e20cbdc4af973c27f9c7f4f6f4e2",
+  "retained_root": "/Users/casey.allard/uor-r4-investigations/reference-autodiff-20260924",
+  "executable_sha256": "abb32447f6f227df3b1f79c8ca655493c1e76994c6fd821c7a0d66f4f530624d",
+  "evaluator_manifest": "docs/integration/reference-evaluator-v1.json",
+  "evaluator_sha256": "a1bb15f399f660336c9030d7e77ceccc8052c5572f742f0b96ea48a65c520aa3",
+  "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "build_features": [
+    "metal",
+    "reference-accelerate"
+  ],
+  "build_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2",
+    "UOR_BUILD_SOURCE_COMMIT": "actual committed source"
+  },
+  "runtime_environment": {
+    "RAYON_NUM_THREADS": "2",
+    "VECLIB_MAXIMUM_THREADS": "2"
+  },
+  "build": {
+    "status": "PASS",
+    "wall_seconds": 113.75,
+    "max_rss_bytes": 1077411840,
+    "log_sha256": "ca899d085f0f8556c114c4a8b587a4d4161f396d447e83e2f8c18654ef5d26c2"
+  },
+  "arms": {
+    "cpu": {
+      "report_sha256": "6450cc4da4b4e826413b1e1373e3cf695052739dec3aacccae2f8462e11ad20b",
+      "report_bytes": 167193,
+      "log_sha256": "d475dd5117f7a851d2be3cde50e6cca6fb20112693e2ebc2a8a253a0cb6b9d2d",
+      "status": "INTEGRITY_PASS",
+      "actual_device": "Cpu",
+      "reference_backend": {
+        "arithmetic_owner": "Apple Accelerate CPU BLAS",
+        "std_runtime_detection_enabled": true,
+        "target_arch": "aarch64",
+        "target_os": "macos",
+        "uor_matmul_revision": "b13c98449948174f590e337c4dc25dfc394a07d0",
+        "available_backends": [
+          "portable",
+          "neon",
+          "neondotprod"
+        ],
+        "selected_backend": "Apple Accelerate",
+        "selection_status": "AVAILABLE: explicitly selected by observation-blas-exception"
+      },
+      "inputs_match_pinned_evaluator": true,
+      "exact_token_window_matches": true,
+      "positions": 32,
+      "compared_logits": 131072,
+      "max_logit_delta": 1.52587890625e-05,
+      "top1_matches": 32,
+      "train_prefix_loss_nats": 1.3581796884536743,
+      "gradient_tensors": 56,
+      "parameter_count": 7155360,
+      "all_parameter_gradients_present_finite_nonzero": true,
+      "qkv_gradient_tensors": 18,
+      "all_qkv_gradients_present_finite_nonzero": true,
+      "finite_differences": [
+        {
+          "tensor": "model.layers.0.self_attn.q_proj.weight",
+          "flat_index": 838,
+          "epsilon": 0.01,
+          "analytic": 0.008927712216973305,
+          "numerical": 0.00894665738075951,
+          "plus_loss": 1.358269453048706,
+          "minus_loss": 1.3580905199050903,
+          "absolute_error": 1.8945163786204464e-05,
+          "tolerance": 0.0006473328690379755,
+          "passes": true
+        },
+        {
+          "tensor": "model.layers.0.self_attn.k_proj.weight",
+          "flat_index": 78838,
+          "epsilon": 0.01,
+          "analytic": -0.012361607514321804,
+          "numerical": -0.01236200302707769,
+          "plus_loss": 1.3580563068389893,
+          "minus_loss": 1.3583035469055176,
+          "absolute_error": 3.9551275588661783e-07,
+          "tolerance": 0.0008181001513538846,
+          "passes": true
+        },
+        {
+          "tensor": "model.layers.0.self_attn.v_proj.weight",
+          "flat_index": 5072,
+          "epsilon": 0.01,
+          "analytic": -0.08710011839866638,
+          "numerical": -0.08712411121556411,
+          "plus_loss": 1.3573108911514282,
+          "minus_loss": 1.359053373336792,
+          "absolute_error": 2.3992816897730473e-05,
+          "tolerance": 0.004556205560778206,
+          "passes": true
+        }
+      ],
+      "restored_loss_delta": 0.0,
+      "optimizer_steps": 0,
+      "integrity_wall_ms": 1117,
+      "process_wall_seconds": 1.39,
+      "max_rss_bytes": 179191808,
+      "peak_process_memory_footprint_bytes": 173408784
+    },
+    "metal": {
+      "report_sha256": "34032611b055261747846dc6c24b61a41e1eec53173fad18ab4b9c84c29019ef",
+      "report_bytes": 167154,
+      "log_sha256": "777376191df31e43846dec2c86a9321d4e6d0f379f709310975e30a2f9e03d54",
+      "status": "INTEGRITY_PASS",
+      "actual_device": "Metal { gpu_id: 4294969169 }",
+      "reference_backend": {
+        "arithmetic_owner": "Apple Accelerate CPU BLAS",
+        "std_runtime_detection_enabled": true,
+        "target_arch": "aarch64",
+        "target_os": "macos",
+        "uor_matmul_revision": "b13c98449948174f590e337c4dc25dfc394a07d0",
+        "available_backends": [
+          "portable",
+          "neon",
+          "neondotprod"
+        ],
+        "selected_backend": "Apple Accelerate",
+        "selection_status": "AVAILABLE: explicitly selected by observation-blas-exception"
+      },
+      "inputs_match_pinned_evaluator": true,
+      "exact_token_window_matches": true,
+      "positions": 32,
+      "compared_logits": 131072,
+      "max_logit_delta": 1.621246337890625e-05,
+      "top1_matches": 32,
+      "train_prefix_loss_nats": 1.3581798076629639,
+      "gradient_tensors": 56,
+      "parameter_count": 7155360,
+      "all_parameter_gradients_present_finite_nonzero": true,
+      "qkv_gradient_tensors": 18,
+      "all_qkv_gradients_present_finite_nonzero": true,
+      "finite_differences": [
+        {
+          "tensor": "model.layers.0.self_attn.q_proj.weight",
+          "flat_index": 838,
+          "epsilon": 0.01,
+          "analytic": 0.008927707560360432,
+          "numerical": 0.008970499239202573,
+          "plus_loss": 1.358270525932312,
+          "minus_loss": 1.358091115951538,
+          "absolute_error": 4.279167884214084e-05,
+          "tolerance": 0.0006485249619601287,
+          "passes": true
+        },
+        {
+          "tensor": "model.layers.0.self_attn.k_proj.weight",
+          "flat_index": 78838,
+          "epsilon": 0.01,
+          "analytic": -0.012361602857708931,
+          "numerical": -0.01235604256274448,
+          "plus_loss": 1.358056664466858,
+          "minus_loss": 1.3583037853240967,
+          "absolute_error": 5.560294964450374e-06,
+          "tolerance": 0.0008180801428854465,
+          "passes": true
+        },
+        {
+          "tensor": "model.layers.0.self_attn.v_proj.weight",
+          "flat_index": 5072,
+          "epsilon": 0.01,
+          "analytic": -0.0871000736951828,
+          "numerical": -0.08710622982173181,
+          "plus_loss": 1.357311487197876,
+          "minus_loss": 1.359053611755371,
+          "absolute_error": 6.15612654901454e-06,
+          "tolerance": 0.004555311491086591,
+          "passes": true
+        }
+      ],
+      "restored_loss_delta": 0.0,
+      "optimizer_steps": 0,
+      "integrity_wall_ms": 12758,
+      "process_wall_seconds": 12.88,
+      "max_rss_bytes": 174424064,
+      "peak_process_memory_footprint_bytes": 296076128
+    }
+  },
+  "limitations": [
+    "Numerical parity and nonzero gradients concern a 32-token training prefix only; full baseline table and generation replay are NOT_RUN.",
+    "No optimizer step, learned native recurrent student, discrete gradient bridge or new language-quality claim.",
+    "The CLI pins weights and architecture, emits all input hashes; the evaluator manifest is checked independently rather than automatically enforced by the CLI.",
+    "CPU/Metal timings include input hashing, reference inference and finite-difference work; Metal includes initial kernel setup. They are not training throughput or GPU-active seconds.",
+    "Process RSS/footprint does not establish complete device-memory peak or electrical energy.",
+    "Finite differences cover one layer-zero coordinate per Q/K/V; nonzero gradients alone do not prove every backward derivative.",
+    "No serving crate depends on this offline crate."
+  ]
+}

@@ -1,0 +1,677 @@
+{
+  "schema": "uor-r4.integrated-attention-a4-summary/1",
+  "source_commit": "650f95c5870c45936e452d0866fa451441e8d234",
+  "retained_root": "/Users/casey.allard/uor-r4-investigations/integrated-attention-a4-20260924",
+  "scope": "Four matched exposed development continuations, eight epochs and 1,124,776 NEW training tokens each, plus independent process replay. No final held-out result or model promotion.",
+  "decision": "PARK_LOCAL_CREDIT_SUCCESSION; implement audited autodiff training-to-serving bridge under D8",
+  "scope_erratum": "Original report text about retaining fine codes is too strong: only dedicated context-token coefficients are frozen. State updates shared encoder rows and changes causal inputs, so fine codes drift. Original sealed source-bound reports remain unmodified.",
+  "arms": {
+    "c120-a4-1": {
+      "artifact_sha256": "9e2a582502749a17e1a8c127a63ccc490c91e9d642e36180d9d773d46aff6265",
+      "artifact_bytes": 44338546,
+      "parameter_bytes": 44282890,
+      "version": 3,
+      "parent_sha256": "dea0356528763649b8d8212212ac718f33d71e4d64631063b81e78d7728f3faf",
+      "new_training_updates": 1124776,
+      "cumulative_training_updates": 2249552,
+      "fit_wall_ms": 46860,
+      "process_wall_seconds": 55.33,
+      "max_rss_bytes": 567279616,
+      "with_read_bpt": 6.839477403453717,
+      "without_read_bpt": 6.9763336173260875,
+      "new_first_decisions": 24,
+      "first_admitted": 17,
+      "first_ranked": 2,
+      "first_selected": 2,
+      "loaded_fit_admitted": 167,
+      "loaded_fit_selected": 28,
+      "complete_answers_read": 0,
+      "complete_answers_noread": 0,
+      "answer_denominator_each": 12,
+      "generation_rows": 28,
+      "generation_steps_read": 448,
+      "mean_learned_reads_per_generated_step": 36390.27232142857,
+      "source_comparisons": {
+        "A2_initial": {
+          "rows": 64,
+          "nll_improved": 49,
+          "nll_worsened": 15,
+          "admission_gains": 27,
+          "admission_losses": 11,
+          "selection_gains": 5,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 13,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:larch-denied",
+              3
+            ],
+            [
+              "dev:correction:larch-denied",
+              4
+            ],
+            [
+              "dev:correction:larch-denied",
+              5
+            ],
+            [
+              "dev:correction:larch-denied",
+              6
+            ],
+            [
+              "dev:correction:larch-denied",
+              7
+            ],
+            [
+              "dev:correction:larch-denied",
+              8
+            ],
+            [
+              "dev:correction:larch-denied",
+              9
+            ],
+            [
+              "dev:correction:larch-denied",
+              10
+            ],
+            [
+              "dev:correction:larch-denied",
+              11
+            ],
+            [
+              "dev:correction:larch-denied",
+              12
+            ],
+            [
+              "dev:correction:larch-denied",
+              13
+            ]
+          ]
+        },
+        "A2_corrected": {
+          "rows": 64,
+          "nll_improved": 47,
+          "nll_worsened": 17,
+          "admission_gains": 27,
+          "admission_losses": 2,
+          "selection_gains": 5,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 13,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:orion-allowed",
+              10
+            ],
+            [
+              "dev:correction:orion-allowed",
+              11
+            ]
+          ]
+        },
+        "A3_parent": {
+          "rows": 64,
+          "nll_improved": 53,
+          "nll_worsened": 11,
+          "admission_gains": 0,
+          "admission_losses": 0,
+          "selection_gains": 5,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 9,
+          "inherited_admission_losses": [],
+          "first_query_code_changed": 21,
+          "first_source_code_changed": 18
+        },
+        "matched_control": {
+          "rows": 64,
+          "nll_improved": 39,
+          "nll_worsened": 25,
+          "admission_gains": 0,
+          "admission_losses": 0,
+          "selection_gains": 5,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 15,
+          "inherited_admission_losses": []
+        }
+      },
+      "selector_counts": {
+        "read_action_answer_utility_examples": 22080,
+        "read_action_integer_edits": 608203,
+        "read_action_natural_utility_examples": 3208,
+        "read_action_skipped_unidentifiable": 0,
+        "read_action_target_eligible": 1336,
+        "read_action_target_not_admitted": 200,
+        "read_action_target_selected": 1336,
+        "read_action_updates": 26624,
+        "read_action_utility_examples": 25288
+      },
+      "selector_parameter_stats": {
+        "no_read_bias": 0,
+        "no_read_features": {
+          "l1": 856,
+          "negative": 276,
+          "nonzero": 496,
+          "positive": 220
+        },
+        "read_bias": 0,
+        "read_features": {
+          "l1": 1836,
+          "negative": 675,
+          "nonzero": 1120,
+          "positive": 445
+        },
+        "relative_pair": {
+          "l1": 21099,
+          "negative": 7699,
+          "nonzero": 14200,
+          "positive": 6501
+        },
+        "relative_unary": {
+          "l1": 513,
+          "negative": 150,
+          "nonzero": 290,
+          "positive": 140
+        },
+        "value_relative": {
+          "l1": 31095,
+          "negative": 12180,
+          "nonzero": 20716,
+          "positive": 8536
+        }
+      },
+      "replay_byte_equal_files": {
+        "generations.json": "530945bc2699f3c696fd6d48333b26937abbd4218c1086d82bbbb12d3e864c7b",
+        "evaluation.json": "27334aa3ea2e56e60847c17d3986f9422d8ffb641269e975bfd7cabc5f5830d2",
+        "source-diagnosis.json": "23d50838e5c0b674cb536889ddd648a099fe96b33b8eb0cc73bb49951283afd8",
+        "first-loaded-generation.json": "bc38f6a54f98723584177b37a1e2e3b8ddb992ef469509e93c96094963310228",
+        "loaded-component-digests.json": "3ee4a9bbda4ad7783d01df65005683abfd5d2b83d063a4b838233c2d6d390c40",
+        "loaded-provenance.json": "e2d6352019cca5650117af302c73eb016d0f38098d5e84bad2d2cd34b5b06ef9",
+        "routes-loaded-fit.json": "e1510addc4f94c8e305429c686f601274a0304f5f596cfc163b554322fb666ca",
+        "routes-loaded-dev.json": "727997f7c5dc2d7e1b6750eaf395d7b74a486f5d01ff684d16d44a5a96c4d083"
+      },
+      "example_loaded_output": ": Yes,\n    Yes, le_l.l.l.len.d.l.d.l.d).l."
+    },
+    "c120-control1": {
+      "artifact_sha256": "357ceee864b068672eaaadcb86565b4591d00a86b0bb44505be4786cc83eb294",
+      "artifact_bytes": 42184919,
+      "parameter_bytes": 42135302,
+      "version": 2,
+      "parent_sha256": "dea0356528763649b8d8212212ac718f33d71e4d64631063b81e78d7728f3faf",
+      "new_training_updates": 1124776,
+      "cumulative_training_updates": 2249552,
+      "fit_wall_ms": 48262,
+      "process_wall_seconds": 56.34,
+      "max_rss_bytes": 552697856,
+      "with_read_bpt": 6.799839212549071,
+      "without_read_bpt": 7.099472785436822,
+      "new_first_decisions": 24,
+      "first_admitted": 17,
+      "first_ranked": 3,
+      "first_selected": 0,
+      "loaded_fit_admitted": 167,
+      "loaded_fit_selected": 0,
+      "complete_answers_read": 0,
+      "complete_answers_noread": 0,
+      "answer_denominator_each": 12,
+      "generation_rows": 28,
+      "generation_steps_read": 448,
+      "mean_learned_reads_per_generated_step": 36045.216517857145,
+      "source_comparisons": {
+        "A2_initial": {
+          "rows": 64,
+          "nll_improved": 47,
+          "nll_worsened": 17,
+          "admission_gains": 27,
+          "admission_losses": 11,
+          "selection_gains": 0,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 9,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:larch-denied",
+              3
+            ],
+            [
+              "dev:correction:larch-denied",
+              4
+            ],
+            [
+              "dev:correction:larch-denied",
+              5
+            ],
+            [
+              "dev:correction:larch-denied",
+              6
+            ],
+            [
+              "dev:correction:larch-denied",
+              7
+            ],
+            [
+              "dev:correction:larch-denied",
+              8
+            ],
+            [
+              "dev:correction:larch-denied",
+              9
+            ],
+            [
+              "dev:correction:larch-denied",
+              10
+            ],
+            [
+              "dev:correction:larch-denied",
+              11
+            ],
+            [
+              "dev:correction:larch-denied",
+              12
+            ],
+            [
+              "dev:correction:larch-denied",
+              13
+            ]
+          ]
+        },
+        "A2_corrected": {
+          "rows": 64,
+          "nll_improved": 47,
+          "nll_worsened": 17,
+          "admission_gains": 27,
+          "admission_losses": 2,
+          "selection_gains": 0,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 12,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:orion-allowed",
+              10
+            ],
+            [
+              "dev:correction:orion-allowed",
+              11
+            ]
+          ]
+        },
+        "A3_parent": {
+          "rows": 64,
+          "nll_improved": 41,
+          "nll_worsened": 23,
+          "admission_gains": 0,
+          "admission_losses": 0,
+          "selection_gains": 0,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 13,
+          "inherited_admission_losses": [],
+          "first_query_code_changed": 17,
+          "first_source_code_changed": 16
+        }
+      },
+      "selector_counts": {
+        "read_action_answer_utility_examples": 0,
+        "read_action_integer_edits": 0,
+        "read_action_natural_utility_examples": 0,
+        "read_action_skipped_unidentifiable": 0,
+        "read_action_target_eligible": 0,
+        "read_action_target_not_admitted": 0,
+        "read_action_target_selected": 0,
+        "read_action_updates": 0,
+        "read_action_utility_examples": 0
+      },
+      "selector_parameter_stats": null,
+      "replay_byte_equal_files": {
+        "generations.json": "92984546258ae9941fe6d0a00a9a7559e9e0929f20e6f16e3e192ecaab525818",
+        "evaluation.json": "61756ef0797eba9725d0939acec9b08d94283dd5a7ddddfbac6246eb056abb11",
+        "source-diagnosis.json": "7109e9b3b93c499b423fa422c393540a1e21c520bba212f30cc4c789aead4874",
+        "first-loaded-generation.json": "19067f85c09079abe89f3d329bd266e241f37aeeafc92b2477d7ff2dcbf7eec8",
+        "loaded-component-digests.json": "55cbe65395e10e3ede67eedbfbbbfb4fe81a8f09c6dbe98a73efa9d5ca953b7f",
+        "loaded-provenance.json": "88e7a27a2f76b5237f135e363950134226f021519de568f99ce71402f6cb75e3",
+        "routes-loaded-fit.json": "5aadfd7c0483ce7c632901f97b4137ef98fec0890bae93fdff1e98b5af8c4ed8",
+        "routes-loaded-dev.json": "3255ac3c866f2f5ace175777afc3c91fd4c85397b3a3cbeca0c68d2d6161c5dc"
+      },
+      "example_loaded_output": "::: Yes, noteue.len();_u100:{S::::::::::"
+    },
+    "geometry-a4-1": {
+      "artifact_sha256": "df269572e3510fe2c8dab213f076cdeff5865349a7075e9493ebcecc670edda0",
+      "artifact_bytes": 44338578,
+      "parameter_bytes": 44282890,
+      "version": 3,
+      "parent_sha256": "53675902636cdbbd5d59bfffc93a9a1a77953bb490ec9018d38778d0ad11c1a6",
+      "new_training_updates": 1124776,
+      "cumulative_training_updates": 2249552,
+      "fit_wall_ms": 45430,
+      "process_wall_seconds": 53.69,
+      "max_rss_bytes": 569933824,
+      "with_read_bpt": 6.7989950510611035,
+      "without_read_bpt": 6.94669542022339,
+      "new_first_decisions": 24,
+      "first_admitted": 17,
+      "first_ranked": 2,
+      "first_selected": 2,
+      "loaded_fit_admitted": 167,
+      "loaded_fit_selected": 24,
+      "complete_answers_read": 0,
+      "complete_answers_noread": 0,
+      "answer_denominator_each": 12,
+      "generation_rows": 28,
+      "generation_steps_read": 448,
+      "mean_learned_reads_per_generated_step": 36378.752232142855,
+      "source_comparisons": {
+        "A2_initial": {
+          "rows": 64,
+          "nll_improved": 45,
+          "nll_worsened": 19,
+          "admission_gains": 27,
+          "admission_losses": 11,
+          "selection_gains": 6,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 14,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:larch-denied",
+              3
+            ],
+            [
+              "dev:correction:larch-denied",
+              4
+            ],
+            [
+              "dev:correction:larch-denied",
+              5
+            ],
+            [
+              "dev:correction:larch-denied",
+              6
+            ],
+            [
+              "dev:correction:larch-denied",
+              7
+            ],
+            [
+              "dev:correction:larch-denied",
+              8
+            ],
+            [
+              "dev:correction:larch-denied",
+              9
+            ],
+            [
+              "dev:correction:larch-denied",
+              10
+            ],
+            [
+              "dev:correction:larch-denied",
+              11
+            ],
+            [
+              "dev:correction:larch-denied",
+              12
+            ],
+            [
+              "dev:correction:larch-denied",
+              13
+            ]
+          ]
+        },
+        "A2_corrected": {
+          "rows": 64,
+          "nll_improved": 51,
+          "nll_worsened": 13,
+          "admission_gains": 27,
+          "admission_losses": 2,
+          "selection_gains": 6,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 10,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:orion-allowed",
+              10
+            ],
+            [
+              "dev:correction:orion-allowed",
+              11
+            ]
+          ]
+        },
+        "A3_parent": {
+          "rows": 64,
+          "nll_improved": 49,
+          "nll_worsened": 15,
+          "admission_gains": 0,
+          "admission_losses": 0,
+          "selection_gains": 6,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 12,
+          "inherited_admission_losses": [],
+          "first_query_code_changed": 21,
+          "first_source_code_changed": 21
+        },
+        "matched_control": {
+          "rows": 64,
+          "nll_improved": 35,
+          "nll_worsened": 29,
+          "admission_gains": 0,
+          "admission_losses": 0,
+          "selection_gains": 6,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 13,
+          "inherited_admission_losses": []
+        }
+      },
+      "selector_counts": {
+        "read_action_answer_utility_examples": 22080,
+        "read_action_integer_edits": 609732,
+        "read_action_natural_utility_examples": 3208,
+        "read_action_skipped_unidentifiable": 0,
+        "read_action_target_eligible": 1336,
+        "read_action_target_not_admitted": 200,
+        "read_action_target_selected": 1336,
+        "read_action_updates": 26624,
+        "read_action_utility_examples": 25288
+      },
+      "selector_parameter_stats": {
+        "no_read_bias": -2,
+        "no_read_features": {
+          "l1": 811,
+          "negative": 282,
+          "nonzero": 493,
+          "positive": 211
+        },
+        "read_bias": 2,
+        "read_features": {
+          "l1": 1766,
+          "negative": 655,
+          "nonzero": 1097,
+          "positive": 442
+        },
+        "relative_pair": {
+          "l1": 21018,
+          "negative": 7679,
+          "nonzero": 14223,
+          "positive": 6544
+        },
+        "relative_unary": {
+          "l1": 456,
+          "negative": 134,
+          "nonzero": 266,
+          "positive": 132
+        },
+        "value_relative": {
+          "l1": 30787,
+          "negative": 12025,
+          "nonzero": 20595,
+          "positive": 8570
+        }
+      },
+      "replay_byte_equal_files": {
+        "generations.json": "61467745ceaf52e2bdbc8a418ec489a7c228338dacb6eea7e915a5684ba57c36",
+        "evaluation.json": "4749429761fb8fe9a66e4fa163715bfb27988d122350aa6320415f2e0b8c61ba",
+        "source-diagnosis.json": "ed49adb790d69fd176506708a4f5807de9e0df97a275fc76873ed24532a02e32",
+        "first-loaded-generation.json": "495ccc7b7ef61054f41ca9b88dcfd283934d135c8aa8a6e2afae086493af597e",
+        "loaded-component-digests.json": "41fc79df0968be6bb3484ecf0d8caa188cd21a4fa0c8154215c80d102add2ff4",
+        "loaded-provenance.json": "eaf318f3892d64c79a5374688ee69761c1dd4b00a2c6ed66451ccc085e9ddc3f",
+        "routes-loaded-fit.json": "634adfefdbdbe9acc612d2df803d8b6bd542ad276acc3f8b7ce5c034e7dc7f71",
+        "routes-loaded-dev.json": "1a14ef028655daa55fa13ae77e2f3cf6cef632d4c173ae6cba95521b80047096"
+      },
+      "example_loaded_output": "::: Yes, Project Ld)?.\n//.l.len);\n        Project Laurelenance_"
+    },
+    "geometry-control1": {
+      "artifact_sha256": "df17cff82d08d9d36c19d31636719429fb9bdc5cdc5bfa6fcec8c168b76a8e27",
+      "artifact_bytes": 42184929,
+      "parameter_bytes": 42135302,
+      "version": 2,
+      "parent_sha256": "53675902636cdbbd5d59bfffc93a9a1a77953bb490ec9018d38778d0ad11c1a6",
+      "new_training_updates": 1124776,
+      "cumulative_training_updates": 2249552,
+      "fit_wall_ms": 45393,
+      "process_wall_seconds": 53.33,
+      "max_rss_bytes": 554237952,
+      "with_read_bpt": 6.872785324309294,
+      "without_read_bpt": 7.145619826134657,
+      "new_first_decisions": 24,
+      "first_admitted": 17,
+      "first_ranked": 4,
+      "first_selected": 0,
+      "loaded_fit_admitted": 167,
+      "loaded_fit_selected": 0,
+      "complete_answers_read": 0,
+      "complete_answers_noread": 0,
+      "answer_denominator_each": 12,
+      "generation_rows": 28,
+      "generation_steps_read": 448,
+      "mean_learned_reads_per_generated_step": 36059.997767857145,
+      "source_comparisons": {
+        "A2_initial": {
+          "rows": 64,
+          "nll_improved": 51,
+          "nll_worsened": 13,
+          "admission_gains": 27,
+          "admission_losses": 11,
+          "selection_gains": 0,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 10,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:larch-denied",
+              3
+            ],
+            [
+              "dev:correction:larch-denied",
+              4
+            ],
+            [
+              "dev:correction:larch-denied",
+              5
+            ],
+            [
+              "dev:correction:larch-denied",
+              6
+            ],
+            [
+              "dev:correction:larch-denied",
+              7
+            ],
+            [
+              "dev:correction:larch-denied",
+              8
+            ],
+            [
+              "dev:correction:larch-denied",
+              9
+            ],
+            [
+              "dev:correction:larch-denied",
+              10
+            ],
+            [
+              "dev:correction:larch-denied",
+              11
+            ],
+            [
+              "dev:correction:larch-denied",
+              12
+            ],
+            [
+              "dev:correction:larch-denied",
+              13
+            ]
+          ]
+        },
+        "A2_corrected": {
+          "rows": 64,
+          "nll_improved": 46,
+          "nll_worsened": 18,
+          "admission_gains": 27,
+          "admission_losses": 2,
+          "selection_gains": 0,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 14,
+          "inherited_admission_losses": [
+            [
+              "dev:correction:orion-allowed",
+              10
+            ],
+            [
+              "dev:correction:orion-allowed",
+              11
+            ]
+          ]
+        },
+        "A3_parent": {
+          "rows": 64,
+          "nll_improved": 48,
+          "nll_worsened": 16,
+          "admission_gains": 0,
+          "admission_losses": 0,
+          "selection_gains": 0,
+          "selection_losses": 0,
+          "inherited_rows": 28,
+          "inherited_nll_worsened": 11,
+          "inherited_admission_losses": [],
+          "first_query_code_changed": 21,
+          "first_source_code_changed": 19
+        }
+      },
+      "selector_counts": {
+        "read_action_answer_utility_examples": 0,
+        "read_action_integer_edits": 0,
+        "read_action_natural_utility_examples": 0,
+        "read_action_skipped_unidentifiable": 0,
+        "read_action_target_eligible": 0,
+        "read_action_target_not_admitted": 0,
+        "read_action_target_selected": 0,
+        "read_action_updates": 0,
+        "read_action_utility_examples": 0
+      },
+      "selector_parameter_stats": null,
+      "replay_byte_equal_files": {
+        "generations.json": "f1cad1a87c509a0106c44f91848dd984f366ddd80280cff5d9f93e19b01393b8",
+        "evaluation.json": "769647331cf1a81d153759b2bd58cbc1a1eff0538ec1e4067c0ea19a2c1d41b8",
+        "source-diagnosis.json": "c2fc16fdf656fdb9ec3167bfb5c35df684dbf9e9b6685063855675278fc67f95",
+        "first-loaded-generation.json": "aa8e35cb30523ca3e51d45fc1fba036ec6dbd61ee3df8e6034cdfbf3b2de5aae",
+        "loaded-component-digests.json": "56775e4e2e1e94aeef9a79057f51053293b8ed57c0613ec9a3d4531b24266589",
+        "loaded-provenance.json": "38b3d243f53001989b30bb6d217338e20b2d4ec4f7f7ce632cd32d142a5ce07c",
+        "routes-loaded-fit.json": "f16e2cd756d4c90e3b8cc2ced3fa536b65bcc2d37a85d4124e255c0e06df3f42",
+        "routes-loaded-dev.json": "b556a741cb86af4ed338970de51a45e93642e84ebc902be64209e76df023929a"
+      },
+      "example_loaded_output": "::::::::::::::::::::::::::::::::"
+    }
+  },
+  "new_training_updates_total": 4499104,
+  "generation_rows_total": 112,
+  "actual_fit_wall_ms_total": 185945,
+  "deletions": 0,
+  "paid_compute": false
+}

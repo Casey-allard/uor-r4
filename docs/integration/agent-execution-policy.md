@@ -40,6 +40,17 @@ ownership and deliver through protected pull requests.
 
 ## Learning and budget
 
+[D8](DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) makes a
+working reference and an explicit differentiable training-to-serving bridge the
+active implementation sequence. Use the reusable offline Rust autodiff tool;
+verify the actual next-token gradient path, hard/relaxed discrepancy and serving
+mask. Preserve native discrete scaffolds and old reference artifacts, but do not
+resume local selector adjustments as the default programme. Complete the declared
+rung through its decision with fixed evaluator identities and matched controls.
+An integrity check or dependency does not establish language learning. Record
+actual fitting, evaluation and local accelerator time separately from compilation
+and orchestration, while retaining the cumulative ledger below.
+
 Use configurable context, training and evaluation windows. Declare the run's
 CPU/thread, wall-time, RAM, new-storage, checkpoint and evaluation settings and
 charge their cumulative use across preparation, training, evaluation, retries

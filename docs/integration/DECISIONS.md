@@ -274,3 +274,36 @@ The [principal attention programme](principal-attention-plan-2026-09-24.md) is t
 This decision supersedes the earlier sequencing that deferred geometric implementation behind further isolated metadata/cache gates. It does not change D0-b, D4's requirement for evidence before a geometric-advantage claim, D5's terminal sparsity constraint, or D6's long-range information objective and controls. Geometric code can be developed and trained from the start; promotion still requires the declared comparisons. Focused correctness checks and diagnoses serve the integrated endpoint. They are not successive substitute capability milestones.
 
 The owner also authorized local HDD cleanup. Remove specifically identified regenerable material after checking use and preservation; retain unique source, research, artifacts, negative results, histories and user data. Existing local resource-extension authority remains in force, with complete prospective accounting and no paid external compute.
+
+## D8 — Correct the training method and reference ladder
+
+September 24, 2026. **Implementation decision under the owner's direct request**
+to assess the supplied stuck-point review holistically and make warranted
+updates. This adopts the supported correction in the
+[independent assessment](stuck-point-review-response-2026-09-24.md), not every
+threshold, claim or policy suggested in the attachment.
+
+The [canonical plan](project-track.md) now owns a persistent reference → native
+joint learner → discretization → bounded admission/transport → integer export
+ladder. Stop using successive local auxiliary selector fixes as the main learning
+strategy. Preserve A1–A4, exact event/version memory, candidate ownership,
+separate admission/ranking, shared typed operators and matched ordinary controls.
+
+Restore #1017 as the pinned bounded language reference/optional offline teacher
+and #1014 as the actual historical attention-ablation evidence. Their ordinary
+transformer computation remains outside target serving. The previously revealed
+test is a regression benchmark; it is not a fresh final holdout. Use a reusable
+offline Rust autodiff tool, explicitly connect language loss to context/state,
+declare the soft-to-hard estimator and mask, and verify hard-path behavior during
+training. A library dependency alone is not a gradient or capability result.
+
+This supersedes D7's current local-training implementation sequence while
+preserving its integrated endpoint. D0-b and D4–D6, the native transformerless
+goal, geometric evidence requirements, eventual per-token sparsity, exact-memory
+contracts and no-hidden-provider boundary remain unchanged. No new Python model,
+paid/external compute, automatic six-week freeze or universal token-count theorem
+is adopted. Meaningful exposure/seed budgets and numerical gates precede each
+comparison and use measured throughput. Model compute and orchestration time are
+reported separately. The live state is concise and its prior contents remain
+archived. Complete the authorized rung before changing mechanism; consequential
+direction changes require evidence, independent review and protected delivery.

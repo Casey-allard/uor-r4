@@ -1,0 +1,62 @@
+{
+  "schema": "uor-r4.a4-and-review-correction-closeout/1",
+  "recorded_utc": "2026-09-24T21:38:48.411091+00:00",
+  "cycle_started_utc": "2026-09-24T20:41:28+00:00",
+  "complete_cycle_limit_ms": 7200000,
+  "full_cycle_elapsed_ms_at_receipt": 3440411,
+  "remaining_delivery_reserve_ms": 300000,
+  "full_cycle_charged_ms": 3740411,
+  "charge_scope": "Implementation, independent review, research, dependency preparation, compilation, fits, controls, replays, diagnostics, documentation and protected delivery. The delivery reserve is booked allowance, not measured model compute; reconcile overruns explicitly.",
+  "ledger_path": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+  "ledger_before": {
+    "cumulative_ms": 475856566,
+    "limit_ms": 484200000
+  },
+  "ledger_after": {
+    "cumulative_ms": 479596977,
+    "limit_ms": 484200000
+  },
+  "measured_model_work": {
+    "a4_new_training_token_updates": 4499104,
+    "a4_joint_fit_wall_ms": 185945,
+    "a4_complete_fit_process_wall_seconds": 218.69,
+    "reference_integrity_optimizer_steps": 0,
+    "reference_integrity_input_tokens_per_device": 32,
+    "reference_integrity_process_wall_seconds": {
+      "cpu": 1.39,
+      "metal": 12.88
+    },
+    "reference_integrity_report_wall_ms": {
+      "cpu": 1117,
+      "metal": 12758
+    },
+    "reference_build_wall_seconds": 113.75,
+    "gpu_active_kernel_seconds": "NOT_MEASURED; Metal process wall is not GPU-active time",
+    "training_throughput": "NOT_MEASURED for future native student; do not extrapolate integrity costs"
+  },
+  "retained_allocated_bytes": {
+    "/Users/casey.allard/uor-r4-investigations/integrated-attention-a4-20260924": 208699392,
+    "/Users/casey.allard/uor-r4-investigations/reference-autodiff-20260924": 6713344
+  },
+  "physical_free_bytes": 27260551168,
+  "protected_physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "physical_headroom_above_stop_bytes": 1222311936,
+  "peak_a4_fit_rss_bytes": 569933824,
+  "peak_reference_build_rss_bytes": 1077411840,
+  "shared_build_cache_policy": "Preserved; one Cargo process at a time; CARGO_INCREMENTAL=0 and CARGO_BUILD_JOBS=2",
+  "checks": [
+    "33 focused integrated-attention tests passed",
+    "Source-bound optimized A4 build passed after retained JSON recursion-limit compile correction",
+    "Four complete A4/control fits and four separate-process replays; all 112 generation rows and eight files per arm reproduce",
+    "Source-bound optimized Candle reference build passed",
+    "CPU and Metal pinned 32-position parity, all-layer Q/K/V gradient and three finite-difference checks passed",
+    "Independent source/history/math and implementation/result review completed",
+    "Formatting, claim-wording and diff checks passed"
+  ],
+  "capability_decision": "No A4/native language promotion; reference soft-attention autodiff foundation confirmed. Full baseline table, student training and hardening remain open.",
+  "delivery": "Protected PR #1387; actual merge and tree equality must be verified live and recorded in the owning issues.",
+  "paid_compute": false,
+  "deletions": 0,
+  "original_checkout": "Preserved, apart from the authorized shared cumulative ledger."
+}

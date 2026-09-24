@@ -1,12 +1,89 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active adopted programme — integrated attention-language model, September 24 UTC
+## Active programme — learn the model, then harden its execution
 
-The owner adopted the [consolidated programme](principal-attention-plan-2026-09-24.md) and directed implementation, recorded in [D7](DECISIONS.md#d7--adopt-the-integrated-attention-language-programme). It joins independent mathematics, computer-science/frontier literature and engineering/development reviews across current and dormant mechanisms. D0-b and D4–D6 remain in force. Adoption establishes direction, not a model result.
+[D8](DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) applies the owner's September 24 request to assess and act on the [stuck-point review](stuck-point-review-response-2026-09-24.md). It corrects D7's implementation sequence while preserving its integrated model goal, exact tape, separated admission/ranking, shared operators and ordinary control. D0-b and D4–D6 remain authority. The terminal target is a useful native transformerless geometric model with integer/table serving and per-token parameter sparsity.
 
-**Active milestone A: one integrated attention-language artifact**, owned by #973 under programme #820. Jointly build and train exact event capture plus learned semantic memory, contextual product-code admission, a mutable relative-frame energy, shared sparse geometric state operators and a normalized sparse Generate/Copy/Stop output. Develop a matched ordinary sparse arm at the same time. The existing RNN and rejected metadata gate remain controls/evidence. Acceptance is complete loaded language/memory/code behavior, source causality and measured parameter access; focused correctness checks support that endpoint. Do not resume tuning the exposed metadata gate or promote another isolated authored fixture.
+**Stop the succession of local-credit selector adjustments.** [A4](integrated-attention-a4-result-2026-09-24.md) operates but ends at 2/24 correct first reads and 0/12 complete answers in each arm; most online-fitted source choices are lost by export. A1–A4 remain negative evidence and reusable native scaffolds. Their code is not deleted or silently promoted. The current mechanism priority is a coherent differentiable learning graph, a measured soft-to-hard bridge, and natural language behavior at meaningful exposure.
 
-Milestone A consolidates the remaining M1 learning/integration work and designs D5 in from the start. Milestones B–E cover compositional sessions, quality scaling, complete-path laptop qualification and replacement claims by useful workload. Complete training/storage projections precede execution; final acceptance thresholds precede a fresh final draw. The [A1 implementation](integrated-attention-a1-plan-2026-09-24.md) has now been [fitted and replayed](integrated-attention-a1-result-2026-09-24.md): its sparse path executes, but source selection and generated language fail. Continue with one joint contextual-address/read/output learning change, using candidate-conditioned language utility and identifiable source supervision; retain the failed artifacts and all-write warmup until selective-write utility is measurable. This is continuing A, not a completed capability milestone. Historical ordering and results below remain for provenance; the linked programme and [current state](current-state.md) own current direction and results.
+### One persistent ladder
+
+Rung status is maintained here and the active artifact/result pointer in [current state](current-state.md). Historical plans below preserve provenance; they do not compete with this sequence. #973 owns the integrated learning/attention outcome under programme #820. Correctness, coding, product and energy consumers still require their complete acceptance.
+
+| Rung | Deliverable and decisive comparison | Status |
+|---|---|---|
+| 0 — reference and evaluator | Pin #1017 weights, tokenizer, train/dev and old revealed regression split; recover #1014 attention-ablation evidence. Reproduce real logits/generation in the reusable Rust autodiff tool and verify language gradients through Q/K/V. Pin one evaluator/manifest before candidate selection, including ordinary n-gram plus cache on the same tokens. | Active; identities and CPU/Metal gradient/parity checks passed; full baseline table and generation replay still open |
+| 0.5 — codebook diagnostic | On train-only calibration activations from the working reference, compare 600-cell, fitted k-means-120 and random-120 at equal stored bits, norms/gain and rotation budget. Measure attention/logit/NLL error separately. A transformer quantization diagnostic stays an offline reference, not target serving. | Not run; useful bounded codebook question, not a substitute language milestone |
+| 1 — native joint learning | Train one recurrent-memory student with continuous read/representation/state/output credit on the same natural data, plus a competitive ordinary recurrent control. An offline #1017 teacher is optional and declared. Use real autodiff and inspect nonzero gradients, retained fit, learning curves, natural likelihood and complete generation. | Next substantive model work after the reference/evaluator foundation |
+| 2 — discretize the working student | Add declared straight-through/annealed quantization, commitment/usage terms where needed, matched codebooks and explicit gains. Train and score both relaxed and exported hard paths throughout; preserve language behavior and measure the gap. | Not run |
+| 3 — bound admission and transport | Apply actual serving admission masks during training; compare partial-lane/probed access with full training attention and a matched exact/cache control. Test observable input-dependent group transport against an ordinary recurrent/Householder control, including transport quantization error and shared-state drift. | Not run |
+| 4 — integer export and useful execution | Export the same learned student to Rust bounded operators, exact memory and normalized output. Run complete source-edited/NoRead conversations and code tasks, arithmetic/serialization checks, per-token parameter access and M1 wall/RAM/physical-energy comparisons at matched quality. | Not run |
+| 5 — capacity and workload expansion | Broaden language, memory composition, reasoning and coding only from a retained working artifact. Establish replacement claims by useful workload and qualify terminal D5 sparsity. | Downstream |
+
+### Evaluation and learning contract
+
+- **One declared computation graph.** Next-token/sequence language loss must train the context mechanism through an explicit relaxed operation, estimator or discrete objective; naming an autodiff dependency is insufficient. Record query/key/value/state gradients, the hard operation and its surrogate, masking, quantizer, hardening schedule, and optimizer/checkpoint state. Avoid inference-only operations without backward support.
+- **One reusable training tool.** `crates/uor-r4-training` is offline Rust training/reference infrastructure. It is not linked into the serving crates. Candle 0.9.2 is pinned intentionally; CPU/Metal execution must be witnessed before a scale projection. Retained Python/dense references remain evidence; no new Python model dependency is adopted.
+- **Reference scope.** #1017 is a working bounded TinyStories language reference and possible offline teacher; #1014 owns the actual attention-off result. Neither supplies a serving backbone, a geometry advantage, general chat, or a fresh final-test result. Recover later grounding/LoRA failures before reusing that route.
+- **Fixed evaluator, separate development.** Existing revealed tests are regression sets. Use train-only calibration, distinct open development, and a new final holdout only after design selection. Bind data/tokenizer/split/evaluator hashes. Any evaluator change requires a dated reason and independent review before use; local file permissions are not claimed to prevent an agent from editing it.
+- **Meaningful scale.** The first language-fit planning anchor is 30 million tokens per arm, informed by the historical local positive. Determine the actual dose, context, model capacity, seed count and checkpoint schedule from measured throughput and learning curves before launch. Small integrity runs are engineering checks, not capacity or language verdicts. Use at least three independent seeds for a comparative promotion decision, or explicitly retain exploratory status.
+- **Competitive controls.** Evaluate n-gram plus cache, a matched ordinary recurrent learner and the known language reference on identical tokenization/data where compared. Do not infer geometry from a label permutation or from unmatched corpora. Fit each control competently and charge its data, parameters, work and tuning opportunity.
+- **Population balance.** Define loss components by declared population means and coefficients; count first-source, suffix, natural and Stop exposures. Inspect retained fit after the full update cycle. Shared parameters and causal trajectories can move a supposedly frozen representation.
+- **Geometry roles.** Separate identity/addressing, codebook metric, noncommutative composition/transport, and exact arithmetic. Preserve orientation and frames. Prime/zeta mechanisms keep their implemented roles; any claimed predictive contribution needs matched random/control refits. Codebook distortion and group-word tasks are scoped diagnostics, not language or energy qualification.
+- **Exactness.** Finite-group table products can be exact. Algebraic-valued recurrence requires a specified scaled `Z[phi]` representation with coefficient/denominator/overflow bounds; irrational factors are not exact finite binary shift-add constants on ordinary fixed point.
+
+### Rung 1 computation graph and entry gate
+
+The entry gate is the pinned reference/evaluator baseline table, with the [input
+manifest](reference-evaluator-v1.json) and actual device measurements. The
+integrity check is one prerequisite; it does not complete that table. Use the
+existing n-gram implementation only under its audited formula: its current class
+name alone does not establish full interpolated Kneser–Ney smoothing.
+
+The native student is a recurrent model with explicit contextual reads. Its
+proposed graph, before discretization, is:
+
+1. Encode the observed token and prior state into a provisional state
+   `s_pre = F(s_previous, embedding(token))`. A learned input-dependent unit
+   quaternion may transport each four-dimensional state lane; an ordinary
+   recurrent/Householder arm receives the same information and capacity budget.
+   Learn contraction/update gates separately from norm-preserving transport.
+2. Form continuous Query from `s_pre`, and Key/Value from each earlier observed
+   event when written. Keep exact occurrence, token/span and version identity in
+   the event tape. Identity addresses locate evidence; they are not a distance.
+   The memory rule and reset boundary must be identical across compared arms.
+3. Compute an explicit empirical read energy for each causally available event
+   and NoRead. Start with trainable vector compatibility plus declared age/role
+   terms, then `a = softmax(-energy / temperature)` and
+   `read = sum(a_i * value_i)`. Every term used for addressing/ranking must receive
+   a recorded gradient or an explicitly separate discrete objective. No answer
+   labels enter the forward pass. This energy is a learned score, not a physical
+   Hamiltonian or an exact record of the past.
+4. Update `s = U(s_pre, read)` and emit a normalized vocabulary/copy distribution
+   from that same state/read. Backpropagate language loss through emission,
+   update, read weights, values, queries, keys and recurrent transport over a
+   declared truncated sequence. Include source-edited and NoRead generation in
+   the fixed evaluator so lower likelihood loss alone cannot qualify memory use.
+5. After a retained continuous learner works, introduce the serving codebook,
+   gain quantization and hard read progressively. Forward hard choices use a
+   declared straight-through/annealed surrogate; record both relaxed and hard
+   results. Train with the exact bounded admission mask before deployment.
+   Closure of finite-group transport is tested separately from codebook distortion.
+
+Widths, unroll length, optimizer, loss weights and throughput projections are
+fixed in the campaign manifest before training, from measured local resources.
+Start the ordinary recurrent arm and geometric arm from matched information,
+exposure and tuning budgets. Do not add group-word, codebook and corpus losses in
+one uncontrolled change. If the ordinary learner cannot retain language fit,
+resolve the shared learning defect before attributing the failure to geometry.
+This continuous graph is offline training scaffolding; its served successor must
+still meet D0-b and the eventual D5 parameter-access requirement.
+
+### Continuity, budgets and decision gates
+
+Complete the authorized rung through its declared acceptance/rejection decision. A negative micro-result does not authorize inventing another architecture or restarting the programme. Diagnose implementation failures within the rung; change direction only through a named decision supported by evidence and independent review, with owner direction for changed goals or permissions. Freeze numerical quality-loss/retention and cost gates before the corresponding comparison, preserving original historical failures. No automatic six-week promise or recurring task is created.
+
+Record actual model training/evaluation and accelerator time separately from preparation, compilation and agent/orchestration time; keep the cumulative ledger and storage protections. Necessary local extensions remain preauthorized when recorded prospectively. No external paid compute or destructive cleanup is implied. Maintain one concise result record per executed comparison, referencing full retained artifacts instead of duplicating their payloads across documents. Protected PR/merge delivery and exact source/tree verification remain mandatory.
 
 ## Adopted direction — 2026-09-24 (owner decision)
 

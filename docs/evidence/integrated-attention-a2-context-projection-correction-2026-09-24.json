@@ -1,0 +1,22 @@
+{
+  "schema": "uor-local-resource-projection-correction-v1",
+  "recorded_utc": "2026-09-24T18:41:07.485065+00:00",
+  "reason": "Integration audit found initial budget receipt context_tokens_max=512 inconsistent with the committed A2 loader: natural fit episodes have up to1024 tokens and natural development768;512 applies only to authored grounded episodes. This discrepancy was discovered after C120 fitting started. Do not relabel this as a prospective authorization for work already run.",
+  "original_context_tokens_max": 512,
+  "actual_max_fit_episode_tokens": 1024,
+  "actual_max_dev_natural_episode_tokens": 768,
+  "updated_remaining_cycle_context_tokens_max": 1024,
+  "completed_episode_tokens_at_recording": 1124776,
+  "possibly_in_progress_episode_tokens": "not separately observed; included in final artifact update count",
+  "temporarily_paused_process_ids": [],
+  "authorization": "Standing owner authorization for necessary local allowance extensions; this receipt records the changed projection before remaining runs.",
+  "additional_time_limit_ms": 0,
+  "additional_storage_limit_bytes": 0,
+  "training_cycle_token_cap": 6000000,
+  "memory_capacity_events": 4096,
+  "cpu_threads": 2,
+  "rss_target_bytes": 8589934592,
+  "physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "paired_comparison": "Both arms use the exact same unchanged source-bound dataset and eight-epoch schedule. The first run carries this resource-receipt discrepancy; it is not hidden or called an acceptance result."
+}

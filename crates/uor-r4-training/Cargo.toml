@@ -1,0 +1,21 @@
+[package]
+name = "uor-r4-training"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 research"
+
+[features]
+default = []
+metal = ["candle-core/metal", "candle-nn/metal"]
+reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+
+[dependencies]
+candle-core = { version = "=0.9.2", default-features = false }
+candle-nn = { version = "=0.9.2", default-features = false }
+safetensors = { version = "=0.6.2", default-features = false, features = ["std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.8"
+hex = "0.4.3"
+uor-r4-model-source = { path = "../uor-r4-model-source" }

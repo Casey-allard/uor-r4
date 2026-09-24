@@ -1,0 +1,81 @@
+{
+  "schema": "uor-r4.reference-evaluator/1",
+  "status": "PINNED_REFERENCE_INPUTS; full new baseline table not run",
+  "owner": "#973 under #820; D8 canonical plan",
+  "scope": "offline ordinary transformer reference; no target-serving or native-student qualification",
+  "local_reference_root": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017",
+  "artifacts": [
+    {
+      "relative_path": "export/config.json",
+      "bytes": 551,
+      "sha256": "147e186b22cbf2420886cb1ad01c9a2f9c9a3b36618523c1030bed41bfa66345"
+    },
+    {
+      "relative_path": "export/model.safetensors",
+      "bytes": 28627504,
+      "sha256": "cf988a6b5f722b614740b0843807a41feff8276571c846bbee85d410a0030d84"
+    },
+    {
+      "relative_path": "export/tokenizer.json",
+      "bytes": 109457,
+      "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+    },
+    {
+      "relative_path": "tokens/train.u16",
+      "bytes": 239992832,
+      "sha256": "7b12a8b0cad32689584d5b14e10aa60d449859dcb735c57cdec26bcddd2d4873"
+    },
+    {
+      "relative_path": "tokens/dev.u16",
+      "bytes": 500000,
+      "sha256": "74f7d85fa7670355f65805a9ffe06c2fb9db150b9f4cae8029e0d2f35e8993b6"
+    },
+    {
+      "relative_path": "continuation-dataset-manifest.json",
+      "bytes": 7415,
+      "sha256": "ca70dccfa4ebccf618cdfc16bc7c61427e31aa591cdc4b2e891921e2fdc965b6"
+    },
+    {
+      "relative_path": "continuation-training-view-manifest.json",
+      "bytes": 3290,
+      "sha256": "b68cb3e54ef3fb7a90b9e099ea808e6c45c52e14feb00571a4c06246fb2c4580"
+    }
+  ],
+  "historical_test": {
+    "path": "sealed-confirmation/test.u16",
+    "blake3_from_retained_manifest": "e5089fdc8dfd5a59f10c79499816f3c0b9ef68b7d2de19158aa073ef3f7e90fd",
+    "bytes": 499760,
+    "token_ids": 249880,
+    "historical_scored_targets": 249856,
+    "historical_nll_nats": 1.5727521962806827,
+    "current_role": "previously revealed fixed regression; not a fresh holdout",
+    "rehash_in_this_correction": false
+  },
+  "training_token_count": 119996416,
+  "development_token_count": 250000,
+  "context_length": 256,
+  "vocabulary": 4096,
+  "primary_metric": "mean next-token negative log likelihood in nats per target; identical tokenizer and causal reset/stride for all compared arms",
+  "historical_result_reproduction_status": "IDENTITIES_VERIFIED; new full-population inference not executed",
+  "new_final_holdout": "NOT_SELECTED; do not describe repeatedly inspected regression data as sealed final evaluation",
+  "integrity_scope": {
+    "tokens_from_train_offset": 0,
+    "input_positions": 32,
+    "optimizer_steps": 0,
+    "maximum_logit_delta": 0.005,
+    "top1_required_each_position": true,
+    "qkv_required": "finite nonzero gradients in all six layers",
+    "finite_difference_coordinates": "one maximum-absolute-gradient coefficient in each layer-0 Q/K/V tensor",
+    "finite_difference_epsilon": 0.01,
+    "finite_difference_atol": 0.0002,
+    "finite_difference_rtol": 0.05
+  },
+  "comparison_baselines": {
+    "historical_1017": "retained reference with new numerical import check",
+    "kneser_ney_5gram": "NOT_RUN on this exact evaluator; validate corpus/training boundary before claim",
+    "ngram_plus_cache": "NOT_RUN on this exact evaluator",
+    "ordinary_native_recurrent": "NOT_RUN",
+    "geometric_native_student": "NOT_RUN"
+  },
+  "change_rule": "Record a new version and independent review before using a changed evaluator or input; preserve this record and old results. Git tracking detects changes but is not access control."
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "uor-local-development-budget-v1",
+  "recorded_at": "2026-09-24T18:17:03.374658+00:00",
+  "started_utc": "2026-09-24T18:08:19+00:00",
+  "reason": "Owner-authorized protected merge and coupled A2 causal-address/evidence-language development from the retained A1 failure.",
+  "base_main": "b020f34a09816ba235984cedde1c50f4c8e9cae2",
+  "cumulative_ms_before": 469466786,
+  "old_limit_ms": 477000000,
+  "increment_ms": 0,
+  "new_limit_ms": 477000000,
+  "complete_cycle_projection_ms": 6300000,
+  "stages_ms": {
+    "recovery_merge_design": 900000,
+    "implementation_integration": 3300000,
+    "build_focused_checks": 600000,
+    "fit_loaded_generation_and_diagnosis": 900000,
+    "delivery": 600000
+  },
+  "training_tokens_cumulative_cycle_cap": 6000000,
+  "fit_seconds_cap_each": 900,
+  "context_tokens_max": 512,
+  "raw_event_capacity": 4096,
+  "candidate_cap": 64,
+  "postings_examined_cap": 512,
+  "generated_tokens_cap_per_prompt": 32,
+  "one_cargo_process": true,
+  "threads": 2,
+  "cargo_incremental": false,
+  "peak_rss_target_bytes": 8589934592,
+  "new_storage_limits_bytes": {
+    "build": 1073741824,
+    "data": 268435456,
+    "models_reports": 805306368,
+    "temporary": 134217728
+  },
+  "protected_physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "checkpoint_policy": "Preserve every attempted artifact/report and executable. Stop/checkpoint at cumulative time, token, RAM or physical storage limits; necessary local extensions require a prospective receipt. No paid compute.",
+  "scope": "One integrated model learning change, matched ordinary/geometric arms, actual reloaded generation with changed-source and NoRead controls. Open development only; no final capability or geometry promotion gate."
+}

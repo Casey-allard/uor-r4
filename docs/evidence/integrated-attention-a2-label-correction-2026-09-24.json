@@ -1,0 +1,15 @@
+{
+  "schema": "uor-integrated-attention-a2-label-correction-v1",
+  "recorded_utc": "2026-09-24T18:47:23.371374+00:00",
+  "parent_source": "3b7d2f5811337483c2276ef77e4c9fe27c6a10ba",
+  "evidence": "Each initial arm saw125424 address updates, including123888 weak natural hints versus1536 grounded first decisions. New first-answer source admission1/24 with both paired values committed; first read outputs still fail. Source-conditioned head now reduces decision loss.",
+  "decision": "Use grounded first decisions only for address/relative-energy supervision. Retain natural token CE, causal source-head warmup, actual hard reads, gate utility and positive-only writes. Same data, seed, eight epochs and rates. This is one label-identifiability correction, not an optimizer sweep.",
+  "training_tokens_already_used": 2249552,
+  "planned_additional_pair_training_tokens": 2249552,
+  "projected_cycle_training_tokens": 4499104,
+  "cycle_training_token_cap": 6000000,
+  "context_tokens_max": 1024,
+  "fit_wall_cap_seconds_each": 900,
+  "resource_limit_increment_ms": 0,
+  "evaluation": "Same loaded generations, source edits, NoRead and stratified diagnosis. Read-only inspector additionally distinguishes local greedy branch choice from true offline surface-token maximum and measures source coarse-code query rank. No final acceptance promotion from auxiliary loss."
+}
