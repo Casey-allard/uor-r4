@@ -636,6 +636,7 @@ pub fn run(args: &Args) -> Result<ExitCode, String> {
             &top,
             &tok,
         )?,
+        "language" => super::language_continuation::run(&root, &model, &fit, &dev, &tok)?,
         "causal" => super::causal_continuation::run(&root, &model, &fit, &dev, &tok)?,
         "depth" => depth_probe(&model, &dev)?,
         "count-calibration" => matched_count_calibration(&est, &tune, &dev, legacy_l),

@@ -1,6 +1,29 @@
 # Current native geometric AI work
 
-## Active: causal feedback, exact continuation and sparse readout, September24 UTC
+## Active: language-conditioned transport, complete compiled execution and span curriculum, September 24 UTC
+
+The [executed language-transport result](language-transport-result-2026-09-24.md) completes the interrupted
+workstream on `codex/language-transport-20260924` (base `48106e7c`). A learned integer token/bigram-feature→Q8-operation
+selector is exact (`256/256` fit; `absent owner` and `missing relation` rejected; the same action evaluated via
+`ht::apply` and via an explicit signed-permutation matrix agrees `32/32` — an implementation-equivalence check,
+not an independent comparator), ownership is never inferred from a vector distance, and the compiled
+complete-native path preserves behaviour (156 grounded comparisons identical) with **11.18×** lower per-token time
+and **zero** multiply mnemonics in the per-token serving symbols (static own-symbol census; construction contains
+multiplies). A bounded span curriculum with `moments` vs `reset` optimizer continuation reaches
+**73/80** and **76/80** span accuracy (parent 16/80, only length 1), answers held-out lengths 13/21/34 (48/48 and
+44/48), and retains all four historical gates; exact resume is byte-identical. Both arms are worse than the parent
+on repository bits (+0.142/+0.308). **Negative at its scope:** payloads of two BPE tokens reproduce, while
+three/four-token payloads fail the copy/stop sequence (`integrate.correct 16/64`) — selection is `32/32` correct,
+so this is a multi-token copy-length gap, not value coverage and not a geometry result. No general-language,
+geometric-superiority or energy claim. Ledger `449,439,320 / 455,500,000 ms`; charge +3,000,000 ms.
+
+**Next:** implement the declared *separate* span RNG so `max_span ∈ {3,8}` arms are exactly data-matched, then
+add in-range 3-token payloads and a length-only control to separate "length ≥ 3 tokens" from "out-of-range value",
+extend the copy/stop-length curriculum, and bind the changed runner/module hashes into receipts.
+
+---
+
+## Previous active: causal feedback, exact continuation and sparse readout, September24 UTC
 
 The [executed causal continuation](causal-continuation-result-2026-09-24.md) and [handoff](causal-continuation-handoff-2026-09-24.md) now own the latest results. Training-only crossed-feedback supervision reaches **16/16**, including four gradient-withheld combinations, versus8/16 for matched ordinary supervision; temporal32/train36/class4/historical-held-out3 remain retained. These are bounded exposed selection/regression panels, not general memory qualification.
 

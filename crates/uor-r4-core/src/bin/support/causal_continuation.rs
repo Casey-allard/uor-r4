@@ -32,7 +32,7 @@ fn body(text: &str) -> &str {
         .unwrap_or(text.len());
     &text[start..end]
 }
-fn sources(
+pub(super) fn sources(
     tok: &HfBpeTokenizer,
     dir: &Path,
     cap: usize,
@@ -148,7 +148,7 @@ fn feedback_panel(m: &TlModel, w: &Words) -> serde_json::Value {
     }
     serde_json::json!({"correct":rows.iter().filter(|r|r["correct"]==true).count(),"total":rows.len(),"withheld_correct":rows.iter().filter(|r|r["withheld_combination"]==true&&r["correct"]==true).count(),"withheld_total":4,"rows":rows,"scope":"Crossed diagnostic: fixed evidence and independently intervened emitted token. Not permission to copy an unowned value."})
 }
-fn panels(m: &TlModel, w: &Words) -> serde_json::Value {
+pub(super) fn panels(m: &TlModel, w: &Words) -> serde_json::Value {
     let (tr, cl, ho) = authored_world(w);
     let p = |cases: &[Grounded]| {
         let rows = grounded_panel(m, cases);

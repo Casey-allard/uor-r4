@@ -1,6 +1,25 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active: causal feedback, exact continuation and sparse readout, September24 UTC
+## Active: language-conditioned transport and complete compiled execution, September24 UTC
+
+The [executed language-transport result](language-transport-result-2026-09-24.md) completes the interrupted
+workstream: a learned language-conditioned Q8 source selector with exact ownership, a compiled complete-native
+execution path (11.18× on the tested loop; multiply-free serving symbols), a bounded span curriculum
+(`moments`/`reset` at 73/80 and 76/80 vs the parent's 16/80, generalising to held-out lengths), and exact resume.
+The measured negative is a value-coverage limit (only 2-digit fitted values reproduce), not a mechanism result.
+The terminal geometric/transformerless objective is unchanged.
+
+**Ordered next work:** (1) add the declared separate span RNG and re-run the `max_span ∈ {3,8}` grid as an
+exactly data-matched experiment; (2) add in-range 3-token payloads and a length-only control to separate
+"payload length ≥ 3 tokens" from "out-of-range value" (the current data cannot), extend the copy/stop-length
+curriculum, and re-measure `evaluate.generated`/`integrate.correct` with the selector and compiled path fixed;
+(3) keep the Q8 learner and its ordinary signed-permutation control at their established tie, and do not claim
+geometric superiority; (4) then resume the broader-source dialogue/code and complete-session work. Bind the
+changed runner/module hashes into receipts before delivery (the current receipts bind only the dispatcher).
+
+---
+
+## Previous active: causal feedback, exact continuation and sparse readout, September24 UTC
 
 The [executed causal continuation](causal-continuation-result-2026-09-24.md) and [handoff](causal-continuation-handoff-2026-09-24.md) now own the latest results. Training-only crossed-feedback supervision reaches **16/16**, including four gradient-withheld combinations, versus8/16 for matched ordinary supervision; temporal32/train36/class4/historical-held-out3 remain retained. These are bounded exposed selection/regression panels, not general memory qualification.
 

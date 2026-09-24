@@ -33,6 +33,9 @@ mod observer_transport;
 #[path = "support/principal_continuation.rs"]
 mod principal_continuation;
 
+#[path = "support/language_continuation.rs"]
+mod language_continuation;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::ExitCode;
