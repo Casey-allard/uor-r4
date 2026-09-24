@@ -1,0 +1,58 @@
+name: Relative query verification
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/relative-query-check.yml'
+      - 'crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs'
+      - 'crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs'
+      - 'crates/uor-r4-core/src/native_geometric/learner/compiled_relative_query.rs'
+      - 'tests/relative_query_standalone.rs'
+  push:
+    branches: ['codex/compiled-relative-query-20260924']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relative-query-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  relative-query:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          show-progress: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs
+            /crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs
+            /crates/uor-r4-core/src/native_geometric/learner/compiled_relative_query.rs
+            /tests/relative_query_standalone.rs
+            /rust-toolchain.toml
+            /rustfmt.toml
+            /.rustfmt.toml
+      - name: Check Rust toolchain and compile actual source modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          uname -sm
+          rustc --version
+          rustc --edition=2021 --test -C opt-level=2 tests/relative_query_standalone.rs -o "$RUNNER_TEMP/relative-query-tests"
+          "$RUNNER_TEMP/relative-query-tests" --test-threads=1 --nocapture | tee "$RUNNER_TEMP/relative-query-results.txt"
+          {
+            echo '### Executed standalone source checks'
+            echo '```text'
+            grep -E 'test result:|EXHAUSTIVE_PATHS|COMPILED_PATH_BYTES|SUCCESS_PATH_ALLOCATIONS|CPU_NS_PER_QUERY' "$RUNNER_TEMP/relative-query-results.txt"
+            echo '```'
+            echo 'CPU measurements cover only relative-vector selection, not language generation, M1 latency or energy.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Check formatting of touched Rust files
+        shell: bash
+        run: |
+          rustfmt --edition 2021 --check crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs tests/relative_query_standalone.rs

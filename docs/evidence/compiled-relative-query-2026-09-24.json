@@ -1,0 +1,44 @@
+{
+  "schema": "uor-r4.compiled-relative-query/1",
+  "recorded_utc": "2026-09-24",
+  "base_commit": "d71a3143",
+  "prior_branch_preserved": "origin/codex/compiled-relative-query-20260924",
+  "delivery_branch": "codex/compiled-relative-query-delivery-20260924",
+  "toolchain": "rustc 1.97.1",
+  "source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/compiled_relative_query.rs": "c7a90a40d3e74182ddf41258ad8177b5a25db58857ac6ba04dc225357dec5ecc",
+    "crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs": "8ea7ecd3cc778f7cc69a9797924a73dbc5976069f825a40248179b6cac9af115",
+    "tests/relative_query_standalone.rs": "9c4246ac5763bdcb2a49995de4ad91fb51ebf2eabb6cffcae4b5aac6f9f7a2a8",
+    ".github/workflows/relative-query-check.yml": "1e09918fd498172d8f5fb7d0df713d662ce2a65253e87dae1c0c441da0a8bdcb",
+    "docs/integration/compiled-relative-query-plan-2026-09-24.md": "aded19231949644c1dac2bc23f2ca6f5e4d12e28719029be0c8f9569f40a8ed1"
+  },
+  "local_checks": {
+    "cargo_fmt_check": "clean",
+    "test_target": "uor-r4-wasm-router --test relative_query_standalone",
+    "tests_passed": 18,
+    "tests_failed": 0,
+    "exhaustive_paths_length_0_to_4": 4681,
+    "independent_oracle": "test-local sequential act/select",
+    "compiled_path_bytes": 5,
+    "success_path_allocations": 0,
+    "model_bytes_unchanged": true
+  },
+  "independent_reviews": {
+    "mathematics": "L1-isometry identity exact for signed permutations and false for general orthogonal R; reject_min_mask exactly the sequential rejection set incl. cancelling negations; i64 query widening necessary and sufficient; u64 sum cannot overflow; verdict exact.",
+    "computer_science": "O(L+N) confirmed; no correctness fix required; tie-break and error precedence preserved; success path allocation-free; rebase onto d71a3143 clean; cargo-runnable.",
+    "corrections_applied": [
+      "new test: long_paths_match_sequential_where_a_coordinate_is_first_negated_after_step_four (lengths 5-6 exhaustive + late-negation paths)",
+      "cancelled_signs compares against the independent sequential oracle (m.select had become circular)",
+      "plan wording: retained selector recompiles per call; the reusable CompiledRelativePath is the compile-once object"
+    ]
+  },
+  "microbench_ns_per_query_debug": [
+    {"path_length": 32, "candidates": 256, "sequential": 37389, "integrated": 1451, "prepared": 988},
+    {"path_length": 32, "candidates": 16, "sequential": 2328, "integrated": 460, "prepared": 67},
+    {"path_length": 32, "candidates": 1, "sequential": 148, "integrated": 404, "prepared": 9},
+    {"path_length": 6, "candidates": 256, "sequential": 7821, "integrated": 1135, "prepared": 1014}
+  ],
+  "scope": "Bounded typed relative selection over supplied query/key vectors with exact ownership. Not learned natural-language attention, general language, geometric superiority or energy. Microbenchmark only (debug, single machine). No model execution, training or artifact change.",
+  "charge_ms": 600000,
+  "ledger_after": {"cumulative_ms": 450039320, "limit_ms": 455500000}
+}

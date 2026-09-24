@@ -1,6 +1,23 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active: language-conditioned transport and complete compiled execution, September24 UTC
+## Active: compiled relative-query transport, September 24 UTC
+
+The [executed compiled-relative-query result](compiled-relative-query-result-2026-09-24.md) folds a learned Q8
+relation path into a signed permutation plus an exact overflow mask and selects in the inverse frame, making
+selection **O(L+N)** instead of **O(N·L)** with unchanged semantics; verified by two independent reviews, 18
+standalone tests (exhaustive lengths 0–4), zero success-path allocations and an unchanged artifact. It is a scoped
+serving-cost component on the geometric selector line, not a capability or promotion. The geometric,
+fully transformerless objective is unchanged.
+
+**Ordered next work:** (1) make the span curriculum matched (declared separate span RNG) and isolate the
+multi-token copy gap (in-range 3-token payloads + a length-only control); (2) bind changed runner/module hashes
+into receipts before delivery; (3) then broaden dialogue/code training toward the complete-session objective.
+Keep the Q8 learner and its ordinary signed-permutation control at their established tie; do not claim geometric
+superiority.
+
+---
+
+## Previous active: language-conditioned transport and complete compiled execution, September24 UTC
 
 The [executed language-transport result](language-transport-result-2026-09-24.md) completes the interrupted
 workstream: a learned language-conditioned Q8 source selector with exact ownership, a compiled complete-native

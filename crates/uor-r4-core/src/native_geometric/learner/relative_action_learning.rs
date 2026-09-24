@@ -1,5 +1,8 @@
 //! Supervised finite relative-action learner. Exact payload identity is not a vector metric.
 use super::hamilton_transport as ht;
+#[path = "compiled_relative_query.rs"]
+mod compiled_relative_query;
+pub use compiled_relative_query::CompiledRelativePath;
 #[derive(Clone, Debug)]
 pub struct ActionExample {
     pub relation: usize,
@@ -66,14 +69,10 @@ impl RelativeActionModel {
         if keys.is_empty() || keys.len() > 1024 {
             return Err("invalid candidate count".into());
         }
-        let mut best = (u64::MAX, 0);
-        for (i, &key) in keys.iter().enumerate() {
-            let d = distance(query, self.act(path, key)?);
-            if d < best.0 {
-                best = (d, i);
-            }
-        }
-        Ok(best.1)
+        // Preserve first-key overflow versus unknown-relation error precedence.
+        // Subsequent candidates are checked against the compiled prefix domain.
+        self.act(path, keys[0])?;
+        CompiledRelativePath::compile(self, path)?.select(query, keys)
     }
     pub fn actions(&self) -> &[u8] {
         &self.actions

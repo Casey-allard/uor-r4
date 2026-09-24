@@ -1,6 +1,24 @@
 # Current native geometric AI work
 
-## Active: language-conditioned transport, complete compiled execution and span curriculum, September 24 UTC
+## Active: compiled relative-query transport, September 24 UTC
+
+The [executed compiled-relative-query result](compiled-relative-query-result-2026-09-24.md) delivers an orphaned
+pushed-but-unmerged workstream. A learned Q8 relation path is reduced to a signed permutation plus an exact
+prefix-overflow mask; the query is moved into the inverse frame (`‖q − R·k‖₁ = ‖R⁻¹q − k‖₁`, exact for signed
+permutations and false for a general orthogonal `R`), so selection is **O(L+N)** instead of **O(N·L)**, with
+tie-breaking, error precedence, payload identities and Q8L1 bytes unchanged. Verified: mathematics and CS reviews
+exact; **18/18** standalone tests including exhaustive lengths 0–4 (4,681 paths) against the independent
+sequential oracle plus a new length 5–6 late-negation test; `SUCCESS_PATH_ALLOCATIONS=0`; plan 5 bytes; model bytes
+unchanged. Measured (debug microbench): path 32 / 256 candidates **37,389 → 1,451 ns** (prepared 988); slower for a
+single candidate (148 → 404 ns). Scope: bounded typed relative selection — not language, geometric superiority or
+energy; no artifact promoted. Ledger `450,039,320 / 455,500,000 ms`; charge +600,000 ms.
+
+**Next:** resume the forward line — the matched span curriculum (declared separate span RNG) and the multi-token
+copy gap (in-range 3-token payloads + a length-only control), then broader-source dialogue/code.
+
+---
+
+## Previous active: language-conditioned transport, complete compiled execution and span curriculum, September 24 UTC
 
 The [executed language-transport result](language-transport-result-2026-09-24.md) completes the interrupted
 workstream on `codex/language-transport-20260924` (base `48106e7c`). A learned integer token/bigram-feature→Q8-operation
