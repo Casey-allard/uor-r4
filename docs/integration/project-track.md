@@ -14,10 +14,16 @@ serving invariant** (D5) and the current served path is recorded as dense/non-co
 **Ordered milestones (each with a pre-declared reject criterion):**
 
 1. **M0 — record correction** (this decision; no compute). Done by the decision record.
-2. **M1 — "escape from bigram class" diagnostic gate.** Frozen-state readout adjudication (no retraining) *plus* one
-   minimal gate × capacity arm on a synthetic induction panel where the count control is at chance by construction.
-   Plan: [escape-bigram-class-plan-2026-09-24.md](escape-bigram-class-plan-2026-09-24.md). **This is the active
-   milestone.**
+2. **M1 — "escape from bigram class" diagnostic gate.** Plan:
+   [escape-bigram-class-plan-2026-09-24.md](escape-bigram-class-plan-2026-09-24.md).
+   - **M1 Part A — done (2026-09-24).** Frozen-state readout adjudication:
+     [result](frozen-state-readout-adjudication-result-2026-09-24.md). The state adds only **+0.022 bits** over a
+     servable order-2 count table, and no readout (linear/quadratic/MLP) recovers more → the lever is the
+     **state/horizon**.
+   - **M1 Part B — active next.** One gate × capacity arm on a synthetic induction panel where the count control is
+     at chance. The owner's **vectors/Hamiltonians** lead attaches here as a learned parameterisation of the
+     state/gate, compared against a matched ordinary parameterisation at equal parameters (its fixed-Q8 transport
+     form already ties an ordinary signed-permutation control).
 3. **M2 — one-variable gate + capacity ablation, crossed with corpus**, endpointed on the M1 probe, `repository_bits`
    a `+0.05` guard only. (Only if M1 leaves the branch open.)
 4. **M3 — cross-window state + the long-range objective** — the first milestone that can claim a capability.

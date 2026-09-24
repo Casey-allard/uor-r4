@@ -169,6 +169,14 @@ struct Args {
     /// beat `C`, with two attribution controls. The report root is `--root`; no artifact is written
     /// and no serving path changes. The mode is a measurement, not a capability claim.
     count_blend: bool,
+    /// `--readout-adjudication <root>`: standalone, default-off diagnostic (escape-from-bigram-class
+    /// Part A). On the frozen artifact it records the served states of the 24 length-stratified
+    /// development documents, splits them **by document**, fits a float linear readout, a rank-K
+    /// bilinear/quadratic sketch, a 2-layer MLP and a count-augmented linear readout on the fit
+    /// documents, and evaluates every arm plus the artifact's own readout `A`, the tuned `(prev, cur)`
+    /// count prior `C` and the unigram `U` on the held-out documents. The value is the **new** report
+    /// root; read-only: no training, no artifact write, no served-path change.
+    readout_adjudication: Option<PathBuf>,
     /// `--refit-scope {kclass,servable}`: `kclass` refits the K restricted vocabulary rows and scores the
     /// K-class softmax; `servable` refits every vocabulary row and scores the artifact's full legal row
     /// set, with the `Copy` and `Stop` rows frozen at the artifact's own values.
@@ -213,6 +221,7 @@ fn parse_args() -> Result<Args, String> {
     let mut probe_skip_null = false;
     let mut readout_refit = false;
     let mut count_blend = false;
+    let mut readout_adjudication = None;
     let mut refit_scope = String::from(REFIT_SCOPE_SERVABLE);
     let mut refit_alphabet = String::from(REFIT_ALPHABET_TERNARY);
     let mut refit_epochs = REFIT_EPOCHS;
@@ -256,6 +265,7 @@ fn parse_args() -> Result<Args, String> {
             "--local-channel" => local_channel = Some(PathBuf::from(v()?)),
             "--condition" => condition = Some(PathBuf::from(v()?)),
             "--state-probe" => state_probe = Some(PathBuf::from(v()?)),
+            "--readout-adjudication" => readout_adjudication = Some(PathBuf::from(v()?)),
             "--artifact" => artifact = Some(PathBuf::from(v()?)),
             "--docs" => docs = Some(PathBuf::from(v()?)),
             "--tokenizer" => tokenizer = PathBuf::from(v()?),
@@ -392,6 +402,7 @@ fn parse_args() -> Result<Args, String> {
         probe_skip_null,
         readout_refit,
         count_blend,
+        readout_adjudication,
         refit_scope,
         refit_alphabet,
         refit_epochs,
@@ -9396,6 +9407,1747 @@ fn pool_star_bits(pool: &[Eval], lambda: f64) -> f64 {
     pool[idx].micro()
 }
 
+// ---------------------------------------------------------------------------
+// Frozen-state readout adjudication (escape-from-bigram-class, Part A)
+// ---------------------------------------------------------------------------
+//
+// One instrument, one question: on the artifact's *own recorded served states*, how much of the
+// local deficit is readout/feature-limited and how much is state-limited? The mode records the exact
+// served state at every prose `Generate` decision of the 24 length-stratified development documents,
+// splits those documents into a fit side and a held-out side **by document**, fits several float
+// readout arms on the fit side, and scores them on the held-out documents beside the artifact's own
+// served readout (`A`), the tuned `(prev, cur)` count prior (`C`) and the unigram (`U`). It is a
+// diagnostic, not a serving path: fitted and evaluated offline in `f64`, never serialised, never
+// loaded by a session, never consulted while serving. It does not train the artifact and writes
+// nothing into it or its directory.
+
+const ADJ_SPLIT_MODULUS: usize = 3;
+const ADJ_SPLIT_HELD: usize = 0;
+const ADJ_RANKS: [usize; 6] = [2, 4, 8, 16, 32, 64];
+const ADJ_MLP_WIDTHS: [usize; 2] = [64, 128];
+const ADJ_MLP_EPOCHS: usize = 15;
+const ADJ_MLP_LR: f64 = 3e-3;
+const ADJ_MLP_BATCH: usize = 256;
+const ADJ_FIT_MAX_WINDOWS: usize = 1200;
+const ADJ_MLP_FIT_CAP: usize = 14_000;
+/// The declared "approximately zero" tolerance for the substantive branch-1 condition that the
+/// count-augmented readout adds nothing over the count table itself.
+const ADJ_SUBSUMED_TOL: f64 = 0.05;
+const ADJ_SEED: u64 = 0x0AD1_2026_0924_0001;
+const ADJ_BASE_ASSERT_SAMPLE: usize = 256;
+
+/// The already-recorded transport-decode depth ladder, cited rather than re-run: provenance is the
+/// merged `depth_probe` on `origin/main` f6f0d3ac over the full development population.
+const ADJ_LADDER_LAGS: [usize; 4] = [1, 2, 3, 4];
+const ADJ_LADDER_CORRECT_PCT: [f64; 4] = [97.84, 74.86, 18.69, 0.60];
+const ADJ_LADDER_PROVENANCE: &str = "crates/uor-r4-core/src/bin/support/principal_continuation.rs::depth_probe \
+on origin/main f6f0d3ac, recorded in docs/integration/direction-decision-2026-09-24.md (full 5,376-position \
+development population, cur-peeled transported-prototype decode); arm (iv) is cited from this record and is \
+not re-run by this mode";
+
+const ADJ_DECISION_RULE: &str = "Pre-declared decision rule (verbatim):
+- If (v) - (i) ~= 0 (interval includes 0): the state's local information is subsumed by a servable count \
+table -> no readout work is justified; the lever is the state/horizon (Part B, the gate).
+- If (iii) - (i) >= 0.35 bits and (v) explains it: the gain is reconstruction of the count table from the \
+state - a feature-form result, not a language gain -> do not build a served readout as proxy polish; \
+proceed to Part B.
+- If (iv) full-population lag-2 recovery >= ~60 %: the state retains second-order information and the \
+readout's linearity is the blocker.
+- Middle outcomes are reported as the rank-K curve, not forced into a binary.";
+
+fn adj_uniform_pm(st: &mut u64) -> f64 {
+    (xorshift(st) as f64 / u64::MAX as f64) * 2.0 - 1.0
+}
+
+fn adjudication_document_split(n_docs: usize) -> (Vec<usize>, Vec<usize>) {
+    let mut fit = Vec::new();
+    let mut held = Vec::new();
+    for d in 0..n_docs {
+        if d % ADJ_SPLIT_MODULUS == ADJ_SPLIT_HELD {
+            held.push(d);
+        } else {
+            fit.push(d);
+        }
+    }
+    (fit, held)
+}
+
+fn row_nll_bits(logits: &[f64], y: usize) -> f64 {
+    let m = logits.iter().fold(f64::NEG_INFINITY, |a, b| a.max(*b));
+    let z: f64 = logits.iter().map(|v| (v - m).exp()).sum();
+    -(((logits[y] - m).exp() / z).max(f64::MIN_POSITIVE)).log2()
+}
+
+fn adj_opt_f64(v: f64) -> serde_json::Value {
+    if v.is_finite() {
+        serde_json::json!(v)
+    } else {
+        serde_json::json!(null)
+    }
+}
+
+#[derive(Clone)]
+struct ArmEval {
+    name: String,
+    bits: Eval,
+    correct: Vec<usize>,
+    n: Vec<usize>,
+}
+
+impl ArmEval {
+    fn new(name: &str, n_held: usize) -> Self {
+        ArmEval {
+            name: name.to_string(),
+            bits: Eval {
+                per_doc: vec![(0.0, 0usize); n_held],
+            },
+            correct: vec![0usize; n_held],
+            n: vec![0usize; n_held],
+        }
+    }
+    fn add(&mut self, rank: usize, bits: f64, ok: bool) {
+        self.bits.per_doc[rank].0 += bits;
+        self.bits.per_doc[rank].1 += 1;
+        self.n[rank] += 1;
+        if ok {
+            self.correct[rank] += 1;
+        }
+    }
+    fn micro_bits(&self) -> f64 {
+        self.bits.micro()
+    }
+    fn micro_top1(&self) -> f64 {
+        let c: usize = self.correct.iter().sum();
+        let n: usize = self.n.iter().sum();
+        if n == 0 {
+            f64::NAN
+        } else {
+            c as f64 / n as f64
+        }
+    }
+    fn positions(&self) -> usize {
+        self.n.iter().sum()
+    }
+    fn json(&self, held_names: &[String]) -> serde_json::Value {
+        let per_document: Vec<serde_json::Value> = (0..self.bits.per_doc.len())
+            .map(|i| {
+                let (b, n) = self.bits.per_doc[i];
+                serde_json::json!({
+                    "document": held_names.get(i).cloned().unwrap_or_default(),
+                    "bits_per_target": adj_opt_f64(if n == 0 { f64::NAN } else { b / n as f64 }),
+                    "targets": n,
+                    "top1": adj_opt_f64(if self.n[i] == 0 { f64::NAN } else { self.correct[i] as f64 / self.n[i] as f64 }),
+                })
+            })
+            .collect();
+        serde_json::json!({
+            "arm": self.name,
+            "micro_bits_per_target": adj_opt_f64(self.micro_bits()),
+            "micro_top1": adj_opt_f64(self.micro_top1()),
+            "positions": self.positions(),
+            "per_document": per_document,
+        })
+    }
+}
+
+fn random_pm1_dir(d: usize, st: &mut u64) -> Vec<f64> {
+    let s = 1.0 / (d as f64).sqrt();
+    (0..d)
+        .map(|_| if xorshift(st) & 1 == 0 { s } else { -s })
+        .collect()
+}
+
+fn build_quadratic_aug(
+    x: &[f64],
+    d: usize,
+    n: usize,
+    dirs: &[(Vec<f64>, Vec<f64>)],
+    rank: usize,
+) -> Vec<f64> {
+    let w = d + rank;
+    let mut out = vec![0.0; n * w];
+    for i in 0..n {
+        let xi = &x[i * d..(i + 1) * d];
+        out[i * w..i * w + d].copy_from_slice(xi);
+        for (r, (u, v)) in dirs.iter().take(rank).enumerate() {
+            let mut a = 0.0f64;
+            let mut bb = 0.0f64;
+            for j in 0..d {
+                if xi[j] != 0.0 {
+                    a += u[j] * xi[j];
+                    bb += v[j] * xi[j];
+                }
+            }
+            out[i * w + d + r] = a * bb;
+        }
+    }
+    out
+}
+
+fn build_count_logp(
+    set: &ProbeSet,
+    states: &[ServedState],
+    c1: &Cond,
+    c2: &Cond,
+    uni: &Uni,
+    lambdas: (f64, f64),
+    top_ids: &[u32],
+) -> Vec<f64> {
+    let k = top_ids.len();
+    let mut out = vec![0.0; set.n * k];
+    for i in 0..set.n {
+        let s = &states[set.state_index[i]];
+        let prev = s.prev.map(|v| v as usize).unwrap_or(VOCAB);
+        let cur = s.cur.map(|v| v as usize).unwrap_or(VOCAB);
+        let mut sum = 0.0f64;
+        for (ci, t) in top_ids.iter().enumerate() {
+            let p = family_p(c1, c2, uni, prev, cur, *t, lambdas);
+            out[i * k + ci] = p;
+            sum += p;
+        }
+        if sum > 0.0 {
+            for ci in 0..k {
+                out[i * k + ci] = (out[i * k + ci] / sum).max(1e-300).log2();
+            }
+        }
+    }
+    out
+}
+
+fn adam_update(
+    w: &mut [f64],
+    m: &mut [f64],
+    v: &mut [f64],
+    g: &[f64],
+    lr: f64,
+    b1t: f64,
+    b2t: f64,
+) {
+    for i in 0..w.len() {
+        let gg = g[i];
+        let mm = ADAM_BETA1 * m[i] + (1.0 - ADAM_BETA1) * gg;
+        let vv = ADAM_BETA2 * v[i] + (1.0 - ADAM_BETA2) * gg * gg;
+        m[i] = mm;
+        v[i] = vv;
+        w[i] -= lr * (mm / b1t) / ((vv / b2t).sqrt() + ADAM_EPS);
+    }
+}
+
+struct Mlp {
+    d: usize,
+    dh: usize,
+    k: usize,
+    w1: Vec<f64>,
+    b1: Vec<f64>,
+    w2: Vec<f64>,
+    b2: Vec<f64>,
+    m1: Vec<f64>,
+    v1: Vec<f64>,
+    mb1: Vec<f64>,
+    vb1: Vec<f64>,
+    m2: Vec<f64>,
+    v2: Vec<f64>,
+    mb2: Vec<f64>,
+    vb2: Vec<f64>,
+    steps: u32,
+}
+
+impl Mlp {
+    fn new(d: usize, dh: usize, k: usize, seed: u64) -> Self {
+        let mut st = seed | 1;
+        let s1 = 1.0 / (d as f64).sqrt();
+        let s2 = 1.0 / (dh as f64).sqrt();
+        let w1: Vec<f64> = (0..dh * d).map(|_| adj_uniform_pm(&mut st) * s1).collect();
+        let w2: Vec<f64> = (0..k * dh).map(|_| adj_uniform_pm(&mut st) * s2).collect();
+        Mlp {
+            d,
+            dh,
+            k,
+            w1,
+            b1: vec![0.0; dh],
+            w2,
+            b2: vec![0.0; k],
+            m1: vec![0.0; dh * d],
+            v1: vec![0.0; dh * d],
+            mb1: vec![0.0; dh],
+            vb1: vec![0.0; dh],
+            m2: vec![0.0; k * dh],
+            v2: vec![0.0; k * dh],
+            mb2: vec![0.0; k],
+            vb2: vec![0.0; k],
+            steps: 0,
+        }
+    }
+
+    fn forward(&self, x: &[f64], hid: &mut [f64], out: &mut [f64]) {
+        for h in 0..self.dh {
+            let row = &self.w1[h * self.d..(h + 1) * self.d];
+            let mut acc = self.b1[h];
+            for j in 0..self.d {
+                if x[j] != 0.0 {
+                    acc += row[j] * x[j];
+                }
+            }
+            hid[h] = acc.tanh();
+        }
+        for c in 0..self.k {
+            let row = &self.w2[c * self.dh..(c + 1) * self.dh];
+            let mut acc = self.b2[c];
+            for h in 0..self.dh {
+                acc += row[h] * hid[h];
+            }
+            out[c] = acc;
+        }
+    }
+
+    fn nll_bits(&self, x: &[f64], y: &[usize], idx: &[usize]) -> f64 {
+        if idx.is_empty() {
+            return f64::NAN;
+        }
+        let mut hid = vec![0.0; self.dh];
+        let mut out = vec![0.0; self.k];
+        let mut total = 0.0;
+        for &i in idx {
+            self.forward(&x[i * self.d..(i + 1) * self.d], &mut hid, &mut out);
+            total += row_nll_bits(&out, y[i]);
+        }
+        total / idx.len() as f64
+    }
+
+    fn top1(&self, x: &[f64], y: &[usize], idx: &[usize]) -> f64 {
+        if idx.is_empty() {
+            return f64::NAN;
+        }
+        let mut hid = vec![0.0; self.dh];
+        let mut out = vec![0.0; self.k];
+        let mut correct = 0usize;
+        for &i in idx {
+            self.forward(&x[i * self.d..(i + 1) * self.d], &mut hid, &mut out);
+            let mut best = 0usize;
+            for c in 1..self.k {
+                if out[c] > out[best] {
+                    best = c;
+                }
+            }
+            if best == y[i] {
+                correct += 1;
+            }
+        }
+        correct as f64 / idx.len() as f64
+    }
+
+    fn step(&mut self, x: &[f64], y: &[usize], idx: &[usize], lr: f64) {
+        if idx.is_empty() {
+            return;
+        }
+        let inv = 1.0 / idx.len() as f64;
+        let mut gw1 = vec![0.0; self.w1.len()];
+        let mut gb1 = vec![0.0; self.dh];
+        let mut gw2 = vec![0.0; self.w2.len()];
+        let mut gb2 = vec![0.0; self.k];
+        let mut hid = vec![0.0; self.dh];
+        let mut out = vec![0.0; self.k];
+        let mut dhid = vec![0.0; self.dh];
+        let mut dout = vec![0.0; self.k];
+        for &i in idx {
+            let xi = &x[i * self.d..(i + 1) * self.d];
+            self.forward(xi, &mut hid, &mut out);
+            let m = out.iter().fold(f64::NEG_INFINITY, |a, b| a.max(*b));
+            let z: f64 = out.iter().map(|v| (v - m).exp()).sum();
+            for c in 0..self.k {
+                dout[c] = (out[c] - m).exp() / z - if c == y[i] { 1.0 } else { 0.0 };
+            }
+            for h in 0..self.dh {
+                dhid[h] = 0.0;
+            }
+            for c in 0..self.k {
+                let dl = dout[c];
+                if dl != 0.0 {
+                    gb2[c] += dl * inv;
+                    let row = &mut gw2[c * self.dh..(c + 1) * self.dh];
+                    for h in 0..self.dh {
+                        row[h] += dl * hid[h] * inv;
+                        dhid[h] += dl * self.w2[c * self.dh + h];
+                    }
+                }
+            }
+            for h in 0..self.dh {
+                let dh_ = dhid[h] * (1.0 - hid[h] * hid[h]);
+                if dh_ != 0.0 {
+                    gb1[h] += dh_ * inv;
+                    let row = &mut gw1[h * self.d..(h + 1) * self.d];
+                    for j in 0..self.d {
+                        if xi[j] != 0.0 {
+                            row[j] += dh_ * xi[j] * inv;
+                        }
+                    }
+                }
+            }
+        }
+        self.steps += 1;
+        let b1t = 1.0 - ADAM_BETA1.powi(self.steps as i32);
+        let b2t = 1.0 - ADAM_BETA2.powi(self.steps as i32);
+        adam_update(&mut self.w1, &mut self.m1, &mut self.v1, &gw1, lr, b1t, b2t);
+        adam_update(
+            &mut self.b1,
+            &mut self.mb1,
+            &mut self.vb1,
+            &gb1,
+            lr,
+            b1t,
+            b2t,
+        );
+        adam_update(&mut self.w2, &mut self.m2, &mut self.v2, &gw2, lr, b1t, b2t);
+        adam_update(
+            &mut self.b2,
+            &mut self.mb2,
+            &mut self.vb2,
+            &gb2,
+            lr,
+            b1t,
+            b2t,
+        );
+    }
+
+    fn fit(&mut self, x: &[f64], y: &[usize], idx: &[usize], epochs: usize, lr: f64, seed: u64) {
+        let mut order: Vec<usize> = idx.to_vec();
+        let mut st = seed ^ 0x5DEE_CE66;
+        for _ in 0..epochs {
+            shuffle(&mut order, &mut st);
+            for batch in order.chunks(ADJ_MLP_BATCH) {
+                self.step(x, y, batch, lr);
+            }
+        }
+    }
+}
+
+fn eval_linear_on(
+    name: &str,
+    r: &RidgeReadout,
+    x: &[f64],
+    width: usize,
+    y: &[usize],
+    doc: &[usize],
+    ids: &[usize],
+    doc_rank: &[usize],
+    n_held: usize,
+) -> ArmEval {
+    let mut ev = ArmEval::new(name, n_held);
+    let mut sc = vec![0.0; r.k];
+    for &i in ids {
+        r.logits_into(&x[i * width..(i + 1) * width], &mut sc);
+        let mut best = 0usize;
+        for c in 1..r.k {
+            if sc[c] > sc[best] {
+                best = c;
+            }
+        }
+        ev.add(doc_rank[doc[i]], row_nll_bits(&sc, y[i]), best == y[i]);
+    }
+    ev
+}
+
+fn eval_mlp_on(
+    name: &str,
+    mlp: &Mlp,
+    set: &ProbeSet,
+    ids: &[usize],
+    doc_rank: &[usize],
+    n_held: usize,
+) -> ArmEval {
+    let mut ev = ArmEval::new(name, n_held);
+    let mut hid = vec![0.0; mlp.dh];
+    let mut out = vec![0.0; mlp.k];
+    for &i in ids {
+        mlp.forward(&set.x[i * mlp.d..(i + 1) * mlp.d], &mut hid, &mut out);
+        let mut best = 0usize;
+        for c in 1..mlp.k {
+            if out[c] > out[best] {
+                best = c;
+            }
+        }
+        ev.add(
+            doc_rank[set.doc[i]],
+            row_nll_bits(&out, set.y[i]),
+            best == set.y[i],
+        );
+    }
+    ev
+}
+
+fn probe_rows_subset(set: &ProbeSet, rows: &[usize]) -> ProbeSet {
+    let d = set.d;
+    let mut out = ProbeSet {
+        x: Vec::with_capacity(rows.len() * d),
+        d,
+        y: Vec::with_capacity(rows.len()),
+        target: Vec::with_capacity(rows.len()),
+        doc: Vec::with_capacity(rows.len()),
+        cur: Vec::with_capacity(rows.len()),
+        prev: Vec::with_capacity(rows.len()),
+        bits: Vec::with_capacity(rows.len()),
+        state_index: Vec::with_capacity(rows.len()),
+        all_recorded: set.all_recorded,
+        n: 0,
+    };
+    for &i in rows {
+        out.x.extend_from_slice(&set.x[i * d..(i + 1) * d]);
+        out.y.push(set.y[i]);
+        out.target.push(set.target[i]);
+        out.doc.push(set.doc[i]);
+        out.cur.push(set.cur[i]);
+        out.prev.push(set.prev[i]);
+        out.bits.push(set.bits[i]);
+        out.state_index.push(set.state_index[i]);
+        out.n += 1;
+    }
+    out
+}
+
+fn eval_float_probe(
+    name: &str,
+    probe: &FloatProbe,
+    set: &ProbeSet,
+    ids: &[usize],
+    doc_rank: &[usize],
+    n_held: usize,
+) -> ArmEval {
+    let mut ev = ArmEval::new(name, n_held);
+    let mut sc = vec![0.0; probe.k];
+    for &i in ids {
+        probe.scores(&set.x[i * probe.d..(i + 1) * probe.d], &mut sc);
+        let mut best = 0usize;
+        for c in 1..probe.k {
+            if sc[c] > sc[best] {
+                best = c;
+            }
+        }
+        ev.add(
+            doc_rank[set.doc[i]],
+            row_nll_bits(&sc, set.y[i]),
+            best == set.y[i],
+        );
+    }
+    ev
+}
+
+/// The parsimonious count-augmented linear readout: for class `c`,
+/// `z_c = w_c . x + alpha_c * q_c + b_c`, where `q_c` is the log2 of the tuned `(prev, cur)` count
+/// distribution renormalised over the K classes. The count block is diagonal (one coefficient per
+/// class, `K` in total), which is the servable-sized form; the free `K x K` block of a generic linear
+/// readout over `[x; q]` has ~1M coefficients and is neither servable-sized nor estimable from a
+/// bounded fit population. Each class is an independent `(d + 2)` ridge system.
+struct DiagCountReadout {
+    d: usize,
+    k: usize,
+    w: Vec<f64>,
+    alpha: f64,
+    b: Vec<f64>,
+}
+
+impl DiagCountReadout {
+    fn logits_into(&self, x: &[f64], q: &[f64], out: &mut [f64]) {
+        for c in 0..self.k {
+            let row = &self.w[c * self.d..(c + 1) * self.d];
+            let mut acc = self.b[c] + self.alpha * q[c];
+            for j in 0..self.d {
+                if x[j] != 0.0 {
+                    acc += row[j] * x[j];
+                }
+            }
+            out[c] = acc;
+        }
+    }
+}
+
+#[derive(Clone)]
+struct DiagMoments {
+    n: f64,
+    xtx: Vec<f64>,
+    sx: Vec<f64>,
+    xtq: Vec<f64>,
+    qtq: Vec<f64>,
+    sq: Vec<f64>,
+    xty: Vec<f64>,
+    counts: Vec<f64>,
+}
+
+impl DiagMoments {
+    fn zeros(d: usize, k: usize) -> Self {
+        DiagMoments {
+            n: 0.0,
+            xtx: vec![0.0; d * d],
+            sx: vec![0.0; d],
+            xtq: vec![0.0; d * k],
+            qtq: vec![0.0; k],
+            sq: vec![0.0; k],
+            xty: vec![0.0; d * k],
+            counts: vec![0.0; k],
+        }
+    }
+
+    fn add(&mut self, x: &[f64], y: &[usize], q: &[f64], d: usize, k: usize, idx: &[usize]) {
+        for &i in idx {
+            let xi = &x[i * d..(i + 1) * d];
+            let qi = &q[i * k..(i + 1) * k];
+            let yc = y[i];
+            self.n += 1.0;
+            self.counts[yc] += 1.0;
+            for r in 0..d {
+                let xr = xi[r];
+                if xr != 0.0 {
+                    self.sx[r] += xr;
+                    self.xty[r * k + yc] += xr;
+                    for c in r..d {
+                        let xc = xi[c];
+                        if xc != 0.0 {
+                            self.xtx[r * d + c] += xr * xc;
+                        }
+                    }
+                }
+            }
+            for c in 0..k {
+                let qc = qi[c];
+                if qc != 0.0 {
+                    self.qtq[c] += qc * qc;
+                    self.sq[c] += qc;
+                    for r in 0..d {
+                        let xr = xi[r];
+                        if xr != 0.0 {
+                            self.xtq[r * k + c] += xr * qc;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn add_assign(&mut self, o: &DiagMoments) {
+        self.n += o.n;
+        for (a, b) in self.xtx.iter_mut().zip(&o.xtx) {
+            *a += *b;
+        }
+        for (a, b) in self.sx.iter_mut().zip(&o.sx) {
+            *a += *b;
+        }
+        for (a, b) in self.xtq.iter_mut().zip(&o.xtq) {
+            *a += *b;
+        }
+        for (a, b) in self.qtq.iter_mut().zip(&o.qtq) {
+            *a += *b;
+        }
+        for (a, b) in self.sq.iter_mut().zip(&o.sq) {
+            *a += *b;
+        }
+        for (a, b) in self.xty.iter_mut().zip(&o.xty) {
+            *a += *b;
+        }
+        for (a, b) in self.counts.iter_mut().zip(&o.counts) {
+            *a += *b;
+        }
+    }
+
+    fn trace(&self, d: usize, k: usize) -> f64 {
+        ((0..d).map(|r| self.xtx[r * d + r]).sum::<f64>()
+            + self.qtq.iter().sum::<f64>() / k as f64
+            + self.n)
+            / (d + 2) as f64
+    }
+
+    fn solve_fixed(
+        &self,
+        d: usize,
+        k: usize,
+        lambda_abs: f64,
+        count_scale: f64,
+    ) -> Result<(Vec<f64>, Vec<f64>), String> {
+        let m = d + 1;
+        let mut w = vec![0.0f64; k * d];
+        let mut b = vec![0.0f64; k];
+        for c in 0..k {
+            let mut a = vec![0.0f64; m * m];
+            for r in 0..d {
+                for cc in r..d {
+                    let v = self.xtx[r * d + cc];
+                    a[r * m + cc] = v;
+                    a[cc * m + r] = v;
+                }
+                a[r * m + d] = self.sx[r];
+                a[d * m + r] = self.sx[r];
+            }
+            a[d * m + d] = self.n;
+            for r in 0..m {
+                a[r * m + r] += lambda_abs;
+            }
+            let mut rhs = vec![0.0f64; m];
+            for r in 0..d {
+                rhs[r] = self.xty[r * k + c] - count_scale * self.xtq[r * k + c];
+            }
+            rhs[d] = self.counts[c] - count_scale * self.sq[c];
+            let sol = cholesky_solve(&a, m, &rhs, 1)?;
+            for r in 0..d {
+                w[c * d + r] = sol[r];
+            }
+            b[c] = sol[d];
+        }
+        Ok((w, b))
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn diag_nll_bits(
+    x: &[f64],
+    y: &[usize],
+    q: &[f64],
+    d: usize,
+    k: usize,
+    ids: &[usize],
+    w: &[f64],
+    alpha: f64,
+    b: &[f64],
+) -> f64 {
+    if ids.is_empty() {
+        return f64::NAN;
+    }
+    let mut sc = vec![0.0f64; k];
+    let mut total = 0.0;
+    for &i in ids {
+        let xi = &x[i * d..(i + 1) * d];
+        let qi = &q[i * k..(i + 1) * k];
+        for c in 0..k {
+            let row = &w[c * d..(c + 1) * d];
+            let mut acc = b[c] + alpha * qi[c];
+            for j in 0..d {
+                if xi[j] != 0.0 {
+                    acc += row[j] * xi[j];
+                }
+            }
+            sc[c] = acc;
+        }
+        total += row_nll_bits(&sc, y[i]);
+    }
+    total / ids.len() as f64
+}
+
+#[allow(clippy::too_many_arguments)]
+fn fit_diag_count_readout(
+    x: &[f64],
+    d: usize,
+    y: &[usize],
+    q: &[f64],
+    k: usize,
+    train_idx: &[usize],
+    val_idx: &[usize],
+    refit_idx: &[usize],
+    temp_idx: &[usize],
+    count_scale: f64,
+) -> Result<(DiagCountReadout, f64, f64), String> {
+    if train_idx.is_empty() || val_idx.is_empty() || refit_idx.is_empty() {
+        return Err("the count-augmented readout has an empty fit population".into());
+    }
+    let mut train = DiagMoments::zeros(d, k);
+    train.add(x, y, q, d, k, train_idx);
+    let mut val = DiagMoments::zeros(d, k);
+    val.add(x, y, q, d, k, val_idx);
+    let mut refit = train.clone();
+    refit.add_assign(&val);
+    let trace = refit.trace(d, k);
+    let val_score = declared_subset(val_idx, 8000);
+    let mut best = (RIDGE_LAMBDAS[0], f64::INFINITY);
+    for &lambda_rel in RIDGE_LAMBDAS.iter() {
+        let (w, b) = train.solve_fixed(d, k, lambda_rel * trace, count_scale)?;
+        let bits = diag_nll_bits(x, y, q, d, k, &val_score, &w, count_scale, &b);
+        if bits < best.1 {
+            best = (lambda_rel, bits);
+        }
+    }
+    let (lambda_rel, val_bits) = best;
+    let (w, b) = refit.solve_fixed(d, k, lambda_rel * trace, count_scale)?;
+    let mut readout = DiagCountReadout {
+        d,
+        k,
+        w,
+        alpha: count_scale,
+        b,
+    };
+    if !temp_idx.is_empty() {
+        let mut matrix = vec![0.0f64; temp_idx.len() * k];
+        let mut sc = vec![0.0f64; k];
+        for (j, &i) in temp_idx.iter().enumerate() {
+            readout.logits_into(&x[i * d..(i + 1) * d], &q[i * k..(i + 1) * k], &mut sc);
+            matrix[j * k..(j + 1) * k].copy_from_slice(&sc);
+        }
+        let mut scratch = vec![0.0f64; k];
+        let (temp, _) = fit_temperature(&matrix, k, y, temp_idx, &mut scratch);
+        if temp.is_finite() && temp > 0.0 {
+            for v in readout.w.iter_mut() {
+                *v /= temp;
+            }
+            readout.alpha /= temp;
+            for v in readout.b.iter_mut() {
+                *v /= temp;
+            }
+        }
+    }
+    Ok((readout, lambda_rel, val_bits))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn eval_diag_on(
+    name: &str,
+    r: &DiagCountReadout,
+    x: &[f64],
+    q: &[f64],
+    y: &[usize],
+    doc: &[usize],
+    ids: &[usize],
+    doc_rank: &[usize],
+    n_held: usize,
+) -> ArmEval {
+    let mut ev = ArmEval::new(name, n_held);
+    let mut sc = vec![0.0f64; r.k];
+    for &i in ids {
+        r.logits_into(
+            &x[i * r.d..(i + 1) * r.d],
+            &q[i * r.k..(i + 1) * r.k],
+            &mut sc,
+        );
+        let mut best = 0usize;
+        for c in 1..r.k {
+            if sc[c] > sc[best] {
+                best = c;
+            }
+        }
+        ev.add(doc_rank[doc[i]], row_nll_bits(&sc, y[i]), best == y[i]);
+    }
+    ev
+}
+
+fn readout_adjudication_mode(args: &Args) -> Result<ExitCode, String> {
+    let root = args.readout_adjudication.clone().unwrap_or_default();
+    if root.as_os_str().is_empty() {
+        return Err("--readout-adjudication needs a new report root".into());
+    }
+    if args.docs.as_os_str().is_empty() {
+        return Err("--docs is required with --readout-adjudication".into());
+    }
+    let artifact_path = match args.artifact.clone() {
+        Some(p) if !p.as_os_str().is_empty() => p,
+        _ => {
+            return Err(
+                "--artifact (path to a .tlx file) is required with --readout-adjudication".into(),
+            );
+        }
+    };
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    println!(
+        "=== ordinary-lexical frozen-state readout adjudication (escape-from-bigram-class Part A) ==="
+    );
+    println!("{ADJ_DECISION_RULE}");
+
+    let tok_bytes = std::fs::read(&args.tokenizer).map_err(|e| format!("tokenizer: {e}"))?;
+    let tok_sha = sha256_hex(&Sha256::digest(&tok_bytes));
+    if tok_sha != EXPECTED_TOKENIZER_SHA256 {
+        return Err(format!(
+            "tokenizer sha256 {tok_sha} != expected {EXPECTED_TOKENIZER_SHA256}"
+        ));
+    }
+    let derived_bytes =
+        uor_r4_core::transformerless::bpe_derive::derive_tokenizer_json(&tok_bytes, VOCAB)
+            .map_err(|e| format!("derive bytes: {e}"))?;
+    let derived_sha = sha256_hex(&Sha256::digest(&derived_bytes));
+    let tokenizer = derive_tokenizer(&tok_bytes, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    write_checked(&root, "tokenizer_source.json", &tok_bytes)?;
+    write_checked(&root, "tokenizer_derived_v4096.json", &derived_bytes)?;
+
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_bytes = std::fs::read(&exe).map_err(|e| format!("read exe: {e}"))?;
+    let exe_sha = sha256_hex(&Sha256::digest(&exe_bytes));
+    let artifact_bytes = std::fs::read(&artifact_path)
+        .map_err(|e| format!("artifact {}: {e}", artifact_path.display()))?;
+    let artifact_sha = sha256_hex(&Sha256::digest(&artifact_bytes));
+    let model = TlModel::from_bytes(&artifact_bytes).map_err(|e| format!("deserialize: {e}"))?;
+    if model.vocab != VOCAB {
+        return Err(format!(
+            "artifact vocabulary {} != the {VOCAB}-token corpus vocabulary",
+            model.vocab
+        ));
+    }
+
+    let (uniq, collected, duplicates) = reconstruct_corpus(&args.docs);
+    let mut table_docs = Vec::new();
+    let mut tune_docs = Vec::new();
+    let mut dev_pool = Vec::new();
+    for (i, d) in uniq.iter().enumerate() {
+        match d.split {
+            Split::Fit => table_docs.push(i),
+            Split::Tune => tune_docs.push(i),
+            Split::Dev => dev_pool.push(i),
+        }
+    }
+    if table_docs.is_empty() || dev_pool.is_empty() {
+        return Err("corpus split has an empty fit or development side".into());
+    }
+    let mut table_windows: Vec<ProseWindow> = Vec::new();
+    for i in &table_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), *i) {
+            table_windows.push(w);
+        }
+    }
+    let all_table_windows = table_windows.len();
+    if table_windows.len() > FIT_MAX_WINDOWS {
+        let stride = table_windows.len() as f64 / FIT_MAX_WINDOWS as f64;
+        table_windows = (0..FIT_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                table_windows[idx].clone()
+            })
+            .collect();
+    }
+    let mut tune_windows: Vec<Vec<u32>> = Vec::new();
+    for i in &tune_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[*i].text), 0) {
+            tune_windows.push(w.tokens);
+        }
+    }
+    let mut with_len: Vec<(usize, usize)> = dev_pool
+        .iter()
+        .map(|i| (*i, tokenizer.encode(&uniq[*i].text).len()))
+        .collect();
+    with_len.sort_by_key(|(_, n)| *n);
+    let take = DEV_MAX_DOCS.min(with_len.len());
+    let mut dev_doc_indices: Vec<usize> = Vec::new();
+    let mut dev_names: Vec<String> = Vec::new();
+    for k in 0..take {
+        let (doc_idx, _) = with_len[k * with_len.len() / take.max(1)];
+        dev_names.push(uniq[doc_idx].path.clone());
+        dev_doc_indices.push(doc_idx);
+    }
+
+    let (fit_docs, held_docs) = adjudication_document_split(take);
+    if fit_docs.is_empty() || held_docs.is_empty() {
+        return Err("document split is empty".into());
+    }
+    let mut doc_seen = vec![false; take];
+    let mut doc_rank = vec![usize::MAX; take];
+    for (rank, d) in held_docs.iter().enumerate() {
+        if *d >= take || doc_seen[*d] {
+            return Err(
+                "held-out document set is not a subset of the development documents".into(),
+            );
+        }
+        doc_seen[*d] = true;
+        doc_rank[*d] = rank;
+    }
+    for d in &fit_docs {
+        if *d >= take || doc_seen[*d] {
+            return Err("fit/eval document split leaks: a document is on both sides".into());
+        }
+        doc_seen[*d] = true;
+    }
+    if doc_seen.iter().any(|v| !v) {
+        return Err("document split does not cover every development document".into());
+    }
+    let n_held = held_docs.len();
+    let held_names: Vec<String> = held_docs.iter().map(|d| dev_names[*d].clone()).collect();
+
+    let mut fit_windows: Vec<ProseWindow> = Vec::new();
+    for d in &fit_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[dev_doc_indices[*d]].text), *d) {
+            fit_windows.push(w);
+        }
+    }
+    let all_fit_windows = fit_windows.len();
+    if fit_windows.len() > ADJ_FIT_MAX_WINDOWS {
+        let stride = fit_windows.len() as f64 / ADJ_FIT_MAX_WINDOWS as f64;
+        fit_windows = (0..ADJ_FIT_MAX_WINDOWS)
+            .map(|k| {
+                let idx = (k as f64 * stride) as usize;
+                fit_windows[idx].clone()
+            })
+            .collect();
+    }
+    let mut held_windows: Vec<ProseWindow> = Vec::new();
+    for d in &held_docs {
+        for w in prose_windows(&tokenizer.encode(&uniq[dev_doc_indices[*d]].text), *d)
+            .into_iter()
+            .take(DEV_WINDOWS_PER_DOC)
+        {
+            held_windows.push(w);
+        }
+    }
+    for w in table_windows
+        .iter()
+        .chain(fit_windows.iter())
+        .chain(held_windows.iter())
+    {
+        if w.tokens.iter().any(|t| *t as usize >= VOCAB) {
+            return Err(format!(
+                "corpus token id outside the {VOCAB}-token vocabulary; the count reference is undefined"
+            ));
+        }
+    }
+
+    let mut uni = Uni {
+        counts: vec![0u64; VOCAB],
+        total: 0,
+    };
+    let mut c1 = Cond::default();
+    let mut c2 = Cond::default();
+    for w in &table_windows {
+        for k in PREFIX..w.tokens.len() {
+            let (prev, cur, next) = prose_position(w, k);
+            uni.counts[next as usize] += 1;
+            uni.total += 1;
+            c1.observe(cur as u64, next);
+            c2.observe(ctx2(prev, cur), next);
+        }
+    }
+    let (lambdas, tune_bits) = tune_lambdas(&c1, &c2, &uni, &tune_windows);
+    let mut freq = vec![0u64; VOCAB];
+    for w in &table_windows {
+        for k in PREFIX..w.tokens.len() {
+            freq[w.tokens[k] as usize] += 1;
+        }
+    }
+    let mut ranked: Vec<u32> = (0..VOCAB as u32).collect();
+    ranked.sort_by(|a, b| {
+        freq[*b as usize]
+            .cmp(&freq[*a as usize])
+            .then_with(|| a.cmp(b))
+    });
+    let k_used = args.top_k.min(VOCAB);
+    let top_ids: Vec<u32> = ranked[..k_used].to_vec();
+    let mut in_top = vec![false; VOCAB];
+    let mut class_of = vec![usize::MAX; VOCAB];
+    for (class, t) in top_ids.iter().enumerate() {
+        in_top[*t as usize] = true;
+        class_of[*t as usize] = class;
+    }
+    let top_mass: f64 = top_ids.iter().map(|t| uni.p(*t)).sum();
+    if !(top_mass > 0.0) {
+        return Err("the restricted unigram mass is zero".into());
+    }
+
+    let t_rec = Instant::now();
+    let fit_states = record_served_states(&model, &fit_windows);
+    let held_states = record_served_states(&model, &held_windows);
+    let rec_secs = t_rec.elapsed().as_secs_f64();
+    let mut fit_state_cluster: Vec<usize> = Vec::new();
+    for w in &fit_windows {
+        for _ in 0..(w.tokens.len() - PREFIX) {
+            fit_state_cluster.push(w.doc);
+        }
+    }
+    let rec_control =
+        |windows: &[ProseWindow], states: &[ServedState], stride: usize| -> Result<(), String> {
+            let (mut sx_bits, mut rec_bits, mut n, mut seen, mut cursor) =
+                (0.0f64, 0.0f64, 0usize, 0usize, 0usize);
+            for (wi, w) in windows.iter().enumerate() {
+                let here = w.tokens.len() - PREFIX;
+                if stride == 0 || wi % stride == 0 || w.terminal {
+                    let s = model.score_example(&prose_example(w));
+                    sx_bits += s.bits_generate;
+                    n += s.generate_targets;
+                    for j in 0..here {
+                        rec_bits += states[cursor + j].bits;
+                    }
+                    seen += here;
+                }
+                cursor += here;
+            }
+            if (sx_bits - rec_bits).abs() > 1e-9 * (1.0 + sx_bits.abs()) || n != seen {
+                return Err(format!(
+                    "served-state recording control failed: recorded {rec_bits} vs score_example \
+                     {sx_bits}, {seen} states vs {n} scored Generate targets"
+                ));
+            }
+            if cursor != states.len() {
+                return Err("window walk does not cover every recorded state".into());
+            }
+            Ok(())
+        };
+    rec_control(&held_windows, &held_states, 0)?;
+    rec_control(&fit_windows, &fit_states, FIT_CONTROL_STRIDE)?;
+    let cur_prev_control =
+        |windows: &[ProseWindow], states: &[ServedState]| -> Result<(), String> {
+            let mut cursor = 0usize;
+            for w in windows {
+                let generates = w.tokens.len() - PREFIX;
+                for j in 0..generates {
+                    let k = PREFIX + j;
+                    let s = &states[cursor + j];
+                    let want_cur = Some(w.tokens[k - 1]);
+                    let want_prev = if k >= 2 { Some(w.tokens[k - 2]) } else { None };
+                    if s.cur != want_cur || s.prev != want_prev {
+                        return Err(format!(
+                            "recorded consumed-token history is off at window position {k}"
+                        ));
+                    }
+                }
+                cursor += generates;
+            }
+            Ok(())
+        };
+    cur_prev_control(&held_windows, &held_states)?;
+    cur_prev_control(&fit_windows, &fit_states)?;
+    let f_block = model.typed_block(&[], &[], SlFacts::default());
+
+    let fit = probe_set(&fit_states, &class_of, model.h_clamp);
+    let held = probe_set(&held_states, &class_of, model.h_clamp);
+    let d_probe = fit.d;
+    if fit.x.len() != fit.n * d_probe || held.x.len() != held.n * d_probe {
+        return Err("recorded state width does not match the probe width".into());
+    }
+    let fit_ids: Vec<usize> = (0..fit.n).collect();
+    let held_ids: Vec<usize> = (0..held.n).collect();
+
+    let (_, val_local) = adjudication_document_split(fit_docs.len());
+    let mut is_val_doc = vec![false; take];
+    for &li in &val_local {
+        is_val_doc[fit_docs[li]] = true;
+    }
+    let row_cluster: Vec<usize> = fit
+        .state_index
+        .iter()
+        .map(|si| fit_state_cluster[*si])
+        .collect();
+    let train_ids: Vec<usize> = (0..fit.n)
+        .filter(|i| !is_val_doc[row_cluster[*i]])
+        .collect();
+    let val_ids: Vec<usize> = (0..fit.n).filter(|i| is_val_doc[row_cluster[*i]]).collect();
+    if train_ids.is_empty() || val_ids.is_empty() {
+        return Err("the fit-document split leaves an empty training or validation side".into());
+    }
+    let held_score_ids = declared_subset(&val_ids, RIDGE_SELECT_CAP);
+    let temp_ids = declared_subset(&fit_ids, RIDGE_TEMP_CAP);
+    let mlp_ids = declared_subset(&fit_ids, ADJ_MLP_FIT_CAP);
+
+    let m_zero = vec![0i32; model.h_dim];
+    let class_rows: Vec<usize> = top_ids.iter().map(|t| model.token_row(*t)).collect();
+    let dyadic = (2.0f64).powi(-(model.score_shift as i32));
+
+    // ---- arm (i): P_ridge (closed form) and the converged float linear readout P_softmax ----
+    let t_i = Instant::now();
+    let ridge_i = fit_ridge_readout(
+        &fit.x,
+        &fit.y,
+        d_probe,
+        k_used,
+        &train_ids,
+        &held_score_ids,
+        &temp_ids,
+        &fit_ids,
+    )?;
+    let arm_i_ridge = eval_linear_on(
+        "i_ridge_closed_form",
+        &ridge_i,
+        &held.x,
+        d_probe,
+        &held.y,
+        &held.doc,
+        &held_ids,
+        &doc_rank,
+        n_held,
+    );
+    let val_probe = probe_rows_subset(&fit, &val_ids);
+    let artifact_init_i = artifact_readout_init(&model, &class_rows, &f_block, model.h_clamp)?;
+    let init_probe =
+        FloatProbe::from_readout(k_used, d_probe, &artifact_init_i.w, &artifact_init_i.b)?;
+    let mut init_scratch = vec![0.0f64; k_used];
+    let arm_i_init_bits = init_probe.nll_bits(&held.x, &held.y, &held_ids, &mut init_scratch);
+    let probe_i_fit = fit_float_probe(
+        init_probe,
+        &fit.x,
+        &fit.y,
+        fit.n,
+        &val_probe,
+        args.probe_epochs,
+        PROBE_LR,
+        args.probe_seed,
+        "arm-i",
+    );
+    let arm_i = eval_float_probe(
+        "i_linear_float_softmax",
+        &probe_i_fit.probe,
+        &held,
+        &held_ids,
+        &doc_rank,
+        n_held,
+    );
+    let i_secs = t_i.elapsed().as_secs_f64();
+
+    // ---- arm (ii): rank-K random quadratic sketch of h (x) h ----
+    let mut dir_st = ADJ_SEED ^ 0x0000_0000_0000_0002;
+    let dirs: Vec<(Vec<f64>, Vec<f64>)> = (0..*ADJ_RANKS.last().unwrap())
+        .map(|_| {
+            (
+                random_pm1_dir(d_probe, &mut dir_st),
+                random_pm1_dir(d_probe, &mut dir_st),
+            )
+        })
+        .collect();
+    let mut rank_curve: Vec<(usize, f64, f64)> = Vec::new();
+    let mut rank_evals: Vec<(usize, ArmEval)> = Vec::new();
+    let t_ii = Instant::now();
+    for &rank in ADJ_RANKS.iter() {
+        let xa_fit = build_quadratic_aug(&fit.x, d_probe, fit.n, &dirs, rank);
+        let xa_held = build_quadratic_aug(&held.x, d_probe, held.n, &dirs, rank);
+        let rd = d_probe + rank;
+        let rr = fit_ridge_readout(
+            &xa_fit,
+            &fit.y,
+            rd,
+            k_used,
+            &train_ids,
+            &held_score_ids,
+            &temp_ids,
+            &fit_ids,
+        )?;
+        let ev = eval_linear_on(
+            &format!("ii_rank{rank}_quadratic_sketch"),
+            &rr,
+            &xa_held,
+            rd,
+            &held.y,
+            &held.doc,
+            &held_ids,
+            &doc_rank,
+            n_held,
+        );
+        rank_curve.push((rank, ev.micro_bits(), ev.micro_top1()));
+        rank_evals.push((rank, ev));
+    }
+    let (k_star, k_star_bits, k_star_top1) = rank_curve
+        .iter()
+        .cloned()
+        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .unwrap_or((ADJ_RANKS[0], f64::NAN, f64::NAN));
+    let arm_ii = rank_evals
+        .iter()
+        .find(|(r, _)| *r == k_star)
+        .map(|(_, e)| e.clone())
+        .ok_or("the selected rank has no evaluated arm")?;
+    let ii_secs = t_ii.elapsed().as_secs_f64();
+
+    // ---- arm (iii): 2-layer MLP h -> width -> K ----
+    let mut mlp_reports: Vec<(usize, ArmEval, f64, f64, f64)> = Vec::new();
+    let t_iii = Instant::now();
+    for &width in ADJ_MLP_WIDTHS.iter() {
+        let t_w = Instant::now();
+        let mut mlp = Mlp::new(d_probe, width, k_used, ADJ_SEED ^ (width as u64));
+        mlp.fit(
+            &fit.x,
+            &fit.y,
+            &mlp_ids,
+            ADJ_MLP_EPOCHS,
+            ADJ_MLP_LR,
+            ADJ_SEED ^ (width as u64),
+        );
+        let fit_top1 = mlp.top1(&fit.x, &fit.y, &mlp_ids);
+        let fit_bits = mlp.nll_bits(&fit.x, &fit.y, &mlp_ids);
+        let ev = eval_mlp_on(
+            &format!("iii_mlp_h{width}"),
+            &mlp,
+            &held,
+            &held_ids,
+            &doc_rank,
+            n_held,
+        );
+        mlp_reports.push((width, ev, fit_bits, fit_top1, t_w.elapsed().as_secs_f64()));
+    }
+    let arm_iii = mlp_reports
+        .iter()
+        .min_by(|a, b| {
+            a.1.micro_bits()
+                .partial_cmp(&b.1.micro_bits())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(_, e, _, _, _)| e.clone())
+        .ok_or("the MLP arm produced no report")?;
+    let iii_secs = t_iii.elapsed().as_secs_f64();
+
+    // ---- arm (v): the parsimonious count-augmented linear readout (decision arm) ----
+    let t_v = Instant::now();
+    let q_fit = build_count_logp(&fit, &fit_states, &c1, &c2, &uni, lambdas, &top_ids);
+    let q_held = build_count_logp(&held, &held_states, &c1, &c2, &uni, lambdas, &top_ids);
+    let v_temp_ids = declared_subset(&fit_ids, 4000);
+    let (diag_v, v_lambda_rel, v_val_bits) = fit_diag_count_readout(
+        &fit.x,
+        d_probe,
+        &fit.y,
+        &q_fit,
+        k_used,
+        &train_ids,
+        &val_ids,
+        &fit_ids,
+        &v_temp_ids,
+        LN2,
+    )?;
+    let arm_v = eval_diag_on(
+        "v_count_augmented_linear_diagonal",
+        &diag_v,
+        &held.x,
+        &q_held,
+        &held.y,
+        &held.doc,
+        &held_ids,
+        &doc_rank,
+        n_held,
+    );
+    let v_secs = t_v.elapsed().as_secs_f64();
+
+    // ---- baselines A, C, U on the identical held-out positions ----
+    let u_best = (0..k_used)
+        .max_by(|a, b| {
+            uni.p(top_ids[*a])
+                .partial_cmp(&uni.p(top_ids[*b]))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .unwrap_or(0);
+    let mut arm_a = ArmEval::new("A_artifact_kclass", n_held);
+    let mut arm_a_full = ArmEval::new("A_artifact_full_vocab_recorded", n_held);
+    let mut arm_c = ArmEval::new("C_tuned_order2_count_kclass", n_held);
+    let mut arm_u = ArmEval::new("U_unigram_kclass", n_held);
+    let mut base_worst = 0.0f64;
+    let mut base_sample = 0usize;
+    for &i in &held_ids {
+        let s = &held_states[held.state_index[i]];
+        let rank = doc_rank[s.doc];
+        let logits = model.readout(&s.h, &m_zero, &f_block, s.event);
+        let mstar = class_rows.iter().map(|r| logits[*r]).max().unwrap_or(0);
+        let den: f64 = class_rows
+            .iter()
+            .map(|r| (((logits[*r] - mstar) as f64) * dyadic).exp2())
+            .sum();
+        let pt = (((logits[class_rows[held.y[i]]] - mstar) as f64) * dyadic).exp2();
+        let mut best = 0usize;
+        for c in 1..k_used {
+            if logits[class_rows[c]] > logits[class_rows[best]] {
+                best = c;
+            }
+        }
+        arm_a.add(
+            rank,
+            -((pt / den).max(f64::MIN_POSITIVE)).log2(),
+            best == held.y[i],
+        );
+        arm_a_full.add(rank, s.bits, best == held.y[i]);
+
+        let prev = s.prev.map(|v| v as usize).unwrap_or(VOCAB);
+        let cur = s.cur.map(|v| v as usize).unwrap_or(VOCAB);
+        let (mut sum, mut py, mut cbest, mut bestp) = (0.0f64, 0.0f64, 0usize, f64::NEG_INFINITY);
+        for (ci, t) in top_ids.iter().enumerate() {
+            let p = family_p(&c1, &c2, &uni, prev, cur, *t, lambdas);
+            sum += p;
+            if p > bestp {
+                bestp = p;
+                cbest = ci;
+            }
+            if ci == held.y[i] {
+                py = p;
+            }
+        }
+        arm_c.add(
+            rank,
+            -((py / sum).max(f64::MIN_POSITIVE)).log2(),
+            cbest == held.y[i],
+        );
+
+        let pu = uni.p(held.target[i]) / top_mass;
+        arm_u.add(rank, -pu.max(f64::MIN_POSITIVE).log2(), u_best == held.y[i]);
+
+        if base_sample < ADJ_BASE_ASSERT_SAMPLE {
+            let l1 = logits[class_rows[held.y[i]]] as f64 * dyadic * LN2;
+            let m1 = class_rows
+                .iter()
+                .map(|r| logits[*r] as f64 * dyadic * LN2)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let den1: f64 = class_rows
+                .iter()
+                .map(|r| ((logits[*r] as f64 * dyadic * LN2) - m1).exp())
+                .sum();
+            let p1 = (l1 - m1).exp() / den1;
+            let b2 = -((pt / den).max(f64::MIN_POSITIVE)).log2();
+            let b1 = -p1.max(f64::MIN_POSITIVE).log2();
+            base_worst = base_worst.max((b1 - b2).abs());
+            base_sample += 1;
+        }
+    }
+    if base_worst > 1e-9 {
+        return Err(format!(
+            "softmax base convention assertion failed: the base-2 dyadic and ln-2-scaled base-e \
+             evaluations of the artifact's K-class loss differ by {base_worst:e}"
+        ));
+    }
+    // The control that ties the converged arm (i) to the artifact: the artifact-initialised probe's
+    // raw K-class softmax at epoch 0 must reproduce the artifact's own K-class loss on the identical
+    // held-out positions, exactly as the merged --state-probe checks on its own dev population.
+    let arm_i_init_vs_a = arm_i_init_bits - arm_a.micro_bits();
+    if arm_i_init_vs_a.abs() > 1e-9 {
+        return Err(format!(
+            "arm-(i) initialisation control failed: the artifact-initialised probe's held-out K-class \
+             loss {arm_i_init_bits} differs from A_kclass {} by {arm_i_init_vs_a:e}",
+            arm_a.micro_bits()
+        ));
+    }
+
+    // Named differences follow the task's stated order (bits(a) - bits(b)); lower is better, so a
+    // *gain* for the first-named arm is the negation, obtained as paired_interval(b, a).
+    let d_iii_i = paired_interval(&arm_iii.bits, &arm_i.bits, ADJ_SEED);
+    let d_v_i = paired_interval(&arm_v.bits, &arm_i.bits, ADJ_SEED);
+    let d_ii_i = paired_interval(&arm_ii.bits, &arm_i.bits, ADJ_SEED);
+    let d_a_i = paired_interval(&arm_a.bits, &arm_i.bits, ADJ_SEED);
+    let d_v_c = paired_interval(&arm_v.bits, &arm_c.bits, ADJ_SEED);
+    let d_i_c = paired_interval(&arm_i.bits, &arm_c.bits, ADJ_SEED);
+    let d_iii_c = paired_interval(&arm_iii.bits, &arm_c.bits, ADJ_SEED);
+    let d_ii_c = paired_interval(&arm_ii.bits, &arm_c.bits, ADJ_SEED);
+    let d_v_u = paired_interval(&arm_v.bits, &arm_u.bits, ADJ_SEED);
+    let d_i_u = paired_interval(&arm_i.bits, &arm_u.bits, ADJ_SEED);
+    let d_iii_u = paired_interval(&arm_iii.bits, &arm_u.bits, ADJ_SEED);
+    let g_iii_i = paired_interval(&arm_i.bits, &arm_iii.bits, ADJ_SEED);
+    let g_v_i = paired_interval(&arm_i.bits, &arm_v.bits, ADJ_SEED);
+    let g_ii_i = paired_interval(&arm_i.bits, &arm_ii.bits, ADJ_SEED);
+    let g_v_c = paired_interval(&arm_c.bits, &arm_v.bits, ADJ_SEED);
+    let g_i_c = paired_interval(&arm_c.bits, &arm_i.bits, ADJ_SEED);
+    let d_iii_v = paired_interval(&arm_iii.bits, &arm_v.bits, ADJ_SEED);
+
+    let includes_zero =
+        |iv: (f64, f64, f64)| iv.1.is_finite() && iv.2.is_finite() && iv.1 <= 0.0 && 0.0 <= iv.2;
+    let excludes_zero_positive = |iv: (f64, f64, f64)| iv.1.is_finite() && iv.1 > 0.0;
+    let v_explains = d_iii_v.0 <= 0.0;
+    let branch1_literal = includes_zero(d_v_i);
+    let branch1_substantive = g_v_c.0.abs() <= ADJ_SUBSUMED_TOL;
+    let branch2 = g_iii_i.0 >= 0.35 && excludes_zero_positive(g_iii_i) && v_explains;
+    let branch3 = ADJ_LADDER_CORRECT_PCT[1] >= 60.0;
+
+    let iv_json = |iv: (f64, f64, f64)| {
+        serde_json::json!({
+            "point": adj_opt_f64(iv.0),
+            "lo": adj_opt_f64(iv.1),
+            "hi": adj_opt_f64(iv.2),
+            "includes_zero": includes_zero(iv),
+        })
+    };
+
+    println!(
+        "populations: {} dev documents ({} fit / {} held out), fit {} states / held-out {} states \
+         (top-{k_used} class set from the corpus Fit split), C lambdas {:?}",
+        take,
+        fit_docs.len(),
+        held_docs.len(),
+        fit.n,
+        held.n,
+        lambdas
+    );
+    println!("held-out documents: {}", held_names.join(", "));
+    println!(
+        "arms (held-out micro bits/target, top-1): A(kclass) {:.4}/{:.4}  A(full, recorded) {:.4}/{:.4}  \
+         C {:.4}/{:.4}  U {:.4}/{:.4}  (i)P_ridge {:.4}/{:.4}  (i)P_softmax {:.4}/{:.4}  (ii) K*={k_star} \
+         {:.4}/{:.4}  (iii) {:.4}/{:.4}  (v) {:.4}/{:.4}",
+        arm_a.micro_bits(),
+        arm_a.micro_top1(),
+        arm_a_full.micro_bits(),
+        arm_a_full.micro_top1(),
+        arm_c.micro_bits(),
+        arm_c.micro_top1(),
+        arm_u.micro_bits(),
+        arm_u.micro_top1(),
+        arm_i_ridge.micro_bits(),
+        arm_i_ridge.micro_top1(),
+        arm_i.micro_bits(),
+        arm_i.micro_top1(),
+        arm_ii.micro_bits(),
+        arm_ii.micro_top1(),
+        arm_iii.micro_bits(),
+        arm_iii.micro_top1(),
+        arm_v.micro_bits(),
+        arm_v.micro_top1(),
+    );
+    println!(
+        "(i) init control: artifact-initialised probe at epoch 0 {arm_i_init_bits:.6} vs A_kclass \
+         {:.6} (gap {arm_i_init_vs_a:+.3e}); (i)P_softmax final {:.4}, fit {:.4}, top-1 {:.4}, \
+         {} epochs at lr {PROBE_LR}",
+        arm_a.micro_bits(),
+        arm_i.micro_bits(),
+        probe_i_fit
+            .per_epoch
+            .last()
+            .map(|(f, _)| *f)
+            .unwrap_or(f64::NAN),
+        arm_i.micro_top1(),
+        args.probe_epochs
+    );
+    println!(
+        "(i) vs A: P_softmax - A_kclass {:+.4} bits/target; P_ridge - A_kclass {:+.4}; merged \
+         anchor (corpus-Fit fit, all 24 dev docs, K=1024): P_softmax 5.5136 vs A 6.055956 (-0.5423)",
+        arm_i.micro_bits() - arm_a.micro_bits(),
+        arm_i_ridge.micro_bits() - arm_a.micro_bits()
+    );
+    println!("arm (ii) rank curve (rank, held-out bits/target, top-1): {rank_curve:?}");
+    println!(
+        "paired differences bits(a)-bits(b) (point, lo, hi): (iii)-(i) {:?}  (v)-(i) {:?}  \
+         (ii)-(i) {:?}  (v)-C {:?}  (i)-C {:?}  A-(i) {:?}",
+        d_iii_i, d_v_i, d_ii_i, d_v_c, d_i_c, d_a_i
+    );
+    println!(
+        "arms vs baselines (differences): (v)-U {:?}  (i)-U {:?}  (iii)-U {:?}  (iii)-C {:?}  \
+         (ii)-C {:?}",
+        d_v_u, d_i_u, d_iii_u, d_iii_c, d_ii_c
+    );
+    println!(
+        "gains bits(b)-bits(a) (positive = first-named arm better): gain(iii over i) {:?}  \
+         gain(v over i) {:?}  gain(ii over i) {:?}  gain(v over C) {:?}  gain(i over C) {:?}",
+        g_iii_i, g_v_i, g_ii_i, g_v_c, g_i_c
+    );
+    println!(
+        "transport decode ladder (iv, cited): lag {:?} = {:?} % ; lag-2 >= 60 % = {branch3}",
+        ADJ_LADDER_LAGS, ADJ_LADDER_CORRECT_PCT
+    );
+    println!(
+        "decision: branch1-literal (v)-(i) interval includes 0 = {branch1_literal}; branch1-substantive \
+         |gain(v over C)| <= {ADJ_SUBSUMED_TOL} = {branch1_substantive} (gain(v over C) {:?}); branch2 \
+         gain(iii over i)>=0.35 and MLP reaches v = {branch2}; branch3 (iv) lag-2 >= 60 % = {branch3}",
+        g_v_c
+    );
+
+    let receipt = serde_json::json!({
+        "mode": "readout-adjudication",
+        "stage": "escape-from-bigram-class Part A (frozen-state readout adjudication)",
+        "artifact_path": artifact_path,
+        "artifact_sha256": artifact_sha,
+        "executable_sha256": exe_sha,
+        "source_revision": args.source_rev,
+        "tokenizer_source_sha256": tok_sha,
+        "tokenizer_derived_sha256": derived_sha,
+        "corpus_root": args.docs,
+        "collected_documents": collected,
+        "duplicate_documents": duplicates,
+        "no_training": true,
+        "served_path_untouched": true,
+        "h_dim": model.h_dim,
+        "h_clamp": model.h_clamp,
+        "score_shift": model.score_shift,
+        "top_k": k_used,
+        "count_lambdas": lambdas,
+        "count_tune_bits_per_target": tune_bits,
+        "table_windows": table_windows.len(),
+        "all_table_windows": all_table_windows,
+        "tune_windows": tune_windows.len(),
+        "decision_rule_verbatim": ADJ_DECISION_RULE,
+        "split": {
+            "rule": format!("development document k is held out iff k % {ADJ_SPLIT_MODULUS} == \
+                             {ADJ_SPLIT_HELD}; a readout is fitted on every window of the fit \
+                             documents and never on a held-out document. The fit documents are split \
+                             once more, by the same rule, into a training and a validation side for \
+                             the ridge-weight selection"),
+            "dev_documents": take,
+            "fit_documents": fit_docs.iter().map(|d| serde_json::json!({"index": d, "path": dev_names[*d]})).collect::<Vec<_>>(),
+            "held_out_documents": held_docs.iter().map(|d| serde_json::json!({"index": d, "path": dev_names[*d]})).collect::<Vec<_>>(),
+            "all_fit_windows_before_cap": all_fit_windows,
+            "fit_windows_used": fit_windows.len(),
+            "held_out_windows": held_windows.len(),
+            "fit_positions": fit.n,
+            "held_out_positions": held.n,
+            "fit_recorded_states": fit_states.len(),
+            "held_out_recorded_states": held_states.len(),
+            "fit_training_positions": train_ids.len(),
+            "fit_validation_positions": val_ids.len(),
+            "mlp_fit_positions": mlp_ids.len(),
+        },
+        "population_controls": {
+            "fit_recorded_states": fit_states.len(),
+            "held_out_recorded_states": held_states.len(),
+            "recording": "sum of recorded per-position bits equals score_example bits_generate on the \
+                          complete held-out windows and on a declared stride of the fit windows; every \
+                          recorded state carries cur = x_(t-1) and prev = x_(t-2)",
+        },
+        "base_convention": {
+            "assertion": "the artifact's K-class softmax at its base-2 dyadic scale equals the float \
+                          probe's base-e softmax on logits scaled by ln 2",
+            "worst_gap_bits": adj_opt_f64(base_worst),
+            "sample": base_sample,
+            "passed": base_worst <= 1e-9,
+        },
+        "fit_design": {
+            "softmax": "base-e, logits = w . [h / h_clamp, event one-hot]; the artifact's own readout is \
+                        rearranged into this layout at ln2 * 2^-score_shift so that the probe and the \
+                        artifact share one distribution",
+            "features": format!("[h / h_clamp ({}), event one-hot ({PROBE_EVENT_DIMS})], d = {d_probe}", model.h_dim),
+            "classes": k_used,
+            "class_list_source": "the top-K target tokens by frequency in the corpus Fit split, shared by \
+                                  every arm and by A/C/U",
+            "fit_positions": fit.n,
+            "fit_training_positions": train_ids.len(),
+            "fit_validation_positions": val_ids.len(),
+            "held_out_positions": held.n,
+            "arm_parameters": {
+                "i_softmax": k_used * d_probe + k_used,
+                "i_ridge": k_used * d_probe + k_used,
+                "ii_rank_k": "k_used * (d + rank) + k_used, plus rank extra input features",
+                "iii_mlp": "d*dh + dh + dh*k_used + k_used",
+                "v_count_augmented": k_used * d_probe + k_used,
+            },
+            "ridge_lambda_grid_rel": RIDGE_LAMBDAS,
+            "ridge_lambda_scaling": "lambda_abs = lambda_rel * trace(HtH) / d",
+            "ridge_lambda_selection": "chosen on the fit-side validation documents (document-disjoint), \
+                                       then refit on every fit position",
+            "label_convention": "hard target = the class index of the generated token x_(t+1); the \
+                                 multinomial softmax is over the K classes; bits/target = NLL in bits",
+            "arm_v_count_scale": "ln2, fixed (the natural log2-to-nats conversion), so a zero state \
+                                  correction reproduces the restricted tuned count prior C",
+            "arm_ii_sketch": "declared-seed random +-1/sqrt(d) product pairs; not a learned factorisation",
+            "mlp": format!("2-layer tanh MLP, widths {ADJ_MLP_WIDTHS:?}, {ADJ_MLP_EPOCHS} epochs at lr \
+                            {ADJ_MLP_LR}, fit on a capped stride of {ADJ_MLP_FIT_CAP} fit positions"),
+        },
+        "arms": {
+            "A_artifact_kclass": arm_a.json(&held_names),
+            "A_artifact_full_vocab_recorded": arm_a_full.json(&held_names),
+            "C_tuned_order2_count_kclass": arm_c.json(&held_names),
+            "U_unigram_kclass": arm_u.json(&held_names),
+            "i_linear_float_softmax": {
+                "selected": arm_i.json(&held_names),
+                "ridge_closed_form": arm_i_ridge.json(&held_names),
+                "init": "the artifact's own served readout rearranged into the probe layout by \
+                         artifact_readout_init (ln2 * 2^-score_shift scaling), i.e. the same \
+                         initialisation the merged --state-probe uses",
+                "refinement": "fit_float_probe: Adam on the batch-mean base-e softmax NLL, one step per \
+                               minibatch over the whole fit population, monitoring on the fit-side \
+                               validation documents",
+                "epochs": args.probe_epochs,
+                "lr": PROBE_LR,
+                "seed": args.probe_seed,
+                "init_held_out_bits_per_target": adj_opt_f64(arm_i_init_bits),
+                "init_vs_a_kclass_gap": adj_opt_f64(arm_i_init_vs_a),
+                "final_fit_bits_per_target": adj_opt_f64(
+                    probe_i_fit.per_epoch.last().map(|(f, _)| *f).unwrap_or(f64::NAN),
+                ),
+                "per_epoch": probe_i_fit.per_epoch.iter().enumerate().map(|(e, (f, d))| serde_json::json!({
+                    "epoch": e + 1, "fit_bits_per_target": f, "validation_dev_bits_per_target": d,
+                })).collect::<Vec<_>>(),
+                "is_vs_a_kclass": adj_opt_f64(arm_i.micro_bits() - arm_a.micro_bits()),
+                "merged_anchor": {
+                    "note": "the merged --state-probe fits on the corpus Fit split (334,796 states) \
+                             and evaluates on all 24 development documents in the artifact/count \
+                             normalisation; this mode fits on the fit-side development documents \
+                             (document-held-out) and evaluates on the 8 held-out documents, so the \
+                             numbers are not directly comparable",
+                    "merged_p_softmax_dev": 5.5136,
+                    "merged_p_ridge_dev": 7.7575,
+                    "merged_a_dev": 6.055956,
+                    "merged_p_softmax_minus_a": -0.5423,
+                    "source": "docs/integration/ordinary-lexical-state-probe-result-2026-09-23.md",
+                },
+            },
+            "i_ridge_closed_form": arm_i_ridge.json(&held_names),
+            "ii_rank_quadratic_sketch": {
+                "selected_rank": k_star,
+                "selected_bits_per_target": adj_opt_f64(k_star_bits),
+                "selected_top1": adj_opt_f64(k_star_top1),
+                "curve": rank_curve.iter().map(|(r, b, t)| serde_json::json!({"rank": r, "bits_per_target": b, "top1": t})).collect::<Vec<_>>(),
+                "selected": arm_ii.json(&held_names),
+                "definition": "K independent random ±1/sqrt(d) product pairs (u_r . x)(v_r . x) appended \
+                               to the state features, then the same closed-form ridge readout; a rank-K \
+                               sketch of the quadratic form h (x) h with a declared seed",
+            },
+            "iii_mlp": {
+                "selected": arm_iii.json(&held_names),
+                "widths": mlp_reports.iter().map(|(w, e, fb, ft, secs)| serde_json::json!({
+                    "hidden_width": w,
+                    "held_out_bits_per_target": adj_opt_f64(e.micro_bits()),
+                    "held_out_top1": adj_opt_f64(e.micro_top1()),
+                    "fit_bits_per_target": adj_opt_f64(*fb),
+                    "fit_top1": adj_opt_f64(*ft),
+                    "seconds": secs,
+                })).collect::<Vec<_>>(),
+                "definition": "2-layer tanh MLP h -> width -> K, Adam, declared init and seed",
+            },
+            "v_count_augmented_linear_diagonal": {
+                "selected": arm_v.json(&held_names),
+                "chosen_lambda_rel": v_lambda_rel,
+                "validation_bits_per_target": adj_opt_f64(v_val_bits),
+                "definition": "count-augmented linear readout z_c = ln2 * q_c + w_c . x + b_c, with q_c the \
+                               log2 renormalised tuned (prev, cur) count log-probability of class c. The \
+                               count prior enters at its natural log2-to-nats scale, so a zero state \
+                               correction reproduces the restricted tuned count prior C exactly and the \
+                               arm can never be worse than C up to the fitted temperature; w_c is fitted \
+                               as K independent (d+1) ridge systems with the weight chosen on the fit-side \
+                               validation documents",
+            },
+            "iv_transport_decode_ladder_cited": {
+                "lags": ADJ_LADDER_LAGS,
+                "correct_percent": ADJ_LADDER_CORRECT_PCT,
+                "lag2_at_least_60": branch3,
+                "provenance": ADJ_LADDER_PROVENANCE,
+            },
+        },
+        "paired_intervals": {
+            "note": "differences are bits(a) - bits(b); lower bits/target is better",
+            "iii_minus_i": iv_json(d_iii_i),
+            "v_minus_i": iv_json(d_v_i),
+            "ii_minus_i": iv_json(d_ii_i),
+            "v_minus_C": iv_json(d_v_c),
+            "i_minus_C": iv_json(d_i_c),
+            "iii_minus_C": iv_json(d_iii_c),
+            "ii_minus_C": iv_json(d_ii_c),
+            "v_minus_U": iv_json(d_v_u),
+            "i_minus_U": iv_json(d_i_u),
+            "iii_minus_U": iv_json(d_iii_u),
+            "A_minus_i": iv_json(d_a_i),
+            "gain_iii_over_i": iv_json(g_iii_i),
+            "gain_v_over_i": iv_json(g_v_i),
+            "gain_ii_over_i": iv_json(g_ii_i),
+            "gain_v_over_C": iv_json(g_v_c),
+            "gain_i_over_C": iv_json(g_i_c),
+        },
+        "decision": {
+            "branch1_literal_v_minus_i_includes_zero": branch1_literal,
+            "branch1_substantive_count_table_subsumes_state": branch1_substantive,
+            "branch1_substantive_tolerance_bits": ADJ_SUBSUMED_TOL,
+            "branch2_gain_iii_over_i_ge_035_and_v_explains": branch2,
+            "branch3_iv_lag2_ge_60": branch3,
+            "branch1_note": "the rule's branch-1 formula is written '(v) - (i)', but its parenthetical \
+                             is 'the state adds nothing over the count table', which is the (v) - C \
+                             comparison. Both are reported: the literal predicate and the substantive \
+                             |gain(v over C)| <= tolerance condition",
+            "branch2_definition": "(iii)-(i) is read as the gain of the MLP over the linear arm (the \
+                                   negation of the raw bits(iii)-bits(i) difference, since lower is \
+                                   better); 'v explains it' means the MLP reaches the count-augmented \
+                                   arm's level, i.e. bits(iii) - bits(v) <= 0, which is the condition \
+                                   under which the MLP's gain would be count-table reconstruction",
+            "iii_minus_v": iv_json(d_iii_v),
+            "v_explains_iii_gain": v_explains,
+            "count_augmented_reaches_count_table": "reported as gain_v_over_C in paired_intervals",
+        },
+        "timings": {
+            "record_served_states_seconds": rec_secs,
+            "arm_i_softmax_seconds": i_secs,
+            "arm_ii_rank_curve_seconds": ii_secs,
+            "arm_iii_mlp_seconds": iii_secs,
+            "arm_v_count_augmented_seconds": v_secs,
+        },
+        "elapsed_seconds": started.elapsed().as_secs_f64(),
+    });
+    write_checked(
+        &root,
+        "receipt.json",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|e| e.to_string())?
+            .as_bytes(),
+    )?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "sealed {} with {} unlisted files; decision branch1-literal={branch1_literal} \
+         branch1-substantive={branch1_substantive} branch2={branch2} branch3={branch3}; total {:.1}s",
+        root.display(),
+        unlisted.len(),
+        started.elapsed().as_secs_f64()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let args = match parse_args() {
         Ok(a) => a,
@@ -9462,6 +11214,15 @@ fn main() -> ExitCode {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("error: count-blend: {e}");
+                ExitCode::from(1)
+            }
+        };
+    }
+    if args.readout_adjudication.is_some() {
+        return match readout_adjudication_mode(&args) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("error: readout-adjudication: {e}");
                 ExitCode::from(1)
             }
         };
@@ -10410,5 +12171,77 @@ mod tests {
             "ties take the smallest lambda"
         );
         assert!((best - 1.0).abs() <= 1e-15);
+    }
+
+    #[test]
+    fn adjudication_split_is_disjoint_and_planted_signal_recovers() {
+        let (fit_docs, held_docs) = adjudication_document_split(24);
+        assert_eq!(fit_docs.len(), 16);
+        assert_eq!(held_docs.len(), 8);
+        for d in &held_docs {
+            assert!(
+                !fit_docs.contains(d),
+                "document {d} leaks into the fit side"
+            );
+        }
+        let mut all: Vec<usize> = fit_docs.iter().chain(held_docs.iter()).copied().collect();
+        all.sort_unstable();
+        assert_eq!(all, (0..24).collect::<Vec<usize>>());
+
+        let (k, d, n) = (4usize, 12usize, 240usize);
+        let mut st = 0x00C0_FFEE_1234_5678u64;
+        let w_true: Vec<f64> = (0..k * d).map(|_| adj_uniform_pm(&mut st)).collect();
+        let mut x = vec![0.0f64; n * d];
+        let mut y = vec![0usize; n];
+        for i in 0..n {
+            for j in 0..d {
+                x[i * d + j] = adj_uniform_pm(&mut st);
+            }
+            let (mut best, mut bestv) = (0usize, f64::NEG_INFINITY);
+            for c in 0..k {
+                let s: f64 = (0..d).map(|j| w_true[c * d + j] * x[i * d + j]).sum();
+                if s > bestv {
+                    bestv = s;
+                    best = c;
+                }
+            }
+            y[i] = best;
+        }
+        let set = ProbeSet {
+            x,
+            d,
+            y: y.clone(),
+            target: vec![0u32; n],
+            doc: vec![0usize; n],
+            cur: vec![None; n],
+            prev: vec![None; n],
+            bits: vec![0.0; n],
+            state_index: (0..n).collect(),
+            all_recorded: n,
+            n,
+        };
+        let ids: Vec<usize> = (0..n).collect();
+        let ridge = fit_ridge_readout(&set.x, &set.y, d, k, &ids, &ids, &ids, &ids)
+            .expect("the linear arm fits");
+        let mut scratch = vec![0.0; k];
+        let fit_top1 = ridge.top1(&set.x, &set.y, &ids, &mut scratch);
+        assert!(
+            fit_top1 > 0.9,
+            "arm (i) must recover the planted signal, got {fit_top1}"
+        );
+
+        let mut mlp = Mlp::new(d, 16, k, 0xBEEF_0000_0001);
+        mlp.fit(&set.x, &set.y, &ids, 300, 0.02, 0xBEEF_0000_0001);
+        let mlp_fit_top1 = mlp.top1(&set.x, &set.y, &ids);
+        let mlp_fit_bits = mlp.nll_bits(&set.x, &set.y, &ids);
+        let ridge_fit_bits = ridge.nll_bits(&set.x, &set.y, &ids, &mut scratch);
+        assert!(
+            mlp_fit_top1 + 0.02 >= fit_top1,
+            "arm (iii) {mlp_fit_top1} must not be worse than arm (i) {fit_top1} on the fit split"
+        );
+        assert!(
+            mlp_fit_bits <= ridge_fit_bits + 0.05,
+            "arm (iii) fit NLL {mlp_fit_bits} must not be worse than arm (i) {ridge_fit_bits}"
+        );
     }
 }

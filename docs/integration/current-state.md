@@ -7,7 +7,30 @@
 > Record: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md) · owner entries D4–D6 in
 > [DECISIONS.md](DECISIONS.md). The component results below retain their exact scope.
 
-## Active: matched span curriculum and the length-specific copy/stop gap, September 24 UTC
+## Active: frozen-state readout adjudication (M1 Part A), September 24 UTC
+
+The [executed adjudication](frozen-state-readout-adjudication-result-2026-09-24.md) runs Part A of the adopted
+[direction](direction-decision-2026-09-24.md): a read-only float diagnostic on the artifact's own recorded served
+states, document-held-out (16 fit / 8 evaluation of 24 development documents). Artifact `warm-decay-candidate.tlx`
+`69e8b88b…`. Instrument control: the artifact-initialised probe reproduces the artifact's own K-class readout to
+**2.7e-15**. Result: the **count-augmented arm (v) = 4.7819** vs the tuned order-2 count prior **C = 4.8041**, i.e.
+the state adds only **+0.022 bits [0.0149, 0.0295]** over a servable count table; the converged float linear readout
+(i) = 5.7048 is at least as good as the artifact readout `A` = 5.7555, and the MLP (iii) = 6.9112 is **worse** than
+the linear readout (no nonlinear gain). **Decision (branch1-substantive true): the state's local information is
+subsumed by a count table, so no readout work is justified and the lever is the state/horizon — Part B.** This
+corroborates the merged count-blend negative. Read-only: no training, no served-arithmetic change, protected files
+byte-unchanged. Ledger charged; evidence root `/Users/casey.allard/uor-r4-investigations/escape-bigram-20260924`
+(`partA-run6` authoritative).
+
+**Next:** **Part B** — one gate × capacity arm on a synthetic induction panel where the count control is at chance,
+plus a **learned vector/Hamiltonian parameterisation of the state/gate** tested against a matched ordinary
+parameterisation at equal parameters (the owner's registered vectors/Hamiltonians lead attaches here; its implemented
+fixed-Q8 transport form already ties an ordinary signed-permutation control). No general-language, copying, geometric,
+reasoning or energy claim.
+
+---
+
+## Previous active: matched span curriculum and the length-specific copy/stop gap, September 24 UTC
 
 The [executed matched-span/copy-length result](matched-span-copy-length-result-2026-09-24.md) completes the prior
 milestone's declared next step. The declared **separate span RNG** is implemented: the span block now draws only
