@@ -1,0 +1,20 @@
+{
+  "schema": "uor-local-development-amendment-v1",
+  "recorded_before": "c120-dev2 and geometry-dev2",
+  "authorization": "Standing owner authorization for necessary local extensions; same adopted Milestone A, no external compute.",
+  "reason": "Both loaded first artifacts wrote zero indexed records on 6160 development tokens. Weak missing future-use annotations were incorrectly trained as negative writes. Correct this single learning-objective error and retain the failed pair.",
+  "design_change": "Positive-unlabeled all-write warmup: update the initially enabled write gate only for annotated useful sources. Do not train unknown occurrences as negative. No learned selective-writing claim.",
+  "unchanged": ["seed", "fit/development split", "two epochs per arm", "learning rates", "post-ranking read gate", "energy", "encoder", "output head", "generation and NoRead controls"],
+  "first_pair_observed_training_tokens": 93168,
+  "projected_second_pair_observed_training_tokens": 93168,
+  "projected_cumulative_training_tokens": 186336,
+  "previous_initial_training_token_cap": 100000,
+  "new_explicit_cumulative_training_token_cap": 200000,
+  "per_fit_token_cap": 100000,
+  "additional_whole_cycle_limit_ms": 0,
+  "cumulative_time_limit_ms_unchanged": 477000000,
+  "extra_new_models_projected_bytes": 82000000,
+  "models_reports_limit_bytes_unchanged": 805306368,
+  "complete_cycle_projection_ms_unchanged": 9000000,
+  "interpretation": "One diagnosis-driven correction on exposed development data, not an independent final evaluation or a hyperparameter search. All-write memory isolates the remaining addressing/ranking/language problem."
+}

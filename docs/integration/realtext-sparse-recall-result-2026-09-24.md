@@ -1,0 +1,33 @@
+# Real-text sparse-recall opportunity gate — result
+
+## Decision
+
+The [frozen gate](realtext-sparse-recall-plan-2026-09-24.md) **passes on retained project Markdown**: a causal exact-pair cache with a Tune-selected dyadic mixture reduces the newly fitted count-family reference from **6.410664 to 6.173020 bits/target** on 87,564 Dev positions, a **−0.237644-bit** difference with a paired document-bootstrap 95% interval **[−0.292814, −0.190741]**. The same-bucket rotated-value null is **6.531288 bits/target**. Top-one accuracy is **22,956/87,564** for C and **26,307/87,564** for the cache mixture. Every represented source-family grouping and every selected Dev document improves on this comparison (worst individual document −0.0791 bits/target).
+
+At ≥64-token lag, exact-pair reads exist at **21,217/87,564 = 24.23%** of scored positions; **3,576/87,564 = 4.08%** of all positions are distant cases where the cached successor is correct and C's top-one is wrong. Both exceed the prospectively frozen opportunity thresholds. The fitted age coefficients are **`[1,1,1]` quarters**, so the three age buckets collapse to the **same 1/4 cache mixture**. This result supports an addressable within-document signal; it does **not** establish a learned age-dependent policy, natural-language entity binding, or a geometric advantage. The decision is to **advance this sparse cache signal to a native-language integration experiment**, not to adopt the diagnostic cache as the finished model.
+
+## Actual population and mechanism
+
+The runner reused `realtext_support::reconstruct_corpus` to read Markdown from the isolated worktree's `docs/` at parent tree `09d5c74e`. The population is source-hash split and exact-duplicate grouped. Deterministic caps selected **33 Fit documents / 400,000 tokens**, **15 Tune documents / 100,000 tokens**, and **24 Dev documents / 87,564 scored positions** (at most 4,096 tokens per Dev document). The Dev set is previously exposed project material: 20 of 24 selected documents are under `integration/`, with four root documents. It is a **development diagnosis**, not a fresh general-prose or coding evaluation. The receipt binds every selected path and SHA-256; the retained CSV records every scored position. The new plan and resource-ledger files were excluded from the input population.
+
+The static C reference fits unigram, one-token and two-token counts on Fit and selects interpolation coefficients **(0.7, 0.5)** on Tune. The separate within-document map stores the most recent successor for each exact `(previous, current)` token pair **after** that target is observed; it is queried before each next target and reset between documents. Thus a hit cannot read its own target or another document. A hit is a literal prior-token association, not semantic distance. On Tune, each of three age buckets selects a dyadic cache weight from `{0,1/4,1/2,3/4}`; Dev uses those frozen weights. NoRead is exactly C. The rotated null preserves each bucket's hit positions and weight, then rotates candidate values within that bucket.
+
+| Cache age | Eligible | Cache correct | C correct on eligible | Mixture correct on eligible | Mixture minus C, bits/eligible target |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `<64` | 9,002 | 4,609 | 2,840 | 4,378 | −1.0708 |
+| `64–255` | 7,171 | 2,997 | 2,092 | 2,902 | −0.6270 |
+| `≥256` | 14,046 | 4,755 | 3,590 | 4,593 | −0.4751 |
+
+On the 57,345 no-hit positions, the mixture returns C unchanged. Cached values can also harm: on the three age buckets the cache candidate is wrong when C's top-one is right on 564, 477 and 1,029 positions respectively. A trained fixed 1/4 weight balances those cases on this data; the age feature adds no measured value. There is no comparison yet to a same-budget learned content/role address or to the loaded `TlModel`'s exact served loss on these same positions.
+
+## Evidence and checks
+
+- Sealed root: `/Users/casey.allard/uor-r4-investigations/realtext-sparse-recall-20260924/final1`. `rows.csv` contains 87,564 per-position records; `receipt.json` contains selected document hashes, gate coefficients, metrics, interval, and source/executable SHA-256. CSV SHA-256 is `c5ab9b935956f1ada34b488fc96ae9dd8116e56fd1aacca55385fa6ef06975d7`; receipt SHA-256 is `015da5b05318c36e347e810494523a5bc99a2411e2382d8a2ca7abf3cd1393b3`.
+- The runner source is `c750f7addde81ea647a57831f75b9f1d692929a8a47ef010cd59c66e45510d24`; release executable is `2112eb6d147409e46bb92f89fe0d1b4085aae969cc1f0165c5cf9f594bac7fe3`. Pinned derived tokenizer SHA-256 is `a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f`. The offline release build, one bounded corpus run and report seal/verification succeeded. `cargo fmt --check` and diff checks passed; no lib test harness was run.
+- An independent read-only audit of the sealed CSV reproduced per-age hit counts, correctness intersections and loss differences. Reported physical retained allocation is 7,740 KiB. Full-path latency, memory traffic and energy were **not measured**; the diagnostic uses a Rust `HashMap`, float offline probabilities, and no loaded `TlModel` or geometric operator. It is not a D0-b or D5 served-path qualification.
+
+## Architectural consequence
+
+The [Zoology recall analysis](https://arxiv.org/abs/2312.04927) predicts that synthetic associative recall alone can mislead about real text. This in-domain project-document result is a first real-text bridge but still needs prose and code transfer. [Product-key memory](https://arxiv.org/abs/1907.05242) shows why sparse access can add capacity without touching every parameter; its transformer backbone and dense query projections are not imported. [Titans](https://arxiv.org/abs/2501.00663) reinforces separating long-lived retrieval from a short recurrent state; its dense online-weight update is not the target serving mechanism. These papers guide the comparison, not the result claim.
+
+The next implementation should carry a bounded exact-address candidate into the **same loaded native sequence path** and learn *whether and which source to read* from observed tokens, with a low-bit hard-served gate. Compare it against this ordinary exact-pair cache and the count reference at matched access cost, on a source-separated corpus with genuinely different prose and Rust code. Require actual generation, useful continuation after a read, NoRead/source edits, and per-token access counts. Only after a learned address/value-state interaction is useful should a paired-H4 or Hamiltonian parameterisation compete at equal information and cost. Do not spend the next step repairing more authored copy fixtures or tuning this three-bucket diagnostic on its exposed Dev set.

@@ -1,13 +1,75 @@
 # Current native geometric AI work
 
-> **Direction adopted 2026-09-24 (owner decision):** Goal S (multiplier-free serving) kept; Goal R (geometric
-> predictive advantage) re-scoped to a gated hypothesis and a candidate sparse-access structure; per-token parameter
-> sparsity recorded as the terminal serving invariant; the target objective moved to a long-range information probe.
-> The active milestone is the ["escape from bigram class" diagnostic gate](escape-bigram-class-plan-2026-09-24.md).
-> Record: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md) · owner entries D4–D6 in
-> [DECISIONS.md](DECISIONS.md). The component results below retain their exact scope.
+> **Latest owner direction, September 24:** [D7](DECISIONS.md#d7--adopt-the-integrated-attention-language-programme)
+> adopts the [integrated attention-language programme](principal-attention-plan-2026-09-24.md). Milestone A is active
+> under #973/#820. D0-b and D4–D6 retain their arithmetic, geometry-evidence, sparse-access and long-range-objective
+> constraints. Earlier isolated-gate sequencing is superseded; prior results retain their exact scope.
 
-## Active: KVAR — a gated overwrite addressed memory extends the horizon (M1 Part B′), September 24 UTC
+## Active: integrated attention artifact executed; source-to-language learning remains unresolved
+
+The owner authorized cleanup, adopted the programme and directed implementation. Removing four verified Cargo incremental-cache directories recovered **4,839,772,160 physical bytes** (about 4.84 decimal GB), leaving **31,231,635,456 bytes** free at the paired closeout measurement. Models, research, source worktrees, binaries and warm dependency libraries were preserved. [Cleanup receipt](../evidence/storage-cleanup-2026-09-24.json).
+
+The [A1 result](integrated-attention-a1-result-2026-09-24.md) now implements, fits, exports, reloads and runs one integrated Rust model/session path with contextual finite codes, exact bounded occurrence history, relative energy, shared state operators and sparse Generate/Copy/Stop. The first matched C120/2I pair incorrectly learned zero writes from incomplete negative labels. One [prospective correction](../evidence/integrated-attention-a1-write-warmup-amendment-2026-09-24.json) trains only positive useful writes during an all-write warmup. Both corrected models index all **6,160** development tokens, but select **0/1,421** annotated source occurrences. C120 admits **271**; 2I admits **251**. In the correction answer suffixes, the right source is admitted for every labeled token; the failure is not solely admission.
+
+Corrected read-enabled development likelihood is **9.383427 bits/token for C120** and **9.533292 for 2I** (NoRead **9.380686 / 9.554751**). Complete generated outputs are degenerate: **0/4** read-enabled correction variants are answered correctly per arm. All 48 generation rows across both pairs reproduce after snapshot restoration and separate-process artifact reload. The decoded path counts roughly **7.3–7.8 thousand learned coefficient accesses per token** against **40,038,150 stored parameter bytes**, including all code formation; this is logical access instrumentation, not machine-code or energy qualification. Local model-run peak RSS was under 394 MB. **Milestone A and useful-language/attention acceptance remain open; the candidate is retained for development and is not the default application model.**
+
+The [read-only loaded diagnosis](../evidence/integrated-attention-a1-source-diagnosis-2026-09-24.json) finds the mechanism failure: at all **28 answer positions per arm**, all **64 candidate records have one identical four-lane code** and tied energy; the right source ranks first **0/28 before gating**, and the gate opens **0/28**. Giving the head the correct source in an offline one-step score worsens total answer NLL by **+5.137353 / +2.534511 nats** (C120 / 2I). This establishes code collapse at these candidate sets and an unlearned source-to-language connection; it does not refute geometric addressing as a family.
+
+**Next within the same integrated model:** train discriminative causal source codes and candidate-conditioned language utility together, with source alternatives/negatives and a shared observed context/role descriptor. Retain exact values and occurrences outside the compressed code. More energy weights cannot distinguish identical codes, and selector-only utility learning can prefer NoRead before the head learns to use evidence. Preserve exact raw events; incomplete labels are not negative write evidence. Natural recurrence pointers are weak and sometimes unidentifiable from the query. Use a sufficiently diverse grounded prose/Rust curriculum together with natural next-token loss. No larger geometry, isolated gate retuning, or fresh final benchmark follows from these results. The [full programme](principal-attention-plan-2026-09-24.md) and [A1 contract](integrated-attention-a1-plan-2026-09-24.md) retain the remaining mechanisms and limits. [Evidence](../evidence/integrated-attention-a1-result-2026-09-24.json).
+
+---
+
+## Previous: whole-project principal investigation and integrated model proposal, September 24 UTC
+
+The [principal synthesis](principal-attention-plan-2026-09-24.md) reviews the history, current and dormant mechanisms, source paths and current primary literature with independent [mathematics](principal-attention-mathematics-2026-09-24.md), [computer-science](principal-attention-computer-science-2026-09-24.md) and [engineering](principal-attention-engineering-2026-09-24.md) reports plus cross-review. **No model was trained or replayed for this review.** The latest executed model result remains the failed loaded sparse-read gate below; source checkpoint `3101c060` and PRs #1380–#1384 were unmerged at review time, distinct from refreshed protected main `552d847d`.
+
+**Recommended next:** implement one jointly learned sparse memory-language model: exact event tape, learned product-geometric keys/admission, mutable relative-frame energy, shared selected state operators and sparse normalized Generate/Copy/Stop. Train a competent ordinary counterpart alongside it. Exact retention, learned retrieval and appropriate uncopied generation are separate obligations inside one artifact. Complete prose/memory/code tasks and full-path access costs are the decision endpoints. This planning proposal preserves current owner policy and prior negative evidence; it is not geometric advantage, general language or energy qualification.
+
+The full proposal includes parameter/optimizer/checkpoint sizing before any training: current disk headroom above the protected reserve is small, and packed model bytes substantially understate training storage. The [review packet](principal-attention-review-packet-2026-09-24.md) owns this investigation's resource and validation closeout. No implementation run is launched by this documentation change.
+
+---
+
+## Previous: loaded native sparse-read gate fails admission, September 24 UTC
+
+The [frozen loaded integration](native-sparse-read-result-2026-09-24.md) joins a causal bounded exact-pair store and a fitted/reloaded four-bit source gate to the unchanged `TlModel` sequence path. On two new public-domain prose sources the teacher-forced top-one counts are **NoRead 84 / ordinary recent 323 / learned gate 319 / count 115** out of 2,032; on two separate Rust modules they are **193 / 675 / 674 / 409** out of 2,032. The gate reads on 1,498 of 1,504 recent hits, chooses an older different source six times and corrects one recent-source error. It **fails the predeclared gate** on both families and is not promoted. Four source-only edits change copied first-token output while NoRead stays fixed, but **0/8 actual eight-token generated continuations are fully correct**. The selected prose openings include contents and headings. A selected copy skips the dense vocabulary head for that step; the native transition remains dense and whole-path D5/energy are unqualified. Evidence: sealed `final1` under `/Users/casey.allard/uor-r4-investigations/native-sparse-read-20260924/`.
+
+**Result-specific next, consolidated by the principal proposal above:** freeze source-disjoint long-range memory episodes with a verified at-chance-order-2 controlled panel and companion natural prose/code. Train content/role-dependent query-to-address and write/read decisions in the same native path, with exact typed memory, unchanged-source/read-disabled controls and a matched ordinary router. Require changed-source effects on an *uncopied* generated token and count per-token learned-parameter access. The new proposal co-develops the equal-cost geometric parameterisation and ordinary arm from the start, retaining a separate promotion criterion. Do not tune this gate on its exposed Dev sources or return to authored copy fixtures.
+
+---
+
+## Previous: real-text sparse-recall opportunity gate, September 24 UTC
+
+The [source-separated development diagnostic](realtext-sparse-recall-result-2026-09-24.md) asks whether a causal exact-pair episodic read helps the actual project-document token stream beyond a newly fitted unigram/order-1/order-2 count reference. On 87,564 scored positions, a Tune-fitted dyadic cache mixture scores **6.173020 versus C 6.410664 bits/target** (difference **−0.237644 [−0.292814, −0.190741]** by document bootstrap); the same-hit rotated-value null is **6.531288**. Distant (≥64-token) exact-pair hits cover **24.23%**, and **4.08% of all positions** have a correct distant cached successor when C's top-one is wrong. The pre-registered in-domain opportunity gate passes. All three age buckets select the same **1/4** cache weight, so there is no age-policy result. The 24 Dev documents are exposed project Markdown, 20 from `integration/`; the cache is an ordinary exact-token comparator, not learned semantic addressing. The loaded `TlModel`, general prose/code transfer, geometry, D0-b/D5 whole-path serving and energy were not tested here.
+
+**Then next:** integrate a bounded addressable candidate with the loaded native language path and learn source admission/read choice from observed tokens. That experiment is reported above; the four-bit observed-feature gate failed its matched ordinary-cache comparison.
+
+---
+
+## Previous: explicit addressed-memory generation bridge, September 24 UTC
+
+The [pre-registered integration](addressed-lexical-bridge-result-2026-09-24.md) now passes an exact, typed scoped/versioned memory read into the **loaded** native `TlModel` Generate/Copy/Stop path. In the authoritative sealed `final4`/independent `replay4` panel, all **24 rows** agree across process and binary-memory reload; current/pinned/previous selection, read-disabled, unrelated edit, absent, evicted, no-history and wrong-scope controls pass. In two familiar single-token pairs, changing only the selected stored payload changes actual copied output (` green now` versus ` north now`; ` summer now` versus ` red now`). This witnesses explicit-address owned copying through the decoder. The uncopied `now` stays fixed; the unchanged ordinary-prose continuation remains degenerate. Writes, addresses and read permission are caller-supplied, KVAR's fitted gate is not transplanted, and the decoder still inspects **153,052** nonzero parameter slots per step. No learned natural-language request binding, semantic generalization, D5 sparse serving, geometric advantage, general prose, coding or energy result follows.
+
+**Then next:** on this same native path, learn source admission and request-to-address/read/write decisions from observed text, with a fixed-flags same-structure intervention that changes an *uncopied* word after loaded generation. The real-text sparse-recall opportunity gate above now informs that work. Keep the exact-memory, read-disabled, wrong-scope, absent/evicted and prior lexical/prose controls. A full ordinary `(f)` versus geometric `(h)` comparison remains `NOT_RUN` and needs its own prospective identifiable frame task.
+
+---
+
+## Previous: KVAR relative-energy pilot negative; addressed memory remains the lever, September 24 UTC
+
+The [pre-registered matched residual pilot](kvar-relative-energy-result-2026-09-24.md) held each quantized `(c)` base fixed and compared ordinary C8 versus exact Q8 query/value read energies at equal residual parameter/access cost, with transport-off and kernel-off. On fresh seed-group-4 KVAR, controls were valid (count 2/204; overwrite 204/204), but the Q8 geometry gate **failed**: Q8 minus ordinary was **−0.1337 bits/query [−0.3708,+0.0980]** for seed 1 and **0 [0,0]** for seed 2, short of the frozen ≥0.5-bit margin and two-seed transport criterion. Seed 1's unmodified `(c)` was better than either residual; seed 2 learned a zero kernel. The retained sealed root is `/Users/casey.allard/uor-r4-investigations/kvar-relative-20260924/final1`. This retires only the query/value residual on random-pair KVAR. The original full ordinary `(f)` and end-to-end geometric `(h)` arms remain `NOT_RUN`; no geometric-attention, language or energy result follows. The base still inspects 8,771 parameter slots per token.
+
+**Then next:** integrate the retained addressed memory into native language generation, with loaded-artifact changed-source/read-disabled controls and retained lexical/prose checks. That explicit-address bridge is reported above. Specify any later full `(f)/(h)` or frame-structured geometry comparison prospectively; do not count the residual pilot as that gate.
+
+---
+
+## Previous: KVAR hard-selection successor — memory retained, hard-objective promotion rejected, September 24 UTC
+
+The [executed successor](kvar-hard-successor-result-2026-09-24.md) corrected empty hard reads, isolated the historical unscaled read-gate update as an explicit optimization surrogate, and compared hard-objective recipes on the same synthetic KVAR task. On a fresh seed-group-3 panel, the complete `(a,b,c)` report validated the controls (`C` 4/204 near 1/64 chance; hand-coded overwrite 204/204) and retained `(c)` soft-trained/hard-served at **0.8284/0.7451 accuracy** and **+3.8332/+3.5849 bits over C** (two seeds). `(a)` and `(b)` remain near chance; the complete sealed receipt returns `ACCEPT_MEMORY_MECHANISM`. The 0.1 hard-auxiliary recipe is worse in bits on both seeds (paired differences +1.2915 and +0.1064 bits, auxiliary minus retained), so it is **not promoted**. Direct and staged hard straight-through training also failed on the development panel. The native language model source is unchanged; the result is a standalone synthetic memory mechanism, not language or geometric attention qualification.
+
+The authoritative new root is `/Users/casey.allard/uor-r4-investigations/kvar-20260924/final-complete-sg3-v2`; all development/negative roots and the prior `run4` remain sealed. The quantized parameters and per-row predictions are retained, and the served prototype still inspects 8,771 parameter slots per token. **Next:** freeze and run equal-cost ordinary `(f)` versus geometric `(h)` with transport-off ablation, then integrate the retained memory into the native language path with changed-source/read-disabled/loaded-generation controls. No Q8/H4 or Hamiltonian advantage, energy saving, general prose or coding result follows yet.
+
+---
+
+## Previous: KVAR — a gated overwrite addressed memory extends the horizon (M1 Part B′), September 24 UTC
 
 The [executed KVAR result](kvar-recall-result-2026-09-24.md) runs the amended M1 Part B: a synthetic **keyed
 variable-lag retrieval with rebinding** panel (V=64, `K∈{4,8}`, `lag∈{4,16,64}`, every key rebound, answer = most

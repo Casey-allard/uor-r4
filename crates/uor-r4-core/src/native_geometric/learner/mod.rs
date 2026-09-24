@@ -3,6 +3,7 @@
 //! Continuous offline training using Adam, gradients, and JEPA latent state prediction.
 //! Discrete table export for zero-GEMM, zero-runtime-float, zero-heap-allocation inference.
 
+pub mod addressed_lexical_bridge;
 pub mod binary_model;
 pub mod chat;
 pub mod cold_prior;
@@ -12,6 +13,7 @@ pub mod geometric_attention;
 pub mod grounded_session;
 pub mod group_table;
 pub mod head_projection;
+pub mod integrated_attention;
 pub mod jepa_trainer;
 pub mod lexical_realization;
 pub mod lowbit;
@@ -31,6 +33,7 @@ pub mod relational_session;
 pub mod result_decoder;
 pub mod scoped_memory;
 pub mod shared_transition;
+pub mod sparse_native_read;
 pub mod state_lexical;
 pub mod transferable_lexical;
 pub mod transition_table;

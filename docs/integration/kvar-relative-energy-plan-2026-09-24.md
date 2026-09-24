@@ -1,0 +1,26 @@
+# KVAR matched relative-energy pilot — pre-registration
+
+Frozen before fitting the two finite residual arms. This is a successor to the [KVAR hard-selection result](kvar-hard-successor-result-2026-09-24.md), based on stacked parent `a6c4ace5` (PR #1380, open at registration). It is a **matched residual pilot**, not a retroactive claim that the original plan's full GRU/fast-weight `(f)` and end-to-end geometric `(h)` have run. The base served `(c)` parameters are read-only from sealed `final-complete-sg3-v2/parameters.json`, SHA-256 `7aec17b87fa8a005ca87855f8a68a156c094d82fc08b1011b3f3401e4b251401`. Both model seeds use exactly the same base parameter values in both arms.
+
+## Why this is a scoped test
+
+The exact KVAR address finds a unique stored key. A relative operator between a query key and that identical stored key is always identity, so adding `K[class(q⁻¹k)]` at that point cannot identify a geometric contribution. This pilot instead asks whether a learned **query/value frame relation** improves the final read decision. The values are randomly paired with keys in KVAR; no geometric advantage is expected. A tie retires only this residual read-energy idea on this panel. Any positive result needs an independent frame-intervention and matched end-to-end test before a broader geometry claim.
+
+## Common model, arms and served kernel
+
+Both arms reuse the same quantized KVAR `(c)` state recurrence, exact overwrite store and base hard read gate. On the **last query token only**, each learns a table `a[token] ∈ 0..8` (66 three-bit action labels) and eight signed four-bit weights `κ[r] ∈ [-7,7]`. The stored value is the latest token in the exact addressed row; an invalid row remains invalid regardless of energy. The hard read is selected when `g + (κ[relative(a[query],a[value])] << s) > 0`, where `g` is the unmodified integer read logit and common shift `s` is chosen from the 90th percentile of absolute training logits, clamped to 0..8. The read energy is the negative of this bounded score. Its name does not assert physical Hamiltonian dynamics.
+
+- **Ordinary `(f_residual)`**: the store is an ordinary delta overwrite (`M[k] ← M[k] + target − M[k]` under hard write selection). The relative address is a fixed eight-state cyclic difference table `C8`, with the same learned labels, kernel count and update budget.
+- **Geometric `(h_residual)`**: the relative address is `q⁻¹v` in Q8. Each label denotes an exact signed-permutation left action on a four-component integer vector; the fixed 8×8 table is constructed from `hamilton_transport::{apply,inverse}`. All eight directed elements, including sign, remain distinct. Serving performs only table reads, compare, integer add and shift.
+- **Transport-off**: keep h's learned weights and base model, force both frames to identity before the Q8 lookup. This leaves the identity-class bias and the same exact store/read machinery.
+- **Kernel-off**: zero all `κ` with the same base model; this must reproduce the retained `(c)` served scores exactly.
+
+At a valid final query both arms add exactly **four reads** (query label, stored-value label, relative table, kernel table), one shift, one integer add and one compare to the common KVAR work. They have the same 66 action labels and eight four-bit learned weights, the same fixed 64-entry relation-table footprint, and the same bounded coordinate-search schedule. Report total parameter slots/read accesses including the existing dense KVAR substrate; this pilot does not meet terminal D5 sparsity.
+
+## Data, optimization and decision
+
+Use the original KVAR generator: six cells, 100 training episodes per cell from seed group 1. Seed group 2 is open development and may be used for smoke diagnostics only. The final untouched evaluation is **seed group 4**, 34 episodes per cell, chosen before fitting here. The order-2 count C and hand-coded overwrite g must again be near chance/perfect, respectively, for a valid panel. Do not inspect group 4 until code, parameters, shift rule and training schedule are fixed.
+
+Start all labels at `token mod 8` and all weights at zero. For each arm and each frozen base seed, perform **five** deterministic coordinate sweeps: each sweep optimizes the eight four-bit weights over `[-7,7]`, then each of the 66 labels over `0..7`, minimizing mean training bits at the common fixed temperature **32**. Ties retain the incumbent. No held-row outcome, action label, hidden operator ID, value from another episode or provider response enters fitting. Save the fitted labels, weights, integer shift, per-row served scores/predictions, per-cell results and resource counts in a unique sealed root. Report seed-wise paired 95% episode-bootstrap intervals for h−f and h−transport-off, plus the baseline c difference.
+
+The original geometry margin is retained as a guard: h must beat f by **at least 0.5 bits/query**, with a paired interval excluding zero, on **both** model seeds, and transport-off must worsen h on both. Even if this residual pilot meets that guard, it is only evidence for this narrow read-energy mechanism; no general geometric-attention or language advantage follows. A tie or failure is a negative at this scope, not a reason to remove geometric identity/transport elsewhere.

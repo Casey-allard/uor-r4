@@ -18,13 +18,12 @@
 //! # D0-b / served-kernel boundary
 //!
 //! Training is floating point (permitted). The **served** evaluation is integer/
-//! select only: the dense maps are quantized to per-row power-of-two-scaled
-//! 4-bit weights and executed by `qmatvec` as shifts and adds (no multiply), the
-//! gate is a hard compare/select, the store is a table write/read, and the
-//! output is `argmax`. Multiplier-freedom is enforced in `qmatvec`, `qdot`,
-//! `serve_*` and the store helpers — every arithmetic operation there is an
-//! integer add/subtract/shift/compare/table read. Softmax/float appears only in
-//! the offline `calib_bits` measurement and in training; it never selects a token.
+//! select only: dense linear maps use ternary weights and add/subtract/zero;
+//! embedding and bias lookups use i8 values with power-of-two shifts. Gates are
+//! hard compares/selects, the store is a table write/read with explicit row
+//! validity, and the output is `argmax`. The declared numerical kernel in
+//! `qmat_t`, `qdot_t` and `serve_scores` has no multiplier or floating-point
+//! arithmetic. Softmax/float is used only in training and offline measurement.
 //!
 //! # Report
 //!
@@ -35,6 +34,9 @@
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use uor_r4_core::report_output::{claim, seal, verify};
+
+#[path = "kvar_relative_energy.rs"]
+mod kvar_relative_energy;
 
 /// Fixed panel vocabulary: `CONTENT` content tokens, then `BIND`, then `QUERY`.
 const CONTENT: usize = 64;
@@ -431,8 +433,11 @@ struct Tap {
     zs: Vec<f32>,
     upds: Vec<f32>,
     gss: Vec<f32>,
+    gprobs: Vec<f32>,
     wss: Vec<f32>,
+    wprobs: Vec<f32>,
     rss: Vec<f32>,
+    rprobs: Vec<f32>,
     wrote: Vec<u8>,
     addrs: Vec<usize>,
     vals: Vec<u8>,
@@ -443,6 +448,7 @@ struct Tap {
     mems: Vec<f32>,
     scores: Vec<f32>,
     target: usize,
+    hard_select: bool,
 }
 
 fn softmax_ce(scores: &[f32], target: usize) -> (f32, Vec<f32>) {
@@ -462,6 +468,18 @@ fn softmax_ce(scores: &[f32], target: usize) -> (f32, Vec<f32>) {
 
 /// Soft forward pass, recording every intermediate the backward pass needs.
 fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
+    forward_with_readout(p, lay, dims, ep, false)
+}
+
+/// Hard forward with a sigmoid straight-through surrogate for the three gates.
+/// The store and terminal read are the actual select operations during training.
+fn forward_with_readout(
+    p: &[f32],
+    lay: &Layout,
+    dims: Dims,
+    ep: &Episode,
+    hard_select: bool,
+) -> (f32, Tap) {
     let d = dims.d;
     let out = dims.out;
     let n = ep.inputs.len();
@@ -470,8 +488,11 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
     let mut zs = vec![0f32; n * d];
     let mut upds = vec![0f32; n * d];
     let mut gss = vec![0f32; n];
+    let mut gprobs = vec![0f32; n];
     let mut wss = vec![0f32; n];
+    let mut wprobs = vec![0f32; n];
     let mut rss = vec![0f32; n];
+    let mut rprobs = vec![0f32; n];
     let mut wrote = vec![0u8; n];
     let mut addrs = vec![0usize; n];
     let mut vals = vec![0u8; n];
@@ -520,6 +541,8 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
                 gl += p[ag_off + j] * hp[j];
             }
             let gs = sigmoid(gl);
+            gprobs[t] = gs;
+            let gs = if hard_select { f32::from(gl > 0.0) } else { gs };
             gss[t] = gs;
             for j in 0..d {
                 h[j] = gs * hp[j] + (1.0 - gs) * upd[j];
@@ -536,6 +559,12 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
                     wgl += p[bw_off + j] * hp[j];
                 }
                 let ws = sigmoid(wgl);
+                wprobs[t] = ws;
+                let ws = if hard_select {
+                    f32::from(wgl > 0.0)
+                } else {
+                    ws
+                };
                 wss[t] = ws;
                 wrote[t] = 1;
                 addrs[t] = key;
@@ -557,6 +586,12 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
                     rgl += p[br_off + j] * hp[j];
                 }
                 let rs = sigmoid(rgl);
+                rprobs[t] = rs;
+                let rs = if hard_select {
+                    f32::from(rgl > 0.0)
+                } else {
+                    rs
+                };
                 rss[t] = rs;
                 read[t] = 1;
                 raddrs[t] = key;
@@ -579,7 +614,12 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
         }
         scores[v] = acc;
     }
-    if dims.store {
+    if dims.store && hard_select {
+        let mem = &mems[(n - 1) * out..n * out];
+        if mem.iter().any(|&v| v > 0.0) {
+            scores[argmax(mem)] += (1 << STORE_SHIFT) as f32;
+        }
+    } else if dims.store {
         let beta = p[lay.beta];
         for v in 0..out {
             scores[v] += beta * mems[(n - 1) * out + v];
@@ -593,8 +633,11 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
         zs,
         upds,
         gss,
+        gprobs,
         wss,
+        wprobs,
         rss,
+        rprobs,
         wrote,
         addrs,
         vals,
@@ -605,13 +648,21 @@ fn forward(p: &[f32], lay: &Layout, dims: Dims, ep: &Episode) -> (f32, Tap) {
         mems,
         scores,
         target: ep.target as usize,
+        hard_select,
     };
     (loss, tap)
 }
 
 /// Reverse-mode BPTT for the soft forward pass. Accumulates into `grad` (caller
 /// zeroes it); returns the loss.
-fn backward(p: &[f32], lay: &Layout, dims: Dims, tap: &Tap, grad: &mut [f32]) -> f32 {
+fn backward(
+    p: &[f32],
+    lay: &Layout,
+    dims: Dims,
+    tap: &Tap,
+    grad: &mut [f32],
+    unscaled_read_grad: bool,
+) -> f32 {
     let d = dims.d;
     let out = dims.out;
     let n = tap.n;
@@ -635,9 +686,14 @@ fn backward(p: &[f32], lay: &Layout, dims: Dims, tap: &Tap, grad: &mut [f32]) ->
     }
     let mut dmem = vec![0f32; out];
     if dims.store {
-        let beta = p[lay.beta];
+        // Identity straight-through derivative of the selected one-hot memory
+        // row. The forward loss sees the exact hard readout; the bounded
+        // surrogate slope only affects optimization, never the served result.
+        let beta = if tap.hard_select { 8.0 } else { p[lay.beta] };
         for v in 0..out {
-            grad[lay.beta] += dscores[v] * tap.mems[(n - 1) * out + v];
+            if !tap.hard_select {
+                grad[lay.beta] += dscores[v] * tap.mems[(n - 1) * out + v];
+            }
             dmem[v] = beta * dscores[v];
         }
     }
@@ -655,7 +711,18 @@ fn backward(p: &[f32], lay: &Layout, dims: Dims, tap: &Tap, grad: &mut [f32]) ->
         let hp = &tap.hs[t * d..(t + 1) * d];
         let upd = &tap.upds[t * d..(t + 1) * d];
         let dm: &[f32] = if t == n - 1 { &dmem } else { &zero_mem };
-        // Undo this step's write first: dz_store is currently dL/dZ_{t+1}.
+        // The forward read sees the store after this step's write. Reverse
+        // order therefore accumulates read sensitivity before undoing write.
+        let mut drgl = 0f32;
+        if dims.store && tap.read[t] != 0 {
+            let k = tap.raddrs[t];
+            let r = tap.rss[t];
+            let zread = &tap.zread[t * out..(t + 1) * out];
+            for v in 0..out {
+                dz_store[k * out + v] += r * dm[v];
+                drgl += zread[v] * dm[v];
+            }
+        }
         let mut dwgl = 0f32;
         if dims.store && tap.wrote[t] != 0 {
             let k = tap.addrs[t];
@@ -669,18 +736,7 @@ fn backward(p: &[f32], lay: &Layout, dims: Dims, tap: &Tap, grad: &mut [f32]) ->
             for v in 0..out {
                 dz_store[k * out + v] *= keep;
             }
-            dwgl = dw * tap.wss[t] * (1.0 - tap.wss[t]);
-        }
-        // Then the read at this step (which saw Z_t, i.e. the store after the undo).
-        let mut drgl = 0f32;
-        if dims.store && tap.read[t] != 0 {
-            let k = tap.raddrs[t];
-            let r = tap.rss[t];
-            let zread = &tap.zread[t * out..(t + 1) * out];
-            for v in 0..out {
-                dz_store[k * out + v] += r * dm[v];
-                drgl += zread[v] * dm[v];
-            }
+            dwgl = dw * tap.wprobs[t] * (1.0 - tap.wprobs[t]);
         }
         if dims.gate {
             let gs = tap.gss[t];
@@ -688,7 +744,8 @@ fn backward(p: &[f32], lay: &Layout, dims: Dims, tap: &Tap, grad: &mut [f32]) ->
             for j in 0..d {
                 dg += dh[j] * (hp[j] - upd[j]);
             }
-            let dgl = dg * gs * (1.0 - gs);
+            let gp = tap.gprobs[t];
+            let dgl = dg * gp * (1.0 - gp);
             let agrow = &p[lay.ag + xc * d..lay.ag + xc * d + d];
             for j in 0..d {
                 dhp[j] += gs * dh[j];
@@ -703,13 +760,21 @@ fn backward(p: &[f32], lay: &Layout, dims: Dims, tap: &Tap, grad: &mut [f32]) ->
         if dims.store {
             let brow = &p[lay.br + xc * d..lay.br + xc * d + d];
             let bwrow = &p[lay.bw + xc * d..lay.bw + xc * d + d];
+            // Optional straight-through read-gate surrogate used by the
+            // historical KVAR run. The exact sigmoid derivative is the
+            // default and is covered by the finite-difference tests.
+            let read_factor = if unscaled_read_grad {
+                1.0
+            } else {
+                tap.rprobs[t] * (1.0 - tap.rprobs[t])
+            };
             for j in 0..d {
-                dhp[j] += drgl * brow[j];
+                dhp[j] += drgl * read_factor * brow[j];
                 dhp[j] += dwgl * bwrow[j];
-                grad[lay.br + xc * d + j] += drgl * hp[j];
+                grad[lay.br + xc * d + j] += drgl * read_factor * hp[j];
                 grad[lay.bw + xc * d + j] += dwgl * hp[j];
             }
-            grad[lay.cr + xc] += drgl;
+            grad[lay.cr + xc] += drgl * read_factor;
             grad[lay.cw + xc] += dwgl;
         }
         let zrow = &tap.zs[t * d..(t + 1) * d];
@@ -835,6 +900,7 @@ fn quant_tern(vals: &[f32]) -> Vec<i8> {
         .collect()
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 struct QParams {
     wh: Vec<i8>,
     wf: Vec<i8>,
@@ -948,13 +1014,37 @@ fn type_i32(x: u8, out: usize) -> [i32; NT] {
 /// `select_readout` is a diagnostic variant for store arms only: when the read gate
 /// fired at the final step, the store row is the answer instead of an additive term.
 fn serve_scores(q: &QParams, dims: Dims, ep: &Episode, select_readout: bool) -> (usize, Vec<i32>) {
+    let (pred, scores, _) = serve_scores_trace(q, dims, ep, select_readout);
+    (pred, scores)
+}
+
+#[derive(Clone)]
+struct TerminalTrace {
+    query: u8,
+    value: u8,
+    valid: bool,
+    gate_logit: i32,
+    base_scores: Vec<i32>,
+    target: usize,
+}
+
+fn serve_scores_trace(
+    q: &QParams,
+    dims: Dims,
+    ep: &Episode,
+    select_readout: bool,
+) -> (usize, Vec<i32>, TerminalTrace) {
     let d = dims.d;
     let out = dims.out;
     let n = ep.inputs.len();
     let mut h = vec![0i32; d];
     let mut ztab = vec![0i32; out * out];
+    let mut valid = vec![false; out];
     let mut mem_last = vec![0i32; out];
     let mut last_read = false;
+    let mut terminal_gate_logit = 0i32;
+    let mut terminal_value = 0u8;
+    let mut terminal_valid = false;
     for t in 0..n {
         let hp = h.clone();
         let x = ep.inputs[t] as usize;
@@ -984,6 +1074,7 @@ fn serve_scores(q: &QParams, dims: Dims, ep: &Episode, select_readout: bool) -> 
                     for v in 0..out {
                         ztab[key * out + v] = if v == x { 1 } else { 0 };
                     }
+                    valid[key] = true;
                 }
             }
             let mut mem = vec![0i32; out];
@@ -991,7 +1082,14 @@ fn serve_scores(q: &QParams, dims: Dims, ep: &Episode, select_readout: bool) -> 
             if x < out {
                 let mut rgl = shl(q.cr[x] as i32, q.cr_sh);
                 rgl += qdot_t(&q.br[x * d..x * d + d], &hp);
-                if rgl > 0 {
+                if t + 1 == n {
+                    terminal_gate_logit = rgl;
+                    terminal_valid = valid[x];
+                    if valid[x] {
+                        terminal_value = argmax_i32(&ztab[x * out..(x + 1) * out]) as u8;
+                    }
+                }
+                if rgl > 0 && valid[x] {
                     last_read = true;
                     for v in 0..out {
                         mem[v] = ztab[x * out + v];
@@ -1005,6 +1103,14 @@ fn serve_scores(q: &QParams, dims: Dims, ep: &Episode, select_readout: bool) -> 
     for v in 0..out {
         scores[v] = qdot_t(&q.wo[v * d..v * d + d], &h);
     }
+    let trace = TerminalTrace {
+        query: ep.inputs[n - 1],
+        value: terminal_value,
+        valid: terminal_valid,
+        gate_logit: terminal_gate_logit,
+        base_scores: scores.clone(),
+        target: ep.target as usize,
+    };
     if dims.store {
         if select_readout {
             if last_read {
@@ -1024,7 +1130,7 @@ fn serve_scores(q: &QParams, dims: Dims, ep: &Episode, select_readout: bool) -> 
             best = v;
         }
     }
-    (best, scores)
+    (best, scores, trace)
 }
 
 fn bits_at(scores: &[f32], target: usize, temp: f32) -> f64 {
@@ -1063,19 +1169,40 @@ fn train_arm(
     train: &[Episode],
     steps: usize,
     batch: usize,
+    hard_train: bool,
+    hard_warmup: usize,
+    hard_aux_weight: f32,
+    unscaled_read_grad: bool,
 ) -> Vec<f32> {
     let mut rng = Rng::new(seed ^ 0xFEED_FACE_CAFE_BEEF);
     let mut p = init_params(lay, dims, seed);
     let mut adam = Adam::new(lay.total);
     let mut grad = vec![0f32; lay.total];
-    for _step in 0..steps {
+    let mut soft_grad = vec![0f32; lay.total];
+    let mut hard_grad = vec![0f32; lay.total];
+    for step in 0..steps {
         for g in grad.iter_mut() {
             *g = 0.0;
         }
         for _b in 0..batch {
             let ep = &train[rng.below(train.len())];
-            let (_loss, tap) = forward(&p, lay, dims, ep);
-            backward(&p, lay, dims, &tap, &mut grad);
+            if hard_aux_weight > 0.0 && dims.store {
+                soft_grad.fill(0.0);
+                hard_grad.fill(0.0);
+                let (_, soft_tap) = forward(&p, lay, dims, ep);
+                backward(&p, lay, dims, &soft_tap, &mut soft_grad, unscaled_read_grad);
+                let (_, hard_tap) = forward_with_readout(&p, lay, dims, ep, true);
+                backward(&p, lay, dims, &hard_tap, &mut hard_grad, unscaled_read_grad);
+                let scale = grad_norm(&soft_grad) / grad_norm(&hard_grad).max(1e-6);
+                for i in 0..grad.len() {
+                    grad[i] += (1.0 - hard_aux_weight) * soft_grad[i]
+                        + hard_aux_weight * scale * hard_grad[i];
+                }
+            } else {
+                let (_loss, tap) =
+                    forward_with_readout(&p, lay, dims, ep, hard_train && step >= hard_warmup);
+                backward(&p, lay, dims, &tap, &mut grad, unscaled_read_grad);
+            }
         }
         let inv = 1.0 / batch as f32;
         for g in grad.iter_mut() {
@@ -1220,12 +1347,18 @@ struct Config {
     train_per_cell: usize,
     held_per_cell: usize,
     seeds: Vec<u64>,
+    hard_train: bool,
+    hard_warmup: usize,
+    hard_aux_weight: f32,
+    unscaled_read_grad: bool,
+    held_seed_group: u64,
+    selected_arms: Vec<String>,
 }
 
 fn parse_args() -> Result<Config, String> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        return Err("usage: kvar-recall NEW_REPORT_ROOT [--steps N] [--train-per-cell N] [--held-per-cell N] [--seeds A,B] [--quick]".into());
+        return Err("usage: kvar-recall NEW_REPORT_ROOT [--steps N] [--train-per-cell N] [--held-per-cell N] [--seeds A,B] [--hard-train] [--hard-warmup N] [--hard-aux-weight W] [--unscaled-read-grad] [--held-seed-group N] [--arms a,b,c] [--quick]".into());
     }
     let mut cfg = Config {
         root: PathBuf::from(&args[1]),
@@ -1233,6 +1366,12 @@ fn parse_args() -> Result<Config, String> {
         train_per_cell: TRAIN_EPISODES_PER_CELL,
         held_per_cell: HELD_EPISODES_PER_CELL,
         seeds: vec![1, 2],
+        hard_train: false,
+        hard_warmup: 0,
+        hard_aux_weight: 0.0,
+        unscaled_read_grad: false,
+        held_seed_group: 2,
+        selected_arms: vec!["a".into(), "b".into(), "c".into()],
     };
     let mut i = 2usize;
     while i < args.len() {
@@ -1269,6 +1408,52 @@ fn parse_args() -> Result<Config, String> {
                     .map(|x| x.trim().parse::<u64>().map_err(|e| format!("--seeds: {e}")))
                     .collect::<Result<Vec<_>, _>>()?;
             }
+            "--hard-train" => cfg.hard_train = true,
+            "--hard-warmup" => {
+                i += 1;
+                cfg.hard_warmup = args
+                    .get(i)
+                    .ok_or("--hard-warmup needs a value")?
+                    .parse()
+                    .map_err(|e| format!("--hard-warmup: {e}"))?;
+            }
+            "--hard-aux-weight" => {
+                i += 1;
+                cfg.hard_aux_weight = args
+                    .get(i)
+                    .ok_or("--hard-aux-weight needs a value")?
+                    .parse()
+                    .map_err(|e| format!("--hard-aux-weight: {e}"))?;
+            }
+            "--unscaled-read-grad" => cfg.unscaled_read_grad = true,
+            "--held-seed-group" => {
+                i += 1;
+                cfg.held_seed_group = args
+                    .get(i)
+                    .ok_or("--held-seed-group needs a value")?
+                    .parse()
+                    .map_err(|e| format!("--held-seed-group: {e}"))?;
+                if cfg.held_seed_group == 1 {
+                    return Err("held seed group must differ from training group 1".into());
+                }
+            }
+            "--arms" => {
+                i += 1;
+                cfg.selected_arms = args
+                    .get(i)
+                    .ok_or("--arms needs a value")?
+                    .split(',')
+                    .map(str::to_owned)
+                    .collect();
+                if cfg.selected_arms.is_empty()
+                    || cfg
+                        .selected_arms
+                        .iter()
+                        .any(|a| !["a", "b", "c"].contains(&a.as_str()))
+                {
+                    return Err("--arms must be a nonempty comma-separated subset of a,b,c".into());
+                }
+            }
             "--quick" => {
                 cfg.steps = 60;
                 cfg.train_per_cell = 8;
@@ -1278,6 +1463,15 @@ fn parse_args() -> Result<Config, String> {
             other => return Err(format!("unknown argument {other}")),
         }
         i += 1;
+    }
+    if cfg.hard_warmup > cfg.steps || (cfg.hard_warmup > 0 && !cfg.hard_train) {
+        return Err("--hard-warmup requires --hard-train and must not exceed --steps".into());
+    }
+    if !(0.0..=1.0).contains(&cfg.hard_aux_weight) || (cfg.hard_aux_weight > 0.0 && cfg.hard_train)
+    {
+        return Err(
+            "--hard-aux-weight must be in [0,1] and cannot combine with --hard-train".into(),
+        );
     }
     Ok(cfg)
 }
@@ -1308,7 +1502,7 @@ fn run() -> Result<(), String> {
             train.push(gen_episode(seed_for(1, k, l, i), k, l));
         }
         for i in 0..cfg.held_per_cell {
-            held.push(gen_episode(seed_for(2, k, l, i), k, l));
+            held.push(gen_episode(seed_for(cfg.held_seed_group, k, l, i), k, l));
             held_cell.push(ci);
         }
     }
@@ -1376,15 +1570,31 @@ fn run() -> Result<(), String> {
     let mut rng = Rng::new(0x5EED_1234_5678_9ABC);
     let mut arm_json: Vec<Value> = Vec::new();
     let mut d5_json: Vec<Value> = Vec::new();
+    let mut param_json: Vec<Value> = Vec::new();
+    let mut prediction_json: Vec<Value> = Vec::new();
     let mut summary: Vec<(String, f64, f64, f64, f64, f64)> = Vec::new();
     for ac in arms.iter() {
+        if !cfg.selected_arms.iter().any(|a| a == ac.name) {
+            continue;
+        }
         let dims = Dims {
             gate: ac.gate,
             store: ac.store,
             ..dims_full
         };
         for &seed in cfg.seeds.iter() {
-            let p = train_arm(dims, &lay, seed, &train, cfg.steps, BATCH);
+            let p = train_arm(
+                dims,
+                &lay,
+                seed,
+                &train,
+                cfg.steps,
+                BATCH,
+                cfg.hard_train,
+                cfg.hard_warmup,
+                cfg.hard_aux_weight,
+                cfg.unscaled_read_grad,
+            );
             let q = served_quantize(&p, &lay, dims);
             let mut d5 = d5_report(&q, dims);
             d5["seed"] = json!(seed);
@@ -1400,14 +1610,30 @@ fn run() -> Result<(), String> {
             let mut correct: Vec<f64> = Vec::with_capacity(held.len());
             let mut bits: Vec<f64> = Vec::with_capacity(held.len());
             let mut float_ok: Vec<f64> = Vec::with_capacity(held.len());
+            let mut hard_float_ok: Vec<f64> = Vec::with_capacity(held.len());
             let mut additive_ok: Vec<f64> = Vec::with_capacity(held.len());
-            for e in held.iter() {
+            for (episode_index, e) in held.iter().enumerate() {
                 let (pred, sc) = serve_scores(&q, dims, e, true);
                 correct.push(if pred == e.target as usize { 1.0 } else { 0.0 });
                 let scf: Vec<f32> = sc.iter().map(|&v| v as f32).collect();
                 bits.push(bits_at(&scf, e.target as usize, temp));
                 let (fp, _) = float_predict(&p, &lay, dims, e);
                 float_ok.push(if fp == e.target as usize { 1.0 } else { 0.0 });
+                let (_, hard_tap) = forward_with_readout(&p, &lay, dims, e, true);
+                let hard_float_pred = argmax(&hard_tap.scores);
+                hard_float_ok.push(if hard_float_pred == e.target as usize {
+                    1.0
+                } else {
+                    0.0
+                });
+                prediction_json.push(json!({
+                    "arm": ac.name, "seed": seed, "episode_index": episode_index,
+                    "episode_seed": e.seed, "k": e.k, "lag": e.lag, "key": e.key,
+                    "target": e.target, "served_prediction": pred,
+                    "served_scores": sc, "hard_float_prediction": hard_float_pred,
+                    "count_prediction": c_pred[episode_index],
+                    "overwrite_prediction": g_pred[episode_index],
+                }));
                 if dims.store {
                     let (ap, _) = serve_scores(&q, dims, e, false);
                     additive_ok.push(if ap == e.target as usize { 1.0 } else { 0.0 });
@@ -1458,6 +1684,10 @@ fn run() -> Result<(), String> {
                 "readout": "hard_select",
                 "steps": cfg.steps,
                 "batch": BATCH,
+                "hard_train": cfg.hard_train,
+                "hard_warmup": cfg.hard_warmup,
+                "hard_aux_weight": cfg.hard_aux_weight,
+                "unscaled_read_grad": cfg.unscaled_read_grad,
                 "accuracy": acc,
                 "accuracy_ci95": [acc_lo, acc_hi],
                 "bits_per_query": mb,
@@ -1465,9 +1695,11 @@ fn run() -> Result<(), String> {
                 "bits_vs_count_ci95": [-d_hi, -d_lo],
                 "calibration_temperature": temp,
                 "float_diagnostic_accuracy": float_acc,
+                "hard_float_diagnostic_accuracy": mean(&hard_float_ok),
                 "additive_diagnostic_accuracy": if dims.store { json!(mean(&additive_ok)) } else { Value::Null },
                 "per_cell": per_cell,
             }));
+            param_json.push(json!({"arm": ac.name, "seed": seed, "quantized_parameters": q}));
             if dims.store {
                 println!(
                     "  diag {}-s{seed} additive-readout acc={:.4}",
@@ -1499,7 +1731,7 @@ fn run() -> Result<(), String> {
         .filter(|a| a["arm"] == "c")
         .map(|a| a["bits_per_query"].as_f64().unwrap_or(f64::INFINITY))
         .fold(f64::INFINITY, f64::min);
-    let write_lever = best_c < best_b;
+    let write_lever = best_b.is_finite() && best_c.is_finite() && best_c < best_b;
     let served_at_chance = arm_json.iter().all(|a| {
         let lo = a["accuracy_ci95"][0].as_f64().unwrap_or(0.0);
         let hi = a["accuracy_ci95"][1].as_f64().unwrap_or(0.0);
@@ -1512,8 +1744,25 @@ fn run() -> Result<(), String> {
         .fold(0.0f64, f64::max);
     let realization_gap = served_at_chance && max_float_diag >= 0.10;
     let invalid = !g_solves || !c_at_chance;
+    let full_arms = ["a", "b", "c"]
+        .iter()
+        .all(|name| cfg.selected_arms.iter().any(|selected| selected == name));
+    let mut not_run = vec![
+        "(d) width".to_owned(),
+        "(e) width+gate".to_owned(),
+        "(f) ordinary matched control".to_owned(),
+        "(h) geometric parameterisation".to_owned(),
+        "equal-work stateful n-gram control".to_owned(),
+    ];
+    for ac in arms.iter() {
+        if !cfg.selected_arms.iter().any(|a| a == ac.name) {
+            not_run.push(format!("({}) trainable arm", ac.name));
+        }
+    }
     let branch = if invalid {
         "INVALID_PANEL_DEFECT"
+    } else if !full_arms {
+        "PARTIAL_ARMS_NOT_ADJUDICABLE"
     } else if beats_chance_2bits && write_lever {
         "ACCEPT_MEMORY_MECHANISM"
     } else if g_solves && served_at_chance {
@@ -1523,8 +1772,8 @@ fn run() -> Result<(), String> {
     };
 
     let receipt = json!({
-        "schema": "uor-r4.kvar-receipt/1",
-        "base_commit": "f0a7fc4a",
+        "schema": "uor-r4.kvar-receipt/2",
+        "base_commit": "552d847d",
         "plan": "docs/integration/kvar-plan-2026-09-24.md",
         "panel": {
             "content_vocab": CONTENT, "keys": KS, "lags": LAGS,
@@ -1533,7 +1782,7 @@ fn run() -> Result<(), String> {
             "held_episodes_per_cell": cfg.held_per_cell,
             "train_episodes_total": train.len(),
             "held_episodes_total": held.len(),
-            "design_seed_group": 1, "held_seed_group": 2,
+            "design_seed_group": 1, "held_seed_group": cfg.held_seed_group,
             "query": "answer = query key's most recent value; lag = tokens between its final binding and QUERY",
         },
         "controls": {
@@ -1549,6 +1798,11 @@ fn run() -> Result<(), String> {
         "decision": {
             "chance_accuracy": chance,
             "primary_readout": "hard_select",
+            "partial_arm_run": !full_arms,
+            "hard_train": cfg.hard_train,
+            "hard_warmup": cfg.hard_warmup,
+            "hard_aux_weight": cfg.hard_aux_weight,
+            "unscaled_read_grad": cfg.unscaled_read_grad,
             "store_shift": STORE_SHIFT,
             "g_solves_panel": g_solves,
             "panel_valid": !invalid,
@@ -1561,7 +1815,8 @@ fn run() -> Result<(), String> {
             "geometry_gate_h": "NOT_RUN",
             "branch": branch,
         },
-        "not_run": ["(d) width", "(e) width+gate", "(f) ordinary matched control", "(h) geometric parameterisation", "equal-work stateful n-gram control"],
+        "not_run": not_run,
+        "selected_arms": cfg.selected_arms,
         "controls_note": "(b) gate/no-store is the model-family ordinary gated-recurrence control; the plan's (f) GRU is NOT_RUN.",
         "scope": "Synthetic KVAR panel only. No language, capability, reasoning, energy or geometric-advantage claim.",
     });
@@ -1570,10 +1825,12 @@ fn run() -> Result<(), String> {
         std::fs::write(cfg.root.join(name), bytes).map_err(|e| format!("{name}: {e}"))
     };
     write("receipt.json", &receipt)?;
+    write("parameters.json", &json!({"arms": param_json}))?;
+    write("predictions.json", &json!({"held_rows": prediction_json}))?;
     let panel = json!({
         "cells": cells.iter().map(|&(k,l)| json!({"k":k,"lag":l})).collect::<Vec<_>>(),
-        "train": train.iter().map(|e| json!({"seed": e.seed, "k": e.k, "lag": e.lag, "key": e.key, "target": e.target, "len": e.inputs.len()})).collect::<Vec<_>>(),
-        "held": held.iter().map(|e| json!({"seed": e.seed, "k": e.k, "lag": e.lag, "key": e.key, "target": e.target, "len": e.inputs.len()})).collect::<Vec<_>>(),
+        "train": train.iter().map(|e| json!({"seed": e.seed, "k": e.k, "lag": e.lag, "key": e.key, "target": e.target, "inputs": e.inputs})).collect::<Vec<_>>(),
+        "held": held.iter().map(|e| json!({"seed": e.seed, "k": e.k, "lag": e.lag, "key": e.key, "target": e.target, "inputs": e.inputs})).collect::<Vec<_>>(),
     });
     write("panel.json", &panel)?;
     let boot = json!({
@@ -1609,6 +1866,14 @@ fn run() -> Result<(), String> {
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(2).map(String::as_str) == Some("--relative-energy") {
+        if let Err(e) = kvar_relative_energy::run(&args) {
+            eprintln!("error: {e}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if let Err(e) = run() {
         eprintln!("error: {e}");
         std::process::exit(1);
@@ -1618,6 +1883,32 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn zero_q(dims: Dims) -> QParams {
+        let d = dims.d;
+        let out = dims.out;
+        let v = dims.vocab;
+        QParams {
+            wh: vec![0; d * d],
+            wf: vec![0; d * NT],
+            wo: vec![0; out * d],
+            ag: vec![0; v * d],
+            bw: vec![0; v * d],
+            br: vec![0; v * d],
+            emb: vec![0; v * d],
+            emb_sh: 0,
+            bh: vec![0; d],
+            bh_sh: 0,
+            cg: vec![0; v],
+            cg_sh: 0,
+            cw: vec![0; v],
+            cw_sh: 0,
+            cr: vec![0; v],
+            cr_sh: 0,
+            beta_sh: 8,
+            beta_neg: false,
+        }
+    }
 
     fn tiny_dims(gate: bool, store: bool) -> Dims {
         Dims {
@@ -1647,7 +1938,7 @@ mod tests {
         let ep = tiny_episode();
         let mut grad = vec![0f32; lay.total];
         let (_l, tap) = forward(&p, &lay, dims, &ep);
-        backward(&p, &lay, dims, &tap, &mut grad);
+        backward(&p, &lay, dims, &tap, &mut grad, false);
         let eps = 2e-3f32;
         let mut checked = 0usize;
         let mut significant = 0usize;
@@ -1798,29 +2089,8 @@ mod tests {
     #[test]
     fn served_store_reads_most_recent_value() {
         let dims = tiny_dims(true, true);
-        let d = dims.d;
         let out = dims.out;
-        let v = dims.vocab;
-        let mut q = QParams {
-            wh: vec![0; d * d],
-            wf: vec![0; d * NT],
-            wo: vec![0; out * d],
-            ag: vec![0; v * d],
-            bw: vec![0; v * d],
-            br: vec![0; v * d],
-            emb: vec![0; v * d],
-            emb_sh: 0,
-            bh: vec![0; d],
-            bh_sh: 0,
-            cg: vec![0; v],
-            cg_sh: 0,
-            cw: vec![0; v],
-            cw_sh: 0,
-            cr: vec![0; v],
-            cr_sh: 0,
-            beta_sh: 8,
-            beta_neg: false,
-        };
+        let mut q = zero_q(dims);
         for x in 0..out {
             q.cw[x] = 100;
             q.cr[x] = 100;
@@ -1830,5 +2100,39 @@ mod tests {
             pred, 2,
             "served overwrite store returns the most recent value"
         );
+    }
+
+    #[test]
+    fn empty_read_cannot_inject_token_zero() {
+        let dims = tiny_dims(true, true);
+        let mut q = zero_q(dims);
+        q.cr[1] = 100;
+        q.bh[0] = 1;
+        q.wo[3 * dims.d] = 1;
+        let ep = Episode {
+            inputs: vec![5, 1],
+            target: 3,
+            k: 1,
+            lag: 0,
+            key: 1,
+            seed: 0,
+        };
+        let (pred, scores) = serve_scores(&q, dims, &ep, true);
+        assert_eq!(pred, 3);
+        assert_eq!(scores[0], 0);
+    }
+
+    #[test]
+    fn hard_training_forward_selects_latest_written_value() {
+        let dims = tiny_dims(true, true);
+        let lay = layout(dims.d, dims.out, dims.vocab);
+        let mut p = vec![0.0; lay.total];
+        for x in 0..dims.out {
+            p[lay.cw + x] = 1.0;
+            p[lay.cr + x] = 1.0;
+        }
+        let (_, tap) = forward_with_readout(&p, &lay, dims, &tiny_episode(), true);
+        assert_eq!(argmax(&tap.scores), 2);
+        assert!(tap.scores[2] >= (1 << STORE_SHIFT) as f32);
     }
 }

@@ -1,0 +1,15 @@
+# KVAR hard-selection training successor: locked final check
+
+This successor to the frozen [KVAR plan](kvar-plan-2026-09-24.md) addresses the observed mismatch between the soft additive training objective and hard-selection serving. It does not replace or relabel the earlier sealed `run4` result. The generator, six cells, 600 design episodes, 204 evaluation episodes, two model seeds, 1,500 steps, batch 32, D0-b serving path, and original panel controls are retained.
+
+## Development observations before opening the new evaluation seed group
+
+On the already observed seed-group-2 panel, direct hard straight-through training reached 0.1765/0.2255 served accuracy and +0.3059/+0.4128 bits against C. A 1,000-step soft warmup followed by 500 hard steps reached 0.2647/0.1667 and +0.2631/−0.1478 bits. A 0.1 hard-gradient auxiliary with exact read-gate derivative reached 0.1961/0.3725 and +0.3381/+1.0014 bits. The exact sigmoid read derivative alone replayed the soft recipe at 0.2549/0.1569 and +0.3252/+0.1967 bits. Restoring the historical **unscaled read-gate surrogate** reproduced the earlier seed-1 result exactly (0.8235, 2.2510 bits/query). Direct hard training with that surrogate reached 0.1961/0.1961 and +0.2799/+0.4313 bits. The mixed 0.1 hard auxiliary with that surrogate reached 0.5980/0.7255 and +2.6284/+3.0892 bits. Every attempt has its own retained sealed report root in `/Users/casey.allard/uor-r4-investigations/kvar-20260924`.
+
+The unscaled read-gate update omits the sigmoid derivative. It is an **optimization surrogate**, not the mathematical gradient of the soft forward pass. The exact derivative is the default and is covered by finite-difference tests. The original positive KVAR artifact remains valid as measured served behavior, but its training rule must be described as a surrogate.
+
+## Final check, frozen before use
+
+Use fresh generator seed group **3** only once for the final paired comparison. Fit two seeds under two fixed recipes on the same design episodes: (1) the historical soft objective with unscaled read-gate surrogate, and (2) the same objective with 0.1 normalized hard-selection auxiliary and the same surrogate. Both are quantized and served using the same hard select and validity rule. Retain individual predictions, inputs, quantized parameters, D5 access counts, and complete sealed receipts. Report per-seed and six-cell accuracy and bits; compare paired rows. Check C near chance and hand-coded overwrite near perfect before interpretation.
+
+Decision rule: retain the historical soft recipe unless the mixed recipe improves mean bits/query on **both** seeds on group 3 without reducing either seed's accuracy by more than 0.02. A hard-objective candidate that beats chance and C by at least 2 bits is a bounded KVAR memory result, but a failure to improve does not promote it as the new model. These data cannot establish language, energy, or geometric advantage. The planned ordinary `(f)` and geometric `(h)` arms remain separate and must be equal-cost and predeclared before their comparison; neither is inferred from this training study.

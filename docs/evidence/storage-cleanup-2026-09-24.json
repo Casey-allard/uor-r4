@@ -1,0 +1,39 @@
+{
+  "owner_authorization": "2026-09-24 direct request to clean local HDD",
+  "started_utc": "2026-09-24T16:59:26.613649+00:00",
+  "physical_free_before_bytes": 26391863296,
+  "selected": [
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/escape-bigram-20260924/target/debug/incremental",
+      "nominal_allocated_bytes": 1651736576,
+      "classification": "regenerable Cargo incremental compilation cache"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target/debug/incremental",
+      "nominal_allocated_bytes": 1601916928,
+      "classification": "regenerable Cargo incremental compilation cache"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/incremental",
+      "nominal_allocated_bytes": 3238457344,
+      "classification": "regenerable Cargo incremental compilation cache"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/incremental",
+      "nominal_allocated_bytes": 220352512,
+      "classification": "regenerable Cargo incremental compilation cache"
+    }
+  ],
+  "preserved": [
+    "all source worktrees and Git history",
+    "model and research artifacts including negatives",
+    "all release and debug executable files",
+    "warm Cargo dependency libraries",
+    "AI sessions, profiles, installed tools and personal files"
+  ],
+  "completed_utc": "2026-09-24T16:59:27.349229+00:00",
+  "physical_free_after_bytes": 31231635456,
+  "physical_recovered_bytes": 4839772160,
+  "all_selected_absent": true,
+  "measurement_scope": "paired filesystem free bytes; APFS sharing and background writes may differ from nominal directory size"
+}

@@ -264,3 +264,13 @@ project's own docs is not a language milestone. Each panel must include a natura
 equal-work stateful n-gram control, source-disjoint held-out episodes, and a *verified* (not asserted) at-chance
 count control. This replaces the proxy objective identified in
 [repo-review-direction-2026-09-23.md](repo-review-direction-2026-09-23.md) §0.3.
+
+## D7 — Adopt the integrated attention-language programme
+
+Owner: Casey · **Ratified by direct owner instruction, September 24, 2026:** “solidify your above plan as the goforward plan (in github so other contributors know it is too) and then proceed with the steps you recommended above”.
+
+The [principal attention programme](principal-attention-plan-2026-09-24.md) is the go-forward implementation roadmap. Its next milestone is **one jointly learned attention-language artifact**, combining exact event history, learned geometric candidate admission, a mutable relative-frame energy, shared sparse state operators and normalized sparse Generate/Copy/Stop output. Develop the ordinary and geometric paths together on the same information, episodes and measured access budget. The roadmap continues through compositional sessions, quality scaling, complete-path laptop qualification and replacement by useful workload.
+
+This decision supersedes the earlier sequencing that deferred geometric implementation behind further isolated metadata/cache gates. It does not change D0-b, D4's requirement for evidence before a geometric-advantage claim, D5's terminal sparsity constraint, or D6's long-range information objective and controls. Geometric code can be developed and trained from the start; promotion still requires the declared comparisons. Focused correctness checks and diagnoses serve the integrated endpoint. They are not successive substitute capability milestones.
+
+The owner also authorized local HDD cleanup. Remove specifically identified regenerable material after checking use and preservation; retain unique source, research, artifacts, negative results, histories and user data. Existing local resource-extension authority remains in force, with complete prospective accounting and no paid external compute.

@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "title": "Proposed UOR-R4 attention-language path",
+  "description": "Unimplemented architecture proposal. Exact history and learned semantic access have separate responsibilities.",
+  "diagrams": [{
+    "id": "attention-flow",
+    "title": "One causal artifact with exact history and learned geometric attention",
+    "kind": "flowchart",
+    "data": {
+      "direction": "TB",
+      "nodes": [
+        {"id": "input", "label": "Observed bytes and tokens"},
+        {"id": "tape", "label": "Exact event tape and replay trace"},
+        {"id": "semantic", "label": "Learned keys and versioned semantic records"},
+        {"id": "query", "label": "Contextual geometric query and state"},
+        {"id": "admission", "label": "Bounded page and candidate admission"},
+        {"id": "energy", "label": "Mutable relative-frame energy and legal read"},
+        {"id": "state", "label": "Shared finite geometric state operators"},
+        {"id": "output", "label": "Sparse normalized Generate / Copy / Stop"},
+        {"id": "token", "label": "Actual emitted token"}
+      ],
+      "edges": [
+        {"from": "input", "to": "tape", "label": "retain exactly within capacity"},
+        {"from": "input", "to": "query"},
+        {"from": "tape", "to": "semantic", "label": "learn extraction and indexing"},
+        {"from": "semantic", "to": "admission"},
+        {"from": "query", "to": "admission"},
+        {"from": "admission", "to": "energy"},
+        {"from": "energy", "to": "state", "label": "selected owned record or NoRead"},
+        {"from": "state", "to": "query", "label": "bounded additional read"},
+        {"from": "state", "to": "output"},
+        {"from": "output", "to": "token"},
+        {"from": "token", "to": "query", "label": "causal token feedback"},
+        {"from": "token", "to": "tape", "label": "generated event and action trace"}
+      ]
+    }
+  }]
+}

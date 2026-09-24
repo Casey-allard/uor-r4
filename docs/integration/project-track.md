@@ -1,5 +1,13 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Active adopted programme — integrated attention-language model, September 24 UTC
+
+The owner adopted the [consolidated programme](principal-attention-plan-2026-09-24.md) and directed implementation, recorded in [D7](DECISIONS.md#d7--adopt-the-integrated-attention-language-programme). It joins independent mathematics, computer-science/frontier literature and engineering/development reviews across current and dormant mechanisms. D0-b and D4–D6 remain in force. Adoption establishes direction, not a model result.
+
+**Active milestone A: one integrated attention-language artifact**, owned by #973 under programme #820. Jointly build and train exact event capture plus learned semantic memory, contextual product-code admission, a mutable relative-frame energy, shared sparse geometric state operators and a normalized sparse Generate/Copy/Stop output. Develop a matched ordinary sparse arm at the same time. The existing RNN and rejected metadata gate remain controls/evidence. Acceptance is complete loaded language/memory/code behavior, source causality and measured parameter access; focused correctness checks support that endpoint. Do not resume tuning the exposed metadata gate or promote another isolated authored fixture.
+
+Milestone A consolidates the remaining M1 learning/integration work and designs D5 in from the start. Milestones B–E cover compositional sessions, quality scaling, complete-path laptop qualification and replacement claims by useful workload. Complete training/storage projections precede execution; final acceptance thresholds precede a fresh final draw. The [A1 implementation](integrated-attention-a1-plan-2026-09-24.md) has now been [fitted and replayed](integrated-attention-a1-result-2026-09-24.md): its sparse path executes, but source selection and generated language fail. Continue with one joint contextual-address/read/output learning change, using candidate-conditioned language utility and identifiable source supervision; retain the failed artifacts and all-write warmup until selective-write utility is measurable. This is continuing A, not a completed capability milestone. Historical ordering and results below remain for provenance; the linked programme and [current state](current-state.md) own current direction and results.
+
 ## Adopted direction — 2026-09-24 (owner decision)
 
 The owner adopted the independent three-reviewer reassessment of [repo-review-direction-2026-09-23.md](repo-review-direction-2026-09-23.md).
@@ -25,10 +33,31 @@ serving invariant** (D5) and the current served path is recorded as dense/non-co
      0.7157** (two seeds) select-served, **+3.75 / +3.24 bits** over the order-2 count control, while the plain
      recurrence and gate-only recurrence are at chance → **`ACCEPT_MEMORY_MECHANISM`**; the lever is the
      memory/horizon, not the readout.
-   - **M1 Part B″ — active next.** Re-train (c) end-to-end with the hard-select readout as the objective; add the
-     deferred `(f)` equal-cost ordinary gated memory and `(h)` geometric parameterisation to run the **geometry
-     gate** (the owner's vectors/Hamiltonians lead; a tie is expected and retires the geometry claim, not the
-     memory).
+   - **M1 Part B″ — diagnostic work complete; full comparison open.** The
+     [hard-selection successor](kvar-hard-successor-result-2026-09-24.md) kept soft-trained/hard-served `(c)` but
+     rejected tested hard-objective recipes. A [matched C8/Q8 residual pilot](kvar-relative-energy-result-2026-09-24.md)
+     failed its pre-declared two-seed geometry gate and did not improve `(c)`; it does **not** replace the original
+     full `(f)` equal-cost ordinary gated memory or `(h)` end-to-end geometric parameterisation, both `NOT_RUN`.
+     The [explicit-address lexical bridge](addressed-lexical-bridge-result-2026-09-24.md) now passes selected owned
+     memory records to loaded native generation and witnesses changed copied output under same-structure source
+     substitutions, independent reload and read-disabled/scope/history controls. This is an interface result:
+     neither KVAR's fitted gate nor learned text-to-address/write/read policy is integrated, and uncopied wording is
+     insensitive to the changed payload. Next learn those source/admission decisions and an uncopied lexical effect
+     on the same native path with retained controls. Require a prospectively specified full `(f)/(h)` comparator on
+     a panel where frame transport is identifiable before any geometric advantage claim.
+   - **M1 real-text transfer diagnostic — done at exposed project-document scope.** The
+     [sparse-recall result](realtext-sparse-recall-result-2026-09-24.md) finds a causal ordinary exact-pair cache
+     improves a newly fitted count reference by **0.237644 bits/target** on 87,564 source-separated project-document
+     positions; 24.23% have ≥64-token hits. A candidate-rotation null is worse. This supports carrying a bounded
+     sparse read into the native sequence path, while the fitted three-bucket age weights collapse to one constant.
+   - **M1 loaded sparse-read integration — done; gate rejected.** The
+     [loaded source-choice result](native-sparse-read-result-2026-09-24.md) fits and reloads a four-bit
+     NoRead/recent/previous source table beside the unchanged native model. It causally affects copied output, but
+     chooses recent almost always and loses slightly to the ordinary recent cache on separate prose and Rust code;
+     none of eight generated continuations is wholly correct. Do not tune it on exposed Dev. **Next** train a
+     content/role query-to-address and write/read policy on a source-disjoint long-range panel where exact pair and
+     order-2 controls are verified at chance, with a matched ordinary sparse router and actual uncopied-generation
+     intervention. H4/Hamiltonian competes only at equal information and access cost; full `(f)/(h)` remains unrun.
 3. **M2 — one-variable gate + capacity ablation, crossed with corpus**, endpointed on the M1 probe, `repository_bits`
    a `+0.05` guard only. (Only if M1 leaves the branch open.)
 4. **M3 — cross-window state + the long-range objective** — the first milestone that can claim a capability.

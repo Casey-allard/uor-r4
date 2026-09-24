@@ -1,0 +1,30 @@
+# Explicit addressed-memory to native lexical generation — bounded result
+
+## Decision and scope
+
+The [prospective gate](addressed-lexical-bridge-plan-2026-09-24.md) is **met for an explicit typed address and familiar one-token values**. The existing scoped, versioned `Memory` now selects an owned occurrence that reaches a separately loaded native `TlModel` Generate/Copy/Stop rollout. A changed relevant source changes actual generated tokens through Copy, and read-disabled or missing evidence returns a typed empty grounded response. The 24-row authoritative panel, independent process replay and native/compiled parity all pass. This is a causal interface result, **not** learned request parsing, learned memory admission/writing, content-dependent uncopied wording or a language-quality gain.
+
+The original `final1`/`replay1` attempt is retained. Its parent receipt prematurely claimed independent reload, and missing evidence allowed ungrounded continuation. The [prospective correction](addressed-lexical-bridge-correction-2026-09-24.md) records that defect and the typed-abstention repair; `final2`/`replay2` then pass 20 rows. `final3`/`replay3` additionally check no-history and a wrong-scope query for each case. The authoritative `final4`/`replay4` repeats those 24 rows with actual generation consuming `Memory::from_bytes` decoded stores. The two original value pairs, tokenizer, loaded weights, positive criterion and eight-step bound were not changed after seeing the first attempt.
+
+## Actual loaded observations
+
+| Case | Before | Relevant correction | Same-structure alternative | Pinned/previous | Negative controls |
+| --- | --- | --- | --- | --- | --- |
+| harbor | ` red` (Copy, Stop) | ` green now` (Copy, Generate, Stop) | ` north now` (Copy, Generate, Stop) | ` red` | Disabled, absent, evicted, no-history and wrong scope: no grounded tokens/actions |
+| station | ` north` (Copy, Stop) | ` summer now` (Copy, Generate, Stop) | ` red now` (Copy, Generate, Stop) | ` north` | Same typed abstentions |
+
+Each alternative keeps the exact address, source identity, operation, record id, commit, history depth, observed request, typed facts and rollout bound fixed, and substitutes only the owned value and token payload. The copied token changes. The uncopied `now` is unchanged across the alternatives, so this does **not** witness a learned content-sensitive lexical choice. An unrelated-key edit leaves the relevant output invariant. The ordinary no-memory prose sample remains `ing_geometric_geomet`; no prose improvement is claimed. The panel uses familiar one-token payloads rather than a held-out value distribution.
+
+Every Found row includes selected record/source/commit/payload, actual token and action sequence, text, stop flag and compiled parity. The other statuses return no rollout. The separate-process replay reproduces all 24 rows exactly after decoding each of the five per-case memory images through the binary format. The bridge uses `Memory::lookup` on an injective scoped relation key; it supplies only truthful predecessor/history flags and the selected owned payload to the **unchanged** lexical policy. The caller still supplies typed scope, entity, relation, view, history, observation, read permission and writes. No KVAR fitted gate is in this path.
+
+## Provenance, checks and cost
+
+- Authoritative sealed roots: `/Users/casey.allard/uor-r4-investigations/addressed-lexical-20260924/final4` and `/Users/casey.allard/uor-r4-investigations/addressed-lexical-20260924/replay4`. Earlier `final1/replay1`, `final2/replay2` and `final3/replay3` remain preserved. The final parent receipt deliberately records `PENDING_INDEPENDENT_REPLAY`; the child receipt records `EXPLICIT_ADDRESS_GENERATION_CAUSALITY_WITNESSED` and `independent_reload_equal=true`.
+- Loaded artifact: `warm-decay-candidate.tlx`, SHA-256 `69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e`. Derived tokenizer SHA-256 `a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f`. The runner checks both before evaluating.
+- Receipt binds bridge source `ae478bbd81e8d706399700cd20c94a831268cfd0bf2199232473fe301a5e7a9e`, runner source `81eb76736f3673e162b5354853faa74bce160d575eb9c4ca395b4131328129d5`, and release executable `0e5a48992ed7b1cb37aa8382f07eefc2a9d725f6f39cef2511b30ca03e1ad90a`. `replay4/rows.json` SHA-256 is `96c1e0dce3efa2879a935cd62c501a24a741e9aa37ac2301363adb77c242cd24`.
+- The release runner built offline and was exercised on both final and replay roots. Its gates check current/pinned/previous identity, negative statuses, unrelated-source invariance, pairwise changed tokens and native/compiled equality. The attempted debug lib test harness was interrupted before any test ran due to unexpected temporary cache growth; no lib-test pass is claimed. The exact incident and prospective revised build path are in the [shared resource ledger](resource-ledger-2026-09-19.md).
+- The decoder reports **153,052 nonzero parameter reads per generated step**. `generate` also validates the whole model and memory on every request, and the memory read uses a chain and record search. This is not a sparse terminal serving path or an end-to-end time/energy measurement. The bridge is not promoted as a product API or as evidence that exact addressing improves general language.
+
+## Next falsifiable step
+
+Learn a bounded observed-text source-admission and request-to-address/read/write policy in the same native path, then use a **fixed-flags same-structure payload intervention** to require one *uncopied* output word to change appropriately after loaded generation. Retain the independent reload, read-disabled, wrong-scope, absent/evicted, previous/current/initial, unrelated-edit, ordinary prose and prior lexical controls. Report per-row behavior and matched cost. This is the missing information path before a natural-language memory claim. Keep original full ordinary `(f)` and geometric `(h)` KVAR arms `NOT_RUN`; a geometry gate needs its own prospectively defined frame-identifiable comparison.

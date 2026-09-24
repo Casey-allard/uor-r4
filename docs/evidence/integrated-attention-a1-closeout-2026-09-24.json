@@ -1,0 +1,56 @@
+{
+  "schema": "uor-integrated-attention-a1-closeout/1",
+  "started_utc": "2026-09-24T16:57:04+00:00",
+  "observed_through_utc": "2026-09-24T18:02:31.466457+00:00",
+  "observed_cycle_wall_ms": 3927466,
+  "delivery_reserve_charged_ms": 300000,
+  "total_cycle_charge_ms": 4227466,
+  "charge_scope": "One cumulative wall interval for recovery, cleanup, expert implementation/review, build, fits, repeats, replay, diagnosis and delivery; parallel agents are not charged again. Final delivery reserve is explicit, not measured model runtime.",
+  "cumulative_ms_before": 465239320,
+  "cumulative_ms_after": 469466786,
+  "limit_ms": 477000000,
+  "cumulative_training_tokens": 186336,
+  "amended_cumulative_training_token_cap": 200000,
+  "fit_process_real_seconds": [
+    2.77,
+    2.54,
+    2.86,
+    2.69
+  ],
+  "replay_process_real_seconds": [
+    1.15,
+    1.19,
+    1.17,
+    1.17
+  ],
+  "diagnostic_process_real_seconds": [
+    0.8,
+    0.65
+  ],
+  "maximum_observed_model_run_rss_bytes": 393330688,
+  "one_cargo_process": true,
+  "configured_build_jobs": 2,
+  "incremental_compilation": false,
+  "retained_attempt_container": "/Users/casey.allard/uor-r4-investigations/integrated-attention-20260924",
+  "attempts": 10,
+  "fit_artifacts": 4,
+  "retained_container_allocated_bytes": 166756352,
+  "free_physical_bytes": 30330789888,
+  "protected_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "unique_artifacts_deleted": false,
+  "paid_compute_used": false,
+  "validation": {
+    "focused_tests_passed": 25,
+    "focused_test_source": "de3c2acd9dd0f781492e3a61b836169a1f3d760f",
+    "corrected_fits_source": "0e969e7203090aeefde276c43d7599aae7d70729",
+    "inspection_source": "114d9b0acaaaa1f653df2151cf7a2672051d7c46",
+    "loaded_generation_rows": 48,
+    "separate_process_generation_and_evaluation_pairs_identical": 4,
+    "inspection_answer_rows": 56,
+    "named_rustfmt_check": "PASS",
+    "capability_wording_check": "PASS",
+    "diff_whitespace_check": "PASS"
+  },
+  "result_scope": "Runnable sparse integrated prototype; no useful language, learned semantic attention, geometry superiority or energy qualification. Existing model defaults unchanged."
+}

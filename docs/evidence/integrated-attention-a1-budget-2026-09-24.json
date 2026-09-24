@@ -1,0 +1,43 @@
+{
+  "schema": "uor-local-development-budget-v1",
+  "recorded_at": "2026-09-24T17:03:06.936993+00:00",
+  "reason": "Owner adopted integrated attention-language programme; implement and exercise the first joint Rust artifact after authorized cache cleanup.",
+  "authorization": "Standing owner local extension authorization, reconfirmed by 2026-09-24 proceed instruction; no paid compute.",
+  "cumulative_ms_before": 465239320,
+  "old_limit_ms": 466200000,
+  "increment_ms": 10800000,
+  "new_limit_ms": 477000000,
+  "complete_cycle_projection_ms": 9000000,
+  "stages_ms": {
+    "recovery_cleanup_adoption": 1200000,
+    "parallel_implementation_integration": 4200000,
+    "build_focused_checks": 1200000,
+    "fit_controls_loaded_generation_and_diagnosis": 1800000,
+    "delivery": 600000
+  },
+  "threads": 2,
+  "one_cargo_process": true,
+  "cargo_incremental": false,
+  "peak_rss_target_bytes": 8589934592,
+  "new_storage_limits_bytes": {
+    "build": 2147483648,
+    "data": 67108864,
+    "models_checkpoints_reports": 805306368,
+    "temporary": 268435456
+  },
+  "protected_physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "initial_model": {
+    "vocabulary": 4096,
+    "lanes": 4,
+    "root_count": 120,
+    "event_capacity": 4096,
+    "candidate_cap": 64,
+    "examined_postings_cap": 512,
+    "read_rounds": 1,
+    "training_updates_cap": 100000,
+    "generated_tokens_cap_per_prompt": 32
+  },
+  "scope": "Initial integrated development artifact and learned path, not whole Milestone A completion or fresh final acceptance. Natural-text and source-grounded development loss and actual loaded generations required. Retain negative runs.",
+  "checkpoint_design": "Serial ordinary/geometric fits; sparse SGD masters without Adam moments; export low-bit bundle plus selected resumable master if within recorded storage. Stop/checkpoint at fit cap or wall/storage ceiling."
+}

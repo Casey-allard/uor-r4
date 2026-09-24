@@ -1,0 +1,44 @@
+{
+  "kind": "research_planning_review_not_model_run",
+  "date_utc": "2026-09-24",
+  "recorded_at_utc": "2026-09-24T16:50:49.912529+00:00",
+  "source_checkpoint": "3101c06061726d9438a22649a25b98558525e8d0",
+  "protected_main_at_review": "552d847d49fb263966165004b835f2f53cccaae1",
+  "pull_request": "https://github.com/UOR-Foundation/uor-r4/pull/1385",
+  "prospective_review_ceiling_ms": 3000000,
+  "charged_ms": 2400000,
+  "charge_basis": "Conservative inclusive 40-minute wall-time charge: recovery allowance begins about 16:15 UTC; first precise recovered clock is 16:20:18 UTC; delivery and final handoff allowance ends 16:55 UTC. This is a rounded accounting charge, not a measured model runtime. Parallel expert time is included once.",
+  "cumulative_before_ms": 462839320,
+  "cumulative_after_ms": 465239320,
+  "cumulative_limit_ms": 466200000,
+  "remaining_ms": 960680,
+  "physical_free_bytes": 26321453056,
+  "protected_reserve_bytes": 25904021504,
+  "storage_stop_margin_bytes": 134217728,
+  "free_above_reserve_and_margin_bytes": 283213824,
+  "review_document_bytes": 158156,
+  "retained_review_files": [
+    "docs/integration/principal-attention-computer-science-2026-09-24.md",
+    "docs/integration/principal-attention-engineering-2026-09-24.md",
+    "docs/integration/principal-attention-flow-2026-09-24.json",
+    "docs/integration/principal-attention-flow-2026-09-24.mmd",
+    "docs/integration/principal-attention-mathematics-2026-09-24.md",
+    "docs/integration/principal-attention-plan-2026-09-24.md",
+    "docs/integration/principal-attention-review-packet-2026-09-24.md"
+  ],
+  "validation": {
+    "claim_wording": "PASS",
+    "git_diff_whitespace": "PASS",
+    "local_markdown_links": {
+      "checked": 76,
+      "missing": 0
+    },
+    "mermaid_static_lint": "PASS; canonical source and embedded Markdown; not renderer evidence",
+    "mermaid_json_schema": "Relevant fields inspected and structured validator passed; general JSON Schema runtime unavailable",
+    "model_training": "NOT_RUN",
+    "model_replay": "NOT_RUN",
+    "cargo": "NOT_RUN_DOCS_ONLY"
+  },
+  "paid_external_compute": false,
+  "owner_checkout_and_unique_artifacts_preserved": true
+}
