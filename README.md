@@ -53,6 +53,10 @@ The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measuremen
 
 ## Current research step
 
+[D8's persistent ladder](docs/integration/project-track.md) is the active sequence: reproduce the reference and common baselines, learn one recurrent-memory model with continuous language credit, then discretize, bound admission and export integer serving. The [current state](docs/integration/current-state.md) records executed results and the active dependency. The offline Rust tool is [`crates/uor-r4-training`](crates/uor-r4-training/README.md). Further A1–A4 local-selector tuning is parked.
+
+### Historical direction and component results
+
 **Direction adopted 2026-09-24.** The owner adopted the independent three-reviewer reassessment: Goal S
 (multiplier-free serving) kept; Goal R (geometric predictive advantage) re-scoped to a gated hypothesis and a
 candidate sparse-access structure; per-token parameter sparsity recorded as the terminal serving invariant; the

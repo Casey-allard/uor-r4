@@ -1,0 +1,320 @@
+{
+  "schema": "uor-r4.reference-baselines-result/1",
+  "recorded_utc": "2026-09-24T22:38:01.427746+00:00",
+  "decision": "D8 rung 0 complete within its reference/comparator scope; proceed to one continuous recurrent-memory learning campaign. No native model promotion.",
+  "source_commit": "60be78d9273ffc0b4ae5dc5e62c398df51ac3a1f",
+  "executable_sha256": "edc57672f39d30267d6bff97fb68c94d28d02fcf312a1b0cd0e187cb4ed275e6",
+  "evaluator_path": "docs/integration/reference-evaluator-v2.json",
+  "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+  "artifact_root": "/Users/casey.allard/uor-r4-investigations/reference-baselines-20260924",
+  "sealed_attempts": [
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/reference-baselines-20260924/count-fit",
+      "manifest_sha256": "605cef92ca9d7f534e768cd9b2fcc1d46b42fd77ea8876927eb8ff5358836727",
+      "independent_complete_file_set_verification": "PASS"
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/reference-baselines-20260924/count-evaluation",
+      "manifest_sha256": "b6008ef0f2f000384cbc77a8b62534bc4a50f5134239c1b4600e2f792239e84a",
+      "independent_complete_file_set_verification": "PASS"
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/reference-baselines-20260924/reference-evaluation",
+      "manifest_sha256": "e6f60ca43e13fec26047fc771f488275318a48c1aef6cbcf060bbd9100cfa259",
+      "independent_complete_file_set_verification": "PASS"
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/reference-baselines-20260924/reference-generation",
+      "manifest_sha256": "73ebb0d5edd51420c2dd6eb20637ff6c933fbb4288bca737a3b59ddf02597dac",
+      "independent_complete_file_set_verification": "PASS"
+    }
+  ],
+  "reference_weights_sha256": "cf988a6b5f722b614740b0843807a41feff8276571c846bbee85d410a0030d84",
+  "reference_parameters": 7155360,
+  "reference_safetensors_bytes": 28627504,
+  "ngram_model_sha256": "2e7002c61ed00a8f33dbdce50987aed395f163057cf9eb66f91d796db5211627",
+  "ngram_model_bytes": 369454767,
+  "ngram_fit_raw_token_ids": 149996416,
+  "ngram_fit_seconds": 13.973370041999999,
+  "ngram_reload_exact_probes": 64,
+  "historical_neural_sampled_token_visits": 149995520,
+  "training_scope": "Same two source stores and tokenizer; count-once corpus population does not replicate historical overlapping-window optimization exposure or match parameter count.",
+  "calibration": {
+    "discount_grid": [
+      0.5,
+      0.75,
+      0.9
+    ],
+    "discount_tune_nll_sums": [
+      41318.44228720689,
+      41033.85176664203,
+      40964.95198204866
+    ],
+    "mixture_grid": [
+      0.0,
+      0.05,
+      0.1,
+      0.2,
+      0.4,
+      0.6
+    ],
+    "mixture_tune_nll_sums": [
+      40964.95198204866,
+      40749.153156456196,
+      41157.443648035456,
+      42359.92241654157,
+      45783.35828541994,
+      50881.46698457852
+    ],
+    "selected_discount": 0.9,
+    "selected_mixture": 0.05,
+    "selection_scope": "Shared-D cache comparison; choices frozen before later blocks. Entire population is historical neural development.",
+    "tune_blocks": 64,
+    "tune_targets": 16384
+  },
+  "baseline_table_nats": {
+    "tune": {
+      "targets": 16384,
+      "reference_nll_nats": 1.668841904941703,
+      "ngram_nll_nats": 2.500302244998081,
+      "cache_nll_nats": 2.487130929959481
+    },
+    "comparison": {
+      "targets": 233472,
+      "reference_nll_nats": 1.5740235956379076,
+      "ngram_nll_nats": 2.405626957625589,
+      "cache_nll_nats": 2.391786178860743
+    },
+    "full": {
+      "targets": 249856,
+      "reference_nll_nats": 1.5802411896906157,
+      "ngram_nll_nats": 2.4118351731909984,
+      "cache_nll_nats": 2.3980382936868896
+    }
+  },
+  "comparison_reference_advantage_over_cache_nats": 0.8177625832228343,
+  "comparison_cache_gain_over_ngram_nats": 0.013840778764848682,
+  "reference_historical_nll_gate": {
+    "absolute_delta": 1.173173036495001e-07,
+    "actual_nll_nats": 1.5802411896906157,
+    "historical_nll_nats": 1.580241072373312,
+    "maximum_absolute_delta": 0.0001,
+    "passes": true,
+    "reduction": "F64 stable full-vocabulary logsumexp over actual F32 logits, with compensated corpus accumulation; historical PyTorch used F32 batch-mean loss"
+  },
+  "reference_preflight": {
+    "passes": true,
+    "batch_isolation": {
+      "compared_values": 2097152,
+      "finite": true,
+      "maximum_absolute_delta": 0.0,
+      "maximum_allowed_absolute_delta": 0.005,
+      "passes": true
+    },
+    "future_edit_comparison": {
+      "compared_values": 524288,
+      "finite": true,
+      "maximum_absolute_delta": 0.0,
+      "maximum_allowed_absolute_delta": 1e-05,
+      "passes": true
+    },
+    "gradients_tracked": false
+  },
+  "actual_generation": {
+    "status": "REFERENCE_GENERATION_PASS",
+    "prompts": 5,
+    "generated_ids": 582,
+    "comparisons": [
+      {
+        "index": 0,
+        "seed": 2014,
+        "actual_generated_tokens": 74,
+        "actual_stop": "eos",
+        "generated_ids_equal": true,
+        "response_text_equal": true,
+        "stop_equal": true,
+        "passes": true
+      },
+      {
+        "index": 1,
+        "seed": 2015,
+        "actual_generated_tokens": 128,
+        "actual_stop": "maximum_new_tokens",
+        "generated_ids_equal": true,
+        "response_text_equal": true,
+        "stop_equal": true,
+        "passes": true
+      },
+      {
+        "index": 2,
+        "seed": 2016,
+        "actual_generated_tokens": 124,
+        "actual_stop": "eos",
+        "generated_ids_equal": true,
+        "response_text_equal": true,
+        "stop_equal": true,
+        "passes": true
+      },
+      {
+        "index": 3,
+        "seed": 2017,
+        "actual_generated_tokens": 128,
+        "actual_stop": "maximum_new_tokens",
+        "generated_ids_equal": true,
+        "response_text_equal": true,
+        "stop_equal": true,
+        "passes": true
+      },
+      {
+        "index": 4,
+        "seed": 2018,
+        "actual_generated_tokens": 128,
+        "actual_stop": "maximum_new_tokens",
+        "generated_ids_equal": true,
+        "response_text_equal": true,
+        "stop_equal": true,
+        "passes": true
+      }
+    ],
+    "scope": "Exact output replay, not answer correctness; repetition/semantic drift and three capped outputs remain.",
+    "historical_outputs_opened_after_actual_persistence": true,
+    "independent_direct_replay_audit": {
+      "prediction_rows": 582,
+      "individual_aggregate_historical_outputs_agree": true,
+      "raw_text_and_tokenizer_equal": true,
+      "contiguous_decisions_and_prefix_lengths": true
+    }
+  },
+  "integrity": {
+    "status": "INTEGRITY_PASS",
+    "parity": {
+      "positions": 32,
+      "compared_logits": 131072,
+      "max_absolute_delta": 1.52587890625e-05,
+      "maximum_allowed_absolute_delta": 0.005,
+      "top1_matches": 32,
+      "passes": true
+    },
+    "all_qkv_gradients_present_finite_nonzero": true,
+    "finite_differences_pass": true,
+    "restored_loss_delta": 0.0,
+    "optimizer_steps": 0
+  },
+  "row_audit": {
+    "schema": "uor-r4.reference-baselines-row-audit/1",
+    "status": "PASS",
+    "rows": 249856,
+    "actual_dev_input_target_identity_equal": true,
+    "partition_metrics_recomputed_from_saved_rows": {
+      "tune": {
+        "targets": 16384,
+        "reference_nll_nats": 1.668841904941703,
+        "ngram_nll_nats": 2.500302244998081,
+        "cache_nll_nats": 2.487130929959481
+      },
+      "comparison": {
+        "targets": 233472,
+        "reference_nll_nats": 1.5740235956379076,
+        "ngram_nll_nats": 2.405626957625589,
+        "cache_nll_nats": 2.391786178860743
+      },
+      "full": {
+        "targets": 249856,
+        "reference_nll_nats": 1.5802411896906157,
+        "ngram_nll_nats": 2.4118351731909984,
+        "cache_nll_nats": 2.3980382936868896
+      }
+    },
+    "minimum_recorded_probability": [
+      6.259971e-11,
+      5.946972e-11
+    ],
+    "maximum_recorded_probability_nll_delta": [
+      1.5692457111526892e-08,
+      6.443195488259335e-08
+    ],
+    "input_sha256": {
+      "reference-evaluation/reference-targets.csv": "e39c6e3da73cac4de0260fcd119c3ea9d25ce3e70c143743168a861e1672442e",
+      "count-evaluation/count-targets.csv": "9fd1cf664d101f22fad17ad045ef3a547d17f2028679a34651edcb231da12066"
+    },
+    "scope": "Independent streaming row and aggregate audit; no new model run or quality qualification"
+  },
+  "row_audit_sha256": "a500a0e37bdd33d2bebf3143dc116399fb6763b57dd52e12f9c6a44515651da4",
+  "measured_cost": {
+    "build-tests": {
+      "process_wall_seconds": 202.71,
+      "user_seconds": 387.5,
+      "system_seconds": 8.7,
+      "maximum_rss_bytes": 3372007424
+    },
+    "build-binary": {
+      "process_wall_seconds": 5.71,
+      "user_seconds": 9.27,
+      "system_seconds": 0.38,
+      "maximum_rss_bytes": 323960832
+    },
+    "integrity-cpu-32": {
+      "process_wall_seconds": 1.32,
+      "user_seconds": 1.18,
+      "system_seconds": 0.2,
+      "maximum_rss_bytes": 179830784
+    },
+    "count-fit": {
+      "process_wall_seconds": 17.61,
+      "user_seconds": 16.45,
+      "system_seconds": 0.78,
+      "maximum_rss_bytes": 2738044928
+    },
+    "count-evaluation": {
+      "process_wall_seconds": 2.66,
+      "user_seconds": 2.4,
+      "system_seconds": 0.22,
+      "maximum_rss_bytes": 748568576
+    },
+    "reference-evaluation": {
+      "process_wall_seconds": 57.04,
+      "user_seconds": 10.74,
+      "system_seconds": 2.93,
+      "maximum_rss_bytes": 304381952
+    },
+    "reference-generation": {
+      "process_wall_seconds": 6.85,
+      "user_seconds": 1.98,
+      "system_seconds": 1.68,
+      "maximum_rss_bytes": 163889152
+    }
+  },
+  "model_process_wall_seconds_sum": 85.47999999999999,
+  "gpu_active_kernel_seconds": "NOT_MEASURED; Metal process wall and forward/transfer duration are distinct from GPU-active kernel time",
+  "energy_per_token": "NOT_MEASURED",
+  "native_student_training": "NOT_RUN",
+  "execution_coordination": {
+    "remote_desktop_commander_device": "Caseys-MacBook-Pro.local",
+    "device_id": "fb5bd4fc-de68-4f75-b674-a7b5a24eef94",
+    "same_local_hardware": true,
+    "processes": [
+      83133,
+      83142,
+      83191
+    ],
+    "count_fit_and_reference_pipeline_overlapped": true,
+    "implementation_and_independent_review_agents": 3,
+    "external_compute": false
+  },
+  "checks": [
+    "6 focused optimized Rust library tests passed",
+    "source-bound optimized offline build passed",
+    "actual CPU32 integrity passed after batch refactor",
+    "four sealed report roots independently verified",
+    "249856 input/target rows match the retained data and all aggregate losses recompute",
+    "5 historical generation outputs reproduce every generated ID, response and stop"
+  ],
+  "limitations": [
+    "All development tokens previously selected the historical neural checkpoint; comparison tail is held out only from current count tuning.",
+    "This fixed-discount count-pruned interpolated Kneser-Ney baseline is not multi-discount modified KN; row caps and discarded mass remain in the fit report.",
+    "The calibrated count artifact comprises model.ng5 and count-selection.json, with selected D overriding serialized default D.",
+    "The shared-D cache grid is not joint hyperparameter optimization.",
+    "No native language, geometry advantage, final integer serving or physical energy claim follows.",
+    "Reference generation recomputes full prefixes without a KV cache; its timing is not optimized serving performance."
+  ]
+}

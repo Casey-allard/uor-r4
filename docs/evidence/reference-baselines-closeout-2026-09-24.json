@@ -1,0 +1,91 @@
+{
+  "schema": "uor-r4.reference-baselines-closeout/1",
+  "recorded_utc": "2026-09-24T22:41:05.986802+00:00",
+  "cycle_started_utc": "2026-09-24T22:07:39+00:00",
+  "complete_cycle_limit_ms": 7200000,
+  "full_cycle_elapsed_ms_at_receipt": 2006986,
+  "remaining_delivery_reserve_ms": 300000,
+  "full_cycle_charged_ms": 2306986,
+  "charge_scope": "All implementation, source/history/research review, builds, fit, evaluation, generation, audits and documentation plus booked protected-delivery allowance; allowance is not measured model compute. Reconcile any delivery overrun explicitly.",
+  "ledger_path": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+  "ledger_before": {
+    "cumulative_ms": 479596977,
+    "limit_ms": 487800000
+  },
+  "ledger_after": {
+    "cumulative_ms": 481903963,
+    "limit_ms": 487800000
+  },
+  "measured_cost": {
+    "build-tests": {
+      "process_wall_seconds": 202.71,
+      "user_seconds": 387.5,
+      "system_seconds": 8.7,
+      "maximum_rss_bytes": 3372007424
+    },
+    "build-binary": {
+      "process_wall_seconds": 5.71,
+      "user_seconds": 9.27,
+      "system_seconds": 0.38,
+      "maximum_rss_bytes": 323960832
+    },
+    "integrity-cpu-32": {
+      "process_wall_seconds": 1.32,
+      "user_seconds": 1.18,
+      "system_seconds": 0.2,
+      "maximum_rss_bytes": 179830784
+    },
+    "count-fit": {
+      "process_wall_seconds": 17.61,
+      "user_seconds": 16.45,
+      "system_seconds": 0.78,
+      "maximum_rss_bytes": 2738044928
+    },
+    "count-evaluation": {
+      "process_wall_seconds": 2.66,
+      "user_seconds": 2.4,
+      "system_seconds": 0.22,
+      "maximum_rss_bytes": 748568576
+    },
+    "reference-evaluation": {
+      "process_wall_seconds": 57.04,
+      "user_seconds": 10.74,
+      "system_seconds": 2.93,
+      "maximum_rss_bytes": 304381952
+    },
+    "reference-generation": {
+      "process_wall_seconds": 6.85,
+      "user_seconds": 1.98,
+      "system_seconds": 1.68,
+      "maximum_rss_bytes": 163889152
+    }
+  },
+  "model_process_wall_seconds_sum": 85.47999999999999,
+  "neural_optimizer_steps": 0,
+  "retained_allocated_bytes": 423907328,
+  "active_target_allocated_bytes_before": 2930249728,
+  "active_target_allocated_bytes_after": 3219656704,
+  "new_retained_plus_build_allocated_bytes": 713314304,
+  "new_storage_ceiling_bytes": 1153433600,
+  "physical_free_bytes": 26552242176,
+  "protected_physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "physical_headroom_above_stop_bytes": 514002944,
+  "peak_count_fit_rss_bytes": 2738044928,
+  "complete_simultaneous_peak_ram": "NOT_MEASURED; per-process maxima reported independently",
+  "gpu_active_kernel_seconds": "NOT_MEASURED",
+  "physical_energy": "NOT_MEASURED",
+  "checks": [
+    "6 focused optimized Rust library tests passed",
+    "source-bound optimized offline build passed",
+    "actual CPU32 integrity passed after batch refactor",
+    "four sealed report roots independently verified",
+    "249856 input/target rows match the retained data and all aggregate losses recompute",
+    "5 historical generation outputs reproduce every generated ID, response and stop",
+    "Workspace formatting, claim-wording and diff checks passed"
+  ],
+  "paid_compute": false,
+  "deletions": 0,
+  "owner_checkout": "Preserved apart from authorized shared cumulative ledger",
+  "delivery": "Protected PR; merge and reviewed-tree equality to be verified live and recorded in #973/#820."
+}

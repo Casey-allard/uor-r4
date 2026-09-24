@@ -12,7 +12,7 @@ Rung status is maintained here and the active artifact/result pointer in [curren
 
 | Rung | Deliverable and decisive comparison | Status |
 |---|---|---|
-| 0 — reference and evaluator | Pin #1017 weights, tokenizer, train/dev and old revealed regression split; recover #1014 attention-ablation evidence. Reproduce real logits/generation in the reusable Rust autodiff tool and verify language gradients through Q/K/V. Pin one evaluator/manifest before candidate selection, including ordinary n-gram plus cache on the same tokens. | Active; identities and CPU/Metal gradient/parity checks passed; full baseline table and generation replay still open |
+| 0 — reference and evaluator | Pin #1017 weights, tokenizer, train/dev and old revealed regression split; recover #1014 attention-ablation evidence. Reproduce real logits/generation in the reusable Rust autodiff tool and verify language gradients through Q/K/V. Pin one evaluator/manifest before candidate selection, including ordinary n-gram plus cache on the same tokens. | Complete at the declared scope; [same-token table and 5/5 actual generation replay](reference-baselines-result-2026-09-24.md), plus retained CPU/Metal gradient/parity checks |
 | 0.5 — codebook diagnostic | On train-only calibration activations from the working reference, compare 600-cell, fitted k-means-120 and random-120 at equal stored bits, norms/gain and rotation budget. Measure attention/logit/NLL error separately. A transformer quantization diagnostic stays an offline reference, not target serving. | Not run; useful bounded codebook question, not a substitute language milestone |
 | 1 — native joint learning | Train one recurrent-memory student with continuous read/representation/state/output credit on the same natural data, plus a competitive ordinary recurrent control. An offline #1017 teacher is optional and declared. Use real autodiff and inspect nonzero gradients, retained fit, learning curves, natural likelihood and complete generation. | Next substantive model work after the reference/evaluator foundation |
 | 2 — discretize the working student | Add declared straight-through/annealed quantization, commitment/usage terms where needed, matched codebooks and explicit gains. Train and score both relaxed and exported hard paths throughout; preserve language behavior and measure the gap. | Not run |
@@ -34,11 +34,7 @@ Rung status is maintained here and the active artifact/result pointer in [curren
 
 ### Rung 1 computation graph and entry gate
 
-The entry gate is the pinned reference/evaluator baseline table, with the [input
-manifest](reference-evaluator-v1.json) and actual device measurements. The
-integrity check is one prerequisite; it does not complete that table. Use the
-existing n-gram implementation only under its audited formula: its current class
-name alone does not establish full interpolated Kneser–Ney smoothing.
+The entry gate is now met by the [executed reference/evaluator baseline table](reference-baselines-result-2026-09-24.md), with [evaluator v2](reference-evaluator-v2.json) and actual device measurements. The audited fixed-discount, count-pruned interpolated KN plus causal cache supplies the ordinary local baseline. Preserve its exact normalization, calibration, pruning and exposure scope; it is not the multi-discount modified algorithm. On the comparison tail the selected cache scores 2.391786 nats/token and the reference 1.574024. Both are previously exposed development results. Freeze the next campaign's numerical learning and memory-use criteria before training; no new final holdout is opened during design.
 
 The native student is a recurrent model with explicit contextual reads. Its
 proposed graph, before discretization, is:

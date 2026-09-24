@@ -7,6 +7,12 @@
 
 #![forbid(unsafe_code)]
 
+pub mod baseline_counts;
+pub mod baseline_protocol;
+pub mod ngram;
+pub mod reference_campaign;
+pub mod reference_eval;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
@@ -220,11 +226,20 @@ impl ReferenceModel {
             .ok_or_else(|| invalid(format!("missing reference variable {name}")))
     }
 
-    fn linear(&self, input: &Tensor, name: &str) -> Result<Tensor> {
-        Ok(input.matmul(&self.weight(name)?.t()?)?)
+    fn parameter(&self, name: &str, detached: bool) -> Result<Tensor> {
+        let tensor = self.weight(name)?;
+        Ok(if detached {
+            tensor.detach()
+        } else {
+            tensor.clone()
+        })
     }
 
-    fn rms_norm(&self, input: &Tensor, name: &str) -> Result<Tensor> {
+    fn linear(&self, input: &Tensor, name: &str, detached: bool) -> Result<Tensor> {
+        Ok(input.matmul(&self.parameter(name, detached)?.t()?)?)
+    }
+
+    fn rms_norm(&self, input: &Tensor, name: &str, detached: bool) -> Result<Tensor> {
         // Deliberately primitive composition: fused inference-only RMSNorm can drop backward.
         let denominator = input
             .sqr()?
@@ -233,7 +248,7 @@ impl ReferenceModel {
             .sqrt()?;
         Ok(input
             .broadcast_div(&denominator)?
-            .broadcast_mul(self.weight(name)?)?)
+            .broadcast_mul(&self.parameter(name, detached)?)?)
     }
 
     fn rotate_half(&self, input: &Tensor, cosine: &Tensor, sine: &Tensor) -> Result<Tensor> {
@@ -252,9 +267,30 @@ impl ReferenceModel {
     /// One causal batch of token IDs, producing [time, vocabulary] floating logits.
     /// Standard causal softmax is explicit; there is no discrete-selection surrogate yet.
     pub fn forward(&self, ids: &[u32]) -> Result<Tensor> {
-        let time = ids.len();
-        if time == 0
+        Ok(self.forward_batch(ids, 1, ids.len(), false)?.squeeze(0)?)
+    }
+
+    /// Population inference uses the same arithmetic with parameters detached
+    /// before any operation, so it does not retain an unused backward graph.
+    pub fn forward_eval_batch(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+        self.forward_batch(ids, batch, time, true)
+    }
+
+    pub fn forward_eval(&self, ids: &[u32]) -> Result<Tensor> {
+        Ok(self.forward_eval_batch(ids, 1, ids.len())?.squeeze(0)?)
+    }
+
+    fn forward_batch(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        detached: bool,
+    ) -> Result<Tensor> {
+        if !(1..=16).contains(&batch)
+            || time == 0
             || time > self.config.max_position_embeddings
+            || ids.len() != batch * time
             || ids
                 .iter()
                 .any(|&token| token as usize >= self.config.vocab_size)
@@ -281,22 +317,34 @@ impl ReferenceModel {
         let causal: Vec<u8> = (0..time)
             .flat_map(|row| (0..time).map(move |column| u8::from(column > row)))
             .collect();
-        let mask = Tensor::from_vec(causal, (1, time, time), &self.device)?
-            .broadcast_as((heads, time, time))?;
-        let excluded = Tensor::full(f32::NEG_INFINITY, (heads, time, time), &self.device)?;
+        let mask = Tensor::from_vec(causal, (1, time, time), &self.device)?.broadcast_as((
+            batch * heads,
+            time,
+            time,
+        ))?;
+        let excluded = Tensor::full(f32::NEG_INFINITY, (batch * heads, time, time), &self.device)?;
         let ids = Tensor::new(ids, &self.device)?;
         let mut state = self
-            .weight("model.embed_tokens.weight")?
+            .parameter("model.embed_tokens.weight", detached)?
             .index_select(&ids, 0)?;
         for layer in 0..self.config.num_hidden_layers {
             let prefix = format!("model.layers.{layer}");
-            let normalized = self.rms_norm(&state, &format!("{prefix}.input_layernorm.weight"))?;
+            let normalized = self.rms_norm(
+                &state,
+                &format!("{prefix}.input_layernorm.weight"),
+                detached,
+            )?;
             let project = |name| -> Result<Tensor> {
                 Ok(self
-                    .linear(&normalized, &format!("{prefix}.self_attn.{name}.weight"))?
-                    .reshape((time, heads, head_dim))?
-                    .transpose(0, 1)?
-                    .contiguous()?)
+                    .linear(
+                        &normalized,
+                        &format!("{prefix}.self_attn.{name}.weight"),
+                        detached,
+                    )?
+                    .reshape((batch, time, heads, head_dim))?
+                    .transpose(1, 2)?
+                    .contiguous()?
+                    .reshape((batch * heads, time, head_dim))?)
             };
             let query = self.rotate_half(&project("q_proj")?, &cosine, &sine)?;
             let key = self.rotate_half(&project("k_proj")?, &cosine, &sine)?;
@@ -309,22 +357,42 @@ impl ReferenceModel {
             let probability = candle_nn::ops::softmax(&masked, 2)?;
             let attended = probability
                 .matmul(&value)?
-                .transpose(0, 1)?
+                .reshape((batch, heads, time, head_dim))?
+                .transpose(1, 2)?
                 .contiguous()?
-                .reshape((time, width))?;
-            state = state
-                .add(&self.linear(&attended, &format!("{prefix}.self_attn.o_proj.weight"))?)?;
-            let normalized =
-                self.rms_norm(&state, &format!("{prefix}.post_attention_layernorm.weight"))?;
+                .reshape((batch * time, width))?;
+            state = state.add(&self.linear(
+                &attended,
+                &format!("{prefix}.self_attn.o_proj.weight"),
+                detached,
+            )?)?;
+            let normalized = self.rms_norm(
+                &state,
+                &format!("{prefix}.post_attention_layernorm.weight"),
+                detached,
+            )?;
             let gate = self
-                .linear(&normalized, &format!("{prefix}.mlp.gate_proj.weight"))?
+                .linear(
+                    &normalized,
+                    &format!("{prefix}.mlp.gate_proj.weight"),
+                    detached,
+                )?
                 .silu()?;
-            let up = self.linear(&normalized, &format!("{prefix}.mlp.up_proj.weight"))?;
-            state = state
-                .add(&self.linear(&gate.mul(&up)?, &format!("{prefix}.mlp.down_proj.weight"))?)?;
+            let up = self.linear(
+                &normalized,
+                &format!("{prefix}.mlp.up_proj.weight"),
+                detached,
+            )?;
+            state = state.add(&self.linear(
+                &gate.mul(&up)?,
+                &format!("{prefix}.mlp.down_proj.weight"),
+                detached,
+            )?)?;
         }
-        let hidden = self.rms_norm(&state, "model.norm.weight")?;
-        self.linear(&hidden, "model.embed_tokens.weight")
+        let hidden = self.rms_norm(&state, "model.norm.weight", detached)?;
+        Ok(self
+            .linear(&hidden, "model.embed_tokens.weight", detached)?
+            .reshape((batch, time, self.config.vocab_size))?)
     }
 
     pub fn next_token_loss(&self, sequence: &[u32]) -> Result<Tensor> {

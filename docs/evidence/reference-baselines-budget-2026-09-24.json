@@ -1,0 +1,168 @@
+{
+  "schema": "uor-r4.reference-baselines-budget/1",
+  "recorded_utc": "2026-09-24T22:14:08.480554+00:00",
+  "cycle_started_utc": "2026-09-24T22:07:39+00:00",
+  "base_source": "942645b264f73ec49507cffd7c2f4cbd95de3aa2",
+  "objective": "D8 rung0 common reference/normalized ngram/cache baseline table and historical actual generation replay; persistent native learning ladder unchanged.",
+  "complete_cycle_limit_ms": 7200000,
+  "cumulative_ms_before": 479596977,
+  "old_limit_ms": 484200000,
+  "increment_ms": 3600000,
+  "new_limit_ms": 487800000,
+  "extension_reason": "Existing 76.7 minute balance is below complete120 minute implementation, count fit, reference evaluation, independent review and protected delivery projection. Standing local extension authorization applies.",
+  "work_projection_ms": {
+    "history_protocol_implementation_review": 3000000,
+    "build_focused_integrity": 600000,
+    "full_ngram_fit_export_reload": 1200000,
+    "reference_population_eval_generation": 1200000,
+    "diagnosis_delivery": 1200000
+  },
+  "train_stores_tokens": [
+    30000000,
+    119996416
+  ],
+  "ngram_raw_token_population": 149996416,
+  "neural_optimizer_steps": 0,
+  "ngram_fit_count": 1,
+  "historical_teacher_exposure_note": "149995520 sampled training token visits; same source stores is population matching, not identical sampling/optimization.",
+  "evaluation_tokens": 250000,
+  "evaluation_full_blocks": 976,
+  "context_tokens": 256,
+  "evaluation_scored_targets": 249856,
+  "tune_blocks": 64,
+  "comparison_blocks": 912,
+  "prediction_rows_ceiling": 260000,
+  "cache_capacity": 256,
+  "ngram_discount_grid": [
+    0.5,
+    0.75,
+    0.9
+  ],
+  "cache_mixture_grid": [
+    0.0,
+    0.05,
+    0.1,
+    0.2,
+    0.4,
+    0.6
+  ],
+  "generation_prompts": 5,
+  "generation_new_token_cap_each": 128,
+  "local_reference_device": "Metal on owner M1; CPU verification/reference",
+  "model_compute_wall_seconds_limit": 2400,
+  "ngram_fit_peak_ram_limit_bytes": 6442450944,
+  "complete_peak_ram_target_bytes": 8589934592,
+  "one_cargo_process": true,
+  "build_threads": 2,
+  "cpu_threads": 2,
+  "reference_batch_max": 16,
+  "storage_new_total_ceiling_bytes": 1153433600,
+  "storage_components_bytes": {
+    "build_and_binaries": 314572800,
+    "ngram_artifact": 734003200,
+    "reports_and_temp": 104857600
+  },
+  "protected_physical_reserve_bytes": 25904021504,
+  "stop_margin_bytes": 134217728,
+  "storage_inventory": {
+    "schema": "uor-storage-inventory-v1",
+    "collected_at": "2026-09-24T22:10:15.964701+00:00",
+    "disk": {
+      "total_bytes": 245107195904,
+      "used_bytes": 217804726272,
+      "free_bytes": 27302469632
+    },
+    "proposed_reserve_bytes": 36766079385,
+    "below_proposed_reserve": true,
+    "paths": [
+      {
+        "label": "model_assets",
+        "path": "/Users/casey.allard/uor-r4/.uor-models",
+        "status": "LOWER_BOUND_OR_UNAVAILABLE",
+        "allocated_bytes": 21618814976,
+        "diagnostic_lines": 3
+      },
+      {
+        "label": "local_target",
+        "path": "/Users/casey.allard/uor-r4/target",
+        "status": "MEASURED",
+        "allocated_bytes": 1543704576,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "codex_worktrees",
+        "path": "/Users/casey.allard/.codex/worktrees",
+        "status": "MEASURED",
+        "allocated_bytes": 500805632,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "knowledge",
+        "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+        "status": "MEASURED",
+        "allocated_bytes": 2026692608,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "tooling",
+        "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+        "status": "MEASURED",
+        "allocated_bytes": 1207754752,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_tools",
+        "path": "/Users/casey.allard/.local/share/uv/tools",
+        "status": "MEASURED",
+        "allocated_bytes": 288870400,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_cache",
+        "path": "/Users/casey.allard/.cache/uv",
+        "status": "MEASURED",
+        "allocated_bytes": 221184,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_registry",
+        "path": "/Users/casey.allard/.cargo/registry",
+        "status": "MEASURED",
+        "allocated_bytes": 557260800,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_git",
+        "path": "/Users/casey.allard/.cargo/git",
+        "status": "MEASURED",
+        "allocated_bytes": 824213504,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "active_build",
+        "path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target",
+        "status": "MEASURED",
+        "allocated_bytes": 2930249728,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "reference_evidence",
+        "path": "/Users/casey.allard/uor-r4-investigations/reference-autodiff-20260924",
+        "status": "MEASURED",
+        "allocated_bytes": 6717440,
+        "diagnostic_lines": 0
+      }
+    ],
+    "deletions": 0,
+    "notes": [
+      "Rows can overlap; do not sum them as exclusive volume usage.",
+      "du allocated-byte estimates may share APFS clone data.",
+      "Permission errors remain errors; no sealed paths are opened or unlocked.",
+      "Size alone does not make a path disposable. Review changes, evidence and references first."
+    ]
+  },
+  "remote_desktop_commander": "Owner explicitly requested; connected device is same local M1 Mac. Use background corpus integrity and process supervision; no additional machine capacity claimed.",
+  "paid_compute": false,
+  "external_compute": false,
+  "deletions": 0
+}

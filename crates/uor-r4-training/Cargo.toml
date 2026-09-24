@@ -19,3 +19,4 @@ serde_json = "1.0"
 sha2 = "0.10.8"
 hex = "0.4.3"
 uor-r4-model-source = { path = "../uor-r4-model-source" }
+uor-r4-core = { path = "../uor-r4-core" }

@@ -34,47 +34,65 @@ freeze wording. All 112 generation rows and eight full files per arm reproduce
 in independent replay. 33 focused checks passed. See the [A4 result](integrated-attention-a4-result-2026-09-24.md)
 and [compact evidence](../evidence/integrated-attention-a4-result-2026-09-24.json).
 
-## Reference and next execution
+## Latest executed reference result and next execution
 
-#1014/#1017 weights, trainer-source manifests and #1017 train/dev/tokenizer
-identities have been freshly verified against retained manifests. #1014 owns the
-historical +2.677393-nat attention-off result; #1017 owns 1.572752 nats/token after
-149,995,520 cumulative tokens. These are bounded ordinary-transformer reference
-results on another tokenizer/corpus, not new executions or target serving.
+**D8 rung 0 is complete at its declared reference/comparator scope.** The shared
+offline Rust tool reproduces #1017's full 249,856-target development NLL at
+**1.580241190 nats**, within `1.173e-7` of the historical value. All five actual
+seeded continuations reproduce all **582 generated IDs**, decoded text and stop
+reasons. Batch isolation and future-input prefix checks have zero measured error.
+The shared forward path retains its CPU language-gradient/parity check; the
+previous CPU/Metal integrity results remain preserved.
 
-The new offline `crates/uor-r4-training` loads the actual #1017 checkpoint and
-**passes the pinned numerical/gradient integrity check on CPU and Metal**.
-Each compares 131,072 logits over 32 input positions: maximum error is
-0.000015259 / 0.000016212, with 32/32 top-one matches. All 56 parameter tensors,
-including 18 Q/K/V tensors, have finite nonzero gradients; all three selected
-finite differences pass and restoration error is zero. No optimizer step occurs.
-[Source, hashes, device and results](../evidence/reference-autodiff-integrity-2026-09-24.json)
-match the [pinned evaluator input manifest](reference-evaluator-v1.json), checked
-independently. Optimized Rust compilation and independent source review passed.
+On the 233,472-target comparison tail, mean NLL is **1.574024** for #1017,
+**2.405627** for the new normalized, count-pruned interpolated 5-gram, and
+**2.391786** for that 5-gram plus causal cache. Lower is better. Count fitting uses
+both inherited training stores, totaling 149,996,416 raw IDs. Selected discount
+is 0.9 and cache mixture 0.05. Four report roots are sealed and independently
+verified; every scored row matches the actual input/target population.
+[Result and interpretation](reference-baselines-result-2026-09-24.md),
+[compact evidence](../evidence/reference-baselines-result-2026-09-24.json),
+[evaluator v2](reference-evaluator-v2.json).
 
-**Next within rung 0:** complete the same-token reference/n-gram/cache baseline
-table and generation replay, then implement the [specified recurrent learning
-graph](project-track.md#rung-1-computation-graph-and-entry-gate). The native student,
-soft-to-hard bridge and 600-cell diagnostic are not run. The 32-token training
-prefix loss and integrity timing are not population quality or training throughput.
+This is previously exposed development: the comparison tail is separate from
+current count calibration but was used in historical neural checkpoint selection.
+Five exact replays are not five correct answers; outputs retain repetition,
+semantic drift and three capped continuations. #1017 is an ordinary floating-point
+transformer used offline, never target serving. No neural optimizer step or
+native model promotion occurs. The reference advantage does not isolate attention
+or geometric causality. #1014 retains the historical attention-off evidence at
+its original scope.
+
+**Next: rung 1, one coherent recurrent-memory language learner** with continuous
+read/representation/state/output credit and a competitive ordinary recurrent
+control, as specified in the [canonical graph](project-track.md#rung-1-computation-graph-and-entry-gate).
+Freeze the full campaign from measured throughput, with the 30-million-token-per-arm
+planning anchor, natural-language loss, retained fit, optimizer/resume state,
+loaded free generation and complete changed-source/NoRead behavior. A one-seed
+initial campaign remains exploratory. The native student, soft-to-hard bridge
+and 600-cell diagnostic remain **NOT_RUN**; the diagnostic must not displace the
+joint learning milestone.
 
 ## Delivery, resources and unresolved limits
 
-This work extends protected [PR #1387](https://github.com/UOR-Foundation/uor-r4/pull/1387).
-The owner explicitly requested its merge when complete. Source, checks and
-results are recorded here; live GitHub and the owning issue receipts establish
-the actual protected merge and reviewed-tree equality.
-The [A4 budget](../evidence/integrated-attention-a4-budget-2026-09-24.json) and
-[review-correction supplement](../evidence/stuck-point-review-budget-2026-09-24.json)
-retain cumulative accounting, physical reserve and stop margin. The
-[cycle closeout](../evidence/stuck-point-review-closeout-2026-09-24.json) separates
-actual fit/integrity costs from the full engineering cycle. No paid compute
-or unique-artifact deletion is authorized or used.
+The preceding correction was protected [PR #1387](https://github.com/UOR-Foundation/uor-r4/pull/1387),
+merged as `942645b264f73ec49507cffd7c2f4cbd95de3aa2`. This continuation uses a
+separate protected [PR #1388](https://github.com/UOR-Foundation/uor-r4/pull/1388); live GitHub and owning issue receipts establish its
+actual merge and reviewed-tree equality. Queue compatibility acknowledgements
+execute no tests; local executed checks carry validation.
 
-The old #1017 revealed test is a fixed regression set, not a fresh final holdout.
-Persistent sessions still need exact posting membership preserved through
-saturated-page eviction/restore. Final integer export, geometry attribution,
-useful complete outputs, D5 full-path access and physical energy remain gates.
+The [baseline budget](../evidence/reference-baselines-budget-2026-09-24.json)
+and [closeout](../evidence/reference-baselines-closeout-2026-09-24.json) charge
+complete work against the shared ledger and preserve the physical reserve plus
+128 MiB stop margin. Actual model/integrity processes sum to 85.48 seconds;
+compilation, research, implementation and delivery are separately charged.
+Remote Desktop Commander supervises concurrent processes on the same local Mac.
+No paid compute or unique-artifact deletion was used.
+
+The old #1017 revealed test remains a regression set. Persistent sessions still
+need exact posting membership preserved through saturated-page eviction/restore.
+Final integer export, geometry attribution, useful complete outputs, terminal D5
+parameter access and physical energy remain gates.
 
 ## History and authority
 

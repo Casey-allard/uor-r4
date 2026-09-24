@@ -1,0 +1,149 @@
+{
+  "schema": "uor-r4.reference-evaluator/2",
+  "recorded_utc": "2026-09-24T22:17:55.156153+00:00",
+  "previous_manifest": "docs/integration/reference-evaluator-v1.json",
+  "previous_manifest_sha256": "a1bb15f399f660336c9030d7e77ceccc8052c5572f742f0b96ea48a65c520aa3",
+  "reason": "Complete D8 rung0: add both retained training populations, all historical development blocks, preregister count/cache calibration and actual generation replay. No native candidate or new final holdout.",
+  "snapshot": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export",
+  "reference_inputs": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/config.json",
+      "bytes": 551,
+      "sha256": "147e186b22cbf2420886cb1ad01c9a2f9c9a3b36618523c1030bed41bfa66345"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/model.safetensors",
+      "bytes": 28627504,
+      "sha256": "cf988a6b5f722b614740b0843807a41feff8276571c846bbee85d410a0030d84"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/tokenizer.json",
+      "bytes": 109457,
+      "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+    }
+  ],
+  "train_sources": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1014/tokens/train.u16",
+      "bytes": 60000000,
+      "sha256": "8a438765856de5434961609c2ee4dc3f82c25295b9695c9b70b54e29dc8f7efc"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokens/train.u16",
+      "bytes": 239992832,
+      "sha256": "7b12a8b0cad32689584d5b14e10aa60d449859dcb735c57cdec26bcddd2d4873"
+    }
+  ],
+  "dev_source": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokens/dev.u16",
+    "bytes": 500000,
+    "sha256": "74f7d85fa7670355f65805a9ffe06c2fb9db150b9f4cae8029e0d2f35e8993b6"
+  },
+  "prompt_source": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/sealed-confirmation/prompts.json",
+    "bytes": 2431,
+    "sha256": "e9b1f0e387fb770d0e4e137de67899d6569d03347856442ed6eeae3eaa8f0387"
+  },
+  "golden_generations": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/generations/prompt-0-seed-2014.json",
+      "bytes": 12269,
+      "sha256": "3ca8b1b095cb3562c639950c7451aa5ca7e32d52ced23dfe7fc5721c489ec6e5"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/generations/prompt-1-seed-2015.json",
+      "bytes": 14145,
+      "sha256": "1c49a62fb964e21917348c5c09517c1b05478795aae7c6e2f37918a0526acd61"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/generations/prompt-2-seed-2016.json",
+      "bytes": 13944,
+      "sha256": "a7ed489a3349464c1216b9ee04ded1b3750b5c5424260c31a0a165017f74f620"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/generations/prompt-3-seed-2017.json",
+      "bytes": 13971,
+      "sha256": "3b0530578a25b9f1e55850ca18c6ccdcdd13fbaca155bf149e50c4244e9ad264"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/generations/prompt-4-seed-2018.json",
+      "bytes": 14006,
+      "sha256": "d62eac9451e2f8595c259985654eaae291d417172a6a407360cec8386d1b678a"
+    }
+  ],
+  "context": 256,
+  "stride": 256,
+  "vocabulary": 4096,
+  "full_blocks": 976,
+  "tune_blocks": 64,
+  "comparison_blocks": 912,
+  "scored_targets": 249856,
+  "tune_scored_targets": 16384,
+  "comparison_scored_targets": 233472,
+  "reset": "Fresh state, RoPE position0 and empty token cache per256input block; no EOS reset inside block; no injected BOS for likelihood. Read257stored IDs, score256targets shifted once.",
+  "split_scope": "Tail withheld from THIS count-model calibration only. Entire dev population already selected historical neural checkpoint. Open development, never fresh final qualification.",
+  "ngram": {
+    "name": "fixed-discount interpolated Kneser-Ney with exact unpruned continuation counts and declared count pruning",
+    "order": 5,
+    "discount_grid": [
+      0.5,
+      0.75,
+      0.9
+    ],
+    "unigram_alpha": 0.0001,
+    "row_caps": [
+      4000000,
+      4000000,
+      8000000,
+      8000000
+    ],
+    "max_train_tokens": 150000000,
+    "train_boundary": "reset between retained train stores; raw ngrams do not cross that file boundary",
+    "pruning": "deterministic highest effective counts, lexical tie order, full removed mass backed off; disclose removed type count and removed effective-count mass per order plus retained byte cost",
+    "selection": "Minimize first64blocks mean NLL; tie chooses lower grid index. Freeze D before remainder; fit counts only on train stores."
+  },
+  "cache": {
+    "capacity": 256,
+    "mixture_grid": [
+      0,
+      0.05,
+      0.1,
+      0.2,
+      0.4,
+      0.6
+    ],
+    "selection": "Using selected ngram D, minimize first64blocks mean NLL. Tie chooses lower grid index; freeze lambda for remaining912blocks. Shared-D comparison, not a joint18pair hyperparameter search.",
+    "causality": "At each position observe current input, then score next target. Target is observed only when it becomes the next input. Reset every256input block.",
+    "distribution": "normalized empirical token frequencies of observed prefix; mixture (1-lambda)*P_ngram+lambda*P_cache"
+  },
+  "reference_gate": {
+    "historical_dev_nll_nats": 1.580241072373312,
+    "max_absolute_nll_delta": 0.0001,
+    "source": "docs/r4_softmax_quality_capacity_continuation_1017.md; same976windows",
+    "batch_max": 16,
+    "batch_isolation_max_logit_delta": 0.005,
+    "future_edit_max_prefix_logit_delta": 1e-05,
+    "gradients_tracked_during_evaluation": false
+  },
+  "generation": {
+    "seeds": [
+      2014,
+      2015,
+      2016,
+      2017,
+      2018
+    ],
+    "max_new_tokens": 128,
+    "top_k": 40,
+    "temperature": 0.8,
+    "sampler": "r4-local-top-k-q32-splitmix64/1",
+    "bos": 0,
+    "eos": 1,
+    "prompt_content_tokens": 24,
+    "short_cycle": "three consecutive repeats, periods1..4, smallestperiodfirst; EOS checked first",
+    "replay_gate": "generated IDs, decoded response and stop equal historical Rust outputs; full R4-gauge audit metadata not claimed equal",
+    "golden_access": "Historical outputs are read for comparison only after all continuations are produced."
+  },
+  "comparison_reporting": "Per-target records and per-block sums for all arms, separate Tune/comparison/fullmeans, no unmatched numerical A4 comparison. Same train sourcepopulation does not imply same sampled optimization exposure.",
+  "change_rule": "Any evaluator change is versioned and independently reviewed prospectively. Preserve v1 and all original evidence."
+}
