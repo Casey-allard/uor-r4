@@ -1,5 +1,12 @@
 # Current native geometric AI work
 
+> **Direction adopted 2026-09-24 (owner decision):** Goal S (multiplier-free serving) kept; Goal R (geometric
+> predictive advantage) re-scoped to a gated hypothesis and a candidate sparse-access structure; per-token parameter
+> sparsity recorded as the terminal serving invariant; the target objective moved to a long-range information probe.
+> The active milestone is the ["escape from bigram class" diagnostic gate](escape-bigram-class-plan-2026-09-24.md).
+> Record: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md) · owner entries D4–D6 in
+> [DECISIONS.md](DECISIONS.md). The component results below retain their exact scope.
+
 ## Active: matched span curriculum and the length-specific copy/stop gap, September 24 UTC
 
 The [executed matched-span/copy-length result](matched-span-copy-length-result-2026-09-24.md) completes the prior

@@ -212,3 +212,55 @@ Owner: Casey · Confirmed directly in the September 19, 2026 takeover conversati
 The owner reconfirmed that offline training may use matrix products, all recorded decisions are owner decisions, and add/subtract implementations are allowed while geometric routing should remain the focused attempt. D0-b remains adopted; D1 is interpreted together with D2. The stable policy, AGENTS and live entry documents are synchronized through protected delivery. Frozen runtime contracts retain their scope.
 
 This ratification does not turn the historical rationale into a theorem: not every possible learned representation requires a linear map, and a small failed recurrent experiment does not prove local training or an entire mechanism family impossible. See the [source/literature corrections](takeover-review-2026-09-19.md). The arithmetic allowance is an owner engineering decision independent of those broader claims.
+
+---
+
+## D4 — Goal decomposition and the geometry gate
+
+Owner: Casey · Drafted by: the run lead · Date: 2026-09-24 · **Ratified by owner instruction, 2026-09-24 session.**
+Full rationale and the staged plan: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md).
+
+Two goals had been conflated. They are now separated.
+
+- **Goal S — serving arithmetic.** No floating-point matmul and no dense transformer at serving. **Kept.** It is
+  theorem-backed for the permitted operator class; implementation discipline is strong. Two defects remain open: the
+  served path is dense per token, and no quality-matched whole-path energy measurement exists.
+- **Goal R — geometric predictive advantage.** No geometric mechanism has beaten an information- and
+  compute-matched ordinary control on any tested task in this repository. Goal R is therefore **re-scoped from an
+  assumption to a gated hypothesis**: geometry is retained by default only where already load-bearing (identity,
+  addressing, version authority, exact serialization) and as a *candidate* sparse-access structure / parameterisation
+  (quaternion/H4 4× under equivariance; exact finite-table closure, which adds inductive bias but not capacity). It
+  earns a **causal serving role only by beating a matched ordinary control on the same probe at matched capacity and
+  cost.**
+
+This is a change of emphasis, not of goal: the terminal objective (geometry replacing float matmul in a fully
+transformerless model) stands as an objective, not a measured result.
+
+## D5 — Per-token parameter sparsity is the terminal serving invariant
+
+Owner: Casey · Drafted by: the run lead · Date: 2026-09-24 · **Ratified by owner instruction, 2026-09-24 session.**
+
+D0-a's distinguishing test — **per-token parameter sparsity** ("if serving touches all entries of a learned weight
+store per token, it is a matrix product regardless of the opcode used") — survives D0-b as the **end-state**
+contract. D0-b continues to permit bounded ≤4-bit additive/table linear maps as the *interim experimental*
+substrate, but a dense per-token map must be **reported as non-compliant with the end state** and cannot be claimed
+as the target architecture.
+
+Rationale: dense streaming of a 4-bit matrix is a bandwidth-bound GEMM in disguise; "geometry replaces matmul"
+retains technical content only if geometry replaces the **dense access** — routing that selects which learned rows
+are read. This also converts Goal R into a cheap, fair, measurable contest (geometric routers — prime/zeta/H4/VSA —
+versus ordinary LSH/learned-kNN at matched access budget, judged by top-K decision-equivalence), which has never been
+run. The current served artifact is D0-b-compliant and D5-non-compliant (611,814 inspections/step); this is recorded,
+not retroactively banned.
+
+## D6 — The target objective is a long-range information probe
+
+Owner: Casey · Drafted by: the run lead · Date: 2026-09-24 · **Ratified by owner instruction, 2026-09-24 session.**
+
+The target objective is a panel on which the **previous two tokens are insufficient** — induction / copy-at-distance
+/ agreement at K = 32…512 — where a tuned order-2 count prior is **at chance by construction**. The order-2 count
+prior (`C`) is retained as a **standing local control**, not a target: beating a servable memoryless table on the
+project's own docs is not a language milestone. Each panel must include a natural-text long-range companion, an
+equal-work stateful n-gram control, source-disjoint held-out episodes, and a *verified* (not asserted) at-chance
+count control. This replaces the proxy objective identified in
+[repo-review-direction-2026-09-23.md](repo-review-direction-2026-09-23.md) §0.3.

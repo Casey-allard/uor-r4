@@ -1,5 +1,36 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Adopted direction — 2026-09-24 (owner decision)
+
+The owner adopted the independent three-reviewer reassessment of [repo-review-direction-2026-09-23.md](repo-review-direction-2026-09-23.md).
+Record: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md); owner entries D4–D6 in
+[DECISIONS.md](DECISIONS.md). Summary: **Goal S** (multiplier-free serving) is kept and is theorem-backed for the
+permitted operator class; **Goal R** (geometric predictive advantage) is re-scoped from an assumption to a **gated
+hypothesis** and a candidate **sparse-access structure**, retained by default only where already load-bearing
+(identity, addressing, version authority, serialization); **per-token parameter sparsity (D0-a's test) is the terminal
+serving invariant** (D5) and the current served path is recorded as dense/non-compliant with that end state; the
+**target objective is a long-range information probe** with the order-2 count prior retained as a control (D6).
+
+**Ordered milestones (each with a pre-declared reject criterion):**
+
+1. **M0 — record correction** (this decision; no compute). Done by the decision record.
+2. **M1 — "escape from bigram class" diagnostic gate.** Frozen-state readout adjudication (no retraining) *plus* one
+   minimal gate × capacity arm on a synthetic induction panel where the count control is at chance by construction.
+   Plan: [escape-bigram-class-plan-2026-09-24.md](escape-bigram-class-plan-2026-09-24.md). **This is the active
+   milestone.**
+3. **M2 — one-variable gate + capacity ablation, crossed with corpus**, endpointed on the M1 probe, `repository_bits`
+   a `+0.05` guard only. (Only if M1 leaves the branch open.)
+4. **M3 — cross-window state + the long-range objective** — the first milestone that can claim a capability.
+5. **M4 — bounded-integer/LUT attention-like access** only on a witnessed long-range need.
+6. **M5 — LUT kernel + scale + whole-path M1 measurement** versus llama.cpp / bitnet.cpp.
+
+Plus the reviewers' added track: **memory-augmented multiplier-free LM** — exact addressed memory as a first-class
+retrieval/tool subsystem, with geometric identity/addressing/serialization as its infrastructure. The prior
+"reduce the prose cost of the length-specific Stop fix" is **subordinated** to M1: it is an incremental authored-fixture
+repair, not a language milestone, and it does not gate the direction.
+
+---
+
 ## Active: matched span curriculum and the length-specific copy/stop gap, September 24 UTC
 
 The [executed matched-span/copy-length result](matched-span-copy-length-result-2026-09-24.md) completes the prior
@@ -12,11 +43,12 @@ supervision fixes 3-token rows and 4-token supervision fixes 4-token rows, with 
 `repository_bits` cost above the pre-declared `+0.05` tolerance. It is a scoped component result on bounded authored
 panels, not a promotion. The geometric, fully transformerless objective is unchanged.
 
-**Ordered next work:** (1) reduce the prose cost of the length-specific Stop fix with one bounded matched arm that
-keeps the `add3` copy/stop endpoint while restoring `repository_bits` within `+0.05`; (2) then broaden-source
-dialogue/code and complete-session work. Keep the Q8 learner and its ordinary signed-permutation control at their
-established tie; do not claim geometric superiority. Signed H4/shared transport stays conditional on a witnessed
-order/role/distant-interference failure against an information- and compute-matched ordinary control.
+**Superseded ordering (2026-09-24).** This component's own next step (reduce the prose cost of the length-specific
+Stop fix) is retained as an optional incremental repair but is **subordinated** to the adopted direction above: the
+active milestone is M1, the "escape from bigram class" diagnostic gate. Keep the Q8 learner and its ordinary
+signed-permutation control at their established tie; do not claim geometric superiority. Signed H4/shared transport
+stays conditional on a witnessed order/role/distant-interference failure against an information- and compute-matched
+ordinary control.
 
 ---
 

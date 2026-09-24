@@ -27,6 +27,18 @@ The owner confirmed [DECISIONS.md D0-b](docs/integration/DECISIONS.md#d0-b--what
 | TinyStories prose learner and `.rgm` serving | Learned root assignments, JEPA/lexical objectives, lattice/count features, VSA routing, binary artifacts, CLI/API generation | A reported 555M-token training run and measurable text prediction. Training-time, exported full-vocabulary and routed serving scorers differ. Generations remain repetitive; historical memory tests do not qualify this new prose artifact. |
 | Current geometric addressed-memory core and exact-token prior | Fixed token-to-element assignment, ordered address pairs, accumulated value memory, two learned token-position tables, bounded nonlinearity and shared ternary readout | The memory-only configuration has 85–94% cold reads on the measured internal corpora. PR #1294 implements the local prior and a negative paired pilot. PR #1298 repairs the learner and fits the consistent 16-context task at 16/16. PR #1300 trains the prior on repository text and records a 1.99-bit gain over its frozen bias. PR #1301's review found the permutation and document bootstrap defective; the executed evaluation-only replay corrects both, reproduces the recorded losses exactly, passes the frozen 0.10-bit threshold on the legacy and spread-position panels, and shows the two-token readout is dominated by an order-2 count reference. The stored geometric element table is unused by this predictor. |
 
+**The current best natural-text artifact contains no geometry.** The shared Generate/Copy/Stop learner
+(`learner/transferable_lexical.rs`) is a plain 64-dimensional integer RNN with a linear readout; it has no
+prime/zeta/R4/S3/H4/`Z[phi]` reference. Where geometry appears in this repository it is a bounded feature or a
+retained memory/identity substrate, not the computation that predicts language. No geometric mechanism has yet
+beaten an information- and compute-matched ordinary control on any task.
+
+UOR-R4 is **not** a "world model" in either industry sense (a learned, action-conditioned latent dynamics model used
+for planning, or an observation-level generative simulator). At most it is trivially "an autoregressive latent-state
+sequence model". The term must not be used in project claims. The [direction decision](docs/integration/direction-decision-2026-09-24.md)
+re-scopes Goal R (geometric predictive advantage) from an assumption to a gated hypothesis and moves the modelling
+bet to capacity, context and objective.
+
 The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measurements to artifacts and receipts. Corrections and superseding rows must be read together.
 
 ### Selected results, with their limits
@@ -38,6 +50,15 @@ The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measuremen
 - **Efficiency:** one later release measurement reports native generation at **617 tokens/second** against approximately **36.1** for CPU Qwen2.5-1.5B Q4, with substantially unequal quality and different timing boundaries. It is not a quality-matched win. Whole-task energy/token remains **UNAVAILABLE**. Earlier small-kernel throughput figures must not be presented as interactive serving performance. [Incumbent receipt](docs/evidence/native_geometric_p1_incumbent_baseline_2026-09-19.txt).
 
 ## Current research step
+
+**Direction adopted 2026-09-24.** The owner adopted the independent three-reviewer reassessment: Goal S
+(multiplier-free serving) kept; Goal R (geometric predictive advantage) re-scoped to a gated hypothesis and a
+candidate sparse-access structure; per-token parameter sparsity recorded as the terminal serving invariant; the
+target objective moved to a long-range information probe with the order-2 count prior retained as a control. The
+ordered next work is the "escape from bigram class" diagnostic gate. See the
+[direction decision](docs/integration/direction-decision-2026-09-24.md), the
+[staged plan](docs/integration/repo-review-direction-2026-09-23.md#8-recommended-plan-staged-each-stage-has-a-reject-criterion)
+and the [milestone plan](docs/integration/escape-bigram-class-plan-2026-09-24.md).
 
 **September24 UTC matched span curriculum and copy/stop length:** the declared separate span RNG is implemented so `max_span ∈ {3,8}` arms are exactly data-matched (witnessed by byte-identical `final.tlx` for the cap-inert arm); with matched data the cap improves the long span cells and fresh-span extrapolation. A read-only diagnostic localizes the multi-token negative to a missing terminal `Stop` after a completed multi-token copy (not a copy or state-saturation failure), and a matched length curriculum fixes 3-token rows with 3-token supervision and 4-token rows with 4-token supervision but not across lengths, regressing `repository_bits` beyond the pre-declared `+0.05` tolerance. [Result](docs/integration/matched-span-copy-length-result-2026-09-24.md).
 
