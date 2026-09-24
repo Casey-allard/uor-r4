@@ -1,6 +1,26 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active: compiled relative-query transport, September 24 UTC
+## Active: matched span curriculum and the length-specific copy/stop gap, September 24 UTC
+
+The [executed matched-span/copy-length result](matched-span-copy-length-result-2026-09-24.md) completes the prior
+milestone's ordered next work. The declared **separate span RNG** is implemented and the `max_span ∈ {3,8}` grid is
+re-run as an exactly data-matched experiment, with the `span8m3`/`span3` byte-identical `final.tlx` as the matching
+witness; with matched data the cap improves long-span and fresh-span cells and `repository_bits`. A read-only
+diagnostic localizes the multi-token negative to a **missing terminal Stop after a completed multi-token copy** (not
+a copy or state-saturation failure), and a matched length curriculum shows the fix is **length-specific**: 3-token
+supervision fixes 3-token rows and 4-token supervision fixes 4-token rows, with no cross-transfer, at a measured
+`repository_bits` cost above the pre-declared `+0.05` tolerance. It is a scoped component result on bounded authored
+panels, not a promotion. The geometric, fully transformerless objective is unchanged.
+
+**Ordered next work:** (1) reduce the prose cost of the length-specific Stop fix with one bounded matched arm that
+keeps the `add3` copy/stop endpoint while restoring `repository_bits` within `+0.05`; (2) then broaden-source
+dialogue/code and complete-session work. Keep the Q8 learner and its ordinary signed-permutation control at their
+established tie; do not claim geometric superiority. Signed H4/shared transport stays conditional on a witnessed
+order/role/distant-interference failure against an information- and compute-matched ordinary control.
+
+---
+
+## Previous active: compiled relative-query transport, September 24 UTC
 
 The [executed compiled-relative-query result](compiled-relative-query-result-2026-09-24.md) folds a learned Q8
 relation path into a signed permutation plus an exact overflow mask and selects in the inverse frame, making

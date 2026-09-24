@@ -1,11 +1,23 @@
 //! Lossless training-state checkpoint, distinct from a served TLX model.
 use super::*;
 use serde::{Deserialize, Serialize};
+/// Default `span_rng_state` for checkpoint cursors written before the field existed. It is declared
+/// nonzero because the module xorshift `next()` is in-place with a fixed point at zero, so a zero
+/// state would freeze the drawn span length at one. Legacy cursor JSON has no such key; without the
+/// default both `serde_json::from_value` and `serde_json::from_slice` would reject it.
+fn span_rng_default() -> u64 {
+    20260926
+}
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TrainingCursor {
     pub data_sha256: [u8; 32],
     pub tokenizer_sha256: [u8; 32],
     pub rng_state: u64,
+    /// Dedicated stream for the matched span draw, so changing `max_span`/`span_draw_max` cannot
+    /// shift the shared non-span stream. `#[serde(default)]` keeps legacy checkpoints loadable;
+    /// `validate_cursor` deliberately does not require it to be nonzero.
+    #[serde(default = "span_rng_default")]
+    pub span_rng_state: u64,
     pub next_batch: u64,
     pub schedule_total: u64,
     pub lr_start_bits: u64,
@@ -240,11 +252,31 @@ mod continuation_tests {
             data_sha256: [11; 32],
             tokenizer_sha256: [22; 32],
             rng_state: 37,
+            span_rng_state: 20260926,
             next_batch: 0,
             schedule_total: 8,
             lr_start_bits: 0.02f64.to_bits(),
             lr_end_bits: 0.002f64.to_bits(),
         }
+    }
+    #[test]
+    fn legacy_cursor_defaults_span_rng_and_new_cursor_round_trips() {
+        let legacy = serde_json::json!({
+            "data_sha256": vec![11u8; 32],
+            "tokenizer_sha256": vec![22u8; 32],
+            "rng_state": 37,
+            "next_batch": 0,
+            "schedule_total": 8,
+            "lr_start_bits": 0.02f64.to_bits(),
+            "lr_end_bits": 0.002f64.to_bits(),
+        });
+        let parsed: TrainingCursor = serde_json::from_value(legacy).unwrap();
+        assert_eq!(parsed.span_rng_state, 20260926);
+        assert_ne!(parsed.span_rng_state, 0);
+        let encoded = serde_json::to_vec(&cursor()).unwrap();
+        let back: TrainingCursor = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(back, cursor());
+        assert_eq!(back.span_rng_state, 20260926);
     }
     #[test]
     fn exact_checkpoint_resumes_latents_moments_and_updates() {

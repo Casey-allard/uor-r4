@@ -1,6 +1,37 @@
 # Current native geometric AI work
 
-## Active: compiled relative-query transport, September 24 UTC
+## Active: matched span curriculum and the length-specific copy/stop gap, September 24 UTC
+
+The [executed matched-span/copy-length result](matched-span-copy-length-result-2026-09-24.md) completes the prior
+milestone's declared next step. The declared **separate span RNG** is implemented: the span block now draws only
+from a dedicated `span_rng_state` and consumes exactly `1 + 2·SPAN_POOL` draws per example, so `max_span ∈ {3,8}`
+arms are data-matched. The witness is exact — the `max_span=8/span_draw_max=3` arm and the `max_span=3` arm produce
+**byte-identical `final.tlx`** (`aab0b63f…`), so the cap alone is inert. With matched data, `max_span=8` beats
+`max_span=3` on the long span cells (5: 10 vs 6; 8: 13 vs 7), on fresh-span extrapolation (40/48 vs 12/48) and on
+`repository_bits` (6.464870 vs 6.550110), retaining all four historical gates.
+
+The multi-token negative is localized and corrected: a read-only diagnostic shows the prior `moments-8` artifact
+copies 3–4 tokens correctly but leaves the Stop row **below the vocabulary maximum at every L≥3 decision**
+(`stop_margin` −20 to −336) with `h` saturation exactly **0** — a missing terminal Stop, not a copy or
+state-saturation failure. A matched length curriculum then shows the effect is **length-specific**: 3-token
+supervision fixes 3-token rows (`add3` 34/54 vs the matched control 14/54; L3_near 1→8/10, L3_far 0→4/8, L3_run
+0→5/6, trained positives 1→6/6) but does not transfer to 4-token rows, and 4-token supervision fixes 4-token rows
+without transferring back. Both treatments **regress `repository_bits` beyond the pre-declared `+0.05` tolerance**
+(`+0.2148` / `+0.2683`), so the extended curriculum is a scoped component with a measured prose cost, not a promoted
+successor. `integrate` moves 16/64 → 28/64 on `add3`; native/compiled parity holds (156 identical grounded rollouts
+in the `cost` check; 11.43×; the `integrate` runner additionally asserts equality on all 64 rollouts).
+Corrections recorded: the parent fails all eight evaluation values (the 2-token pass is a trained-arm result), and
+the requested "in-range 3-token numeric payload" cannot exist because this tokenizer splits digits individually.
+Ledger charged +2,000,000 ms. **No general language, copying, geometry, reasoning or energy claim follows.**
+
+**Next:** reduce the prose cost of the length-specific Stop fix — one bounded matched arm that keeps the `add3`
+copy/stop endpoint while restoring `repository_bits` within `+0.05` — then broader-source dialogue/code and
+complete-session work. Signed H4/shared transport stays conditional on a witnessed order/role/distant-interference
+failure against an information- and compute-matched ordinary control.
+
+---
+
+## Previous active: compiled relative-query transport, September 24 UTC
 
 The [executed compiled-relative-query result](compiled-relative-query-result-2026-09-24.md) delivers an orphaned
 pushed-but-unmerged workstream. A learned Q8 relation path is reduced to a signed permutation plus an exact
