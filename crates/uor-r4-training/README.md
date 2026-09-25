@@ -4,7 +4,7 @@ This crate contains the offline recurrent-memory learner, its matched transport 
 
 ## Joint recurrent-memory learning
 
-The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The proposed projected-shadow midpoint continuation is NOT_RUN.
+The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. A fixed-checkpoint parameter/interface precision comparison is next, NOT_RUN.
 
 ```text
 uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESUME_CHECKPOINT]
@@ -17,7 +17,7 @@ uor-r4-training joint-evaluate-shadow CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT
 
 The [frozen campaign](../../docs/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.
 
-The quaternion and Householder-pair arms share dimensions, parameter initialization and data windows. Their local transport scales are matched; their global function families differ. These floating-point offline learners do not establish exact Hamiltonian dynamics or the final integer serving cost. Prime/zeta admission and typed integer execution remain subsequent integration work. The first packed discretization recipe is implemented but fails its retention gates.
+The quaternion and Householder-pair arms share dimensions, parameter initialization and data windows. Their local transport scales are matched; their global function families differ. These floating-point offline learners do not establish exact Hamiltonian dynamics or the final integer serving cost. Prime/zeta admission and typed integer execution remain subsequent integration work. Both packed discretization recipes are implemented and executed but fail likelihood retention.
 
 Each checkpoint includes named model parameters, AdamW moments and per-variable clocks, model/optimizer configuration, exact source/data/tokenizer identities, and the next counter-seeded training window. Resume rejects changes to the model or sampler. The optional `stop_file` requests a checkpoint between updates. `max_process_seconds` stops new updates; the campaign separately reserves final evaluation, save/reload and sealing time.
 
@@ -28,6 +28,17 @@ A separately declared `training_window_transition` can change batch/context whil
 `joint-evaluate` loads the actual checkpoint, runs free continuations and all frozen source-edit pairs, and then scores every evaluator-v2 development position. NoRead applies from the start of every prompt/block. Per-target records use the explicit44-byte format in `evaluation-report.json`; probability flooring or answer repair is not added by evaluation. The current natural-story probes measure exploratory task transfer. Their failure alone does not diagnose the read mechanism.
 
 ### Quantized continuation and packed evaluation
+
+The optional `projection_transition` binds a fully quantized parent checkpoint,
+campaign and quantizer specification. Its entry projects floating parameter
+shadows into their existing ranges while witnessing unchanged hard values,
+full-context probabilities, optimizer moments/clocks and next sampled batch.
+`joint_campaign` calls `QuantizationSpec::project_parameters` after each AdamW update;
+interior values are preserved rather than rounded. The policy is retained in
+checkpoints, export/evaluation and paired comparison, with incompatible policy
+removal, rebinding or schedules rejected. Missing policy preserves historical
+behavior. See the [projection plan](../../docs/integration/projected-recurrent-plan-2026-09-25.md)
+for the executed 512-update continuation and unchanged five gates.
 
 The [rung 2 plan](../../docs/integration/quantized-recurrent-plan-2026-09-25.md)
 specifies frozen parent-calibrated dyadic scales, signed four-bit multiplicative

@@ -49,6 +49,18 @@ pub struct ParameterQuantization {
     pub row_exponents: Vec<i16>,
 }
 
+/// Statistics for one detached projection of the stored floating shadows.
+/// Only coordinates strictly outside their fixed representable interval count
+/// as projected; endpoints and interior values are preserved without rounding.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProjectionStatistics {
+    pub total_coordinates: usize,
+    pub projected_coordinates: usize,
+    /// Maximum absolute F32 correction, widened to F64 for reporting.
+    pub maximum_absolute_correction: f64,
+}
+
 fn unique_parameters<'de, D>(
     deserializer: D,
 ) -> std::result::Result<BTreeMap<String, ParameterQuantization>, D::Error>
@@ -211,6 +223,104 @@ impl QuantizationSpec {
             }
         }
         Ok(())
+    }
+
+    /// Project stored shadows into their existing dyadic intervals, without
+    /// rounding interior values or recording a differentiable forward clamp.
+    /// For finite shadows this preserves Q(P(w)) = Q(w), including hard zero.
+    /// Variable identities, this specification and optimizer state are unchanged.
+    ///
+    /// Call only between complete updates, with no concurrent forward/backward
+    /// work. All structural and numeric validation precedes any mutation. A
+    /// backend copy error during mutation requires discarding the model and
+    /// reloading a checkpoint; it may follow earlier successful parameter writes.
+    pub fn project_parameters(
+        &self,
+        variables: &BTreeMap<String, Var>,
+    ) -> Result<ProjectionStatistics> {
+        self.validate(variables)?;
+        let device = variables
+            .values()
+            .next()
+            .ok_or_else(|| invalid("empty projection parameter inventory"))?
+            .device();
+        let mut identities = Vec::with_capacity(variables.len());
+        let mut proposed = Vec::with_capacity(variables.len());
+        let mut diagnostics = Vec::with_capacity(3 * variables.len());
+        for (name, variable) in variables {
+            if !device.same_device(variable.device())
+                || !variable.is_contiguous()
+                || identities.contains(&variable.id())
+            {
+                return Err(invalid(format!(
+                    "projection requires distinct contiguous variables on one device: {name}"
+                )));
+            }
+            identities.push(variable.id());
+            let parameter = &self.parameters[name];
+            let (qmin, qmax) = limits(parameter.bits)?;
+            let scales = parameter.scale_tensor(device)?;
+            // Integer code endpoints times powers of two are exact in F32.
+            // Select the original interior values, preserving even signed zero.
+            let lower = (&scales * f64::from(qmin))?.broadcast_as(variable.shape())?;
+            let upper = (&scales * f64::from(qmax))?.broadcast_as(variable.shape())?;
+            let input = variable.as_detached_tensor();
+            let below = input.lt(&lower)?;
+            let above = input.gt(&upper)?;
+            let projected = above
+                .where_cond(&upper, &below.where_cond(&lower, &input)?)?
+                .detach();
+            diagnostics.push(below.add(&above)?.to_dtype(DType::F32)?.sum_all()?);
+            // Comparisons reject NaN and both infinities even if a reduction of
+            // absolute values would otherwise hide a NaN among finite values.
+            diagnostics.push(
+                input
+                    .abs()?
+                    .le(f32::MAX as f64)?
+                    .to_dtype(DType::F32)?
+                    .min_all()?,
+            );
+            diagnostics.push(input.sub(&projected)?.abs()?.max_all()?);
+            proposed.push((name, variable, projected, variable.elem_count()));
+        }
+
+        // One small host transfer; all full parameter operations stay on device.
+        // Counts are exact F32 integers because the whole spec is limited to 2^24
+        // coordinates. No stored shadow has been changed at this point.
+        let diagnostics = Tensor::stack(&diagnostics, 0)?.to_vec1::<f32>()?;
+        let mut statistics = ProjectionStatistics::default();
+        for ((name, _, _, count), values) in proposed.iter().zip(diagnostics.chunks_exact(3)) {
+            let changed = values[0];
+            let maximum = values[2];
+            if values.iter().any(|value| !value.is_finite())
+                || values[1] != 1.0
+                || changed < 0.0
+                || changed > *count as f32
+                || changed.fract() != 0.0
+                || maximum < 0.0
+            {
+                return Err(invalid(format!(
+                    "nonfinite shadow or invalid projection diagnostic for {name}; no parameters changed"
+                )));
+            }
+            statistics.total_coordinates += *count;
+            statistics.projected_coordinates += changed as usize;
+            statistics.maximum_absolute_correction = statistics
+                .maximum_absolute_correction
+                .max(f64::from(maximum));
+        }
+        for ((name, variable, projected, _), values) in
+            proposed.iter().zip(diagnostics.chunks_exact(3))
+        {
+            if values[0] != 0.0 {
+                variable.set(projected).map_err(|error| {
+                    invalid(format!(
+                        "projection write failed for {name}; discard model and reload checkpoint: {error}"
+                    ))
+                })?;
+            }
+        }
+        Ok(statistics)
     }
 
     /// Prepare once per parameter per forward, not once per recurrent token.
@@ -717,6 +827,248 @@ mod tests {
 
     fn values(tensor: &Tensor) -> Result<Vec<f32>> {
         Ok(tensor.flatten_all()?.to_vec1::<f32>()?)
+    }
+
+    fn projection_fixture() -> Result<(QuantizationSpec, BTreeMap<String, Var>)> {
+        let variables = BTreeMap::from([
+            (
+                "read.query.weight".into(),
+                Var::from_vec(
+                    vec![
+                        -4f32, -3.5, -0.25, -0.0, 0.0, 0.25, 3.5, 4., -16., -14., -1., -0.0, 0.0,
+                        1., 14., 16.,
+                    ],
+                    (2, 8),
+                    &Device::Cpu,
+                )?,
+            ),
+            (
+                "output.bias".into(),
+                Var::from_vec(
+                    vec![-8192f32, -8191.75, -0.125, -0.0, 0.0, 0.125, 8191.75, 8192.],
+                    (8,),
+                    &Device::Cpu,
+                )?,
+            ),
+        ]);
+        let parameters = BTreeMap::from([
+            (
+                "read.query.weight".into(),
+                ParameterQuantization {
+                    shape: vec![2, 8],
+                    bits: 4,
+                    row_exponents: vec![-1, 1],
+                },
+            ),
+            (
+                "output.bias".into(),
+                ParameterQuantization {
+                    shape: vec![8],
+                    bits: 16,
+                    row_exponents: vec![-2],
+                },
+            ),
+        ]);
+        Ok((
+            QuantizationSpec {
+                schema: SPEC_SCHEMA.into(),
+                parameters,
+            },
+            variables,
+        ))
+    }
+
+    fn parameter_bits(variables: &BTreeMap<String, Var>) -> Result<BTreeMap<String, Vec<u32>>> {
+        variables
+            .iter()
+            .map(|(name, variable)| {
+                Ok((
+                    name.clone(),
+                    values(variable.as_tensor())?
+                        .into_iter()
+                        .map(f32::to_bits)
+                        .collect(),
+                ))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn projection_preserves_hard_codes_interiors_identities_and_is_idempotent() -> Result<()> {
+        let (spec, variables) = projection_fixture()?;
+        let original_spec = spec.clone();
+        let identities: Vec<_> = variables.values().map(|variable| variable.id()).collect();
+        let hard_before = variables
+            .iter()
+            .map(|(name, variable)| {
+                Ok((
+                    name.clone(),
+                    values(&spec.parameter(name, variable.as_tensor(), 1., false)?)?
+                        .into_iter()
+                        .map(f32::to_bits)
+                        .collect::<Vec<_>>(),
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        assert_eq!(
+            spec.project_parameters(&variables)?,
+            ProjectionStatistics {
+                total_coordinates: 24,
+                projected_coordinates: 6,
+                maximum_absolute_correction: 2.,
+            }
+        );
+        let expected = BTreeMap::from([
+            (
+                "read.query.weight",
+                vec![
+                    -3.5f32, -3.5, -0.25, -0.0, 0.0, 0.25, 3.5, 3.5, -14., -14., -1., -0.0, 0.0,
+                    1., 14., 14.,
+                ],
+            ),
+            (
+                "output.bias",
+                vec![
+                    -8191.75f32,
+                    -8191.75,
+                    -0.125,
+                    -0.0,
+                    0.0,
+                    0.125,
+                    8191.75,
+                    8191.75,
+                ],
+            ),
+        ]);
+        let projected_bits = parameter_bits(&variables)?;
+        for (name, variable) in &variables {
+            assert_eq!(
+                projected_bits[name],
+                expected[name.as_str()]
+                    .iter()
+                    .map(|v| v.to_bits())
+                    .collect::<Vec<_>>()
+            );
+            let hard_after = values(&spec.parameter(name, variable.as_tensor(), 1., false)?)?
+                .into_iter()
+                .map(f32::to_bits)
+                .collect::<Vec<_>>();
+            assert_eq!(hard_after, hard_before[name], "{name}");
+        }
+        assert_eq!(
+            identities,
+            variables
+                .values()
+                .map(|variable| variable.id())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(spec, original_spec);
+        assert_eq!(
+            spec.project_parameters(&variables)?,
+            ProjectionStatistics {
+                total_coordinates: 24,
+                projected_coordinates: 0,
+                maximum_absolute_correction: 0.,
+            }
+        );
+        assert_eq!(parameter_bits(&variables)?, projected_bits);
+        Ok(())
+    }
+
+    #[test]
+    fn projection_restores_inclusive_ste_derivatives_at_both_code_endpoints() -> Result<()> {
+        let (spec, variables) = projection_fixture()?;
+        for (name, variable) in &variables {
+            let hard = spec.parameter(name, variable.as_tensor(), 1., true)?;
+            let gradients = hard.sum_all()?.backward()?;
+            let gradient = gradients
+                .get(variable.as_tensor())
+                .ok_or_else(|| invalid("missing pre-projection gradient"))?;
+            let expected = [0f32, 1., 1., 1., 1., 1., 1., 0.].repeat(variable.elem_count() / 8);
+            assert_eq!(values(gradient)?, expected, "{name}");
+        }
+        spec.project_parameters(&variables)?;
+        for (name, variable) in &variables {
+            let hard = spec.parameter(name, variable.as_tensor(), 1., true)?;
+            let gradients = hard.sum_all()?.backward()?;
+            let gradient = gradients
+                .get(variable.as_tensor())
+                .ok_or_else(|| invalid("missing post-projection gradient"))?;
+            assert_eq!(
+                values(gradient)?,
+                vec![1f32; variable.elem_count()],
+                "{name}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn projection_rejects_malformed_and_nonfinite_inputs_before_any_write() -> Result<()> {
+        let (spec, variables) = projection_fixture()?;
+        let original = parameter_bits(&variables)?;
+        let mut bad_specs = Vec::new();
+        let mut malformed = spec.clone();
+        malformed.schema.push_str("-invalid");
+        bad_specs.push(malformed);
+        let mut malformed = spec.clone();
+        malformed
+            .parameters
+            .get_mut("read.query.weight")
+            .ok_or_else(|| invalid("missing fixture parameter"))?
+            .row_exponents
+            .pop();
+        bad_specs.push(malformed);
+        let mut malformed = spec.clone();
+        malformed
+            .parameters
+            .get_mut("read.query.weight")
+            .ok_or_else(|| invalid("missing fixture parameter"))?
+            .row_exponents[0] = MAX_EXPONENT + 1;
+        bad_specs.push(malformed);
+        let mut malformed = spec.clone();
+        malformed
+            .parameters
+            .get_mut("output.bias")
+            .ok_or_else(|| invalid("missing fixture parameter"))?
+            .shape = vec![7];
+        bad_specs.push(malformed);
+        let mut malformed = spec.clone();
+        malformed
+            .parameters
+            .get_mut("output.bias")
+            .ok_or_else(|| invalid("missing fixture parameter"))?
+            .bits = 4;
+        bad_specs.push(malformed);
+        let mut malformed = spec.clone();
+        malformed.parameters.remove("read.query.weight");
+        bad_specs.push(malformed);
+        for malformed in bad_specs {
+            assert!(malformed.project_parameters(&variables).is_err());
+            assert_eq!(parameter_bits(&variables)?, original);
+        }
+        for bad_value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let (spec, variables) = projection_fixture()?;
+            let mut bad_values = values(variables["read.query.weight"].as_tensor())?;
+            bad_values[2] = bad_value;
+            variables["read.query.weight"].set(&Tensor::from_vec(
+                bad_values,
+                (2, 8),
+                &Device::Cpu,
+            )?)?;
+            let before = parameter_bits(&variables)?;
+            assert!(spec.project_parameters(&variables).is_err());
+            // output.bias sorts before the invalid weight and needs projection;
+            // no earlier valid tensor may be changed before the rejection.
+            assert_eq!(parameter_bits(&variables)?, before);
+        }
+        let (spec, mut variables) = projection_fixture()?;
+        variables.insert(
+            "output.bias".into(),
+            Var::zeros((8,), DType::F64, &Device::Cpu)?,
+        );
+        assert!(spec.project_parameters(&variables).is_err());
+        Ok(())
     }
 
     #[test]

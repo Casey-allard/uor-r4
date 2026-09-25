@@ -1,0 +1,242 @@
+{
+  "recorded_utc": "2026-09-25T12:48:41.155988+00:00",
+  "base_commit": "93689d81dda7685b576066c5af02c67beefd7e3b",
+  "parents": {
+    "quaternion": {
+      "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836",
+      "files": {
+        "manifest.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/manifest.json",
+          "bytes": 1271,
+          "sha256": "6c4509e9e921dd2a877eb66305a97cb58d7ec8dd5d133cccc83e6fafd50bb3c2"
+        },
+        "checkpoint.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/checkpoint.json",
+          "bytes": 106071,
+          "sha256": "9dc83887a710f5efb9d3bc1f02dab86d36c508e7c55ae021115e9b7f4b5def02"
+        },
+        "campaign.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/campaign.json",
+          "bytes": 2559,
+          "sha256": "7ceb4906b274c852aec0e0952c0622751839b308d2d9f2927c89422c6553333e"
+        },
+        "model.safetensors": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/model.safetensors",
+          "bytes": 6715592,
+          "sha256": "8f983a2c46cb218c8de8775ddf5d97485f2213f3b7a7ee55d6849ab4ae35ea3b"
+        },
+        "optimizer.safetensors": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/optimizer.safetensors",
+          "bytes": 13431312,
+          "sha256": "6db6692a54555f30ebe0be40c24cd9f868bb2c81b42726677e94526edab4167a"
+        },
+        "optimizer.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/optimizer.json",
+          "bytes": 2814,
+          "sha256": "8fbba3e0d9cb6cba9a5aa20ef510de6a1a5bb8707beddd93e315075f813ba941"
+        },
+        "config.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1/checkpoint-00007836/config.json",
+          "bytes": 108601,
+          "sha256": "6e60c80ff18e293b11fe2abe9ab19e8b56322250d04d0d6557ea38fd02b9b823"
+        }
+      },
+      "checkpoint_step": 7836,
+      "quantization": {
+        "completed_step": 7836,
+        "ramp_steps": 256,
+        "start_step": 7324
+      },
+      "specification_sha256": "56ec9f0a5b7feea03d182f54c249327ad7063b755b3b2a691a2948e0b1113e40",
+      "specification_hash_encoding": "Python sorted compact JSON for this audit; not replacement for Rust artifact specification hash.",
+      "retained_controls": {
+        "hard-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-read-1/evaluation-report.json",
+            "bytes": 637428,
+            "sha256": "67284b976c29a1fe5d64d1a532bc62f36103d8e2b451e995a210f26bdec364cf"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "95ca7ee31dd96bced98e32b2278ec18148f2281f599690329d4363dab015dfcb"
+          }
+        },
+        "hard-no-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-no-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-no-read-1/evaluation-report.json",
+            "bytes": 637434,
+            "sha256": "1b82a111d4330e189362ff26ef900a1db101f038314e49b9fef2c6716c316f5a"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-no-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "828e30f3330d6bcba0fc1c5067b01db3a627a5966bfb257634efd7ce8e80c2c4"
+          }
+        },
+        "continuous-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-read-1/evaluation-report.json",
+            "bytes": 7353,
+            "sha256": "14b52512cc3baed20b91fc6a2312f1f15c14d9bcc59f6a085ec235ae0af9bba0"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "fc669726a9f118ece4ea06eee4a8b44d9bbc0ff3c6df88bf917676cab6365862"
+          }
+        },
+        "continuous-no-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-no-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-no-read-1/evaluation-report.json",
+            "bytes": 7364,
+            "sha256": "cd2af8cba0a0cbeb85f3408ccee2b2549a62ed573045a68d104554d6219e6e51"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-no-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "ae426dc1b7ead57d65bc424257e0de5119adbc717a0182ef41980a1caa3e31b6"
+          }
+        },
+        "shadow-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-shadow-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-shadow-read-1/evaluation-report.json",
+            "bytes": 125420,
+            "sha256": "4708019c5902aae660a6912f2afb36dcfa6845526922fbb2483b7fe8216509ba"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-shadow-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "328e410f845fc84baea1e1a9e43b76f88d418d08419084d27266e0188bff4032"
+          }
+        }
+      }
+    },
+    "householder_pair": {
+      "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836",
+      "files": {
+        "manifest.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/manifest.json",
+          "bytes": 1277,
+          "sha256": "d97f22beeeb7b7e470980672e1d7f0731ffbc9e436b5cfc711cf062924765e34"
+        },
+        "checkpoint.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/checkpoint.json",
+          "bytes": 106071,
+          "sha256": "14f1adf08cc8c08a87a1188252a02ef85864e4973ddde8c2f79c8eef278c8f1c"
+        },
+        "campaign.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/campaign.json",
+          "bytes": 2571,
+          "sha256": "8abc853cba8fd49165135522c6b95b7b0f51c01aa8a539c0f1f6c26728cb0542"
+        },
+        "model.safetensors": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/model.safetensors",
+          "bytes": 6715592,
+          "sha256": "a153f65b603a91b419feaf1a15ca6b547a59111757e838b1c17e4daa0985b846"
+        },
+        "optimizer.safetensors": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/optimizer.safetensors",
+          "bytes": 13431312,
+          "sha256": "24f1e9ebdcf28e475da35d05f7e68f37791faf29ef2a0e439b6330b5870bdc07"
+        },
+        "optimizer.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/optimizer.json",
+          "bytes": 2814,
+          "sha256": "b5ec0b2a23153286f29f8826ca9e8c4011b026cbfd5251a303adea9f2ca2a55b"
+        },
+        "config.json": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1/checkpoint-00007836/config.json",
+          "bytes": 108607,
+          "sha256": "0a830ef31694fbbccc0767bcd185be688d1c99934c8ff05f359af84bfb4caf75"
+        }
+      },
+      "checkpoint_step": 7836,
+      "quantization": {
+        "completed_step": 7836,
+        "ramp_steps": 256,
+        "start_step": 7324
+      },
+      "specification_sha256": "d5d895ff4431b38d2ce8265d094aa82185888020df929e92da8e5c487bb54722",
+      "specification_hash_encoding": "Python sorted compact JSON for this audit; not replacement for Rust artifact specification hash.",
+      "retained_controls": {
+        "hard-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-read-1/evaluation-report.json",
+            "bytes": 637464,
+            "sha256": "2bc157d29c8e6bf0e06fa962a2d496cbeac292078dcda53499314777a2fa16a9"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "44a3c6775c63c9411bd738e72e5d3e7987bdbd288390afe7359b86ca2dee3438"
+          }
+        },
+        "hard-no-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-no-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-no-read-1/evaluation-report.json",
+            "bytes": 637466,
+            "sha256": "8dcb4d460b42a69c2a2549a069a86752174dc6ab3d529264fb6a2a873ea9153f"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-no-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "816f01bbfb99fe2f9974cfe615d331b7f2d8ba636401475f6150def4a4a91321"
+          }
+        },
+        "continuous-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-read-1/evaluation-report.json",
+            "bytes": 7386,
+            "sha256": "c2a89299629e57a68f9f9a581fab23babc239d8d83f09bee701d9ae8a66ba24a"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "9433f8bb607e417be3d2e5e9804fbd34726b275c365e9fc5b5fea3be9390dfe3"
+          }
+        },
+        "continuous-no-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-no-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-no-read-1/evaluation-report.json",
+            "bytes": 7381,
+            "sha256": "3a39e7c3c912cfa23d7a7de038776e928dfaf6a9318650e101389283f00ae8b6"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-no-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "cd9e10758a81a490c14412ae4cb87bcfd43b710c072395bc91f01de2befc38c2"
+          }
+        },
+        "shadow-read": {
+          "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-shadow-read-1",
+          "report": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-shadow-read-1/evaluation-report.json",
+            "bytes": 125445,
+            "sha256": "706fa4019ea7ca46030052b46cb822915ad4c8a73d99eb9409295add2eab47cc"
+          },
+          "targets": {
+            "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-shadow-read-1/targets.bin",
+            "bytes": 10993664,
+            "sha256": "38d877e0ccb10d5a1dc02ae078e0ef7a0f823d5aefc465cc7a11396c02f9cc0e"
+          }
+        }
+      }
+    }
+  },
+  "evaluator": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/projected-recurrent-20260925/docs/integration/reference-evaluator-v2.json",
+    "bytes": 6755,
+    "sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62"
+  },
+  "midpoint_selection_reason": "Preserved full-hard recovery boundary, independent of quality. Original final negatives remain controls."
+}

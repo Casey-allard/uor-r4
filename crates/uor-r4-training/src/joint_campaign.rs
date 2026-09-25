@@ -1,4 +1,5 @@
 //! One persistent offline recurrent-memory learning campaign.
+use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -6,6 +7,7 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use uor_r4_core::report_output;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 
@@ -15,6 +17,7 @@ use crate::baseline_protocol::{
 use crate::joint_evaluation::{self, STORY_PROBE_SCOPE, STORY_STOP_POLICY};
 use crate::joint_model::{JointConfig, JointModel, ReadMode};
 use crate::joint_optimizer::{AdamConfig, NamedAdamW};
+use crate::joint_quantization::QuantizationSpec;
 use crate::{invalid, sha256_file, Result};
 
 /// A new window schedule starting from one exact, sealed parent checkpoint.
@@ -42,7 +45,28 @@ pub struct QuantizationTransition {
     pub reason: String,
 }
 
+/// A stored-shadow optimizer policy; it does not change the fixed quantizer.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectionPolicy {
+    FixedRepresentableRange,
+}
+
+/// One explicit policy change from an exact, already fully quantized parent.
+/// The compact typed-spec digest binds every shape, bit width and frozen scale.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProjectionTransition {
+    pub policy: ProjectionPolicy,
+    pub parent_checkpoint_sha256: String,
+    pub parent_campaign_sha256: String,
+    pub parent_optimizer_step: usize,
+    pub quantization_spec_sha256: String,
+    pub reason: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Campaign {
     pub schema: String,
     pub evaluator_path: PathBuf,
@@ -68,6 +92,8 @@ pub struct Campaign {
     pub training_window_transition: Option<TrainingWindowTransition>,
     #[serde(default)]
     pub quantization_transition: Option<QuantizationTransition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projection_transition: Option<ProjectionTransition>,
     pub trial_scope: String,
 }
 
@@ -131,7 +157,110 @@ impl Campaign {
                 return Err(invalid("invalid declared quantization transition"));
             }
         }
+        validate_projection_declaration(&cfg)?;
         Ok(cfg)
+    }
+}
+
+fn validate_projection_declaration(cfg: &Campaign) -> Result<()> {
+    if let Some(transition) = &cfg.projection_transition {
+        let quantization = cfg
+            .quantization_transition
+            .as_ref()
+            .ok_or_else(|| invalid("projection requires an existing quantization transition"))?;
+        let full_hard_step = quantization
+            .parent_optimizer_step
+            .checked_add(quantization.ramp_steps)
+            .ok_or_else(|| invalid("quantization ramp clock overflow"))?;
+        if !is_hex_digest(&transition.parent_checkpoint_sha256, 64)
+            || !is_hex_digest(&transition.parent_campaign_sha256, 64)
+            || !is_hex_digest(&transition.quantization_spec_sha256, 64)
+            || transition.reason.trim().is_empty()
+            || transition.parent_optimizer_step < full_hard_step
+            || transition.parent_optimizer_step >= cfg.total_steps
+            || cfg.batch != 16
+            || cfg.context != 256
+            || cfg.model.context != 256
+        {
+            return Err(invalid("invalid full-hard projection transition"));
+        }
+    }
+    Ok(())
+}
+
+fn quantization_spec_digest(state: &Value) -> Result<String> {
+    let spec: QuantizationSpec = serde_json::from_value(state["spec"].clone())?;
+    spec.validate_structure()?;
+    Ok(hex::encode(Sha256::digest(serde_json::to_vec(&spec)?)))
+}
+
+fn projection_state_matches(cfg: &Campaign, state: &Value, step: usize) -> Result<()> {
+    validate_projection_declaration(cfg)?;
+    if let Some(transition) = &cfg.projection_transition {
+        quantization_state_matches(cfg, state, step)?;
+        if step < transition.parent_optimizer_step
+            || transition.quantization_spec_sha256 != quantization_spec_digest(state)?
+        {
+            return Err(invalid(
+                "projection clock or fixed quantization specification differs",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_projection_binding(
+    cfg: &Campaign,
+    checkpoint: &Value,
+    state: &Value,
+    step: usize,
+) -> Result<()> {
+    // Missing legacy fields and absent policies both read as JSON null.
+    if checkpoint["projection_transition"] != json!(cfg.projection_transition) {
+        return Err(invalid("checkpoint projection policy or lineage differs"));
+    }
+    projection_state_matches(cfg, state, step)
+}
+
+/// Only the first explicit transition may enable projection. Its lineage is
+/// immutable on later resumes, including changes to execution shard count.
+fn projection_resume_transition(
+    cfg: &Campaign,
+    old: &Campaign,
+    checkpoint_sha: &str,
+    campaign_sha: &str,
+    state: &Value,
+    step: usize,
+) -> Result<bool> {
+    projection_state_matches(cfg, state, step)?;
+    match (&old.projection_transition, &cfg.projection_transition) {
+        (None, None) => Ok(false),
+        (Some(previous), Some(current)) if previous == current => {
+            same_learning_configuration(cfg, old)?;
+            Ok(false)
+        }
+        (None, Some(transition)) => {
+            if transition.parent_checkpoint_sha256 != checkpoint_sha
+                || transition.parent_campaign_sha256 != campaign_sha
+                || transition.parent_optimizer_step != step
+                || old.model != cfg.model
+                || old.optimizer != cfg.optimizer
+                || old.data_seed != cfg.data_seed
+                || old.batch != cfg.batch
+                || old.context != cfg.context
+                || old.cpu_gradient_shards != cfg.cpu_gradient_shards
+                || old.training_window_transition != cfg.training_window_transition
+                || old.quantization_transition != cfg.quantization_transition
+            {
+                return Err(invalid(
+                    "projection transition changes its exact full-hard parent",
+                ));
+            }
+            Ok(true)
+        }
+        _ => Err(invalid(
+            "resume changes persistent projection policy or lineage",
+        )),
     }
 }
 
@@ -166,7 +295,8 @@ fn validate_quantization_binding(
             "checkpoint/model quantization state or transition differs",
         ));
     }
-    quantization_state_matches(cfg, state, step)
+    quantization_state_matches(cfg, state, step)?;
+    validate_projection_binding(cfg, checkpoint, state, step)
 }
 
 /// Returns true only for the first, declared continuous-to-quantized transition.
@@ -341,6 +471,223 @@ fn shadow_loss(
     }
 }
 
+struct HardParameterSnapshot {
+    coordinates: usize,
+    out_of_range_coordinates: usize,
+    values_and_codes: BTreeMap<String, (Vec<u32>, Vec<i32>)>,
+    shadow_sha256: String,
+    hard_values_sha256: String,
+    codes_sha256: String,
+}
+
+/// The fixed dyadic scale maps each hard F32 value to one exact integer code.
+/// Retain both for direct, all-coordinate equality; hashes are provenance only.
+fn hard_parameter_snapshot(model: &JointModel) -> Result<HardParameterSnapshot> {
+    let state = model
+        .quantization()
+        .ok_or_else(|| invalid("projection witness requires quantization"))?;
+    state.spec.validate(model.variables())?;
+    let mut values_and_codes = BTreeMap::new();
+    let mut shadow_hash = Sha256::new();
+    let mut hard_hash = Sha256::new();
+    let mut code_hash = Sha256::new();
+    let mut coordinates = 0usize;
+    let mut out_of_range_coordinates = 0usize;
+    for (name, variable) in model.variables() {
+        let parameter = state
+            .spec
+            .parameters
+            .get(name)
+            .ok_or_else(|| invalid("projection parameter specification missing"))?;
+        let header = serde_json::to_vec(&(name, variable.dims()))?;
+        for digest in [&mut shadow_hash, &mut hard_hash, &mut code_hash] {
+            digest.update((header.len() as u64).to_le_bytes());
+            digest.update(&header);
+        }
+        let shadow = variable
+            .as_detached_tensor()
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let values = state
+            .spec
+            .parameter(name, variable.as_tensor(), 1.0, false)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        if shadow.len() != values.len() {
+            return Err(invalid("projection hard/shadow coordinate counts differ"));
+        }
+        let row_width = if parameter.shape.len() == 2 {
+            parameter.shape[1]
+        } else {
+            parameter.shape[0]
+        };
+        let qmax = if parameter.bits == 4 { 7 } else { 32767 };
+        let mut bits = Vec::with_capacity(values.len());
+        let mut codes = Vec::with_capacity(values.len());
+        for (index, (&raw, &hard)) in shadow.iter().zip(&values).enumerate() {
+            let exponent = *parameter
+                .row_exponents
+                .get(index / row_width)
+                .ok_or_else(|| invalid("projection witness row scale missing"))?;
+            let code = hard / 2_f32.powi(i32::from(exponent));
+            let shadow_code = raw / 2_f32.powi(i32::from(exponent));
+            if !raw.is_finite()
+                || !hard.is_finite()
+                || !code.is_finite()
+                || code != code.round()
+                || code.abs() > qmax as f32
+            {
+                return Err(invalid(
+                    "projection witness has a nonfinite or off-grid parameter",
+                ));
+            }
+            let code = code as i32;
+            if shadow_code < -(qmax as f32) || shadow_code > qmax as f32 {
+                out_of_range_coordinates += 1;
+            }
+            shadow_hash.update(raw.to_bits().to_le_bytes());
+            hard_hash.update(hard.to_bits().to_le_bytes());
+            code_hash.update(code.to_le_bytes());
+            bits.push(hard.to_bits());
+            codes.push(code);
+        }
+        coordinates = coordinates
+            .checked_add(values.len())
+            .ok_or_else(|| invalid("projection parameter count overflow"))?;
+        values_and_codes.insert(name.clone(), (bits, codes));
+    }
+    Ok(HardParameterSnapshot {
+        coordinates,
+        out_of_range_coordinates,
+        values_and_codes,
+        shadow_sha256: hex::encode(shadow_hash.finalize()),
+        hard_values_sha256: hex::encode(hard_hash.finalize()),
+        codes_sha256: hex::encode(code_hash.finalize()),
+    })
+}
+
+fn words_sha256(values: &[u32]) -> String {
+    let mut hash = Sha256::new();
+    for value in values {
+        hash.update(value.to_le_bytes());
+    }
+    hex::encode(hash.finalize())
+}
+
+/// Run once before any fit/development loss. It is deliberately no-grad and
+/// receives the optimizer immutably; a policy resume also witnesses idempotence.
+fn witness_entry_projection(
+    model: &JointModel,
+    optimizer: &NamedAdamW,
+    cfg: &Campaign,
+    stores: &[Vec<u16>],
+    begin: usize,
+    loaded_parent: &Value,
+    out: &Path,
+) -> Result<Value> {
+    let Some(transition) = &cfg.projection_transition else {
+        return Ok(Value::Null);
+    };
+    let state = model
+        .quantization()
+        .ok_or_else(|| invalid("projection requires a quantized model"))?;
+    projection_state_matches(cfg, &serde_json::to_value(state)?, begin)?;
+    let (inputs, targets) = training_batch(stores, cfg, begin)?;
+    let probe = inputs
+        .get(..256)
+        .ok_or_else(|| invalid("entry projection requires one actual full context"))?;
+    let before = hard_parameter_snapshot(model)?;
+    let variable_ids: Vec<_> = model.variables().values().map(|v| v.id()).collect();
+    let optimizer_before = optimizer.continuity_fingerprint()?;
+    let before_probabilities = model
+        .forward(probe, 1, 256, ReadMode::Enabled, false)?
+        .probabilities
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let statistics = state.spec.project_parameters(model.variables())?;
+    let after = hard_parameter_snapshot(model)?;
+    let optimizer_after = optimizer.continuity_fingerprint()?;
+    let after_probabilities = model
+        .forward(probe, 1, 256, ReadMode::Enabled, false)?
+        .probabilities
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let finite = before_probabilities.iter().all(|p| p.is_finite())
+        && after_probabilities.iter().all(|p| p.is_finite());
+    let probability_bits_equal = before_probabilities.len() == after_probabilities.len()
+        && before_probabilities.len() == 256 * cfg.model.vocab_size
+        && before_probabilities
+            .iter()
+            .zip(&after_probabilities)
+            .all(|(a, b)| a.to_bits() == b.to_bits());
+    let max_delta = before_probabilities
+        .iter()
+        .zip(&after_probabilities)
+        .map(|(&a, &b)| (f64::from(a) - f64::from(b)).abs())
+        .fold(0.0_f64, f64::max);
+    let hard_equal = before.values_and_codes == after.values_and_codes;
+    let ids_equal = variable_ids
+        == model
+            .variables()
+            .values()
+            .map(|v| v.id())
+            .collect::<Vec<_>>();
+    let sampler_equal = training_batch(stores, cfg, begin)? == (inputs.clone(), targets.clone());
+    let optimizer_equal =
+        optimizer_before == optimizer_after && optimizer.step_count() as usize == begin;
+    let passed = hard_equal
+        && ids_equal
+        && sampler_equal
+        && optimizer_equal
+        && before.coordinates == after.coordinates
+        && statistics.total_coordinates == before.coordinates
+        && statistics.projected_coordinates == before.out_of_range_coordinates
+        && after.out_of_range_coordinates == 0
+        && finite
+        && probability_bits_equal
+        && max_delta == 0.0;
+    let report = json!({
+        "schema":"uor-r4.joint-projection-entry/1",
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND"),
+        "executable_sha256":sha256_file(&std::env::current_exe()?)?,
+        "status":if passed {"PRESERVED_HARD_MODEL_AND_CONTINUATION"} else {"FAILED_INTEGRITY"},
+        "projection_transition":transition,"entry_projection":statistics,
+        "loaded_parent":loaded_parent,
+        "quantization_spec_sha256":quantization_spec_digest(&serde_json::to_value(state)?)?,
+        "parameter_tensors":before.values_and_codes.len(),"parameter_coordinates":before.coordinates,
+        "out_of_range_shadow_coordinates_before":before.out_of_range_coordinates,
+        "out_of_range_shadow_coordinates_after":after.out_of_range_coordinates,
+        "hard_parameter_values_and_codes_equal":hard_equal,"variable_ids_preserved":ids_equal,
+        "shadow_parameters_sha256_before":before.shadow_sha256,
+        "shadow_parameters_sha256_after":after.shadow_sha256,
+        "hard_parameter_values_sha256_before":before.hard_values_sha256,
+        "hard_parameter_values_sha256_after":after.hard_values_sha256,
+        "hard_parameter_codes_sha256_before":before.codes_sha256,
+        "hard_parameter_codes_sha256_after":after.codes_sha256,
+        "parameter_hash_encoding":"BTreeMap name order; LE-u64 JSON header length; compact JSON (name,shape); per-coordinate LE-F32 bits or LE-i32 dyadic code",
+        "optimizer_before":optimizer_before,"optimizer_after":optimizer_after,
+        "optimizer_moments_and_clocks_equal":optimizer_equal,
+        "optimizer_updates_during_entry":0,"sampler_advanced_steps":0,
+        "next_data_step":begin,"sampled_target_visits":begin*cfg.batch*cfg.context,
+        "next_training_inputs_and_targets_equal":sampler_equal,
+        "next_training_inputs_sha256_le_u32":words_sha256(&inputs),
+        "next_training_targets_sha256_le_u32":words_sha256(&targets),
+        "probe":{"source":"lane0 of the next scheduled training batch; reset full prefix",
+            "batch":1,"context":256,"input_ids":probe,"input_sha256_le_u32":words_sha256(probe)},
+        "probability_coordinates":before_probabilities.len(),"probabilities_finite":finite,
+        "hard_probability_bits_equal":probability_bits_equal,"hard_probability_max_absolute_delta":finite.then_some(max_delta),
+        "scope":"Integrity of fixed-range projection at this loaded full-hard checkpoint. No optimizer, data-cursor or quantization-scale update; not a retention or stability gate."
+    });
+    // Preserve the witness even if integrity fails; the outer attempt is sealed.
+    save_json(&out.join("projection-entry.json"), &report)?;
+    if !passed {
+        return Err(invalid(
+            "entry projection changed hard values, codes, probabilities or continuation state",
+        ));
+    }
+    Ok(report)
+}
+
 fn save_checkpoint(
     model: &JointModel,
     optimizer: &NamedAdamW,
@@ -352,31 +699,33 @@ fn save_checkpoint(
 ) -> Result<()> {
     let quantization = serde_json::to_value(model.quantization())?;
     quantization_state_matches(cfg, &quantization, step)?;
+    projection_state_matches(cfg, &quantization, step)?;
     if optimizer.step_count() as usize != step {
         return Err(invalid("checkpoint optimizer and model clocks differ"));
     }
     model.save(directory)?;
     optimizer.save(directory)?;
     save_json(&directory.join("campaign.json"), cfg)?;
-    save_json(
-        &directory.join("checkpoint.json"),
-        &json!({
-            "schema":"uor-r4.joint-recurrent-checkpoint/1","status":status,
-            "optimizer_step":step,"sampled_target_visits":step*cfg.batch*cfg.context,
-            "data_sampler":"splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
-            "next_data_step":step,"data_seed":cfg.data_seed,
-            "training_batch":cfg.batch,"training_context":cfg.context,
-            "cpu_gradient_shards":cfg.cpu_gradient_shards,
-            "sampled_targets_per_step":cfg.batch*cfg.context,
-            "training_window_transition":cfg.training_window_transition,
-            "quantization_transition":cfg.quantization_transition,
-            "quantization":quantization,
-            "evaluator_sha256":evaluator_sha,
-            "model_sha256":sha256_file(&directory.join("model.safetensors"))?,
-            "model_config_sha256":sha256_file(&directory.join("config.json"))?,
-            "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND")
-        }),
-    )?;
+    let mut binding = json!({
+        "schema":"uor-r4.joint-recurrent-checkpoint/1","status":status,
+        "optimizer_step":step,"sampled_target_visits":step*cfg.batch*cfg.context,
+        "data_sampler":"splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "next_data_step":step,"data_seed":cfg.data_seed,
+        "training_batch":cfg.batch,"training_context":cfg.context,
+        "cpu_gradient_shards":cfg.cpu_gradient_shards,
+        "sampled_targets_per_step":cfg.batch*cfg.context,
+        "training_window_transition":cfg.training_window_transition,
+        "quantization_transition":cfg.quantization_transition,
+        "quantization":quantization,
+        "evaluator_sha256":evaluator_sha,
+        "model_sha256":sha256_file(&directory.join("model.safetensors"))?,
+        "model_config_sha256":sha256_file(&directory.join("config.json"))?,
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND")
+    });
+    if let Some(transition) = &cfg.projection_transition {
+        binding["projection_transition"] = json!(transition);
+    }
+    save_json(&directory.join("checkpoint.json"), &binding)?;
     report_output::seal(directory)?;
     report_output::verify(directory)?;
     Ok(())
@@ -388,7 +737,9 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     if cfg.cpu_gradient_shards > 1 && device_name != "cpu" {
         return Err(invalid("multiple gradient shards require the CPU backend"));
     }
-    if (cfg.training_window_transition.is_some() || cfg.quantization_transition.is_some())
+    if (cfg.training_window_transition.is_some()
+        || cfg.quantization_transition.is_some()
+        || cfg.projection_transition.is_some())
         && resume.is_none()
     {
         return Err(invalid(
@@ -399,6 +750,8 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     report["training_window_transition_applied"] = json!(false);
     report["quantization_transition"] = json!(cfg.quantization_transition);
     report["quantization_transition_applied"] = json!(false);
+    report["projection_transition"] = json!(cfg.projection_transition);
+    report["projection_transition_applied"] = json!(false);
     report["evaluation_numerics"] = json!(if cfg.quantization_transition.is_some() {
         "Full-strength quantized numerical emulator, including during the training ramp; F32-origin quick_loss reductions. Not an integer serving kernel."
     } else {
@@ -453,6 +806,13 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             || (checkpoint.get("model_config_sha256").is_some()
                 && checkpoint["model_config_sha256"] != sha256_file(&path.join("config.json"))?)
             || checkpoint["schema"] != "uor-r4.joint-recurrent-checkpoint/1"
+            || checkpoint["training_batch"] != json!(old.batch)
+            || checkpoint["training_context"] != json!(old.context)
+            || checkpoint["sampled_targets_per_step"] != json!(old.batch * old.context)
+            || checkpoint
+                .get("cpu_gradient_shards")
+                .map_or(Some(1), Value::as_u64)
+                != Some(old.cpu_gradient_shards as u64)
             || !checkpoint["source_commit"]
                 .as_str()
                 .is_some_and(|source| is_hex_digest(source, 40))
@@ -503,6 +863,14 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         }
         let quantization_changed =
             quantization_resume_transition(cfg, &old, &checkpoint_sha, &campaign_sha, begin)?;
+        let projection_changed = projection_resume_transition(
+            cfg,
+            &old,
+            &checkpoint_sha,
+            &campaign_sha,
+            &serde_json::to_value(model.quantization())?,
+            begin,
+        )?;
         if quantization_changed {
             model.configure_quantization(
                 begin,
@@ -533,6 +901,11 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         });
         report["training_window_transition_applied"] = json!(window_changed);
         report["quantization_transition_applied"] = json!(quantization_changed);
+        report["projection_transition_applied"] = json!(projection_changed);
+        report["resume_optimizer_files"] = json!({
+            "metadata_sha256":sha256_file(&path.join(crate::joint_optimizer::METADATA_FILE))?,
+            "moments_sha256":sha256_file(&path.join(crate::joint_optimizer::MOMENT_FILE))?,
+        });
         report["cpu_gradient_shards_changed_on_resume"] =
             json!(old.cpu_gradient_shards != cfg.cpu_gradient_shards);
         report["window_sampler_continuation"] = json!(
@@ -556,6 +929,19 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     report["starting_sampled_target_visits"] = json!(begin * cfg.batch * cfg.context);
     report["initial_quantization"] = serde_json::to_value(model.quantization())?;
     report["initial_training_quantization_strength"] = json!(model.training_strength());
+    let entry_projection = witness_entry_projection(
+        &model,
+        &optimizer,
+        cfg,
+        &stores,
+        begin,
+        &report["resume_parent"],
+        out,
+    )?;
+    if cfg.projection_transition.is_some() {
+        report["projection_entry"] = entry_projection;
+        report["projection_entry_sha256"] = json!(sha256_file(&out.join("projection-entry.json"))?);
+    }
     let (retained_inputs, retained_targets) = training_batch(&stores, cfg, 0)?;
     let initial_fit = f64::from(
         model
@@ -584,6 +970,9 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     let mut curve = BufWriter::new(File::create_new(out.join("learning-curve.jsonl"))?);
     let mut step_times = Vec::new();
     let mut complete = begin;
+    let mut projection_updates = 0usize;
+    let mut projected_coordinate_updates = 0usize;
+    let mut maximum_projection_correction = 0.0_f64;
     for step in begin..cfg.total_steps {
         if started.elapsed().as_secs() >= cfg.max_process_seconds
             || cfg.stop_file.as_ref().is_some_and(|path| path.exists())
@@ -603,6 +992,22 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         )?;
         let value = gradients.mean_nll;
         let update = optimizer.step(model.variables(), &gradients.gradients)?;
+        let projection = if cfg.projection_transition.is_some() {
+            let statistics = model
+                .quantization()
+                .ok_or_else(|| invalid("projection policy lost its quantization state"))?
+                .spec
+                .project_parameters(model.variables())?;
+            projection_updates += 1;
+            projected_coordinate_updates = projected_coordinate_updates
+                .checked_add(statistics.projected_coordinates)
+                .ok_or_else(|| invalid("projection coordinate-update count overflow"))?;
+            maximum_projection_correction =
+                maximum_projection_correction.max(statistics.maximum_absolute_correction);
+            Some(statistics)
+        } else {
+            None
+        };
         model.set_completed_step(step + 1)?;
         let elapsed = step_started.elapsed().as_secs_f64();
         step_times.push(elapsed);
@@ -612,6 +1017,9 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             "cpu_gradient_shards":cfg.cpu_gradient_shards,
             "training_quantization_strength":quantization_strength,
             "development_numerics":if model.quantization().is_some() { "full-strength quantized numerical emulator" } else { "continuous" }});
+        if let Some(statistics) = projection {
+            row["projection"] = json!(statistics);
+        }
         drop(gradients);
         if cfg.development_every_steps > 0 && complete % cfg.development_every_steps == 0 {
             row["development_nll"] =
@@ -731,6 +1139,14 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     report["reloaded_retained_batch_nll"] = json!(reloaded_fit);
     report["reload_absolute_delta"] = json!(reload_delta);
     report["final_quantization"] = serde_json::to_value(model.quantization())?;
+    if cfg.projection_transition.is_some() {
+        report["projection_updates"] = json!({
+            "complete_optimizer_updates_projected":projection_updates,
+            "projected_coordinate_updates":projected_coordinate_updates,
+            "maximum_absolute_correction":maximum_projection_correction,
+            "scope":"Post-AdamW events; coordinate counts may count the same coordinate on multiple updates. Entry projection is reported separately."
+        });
+    }
     report["next_training_quantization_strength"] = json!(model.training_strength());
     report["training_complete_steps_seconds"] = json!(total_seconds);
     report["steady_complete_step_tokens_per_second"] = if steady_seconds > 0.0 {
@@ -897,6 +1313,7 @@ fn same_learning_configuration(a: &Campaign, b: &Campaign) -> Result<()> {
         || a.cpu_gradient_shards != b.cpu_gradient_shards
         || a.training_window_transition != b.training_window_transition
         || a.quantization_transition != b.quantization_transition
+        || a.projection_transition != b.projection_transition
     {
         return Err(invalid(
             "evaluation campaign changes bound learning configuration",
@@ -981,6 +1398,11 @@ fn export_hard_cli(args: &[String]) -> Result<()> {
             load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
         if let Some(campaign_path) = args.get(3) {
             let next = Campaign::load(Path::new(campaign_path))?;
+            if next.projection_transition.is_some() {
+                return Err(invalid(
+                    "hard export cannot introduce a training projection policy",
+                ));
+            }
             if load_evaluator(&next.evaluator_path)?.sha256 != evaluator.sha256 {
                 return Err(invalid("calibrated hard export changes evaluator"));
             }
@@ -1034,6 +1456,7 @@ fn write_hard_export(
         .and_then(|n| usize::try_from(n).ok())
         .ok_or_else(|| invalid("hard export requires a quantization clock"))?;
     quantization_state_matches(&parent.campaign, &state, step)?;
+    projection_state_matches(&parent.campaign, &state, step)?;
     let manifest = parent.model.save_hard(out)?;
     let manifest_sha = sha256_file(&out.join("hard-model.json"))?;
     let mut binding = parent.binding.clone();
@@ -1208,6 +1631,8 @@ fn evaluate_loaded(
     let model = &input.model;
     let mut report = metadata(&input.campaign, operation, device_name)?;
     report["artifact"] = input.artifact.clone();
+    report["training_projection_transition"] = json!(input.campaign.projection_transition);
+    report["parameter_projection_during_evaluation"] = json!(false);
     report["executed_quantization"] = serde_json::to_value(model.quantization())?;
     report["evaluation_quantization_strength"] = json!(if model.quantization().is_some() {
         1.0
@@ -1303,6 +1728,7 @@ mod tests {
             stop_file: None,
             training_window_transition: None,
             quantization_transition: None,
+            projection_transition: None,
             trial_scope: "transition unit check".into(),
         }
     }
@@ -1389,6 +1815,267 @@ mod tests {
             .unwrap();
     }
 
+    fn projection_fixture() -> (Campaign, Campaign, Value) {
+        let mut old = transition_campaign();
+        old.quantization_transition = Some(QuantizationTransition {
+            parent_checkpoint_sha256: "a".repeat(64),
+            parent_campaign_sha256: "b".repeat(64),
+            parent_optimizer_step: 7324,
+            ramp_steps: 256,
+            reason: "original frozen quantizer".into(),
+        });
+        let state = json!({"start_step":7324,"ramp_steps":256,"completed_step":7836,
+            "spec":{"schema":crate::joint_quantization::SPEC_SCHEMA,
+                "parameters":{"embedding.weight":{"shape":[1,2],"bits":4,"row_exponents":[0]}}}});
+        let mut projected = old.clone();
+        projected.projection_transition = Some(ProjectionTransition {
+            policy: ProjectionPolicy::FixedRepresentableRange,
+            parent_checkpoint_sha256: "c".repeat(64),
+            parent_campaign_sha256: "d".repeat(64),
+            parent_optimizer_step: 7836,
+            quantization_spec_sha256: quantization_spec_digest(&state).unwrap(),
+            reason: "fixed-range projection from the full-hard midpoint".into(),
+        });
+        (old, projected, state)
+    }
+
+    #[test]
+    fn projection_transition_rejects_toggle_rebinding_ramp_and_learning_changes() {
+        let (old, projected, state) = projection_fixture();
+        let checkpoint_sha = "c".repeat(64);
+        let campaign_sha = "d".repeat(64);
+        assert!(projection_resume_transition(
+            &projected,
+            &old,
+            &checkpoint_sha,
+            &campaign_sha,
+            &state,
+            7836,
+        )
+        .unwrap());
+        for (checkpoint, campaign) in [
+            ("wrong", campaign_sha.as_str()),
+            (checkpoint_sha.as_str(), "wrong"),
+        ] {
+            assert!(projection_resume_transition(
+                &projected, &old, checkpoint, campaign, &state, 7836
+            )
+            .is_err());
+        }
+        let mut resumed_state = state.clone();
+        resumed_state["completed_step"] = json!(7840);
+        assert!(!projection_resume_transition(
+            &projected,
+            &projected,
+            "later checkpoint",
+            "same policy",
+            &resumed_state,
+            7840,
+        )
+        .unwrap());
+        assert!(projection_resume_transition(
+            &old,
+            &projected,
+            "unused",
+            "unused",
+            &resumed_state,
+            7840
+        )
+        .is_err());
+        let mut rebound = projected.clone();
+        rebound
+            .projection_transition
+            .as_mut()
+            .unwrap()
+            .parent_checkpoint_sha256 = "e".repeat(64);
+        assert!(projection_resume_transition(
+            &rebound,
+            &projected,
+            "unused",
+            "unused",
+            &resumed_state,
+            7840
+        )
+        .is_err());
+        let mut wrong_scales = state.clone();
+        wrong_scales["spec"]["parameters"]["embedding.weight"]["row_exponents"] = json!([-1]);
+        assert!(projection_resume_transition(
+            &projected,
+            &old,
+            &checkpoint_sha,
+            &campaign_sha,
+            &wrong_scales,
+            7836
+        )
+        .is_err());
+        let mut ramp = projected.clone();
+        ramp.projection_transition
+            .as_mut()
+            .unwrap()
+            .parent_optimizer_step = 7400;
+        let mut ramp_state = state.clone();
+        ramp_state["completed_step"] = json!(7400);
+        assert!(projection_resume_transition(
+            &ramp,
+            &old,
+            &checkpoint_sha,
+            &campaign_sha,
+            &ramp_state,
+            7400
+        )
+        .is_err());
+        for field in [
+            "model",
+            "optimizer",
+            "data_seed",
+            "batch",
+            "context",
+            "cpu_gradient_shards",
+            "quantization_transition",
+        ] {
+            let mut altered = projected.clone();
+            match field {
+                "model" => altered.model.seed += 1,
+                "optimizer" => altered.optimizer.learning_rate *= 2.0,
+                "data_seed" => altered.data_seed += 1,
+                "batch" => altered.batch = 32,
+                "context" => altered.context = 128,
+                "cpu_gradient_shards" => altered.cpu_gradient_shards = 1,
+                "quantization_transition" => altered
+                    .quantization_transition
+                    .as_mut()
+                    .unwrap()
+                    .reason
+                    .push_str(" altered"),
+                _ => unreachable!(),
+            }
+            assert!(
+                projection_resume_transition(
+                    &altered,
+                    &old,
+                    &checkpoint_sha,
+                    &campaign_sha,
+                    &state,
+                    7836
+                )
+                .is_err(),
+                "initial {field}"
+            );
+            assert!(
+                projection_resume_transition(
+                    &altered,
+                    &projected,
+                    "unused",
+                    "unused",
+                    &resumed_state,
+                    7840
+                )
+                .is_err(),
+                "resume {field}"
+            );
+        }
+        let binding = json!({"projection_transition":projected.projection_transition});
+        validate_projection_binding(&projected, &binding, &state, 7836).unwrap();
+        assert!(validate_projection_binding(&projected, &json!({}), &state, 7836).is_err());
+        assert!(validate_projection_binding(&old, &binding, &state, 7836).is_err());
+    }
+
+    #[test]
+    fn projection_config_is_explicit_and_legacy_serialization_stays_absent() {
+        let (old, projected, _) = projection_fixture();
+        let legacy = serde_json::to_value(&old).unwrap();
+        assert!(legacy.get("projection_transition").is_none());
+        let decoded: Campaign = serde_json::from_value(legacy.clone()).unwrap();
+        assert!(decoded.projection_transition.is_none());
+        assert_eq!(serde_json::to_value(decoded).unwrap(), legacy);
+        let mut misspelled = legacy.clone();
+        misspelled["projection_transiton"] = json!(projected.projection_transition);
+        assert!(serde_json::from_value::<Campaign>(misspelled).is_err());
+        let mut bad_policy = serde_json::to_value(&projected).unwrap();
+        bad_policy["projection_transition"]["policy"] = json!("clip_and_reset_moments");
+        assert!(serde_json::from_value::<Campaign>(bad_policy).is_err());
+        let mut unknown = serde_json::to_value(projected).unwrap();
+        unknown["projection_transition"]["reset_optimizer"] = json!(false);
+        assert!(serde_json::from_value::<Campaign>(unknown).is_err());
+    }
+
+    #[test]
+    fn projection_preserves_named_moments_clocks_ids_and_sampler_cursor() -> Result<()> {
+        use crate::joint_quantization::{ParameterQuantization, SPEC_SCHEMA};
+        use candle_core::{Device, Var};
+        let variables = BTreeMap::from([
+            (
+                "embedding.weight".into(),
+                Var::from_vec(vec![9_f32, -9.0], (1, 2), &Device::Cpu)?,
+            ),
+            (
+                "read.age".into(),
+                Var::from_vec(vec![40000_f32], (1,), &Device::Cpu)?,
+            ),
+        ]);
+        let config = AdamConfig {
+            allowed_missing_gradients: std::collections::BTreeSet::from(["read.age".into()]),
+            ..AdamConfig::default()
+        };
+        let mut optimizer = NamedAdamW::new(&variables, config)?;
+        let gradients = variables["embedding.weight"].sqr()?.sum_all()?.backward()?;
+        optimizer.step(&variables, &gradients)?;
+        let before = optimizer.continuity_fingerprint()?;
+        assert_eq!(before["step"], 1);
+        assert_eq!(before["variables"][0]["updates"], 1);
+        assert_eq!(before["variables"][1]["updates"], 0);
+        let spec = QuantizationSpec {
+            schema: SPEC_SCHEMA.into(),
+            parameters: BTreeMap::from([
+                (
+                    "embedding.weight".into(),
+                    ParameterQuantization {
+                        shape: vec![1, 2],
+                        bits: 4,
+                        row_exponents: vec![0],
+                    },
+                ),
+                (
+                    "read.age".into(),
+                    ParameterQuantization {
+                        shape: vec![1],
+                        bits: 16,
+                        row_exponents: vec![0],
+                    },
+                ),
+            ]),
+        };
+        let cfg = transition_campaign();
+        let stores = vec![(0..1024).collect::<Vec<u16>>()];
+        let cursor = optimizer.step_count() as usize;
+        let expected_next_batch = training_batch(&stores, &cfg, cursor)?;
+        let ids: Vec<_> = variables.values().map(|v| v.id()).collect();
+        let statistics = spec.project_parameters(&variables)?;
+        assert_eq!(statistics.projected_coordinates, 3);
+        assert_eq!(
+            variables["embedding.weight"]
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            vec![7.0, -7.0]
+        );
+        assert_eq!(variables["read.age"].to_vec1::<f32>()?, vec![32767.0]);
+        assert_eq!(ids, variables.values().map(|v| v.id()).collect::<Vec<_>>());
+        assert_eq!(before, optimizer.continuity_fingerprint()?);
+        assert_eq!(
+            expected_next_batch,
+            training_batch(&stores, &cfg, optimizer.step_count() as usize)?
+        );
+        // The same named optimizer accepts the projected Vars on its next update.
+        let loss = (variables["embedding.weight"].sqr()?.sum_all()?
+            + variables["read.age"].sqr()?.sum_all()?)?;
+        optimizer.step(&variables, &loss.backward()?)?;
+        let continued = optimizer.continuity_fingerprint()?;
+        assert_eq!(continued["step"], 2);
+        assert_eq!(continued["variables"][0]["updates"], 2);
+        assert_eq!(continued["variables"][1]["updates"], 1);
+        Ok(())
+    }
+
     #[test]
     fn counter_windows_resume_without_crossing_store_boundaries() {
         let mut cfg = Campaign {
@@ -1408,6 +2095,7 @@ mod tests {
             stop_file: None,
             training_window_transition: None,
             quantization_transition: None,
+            projection_transition: None,
             trial_scope: "sampler".into(),
         };
         let stores = vec![

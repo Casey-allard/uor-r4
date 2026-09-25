@@ -249,6 +249,54 @@ impl NamedAdamW {
         self.step
     }
 
+    /// Inspect moment/clock continuity at an explicit policy transition.
+    /// This reads each moment once and is not called in the update hot path.
+    /// Runtime Var identities and parameter values are deliberately excluded:
+    /// loading and projecting weights must preserve the optimizer state itself.
+    pub fn continuity_fingerprint(&self) -> Result<serde_json::Value> {
+        if self.poisoned {
+            return Err(OptimizerError::Poisoned);
+        }
+        let mut hash = Sha256::new();
+        hash.update(b"uor-r4.adam-moment-continuity/1\0");
+        let mut variables = Vec::with_capacity(self.states.len());
+        let mut coordinates = 0usize;
+        for (name, state) in &self.states {
+            let metadata = VariableMetadata {
+                name: name.clone(),
+                shape: state.first.dims().to_vec(),
+                updates: state.updates,
+            };
+            let encoded = serde_json::to_vec(&metadata)?;
+            hash.update((encoded.len() as u64).to_le_bytes());
+            hash.update(&encoded);
+            for (tag, moment) in [(0u8, &state.first), (1u8, &state.second)] {
+                let values = moment.flatten_all()?.to_vec1::<f32>()?;
+                if values.iter().any(|value| !value.is_finite()) {
+                    return Err(OptimizerError::InvalidNumericState(format!(
+                        "nonfinite moment in continuity fingerprint for {name}"
+                    )));
+                }
+                hash.update([tag]);
+                hash.update((values.len() as u64).to_le_bytes());
+                for value in values {
+                    hash.update(value.to_le_bytes());
+                }
+            }
+            coordinates += state.first.elem_count();
+            variables.push(metadata);
+        }
+        Ok(serde_json::json!({
+            "schema":"uor-r4.adam-moment-continuity/1",
+            "beta1":BETA1,"beta2":BETA2,"epsilon":EPSILON,
+            "clip_norm":CLIP_NORM,"moment_abs_limit":MOMENT_ABS_LIMIT,
+            "config":self.config,"step":self.step,"variables":variables,
+            "parameter_coordinates":coordinates,
+            "named_moment_values_sha256":format!("{:x}",hash.finalize()),
+            "hash_encoding":"Domain tag, name/shape/update metadata with u64-LE byte length, then tagged first/second u64-LE lengths and F32-LE values in sorted name order."
+        }))
+    }
+
     pub fn step(
         &mut self,
         variables: &BTreeMap<String, Var>,
@@ -808,6 +856,10 @@ mod tests {
             );
         }
         let mut resumed = NamedAdamW::load(&directory, &restored_variables, &config)?;
+        assert_eq!(
+            uninterrupted.continuity_fingerprint()?,
+            resumed.continuity_fingerprint()?
+        );
         // The optional parameter first receives a gradient after the checkpoint.
         // Its moment clock must start at one even though global step becomes two.
         let next_loss = (loss(&variables)? + variables["optional"].sqr()?.sum_all()?)?;
@@ -815,6 +867,10 @@ mod tests {
             (loss(&restored_variables)? + restored_variables["optional"].sqr()?.sum_all()?)?;
         let next = uninterrupted.step(&variables, &next_loss.backward()?)?;
         let resumed_next = resumed.step(&restored_variables, &resumed_loss.backward()?)?;
+        assert_eq!(
+            uninterrupted.continuity_fingerprint()?,
+            resumed.continuity_fingerprint()?
+        );
         assert_eq!(next.step, 2);
         assert_eq!(
             next.global_grad_norm.to_bits(),

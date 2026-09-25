@@ -14,67 +14,72 @@ ladder. #973 remains active under programme #820; their full acceptance is open.
 
 **Park further A1–A4 local selector tuning.** Preserve its native serving and
 exact-memory scaffolds. The joint recurrent-memory learner now passes its frozen engineering continuation
-gate. Its first explicit quantized continuation fails retention; keep the same
-learner and competitive ordinary control while addressing that measured gap.
+gate. Both explicit quantized recipes fail retention; keep the same
+learner and competitive ordinary control while isolating the numerical gap.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
-## Latest result: D8 rung 2 recipe completed and rejected
+## Latest result: D8 projected continuation completed and rejected
 
-[PR #1390](https://github.com/UOR-Foundation/uor-r4/pull/1390) delivers the
-[completed paired comparison](quantized-recurrent-result-2026-09-25.md) under the
-unchanged [plan](quantized-recurrent-plan-2026-09-25.md) and
-[execution freeze](../evidence/quantized-recurrent-execution-freeze-2026-09-25.json).
-All four branches reach the fixed final step **8,348**, adding 1,024 updates /
-4,194,304 target visits each at B16/T256. QAT's eight profile updates are included;
-256 updates ramp and 768 are fully quantized. No checkpoint was reselected.
+[PR #1391](https://github.com/UOR-Foundation/uor-r4/pull/1391) delivers the
+[completed paired result](projected-recurrent-result-2026-09-25.md) under the
+unchanged [prospective plan](projected-recurrent-plan-2026-09-25.md).
+Each arm continues its preserved fully quantized midpoint **7,836 → 8,348**,
+adding **512 updates / 2,097,152 target visits** at matched B16/T256. Projection
+is applied at entry and after every AdamW update, preserving moments, clocks,
+fixed scales and all five original gates. There is no new checkpoint selection.
 
 | Comparison-tail NLL, nats/target | Quaternion | Householder pair |
 |---|---:|---:|
 | Matched continuous continuation | 2.090518499 | 2.064403221 |
-| Final QAT packed artifact | 2.149631373 | 2.144230654 |
-| Same QAT shadows, quantizers disabled | 2.146147636 | 2.122299133 |
-| Zero-update packed parent | 2.222929353 | 2.211900518 |
-| Packed whole-prefix NoRead | 2.634758168 | 2.605525329 |
+| Original unprojected packed QAT | 2.149631373 | 2.144230654 |
+| New projected packed model | 2.150319798 | 2.147928712 |
+| Same projected shadows, quantizers disabled | 2.113220567 | 2.098025647 |
+| Projected packed whole-prefix NoRead | 2.637288928 | 2.618333390 |
 
-Both packed-minus-continuous gaps (**+0.059113/+0.079827**) exceed the frozen
-+0.05 allowance. Ordinary also fails the five-prompt generation gate with a
-period-two `daddy` cycle. Quaternion passes limited noncollapse but loses two
-old-correct first nouns and drops from **28 to 19/32 exact completions**; its
-continuous control reaches 23/32. Ordinary exact completions are old/continuous/
-packed **23/26/25**. The [evidence receipt](../evidence/quantized-recurrent-result-2026-09-25.json)
-retains every response, including individual losses and gains.
+Both packed-minus-continuous gaps (**+0.059801/+0.083525**) exceed **+0.05**,
+so both candidates are rejected for retention. The other four frozen gates pass
+at their declared scope: combined NoRead penalties **+0.486969/+0.470405**,
+five noncollapsed generations per arm, two/one lost rung-1-correct first nouns,
+and loaded parity/finite normalization/provenance. Ordinary's former short cycle
+is absent on this panel. Exact completions are **23/32 and 22/32**; source gains
+never cancel losses. Prose remains semantically unreliable.
 
-Read effects remain large, full-context packed reload has zero measured
-probability difference, seeded output hashes agree, and every scored distribution
-is finite/normalized at the declared tolerance. Descriptive packed-versus-shadow
-state RMS differences are 0.059485/0.055451 on the original tune windows. These
-facts do not override the failed quality gates. Both candidates are preserved
-without promotion. This is one paired seed on exposed development; the packed
-loader expands codes into F32 computation. Integer serving, sparse access,
-Hamiltonian dynamics, general language and energy remain unqualified.
+Entry projection brings **41,184/43,770** out-of-range shadows to zero while
+preserving all hard codes, all actual full-context probabilities and optimizer/
+sampler state. Both final models still have zero clipped parameter coordinates.
+Shadow likelihood improves and packed-versus-shadow state RMS falls, yet packed
+likelihood does not improve. The [full evidence](../evidence/projected-recurrent-result-2026-09-25.json)
+retains every response, row comparison, quarter and artifact binding. This is
+one paired seed on exposed development, with no fresh holdout opened.
 
-### Next: one projected-shadow continuation, NOT_RUN
+The [previous unprojected result](quantized-recurrent-result-2026-09-25.md),
+[PR #1390](https://github.com/UOR-Foundation/uor-r4/pull/1390), remains rejected
+at its original gates, including the ordinary period-two cycle. Its final
+continuous and packed artifacts are preserved without rewriting that outcome.
+All model paths here remain F32 emulators: integer serving, D5 parameter
+sparsity, Hamiltonian dynamics, general language and energy are unqualified.
 
-The [result's next comparison](quantized-recurrent-result-2026-09-25.md#recommended-next-comparison-projected-shadow-updates)
-projects stored parameter shadows into their fixed representable ranges at entry
-and after each AdamW update. Start at the preserved **full-hard midpoint 7,836**
-and finish at **8,348**, 512 new updates per arm. Preserve moments/clocks, scales,
-interfaces, data, learning rate and all five gates. `Q(clip(w)) = Q(w)` at entry;
-witness actual packed-code and hard-probability equality before fitting. Existing
-unprojected second halves are direct controls; continuous branches remain the
-retention reference. This is a proposed complete optimizer policy, not a proved
-clipping diagnosis or authorization to silently alter this result's criteria.
+### Next: isolate parameter and interface quantization, NOT_RUN
+
+The [next recommendation](projected-recurrent-result-2026-09-25.md#recommended-next-milestone-isolate-the-numerical-bridge-once)
+is one fixed-checkpoint **2 × 2 forward comparison**: floating/quantized parameters
+crossed with floating/quantized interfaces. Reproduce both retained endpoints,
+then evaluate the two new mixed modes on the same population and actual response
+panels in both arms. No training, scale search or fresh final holdout is part of
+this diagnosis. Report conditional costs and interaction, then choose one
+coherent integer-realizable bridge change. No third training recipe is chosen
+from the present confounded hard-versus-shadow difference.
 
 Artifact container:
-`/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925`.
-Final roots are `fit-{quaternion|householder_pair}-{qat|continuous}-1/checkpoint-final`
-and `final-packed-{quaternion|householder_pair}-1`. Fit/evaluation binary source is
-`b5b5fe757b9513877911719f014e73165f704b13`; descriptive state source is `cb81e7c7`,
-with the model library unchanged. All report roots and negative artifacts remain
-sealed. The [closeout](../evidence/quantized-recurrent-closeout-2026-09-25.json)
-records resources and local validation. Independent DeepSeek/Kimi research and
-paired state diagnostics ran through RDC on the same Mac. Queue acknowledgements
-execute no tests.
+`/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925`.
+Final roots: `fit-{quaternion|householder_pair}-projected-1/checkpoint-final`
+and `final-packed-{quaternion|householder_pair}-1`.
+All Rust model/diagnostic runs use source
+`66349cdb69883dd7d438c76394c22f4e19000c73`; report roots are sealed.
+[Resources and executed checks](../evidence/projected-recurrent-closeout-2026-09-25.json),
+[independent RDC review](projected-recurrent-review-2026-09-25.md).
+The two CPU fits complete concurrently in about36 minutes on the same M1;
+22 focused optimized Rust tests passed. Queue acknowledgements execute no tests.
 
 ## Retained integer-path result: A4
 

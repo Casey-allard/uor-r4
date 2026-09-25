@@ -578,6 +578,21 @@ fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Resul
     }
     digest_field(binding, "model_sha256", 64)?;
     digest_field(binding, "source_commit", 40)?;
+    let declared: crate::joint_campaign::Campaign = serde_json::from_value(campaign.clone())?;
+    crate::joint_campaign::validate_projection_binding(
+        &declared,
+        binding,
+        &binding["quantization"],
+        usize::try_from(step).map_err(|_| invalid("projection step exceeds platform usize"))?,
+    )?;
+    if !campaign["projection_transition"].is_null()
+        && (report["training_projection_transition"] != campaign["projection_transition"]
+            || report["parameter_projection_during_evaluation"] != false)
+    {
+        return Err(invalid(
+            "evaluation projection provenance or no-mutation declaration differs",
+        ));
+    }
     quantization_exposure(report)?;
     training_exposure(report)?;
     Ok(())
@@ -651,6 +666,9 @@ fn quantization_exposure(report: &Value) -> Result<Value> {
         "completed_quantized_training_updates":step-start,
         "quantized_training_target_visits":(step-start)*4096,
         "quantization_transition":transition,"quantization":state,
+        "projection_transition":campaign["projection_transition"],
+        "projected_optimizer_updates":campaign["projection_transition"]["parent_optimizer_step"]
+            .as_u64().map(|parent|step-parent),
         "evaluation_operation":report["mode"],
         "scope":"Quantized numerical emulator or its explicit continuous shadow. Packed parameter codes do not establish an integer serving kernel."}))
 }
@@ -748,6 +766,8 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
             "artifact",
             "executed_quantization",
             "evaluation_quantization_strength",
+            "training_projection_transition",
+            "parameter_projection_during_evaluation",
         ] {
             if reports[first][field] != reports[first + 1][field] {
                 return Err(invalid(format!("read/NoRead pair has different {field}")));
@@ -794,6 +814,24 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
     }
     if gradient_shards(q)? != gradient_shards(ordinary)? {
         return Err(invalid("transport arms differ in CPU gradient shards"));
+    }
+    let q_projection = &q["projection_transition"];
+    let ordinary_projection = &ordinary["projection_transition"];
+    if q_projection.is_null() != ordinary_projection.is_null() {
+        return Err(invalid(
+            "transport arms differ in projection policy presence",
+        ));
+    }
+    if !q_projection.is_null() {
+        // Parent hashes and frozen scales are arm-specific; the actual policy
+        // and number of projected updates must match across transports.
+        for field in ["policy", "parent_optimizer_step"] {
+            if q_projection[field] != ordinary_projection[field] {
+                return Err(invalid(format!(
+                    "transport arms differ in projection {field}"
+                )));
+            }
+        }
     }
     let q_transition = &q["training_window_transition"];
     let ordinary_transition = &ordinary["training_window_transition"];

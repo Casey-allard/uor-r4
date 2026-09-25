@@ -1,0 +1,57 @@
+{
+  "schema": "uor-r4.projected-recurrent-budget/1",
+  "recorded_utc": "2026-09-25T12:43:39.779286+00:00",
+  "cycle_started_utc": "2026-09-25T12:41:00+00:00",
+  "start_scope": "Conservative declared wall-charge start includes initial context recovery.",
+  "base_commit": "93689d81dda7685b576066c5af02c67beefd7e3b",
+  "objective": "Implement and evaluate the owner-authorized paired projected-shadow continuation from retained full-hard midpoint7836 to8348 with identical frozen scales/data/optimizer clocks and all five prior retention gates.",
+  "complete_cycle_limit_ms": 10800000,
+  "phase_projection_seconds": {
+    "research_implementation_build": 3600,
+    "paired_512_update_fits": 3300,
+    "loaded_evaluation_review": 1500,
+    "delivery_closeout": 600,
+    "stop_margin": 1800
+  },
+  "ledger_before": {
+    "cumulative_ms": 519927084,
+    "limit_ms": 529200000
+  },
+  "prospective_extension_ms": 3600000,
+  "ledger_after_extension": {
+    "cumulative_ms": 519927084,
+    "limit_ms": 532800000
+  },
+  "reason": "Complete projected3-hour cycle exceeds the current2.576-hour remaining ledger balance. Necessary local extension is standing-authorized; preserve all prior charges and charge actual unique wall time at closeout.",
+  "context_training_and_evaluation": 256,
+  "batch": 16,
+  "start_step": 7836,
+  "final_step": 8348,
+  "new_updates_per_arm": 512,
+  "new_target_visits_per_arm": 2097152,
+  "total_new_target_visits": 4194304,
+  "cpu_gradient_workers_per_process": 2,
+  "concurrent_training_processes_max": 2,
+  "nested_backend_threads": 1,
+  "one_cargo_process": true,
+  "model_process_rss_stop_bytes": 6442450944,
+  "aggregate_model_rss_stop_bytes": 8589934592,
+  "storage_new_output_and_build_growth_limit_bytes": 2684354560,
+  "storage_projection_bytes": {
+    "new_full_worktree": 1263000000,
+    "new_or_replaced_compiler_outputs": 402653184,
+    "artifacts_reports_logs": 402653184,
+    "temporary_build_allowance": 268435456,
+    "metadata": 16777216
+  },
+  "physical_reserve_bytes": 21474836480,
+  "storage_stop_margin_bytes": 134217728,
+  "checkpoint_closeout_headroom_bytes": 67108864,
+  "physical_free_stop_bytes": 21676163072,
+  "physical_free_now_bytes": 25445724160,
+  "warm_build_cache": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target",
+  "historical_gross_allocation_status": "UNRESOLVED; unchanged from prior committed and delivery receipts.",
+  "paid_external_training_compute": false,
+  "destructive_deletion_authorized": false,
+  "preserve_all_unique_artifacts": true
+}
