@@ -1,0 +1,347 @@
+{
+  "schema": "uor-r4.learned-rounding-closeout/1",
+  "status": "CHARGED_THROUGH_PRE_DELIVERY_CUTOFF",
+  "cycle_started_utc": "2026-09-25T15:16:00+00:00",
+  "charged_through_utc": "2026-09-25T16:55:10.037821+00:00",
+  "unique_wall_charge_ms": 5950038,
+  "complete_cycle_limit_ms": 7200000,
+  "ledger_before": {
+    "cumulative_ms": 528816121,
+    "limit_ms": 540000000
+  },
+  "ledger_after_pre_delivery_charge": {
+    "cumulative_ms": 534766159,
+    "limit_ms": 540000000
+  },
+  "executed_source_commit": "036eabcc86e453f581aa0563e2967cc1f7db96d5",
+  "source_unchanged_since_build": true,
+  "build": {
+    "schema": "uor-r4.learned-rounding-build/1",
+    "source_commit": "036eabcc86e453f581aa0563e2967cc1f7db96d5",
+    "executable": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/joint-training-036eabcc",
+    "executable_sha256": "7cc87d9c4c3c3060c8e51c1a763d177efbd734228a6ed172bc18d635707881a3",
+    "phases": [
+      {
+        "phase": "focused-tests",
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--lib",
+          "joint_",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 30.695847749710083
+      },
+      {
+        "phase": "release-binary",
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--bin",
+          "uor-r4-training"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 32.93964219093323
+      }
+    ],
+    "elapsed_seconds": 64.38779807090759,
+    "allocation": {
+      "categories": {
+        "worktree": 1265840128,
+        "new_or_replaced_target": 313413632,
+        "campaign": 10862592
+      },
+      "retained_bytes": 1590116352,
+      "temporary_allowance_bytes": 268435456,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 1859600384
+    },
+    "physical_free_bytes": 20605759488,
+    "cargo_fmt_check": "PASS before source freeze"
+  },
+  "validation": {
+    "status": "PASS",
+    "checked_utc": "2026-09-25T16:55:09.577396+00:00",
+    "executed_source_commit": "036eabcc86e453f581aa0563e2967cc1f7db96d5",
+    "cargo_fmt_check_exit_code": 0,
+    "claim_wording_exit_code": 0,
+    "git_diff_check_exit_code": 0,
+    "executed_rust_and_dependency_diff_exit_code": 0,
+    "focused_optimized_tests": {
+      "passed": 42,
+      "failed": 0,
+      "ignored": 0,
+      "elapsed_seconds": 3.59,
+      "log": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/focused-tests-3.log"
+    },
+    "release_binary_build_exit_code": 0,
+    "actual_model_execution": "Two normalization runs; 512 alpha updates per arm across three sealed exact continuation segments; actual packed export/reload and four full final evaluations.",
+    "principal_arithmetic": "32 sealed roots, 44 binding records, all target identities and partition means, source rows and resume lineage verified.",
+    "compatibility_queue_acknowledgements_execute_tests": false
+  },
+  "build_failures": [
+    {
+      "source_commit": "44419e96004252a29281a5c448da4b1f4867b996",
+      "status": "FAILED_COMPILE",
+      "exit_code": 101,
+      "reason": "Test-only BTreeMap<&str,f32> indexed by &String at joint_rounding.rs:909; corrected to name.as_str().",
+      "corrected_source_commit": "0c3f5f15e20296b25b479a6b842d283db256e578",
+      "recorded_utc": "2026-09-25T15:51:26.532560+00:00",
+      "resources": "build-resources-1.jsonl",
+      "log": "focused-tests-1.log"
+    },
+    {
+      "source_commit": "0c3f5f15e20296b25b479a6b842d283db256e578",
+      "status": "FAILED_FIXTURE_PRECONDITION",
+      "passed_tests": 39,
+      "failed_tests": 3,
+      "reason": "Three initialized test parents had calibrated scales but unprojected shadows. Production parents are projected. Fixed fixture setup, retained strict range rejection and all assertions.",
+      "corrected_source_commit": "036eabcc86e453f581aa0563e2967cc1f7db96d5",
+      "recorded_utc": "2026-09-25T15:54:21.346263+00:00",
+      "resources": "build-resources-2.jsonl",
+      "log": "focused-tests-2.log"
+    }
+  ],
+  "build_logs": [
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/focused-tests-1.log",
+      "bytes": 2715,
+      "sha256": "2ac826dd1b7d25691ca567988222545ee77148c2d5daee922ad2fb3b46e541e3"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/focused-tests-2.log",
+      "bytes": 6308,
+      "sha256": "72af5663aa381f0ea06b9b74b9645f84cc3f309c57d42f841cdc6e72312242a6"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/focused-tests-3.log",
+      "bytes": 5222,
+      "sha256": "bebed863af81e847fee5e2b9c01ff83449325ba46e888e3207d93d0331bbdca3"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/release-binary-3.log",
+      "bytes": 1323,
+      "sha256": "32d56fe01abb07597a1b8f7d1ff7b3f8411b026d60c0184beed631527f53f1db"
+    }
+  ],
+  "decision": "ACCEPTED_FOR_RUNG3_ENGINEERING_CONTINUATION_AT_THE_FIVE_FROZEN_GATES",
+  "result": {
+    "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/learned-rounding-result.json",
+    "bytes": 5198480,
+    "sha256": "f89156f2f8fe8ec4c193350ad67e2f1cbd4dc267b66d06c90275d716b94c2838"
+  },
+  "analysis_source": {
+    "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/summarize-rounding.py",
+    "bytes": 31822,
+    "sha256": "063a25eecdbca695e7cfee2027a20f4a52e5160a02b0f7ce73b082d7b9986fd8"
+  },
+  "review_receipts": {
+    "math": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rdc-math-1.json",
+        "bytes": 307,
+        "sha256": "d14e764c79fc5c36931a75cfa90fcf4b34cee677a43ff7c77144a41bd788301f"
+      },
+      "log": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rdc-math-1.log",
+      "model_route": "DeepSeek/deepseek-flash",
+      "profile": "uor-source-falsifier.md",
+      "started_utc": "2026-09-25T15:21:29.397041+00:00",
+      "completed_utc": "2026-09-25T15:32:33.326473+00:00",
+      "exit_code": 0
+    },
+    "implementer": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rdc-implementer-1.json",
+        "bytes": 309,
+        "sha256": "f540b44e6ff7dad5b8eac318e23796f2ab59c87885840e6f037ec9e1d98418a4"
+      },
+      "log": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rdc-implementer-1.log",
+      "model_route": "DeepSeek/deepseek-flash",
+      "profile": "uor-implementer.md",
+      "started_utc": "2026-09-25T15:21:38.267478+00:00",
+      "completed_utc": "2026-09-25T15:40:15.881233+00:00",
+      "exit_code": 0
+    }
+  },
+  "physical_resources": {
+    "sample_count": 732,
+    "logs": [
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/final-hard-no-read-1-resources.jsonl",
+        "bytes": 8517,
+        "sha256": "bf7933b1a4a133854a7ede7a09026ce62daf05430b6a2b39443a623be2d716c4"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/final-hard-read-1-resources.jsonl",
+        "bytes": 10139,
+        "sha256": "e1de2c2864875afe28d6f563223f224a36178946d1a1e1dd531b3278d7507b92"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/normalization-1-resources.jsonl",
+        "bytes": 8137,
+        "sha256": "c50ff9f9bfffeb9dfbc32c3d84b833eb236c5ebb097d318ec0a6a4488a6f872a"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rounding-fit-1-resources.jsonl",
+        "bytes": 2244,
+        "sha256": "1ebbd602a517dc02d2ec9affde3d5939c4aec818cafa1c08d2e500d0ffb9abd5"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rounding-fit-2-resources.jsonl",
+        "bytes": 298030,
+        "sha256": "471a20d5bf4b6435e002573e68f5a54208c45400b2cdb2626e8f30ecdd7219a5"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/rounding-fit-3-resources.jsonl",
+        "bytes": 19134,
+        "sha256": "6b1f2b21e2bd7ce35dc2889a453ca6b9628f9f25723d696a11b06ce865e54880"
+      }
+    ],
+    "peak_sampled_aggregate_model_rss_bytes": 8228143104,
+    "peak_sampled_individual_model_rss_bytes": 4186636288,
+    "minimum_sampled_physical_free_bytes": 18046926848
+  },
+  "fit_supervisors": {
+    "rounding-fit-1-resource-summary.json": {
+      "name": "rounding-fit-1",
+      "elapsed_seconds": 15.904321167,
+      "samples": 4,
+      "checkpoint_requested_reason": "PHYSICAL_RESERVE",
+      "exit_codes": {
+        "fit-quaternion-rounding-1": 0,
+        "fit-householder_pair-rounding-1": 0
+      },
+      "scope": "Sampled parent-process RSS, five-second physical reserve check; all model work is local Rust."
+    },
+    "rounding-fit-2-resource-summary.json": {
+      "name": "rounding-fit-2",
+      "elapsed_seconds": 2704.5737761249998,
+      "samples": 528,
+      "checkpoint_requested_reason": null,
+      "exit_codes": {
+        "fit-quaternion-rounding-2": 0,
+        "fit-householder_pair-rounding-2": 0
+      },
+      "scope": "Sampled parent-process RSS, five-second physical reserve check; all model work is local Rust."
+    },
+    "rounding-fit-3-resource-summary.json": {
+      "name": "rounding-fit-3",
+      "elapsed_seconds": 169.001170917,
+      "samples": 34,
+      "checkpoint_requested_reason": null,
+      "exit_codes": {
+        "fit-quaternion-rounding-3": 0,
+        "fit-householder_pair-rounding-3": 0
+      },
+      "scope": "Sampled parent-process RSS, five-second physical reserve check; all model work is local Rust."
+    }
+  },
+  "fit_attempts": {
+    "quaternion": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-quaternion-rounding-1",
+        "updates": 1,
+        "elapsed_seconds": 12.997213083,
+        "status": "STOPPED_CHECKPOINTED"
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-quaternion-rounding-2",
+        "updates": 478,
+        "elapsed_seconds": 2702.582213208,
+        "status": "STOPPED_CHECKPOINTED"
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-quaternion-rounding-3",
+        "updates": 33,
+        "elapsed_seconds": 167.930171,
+        "status": "COMPLETE_FIXED_RECIPE"
+      }
+    ],
+    "householder_pair": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-householder_pair-rounding-1",
+        "updates": 1,
+        "elapsed_seconds": 12.970753875,
+        "status": "STOPPED_CHECKPOINTED"
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-householder_pair-rounding-2",
+        "updates": 478,
+        "elapsed_seconds": 2700.62943825,
+        "status": "STOPPED_CHECKPOINTED"
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-householder_pair-rounding-3",
+        "updates": 33,
+        "elapsed_seconds": 167.9139255,
+        "status": "COMPLETE_FIXED_RECIPE"
+      }
+    ]
+  },
+  "sum_nonoverlapping_paired_fit_wall_seconds": 2889.4792682089997,
+  "normalization_and_final_evaluation_pairs": [
+    {
+      "name": "normalization-1",
+      "wall_seconds": 52.94031286239624,
+      "exit_codes": {
+        "normalize-quaternion-rounding-1": 0,
+        "normalize-householder_pair-rounding-1": 0
+      }
+    },
+    {
+      "name": "final-hard-read-1",
+      "wall_seconds": 64.27054905891418,
+      "exit_codes": {
+        "evaluate-quaternion-hard-read-1": 0,
+        "evaluate-householder_pair-hard-read-1": 0
+      }
+    },
+    {
+      "name": "final-hard-no-read-1",
+      "wall_seconds": 54.013766050338745,
+      "exit_codes": {
+        "evaluate-quaternion-hard-no-read-1": 0,
+        "evaluate-householder_pair-hard-no-read-1": 0
+      }
+    }
+  ],
+  "allocation": {
+    "categories": {
+      "worktree": 1271148544,
+      "new_or_replaced_target": 313413632,
+      "campaign": 242298880
+    },
+    "retained_bytes": 1826861056,
+    "temporary_allowance_bytes": 268435456,
+    "metadata_allowance_bytes": 1048576,
+    "charged_projection_bytes": 2096345088
+  },
+  "physical_free_bytes": 17976610816,
+  "physical_free_stop_bytes": 17381195776,
+  "budget": {
+    "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/budget.json",
+    "bytes": 9134,
+    "sha256": "de52d3ff1d7563d2ad2e121d9abc29d7c1e34dc32a4009d2c1f60c7092e89a6b"
+  },
+  "new_optimizer_updates_total": 1024,
+  "new_fitted_target_visits_total": 4194304,
+  "normalization_target_visits_total": 65536,
+  "all_unique_artifacts_preserved": true,
+  "cleanup_performed_this_milestone": false,
+  "paid_external_training_compute": false,
+  "limitations": "Model RSS is sampled. One historical physical-reserve stop is retained; the lower reserve was prospectively recorded before exact resume. Compiler peaks/temporary storage and energy are unmeasured. Allocation inventories are not unique APFS extents or historical gross allocation. All preparation, failed builds, checkpoint stops, retries, analysis and delivery are charged by unique chronological wall, with the delivery tail charged separately."
+}

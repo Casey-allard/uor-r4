@@ -2,9 +2,16 @@
 
 This crate contains the offline recurrent-memory learner, its matched transport control, and differentiable research references. No serving crate depends on it. The recurrent learner trains state, causal memory reads/writes and token output jointly. The separate reference modes reproduce the retained #1017 ordinary transformer. Integer export remains a later integration step.
 
+**Memory profile: allocation-conscious offline computation.** Construction,
+autodiff graphs, whole-sequence worker gradients and serialization allocate.
+Campaign dimensions, update count, worker count and checkpoints are explicit;
+the process supervisor monitors RSS, storage and elapsed time. This crate makes
+no heapless or allocation-free steady-state guarantee. Portable serving crates
+retain their separate stricter contracts.
+
 ## Joint recurrent-memory learning
 
-The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../docs/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. One paired learning of legal integer-code choices at fixed parents/scales/interfaces is next, NOT_RUN; the original hard-artifact gates remain unchanged.
+The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../docs/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. The [learned-code successor](../../docs/integration/learned-rounding-result-2026-09-25.md) now passes all five original hard-artifact gates in both arms. Its packed-minus-continuous gaps are+0.023708/+0.046477; both candidates are retained for trained bounded admission/transport. Individual complete-answer regressions and unreliable prose remain.
 
 ```text
 uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESUME_CHECKPOINT]
@@ -14,11 +21,13 @@ uor-r4-training joint-export-hard SEALED_CHECKPOINT NEW_REPORT_ROOT [INITIAL_QAT
 uor-r4-training joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH
 uor-r4-training joint-evaluate-shadow CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH
 uor-r4-training joint-evaluate-precision SEALED_SHADOW_CHECKPOINT EVALUATOR_JSON NEW_REPORT_ROOT cpu {FF|QF|FQ|QQ} BATCH
+uor-r4-training joint-round-calibrate ROUNDING_RECIPE_INPUT_JSON NEW_REPORT_ROOT
+uor-r4-training joint-round-fit RESOLVED_ROUNDING_RECIPE_JSON NEW_REPORT_ROOT [SEALED_ROUNDING_CHECKPOINT]
 ```
 
 The [frozen campaign](../../docs/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.
 
-The quaternion and Householder-pair arms share dimensions, parameter initialization and data windows. Their local transport scales are matched; their global function families differ. These floating-point offline learners do not establish exact Hamiltonian dynamics or the final integer serving cost. Prime/zeta admission and typed integer execution remain subsequent integration work. Both packed discretization recipes are implemented and executed but fail likelihood retention.
+The quaternion and Householder-pair arms share dimensions, parameter initialization and data windows. Their local transport scales are matched; their global function families differ. These floating-point offline learners do not establish exact Hamiltonian dynamics or the final integer serving cost. Prime/zeta admission and typed integer execution remain subsequent integration work. Both earlier packed recipes fail likelihood retention. The learned neighboring-code successor passes the original five engineering gates; its numerical execution remains F32.
 
 Each checkpoint includes named model parameters, AdamW moments and per-variable clocks, model/optimizer configuration, exact source/data/tokenizer identities, and the next counter-seeded training window. Resume rejects changes to the model or sampler. The optional `stop_file` requests a checkpoint between updates. `max_process_seconds` stops new updates; the campaign separately reserves final evaluation, save/reload and sealing time.
 
@@ -40,6 +49,25 @@ QF/FQ. None of these views implements integer serving. See the
 [fixed-checkpoint plan](../../docs/integration/precision-factorial-plan-2026-09-25.md).
 
 ### Quantized continuation and packed evaluation
+
+`joint-round-calibrate` resolves the declared training-only gradient-norm
+normalization before any optimizer update. `joint-round-fit` learns one shared
+alpha per original parameter coordinate, choosing between its legal floor/ceil
+codes while preserving the original dyadic grids and interface quantizers.
+Exact-grid coordinates have one choice. Full recurrent language gradients reach
+the soft parameter values without a second parameter quantization. Final hard
+codes use alpha's sign, with the original away-from-zero tie convention.
+The [frozen recipe](../../docs/integration/learned-rounding-plan-2026-09-25.md)
+declares the global coordinate-mean penalty, schedule and exact normalization.
+
+Rounding checkpoints store alpha, new Adam moments/clocks, the immutable parent
+identity, resolved recipe and continuation cursor. Resume preserves this whole
+state. Parent optimizer step8,348 and rounding update count512 are separate
+clocks; packed reports retain the added learning lineage. Only the complete
+fixed recipe writes the independently materialized packed candidate, whose
+existing loader requires no alpha or original shadow file. Its computation
+still uses the floating numerical emulator; low-bit storage does not qualify
+integer execution or terminal parameter sparsity.
 
 The optional `projection_transition` binds a fully quantized parent checkpoint,
 campaign and quantizer specification. Its entry projects floating parameter

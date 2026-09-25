@@ -1,0 +1,19 @@
+{
+  "recorded_utc": "2026-09-25T15:56:28.229823+00:00",
+  "source_commit": "036eabcc86e453f581aa0563e2967cc1f7db96d5",
+  "rule": "Source-frozen eight-training-batch gradient norm ratio1; no evaluation selection",
+  "arms": {
+    "quaternion": {
+      "regularization": 8.404751140422356,
+      "normalization_report_sha256": "619009dd428546a4297e002ae5d5b959f59b0f24ae8c43c2e6a7f732eff04ab9",
+      "resolved_recipe_sha256": "a5f5b62868966eac78a703054c3846c1b613507b7a93c4bacc14ac95da4505e8",
+      "sampled_input_target_sha256_le_u32": "34950834b39a263c061b20afd20aba9d06a761c171f0634fdb64b0b490340160"
+    },
+    "householder_pair": {
+      "regularization": 10.367127913552277,
+      "normalization_report_sha256": "3363965750a0fedd01764a36006f2a22f01c924fd3004e4296ebc45f4c9c1079",
+      "resolved_recipe_sha256": "ceb36bfd081fbced1cf5b1d34a9bc9fb69ab92a315f2bdad23d366f63515f0e8",
+      "sampled_input_target_sha256_le_u32": "34950834b39a263c061b20afd20aba9d06a761c171f0634fdb64b0b490340160"
+    }
+  }
+}

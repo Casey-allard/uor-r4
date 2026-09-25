@@ -13,15 +13,70 @@ The [canonical plan](project-track.md) owns the persistent training/reference
 ladder. #973 remains active under programme #820; their full acceptance is open.
 
 **Park further A1–A4 local selector tuning.** Preserve its native serving and
-exact-memory scaffolds. The joint recurrent-memory learner now passes its frozen engineering continuation
-gate. Both explicit quantized recipes fail retention; keep the same
-learner and competitive ordinary control. The completed precision comparison
-localizes the dominant immediate numerical loss to the parameter family.
-Next is one jointly learned integer-code assignment on those fixed parents;
-its implementation and fit are NOT_RUN.
+exact-memory scaffolds. The joint recurrent-memory learner passes its frozen
+continuation gate. The learned neighboring-code successor now passes all five
+original hard-artifact retention gates in both arms; the two older quantized
+negatives remain preserved. Retain both candidates and advance to D8 rung3
+trained bounded admission/transport. No additional rounding or scale sweep.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
-## Latest result: parameter/interface precision diagnosis complete
+## Latest result: paired learned-code retention accepted
+
+The [completed fixed-recipe learning](learned-rounding-result-2026-09-25.md)
+adds512 alpha-only updates /2,097,152 fitted target visits per arm, B16/T256,
+plus32,768 training-only normalization visits. Both projected parents and their
+scales, bit widths, interfaces and architecture remain fixed. Resumes preserve
+all learning; actual sample hashes agree across both arms in every segment.
+
+| Comparison-tail NLL, nats/target | Quaternion | Householder pair |
+|---|---:|---:|
+| Retained continuous reference | 2.090518499 | 2.064403221 |
+| Prior projected packed | 2.150319798 | 2.147928712 |
+| **New learned hard codes** | **2.114226169** | **2.110879800** |
+| Hard minus continuous; allowance0.05 | **+0.023707670** | **+0.046476579** |
+| Whole-prefix NoRead | 2.609608832 | 2.607989949 |
+
+Both five-gate vectors are **PASS/PASS/PASS/PASS/PASS** at the original limited
+scope. Combined NoRead penalties are+0.495383/+0.497110. All five real
+read-enabled generations per arm avoid constant/short-cycle collapse. First-noun
+losses against rung1 are2/1, within the frozen maximum2; full-context packed
+reload probability delta is zero and seeded outputs agree. Principal arithmetic
+verifies32 sealed roots,44 binding records, complete target identities and all
+source-row changes. No fresh final holdout or checkpoint selection occurs.
+
+Exact source completions are28/32 and24/32. **Both still lose3 previously correct
+complete answers against rung1**, with gains reported separately. All ten free
+generations remain semantically unreliable. The continuous references are the
+original step8,348 anchors; new code candidates receive extra learning. This
+one-paired-seed result does not establish equal-compute superiority, geometric
+advantage, Hamiltonian dynamics, useful conversation/code, integer execution,
+terminal D5 parameter sparsity or physical energy savings. Serving of these
+packed artifacts is still F32 numerical emulation.
+
+**Next:** implement the actual bounded serving admission rule in the common
+training/session graph. Preserve exact occurrence identity, causality and NoRead;
+keep full-context and matched ordinary/exact-cache controls. Count the complete
+admission cost, then integrate observable quantized group transport and measure
+accumulated state/output error. Integer execution and useful complete outputs
+follow retained behavior under those constraints. No new diagnostic sweep.
+
+Executed Rust source: `036eabcc86e453f581aa0563e2967cc1f7db96d5`.
+Final artifacts: `fit-{quaternion,householder_pair}-rounding-3/packed-model` under
+`/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925`.
+[Full result/bindings](../evidence/learned-rounding-result-2026-09-25.json),
+[all responses](learned-rounding-outputs-2026-09-25.md),
+[resolved recipes](../evidence/learned-rounding-resolved-recipes-2026-09-25.json),
+[plan/research/review](learned-rounding-plan-2026-09-25.md),
+[resource closeout](../evidence/learned-rounding-closeout-2026-09-25.json).
+
+RDC ran two concurrent DeepSeek expert sessions and both local Rust fits.
+No Kimi model or external training hardware was used. All42 focused optimized
+Rust checks pass in3.59seconds; paired fit supervision totals48.16minutes.
+A physical-reserve stop and a configured process-time boundary checkpointed and
+resumed without repeated updates. No artifact/worktree was deleted. The ledger
+charges the whole preparation/build/fit/evaluation/review/delivery cycle.
+
+## Retained result: parameter/interface precision diagnosis complete
 
 The [fixed-parent comparison](precision-factorial-result-2026-09-25.md) evaluates
 all four precision combinations in both retained step-8,348 parents. Both new
@@ -51,7 +106,7 @@ quaternion and **28/22/28/22** for ordinary; row gains and losses stay separate.
 Prose remains semantically unreliable. Both prior quantized recipes remain
 rejected and all computation here remains F32 emulation.
 
-**Next, NOT_RUN:** [one paired learning of neighboring integer-code choices](precision-factorial-result-2026-09-25.md#recommended-next-learn-rounding-decisions-within-the-existing-parameter-grids)
+**Historical successor, now executed above:** [one paired learning of neighboring integer-code choices](precision-factorial-result-2026-09-25.md#recommended-next-learn-rounding-decisions-within-the-existing-parameter-grids)
 with fixed parents/scales/bit widths/interfaces, the full 256-step recurrent
 language objective and training-only calibration. Freeze one recipe and complete
 resource projection before fitting; decide once on the final hard export/reload

@@ -158,6 +158,8 @@ pub struct JointModel {
     // tensors retain the original Var IDs, and never survive an optimizer step.
     prepared_parameters: Option<BTreeMap<String, Tensor>>,
     hard_only: bool,
+    // Alpha variables and prepared weights exist only in offline learning.
+    rounding_learning: bool,
     interface_audit: Option<Arc<Mutex<BTreeMap<String, InterfaceAudit>>>>,
 }
 
@@ -354,6 +356,7 @@ impl JointModel {
             precision_mode: None,
             prepared_parameters: None,
             hard_only: false,
+            rounding_learning: false,
             interface_audit: None,
         })
     }
@@ -395,6 +398,107 @@ impl JointModel {
         let mut model = self.detached_view()?;
         model.precision_mode = Some(mode);
         Ok(model)
+    }
+
+    /// Offline full-trajectory learning with shared alpha variables. All five
+    /// interfaces keep their existing full-strength quantizers and surrogates.
+    /// This view cannot be evaluated, serialized or used for generation.
+    pub(crate) fn rounding_learning_view(
+        &self,
+        variables: BTreeMap<String, Var>,
+        parameters: BTreeMap<String, Tensor>,
+    ) -> Result<Self> {
+        self.validate_rounding_parent()?;
+        self.validate_parameter_tensors(&parameters)?;
+        self.quantization
+            .as_ref()
+            .ok_or_else(|| invalid("missing quantizers"))?
+            .spec
+            .validate(&variables)?;
+        if variables
+            .values()
+            .any(|v| !v.device().same_device(&self.device))
+        {
+            return Err(invalid("rounding alpha device differs"));
+        }
+        let mut model = self.detached_view()?;
+        model.variables = variables;
+        model.prepared_parameters = Some(parameters);
+        model.rounding_learning = true;
+        Ok(model)
+    }
+
+    /// Independent legal dyadic values for the unchanged hard codec. Parent
+    /// model/quantizer clocks remain; calibration owns its separate update clock.
+    pub(crate) fn materialize_rounding_codes(
+        &self,
+        parameters: BTreeMap<String, Tensor>,
+    ) -> Result<Self> {
+        self.validate_rounding_parent()?;
+        self.validate_parameter_tensors(&parameters)?;
+        let state = self
+            .quantization
+            .as_ref()
+            .ok_or_else(|| invalid("missing quantizers"))?;
+        let mut variables = BTreeMap::new();
+        for (name, value) in parameters {
+            let quantized = state.spec.parameter(&name, &value, 1.0, false)?;
+            if value
+                .sub(&quantized)?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?
+                != 0.0
+            {
+                return Err(invalid(format!(
+                    "nonfinite or off-grid rounding result {name}"
+                )));
+            }
+            variables.insert(name, Var::from_tensor(&value.detach())?);
+        }
+        let mut model = Self::from_variables(self.config.clone(), variables, &self.device)?;
+        model.quantization = self.quantization.clone();
+        Ok(model)
+    }
+
+    fn validate_rounding_parent(&self) -> Result<()> {
+        if self.hard_only
+            || self.prepared_parameters.is_some()
+            || self.precision_mode.is_some()
+            || self.rounding_learning
+        {
+            return Err(invalid("rounding requires an unprepared floating parent"));
+        }
+        let state = self
+            .quantization
+            .as_ref()
+            .ok_or_else(|| invalid("rounding requires frozen grids"))?;
+        if state.ramp_steps == 0
+            || state
+                .completed_step
+                .checked_sub(state.start_step)
+                .is_none_or(|steps| steps < state.ramp_steps)
+        {
+            return Err(invalid("rounding requires a completed quantization ramp"));
+        }
+        state.spec.validate(&self.variables)
+    }
+
+    fn validate_parameter_tensors(&self, parameters: &BTreeMap<String, Tensor>) -> Result<()> {
+        if !parameters.keys().eq(self.variables.keys()) {
+            return Err(invalid("rounding parameter inventory differs"));
+        }
+        for (name, tensor) in parameters {
+            if tensor.dims() != self.variables[name].dims()
+                || tensor.dtype() != DType::F32
+                || !tensor.device().same_device(&self.device)
+            {
+                return Err(invalid(format!(
+                    "rounding tensor binding differs for {name}"
+                )));
+            }
+        }
+        Ok(())
     }
 
     pub fn configure_quantization(&mut self, start_step: usize, ramp_steps: usize) -> Result<()> {
@@ -448,11 +552,17 @@ impl JointModel {
         model.quantization = self.quantization.clone();
         model.precision_mode = self.precision_mode;
         model.hard_only = self.hard_only;
+        model.rounding_learning = self.rounding_learning;
         model.interface_audit = self.interface_audit.clone();
         Ok(model)
     }
 
     pub fn without_quantization(&self) -> Result<Self> {
+        if self.rounding_learning {
+            return Err(invalid(
+                "rounding learning views cannot change numerical policy",
+            ));
+        }
         if self.precision_mode.is_some() {
             return Err(invalid(
                 "a precision view cannot discard its evaluation-only mode; request FF from its parent",
@@ -467,6 +577,11 @@ impl JointModel {
     }
 
     fn prepare(&self, training: bool) -> Result<Self> {
+        if self.rounding_learning {
+            return Err(invalid(
+                "rounding tensors must stay in their prepared learning graph",
+            ));
+        }
         if training && (self.hard_only || self.precision_mode.is_some()) {
             return Err(invalid(
                 "packed models and precision views are evaluation-only",
@@ -628,6 +743,11 @@ impl JointModel {
         mode: ReadMode,
         training: bool,
     ) -> Result<JointOutput> {
+        if self.rounding_learning && !training {
+            return Err(invalid(
+                "rounding learning views require the training graph",
+            ));
+        }
         if training && self.precision_mode.is_some() {
             return Err(invalid("a precision view is evaluation-only"));
         }
@@ -704,6 +824,9 @@ impl JointModel {
     }
 
     pub fn new_session(&self, batch: usize) -> Result<JointSession> {
+        if self.rounding_learning {
+            return Err(invalid("rounding learning views cannot generate"));
+        }
         Ok(JointSession {
             config: self.config.clone(),
             batch,
@@ -1094,6 +1217,9 @@ impl JointModel {
     /// deliberately not an integer execution kernel: the nonlinearities,
     /// accumulations, normalization and probability calculations remain F32.
     pub fn save_hard(&self, directory: &Path) -> Result<Value> {
+        if self.prepared_parameters.is_some() || self.rounding_learning {
+            return Err(invalid("materialize hard codes before export"));
+        }
         if self.precision_mode.is_some() {
             return Err(invalid("a precision view cannot be exported"));
         }

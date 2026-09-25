@@ -354,7 +354,7 @@ fn is_hex_digest(value: &str, length: usize) -> bool {
     value.len() == length && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<Value> {
+pub(crate) fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<Value> {
     let source = option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND");
     if source == "UNBOUND" {
         return Err(invalid("joint campaign requires source-bound build"));
@@ -381,7 +381,7 @@ fn splitmix(mut state: u64) -> u64 {
 
 /// Stateless, reproducible random windows, uniform over valid starts in the two
 /// source stores. No window crosses their boundary; every target is shifted once.
-fn training_batch(
+pub(crate) fn training_batch(
     stores: &[Vec<u16>],
     cfg: &Campaign,
     step: usize,
@@ -1161,6 +1161,12 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
 }
 
 pub fn run_cli(args: &[String]) -> Result<()> {
+    if args
+        .first()
+        .is_some_and(|s| matches!(s.as_str(), "joint-round-fit" | "joint-round-calibrate"))
+    {
+        return crate::joint_rounding_campaign::run_cli(args);
+    }
     if args.first().map(String::as_str) == Some("joint-compare") {
         return crate::joint_comparison::run_cli(args);
     }
@@ -1334,14 +1340,14 @@ fn evaluate_precision_cli(args: &[String]) -> Result<()> {
     finish_attempt(out, result)
 }
 
-struct BoundModel {
-    campaign: Campaign,
-    model: JointModel,
-    binding: Value,
-    artifact: Value,
+pub(crate) struct BoundModel {
+    pub(crate) campaign: Campaign,
+    pub(crate) model: JointModel,
+    pub(crate) binding: Value,
+    pub(crate) artifact: Value,
 }
 
-fn finish_attempt<T>(out: &Path, result: Result<T>) -> Result<T> {
+pub(crate) fn finish_attempt<T>(out: &Path, result: Result<T>) -> Result<T> {
     if let Err(error) = &result {
         save_json(
             &out.join("failed-attempt.json"),
@@ -1371,7 +1377,7 @@ fn same_learning_configuration(a: &Campaign, b: &Campaign) -> Result<()> {
     Ok(())
 }
 
-fn load_bound_checkpoint(
+pub(crate) fn load_bound_checkpoint(
     checkpoint: &Path,
     selected: &candle_core::Device,
     evaluator_sha: &str,
@@ -1492,7 +1498,7 @@ fn export_hard_cli(args: &[String]) -> Result<()> {
     finish_attempt(out, result)
 }
 
-fn write_hard_export(
+pub(crate) fn write_hard_export(
     parent: &BoundModel,
     source: &Path,
     evaluator: &Evaluator,

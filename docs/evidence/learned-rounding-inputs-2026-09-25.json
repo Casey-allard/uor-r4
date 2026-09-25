@@ -1,0 +1,20 @@
+[
+  {
+    "arm": "quaternion",
+    "parent": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final",
+    "checkpoint_sha256": "c34d64b54d57d8ae2c5b623d3062c34464a5111768fab70083f2ba6a423a9762",
+    "model_sha256": "93c07f94cced0adcc7c3d836aa53078abea8da1be65e525821a57dc92464a5c6",
+    "campaign_sha256": "d563db60487d6bfd566487b9d0a395ee1232e6b931c33e5fe72eec2e1a74612b",
+    "quantization_spec_sha256": "19f19a1ece8257a55950dc27458d54c927ab0d623eef8295a8073934f5d26832",
+    "normalization_input_sha256": "ab4900bf61082a120aeecf6cbebb2c25815093c6939f7797fa5702c113be8c53"
+  },
+  {
+    "arm": "householder_pair",
+    "parent": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final",
+    "checkpoint_sha256": "1c2d0af7ffabafce7042384392435963b0513357862bac5faff19dc0f3771e79",
+    "model_sha256": "5b34910cea79ee040b0fcc9327a62f9d1014cb720dd1089a613775da9e7838ff",
+    "campaign_sha256": "2e01e94a4c838ea9092f1e3ad16786fc03acba189065fa8e649996595fd6fd5d",
+    "quantization_spec_sha256": "04ead177c99c8e93bd1c1533531204cd3b3b3a64468148f5865d7eb662f4745b",
+    "normalization_input_sha256": "34891c1112d83dce802161db4d26dd6401a4886a8380fa4d23a37ab11548d459"
+  }
+]

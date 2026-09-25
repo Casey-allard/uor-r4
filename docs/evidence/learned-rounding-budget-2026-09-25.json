@@ -1,0 +1,182 @@
+{
+  "schema": "uor-r4.learned-rounding-budget/1",
+  "recorded_utc": "2026-09-25T15:19:00.278317+00:00",
+  "cycle_started_utc": "2026-09-25T15:16:00+00:00",
+  "start_scope": "Conservative recovery boundary, preceding the first recorded clock read at 15:18:03 UTC.",
+  "base_commit": "c465c70915c35947d0277e993cb05fa6c9e1d9ac",
+  "worktree": "/Users/casey.allard/uor-r4-worktrees/learned-rounding-20260925",
+  "objective": "One paired full-context calibration of neighboring integer parameter codes on fixed projected parents; original five hard-artifact gates. No diagnostic sweep.",
+  "complete_cycle_limit_ms": 7200000,
+  "phase_projection_seconds": {
+    "recovery_design_implementation": 1800,
+    "build_and_focused_checks": 600,
+    "paired_fit": 2400,
+    "hard_export_loaded_evaluation_analysis": 900,
+    "delivery": 600,
+    "stop_margin": 900
+  },
+  "ledger_before": {
+    "cumulative_ms": 528816121,
+    "limit_ms": 532800000
+  },
+  "ledger_after_extension": {
+    "cumulative_ms": 528816121,
+    "limit_ms": 540000000
+  },
+  "prospective_extension_ms": 7200000,
+  "extension_reason": "Standing owner authorization: remaining 66.4 minutes cannot cover projected 105-minute learning and protected delivery cycle plus stop margin. Preserve all prior charges; raise cumulative ceiling from 148 to 150 hours before work.",
+  "training_updates_per_arm_max": 512,
+  "training_target_visits_per_arm_max": 2097152,
+  "context_training_and_evaluation": 256,
+  "batch": 16,
+  "concurrent_model_processes_max": 2,
+  "sequence_workers_per_model": 2,
+  "nested_backend_threads": 1,
+  "one_cargo_process": true,
+  "model_process_rss_stop_bytes": 4831838208,
+  "aggregate_model_rss_stop_bytes": 8589934592,
+  "storage_new_output_and_build_growth_limit_bytes": 2684354560,
+  "storage_projection_bytes": {
+    "new_full_worktree": 1266000000,
+    "new_or_replaced_compiler_outputs": 340000000,
+    "artifacts_reports_logs": 400000000,
+    "temporary_build_allowance": 268435456,
+    "metadata": 16777216
+  },
+  "physical_reserve_bytes": 17179869184,
+  "storage_stop_margin_bytes": 134217728,
+  "checkpoint_closeout_headroom_bytes": 67108864,
+  "physical_free_stop_bytes": 17381195776,
+  "physical_free_now_bytes": 22226501632,
+  "physical_reserve_change_reason": "New isolated full worktree plus projected build and learned-code artifacts require about 2.3 GB from 22.2 GB free. Prospectively reserve 18 GiB plus 128 MiB stop and 64 MiB closeout, replacing prior campaign 20 GiB reserve without deleting artifacts.",
+  "warm_build_cache": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target",
+  "paid_external_training_compute": false,
+  "cleanup_planned": false,
+  "preserve_all_unique_artifacts": true,
+  "learning_recipe_status": "Exact objective and sampler freeze required before first optimizer update.",
+  "pre_fit_resource_correction": {
+    "utc": "2026-09-25T15:29:27.966103+00:00",
+    "previous_model_process_rss_stop_bytes": 4294967296,
+    "previous_aggregate_model_rss_stop_bytes": 6442450944,
+    "reason": "DeepSeek identified evaluation-only RSS limits below prior measured training peak. Restore paired-training 8 GiB aggregate guard with 4.5 GiB per process before any fit. Same two processes and two full-sequence workers.",
+    "prior_receipt": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/delivery-closeout.json",
+    "prior_measured_resources": {
+      "logs": [
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/compare-hard-1-resources.jsonl",
+            "bytes": 688,
+            "sha256": "664dca7cf09209be39c8b9abbf6924bcf50d0622b2dbd1ef4e02e096951beb4e"
+          },
+          "samples": 5,
+          "first_utc_seconds": 1790344089.8494642,
+          "last_utc_seconds": 1790344093.876866,
+          "maximum_aggregate_rss_bytes": 68288512,
+          "minimum_physical_free_bytes": 22766882816
+        },
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-export-1-resources.jsonl",
+            "bytes": 314,
+            "sha256": "fbde5cbcf29291585016e72224b03ad5e8ea6a6fd36beacc96c4db1c7b9f99ea"
+          },
+          "samples": 2,
+          "first_utc_seconds": 1790343938.993058,
+          "last_utc_seconds": 1790343940.0070841,
+          "maximum_aggregate_rss_bytes": 192299008,
+          "minimum_physical_free_bytes": 22864736256
+        },
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-hard-no-read-1-resources.jsonl",
+            "bytes": 8512,
+            "sha256": "43aaca87683224e7cfa9f797fbb65c0d356d4039995e25940493735275407e61"
+          },
+          "samples": 53,
+          "first_utc_seconds": 1790344004.746497,
+          "last_utc_seconds": 1790344057.523484,
+          "maximum_aggregate_rss_bytes": 1278590976,
+          "minimum_physical_free_bytes": 22796922880
+        },
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-hard-read-1-resources.jsonl",
+            "bytes": 9954,
+            "sha256": "1bb63621b51568be1b90c06eaefa44881778122d2e6b422bd8682aefa06e362e"
+          },
+          "samples": 62,
+          "first_utc_seconds": 1790343941.392631,
+          "last_utc_seconds": 1790344003.339526,
+          "maximum_aggregate_rss_bytes": 1276837888,
+          "minimum_physical_free_bytes": 22828601344
+        },
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-shadow-read-1-resources.jsonl",
+            "bytes": 4823,
+            "sha256": "2f7c9b6b02b672fd02d01c796320e6828acb345b23a7b958033776d822085339"
+          },
+          "samples": 30,
+          "first_utc_seconds": 1790344058.930583,
+          "last_utc_seconds": 1790344088.484859,
+          "maximum_aggregate_rss_bytes": 1397964800,
+          "minimum_physical_free_bytes": 22773723136
+        },
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/projected-fit-1-resources.jsonl",
+            "bytes": 240703,
+            "sha256": "f9f35adee83fba3dc833efe295bf933f03041ca75c84af381cf09d5d555f050e"
+          },
+          "samples": 425,
+          "first_utc_seconds": 1790341771.597721,
+          "last_utc_seconds": 1790343938.4873972,
+          "maximum_aggregate_rss_bytes": 7530168320,
+          "minimum_physical_free_bytes": 22867386368
+        },
+        {
+          "receipt": {
+            "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/state-drift-1-resources.jsonl",
+            "bytes": 1123,
+            "sha256": "f24902dd5ebc8df0699670af9e0a627d7a0884acd8a1f249b40ce7e9a1166119"
+          },
+          "samples": 7,
+          "first_utc_seconds": 1790344095.270139,
+          "last_utc_seconds": 1790344101.4724412,
+          "maximum_aggregate_rss_bytes": 1310457856,
+          "minimum_physical_free_bytes": 22765936640
+        }
+      ],
+      "resource_samples": 584,
+      "peak_sampled_aggregate_model_rss_bytes": 7530168320,
+      "peak_sampled_individual_model_rss_bytes": 4477845504,
+      "minimum_sampled_physical_free_bytes": 22765936640,
+      "physical_free_at_inventory_bytes": 22815436800,
+      "maximum_sampled_allocation_projection_bytes": 1911013376,
+      "sampled_aggregate_rss_limit_crossed": false,
+      "sampled_individual_rss_limit_crossed": false,
+      "sampled_physical_stop_crossed": false,
+      "compiler_peak_rss": "UNMEASURED",
+      "compiler_temporary_peak": "UNMEASURED",
+      "scope": "Sampled PIDs per named supervisor. This is neither complete-machine RSS nor a bound on between-sample peaks. Aggregate values are logged concurrent model groups; no overlapping samples are summed. Physical free-space movement is not attributed wholly to this campaign or another application."
+    }
+  },
+  "training_only_normalization": {
+    "batches_per_arm": 8,
+    "target_visits_per_arm": 32768,
+    "optimizer_updates": 0,
+    "rule": "lambda=L2(mean of 8 language alpha gradients)/L2(unit global-mean beta2 penalty alpha gradient), at initial soft values with all interface quantizers; ratio1; no search",
+    "calibration_then_fit_max_target_visits_per_arm": 2129920,
+    "prospectively_recorded_utc": "2026-09-25T15:39:02.596502+00:00"
+  },
+  "physical_reserve_extensions": [
+    {
+      "recorded_utc": "2026-09-25T15:57:48.935560+00:00",
+      "old_reserve_bytes": 19327352832,
+      "new_reserve_bytes": 17179869184,
+      "additional_local_physical_headroom_bytes": 2147483648,
+      "reason": "Original reserve stopped both exact continuations after one update with about 19.52 GB free. Current campaign retained files remain within 2.5 GiB allocation limit. Preserve all unique material and reserve 16 GiB plus original stop/checkpoint margins before resuming; no paid compute or deletion. No attribution of unrelated physical-space movement.",
+      "physical_free_now_bytes": 19453845504
+    }
+  ]
+}
