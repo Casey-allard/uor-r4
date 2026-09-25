@@ -99,7 +99,47 @@
       "python_model_implementation_or_product_dependency"
     ],
     "verification": "focused_checks_for_changed_rust_path_and_actual_behavior_with_relevant_broader_checks",
-    "learning_contract": "D8: persistent reference, native joint learning, explicit discretization and serving-mask ladder; actual language-to-context gradients and hard-path behavior required"
+    "learning_contract": "D8: persistent reference, native joint learning, explicit discretization and serving-mask ladder; actual language-to-context gradients and hard-path behavior required",
+    "progress_control": {
+      "required_before_model_compute": true,
+      "authority": "docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25",
+      "active_contract": "docs/integration/current-state.md#active-execution-contract",
+      "record": "one_short_work_card_in_existing_active_issue_or_current_state",
+      "work_card": [
+        "integrated_deliverable",
+        "observed_blocker",
+        "causal_change",
+        "distinct_success_failure_inconclusive_decisions",
+        "fixed_context_access_and_artifact_conditions",
+        "named_necessary_checks",
+        "complete_cost"
+      ],
+      "repeat_requires": [
+        "prior_result_link",
+        "new_causal_evidence",
+        "concrete_mechanism_change",
+        "predicted_observable_difference",
+        "unresolved_implementation_or_adoption_decision"
+      ],
+      "launch_compare_actual_settings": [
+        "training_context",
+        "evaluation_context",
+        "generation_context",
+        "direct_history_access",
+        "candidate_admission_budget",
+        "representation_dimensions",
+        "data_window",
+        "artifact_lineage"
+      ],
+      "owner_fixed_contract_change": "requires_owner_direction_before_execution",
+      "new_check_requires": "named_unresolved_risk_to_current_deliverable_measurement_or_applicable_contract",
+      "verification_exit": "stop_when_declared_risks_are_resolved",
+      "sound_failure_without_new_cause": "preserve_result_and_accepted_artifact_park_branch_advance_independent_implementation",
+      "post_result_acceptance_weakening_allowed": false,
+      "blanket_tests_reviews_or_sweeps_required": false,
+      "budget_scope": "preparation_build_model_agents_analysis_delivery_cumulative",
+      "enforcement_scope": "mandatory_agent_policy_not_os_or_rust_cli_interlock"
+    }
   },
   "mode": "native_geometric_ai",
   "project_track": {
@@ -143,7 +183,7 @@
       "concise_limit_and_next_action"
     ]
   },
-  "schema": "uor-r4.agent-execution-policy/4",
+  "schema": "uor-r4.agent-execution-policy/5",
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,

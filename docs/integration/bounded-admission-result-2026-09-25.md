@@ -89,6 +89,19 @@ Hard admission is stopped-gradient. Selected Q/K/V/state/output paths retain lan
 
 ## Recommended next step
 
+**Superseded after owner review, September 25:** the original recommendation
+below to train recent64 is withdrawn before execution. The owner challenged the
+context/access reduction and required a system to prevent experiment loops.
+[D9](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)
+and the [active contract](current-state.md#active-execution-contract) now retain
+the accepted learned-code parents, matched 256-token contexts and full causal
+access while implementing quantized transport and the integer execution bridge.
+Pruning is a deferred optimization. The completed measurements, original gates,
+negative decision and machine-readable evidence above are unchanged.
+
+<details>
+<summary>Original recommendation preserved as history; do not execute</summary>
+
 **Use recent64 as the chosen bounded reference for the next matched learning step.** It is already implemented in the shared Rust graph and, on the final weights here, retains27/25 complete answers with lower NLL than either tested indexed policy. Its same-weights first-noun losses are2/0 against the immediate parent and1/1 against rung1. These diagnostic controls were not trained under recent64 and are not silently promoted to accepted artifacts.
 
 Complete one paired recent64 continuation from the accepted learned-code parents, retaining the same fixed grids, optimizer recipe, B16/T256, 256 updates and sampler8860..9115 used here. That supplies a matched policy comparison without another implementation/build programme or new hash/width/scale sweep. Freeze its admission-policy retention gates prospectively, preserve all current negatives, and inspect loaded answers before promotion. The existing binary and checkpoints are reusable; no broad re-audit or test expansion is the next task.
@@ -96,6 +109,8 @@ Complete one paired recent64 continuation from the accepted learned-code parents
 After a bounded baseline retains behavior, continue the same model through observable quantized R4 transport and measured state/output drift, then integer/add/subtract/shift/lookup execution. Keep the ordinary transport arm and account for dense parameter access separately. A recency baseline does not solve retrieval beyond64 or qualify D8 rung3 in full.
 
 The longer-range geometric routing research should target **candidate recall with explicit learning credit**, using train-only full-access parent evidence and a declared address/membership objective. Conditional gradients through already-selected events cannot directly correct every missed event. Preserve exact occurrence/word identity and capacity/eviction semantics; compare learned older access with cost-matched ordinary access on genuine dependencies beyond64 before claiming a geometric benefit. The new objective is a design dependency, not an implemented or measured remedy. This result supplies no reason to remove the geometric recurrent core.
+
+</details>
 
 ## Validation, resources and evidence
 

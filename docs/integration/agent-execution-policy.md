@@ -69,6 +69,63 @@ Open development evaluation is part of learning. Keep final held-out evaluation
 separate until design selection. Resource unavailability is an execution result,
 not evidence against the model's ability to learn.
 
+## Progress control — owner correction, September 25
+
+The principal investigator owns progress toward a useful geometric model. Passing
+another test or completing another experiment is not itself the next objective.
+Apply these rules before committing model compute; use the existing active issue
+or current-state entry, without creating another tracking framework.
+
+1. **Name the deliverable and the decision.** Keep one short work card: the
+   missing model ability or implementation, the observed blocker, the proposed
+   causal change, and what success, failure or an inconclusive result changes.
+   A diagnostic is justified only when its answer changes implementation or
+   adoption. If every outcome leads to the same next task, do that task directly.
+2. **Preserve the active contract.** Read the accepted artifact and the current
+   context/access contract from `current-state.md`. Before launch, compare the
+   actual loaded training, evaluation and generation settings, including context
+   length, direct-history access, admission budget, representation dimensions,
+   data window and artifact lineage. These are separate quantities. Do not call
+   matched sequence lengths preservation of memory access. Disclose a proposed
+   reduction before execution; an owner-fixed requirement needs owner direction
+   to change. Never silently reset learning or promote a diagnostic override.
+3. **Spend on a discriminating change.** Link the previous result. A repeated
+   fit or evaluation needs new causal evidence, the concrete changed mechanism,
+   a predicted observable difference and a decision that the old evidence cannot
+   settle. A nearby width, threshold, hash, seed or smaller horizon is not its own
+   justification. Change one unresolved cause at a time; if interacting changes
+   are necessary, declare the bundle and limit attribution accordingly. Reuse
+   valid binaries, checkpoints and measurements. A corrected execution failure
+   may resume its existing campaign; preserve and charge every attempt.
+4. **Keep validation proportional and finite.** Name the checks that protect the
+   changed arithmetic, causality, serialization or interface and the actual
+   loaded behavior needed for this deliverable. Reuse valid prior results. A new
+   failure is blocking only if it invalidates that behavior, the measurement or
+   an applicable contract. Record unrelated failures for their owning work. Do
+   not add a test, corpus, review, sweep or proof package merely because another
+   possible uncertainty exists. Do not weaken frozen acceptance after seeing
+   failure. Meeting the declared checks ends validation of that scope.
+5. **Stop branches without a new cause.** When a sound experiment fails, retain
+   its result and the last accepted model. Diagnose from existing evidence first.
+   Reopen the branch only with the evidence required in rule 3. Otherwise park it
+   and advance the highest-value independent prerequisite of the integrated
+   model. An inconclusive measurement permits its named instrument repair, not
+   an uncontrolled architecture search. This is a causal stop rule, not a fixed
+   retry quota or an excuse to abandon a necessary implementation.
+6. **Account for the whole cost and close the decision.** Project preparation,
+   build, model work, agents, analysis and delivery against the existing budget.
+   Reassess at the already scheduled checkpoint or first decisive result; do not
+   add a checkpoint campaign. Report what now works, the retained artifact,
+   limitations, costs and next implementation. Delegate only independent work
+   with a concrete output that avoids duplicate investigations. More agents and
+   more elapsed time are not evidence of progress.
+
+These are mandatory agent execution rules mirrored in the machine policy and
+loaded through repository `AGENTS.md` and the research skill. They are not an OS
+sandbox or a technical interlock on someone invoking the Rust CLI directly.
+Their concrete application to the September 25 correction is in
+[D9](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract).
+
 ## Verification and records
 
 Compile and exercise the changed Rust path. Focus tests on real arithmetic,

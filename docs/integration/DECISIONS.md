@@ -307,3 +307,52 @@ comparison and use measured throughput. Model compute and orchestration time are
 reported separately. The live state is concise and its prior contents remain
 archived. Complete the authorized rung before changing mechanism; consequential
 direction changes require evidence, independent review and protected delivery.
+
+
+## D9 — Prevent experiment loops and preserve the context contract
+
+September 25, 2026. **Owner-directed process correction.** After challenging
+whether the 256/256 agreement had been reverted, the owner directed a system to
+prevent repeated narrow tests, interacting-variable loops and spending without
+progress toward the integrated model. The principal investigator accepts
+responsibility for allowing a failed admission experiment to become the next
+training objective.
+
+The completed orthant64 campaign retained **256-token training, evaluation and
+session limits**, but admitted **at most 64 selected events** from that history.
+These are different controls. Both candidates failed the original source-retention
+gate. The earlier 64-token training mismatch was not reintroduced; full direct
+memory access was deliberately restricted. The later recommendation to train
+recent64 is withdrawn before execution. Its diagnostic results and the failed
+orthant64 artifacts remain evidence at their original scope; no result becomes
+PASS and no diagnostic override is promoted.
+
+**Operational correction:** apply the mandatory
+[progress-control rules](agent-execution-policy.md#progress-control--owner-correction-september-25)
+through root AGENTS, the machine policy, the research skill and the DeepSeek
+workflow. One short existing-issue work card names the integrated deliverable,
+blocker, causal change, distinct outcome decisions, fixed conditions, necessary
+checks and whole-cycle cost. Repetition requires new causal evidence. Additional
+validation must protect a named unresolved risk. A sound negative with no such
+new cause parks that branch and returns work to an independent implementation
+of the integrated model. A failed command may still be repaired and resumed;
+there is no arbitrary global retry quota and no weakening of frozen acceptance.
+
+**Current implementation direction:** preserve the accepted learned-code parents
+and full access to all causally available events within the 256-token window.
+Build the quantized R4 transport and integer execution bridge for that model,
+retaining the matched ordinary arm and measuring state/output drift and actual
+loaded generation. Sparse admission is deferred as a separate optimization,
+requiring a demonstrated implementation need, a candidate-recall learning
+mechanism and a discriminating comparison before another fit. A finite full
+256-token reader is bounded, but does not establish scalable sparse attention,
+D5 parameter sparsity or efficiency. A full-access numerical implementation can
+proceed without first obtaining a 64-candidate retention pass.
+
+This refines D8 sequencing after the completed admission decision. The useful
+transformerless geometric-model goal, D0-b arithmetic contract, D4–D6 evidence and
+terminal sparsity requirements, exact memory, language learning and matched
+ordinary controls remain in force. No new model training is part of this process
+correction. The [current execution contract](current-state.md#active-execution-contract)
+is authoritative for the next implementation; historical experiment schedules do
+not override it.

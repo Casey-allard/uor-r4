@@ -18,8 +18,10 @@ continuation gate. The learned neighboring-code successor now passes all five
 original hard-artifact retention gates in both arms; the two older quantized
 negatives remain preserved. The shared bounded-admission successor now completes
 its paired comparison but fails source retention in both arms. Keep the accepted
-learned-code parents; one matched recent64 continuation is the next bounded
-reference. No additional rounding, hash or scale sweep.
+learned-code parents and full 256-token access. The recent64 training follow-up
+is withdrawn under the owner-directed [D9 correction](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract).
+Advance the quantized transport/integer execution bridge; admission pruning is
+a deferred optimization. No additional rounding, hash or scale sweep.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
 ## Latest result: bounded admission complete; source retention fails
@@ -47,13 +49,14 @@ retention failure. Same-weights full/recent64 recovery identifies the access
 policy as a material cause. Neither a diagnostic override nor a lower average
 loss promotes a failed candidate. The accepted learned-code parents remain current.
 
-**Next:** one matched recent64 continuation from those accepted parents, using
-the existing source, fixed grids and same256-update B16/T256 recipe/data window.
-Recent64 is the strongest bounded control here; it has not been independently
-trained or promoted. After bounded retention, proceed to observable quantized
-R4 transport/state drift and integer execution. Longer-range geometric routing
-needs explicit candidate-recall credit; no hash/width/scale sweep is adopted.
-Recency alone does not qualify retrieval beyond64 or finish D8 rung3.
+**Next:** implement quantized R4 transport and the integer execution bridge
+from the accepted learned-code parents, with full 256-token access and the
+matched ordinary arm. Reuse the existing evaluator and retained evidence.
+The proposed recent64 fit is withdrawn before execution; its same-weights
+results remain diagnostics. Sparse admission is parked until new causal evidence
+and an implementation need justify reopening it. Neither bounded-candidate
+retention nor another selection sweep blocks full-access numerical implementation.
+See the active contract below for the required deliverable and validation scope.
 
 Executed source: `78fde5711ea01f80783eb9911e01197a61406d1a`.
 Rejected but retained artifacts: `fit-{quaternion,householder_pair}-bounded-2/packed-model`
@@ -68,6 +71,55 @@ Training supervision totals24.67minutes;62 optimized focused checks pass in4.79s
 F32 dense parameter computation, allocations, unreliable prose and the256-token
 ceiling remain. No geometric advantage, Hamiltonian dynamics, integer-serving,
 terminal sparsity or energy qualification is claimed.
+
+## Active execution contract
+
+Owner-directed correction, September 25; governed by
+[D9](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)
+and the [progress-control rules](agent-execution-policy.md#progress-control--owner-correction-september-25).
+
+| Quantity | Required next baseline |
+|---|---|
+| Training / evaluation / session context | 256 / 256 / 256 tokens |
+| Direct context access | Every causally available event within that window; `full` admission |
+| Candidate cap | Up to the complete causal window, not an imposed 64-event subset |
+| Read representation width | 64 coordinates; a vector dimension, not a token horizon |
+| State width | 256 coordinates; separate from context and admission |
+| Accepted starting artifacts | `learned-rounding-20260925/fit-{quaternion,householder_pair}-rounding-3/packed-model` |
+| Evaluator | Existing `reference-evaluator-v2.json`; no new panel or holdout during implementation |
+| Deferred branch | recent64 fitting and sign-index/width/hash sweeps |
+
+**Implementation work card (#973 under #820):**
+
+- **Deliverable:** load the accepted learned codes into a Rust integer execution
+  bridge, implementing quantized R4 transport as part of that same path. Retain
+  full context access and the ordinary transport comparator. Identify any
+  remaining float/multiplier operation explicitly; partial lowering is not full
+  serving qualification.
+- **Observed blocker / change:** packed codes currently execute in an F32
+  emulator. Replace the numerical execution of the existing learned operators;
+  keep model identity, context and admission fixed. Candidate selection need
+  not change to implement integer arithmetic.
+- **Necessary verification:** compile the changed Rust path; check changed
+  arithmetic/overflow, artifact loading and causal interfaces; measure state and
+  output drift against the existing emulator; inspect actual loaded full-context
+  generation with the retained evaluator. Reuse unaffected checks. Freeze the
+  numerical tolerance for each changed operator before its comparison. Full
+  model acceptance still needs its existing behavior criteria.
+- **Decision:** retained behavior and declared numerical compliance permit
+  integrating that implemented path. A mismatch localizes the next numerical
+  repair. Retraining is justified only by measured approximation error that the
+  implementation cannot resolve; it is not the default next experiment. If the
+  instrument cannot distinguish the cause, repair that named instrument only.
+- **Cost:** no model run is launched by this work card. Before numerical work,
+  use source inspection and retained throughput to project implementation/build,
+  focused checks, loaded evaluation and any specifically justified learning
+  against the existing cumulative budget. No new review or benchmark programme.
+
+The 256-token full-access baseline is finite and bounded; it does not satisfy
+terminal D5 parameter sparsity or establish economical scaling to larger memory.
+Do not silently shorten access to meet a cost target. The integer bridge is
+**NOT_RUN**; this correction changes the next implementation, not model quality.
 
 ## Retained result: paired learned-code retention accepted
 

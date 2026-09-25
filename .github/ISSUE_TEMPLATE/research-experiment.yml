@@ -9,7 +9,12 @@ body:
         `docs/integration/project-track.md`; current implementation and next action
         live in `docs/integration/current-state.md`. Reuse the source-linked
         direction and architecture audit before introducing a mechanism.
-        Start with the smallest falsifier, prove causal-path reachability,
+        Apply the progress-control rules in the execution policy before compute.
+        Reuse an existing active issue and valid measurements when possible.
+        Name the integrated deliverable, new causal evidence for any repeat,
+        fixed context/access conditions and necessary checks; reject a run whose
+        outcomes cannot change implementation or adoption.
+        Start with the smallest needed falsifier, establish causal-path reachability,
         compare non-degenerate geometry and equal-size non-geometric controls,
         and include student-prefix output when generation is in scope. Required
         fields define the smallest decision-bearing falsifier.
@@ -77,7 +82,7 @@ body:
     id: cheap-instrument
     attributes:
       label: Binding cheap instrument and required verdict
-      description: The cheap test that runs FIRST—such as source-control smoke, operator reachability, tiny overfit, or short student rollout—and exactly what it must report to proceed.
+      description: Name the unresolved risk and the cheapest existing or new evidence that resolves it. Cite valid prior checks instead of rerunning them. No new test is needed when the required evidence already exists.
     validations:
       required: true
   - type: textarea

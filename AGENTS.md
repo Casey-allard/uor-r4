@@ -58,6 +58,22 @@ Changes to these stable goals require owner direction and protected delivery.
 A task template, stale skill or agent judgment cannot silently change them.
 <!-- agent-execution-policy:end -->
 
+## Progress control — mandatory before more model compute
+
+Apply the [progress-control rules](docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
+and the active contract in [current state](docs/integration/current-state.md#active-execution-contract).
+Keep one short work card in the existing issue: integrated deliverable, observed
+blocker, causal change, distinct outcome decisions, fixed conditions, necessary
+checks and complete cost. Reject a repeat without new causal evidence and a
+decision it can change. Do not turn test failures into a new programme; repair
+only failures that invalidate the current deliverable or an applicable contract.
+Preserve failed results and accepted models, end validation once its declared
+risks are resolved, and advance an independent implementation when a research
+branch has no justified next experiment. [D9](docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)
+withdraws the recent64 training follow-up. Training length, evaluation length,
+memory access and vector width must be reported separately. All agents, including
+RDC/DeepSeek/OpenCode sessions, inherit these rules through this file.
+
 ## Architecture and claim boundaries
 
 Use the name **UOR-R4 Geometric Language Model**. Technically it is an experimental autoregressive geometric state model with exact addressed memory and learned typed operators. Native attention/context access does not make it a transformer. Historical dense R4/Spin references remain transformers. Do not rename package/CLI/schema identifiers merely to change presentation.
