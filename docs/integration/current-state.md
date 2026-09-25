@@ -20,12 +20,56 @@ negatives remain preserved. The shared bounded-admission successor now completes
 its paired comparison but fails source retention in both arms. Keep the accepted
 learned-code parents and full 256-token access. The recent64 training follow-up
 is withdrawn under the owner-directed [D9 correction](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract).
-The full-context integer numerical bridge is now implemented and retained at
-the scope below. Advance it into a standalone serving session; admission pruning
-is deferred. No additional rounding, hash or scale sweep.
+The full-context standalone integer serving session is now implemented and retained
+at the scope below. An exact arithmetic optimization makes actual generation
+4.5–6.6 times faster on the measured workloads. Advance coherent language learning
+through this same session; admission pruning remains deferred.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
-## Latest result: integer attention and transport execute with full context
+## Latest result: standalone integer serving and exact speedup
+
+The [standalone result](integer-serving-result-2026-09-25.md) delivers a Rust
+CLI and stateful library session with bound tokenizer/model/tables, integer
+categorical selection, and full256 attention. The serving dependency graph
+excludes training, Candle and external model providers. The numerical source is
+shared with training evaluation; no fitting or model change occurred.
+
+All4,096 retained target probability hashes,128 source-output rows and341 source
+decisions match exactly. Source answers remain28/32 quaternion and24/32 ordinary,
+NoRead0/32 each, with zero lost correct rows. Both actual multi-call session
+checks pass. Oversized appends/generation fail without mutating session state.
+
+One profile-directed signed4 product-table optimization preserves all ten new
+integer-sampled continuations exactly. Source batches improve52.97/53.15s to
+8.02/8.01s; five-continuation batches improve11.93/10.76s to2.62/2.14s. These are
+single before/after observations with two arms concurrent; timings include load,
+prompt ingest, model, selection, hashes and JSONL, excluding final sealing.
+Full256 Read model calls average3.695/3.698ms. Dense access/allocation persist.
+
+The compiled numerical model, sampler and generation ranges contain no floating
+arithmetic/conversion or numerical-value multiply/divide. Shape/address and clock
+multiplications remain outside that narrower claim. No full-process multiplier,
+D5 sparsity, geometric advantage, Hamiltonian dynamics, useful general language
+or energy qualification is promoted. Actual prose still confuses entities and
+roles. Session capacity remains256, with independently tokenized text appends.
+
+**Next:** one integrated coherent-language continuation, through the same integer
+serving session. Existing continuous learning curves still improve; further
+selector or arithmetic sweeps are not the capability objective. Freeze meaningful
+learning exposure, output-quality criteria and complete costs before fitting.
+See the active work card below. No new multi-hour fit ran in this delivery.
+
+[Bound result](../evidence/integer-serving-result-2026-09-25.json),
+[exact comparison](../evidence/integer-serving-comparison-2026-09-25.json),
+[all text](integer-serving-outputs-2026-09-25.md),
+[instruction audit](../evidence/integer-serving-instruction-audit-2026-09-25.json),
+[resources](../evidence/integer-serving-closeout-2026-09-25.json).
+Optimized source `be223fc5`; executableSHA and full commit are bound in the result.
+RDC ran DeepSeek review and concurrent local Rust workers. Focused unit/arithmetic,
+training-compatibility and loaded-artifact checks executed; the canceled broad
+implicit core build's integration tests remain NOT_RUN.
+
+## Retained predecessor: integer attention and transport with full context
 
 The [executed integer bridge](integer-execution-result-2026-09-25.md) loads the
 unchanged accepted learned-code parents. Learned attention, R4/ordinary transport,
@@ -61,7 +105,7 @@ parameter access is dense with allocation. Measured integer calls are about
 No useful language, geometric advantage, Hamiltonian dynamics, D5 sparsity or
 energy claim is promoted.
 
-**Next:** integrate the retained computation into a standalone Rust serving
+**Historical next, now executed above:** integrate the retained computation into a standalone Rust serving
 session with integer token selection, complete-generation cost and the same
 full256 contract. Use exact-output optimizations only after locating actual
 cost. Keep the ordinary arm and existing artifacts; no new model fit or admission
@@ -143,36 +187,44 @@ and the [progress-control rules](agent-execution-policy.md#progress-control--own
 | Evaluator | Existing `reference-evaluator-v2.json`; no new panel or holdout during implementation |
 | Deferred branch | recent64 fitting and sign-index/width/hash sweeps |
 
-**Next implementation work card (#973 under #820):**
+**Next capability work card (#973 under #820):**
 
-- **Deliverable:** a standalone Rust serving session using the retained integer
-  computation, bound tables/artifact and integer token selection. Include actual
-  prompt-to-output behavior and measured generation cost with full256 access.
-- **Observed blocker / change:** the numerical bridge works, but still lives in
-  the training crate, its seeded evaluator sampler uses float, and measured
-  integer calls cost about28–29 times the F32 comparator. Separate the serving
-  dependency boundary; profile the actual cost before exact-output optimization.
-- **Fixed conditions:** accepted learned codes/scales, table artifact, context,
-  full admission, existing source oracle and ordinary comparator. No model
-  refit, new corpus, admission sweep or tolerance adjustment is the next step.
-- **Necessary verification:** compile and exercise the changed serving boundary;
-  verify artifact/error/causal contracts and integer token selection. Compare
-  exact probabilities and greedy outputs to this retained integer implementation;
-  inspect complete generation and the changed compiled numerical boundary.
-  Sampling changes are declared explicitly rather than called old-sampler parity.
-  Reuse the established numerical/behavior evidence where computation is unchanged.
-- **Decision:** a usable independent session with retained computation advances
-  implementation. A mismatch localizes the changed serving boundary; it does
-  not authorize retraining. A speedup requires measured complete-call cost;
-  energy and D5 sparsity remain distinct qualifications.
-- **Cost:** prospectively project the complete implementation/build/check/run/
-  delivery cycle against the shared ledger and physical reserve. The completed
-  bridge does not authorize an unbounded profiling or optimization campaign.
+- **Deliverable:** a retained full256 learner producing more coherent,
+  source-consistent short language continuations through the standalone integer
+  session. Conversation and coding remain downstream consumers of this path.
+- **Observed blocker / change:** both arms have weak language, while their
+  continuous development NLL was still improving at the latest retained
+  continuation. Resume that continuous language learning with optimizer/data
+  state. Change exposure first; capacity saturation, missing attention or a
+  necessary new Hamiltonian are unproven diagnoses.
+- **Fixed conditions:** architecture, next-token objective, tokenizer,
+  training/evaluation/session256, full admission and ordinary arm. Preserve
+  accepted integer bundles. Alpha-only code rounding is not a replacement for
+  learning the language parameters.
+- **Before fitting:** project the complete paired training/export/actual-serving
+  cycle with measured throughput and physical reserve. Approximately30M more
+  targets per arm is a planning anchor, not an automatic launch or promise.
+  Freeze one compact development output packet and explicit entity/role
+  consistency and completion criteria; record the parent outputs first. Existing
+  source/NoRead controls remain. No post-result panel expansion.
+- **One integrated execution:** resume the retained continuous step8348 parents,
+  preserve optimizer/sampler continuity, keep a midpoint and final checkpoint,
+  then apply the established learned-code/integer export once under a declared
+  retention recipe. New continuous weights require prospectively bound new
+  calibration/codes; old scales cannot simply be assumed valid.
+- **Decision:** meaningful output improvement retained in integer serving advances
+  conversation/coding work. Better NLL without useful output improvement triggers
+  an explicit objective/data/capacity decision, not an automatic next exposure
+  tranche. No development improvement parks exposure-only continuation. A loss
+  only at export is numerical retention; preserve both artifacts and the gate.
+- **Stop:** at the configured complete-cycle limits and the declared decision.
+  Keep learned checkpoints and negatives. No admission, scale or scalar-feature
+  search is justified merely by remaining machine time.
 
-The full256 baseline is finite; it does not qualify terminal D5 parameter
-sparsity or scaling to larger memory. The integer **numerical bridge is executed**
-at its recorded limited scope. Standalone fully integer generation remains
-**NOT_RUN**. General language learning remains downstream capability work.
+The full256 baseline is finite; terminal D5 parameter sparsity remains open.
+Standalone integer generation is **executed at the scoped numerical boundary**.
+General language quality, complete-path arithmetic compliance and energy remain
+separate obligations. One paired seed remains exploratory for geometry claims.
 
 ## Retained result: paired learned-code retention accepted
 

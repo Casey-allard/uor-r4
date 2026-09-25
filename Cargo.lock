@@ -2797,7 +2797,9 @@ dependencies = [
  "uor-addr",
  "uor-r4-graph-format",
  "uor-r4-graph-runtime",
+ "uor-r4-integer",
  "uor-r4-model-source",
+ "uor-r4-tokenizer",
 ]
 
 [[package]]
@@ -2873,6 +2875,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-integer"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uor-r4-tokenizer",
+]
+
+[[package]]
 name = "uor-r4-model-source"
 version = "0.1.0"
 dependencies = [
@@ -2926,6 +2940,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-tokenizer"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "uor-r4-training"
 version = "0.1.0"
 dependencies = [
@@ -2937,6 +2960,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "uor-r4-core",
+ "uor-r4-integer",
  "uor-r4-model-source",
 ]
 

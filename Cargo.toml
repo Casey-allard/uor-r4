@@ -2,6 +2,8 @@
 members = [
     "crates/uor-r4-core",
     "crates/uor-r4-training",
+    "crates/uor-r4-integer",
+    "crates/uor-r4-tokenizer",
     "crates/uor-r4-graph-format",
     "crates/uor-r4-router",
     "crates/uor-r4-proof-model",

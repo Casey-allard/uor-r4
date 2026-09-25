@@ -28,19 +28,7 @@ pub const TRANSPORT_MIN_NORM: f64 = 1e-6;
 pub const QUATERNION_DELTA_SCALE: f64 = 0.1;
 pub const CHECKPOINT_SCHEMA: &str = "uor-r4.joint-recurrent-checkpoint/1";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Transport {
-    Quaternion,
-    HouseholderPair,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ReadMode {
-    Enabled,
-    NoRead,
-}
+pub use uor_r4_integer::{JointConfig, ReadMode, Transport};
 
 /// Forward-only precision interventions on one fully quantized floating parent.
 /// The first letter selects parameter precision; the second selects every
@@ -79,70 +67,6 @@ impl PrecisionMode {
 
     pub const fn quantizes_interfaces(self) -> bool {
         matches!(self, Self::FQ | Self::QQ)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct JointConfig {
-    pub vocab_size: usize,
-    pub width: usize,
-    pub read_width: usize,
-    pub context: usize,
-    pub transport: Transport,
-    pub seed: u64,
-}
-impl Default for JointConfig {
-    fn default() -> Self {
-        Self {
-            vocab_size: 4096,
-            width: 256,
-            read_width: 64,
-            context: 256,
-            transport: Transport::Quaternion,
-            seed: 0,
-        }
-    }
-}
-impl JointConfig {
-    pub fn validate(&self) -> Result<()> {
-        if self.vocab_size != 4096
-            || !matches!(self.width, 128 | 256)
-            || self.read_width != 64
-            || !(2..=256).contains(&self.context)
-        {
-            return Err(invalid(
-                "joint config requires vocabulary4096, width128/256, read_width64, context2..256",
-            ));
-        }
-        Ok(())
-    }
-
-    pub(crate) fn shapes(&self) -> BTreeMap<String, Vec<usize>> {
-        let d = self.width;
-        let r = self.read_width;
-        BTreeMap::from([
-            ("embedding.weight".into(), vec![self.vocab_size, d]),
-            ("recurrent.input.weight".into(), vec![3 * d, d]),
-            ("recurrent.state.weight".into(), vec![3 * d, d]),
-            ("recurrent.bias".into(), vec![3 * d]),
-            ("read.query.weight".into(), vec![r, d]),
-            ("read.query.bias".into(), vec![r]),
-            ("read.key.weight".into(), vec![r, d]),
-            ("read.key.bias".into(), vec![r]),
-            ("read.value.weight".into(), vec![d, d]),
-            ("read.value.bias".into(), vec![d]),
-            ("read.age".into(), vec![self.context - 1]),
-            ("read.no_read.weight".into(), vec![1, d]),
-            ("read.no_read.bias".into(), vec![1]),
-            ("update.weight".into(), vec![d, 2 * d]),
-            ("update.bias".into(), vec![d]),
-            ("update.gate.weight".into(), vec![1, 2 * d]),
-            ("update.gate.bias".into(), vec![1]),
-            ("copy.gate.weight".into(), vec![1, 2 * d]),
-            ("copy.gate.bias".into(), vec![1]),
-            ("output.norm.weight".into(), vec![d]),
-            ("output.bias".into(), vec![self.vocab_size]),
-        ])
     }
 }
 

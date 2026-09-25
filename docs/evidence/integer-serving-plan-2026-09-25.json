@@ -1,0 +1,48 @@
+{
+  "schema": "uor-r4.integer-serving-work-card/1",
+  "recorded_utc": "2026-09-25T19:42:11.215292+00:00",
+  "accounting_start_utc": "2026-09-25T19:39:00+00:00",
+  "start_basis": "first verified19:40:02 clock minus conservative62seconds recovery estimate",
+  "whole_cycle_limit_ms": 5400000,
+  "deadline_utc": "2026-09-25T21:09:00+00:00",
+  "ledger_before": {
+    "cumulative_ms": 543642469,
+    "limit_ms": 547200000
+  },
+  "local_extension_ms": 2400000,
+  "ledger_after_extension": {
+    "cumulative_ms": 543642469,
+    "limit_ms": 549600000
+  },
+  "extension_authority": "Standing owner authorization2026-09-06",
+  "extension_reason": "Complete90-minute projection for standalone integer serving integration exceeds remaining59.3minutes; add40minutes prospectively, charge actual elapsed only",
+  "projection_minutes": {
+    "implementation_review": 40,
+    "build_checks": 15,
+    "runtime_comparison_profile": 15,
+    "analysis_delivery": 20
+  },
+  "storage_limit_bytes": 1610612736,
+  "physical_reserve_bytes": 15569256448,
+  "stop_margin_bytes": 134217728,
+  "closeout_margin_bytes": 67108864,
+  "physical_free_start_bytes": 17773998080,
+  "rss_limit_bytes": 8589934592,
+  "cargo_processes": 1,
+  "model_workers_max": 2,
+  "nested_backend_threads": 1,
+  "fixed": {
+    "context": 256,
+    "admission": "full",
+    "parents": "learned-rounding-20260925/fit-{quaternion,householder_pair}-rounding-3/packed-model",
+    "tables": "full-context-integer-20260925/tables-1",
+    "training": false
+  },
+  "deliverable": "Standalone Rust integer session and CLI, integer token selection, complete generation cost; shared numeric source and no training dependency",
+  "cause": "retained integer kernel still lives in training crate and floating host sampler; step28-29x F32",
+  "validation": "focused format/codec/sampler/interface checks, exact targetQ48 and greedy output parity with retained old binary reports, actual new integer seeded outputs and compiled dependency/instruction boundary; native profile before any exact-output optimization",
+  "decisions": "exact retained computation plus independent complete generation advances serving; mismatch localizes extraction, never refit or tolerance changes; no speed or energy claim without observed cost",
+  "base": "0b85bc66b5cbb5e8aa4b36dfc84e5535b1518dbd",
+  "worktree": "/Users/casey.allard/uor-r4-worktrees/bounded-admission-20260925",
+  "branch": "codex/integer-serving-20260925"
+}

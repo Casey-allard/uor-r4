@@ -1,6 +1,6 @@
 # Offline Rust training foundation
 
-This crate contains the offline recurrent-memory learner, its matched transport control, and differentiable research references. No serving crate depends on it. The recurrent learner trains state, causal memory reads/writes and token output jointly. The separate reference modes reproduce the retained #1017 ordinary transformer. The integer numerical bridge now executes accepted packed codes; standalone serving integration remains open.
+This crate contains the offline recurrent-memory learner, its matched transport control, and differentiable research references. No serving crate depends on it. The recurrent learner trains state, causal memory reads/writes and token output jointly. The separate reference modes reproduce the retained #1017 ordinary transformer. The shared integer runtime executes accepted packed codes; standalone generation lives in [`uor-r4-integer`](../uor-r4-integer/README.md).
 
 **Memory profile: allocation-conscious offline computation.** Construction,
 autodiff graphs, whole-sequence worker gradients and serialization allocate.
@@ -11,9 +11,9 @@ retain their separate stricter contracts.
 
 ## Integer numerical execution bridge
 
-`joint_integer.rs` loads validated signed codes and runs learned full-context
+`joint_integer.rs` re-exports the shared standalone implementation that loads validated signed codes and runs learned full-context
 attention, R4/ordinary transport, recurrence and vocabulary/copy output with
-integer model-value arithmetic. `joint_integer_math.rs` implements checked
+integer model-value arithmetic. `joint_integer_math.rs` re-exports checked
 shift/add products, long division and integer square roots; the compiled runtime
 uses bound tables from `joint_integer_tables.rs`. Dense access/allocation remain.
 
@@ -35,6 +35,8 @@ steps than F32. Existing float build features must match the original parent:
 `metal,cpu-accelerate,reference-accelerate`, even for a CPU comparison. All4096
 integer target hashes match across the two builds; float accumulation does not.
 No new learning, general language or energy qualification follows.
+
+The [standalone successor](../../docs/integration/integer-serving-result-2026-09-25.md) removes the serving dependency on this crate and adds integer categorical selection. Its exact signed4 optimization is shared here. The timings above describe the preserved predecessor.
 
 ## Joint recurrent-memory learning
 

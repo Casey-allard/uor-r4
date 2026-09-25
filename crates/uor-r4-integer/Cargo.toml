@@ -1,0 +1,15 @@
+[package]
+name = "uor-r4-integer"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Standalone integer execution of retained UOR-R4 recurrent attention models"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.8"
+hex = "0.4.3"
+blake3 = "=1.5.0"
+
+uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }

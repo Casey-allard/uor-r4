@@ -1,0 +1,117 @@
+{
+  "schema": "uor-r4.integer-serving-closeout/1",
+  "accounted_through_utc": "2026-09-25T20:14:42.324849+00:00",
+  "accounting_start_utc": "2026-09-25T19:39:00+00:00",
+  "charge_ms": 2142324,
+  "ledger_before_charge": {
+    "cumulative_ms": 543642469,
+    "limit_ms": 549600000
+  },
+  "ledger_after_charge": {
+    "cumulative_ms": 545784793,
+    "limit_ms": 549600000
+  },
+  "projection_limit_ms": 5400000,
+  "delivery_tail": "Subsequent GitHub delivery wall is charged separately in the local final delivery receipt, without double counting this interval.",
+  "concurrency": "Single chronological wall interval; parallel reviewer/agent/model clocks are not added again.",
+  "fit_seconds": 0,
+  "paired_model_phase_seconds": 116.872218501,
+  "model_phase_receipts": [
+    {
+      "finished_utc": "2026-09-25T20:07:03.401787+00:00",
+      "elapsed_seconds": 3.052564458,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "guard": null,
+      "peak_sampled_rss_bytes": 26869760,
+      "min_free_bytes": 17187041280,
+      "profile_exit": 0
+    },
+    {
+      "finished_utc": "2026-09-25T20:05:51.677266+00:00",
+      "elapsed_seconds": 32.573460084,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "guard": null,
+      "peak_sampled_rss_bytes": 27475968,
+      "min_free_bytes": 17188360192,
+      "profile_exit": null
+    },
+    {
+      "finished_utc": "2026-09-25T20:08:00.835797+00:00",
+      "elapsed_seconds": 8.109900709,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "guard": null,
+      "peak_sampled_rss_bytes": 25673728,
+      "min_free_bytes": 17182449664,
+      "profile_exit": null
+    },
+    {
+      "finished_utc": "2026-09-25T20:04:56.270200+00:00",
+      "elapsed_seconds": 53.819051958,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "guard": null,
+      "peak_sampled_rss_bytes": 26181632,
+      "min_free_bytes": 17206210560,
+      "profile_exit": null
+    },
+    {
+      "finished_utc": "2026-09-25T20:08:25.520933+00:00",
+      "elapsed_seconds": 7.121784042,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "guard": null,
+      "peak_sampled_rss_bytes": 27279360,
+      "min_free_bytes": 17179168768,
+      "profile_exit": null
+    },
+    {
+      "finished_utc": "2026-09-25T20:03:40.899085+00:00",
+      "elapsed_seconds": 12.19545725,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "guard": null,
+      "peak_sampled_rss_bytes": 26034176,
+      "min_free_bytes": 17200336896,
+      "profile_exit": 0
+    }
+  ],
+  "deepseek_review": {
+    "model": "DeepSeek/deepseek-flash",
+    "started_utc": "2026-09-25T19:42:43.058958+00:00",
+    "finished_utc": "2026-09-25T19:49:18.884001+00:00",
+    "exit_code": 0
+  },
+  "peak_sampled_aggregate_model_rss_bytes": 27475968,
+  "storage": {
+    "target_modified_allocated_bytes": 586723328,
+    "investigation_allocated_bytes": 24055808,
+    "measurement_note": "Conservative allocated size of target files modified since start; not APFS physical ownership or reclaimed bytes. Existing target reused. No deletion.",
+    "new_storage_limit_bytes": 1610612736,
+    "physical_free_bytes": 17178165248,
+    "physical_free_start_bytes": 17773998080,
+    "stop_total_bytes": 15770583040
+  },
+  "cancelled_check": {
+    "command": "cargo test -p uor-r4-core --test hf_bpe_tokenizer --test tokenizer_adapter --offline --release",
+    "exit_code": 143,
+    "result": "NOT_RUN",
+    "reason": "Explicit integration targets implicitly compiled many unrelated core binaries. Cancelled before tests to avoid expanding milestone verification. Shared engine unit checks and training compatibility check completed; loaded token and session comparisons cover changed serving boundary."
+  },
+  "validation": "27 original unit checks; one extended arithmetic test; standalone builds; original-feature training check; exact loaded replay/source/categorical/session comparisons; fmt and claim checks. Core integration NOT_RUN.",
+  "source_commit": "be223fc5f11b3e4d9cb3f1eec38b135d7e6bda97"
+}

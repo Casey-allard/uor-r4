@@ -6,6 +6,8 @@ edition = "2021"
 description = "Core R4 engine: geometric routing mathematics and integrated transformerless local inference"
 
 [dependencies]
+uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
+uor-r4-tokenizer = { version = "0.1.0", path = "../uor-r4-tokenizer" }
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
 uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
 sha2 = "0.10.8"

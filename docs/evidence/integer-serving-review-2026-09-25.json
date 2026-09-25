@@ -1,0 +1,35 @@
+{
+  "schema": "uor-r4.integer-serving-review-adjudication/1",
+  "review_model": "DeepSeek/deepseek-flash",
+  "review_receipt": {
+    "model": "DeepSeek/deepseek-flash",
+    "started_utc": "2026-09-25T19:42:43.058958+00:00",
+    "finished_utc": "2026-09-25T19:49:18.884001+00:00",
+    "exit_code": 0
+  },
+  "review_log_sha256": "ff5f2f3a7c38b0bf88615fe18d7320250846b15040755306fadd8ce8d9bbb8f2",
+  "accepted": [
+    "Keep one numerical implementation; training now reexports standalone model/math/tables loader",
+    "Bind exact parent tokenizer, check BOS0/EOS1, retain full256 and explicit pendingtoken semantics",
+    "New categorical temperature1 policy is distinct from retained floating sampler; percallseed and resumable state explicit",
+    "Verify saved Q48 digests; native profile during required generation before optimization",
+    "Scope model-value arithmetic versus shape/address instructions; inspect newly linked executable",
+    "Independent session review found cumulative counters incorrectly labeled incremental; repaired percall counters and freshBundle aggregate before execution"
+  ],
+  "concurrent_snapshot_findings": [
+    "Workspace registration, blake3pin, sampler module, shared tokenizer, budgetextension and plan were being implemented concurrently; reviewer absence observations are not final defects",
+    "RDC reviewed old resourcecloseout; current prospective budget is integer-serving-20260925/budget.json recorded before build/execution"
+  ],
+  "not_adopted": [
+    "A hypothetical random-walk error estimate is not evidence that operator defects are absent",
+    "Read-versus-NoRead timing does not attribute all shared86percent cost to vocabulary; profile actual call stacks",
+    "No-exact-optimization-possible for constant mixture division and permanently expensive software multiply are unsupported impossibility claims",
+    "No tokenizer floating arithmetic was identified in the moved byteBPE engine; legacy JSON parsing is a separate load boundary",
+    "4096 targets total across botharms/modes, not4096 perarm/mode; no full state hashes existed inprior reports",
+    "No empirical chi-square campaign needed for the deterministic sampler interval/mask/rejection implementation; focused boundary tests already executed"
+  ],
+  "claims": [
+    "Engineering serving integration advances dependency/runtime goals; it is not new language quality or geometric advantage",
+    "Dense additive maps remain mathematical linear maps and fullparameteraccess; no energy claim"
+  ]
+}

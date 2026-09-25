@@ -57,6 +57,7 @@ pub enum TrainingError {
     Tensor(candle_core::Error),
     Safetensors(safetensors::SafeTensorError),
     Optimizer(joint_optimizer::OptimizerError),
+    Integer(uor_r4_integer::IntegerError),
     Invalid(String),
     Reference(String),
 }
@@ -68,6 +69,7 @@ impl fmt::Display for TrainingError {
             Self::Tensor(error) => write!(f, "autodiff tensor: {error}"),
             Self::Safetensors(error) => write!(f, "safetensors: {error}"),
             Self::Optimizer(error) => write!(f, "optimizer: {error}"),
+            Self::Integer(error) => write!(f, "{error}"),
             Self::Invalid(error) => write!(f, "invalid reference request: {error}"),
             Self::Reference(error) => write!(f, "existing Rust reference: {error}"),
         }
@@ -88,6 +90,7 @@ convert!(serde_json::Error, Json);
 convert!(candle_core::Error, Tensor);
 convert!(safetensors::SafeTensorError, Safetensors);
 convert!(joint_optimizer::OptimizerError, Optimizer);
+convert!(uor_r4_integer::IntegerError, Integer);
 pub type Result<T> = std::result::Result<T, TrainingError>;
 
 fn invalid(message: impl Into<String>) -> TrainingError {

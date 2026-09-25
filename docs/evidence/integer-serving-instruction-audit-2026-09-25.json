@@ -1,0 +1,962 @@
+{
+  "schema": "uor-r4.integer-instruction-audit/2",
+  "completed_utc": "2026-09-25T20:08:12.099260+00:00",
+  "binary": "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/uor-r4-integer-be223fc5",
+  "binary_sha256_verified": "3811173d3e4d1b4415d41dfc363c772e22c994542e8fe2e05ef3ae089c65b182",
+  "source_commit": "be223fc5f11b3e4d9cb3f1eec38b135d7e6bda97",
+  "architecture": "Mach-O arm64",
+  "disassembler": {
+    "path": "/Library/Developer/CommandLineTools/usr/bin/llvm-objdump",
+    "version": "Apple LLVM version 21.0.0"
+  },
+  "method": "Demangled text-symbol table bounded disassembly; each range ends at the next distinct text-symbol address. Inspect all mnemonic counts, every floating/multiplier/divider hit, direct calls and tail branches. Classify flagged operands from surrounding instructions and corresponding source. Inlined checked arithmetic is included through its caller ranges.",
+  "scope": {
+    "distinct_symbol_ranges": 55,
+    "decoded_instructions": 12756,
+    "groups": {
+      "model": {
+        "ranges": 42,
+        "instructions": 8840
+      },
+      "sampling": {
+        "ranges": 9,
+        "instructions": 2421
+      },
+      "generation_driver": {
+        "ranges": 4,
+        "instructions": 1495
+      }
+    },
+    "math": "Runtime product/divide/scaled/normalization/transport include inlined math primitives. Test-only or unused APIs are not claimed audited.",
+    "selection": "Sampler::select, draw_below with inlined xorshift, weighted ticket scan and specialized top-k comparator/sort functions.",
+    "generation": "Bundle::generate and TextSession::{append,observe,generate}; timing conversion instructions included and classified separately.",
+    "excluded": "Artifact loaders/legacy metadata parsing, tokenizer encode/decode, hashing, timing library implementation, allocator, general memory/format/error/unwind/serde library implementations. No whole-process claim.",
+    "not_a_whole_binary_audit": true
+  },
+  "findings": {
+    "floating_arithmetic_or_conversion_instruction_count": 0,
+    "model_value_hardware_multiplication_or_division_instruction_count": 0,
+    "probability_or_PRNG_value_hardware_multiplication_or_division_instruction_count": 0,
+    "model_shape_address_hardware_multiplication_or_division_instruction_count": 6,
+    "sampling_sort_address_hardware_multiplication_or_division_instruction_count": 1,
+    "generation_instrumentation_hardware_multiplication_instruction_count": 6,
+    "floating_register_bit_transfer": [
+      {
+        "group": "model",
+        "symbol": "uor_r4_integer::model::softmax",
+        "address": "0x1000277dc",
+        "mnemonic": "fmov",
+        "operands": "x12, d0",
+        "classification": "integer_SIMD_bit_transfer",
+        "evidence": "Preceded by add.2d and addp.2d integer reduction. fmov copies sum bits to x12; no floating arithmetic or conversion."
+      }
+    ],
+    "no_indirect_calls_in_inspected_ranges": true
+  },
+  "actual_driver_exceptions": [
+    {
+      "group": "model",
+      "symbol": "<uor_r4_integer::model::IntegerModel>::matrix_work",
+      "address": "0x1000232cc",
+      "mnemonic": "udiv",
+      "operands": "x10, x8, x19",
+      "classification": "matrix_chunk_count",
+      "reason": "Parameter-code element count divided by validated matrix input width initializes chunks_exact.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "model",
+      "symbol": "<uor_r4_integer::model::IntegerModel>::matrix_work",
+      "address": "0x1000232dc",
+      "mnemonic": "mul",
+      "operands": "x13, x10, x19",
+      "classification": "matrix_chunk_extent",
+      "reason": "Chunk count times validated matrix input width constructs the full-chunk span and remainder.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "model",
+      "symbol": "<uor_r4_integer::model::IntegerModel>::step",
+      "address": "0x100024664",
+      "mnemonic": "mul",
+      "operands": "x19, x21, x22",
+      "classification": "embedding_row_offset",
+      "reason": "Validated token ID times state width locates the selected embedding row.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "model",
+      "symbol": "<uor_r4_integer::model::IntegerModel>::step",
+      "address": "0x1000246e8",
+      "mnemonic": "madd",
+      "operands": "x8, x21, x8, x24",
+      "classification": "embedding_slice_alias_bound",
+      "reason": "Compiler-generated overlap check constructs embedding row end address: width times (2*token+2) plus i16-code base. Operands are indices/addresses, not learned values.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "model",
+      "symbol": "<uor_r4_integer::model::IntegerModel>::step",
+      "address": "0x100024f80",
+      "mnemonic": "madd",
+      "operands": "x8, x8, x9, x23",
+      "classification": "history_vector_iterator_end",
+      "reason": "History length times the 24-byte Vec descriptor size plus base pointer constructs iteration endpoint.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "generation_driver",
+      "symbol": "<uor_r4_integer::bundle::Bundle>::generate",
+      "address": "0x1000341c4",
+      "mnemonic": "umulh",
+      "operands": "x9, x0, x8",
+      "classification": "elapsed_nanosecond_conversion",
+      "reason": "Immediately after Instant::elapsed: seconds multiplied by 1,000,000,000 into u128 and nanoseconds added. This is instrumentation, not model/selection arithmetic.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "generation_driver",
+      "symbol": "<uor_r4_integer::bundle::Bundle>::generate",
+      "address": "0x1000341c8",
+      "mnemonic": "mul",
+      "operands": "x8, x0, x8",
+      "classification": "elapsed_nanosecond_conversion",
+      "reason": "Immediately after Instant::elapsed: seconds multiplied by 1,000,000,000 into u128 and nanoseconds added. This is instrumentation, not model/selection arithmetic.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "model",
+      "symbol": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::ChunksExact<i16>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::matrix_work::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next",
+      "address": "0x10003ee00",
+      "mnemonic": "mul",
+      "operands": "x10, x3, x8",
+      "classification": "matrix_row_offset",
+      "reason": "Matrix row index times input width locates signed4 coefficients immediately before low_bit_dot.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "sampling",
+      "symbol": "core::slice::sort::unstable::quicksort::quicksort::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>",
+      "address": "0x100044b4c",
+      "mnemonic": "madd",
+      "operands": "x2, x3, x24, x22",
+      "classification": "top_k_sort_pivot_address",
+      "reason": "Quicksort forms pivot pointer base+56*(slice_len>>3). Register x24 is loaded with 56 at 0x100044b04; probability masses and PRNG state are not multiplied.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "generation_driver",
+      "symbol": "<uor_r4_integer::generation::TextSession>::observe",
+      "address": "0x100049440",
+      "mnemonic": "umulh",
+      "operands": "x11, x0, x10",
+      "classification": "elapsed_nanosecond_conversion",
+      "reason": "Immediately after Instant::elapsed: seconds multiplied by 1,000,000,000 into u128 and nanoseconds added. This is instrumentation, not model/selection arithmetic.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "generation_driver",
+      "symbol": "<uor_r4_integer::generation::TextSession>::observe",
+      "address": "0x100049444",
+      "mnemonic": "mul",
+      "operands": "x10, x0, x10",
+      "classification": "elapsed_nanosecond_conversion",
+      "reason": "Immediately after Instant::elapsed: seconds multiplied by 1,000,000,000 into u128 and nanoseconds added. This is instrumentation, not model/selection arithmetic.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "generation_driver",
+      "symbol": "<uor_r4_integer::generation::TextSession>::generate",
+      "address": "0x10004a04c",
+      "mnemonic": "umulh",
+      "operands": "x9, x0, x8",
+      "classification": "elapsed_nanosecond_conversion",
+      "reason": "Immediately after Instant::elapsed: seconds multiplied by 1,000,000,000 into u128 and nanoseconds added. This is instrumentation, not model/selection arithmetic.",
+      "model_or_sampling_value_operation": false
+    },
+    {
+      "group": "generation_driver",
+      "symbol": "<uor_r4_integer::generation::TextSession>::generate",
+      "address": "0x10004a050",
+      "mnemonic": "mul",
+      "operands": "x8, x0, x8",
+      "classification": "elapsed_nanosecond_conversion",
+      "reason": "Immediately after Instant::elapsed: seconds multiplied by 1,000,000,000 into u128 and nanoseconds added. This is instrumentation, not model/selection arithmetic.",
+      "model_or_sampling_value_operation": false
+    }
+  ],
+  "claim": {
+    "supported": "For this exact standalone arm64 executable and inspected runtime model and selection value paths, learned dot products, variable products, transport, normalization, probability mixture, greedy ranking, categorical mass selection and xorshift/rejection execute without floating arithmetic/conversion or hardware multiply/divide on model, probability or PRNG values. Listed shape/address/sort/timing operations remain outside this numerical-value claim.",
+    "unsupported": [
+      "No multiplication/division instructions anywhere in IntegerModel::step or Sampler::select call graphs",
+      "Whole executable or complete process contains no floating arithmetic or multiplier/divider",
+      "Compiler-independent instruction compliance",
+      "Cryptographic randomness, cross-call stochastic equivalence, language/energy advantage or allocation-free serving"
+    ],
+    "whole_model_step_mul_div_free": false,
+    "whole_sampler_call_graph_mul_div_free": false,
+    "new_scope_exception_authorized": false
+  },
+  "library_calls": {
+    "resolved_imports": {
+      "0x1000a3de8": "__Unwind_Resume",
+      "0x1000a3e6c": "bzero",
+      "0x1000a3fb0": "memcmp",
+      "0x1000a3fbc": "memcpy"
+    },
+    "calls_outside_inspected_ranges": {
+      "0x10000f130": [
+        "__rustc::__rust_no_alloc_shim_is_unstable_v2"
+      ],
+      "0x10000f120": [
+        "__rustc::__rust_alloc"
+      ],
+      "0x1000a38f0": [
+        "alloc::raw_vec::handle_error"
+      ],
+      "0x1000a3fb0": [
+        "0x1000a3fb0 <dyld_stub_binder+0x1000a3fb0>"
+      ],
+      "0x100091834": [
+        "alloc::fmt::format::format_inner"
+      ],
+      "0x10000f124": [
+        "__rustc::__rust_dealloc"
+      ],
+      "0x1000a3bec": [
+        "core::panicking::panic_fmt"
+      ],
+      "0x10003d818": [
+        "core::ptr::drop_glue::<core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>"
+      ],
+      "0x1000a3a64": [
+        "core::panicking::panic_in_cleanup"
+      ],
+      "0x1000a3de8": [
+        "0x1000a3de8 <dyld_stub_binder+0x1000a3de8>"
+      ],
+      "0x100091a00": [
+        "<alloc::string::String as core::clone::Clone>::clone"
+      ],
+      "0x10000f12c": [
+        "__rustc::__rust_alloc_zeroed"
+      ],
+      "0x100022b54": [
+        "core::ptr::drop_glue::<alloc::vec::Vec<alloc::vec::Vec<i32>>>"
+      ],
+      "0x1000a3c14": [
+        "core::slice::index::slice_index_fail"
+      ],
+      "0x100022f60": [
+        "<u64 as alloc::vec::spec_from_elem::SpecFromElem>::from_elem::<alloc::alloc::Global>"
+      ],
+      "0x100022e00": [
+        "<i32 as alloc::vec::spec_from_elem::SpecFromElem>::from_elem::<alloc::alloc::Global>"
+      ],
+      "0x10004ce64": [
+        "<alloc::vec::Vec<i32> as core::clone::Clone>::clone",
+        "<alloc::vec::Vec<u32> as core::clone::Clone>::clone"
+      ],
+      "0x1000a3fbc": [
+        "0x1000a3fbc <dyld_stub_binder+0x1000a3fbc>"
+      ],
+      "0x1000450b8": [
+        "<alloc::raw_vec::RawVecInner>::try_allocate_in"
+      ],
+      "0x10009bda8": [
+        "<alloc::raw_vec::RawVec<i32>>::grow_one"
+      ],
+      "0x10009bb70": [
+        "<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>"
+      ],
+      "0x1000a3a7c": [
+        "core::panicking::panic_bounds_check"
+      ],
+      "0x10009bd40": [
+        "<alloc::raw_vec::RawVec<usize>>::grow_one",
+        "<alloc::raw_vec::RawVec<u64>>::grow_one"
+      ],
+      "0x100022bd8": [
+        "core::ptr::drop_glue::<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<u64>, alloc::vec::into_iter::IntoIter<u64>>>"
+      ],
+      "0x1000230e8": [
+        "<alloc::vec::Vec<alloc::vec::Vec<i32>>>::push_mut"
+      ],
+      "0x10009c5e4": [
+        "<alloc::raw_vec::RawVec<u32>>::grow_one"
+      ],
+      "0x10004a750": [
+        "<alloc::vec::Vec<usize>>::extend_trusted::<core::ops::range::Range<usize>>"
+      ],
+      "0x10009be78": [
+        "<alloc::raw_vec::RawVecInner>::finish_grow"
+      ],
+      "0x1000a3d00": [
+        "core::slice::sort::shared::smallsort::panic_on_ord_violation"
+      ],
+      "0x100072c1c": [
+        "<std::time::Instant>::now"
+      ],
+      "0x10005132c": [
+        "<uor_r4_tokenizer::ByteBpeTokenizer>::encode"
+      ],
+      "0x10004a540": [
+        "uor_r4_integer::generation::validate_budget"
+      ],
+      "0x1000337c4": [
+        "core::ptr::drop_glue::<uor_r4_integer::generation::TextSession>"
+      ],
+      "0x100072c24": [
+        "<std::time::Instant>::elapsed"
+      ],
+      "0x1000336b4": [
+        "core::ptr::drop_glue::<uor_r4_integer::generation::Generation>"
+      ],
+      "0x100045380": [
+        "core::ptr::drop_glue::<std::io::error::Error>"
+      ],
+      "0x100048098": [
+        "core::ptr::drop_glue::<uor_r4_integer::model::IntegerStep>"
+      ],
+      "0x10004d018": [
+        "sha2::sha256::compress256"
+      ],
+      "0x1000a3e6c": [
+        "0x1000a3e6c <dyld_stub_binder+0x1000a3e6c>"
+      ],
+      "0x10004ae6c": [
+        "<alloc::string::String as core::iter::traits::collect::FromIterator<char>>::from_iter::<hex::BytesToHexChars>"
+      ],
+      "0x10009bc70": [
+        "<alloc::raw_vec::RawVec<uor_r4_integer::generation::Decision>>::grow_one"
+      ],
+      "0x10004fc04": [
+        "<uor_r4_tokenizer::ByteBpeTokenizer>::decode_bytes"
+      ],
+      "0x100095e70": [
+        "core::slice::memchr::memchr_aligned"
+      ],
+      "0x100091478": [
+        "<alloc::string::String>::from_utf8_lossy"
+      ],
+      "0x10002be94": [
+        "<str>::trim_matches::<<char>::is_whitespace>"
+      ],
+      "0x100095bfc": [
+        "core::str::converts::from_utf8"
+      ],
+      "0x100053b3c": [
+        "<uor_r4_tokenizer::ByteBpeTokenizer>::address"
+      ],
+      "0x10004801c": [
+        "core::ptr::drop_glue::<alloc::vec::Vec<uor_r4_integer::generation::Decision>>"
+      ],
+      "0x10004aba0": [
+        "core::ptr::drop_glue::<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#1}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>"
+      ],
+      "0x10004ac0c": [
+        "core::ptr::drop_glue::<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#3}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>"
+      ]
+    },
+    "external_tail_branches": {
+      "0x10000f124": [
+        "__rustc::__rust_dealloc"
+      ]
+    },
+    "assessment": "No delegated numerical float/multiply/divide helper found. Out-of-scope targets implement allocations, memory copies/comparisons, errors/formatting, tokenizer operations, hash, elapsed-time measurement and budget validation."
+  },
+  "mnemonic_counts": {
+    "adc": 36,
+    "adcs": 40,
+    "add": 835,
+    "add.2d": 7,
+    "addp.2d": 1,
+    "adds": 109,
+    "adrp": 202,
+    "and": 37,
+    "asr": 55,
+    "b": 448,
+    "b.eq": 139,
+    "b.ge": 1,
+    "b.hi": 15,
+    "b.hs": 229,
+    "b.le": 1,
+    "b.lo": 23,
+    "b.ls": 18,
+    "b.lt": 1,
+    "b.ne": 124,
+    "bfi": 2,
+    "bic": 9,
+    "bl": 688,
+    "brk": 15,
+    "cbnz": 73,
+    "cbz": 369,
+    "ccmp": 9,
+    "cinc": 25,
+    "clz": 29,
+    "cmn": 58,
+    "cmp": 1072,
+    "cneg": 16,
+    "csel": 642,
+    "cset": 369,
+    "csinv": 24,
+    "eor": 169,
+    "ext.16b": 4,
+    "extr": 126,
+    "fmov": 1,
+    "ldp": 463,
+    "ldpsw": 2,
+    "ldr": 1253,
+    "ldrb": 9,
+    "ldrh": 8,
+    "ldrsh": 7,
+    "ldrsw": 6,
+    "ldur": 146,
+    "ldurh": 2,
+    "lsl": 298,
+    "lsr": 135,
+    "madd": 3,
+    "mov": 1908,
+    "movi.2d": 6,
+    "movk": 19,
+    "mul": 6,
+    "mvn": 15,
+    "neg": 12,
+    "negs": 57,
+    "ngc": 59,
+    "ngcs": 21,
+    "orr": 173,
+    "ret": 61,
+    "rev": 1,
+    "rev32.16b": 2,
+    "sbc": 64,
+    "sbcs": 103,
+    "sbfiz": 3,
+    "sbfx": 2,
+    "sshll.4s": 5,
+    "sshll2.4s": 4,
+    "stp": 602,
+    "str": 589,
+    "strb": 18,
+    "stur": 94,
+    "sturb": 20,
+    "sub": 190,
+    "subs": 101,
+    "sxtw": 24,
+    "tbnz": 97,
+    "tbz": 106,
+    "tst": 23,
+    "ubfx": 14,
+    "udiv": 1,
+    "umulh": 3
+  },
+  "inspected_ranges": [
+    {
+      "start": "0x100023028",
+      "end_exclusive": "0x100023088",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::step::{closure#4}"
+      ],
+      "instruction_count": 24
+    },
+    {
+      "start": "0x100023088",
+      "end_exclusive": "0x1000230e8",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::normalize_residual::{closure#0}"
+      ],
+      "instruction_count": 24
+    },
+    {
+      "start": "0x100023170",
+      "end_exclusive": "0x100023470",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::matrix_work"
+      ],
+      "instruction_count": 192
+    },
+    {
+      "start": "0x100023470",
+      "end_exclusive": "0x10002367c",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::new_session"
+      ],
+      "instruction_count": 131
+    },
+    {
+      "start": "0x10002367c",
+      "end_exclusive": "0x100023850",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::vector_work"
+      ],
+      "instruction_count": 117
+    },
+    {
+      "start": "0x100024470",
+      "end_exclusive": "0x100026674",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::step"
+      ],
+      "instruction_count": 2177
+    },
+    {
+      "start": "0x100026674",
+      "end_exclusive": "0x100026a44",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::affine"
+      ],
+      "instruction_count": 244
+    },
+    {
+      "start": "0x100026a44",
+      "end_exclusive": "0x100026b6c",
+      "group": "model",
+      "symbols": [
+        "<uor_r4_integer::model::IntegerModel>::parameter"
+      ],
+      "instruction_count": 74
+    },
+    {
+      "start": "0x100026b6c",
+      "end_exclusive": "0x100026c58",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::low_bit_dot"
+      ],
+      "instruction_count": 59
+    },
+    {
+      "start": "0x100026c58",
+      "end_exclusive": "0x100026ef0",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::normalize_state"
+      ],
+      "instruction_count": 166
+    },
+    {
+      "start": "0x100026ef0",
+      "end_exclusive": "0x100026f04",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::low_bit_products"
+      ],
+      "instruction_count": 5
+    },
+    {
+      "start": "0x100026f04",
+      "end_exclusive": "0x10002709c",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::normalize_residual"
+      ],
+      "instruction_count": 102
+    },
+    {
+      "start": "0x10002709c",
+      "end_exclusive": "0x100027184",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::blend"
+      ],
+      "instruction_count": 58
+    },
+    {
+      "start": "0x100027184",
+      "end_exclusive": "0x100027378",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::divide"
+      ],
+      "instruction_count": 125
+    },
+    {
+      "start": "0x100027378",
+      "end_exclusive": "0x100027544",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::scaled"
+      ],
+      "instruction_count": 115
+    },
+    {
+      "start": "0x100027544",
+      "end_exclusive": "0x1000276a0",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::product"
+      ],
+      "instruction_count": 87
+    },
+    {
+      "start": "0x1000276a0",
+      "end_exclusive": "0x1000278d4",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::softmax"
+      ],
+      "instruction_count": 141
+    },
+    {
+      "start": "0x1000278d4",
+      "end_exclusive": "0x10002a240",
+      "group": "model",
+      "symbols": [
+        "uor_r4_integer::model::transport"
+      ],
+      "instruction_count": 2651
+    },
+    {
+      "start": "0x10002bd34",
+      "end_exclusive": "0x10002be6c",
+      "group": "sampling",
+      "symbols": [
+        "core::slice::sort::unstable::heapsort::heapsort::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>"
+      ],
+      "instruction_count": 78
+    },
+    {
+      "start": "0x10002c0d8",
+      "end_exclusive": "0x10002c13c",
+      "group": "sampling",
+      "symbols": [
+        "uor_r4_integer::sampling::select_ticket::<core::iter::adapters::copied::Copied<core::slice::iter::Iter<usize>>>"
+      ],
+      "instruction_count": 25
+    },
+    {
+      "start": "0x10002dcb0",
+      "end_exclusive": "0x10002dd44",
+      "group": "sampling",
+      "symbols": [
+        "<uor_r4_integer::sampling::Sampler>::draw_below"
+      ],
+      "instruction_count": 37
+    },
+    {
+      "start": "0x10002dd44",
+      "end_exclusive": "0x10002e020",
+      "group": "sampling",
+      "symbols": [
+        "<uor_r4_integer::sampling::Sampler>::select"
+      ],
+      "instruction_count": 183
+    },
+    {
+      "start": "0x10002ea90",
+      "end_exclusive": "0x10003008c",
+      "group": "sampling",
+      "symbols": [
+        "core::slice::sort::shared::smallsort::small_sort_network::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>"
+      ],
+      "instruction_count": 1407
+    },
+    {
+      "start": "0x100030410",
+      "end_exclusive": "0x100030554",
+      "group": "sampling",
+      "symbols": [
+        "core::slice::sort::shared::smallsort::insertion_sort_shift_left::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>"
+      ],
+      "instruction_count": 81
+    },
+    {
+      "start": "0x100033e4c",
+      "end_exclusive": "0x100034254",
+      "group": "generation_driver",
+      "symbols": [
+        "<uor_r4_integer::bundle::Bundle>::generate"
+      ],
+      "instruction_count": 258
+    },
+    {
+      "start": "0x10003da0c",
+      "end_exclusive": "0x10003dae4",
+      "group": "model",
+      "symbols": [
+        "core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#1}>, i32, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>, <core::result::Result<alloc::vec::Vec<i32>, uor_r4_integer::IntegerError> as core::iter::traits::collect::FromIterator<core::result::Result<i32, uor_r4_integer::IntegerError>>>::from_iter<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#1}>>::{closure#0}, alloc::vec::Vec<i32>>"
+      ],
+      "instruction_count": 54
+    },
+    {
+      "start": "0x10003dae4",
+      "end_exclusive": "0x10003dbb0",
+      "group": "model",
+      "symbols": [
+        "core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::step::{closure#2}>, i32, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>, <core::result::Result<alloc::vec::Vec<i32>, uor_r4_integer::IntegerError> as core::iter::traits::collect::FromIterator<core::result::Result<i32, uor_r4_integer::IntegerError>>>::from_iter<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::step::{closure#2}>>::{closure#0}, alloc::vec::Vec<i32>>"
+      ],
+      "instruction_count": 51
+    },
+    {
+      "start": "0x10003dbb0",
+      "end_exclusive": "0x10003dc80",
+      "group": "model",
+      "symbols": [
+        "core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#3}>, i32, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>, <core::result::Result<alloc::vec::Vec<i32>, uor_r4_integer::IntegerError> as core::iter::traits::collect::FromIterator<core::result::Result<i32, uor_r4_integer::IntegerError>>>::from_iter<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#3}>>::{closure#0}, alloc::vec::Vec<i32>>"
+      ],
+      "instruction_count": 52
+    },
+    {
+      "start": "0x10003dc80",
+      "end_exclusive": "0x10003dd8c",
+      "group": "model",
+      "symbols": [
+        "core::iter::adapters::try_process::<core::iter::adapters::map::Map<alloc::vec::into_iter::IntoIter<u64>, uor_r4_integer::model::softmax::{closure#2}>, u64, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>, <core::result::Result<alloc::vec::Vec<u64>, uor_r4_integer::IntegerError> as core::iter::traits::collect::FromIterator<core::result::Result<u64, uor_r4_integer::IntegerError>>>::from_iter<core::iter::adapters::map::Map<alloc::vec::into_iter::IntoIter<u64>, uor_r4_integer::model::softmax::{closure#2}>>::{closure#0}, alloc::vec::Vec<u64>>"
+      ],
+      "instruction_count": 67
+    },
+    {
+      "start": "0x10003e9dc",
+      "end_exclusive": "0x10003ecf0",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<i32>>, core::slice::iter::Iter<i32>>, uor_r4_integer::model::blend::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 197
+    },
+    {
+      "start": "0x10003ecf0",
+      "end_exclusive": "0x10003edc8",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#1}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 54
+    },
+    {
+      "start": "0x10003edc8",
+      "end_exclusive": "0x10003efb0",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::ChunksExact<i16>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::matrix_work::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 122
+    },
+    {
+      "start": "0x10003efb0",
+      "end_exclusive": "0x10003f330",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::step::{closure#2}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 224
+    },
+    {
+      "start": "0x10003f330",
+      "end_exclusive": "0x10003f3e4",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#3}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next",
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::affine::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 45
+    },
+    {
+      "start": "0x10003f3e4",
+      "end_exclusive": "0x10003f67c",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<i32>, uor_r4_integer::model::normalize_state::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 166
+    },
+    {
+      "start": "0x10003f67c",
+      "end_exclusive": "0x10003f884",
+      "group": "model",
+      "symbols": [
+        "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<i16>, <uor_r4_integer::model::IntegerModel>::vector_work::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::next"
+      ],
+      "instruction_count": 130
+    },
+    {
+      "start": "0x10004308c",
+      "end_exclusive": "0x100043298",
+      "group": "sampling",
+      "symbols": [
+        "core::slice::sort::unstable::ipnsort::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>"
+      ],
+      "instruction_count": 131
+    },
+    {
+      "start": "0x100043658",
+      "end_exclusive": "0x1000437c0",
+      "group": "sampling",
+      "symbols": [
+        "core::slice::sort::shared::pivot::median3_rec::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>"
+      ],
+      "instruction_count": 90
+    },
+    {
+      "start": "0x100044aa4",
+      "end_exclusive": "0x1000450b8",
+      "group": "sampling",
+      "symbols": [
+        "core::slice::sort::unstable::quicksort::quicksort::<usize, <[usize]>::sort_unstable_by<<uor_r4_integer::sampling::Sampler>::select::{closure#1}>::{closure#0}>"
+      ],
+      "instruction_count": 389
+    },
+    {
+      "start": "0x100046fe0",
+      "end_exclusive": "0x1000472e4",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::into_iter::IntoIter<u64> as core::iter::traits::iterator::Iterator>::try_fold::<alloc::vec::in_place_drop::InPlaceDrop<u64>, core::iter::adapters::map::map_try_fold<u64, core::result::Result<u64, uor_r4_integer::IntegerError>, alloc::vec::in_place_drop::InPlaceDrop<u64>, core::ops::control_flow::ControlFlow<core::result::Result<alloc::vec::in_place_drop::InPlaceDrop<u64>, !>, alloc::vec::in_place_drop::InPlaceDrop<u64>>, uor_r4_integer::model::softmax::{closure#2}, <core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<alloc::vec::into_iter::IntoIter<u64>, uor_r4_integer::model::softmax::{closure#2}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>> as core::iter::traits::iterator::Iterator>::try_fold<alloc::vec::in_place_drop::InPlaceDrop<u64>, alloc::vec::in_place_collect::write_in_place_with_drop<u64>::{closure#0}, core::result::Result<alloc::vec::in_place_drop::InPlaceDrop<u64>, !>>::{closure#0}>::{closure#0}, core::ops::control_flow::ControlFlow<core::result::Result<alloc::vec::in_place_drop::InPlaceDrop<u64>, !>, alloc::vec::in_place_drop::InPlaceDrop<u64>>>"
+      ],
+      "instruction_count": 193
+    },
+    {
+      "start": "0x1000491ec",
+      "end_exclusive": "0x100049388",
+      "group": "generation_driver",
+      "symbols": [
+        "<uor_r4_integer::generation::TextSession>::append"
+      ],
+      "instruction_count": 103
+    },
+    {
+      "start": "0x100049388",
+      "end_exclusive": "0x1000496d4",
+      "group": "generation_driver",
+      "symbols": [
+        "<uor_r4_integer::generation::TextSession>::observe"
+      ],
+      "instruction_count": 211
+    },
+    {
+      "start": "0x1000496d4",
+      "end_exclusive": "0x10004a540",
+      "group": "generation_driver",
+      "symbols": [
+        "<uor_r4_integer::generation::TextSession>::generate"
+      ],
+      "instruction_count": 923
+    },
+    {
+      "start": "0x10004b2ec",
+      "end_exclusive": "0x10004b410",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter::SpecFromIter<i32, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<i32>>, core::slice::iter::Iter<i32>>, uor_r4_integer::model::blend::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 73
+    },
+    {
+      "start": "0x10004b410",
+      "end_exclusive": "0x10004b524",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter::SpecFromIter<i32, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::step::{closure#2}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 69
+    },
+    {
+      "start": "0x10004b524",
+      "end_exclusive": "0x10004b630",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter::SpecFromIter<i32, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<i32>, uor_r4_integer::model::normalize_state::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 67
+    },
+    {
+      "start": "0x10004b630",
+      "end_exclusive": "0x10004b768",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i128> as alloc::vec::spec_from_iter::SpecFromIter<i128, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::ChunksExact<i16>, core::slice::iter::Iter<i16>>, <uor_r4_integer::model::IntegerModel>::matrix_work::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 78
+    },
+    {
+      "start": "0x10004b768",
+      "end_exclusive": "0x10004b890",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i128> as alloc::vec::spec_from_iter::SpecFromIter<i128, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<i16>, <uor_r4_integer::model::IntegerModel>::vector_work::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 74
+    },
+    {
+      "start": "0x10004bf40",
+      "end_exclusive": "0x10004c140",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter::SpecFromIter<i32, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#1}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 128
+    },
+    {
+      "start": "0x10004c140",
+      "end_exclusive": "0x10004c308",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter::SpecFromIter<i32, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::step::{closure#3}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 114
+    },
+    {
+      "start": "0x10004c308",
+      "end_exclusive": "0x10004c4d0",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter::SpecFromIter<i32, core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<alloc::vec::into_iter::IntoIter<i128>, alloc::vec::into_iter::IntoIter<i128>>, <uor_r4_integer::model::IntegerModel>::affine::{closure#0}>, core::result::Result<core::convert::Infallible, uor_r4_integer::IntegerError>>>>::from_iter"
+      ],
+      "instruction_count": 114
+    },
+    {
+      "start": "0x10004c4d0",
+      "end_exclusive": "0x10004c5fc",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<[i64; 16]> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<[i64; 16], core::iter::adapters::map::Map<core::slice::iter::Iter<i32>, uor_r4_integer::model::low_bit_products::{closure#0}>>>::from_iter"
+      ],
+      "instruction_count": 75
+    },
+    {
+      "start": "0x10004c5fc",
+      "end_exclusive": "0x10004c6f8",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<i32, core::iter::adapters::map::Map<core::slice::iter::Iter<i32>, <uor_r4_integer::model::IntegerModel>::tanh::{closure#0}>>>::from_iter"
+      ],
+      "instruction_count": 63
+    },
+    {
+      "start": "0x10004c6f8",
+      "end_exclusive": "0x10004c7f4",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<i32> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<i32, core::iter::adapters::map::Map<core::slice::iter::Iter<i32>, <uor_r4_integer::model::IntegerModel>::sigmoid::{closure#0}>>>::from_iter"
+      ],
+      "instruction_count": 63
+    },
+    {
+      "start": "0x10004c7f4",
+      "end_exclusive": "0x10004c920",
+      "group": "model",
+      "symbols": [
+        "<alloc::vec::Vec<u64> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<u64, core::iter::adapters::map::Map<core::slice::iter::Iter<i32>, uor_r4_integer::model::softmax::{closure#1}>>>::from_iter"
+      ],
+      "instruction_count": 75
+    }
+  ],
+  "evidence": {
+    "excerpts": "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/instruction-excerpts-2.asm",
+    "excerpts_sha256": "0903d5c98a1e9d213b6839b9c3c047f0c9f53099808a4aed192d1e327312b911",
+    "inspection_script": "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/inspect-instructions-2.py"
+  },
+  "optimization_inspection": {
+    "product_table": "low_bit_products and specialized closure included: wrapper5 plus construction75 instructions. Actual value construction uses lsl/add/sub/neg and stores; no hardware multiplication, division or floating arithmetic.",
+    "dot": "low_bit_dot is59 instructions; compiler unrolls to4 independent integer accumulators and masked lookup loads. Exact integer association is safe under the retained512-coordinate bound; compiled accumulation grouping need not preserve serial association to preserve its exact sum.",
+    "comparison_to_baseline": "Six model shape/address, one sampler sort address, six elapsed-time multiplication instructions remain as in baseline. New product table introduces no numerical-value multiply/divide. Standalone source and executable identity changed; this is a fresh audit."
+  },
+  "work_performed": "Read-only binary inspection; wrote audit evidence only. No builds, model execution, source edits or benchmark/statistical campaign."
+}
