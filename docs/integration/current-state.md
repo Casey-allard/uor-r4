@@ -20,11 +20,65 @@ negatives remain preserved. The shared bounded-admission successor now completes
 its paired comparison but fails source retention in both arms. Keep the accepted
 learned-code parents and full 256-token access. The recent64 training follow-up
 is withdrawn under the owner-directed [D9 correction](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract).
-Advance the quantized transport/integer execution bridge; admission pruning is
-a deferred optimization. No additional rounding, hash or scale sweep.
+The full-context integer numerical bridge is now implemented and retained at
+the scope below. Advance it into a standalone serving session; admission pruning
+is deferred. No additional rounding, hash or scale sweep.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
-## Latest result: bounded admission complete; source retention fails
+## Latest result: integer attention and transport execute with full context
+
+The [executed integer bridge](integer-execution-result-2026-09-25.md) loads the
+unchanged accepted learned-code parents. Learned attention, R4/ordinary transport,
+recurrent state and normalized vocabulary/copy output now execute with integer
+model-value arithmetic. Context/access remain **256/full**; every tested step
+checks all causal occurrences, reaching255 previous events at the window end.
+No new training, admission change or fresh holdout occurs.
+
+| Matched-feature execution | Quaternion | Householder pair |
+|---|---:|---:|
+| Integer / parent complete source answers | 28/32 /28/32 | 24/32 /24/32 |
+| Previously correct answers lost | 0 | 0 |
+| Integer NoRead complete answers | 0/32 | 0/32 |
+| Maximum Read state drift; bound0.01 | 0.007324219 | 0.005859375 |
+| Maximum Read probability drift; bound0.01 | 0.006691748 | 0.008505233 |
+| Integer step, measured batch1 | 16.14 ms | 16.09 ms |
+
+Read and NoRead both meet the prospective numerical bounds on **four full256
+exposed calibration windows**,1,024 targets per mode. This is not the full976-window
+natural-language gate. The32 source variants are the existing authored panel.
+First attempt used the wrong F32 backend and retains its ordinary state-drift
+failure. Rebuilding only with the original parent features restores historical
+F32 source outputs; all4,096 integer target distribution hashes and all source/
+continuation values remain identical between builds (excluding elapsed time).
+Both comparisons took about112 seconds. No threshold changed.
+
+The audited compiled numerical-value ranges contain no floating arithmetic or
+model-value hardware multiply/divide. Five shape/address multiply/divide
+instructions remain; whole-step compliance is not claimed. The host seeded
+sampler remains floating, the prototype remains in the training crate, and
+parameter access is dense with allocation. Measured integer calls are about
+28–29 times slower than matched F32. Generated prose remains unreliable.
+No useful language, geometric advantage, Hamiltonian dynamics, D5 sparsity or
+energy claim is promoted.
+
+**Next:** integrate the retained computation into a standalone Rust serving
+session with integer token selection, complete-generation cost and the same
+full256 contract. Use exact-output optimizations only after locating actual
+cost. Keep the ordinary arm and existing artifacts; no new model fit or admission
+sweep is needed for that implementation. See the work card below.
+
+Executed Rust source: `45da66d4a2e77a908411c7084e109f6a17472114`.
+[Reports/bindings](../evidence/integer-execution-result-2026-09-25.json),
+[all text](integer-execution-outputs-2026-09-25.md),
+[independent row comparison](../evidence/integer-execution-comparison-2026-09-25.json),
+[instruction inspection](../evidence/integer-execution-instruction-audit-2026-09-25.json),
+[prospective plan](integer-execution-plan-2026-09-25.md),
+[resources](../evidence/integer-execution-closeout-2026-09-25.json).
+RDC ran DeepSeek review and concurrent Rust workers locally; independent agents
+implemented arithmetic/evaluation and reviewed the exact compiled path. Ten new
+focused checks plus two codec checks pass. No Kimi model or external training.
+
+## Retained result: bounded admission complete; source retention fails
 
 The [paired result](bounded-admission-result-2026-09-25.md) completes one shared
 bounded-admission implementation and256 updates /1,048,576 fitted target visits
@@ -49,7 +103,7 @@ retention failure. Same-weights full/recent64 recovery identifies the access
 policy as a material cause. Neither a diagnostic override nor a lower average
 loss promotes a failed candidate. The accepted learned-code parents remain current.
 
-**Next:** implement quantized R4 transport and the integer execution bridge
+**Historical next, now executed above:** implement quantized R4 transport and the integer execution bridge
 from the accepted learned-code parents, with full 256-token access and the
 matched ordinary arm. Reuse the existing evaluator and retained evidence.
 The proposed recent64 fit is withdrawn before execution; its same-weights
@@ -78,7 +132,7 @@ Owner-directed correction, September 25; governed by
 [D9](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)
 and the [progress-control rules](agent-execution-policy.md#progress-control--owner-correction-september-25).
 
-| Quantity | Required next baseline |
+| Quantity | Retained execution baseline |
 |---|---|
 | Training / evaluation / session context | 256 / 256 / 256 tokens |
 | Direct context access | Every causally available event within that window; `full` admission |
@@ -89,37 +143,36 @@ and the [progress-control rules](agent-execution-policy.md#progress-control--own
 | Evaluator | Existing `reference-evaluator-v2.json`; no new panel or holdout during implementation |
 | Deferred branch | recent64 fitting and sign-index/width/hash sweeps |
 
-**Implementation work card (#973 under #820):**
+**Next implementation work card (#973 under #820):**
 
-- **Deliverable:** load the accepted learned codes into a Rust integer execution
-  bridge, implementing quantized R4 transport as part of that same path. Retain
-  full context access and the ordinary transport comparator. Identify any
-  remaining float/multiplier operation explicitly; partial lowering is not full
-  serving qualification.
-- **Observed blocker / change:** packed codes currently execute in an F32
-  emulator. Replace the numerical execution of the existing learned operators;
-  keep model identity, context and admission fixed. Candidate selection need
-  not change to implement integer arithmetic.
-- **Necessary verification:** compile the changed Rust path; check changed
-  arithmetic/overflow, artifact loading and causal interfaces; measure state and
-  output drift against the existing emulator; inspect actual loaded full-context
-  generation with the retained evaluator. Reuse unaffected checks. Freeze the
-  numerical tolerance for each changed operator before its comparison. Full
-  model acceptance still needs its existing behavior criteria.
-- **Decision:** retained behavior and declared numerical compliance permit
-  integrating that implemented path. A mismatch localizes the next numerical
-  repair. Retraining is justified only by measured approximation error that the
-  implementation cannot resolve; it is not the default next experiment. If the
-  instrument cannot distinguish the cause, repair that named instrument only.
-- **Cost:** no model run is launched by this work card. Before numerical work,
-  use source inspection and retained throughput to project implementation/build,
-  focused checks, loaded evaluation and any specifically justified learning
-  against the existing cumulative budget. No new review or benchmark programme.
+- **Deliverable:** a standalone Rust serving session using the retained integer
+  computation, bound tables/artifact and integer token selection. Include actual
+  prompt-to-output behavior and measured generation cost with full256 access.
+- **Observed blocker / change:** the numerical bridge works, but still lives in
+  the training crate, its seeded evaluator sampler uses float, and measured
+  integer calls cost about28–29 times the F32 comparator. Separate the serving
+  dependency boundary; profile the actual cost before exact-output optimization.
+- **Fixed conditions:** accepted learned codes/scales, table artifact, context,
+  full admission, existing source oracle and ordinary comparator. No model
+  refit, new corpus, admission sweep or tolerance adjustment is the next step.
+- **Necessary verification:** compile and exercise the changed serving boundary;
+  verify artifact/error/causal contracts and integer token selection. Compare
+  exact probabilities and greedy outputs to this retained integer implementation;
+  inspect complete generation and the changed compiled numerical boundary.
+  Sampling changes are declared explicitly rather than called old-sampler parity.
+  Reuse the established numerical/behavior evidence where computation is unchanged.
+- **Decision:** a usable independent session with retained computation advances
+  implementation. A mismatch localizes the changed serving boundary; it does
+  not authorize retraining. A speedup requires measured complete-call cost;
+  energy and D5 sparsity remain distinct qualifications.
+- **Cost:** prospectively project the complete implementation/build/check/run/
+  delivery cycle against the shared ledger and physical reserve. The completed
+  bridge does not authorize an unbounded profiling or optimization campaign.
 
-The 256-token full-access baseline is finite and bounded; it does not satisfy
-terminal D5 parameter sparsity or establish economical scaling to larger memory.
-Do not silently shorten access to meet a cost target. The integer bridge is
-**NOT_RUN**; this correction changes the next implementation, not model quality.
+The full256 baseline is finite; it does not qualify terminal D5 parameter
+sparsity or scaling to larger memory. The integer **numerical bridge is executed**
+at its recorded limited scope. Standalone fully integer generation remains
+**NOT_RUN**. General language learning remains downstream capability work.
 
 ## Retained result: paired learned-code retention accepted
 

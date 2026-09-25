@@ -1,0 +1,767 @@
+{
+  "schema": "uor-r4.full-context-integer-result/1",
+  "decision": "RETAIN_NUMERICAL_IMPLEMENTATION_AT_MEASURED_SCOPE",
+  "source": {
+    "source_commit": "45da66d4a2e77a908411c7084e109f6a17472114",
+    "executable": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/integer-training-45da66d4-accelerate",
+    "executable_sha256": "554d95eecc552be72bb2923fbbdba7125df1419c1062546d863dd427cac24b6e",
+    "tables": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/tables-1",
+    "tables_started_utc": "2026-09-25T19:15:31.381306+00:00",
+    "tables_completed_utc": "2026-09-25T19:15:32.038728+00:00",
+    "new_focused_tests": 10,
+    "retained_codec_tests": 2,
+    "test_compile_seconds": 227,
+    "binary_build_seconds": 22.64,
+    "features": [
+      "metal",
+      "cpu-accelerate",
+      "reference-accelerate"
+    ],
+    "build_seconds": 24.0
+  },
+  "prospective_plan": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/bounded-admission-20260925/docs/integration/integer-execution-plan-2026-09-25.md",
+    "bytes": 5894,
+    "sha256": "bb8ff4cd0747790690b3566d588620211cd1c486c4d4dfd5a005aba3e2f27ad6"
+  },
+  "fixed": {
+    "training_provenance_context": 256,
+    "evaluation_context": 256,
+    "session_context": 256,
+    "admission": "full",
+    "state_width": 256,
+    "read_width": 64,
+    "numerical_windows": 4,
+    "targets_per_mode": 1024,
+    "evaluation_population": "exposed calibration prefix; zero comparison-tail targets",
+    "new_training": false,
+    "state_probability_tolerances": 0.01
+  },
+  "arms": {
+    "quaternion": {
+      "read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 28,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 28,
+        "mode": "enabled",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 17.367129958,
+          "f32_mean_nll_nats": 2.3355783943055406,
+          "f32_step_seconds": 0.580851432,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.335653773040397,
+          "integer_step_seconds": 16.525902692,
+          "maximum_copy_gate_delta": 0.00390625,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.0054493640268376,
+          "maximum_probability_delta": 0.006691747683401417,
+          "maximum_state_delta": 0.00732421875,
+          "maximum_total_variation": 0.007754314713612844,
+          "mean_nll_delta_nats": 7.537873485619073e-05,
+          "mean_total_variation": 0.001962666620580604,
+          "partitions": [
+            {
+              "f32_nll_sum": 2391.6322757688736,
+              "integer_nll_sum": 2391.7094635933663,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "8bf7d9a476daf63d99c4fbde52b0b4cda4dea4f9dc24b15668bdc7cad0919ee8",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.001953125,
+          "top1_disagreements": 2,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 41.713465,
+        "source_variants": 32,
+        "input_output_bindings": [
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/mode-read-report.json",
+            "bytes": 2053,
+            "sha256": "b30eacaec4b17b81f0772f90137c314dc3883b0a02cf1a1428e54f1545751d77"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/targets-read.jsonl",
+            "bytes": 851673,
+            "sha256": "8bf7d9a476daf63d99c4fbde52b0b4cda4dea4f9dc24b15668bdc7cad0919ee8"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/generations-read.json",
+            "bytes": 1007442,
+            "sha256": "f6cf7c3e826f03cb6357acdf535ec4eadb57f52e288c95a978f110c8fceed257"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/story-probes-read-integer.json",
+            "bytes": 154059,
+            "sha256": "58459edd6a14e27d0c0cb2d2b999f61ce64fb572956a8d636d5d4f3eebcc4843"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/story-probes-read-f32.json",
+            "bytes": 154290,
+            "sha256": "b156791012738758b6475d669995126252128b96fd66d64e876d0a3c0f076a39"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/evaluation-report.json",
+            "bytes": 593118,
+            "sha256": "48d06f15e893dca5884ce8c45ba0363a5cf368d524cd2904d16c5624574ab00f"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/manifest.json",
+            "bytes": 2449,
+            "sha256": "e5f5949682a6f1d910e2f5b2cfc1e2852dac5de1f010f8109ffe71e67ca22593"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/attempt.json",
+            "bytes": 750,
+            "sha256": "74c675b1a49507be6b9cda4b55f0553cbd3f6b5cea8db3a40f4e6a9a628d85a3"
+          }
+        ]
+      },
+      "no-read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 0,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 0,
+        "mode": "no_read",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 15.038084,
+          "f32_mean_nll_nats": 2.830036318147833,
+          "f32_step_seconds": 0.5265738440000003,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.8299661206939053,
+          "integer_step_seconds": 14.252623127999994,
+          "maximum_copy_gate_delta": 0.002838134765625,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.0,
+          "maximum_probability_delta": 0.005146819403964997,
+          "maximum_state_delta": 0.00634765625,
+          "maximum_total_variation": 0.006931662721590429,
+          "mean_nll_delta_nats": -7.019745392788934e-05,
+          "mean_total_variation": 0.002051281541426877,
+          "partitions": [
+            {
+              "f32_nll_sum": 2897.957189783381,
+              "integer_nll_sum": 2897.885307590559,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "6e6ea77580933429fc77722cac5f51fe0d5bfc7e3e55e05b8fb3440d635966dc",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.001953125,
+          "top1_disagreements": 2,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 36.27431825,
+        "source_variants": 32,
+        "input_output_bindings": [
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/mode-no-read-report.json",
+            "bytes": 2054,
+            "sha256": "54f1994275c0487a86272e5f1beb3b5efd0b90eb530379029442f7e5eb3237bc"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/targets-no-read.jsonl",
+            "bytes": 820413,
+            "sha256": "6e6ea77580933429fc77722cac5f51fe0d5bfc7e3e55e05b8fb3440d635966dc"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/generations-no-read.json",
+            "bytes": 748882,
+            "sha256": "07205410f7d09b3223e824a440b3882cc9aeebbbd2bbfc2cef3952b3c7b5fb3b"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/story-probes-no-read-integer.json",
+            "bytes": 165548,
+            "sha256": "2be39d6ca4a253a78049bacf20332fd2d90e91055018551b1772273d826640f3"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/story-probes-no-read-f32.json",
+            "bytes": 165720,
+            "sha256": "d791325231b45422b2f6d9ad56f041f6d5e57dbf1db76eebfc1b5023ad32af5e"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/evaluation-report.json",
+            "bytes": 593118,
+            "sha256": "48d06f15e893dca5884ce8c45ba0363a5cf368d524cd2904d16c5624574ab00f"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/manifest.json",
+            "bytes": 2449,
+            "sha256": "e5f5949682a6f1d910e2f5b2cfc1e2852dac5de1f010f8109ffe71e67ca22593"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-quaternion-2/attempt.json",
+            "bytes": 750,
+            "sha256": "74c675b1a49507be6b9cda4b55f0553cbd3f6b5cea8db3a40f4e6a9a628d85a3"
+          }
+        ]
+      }
+    },
+    "householder_pair": {
+      "read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 24,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 24,
+        "mode": "enabled",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 17.306591209,
+          "f32_mean_nll_nats": 2.3486091814159034,
+          "f32_step_seconds": 0.5700240279999997,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.348543489273543,
+          "integer_step_seconds": 16.4754366,
+          "maximum_copy_gate_delta": 0.004852294921875,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.0059231590045421,
+          "maximum_probability_delta": 0.008505232794838946,
+          "maximum_state_delta": 0.005859375,
+          "maximum_total_variation": 0.009039325671709439,
+          "mean_nll_delta_nats": -6.569214236051835e-05,
+          "mean_total_variation": 0.0018720340650863459,
+          "partitions": [
+            {
+              "f32_nll_sum": 2404.975801769885,
+              "integer_nll_sum": 2404.908533016108,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "4cb80cd72ad6c4afcc336e2aa6ef8e62f2537abb60f7cc4730ab3689f1f14d57",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.001953125,
+          "top1_disagreements": 2,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 40.475864041,
+        "source_variants": 32,
+        "input_output_bindings": [
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/mode-read-report.json",
+            "bytes": 2066,
+            "sha256": "26c1b6edd5a95c7e22f83130fbf250f4faed6521c27d8193d4a3499813537cf2"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/targets-read.jsonl",
+            "bytes": 850797,
+            "sha256": "4cb80cd72ad6c4afcc336e2aa6ef8e62f2537abb60f7cc4730ab3689f1f14d57"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/generations-read.json",
+            "bytes": 932698,
+            "sha256": "6ca7365ac5a78cfa128bffcdec5554ea20350fe4eaf57511aa452493ea21a968"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/story-probes-read-integer.json",
+            "bytes": 172175,
+            "sha256": "fa1f29ea4564b6d7764d42386ed730bd7aa78906a70c5ed47b54af70a64ac09e"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/story-probes-read-f32.json",
+            "bytes": 174963,
+            "sha256": "0435f6bcfeffaa3e54f29b4647d127d1fd8e7ca92f1d77316ebe8643290f79f4"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/evaluation-report.json",
+            "bytes": 593233,
+            "sha256": "2713c633c402415ca6f27df0fae50274877cb56423de233af6373dc1e0e6c765"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/manifest.json",
+            "bytes": 2454,
+            "sha256": "08f40ed6b5e238b8280d95196f9e6c7f4e831f35c76621a3580078639f4c9263"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/attempt.json",
+            "bytes": 762,
+            "sha256": "096dbdc7f74f232b694567e82a5832d10850a9cc268ea53d445b68ec2108da10"
+          }
+        ]
+      },
+      "no-read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 0,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 0,
+        "mode": "no_read",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 15.051839667,
+          "f32_mean_nll_nats": 2.8207941775363476,
+          "f32_step_seconds": 0.5293278009999993,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.8208783283395693,
+          "integer_step_seconds": 14.248875743,
+          "maximum_copy_gate_delta": 0.002899169921875,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.0,
+          "maximum_probability_delta": 0.005971637051125356,
+          "maximum_state_delta": 0.00732421875,
+          "maximum_total_variation": 0.007085437927233464,
+          "mean_nll_delta_nats": 8.415080322166091e-05,
+          "mean_total_variation": 0.0021858717586745163,
+          "partitions": [
+            {
+              "f32_nll_sum": 2888.49323779722,
+              "integer_nll_sum": 2888.579408219719,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "b17c2e8439a13334d6df1caf32f3091d2e2a9c0f3c70c0865f4716ac8967a2c2",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.0029296875,
+          "top1_disagreements": 3,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 34.581268083,
+        "source_variants": 32,
+        "input_output_bindings": [
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/mode-no-read-report.json",
+            "bytes": 2053,
+            "sha256": "48c6f8eaa4647fa3cb83dc64408d1d29a3550cf4f8ebc958cfa0a1641958a387"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/targets-no-read.jsonl",
+            "bytes": 820712,
+            "sha256": "b17c2e8439a13334d6df1caf32f3091d2e2a9c0f3c70c0865f4716ac8967a2c2"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/generations-no-read.json",
+            "bytes": 527555,
+            "sha256": "13d822c84d03eaeb4f864ca8ecb6108e21c25ee6bd726cfbcce828a5d4f3dfed"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/story-probes-no-read-integer.json",
+            "bytes": 166329,
+            "sha256": "3567298a094e52149f6940586b07bb22f40111c7d5c57a83ae48fb66c407c74c"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/story-probes-no-read-f32.json",
+            "bytes": 166520,
+            "sha256": "c50a5a60582dcd34d9b8e4b5755786bf4cbb25739823eaa7e6eb6c58f3398c81"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/evaluation-report.json",
+            "bytes": 593233,
+            "sha256": "2713c633c402415ca6f27df0fae50274877cb56423de233af6373dc1e0e6c765"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/manifest.json",
+            "bytes": 2454,
+            "sha256": "08f40ed6b5e238b8280d95196f9e6c7f4e831f35c76621a3580078639f4c9263"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/eval-householder_pair-2/attempt.json",
+            "bytes": 762,
+            "sha256": "096dbdc7f74f232b694567e82a5832d10850a9cc268ea53d445b68ec2108da10"
+          }
+        ]
+      }
+    }
+  },
+  "attempt1": {
+    "quaternion": {
+      "read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 1,
+        "continuations": 5,
+        "f32_complete_source_answers": 29,
+        "first_noun_losses_vs_f32": 1,
+        "integer_complete_source_answers": 28,
+        "mode": "enabled",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 17.155197708,
+          "f32_mean_nll_nats": 2.3359774196548755,
+          "f32_step_seconds": 0.6162325649999997,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.335653773040397,
+          "integer_step_seconds": 16.288839223999986,
+          "maximum_copy_gate_delta": 0.005096435546875,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.005583909307439683,
+          "maximum_probability_delta": 0.007209836939178871,
+          "maximum_state_delta": 0.00732421875,
+          "maximum_total_variation": 0.0073268266552736355,
+          "mean_nll_delta_nats": -0.0003236466144787009,
+          "mean_total_variation": 0.0018624416890195804,
+          "partitions": [
+            {
+              "f32_nll_sum": 2392.0408777265925,
+              "integer_nll_sum": 2391.7094635933663,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "453fed528b105326f218d6c39da6ee36b0b34e631e7f41143e1eee61cf804d78",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.001953125,
+          "top1_disagreements": 2,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 41.586960792,
+        "source_variants": 32
+      },
+      "no-read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 0,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 0,
+        "mode": "no_read",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 14.818216207999999,
+          "f32_mean_nll_nats": 2.8301846552726486,
+          "f32_step_seconds": 0.565999312,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.8299661206939053,
+          "integer_step_seconds": 14.001675550999991,
+          "maximum_copy_gate_delta": 0.003753662109375,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.0,
+          "maximum_probability_delta": 0.007021153279385572,
+          "maximum_state_delta": 0.0068359375,
+          "maximum_total_variation": 0.007371781091940756,
+          "mean_nll_delta_nats": -0.0002185345787433235,
+          "mean_total_variation": 0.002106728775663931,
+          "partitions": [
+            {
+              "f32_nll_sum": 2898.109086999192,
+              "integer_nll_sum": 2897.885307590559,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "7ff1b96a360b42679b3b7c92c9b51fedfdc039170620a5a846017240768f52d6",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.001953125,
+          "top1_disagreements": 2,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 36.822316208,
+        "source_variants": 32
+      }
+    },
+    "householder_pair": {
+      "read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 24,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 24,
+        "mode": "enabled",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 17.079664917,
+          "f32_mean_nll_nats": 2.34880511640273,
+          "f32_step_seconds": 0.615629931999999,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.348543489273543,
+          "integer_step_seconds": 16.212610894999997,
+          "maximum_copy_gate_delta": 0.006622314453125,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.005237884403559434,
+          "maximum_probability_delta": 0.0071077422934351375,
+          "maximum_state_delta": 0.01171875,
+          "maximum_total_variation": 0.007299306530691381,
+          "mean_nll_delta_nats": -0.000261627129187314,
+          "mean_total_variation": 0.0019071881191283634,
+          "partitions": [
+            {
+              "f32_nll_sum": 2405.1764391963957,
+              "integer_nll_sum": 2404.908533016108,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "00f6338b7fa85bfccc36e82b8a869f0a21a30f9903da056eb35279ff81be50e5",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.005859375,
+          "top1_disagreements": 6,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": false
+        },
+        "panels_seconds": 40.457334667,
+        "source_variants": 32
+      },
+      "no-read": {
+        "complete_gains_vs_f32": 0,
+        "complete_losses_vs_f32": 0,
+        "continuations": 5,
+        "f32_complete_source_answers": 0,
+        "first_noun_losses_vs_f32": 0,
+        "integer_complete_source_answers": 0,
+        "mode": "no_read",
+        "numerical": {
+          "all_causal_slot_counts_verified": true,
+          "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+          "elapsed_seconds": 14.819847292,
+          "f32_mean_nll_nats": 2.820686307794275,
+          "f32_step_seconds": 0.5660659610000006,
+          "full_context_access": true,
+          "integer_mean_nll_nats": 2.8208783283395693,
+          "integer_step_seconds": 14.002956410000001,
+          "maximum_copy_gate_delta": 0.002899169921875,
+          "maximum_exposed_causal_slots": 255,
+          "maximum_no_read_mass_delta": 0.0,
+          "maximum_probability_delta": 0.0063472655224998675,
+          "maximum_state_delta": 0.00634765625,
+          "maximum_total_variation": 0.0076353917248591025,
+          "mean_nll_delta_nats": 0.00019202054529410262,
+          "mean_total_variation": 0.002113433146711787,
+          "partitions": [
+            {
+              "f32_nll_sum": 2888.382779181338,
+              "integer_nll_sum": 2888.579408219719,
+              "name": "calibration_prefix",
+              "targets": 1024
+            },
+            {
+              "f32_nll_sum": 0.0,
+              "integer_nll_sum": 0.0,
+              "name": "comparison_tail",
+              "targets": 0
+            }
+          ],
+          "same_observed_tokens": true,
+          "scored_targets": 1024,
+          "target_rows_sha256": "750c07d5769e88e0c5ad99d2dbe80531e69413cd042ee0b2f3097459e8cd612a",
+          "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+          "top1_disagreement_fraction": 0.0009765625,
+          "top1_disagreements": 1,
+          "windows": 4,
+          "within_prospective_probability_bound": true,
+          "within_prospective_state_bound": true
+        },
+        "panels_seconds": 35.162814667,
+        "source_variants": 32
+      }
+    }
+  },
+  "execution_receipts": [
+    {
+      "finished_utc": "2026-09-25T19:17:29.159883+00:00",
+      "elapsed_seconds": 111.56421075,
+      "guard": null,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "peak_sampled_rss_bytes": 113590272,
+      "min_physical_free_bytes": 17839767552,
+      "scope": "Two independent accepted-model execution comparisons; no training, reused source and evaluator, all attempts retained"
+    },
+    {
+      "finished_utc": "2026-09-25T19:24:43.324020+00:00",
+      "elapsed_seconds": 111.547062709,
+      "guard": null,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "peak_sampled_rss_bytes": 117538816,
+      "min_physical_free_bytes": 17787850752,
+      "scope": "Two independent accepted-model execution comparisons; no training, reused source and evaluator, all attempts retained"
+    }
+  ],
+  "backend_correction": {
+    "recorded_utc": "2026-09-25T19:20:06.909956+00:00",
+    "cause": "First build omitted the accepted parent evaluator features metal,cpu-accelerate,reference-accelerate. Its default CPU reference yields29 quaternion source answers versus recorded28; this changes the comparator numerical accumulation. Original experiment retained.",
+    "evidence": "learned-rounding-20260925/build-receipt-3.json and evaluate-quaternion-hard-read-1/attempt.json pin feature-enabled CPU; current source-freeze had no features",
+    "change": "Rebuild same Rust source45da66d4 with the exact parent feature set; rerun unchanged fixed comparison in exclusive attempt2 roots",
+    "unchanged": [
+      "parent artifacts and parameter codes",
+      "source numerical implementation",
+      "table artifact",
+      "256 context/full admission",
+      "source and continuation panels",
+      "four dev windows",
+      "0.01 state/probability bounds",
+      "retention criteria"
+    ],
+    "prediction": "Reference source outputs should reproduce the historical feature-enabled parent; integer per-target probabilities should reproduce attempt1 because model-value arithmetic does not use Candle or backend features",
+    "projected_seconds": 180,
+    "within_existing_budget": true,
+    "new_training": false
+  },
+  "instruction_audit": {
+    "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/instruction-audit-2.json",
+    "bytes": 31674,
+    "sha256": "f5a29394bb77934247ad3c0fa146dfd450172a099a6eb2b318136a5299866df1"
+  },
+  "reviews": {
+    "receipt": {
+      "model": "DeepSeek/deepseek-flash",
+      "started_utc": "2026-09-25T19:01:41.177339+00:00",
+      "finished_utc": "2026-09-25T19:09:25.772129+00:00",
+      "exit_code": 0
+    },
+    "adjudication": {
+      "schema": "uor-r4.integer-review-adjudication/1",
+      "source": "45da66d4",
+      "rdc_model": "DeepSeek/deepseek-flash",
+      "review_receipt": "deepseek-numerical-review-3-receipt.json",
+      "adjudication": [
+        {
+          "claim": "Quaternion raw=-10 degeneracy can flip sign if alpha is approximated carelessly",
+          "decision": "ADOPTED_CAUSAL_RISK_ALREADY_AVOIDED",
+          "implementation": "Exact raw-code center raw+2560 with Q32 common scaling; degenerate raw[-2560,0,0,0] unit test preserves identity. No model window dump needed to establish that branch."
+        },
+        {
+          "claim": "Mutable public dimensions invalidate validated full256 constraints",
+          "decision": "FIXED_BEFORE_MODEL_EXECUTION",
+          "implementation": "Private IntegerModel config, immutable accessor; session artifact identity prevents cross-model state reuse."
+        },
+        {
+          "claim": "Scalar and table contract must be bound",
+          "decision": "IMPLEMENTED",
+          "implementation": "Import asserts full packed numerical contract including scalars, parameter binding, shapes and clock. Tables bind payload hash, generator grid/rounding description, dimensions/ranges/monotonicity and sealed roots."
+        },
+        {
+          "claim": "Earlier review saw missing runtime source and dispatch",
+          "decision": "STALE_CONCURRENT_SNAPSHOT_RESOLVED",
+          "implementation": "Completed modules wired into lib and CLI; actual optimized compilation and10new+2codec tests pass."
+        },
+        {
+          "claim": "Uniform floor per Q48 vocabulary entry is687195",
+          "decision": "REJECTED_ARITHMETIC_ERROR",
+          "reason": "2^48 *1e-8/4096 is approximately687.1948, so nominal rounded floor is687; kernel computes mixture before exact normalization."
+        },
+        {
+          "claim": "All trajectory state differences must be at most1code and parameter-error ratios prove a NLL bound",
+          "decision": "NOT_ADOPTED_UNSUPPORTED_BOUND",
+          "reason": "Conditional per-operation error does not bound accumulated nonlinear recurrent divergence, and parameter error is not a proven Lipschitz bound for NLL. Keep the prospectively declared0.01 maximum state/probability engineering limits; report actual NLL, TV and output rows."
+        },
+        {
+          "claim": "Run identity transport diagnostic now",
+          "decision": "DEFERRED_NOT_REQUIRED_FOR_NUMERICAL_IMPLEMENTATION",
+          "reason": "No geometric advantage is being claimed; the existing ordinary arm is the retained comparator. Another intervention does not determine whether this bridge correctly lowers existing operators."
+        },
+        {
+          "claim": "Q40 can round scale combinations finer than2^-40; LUT F64 differs from F32; tiny Q48 exp can be zero",
+          "decision": "DOCUMENTED_SCOPE",
+          "reason": "Explicit intermediate approximation; no bitwise reproduction or exact geometric closure claim. All causal slots remain admitted regardless of resulting zero mass."
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Integer numerical values only; five compiled shape/address multiply/divide operations remain",
+    "Host seeded sampler uses floating point; loader, metadata, tokenizer, hashing and evaluator outside kernel",
+    "Dense parameter access and allocating state; D5 sparsity not qualified",
+    "Four exposed development windows do not qualify full natural-language gate",
+    "No useful general language, geometry advantage, Hamiltonian dynamics or energy qualification"
+  ],
+  "table_bindings": [
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/tables-1/tables.bin",
+      "bytes": 1048560,
+      "sha256": "993e63edc97a4c988b586bc52b5e9fcf133e675caceb7ed04727e7248bb30ff2"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/tables-1/tables.json",
+      "bytes": 647,
+      "sha256": "2d16e17cd34c5a07681a7950a22c4b9a67df5208b28304ab8b7fbe94461c150d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/tables-1/manifest.json",
+      "bytes": 621,
+      "sha256": "bc3742071a1501adc7223d21740bf2bde91345946e911ae6b71b4993627a4955"
+    }
+  ]
+}

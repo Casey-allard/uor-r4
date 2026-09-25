@@ -1,0 +1,120 @@
+{
+  "schema": "uor-r4.integer-execution-closeout/1",
+  "scope": "Pre-protected-delivery cutoff; remaining unique delivery time is charged separately once in retained receipt and owning issues",
+  "recorded_utc": "2026-09-25T19:30:33.930484+00:00",
+  "accounting_start_utc": "2026-09-25T18:54:18+00:00",
+  "start_basis": "first verified clock18:57:18 minus conservative3-minute initial recovery charge",
+  "budget": {
+    "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/budget.json",
+    "bytes": 1477,
+    "sha256": "9b8563959255dac0792b2fdc10e9213b215f423a80ca9596d4cb1d43af769238"
+  },
+  "ledger_before": {
+    "cumulative_ms": 541147250,
+    "limit_ms": 547200000
+  },
+  "charged_this_cutoff_ms": 2175931,
+  "ledger_after": {
+    "cumulative_ms": 543323181,
+    "limit_ms": 547200000
+  },
+  "source": {
+    "source_commit": "45da66d4a2e77a908411c7084e109f6a17472114",
+    "executable": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/integer-training-45da66d4-accelerate",
+    "executable_sha256": "554d95eecc552be72bb2923fbbdba7125df1419c1062546d863dd427cac24b6e",
+    "tables": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/tables-1",
+    "tables_started_utc": "2026-09-25T19:15:31.381306+00:00",
+    "tables_completed_utc": "2026-09-25T19:15:32.038728+00:00",
+    "new_focused_tests": 10,
+    "retained_codec_tests": 2,
+    "test_compile_seconds": 227,
+    "binary_build_seconds": 22.64,
+    "features": [
+      "metal",
+      "cpu-accelerate",
+      "reference-accelerate"
+    ],
+    "build_seconds": 24.0
+  },
+  "validation": {
+    "new_focused_tests": 10,
+    "retained_codec_tests": 2,
+    "new_tests_seconds": 0.0,
+    "codec_tests_seconds": 0.02,
+    "release_test_compile_seconds": 227,
+    "binary_build_seconds": [
+      22.64,
+      24.0
+    ],
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "whitespace": "PASS",
+    "scope": "Named arithmetic/interface/codec tests already executed; model comparisons and instruction inspection separate. No full suite."
+  },
+  "model_pairs": [
+    {
+      "finished_utc": "2026-09-25T19:17:29.159883+00:00",
+      "elapsed_seconds": 111.56421075,
+      "guard": null,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "peak_sampled_rss_bytes": 113590272,
+      "min_physical_free_bytes": 17839767552,
+      "scope": "Two independent accepted-model execution comparisons; no training, reused source and evaluator, all attempts retained"
+    },
+    {
+      "finished_utc": "2026-09-25T19:24:43.324020+00:00",
+      "elapsed_seconds": 111.547062709,
+      "guard": null,
+      "returncodes": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "peak_sampled_rss_bytes": 117538816,
+      "min_physical_free_bytes": 17787850752,
+      "scope": "Two independent accepted-model execution comparisons; no training, reused source and evaluator, all attempts retained"
+    }
+  ],
+  "review": {
+    "receipt": {
+      "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/deepseek-numerical-review-3-receipt.json",
+      "bytes": 166,
+      "sha256": "bb852a29b30470eb123a2191b72d4e2758a6967b552f01548f8abdfa31406f10"
+    },
+    "adjudication": {
+      "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/review-adjudication.json",
+      "bytes": 2909,
+      "sha256": "782981c3fbf0dc7a9a0454bef2af8e712ee661af561d81d8bd3410b4106a8601"
+    },
+    "early_client_failure_receipts": [
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/deepseek-numerical-review-receipt.json",
+        "bytes": 166,
+        "sha256": "3e08d87fc03f481a39c6868f657929ca609f68b7a4f8b350d36a20dce850bbf6"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/full-context-integer-20260925/deepseek-numerical-review-2-receipt.json",
+        "bytes": 166,
+        "sha256": "72ea1cc26901775bcce32e0147cd6b24a1f25528cbeb6b445ca61f1bb4d61529"
+      }
+    ]
+  },
+  "resources": {
+    "physical_free_bytes": 17786327040,
+    "initial_physical_free_bytes": 18124537856,
+    "peak_sampled_aggregate_model_rss_bytes": 117538816,
+    "min_sampled_physical_free_bytes": 17787850752,
+    "root_allocated_bytes": 38707200,
+    "recent_target_allocation_upper_bound_bytes": 322887680,
+    "recent_worktree_allocation_upper_bound_bytes": 1646592,
+    "combined_conservative_allocation_bytes": 363241472,
+    "allocation_scope": "Current blocks of investigation root plus files modified since declared start in reused target/worktree; conservative retained allocation, not unique APFS extents or historical gross allocation. Physical free may include unrelated concurrent work. Compiler peaks and physical energy unmeasured."
+  },
+  "new_training": false,
+  "cleanup": false,
+  "budget_extension": false,
+  "paid_external_training": false,
+  "accounting": "Unique chronological elapsed; concurrent agents/workers not double charged; includes preparation, reviews, failed client starts, builds, comparisons and analysis."
+}

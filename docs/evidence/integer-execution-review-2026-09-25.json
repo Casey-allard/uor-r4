@@ -1,0 +1,48 @@
+{
+  "schema": "uor-r4.integer-review-adjudication/1",
+  "source": "45da66d4",
+  "rdc_model": "DeepSeek/deepseek-flash",
+  "review_receipt": "deepseek-numerical-review-3-receipt.json",
+  "adjudication": [
+    {
+      "claim": "Quaternion raw=-10 degeneracy can flip sign if alpha is approximated carelessly",
+      "decision": "ADOPTED_CAUSAL_RISK_ALREADY_AVOIDED",
+      "implementation": "Exact raw-code center raw+2560 with Q32 common scaling; degenerate raw[-2560,0,0,0] unit test preserves identity. No model window dump needed to establish that branch."
+    },
+    {
+      "claim": "Mutable public dimensions invalidate validated full256 constraints",
+      "decision": "FIXED_BEFORE_MODEL_EXECUTION",
+      "implementation": "Private IntegerModel config, immutable accessor; session artifact identity prevents cross-model state reuse."
+    },
+    {
+      "claim": "Scalar and table contract must be bound",
+      "decision": "IMPLEMENTED",
+      "implementation": "Import asserts full packed numerical contract including scalars, parameter binding, shapes and clock. Tables bind payload hash, generator grid/rounding description, dimensions/ranges/monotonicity and sealed roots."
+    },
+    {
+      "claim": "Earlier review saw missing runtime source and dispatch",
+      "decision": "STALE_CONCURRENT_SNAPSHOT_RESOLVED",
+      "implementation": "Completed modules wired into lib and CLI; actual optimized compilation and10new+2codec tests pass."
+    },
+    {
+      "claim": "Uniform floor per Q48 vocabulary entry is687195",
+      "decision": "REJECTED_ARITHMETIC_ERROR",
+      "reason": "2^48 *1e-8/4096 is approximately687.1948, so nominal rounded floor is687; kernel computes mixture before exact normalization."
+    },
+    {
+      "claim": "All trajectory state differences must be at most1code and parameter-error ratios prove a NLL bound",
+      "decision": "NOT_ADOPTED_UNSUPPORTED_BOUND",
+      "reason": "Conditional per-operation error does not bound accumulated nonlinear recurrent divergence, and parameter error is not a proven Lipschitz bound for NLL. Keep the prospectively declared0.01 maximum state/probability engineering limits; report actual NLL, TV and output rows."
+    },
+    {
+      "claim": "Run identity transport diagnostic now",
+      "decision": "DEFERRED_NOT_REQUIRED_FOR_NUMERICAL_IMPLEMENTATION",
+      "reason": "No geometric advantage is being claimed; the existing ordinary arm is the retained comparator. Another intervention does not determine whether this bridge correctly lowers existing operators."
+    },
+    {
+      "claim": "Q40 can round scale combinations finer than2^-40; LUT F64 differs from F32; tiny Q48 exp can be zero",
+      "decision": "DOCUMENTED_SCOPE",
+      "reason": "Explicit intermediate approximation; no bitwise reproduction or exact geometric closure claim. All causal slots remain admitted regardless of resulting zero mass."
+    }
+  ]
+}

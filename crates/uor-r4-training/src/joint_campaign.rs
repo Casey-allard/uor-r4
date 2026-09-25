@@ -1161,6 +1161,16 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
 }
 
 pub fn run_cli(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("joint-integer-tables") {
+        if args.len() != 2 {
+            return Err(invalid("joint-integer-tables NEW_REPORT_ROOT"));
+        }
+        return crate::joint_integer_tables::export(std::path::Path::new(&args[1]));
+    }
+    if crate::joint_integer_evaluation::run(args)? {
+        return Ok(());
+    }
+
     if args
         .first()
         .is_some_and(|s| matches!(s.as_str(), "joint-bound-fit" | "joint-evaluate-admission"))

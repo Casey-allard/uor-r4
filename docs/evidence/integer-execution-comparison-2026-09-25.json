@@ -1,0 +1,1285 @@
+{
+  "schema": "uor-r4.integer-final-output-comparison/1",
+  "analyzed_at_utc": "2026-09-25T19:26:20.778064+00:00",
+  "scope": "Read-only analysis of completed paired attempt1 and feature-matched attempt2, retained source panels and fixed first4 full256 calibration windows; no new model runs or tests. Thresholds remain0.01.",
+  "attempt2_receipt": {
+    "finished_utc": "2026-09-25T19:24:43.324020+00:00",
+    "elapsed_seconds": 111.547062709,
+    "guard": null,
+    "returncodes": {
+      "quaternion": 0,
+      "householder_pair": 0
+    },
+    "peak_sampled_rss_bytes": 117538816,
+    "min_physical_free_bytes": 17787850752,
+    "scope": "Two independent accepted-model execution comparisons; no training, reused source and evaluator, all attempts retained"
+  },
+  "attempt2_receipt_sha256": "0e5300d08a03c5ff8729e715662ad21b30004c6432d59ea2b5333c205177644e",
+  "arms": {
+    "quaternion": {
+      "report1_sha256": "6676709f86df8b21fcf5dba44a22ed9e4ba4fa7426129566729a7d523f86c626",
+      "report2_sha256": "48d06f15e893dca5884ce8c45ba0363a5cf368d524cd2904d16c5624574ab00f",
+      "sealed_manifest1_sha256": "3f9535b9ab092d866c7a1082adbcacfdfc9a82f7996017456efb91e74df20ae6",
+      "sealed_manifest2_sha256": "e5f5949682a6f1d910e2f5b2cfc1e2852dac5de1f010f8109ffe71e67ca22593",
+      "modes": {
+        "read": {
+          "attempt1": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 1,
+            "continuations": 5,
+            "f32_complete_source_answers": 29,
+            "first_noun_losses_vs_f32": 1,
+            "integer_complete_source_answers": 28,
+            "mode": "enabled",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 17.155197708,
+              "f32_mean_nll_nats": 2.3359774196548755,
+              "f32_step_seconds": 0.6162325649999997,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.335653773040397,
+              "integer_step_seconds": 16.288839223999986,
+              "maximum_copy_gate_delta": 0.005096435546875,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.005583909307439683,
+              "maximum_probability_delta": 0.007209836939178871,
+              "maximum_state_delta": 0.00732421875,
+              "maximum_total_variation": 0.0073268266552736355,
+              "mean_nll_delta_nats": -0.0003236466144787009,
+              "mean_total_variation": 0.0018624416890195804,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2392.0408777265925,
+                  "integer_nll_sum": 2391.7094635933663,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "453fed528b105326f218d6c39da6ee36b0b34e631e7f41143e1eee61cf804d78",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.001953125,
+              "top1_disagreements": 2,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 41.586960792,
+            "source_variants": 32
+          },
+          "attempt2": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 28,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 28,
+            "mode": "enabled",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 17.367129958,
+              "f32_mean_nll_nats": 2.3355783943055406,
+              "f32_step_seconds": 0.580851432,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.335653773040397,
+              "integer_step_seconds": 16.525902692,
+              "maximum_copy_gate_delta": 0.00390625,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0054493640268376,
+              "maximum_probability_delta": 0.006691747683401417,
+              "maximum_state_delta": 0.00732421875,
+              "maximum_total_variation": 0.007754314713612844,
+              "mean_nll_delta_nats": 7.537873485619073e-05,
+              "mean_total_variation": 0.001962666620580604,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2391.6322757688736,
+                  "integer_nll_sum": 2391.7094635933663,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "8bf7d9a476daf63d99c4fbde52b0b4cda4dea4f9dc24b15668bdc7cad0919ee8",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.001953125,
+              "top1_disagreements": 2,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 41.713465,
+            "source_variants": 32
+          },
+          "integer_attempt1_vs2": {
+            "target_rows": 1024,
+            "full_probability_digest_differences": 0,
+            "recorded_integer_target_value_differences": [],
+            "source_variants": 32,
+            "source_value_differences_excluding_elapsed_time": [],
+            "continuation_count": 5,
+            "continuation_value_differences_excluding_elapsed_time": [],
+            "equality_scope": "Full Q48 distributions are compared by recorded per-target SHA256. Source/continuation values, decisions, decodedbytes and tokens compare exactly after removing only elapsed_seconds. Files themselves differ in timings; integer states were not stored as full vectors and are not asserted bitwise identical."
+          },
+          "feature_matched_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 29,
+            "complete_correct": 28
+          },
+          "attempt1_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [
+              "story-source-edit-06/edited"
+            ],
+            "complete_losses": [],
+            "complete_gains": [
+              "story-source-edit-06/edited"
+            ],
+            "generated_token_differences": [
+              {
+                "id": "story-source-edit-06/edited",
+                "reference": "captain.",
+                "actual": "cap."
+              }
+            ],
+            "tokens_identical": 31,
+            "first_noun_correct": 30,
+            "complete_correct": 29
+          },
+          "integer_vs_feature_matched_f32": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 29,
+            "complete_correct": 28
+          },
+          "integer_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 29,
+            "complete_correct": 28
+          },
+          "maximum_state_row": {
+            "block_index": 2,
+            "exposed_causal_slots": 149,
+            "f32_copy_gate": 0.328521728515625,
+            "f32_nll_nats": 4.89774835104963,
+            "f32_no_read_mass": 0.9372186064720154,
+            "f32_prediction": 1295,
+            "f32_probability_sha256_le_f32": "ff6ad1f14751a424abdd72699b4deb0d41d3eac362e235985eceec1b3e9a7e06",
+            "f32_target_probability": 0.007463369052857161,
+            "input_offset": 661,
+            "input_token": 435,
+            "integer_copy_gate": 0.32940673828125,
+            "integer_nll_nats": 4.905925157085663,
+            "integer_no_read_mass": 0.9375549098242004,
+            "integer_prediction": 1295,
+            "integer_probability_sha256_le_u64": "6e1f79cb14bd19ab0c3dc32d80699f4fefa194c0fdd12ea73c5913ee55857c29",
+            "integer_target_probability": 0.007402591354097154,
+            "maximum_probability_delta": 0.0016555746789386205,
+            "maximum_state_delta": 0.00732421875,
+            "position_in_block": 149,
+            "target_offset": 662,
+            "target_token": 546,
+            "total_variation": 0.0031700983024901064
+          },
+          "maximum_probability_row": {
+            "block_index": 0,
+            "exposed_causal_slots": 142,
+            "f32_copy_gate": 0.030548095703125,
+            "f32_nll_nats": 2.3301776060482595,
+            "f32_no_read_mass": 0.02666805125772953,
+            "f32_prediction": 201,
+            "f32_probability_sha256_le_f32": "2a5d4c40e19e41fd502f3661c35dd58350cc63af4a5243d0905b3135f7b7d2f0",
+            "f32_target_probability": 0.09727846831083298,
+            "input_offset": 142,
+            "input_token": 16,
+            "integer_copy_gate": 0.03045654296875,
+            "integer_nll_nats": 2.3238624898962117,
+            "integer_no_read_mass": 0.02680959443292963,
+            "integer_prediction": 201,
+            "integer_probability_sha256_le_u64": "e1feaac97451d2df52cfacd79b96e364259341bd176257e3cfc7063ce1d2f3d4",
+            "integer_target_probability": 0.09789473699336426,
+            "maximum_probability_delta": 0.006691747683401417,
+            "maximum_state_delta": 0.0029296875,
+            "position_in_block": 142,
+            "target_offset": 143,
+            "target_token": 344,
+            "total_variation": 0.007754314713612844
+          },
+          "rows_exceeding_state_0_01": [],
+          "rows_exceeding_probability_0_01": [],
+          "attempt1_rows_exceeding_state_0_01": [],
+          "integer_vs_f32_step_time_ratio": 28.451169751097385,
+          "integer_step_milliseconds_per_token": 16.13857684765625,
+          "actual_integer_stop_reasons": [
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "maximum_new_tokens"
+            }
+          ],
+          "retained_incorrect_source_answers": [
+            {
+              "id": "story-source-edit-01/edited",
+              "expected": [
+                "kite."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "kite stuck in the water.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-06/edited",
+              "expected": [
+                "cap."
+              ],
+              "first_noun_correct": false,
+              "complete_correct": false,
+              "response": "captain.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-12/edited",
+              "expected": [
+                "bag."
+              ],
+              "first_noun_correct": false,
+              "complete_correct": false,
+              "response": "clouds.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-15/edited",
+              "expected": [
+                "ribbon."
+              ],
+              "first_noun_correct": false,
+              "complete_correct": false,
+              "response": "father.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            }
+          ]
+        },
+        "no-read": {
+          "attempt1": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 0,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 0,
+            "mode": "no_read",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 14.818216207999999,
+              "f32_mean_nll_nats": 2.8301846552726486,
+              "f32_step_seconds": 0.565999312,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.8299661206939053,
+              "integer_step_seconds": 14.001675550999991,
+              "maximum_copy_gate_delta": 0.003753662109375,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0,
+              "maximum_probability_delta": 0.007021153279385572,
+              "maximum_state_delta": 0.0068359375,
+              "maximum_total_variation": 0.007371781091940756,
+              "mean_nll_delta_nats": -0.0002185345787433235,
+              "mean_total_variation": 0.002106728775663931,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2898.109086999192,
+                  "integer_nll_sum": 2897.885307590559,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "7ff1b96a360b42679b3b7c92c9b51fedfdc039170620a5a846017240768f52d6",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.001953125,
+              "top1_disagreements": 2,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 36.822316208,
+            "source_variants": 32
+          },
+          "attempt2": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 0,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 0,
+            "mode": "no_read",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 15.038084,
+              "f32_mean_nll_nats": 2.830036318147833,
+              "f32_step_seconds": 0.5265738440000003,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.8299661206939053,
+              "integer_step_seconds": 14.252623127999994,
+              "maximum_copy_gate_delta": 0.002838134765625,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0,
+              "maximum_probability_delta": 0.005146819403964997,
+              "maximum_state_delta": 0.00634765625,
+              "maximum_total_variation": 0.006931662721590429,
+              "mean_nll_delta_nats": -7.019745392788934e-05,
+              "mean_total_variation": 0.002051281541426877,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2897.957189783381,
+                  "integer_nll_sum": 2897.885307590559,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "6e6ea77580933429fc77722cac5f51fe0d5bfc7e3e55e05b8fb3440d635966dc",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.001953125,
+              "top1_disagreements": 2,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 36.27431825,
+            "source_variants": 32
+          },
+          "integer_attempt1_vs2": {
+            "target_rows": 1024,
+            "full_probability_digest_differences": 0,
+            "recorded_integer_target_value_differences": [],
+            "source_variants": 32,
+            "source_value_differences_excluding_elapsed_time": [],
+            "continuation_count": 5,
+            "continuation_value_differences_excluding_elapsed_time": [],
+            "equality_scope": "Full Q48 distributions are compared by recorded per-target SHA256. Source/continuation values, decisions, decodedbytes and tokens compare exactly after removing only elapsed_seconds. Files themselves differ in timings; integer states were not stored as full vectors and are not asserted bitwise identical."
+          },
+          "feature_matched_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "attempt1_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "integer_vs_feature_matched_f32": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "integer_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "maximum_state_row": {
+            "block_index": 0,
+            "exposed_causal_slots": 192,
+            "f32_copy_gate": 0.373870849609375,
+            "f32_nll_nats": 6.1891228080778715,
+            "f32_no_read_mass": 1.0,
+            "f32_prediction": 265,
+            "f32_probability_sha256_le_f32": "e33ecb21373d48dd27e11d1437a8ae569cd327e21ce0d46edf4fa9444f1d36e8",
+            "f32_target_probability": 0.002051625633612275,
+            "input_offset": 192,
+            "input_token": 268,
+            "integer_copy_gate": 0.373870849609375,
+            "integer_nll_nats": 6.196631568563936,
+            "integer_no_read_mass": 1.0,
+            "integer_prediction": 265,
+            "integer_probability_sha256_le_u64": "30c4e75e559edceb5d22bb1a4c8d1bcf95bc1c6dcbef1f57c814d01982f9d81a",
+            "integer_target_probability": 0.002036278160481686,
+            "maximum_probability_delta": 0.0009272090629579566,
+            "maximum_state_delta": 0.00634765625,
+            "position_in_block": 192,
+            "target_offset": 193,
+            "target_token": 1332,
+            "total_variation": 0.002870719177750827
+          },
+          "maximum_probability_row": {
+            "block_index": 1,
+            "exposed_causal_slots": 250,
+            "f32_copy_gate": 0.362060546875,
+            "f32_nll_nats": 0.43831436746900904,
+            "f32_no_read_mass": 1.0,
+            "f32_prediction": 3,
+            "f32_probability_sha256_le_f32": "430107f0a6badf300615f837547694ce8f742a0cd91520544d3edc1912461ace",
+            "f32_target_probability": 0.6451229453086853,
+            "input_offset": 506,
+            "input_token": 2265,
+            "integer_copy_gate": 0.362060546875,
+            "integer_nll_nats": 0.4303679795556804,
+            "integer_no_read_mass": 1.0,
+            "integer_prediction": 3,
+            "integer_probability_sha256_le_u64": "264bdfe0c10fc39a4fa3209d7be86a677b44d4c2ff3c7d94ec5725810f8e26f4",
+            "integer_target_probability": 0.6502697647126503,
+            "maximum_probability_delta": 0.005146819403964997,
+            "maximum_state_delta": 0.0029296875,
+            "position_in_block": 250,
+            "target_offset": 507,
+            "target_token": 3,
+            "total_variation": 0.005158480530161134
+          },
+          "rows_exceeding_state_0_01": [],
+          "rows_exceeding_probability_0_01": [],
+          "attempt1_rows_exceeding_state_0_01": [],
+          "integer_vs_f32_step_time_ratio": 27.06671303635808,
+          "integer_step_milliseconds_per_token": 13.918577273437494,
+          "actual_integer_stop_reasons": [
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "eos"
+            }
+          ]
+        }
+      },
+      "read_generation_quality": [
+        {
+          "prompt_index": 0,
+          "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+          "integer_text": ", they were very happy.\nAt the park, she playing and her dad to the hospital. \nOne day, Mommy suggested, \"Wait, little one if you want to hear a music. You will be your dad.”\nGrandma nodded and said, \"But, I have to be your friend.\"\nGrandma felt sad and said, \"No, I want to be your dad. Can I have no money?\"\nGrandma said, \"Let's go find something perfect. Maybe you can find something perfect to be your friend.” \nGrandma smiled and said, \"You're so nice and",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "f32_text": ", they were very happy and they wanted to play with them first.\n\"Mommy, it's time to play outside,\" Mommy said, with a superherossday, so they raced to get some of them.\nAt the end of the day, Mommy said goodbye and ran back to the house. Mommy said she had to promise to be careful to keep the end of the day they play.\nThen Mommy said back.\nAt the house, Mommy and Daddy opened the window. Her eyes lit up, and she was excited to see how it had been so much fun.\nWhen Daddy and Daddy finished their dinner",
+          "first_token_difference_vs_f32": 5,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 1,
+          "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+          "integer_text": "heard a voice. It was a dog named Max. Max was a big cat named Bob. Max wanted to catch him, but he was too strong.\nMax's owner, Tim saw the mighty lion and said he saw him. He said, \"I will catch you, mighty lion. You can't catch me, Max. It is all fun.\" Tim and Tim were very happy. They went back to Max's house and brought him a fun toy. Tim said, \"Thank you, Bob. I found a big toy. Follow me, Tim!\" Tim was very happy too. They played together all day, and Max",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "f32_text": "heard a voice. It was a dog named Max. Max was a big cat named Bob. Max wanted to catch him, but he was too strong.\nMax's owner, Tim saw the mighty lion and said he saw him. He said, \"I will catch you, mighty lion. You can't catch me, Max. It is all fun.\" Tim and Tim were very happy. They went back to Max's house and brought him back home.\nThe dog was so happy for Tim and Tim. Tim was happy too. Now, the mighty lion was not mighty enough to share and be nice. The mighty lion was happy",
+          "first_token_difference_vs_f32": 89,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 2,
+          "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+          "integer_text": "day, he found a big, green bug on the ground. It was the same food he had ever seen.\nHe was so excited to start looking for a new goose for her. He said, \"Look what I found a new goose!\" His dad replied, \"What's your new goose, he?\"\nHe looked around and told his dad what happened.\nThe bug said, \"I'm so hungry!\" The goose was scared and tried to try again. Suddenly, the goose heard a loud noise. It sounded like a loud sound and the goose's friend.\nThe two of the new goose ran back home and",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "f32_text": "day, he found a big, green bug on the ground. It was the same food he had ever seen.\nHe was so excited to look all around. He wanted to touch it and jump. He reached his friend, the cat, and started to get to the green bug. The cat looked at the bug and said, \"We can eat it, but I want to touch the bug too.\"\nThe green bug was very happy. He put the bug back to the green bug, and the green bug was a happy family. The bug felt happy too.",
+          "first_token_difference_vs_f32": 29,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 3,
+          "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+          "integer_text": ". Tim had a toy box of a big, happy dog.\nAt the park, Tim saw a cat. The cat looked at Tim and said, \"Hi, cat! My name is Tom. What have you do?\" Tim said, \"I want to ride the happy hill back!\" Tim tried to ride the hill back to his head and got the hill.\nHe wanted to ride the hill too fast. He tried to ride the happy dog back. But the cat caught the hill back, and Tim ran fast to get the cat. The cat caught the cat back. Tim was so happy and not having happy again.",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "eos"
+          },
+          "f32_text": ". Tim had a toy box of a big, happy dog.\nAt the big park, Tim saw his friend, Sue. Sue said, \"Hi, Tim! I can't ride my bike. Can we ride the box?\" Tim said, \"Yes, we can find the bike.\"\nAs they played together, they saw a fun ride on the beach. Tim took off his bike and ran to his friend. They played with the toy together. They had lots of fun. Tim learned that even when things seem scary, they can do anything. And they had a great time playing with the toy all day.",
+          "first_token_difference_vs_f32": 16,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 4,
+          "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+          "integer_text": "played all day long. One day, they found a big, red ball and the train began to dance while they danced around.\nBut then, a little boy named Tom came to the train. He saw Lily's ball and said, \"Hey, can't be sad, Tom! It's not a toy. It's mine and it's very expensive.\"\nTom was sad and said, \"I am sorry, Lily. We want to dance like a train. We don't want to dance.\" The train was sad and did not want to play anymore. They had learned that being sad and not danceing.\nThen,",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "f32_text": "played all day long. One day, they found a big, red ball and the train's headst tail.\nThe train driver said, \"Welcome, train, train. It is very big and shiny.\" The train driver said, \"I know, so it looks red. Then I can show you how to make a happy face.\"\nThe train driver said, \"I think we can find the train.\" They sat next to the ball and said, \"Welcome, train!\"The train driver said, \"OK, train, go!\"\nThey worked together and found the train's head in the pond.",
+          "first_token_difference_vs_f32": 18,
+          "same_generated_tokens_vs_f32": false
+        }
+      ],
+      "integer_no_read_nll_penalty": 0.4943123476535085
+    },
+    "householder_pair": {
+      "report1_sha256": "2fc061fb6923d18727cfbbbc23b1fefe37efab1996b8d8beb89389a6b070307b",
+      "report2_sha256": "2713c633c402415ca6f27df0fae50274877cb56423de233af6373dc1e0e6c765",
+      "sealed_manifest1_sha256": "efc3b5b0714354fc7bd28fc4a31c6229e3c0ae492b2f0ddc1fe559ab1382fea2",
+      "sealed_manifest2_sha256": "08f40ed6b5e238b8280d95196f9e6c7f4e831f35c76621a3580078639f4c9263",
+      "modes": {
+        "read": {
+          "attempt1": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 24,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 24,
+            "mode": "enabled",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 17.079664917,
+              "f32_mean_nll_nats": 2.34880511640273,
+              "f32_step_seconds": 0.615629931999999,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.348543489273543,
+              "integer_step_seconds": 16.212610894999997,
+              "maximum_copy_gate_delta": 0.006622314453125,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.005237884403559434,
+              "maximum_probability_delta": 0.0071077422934351375,
+              "maximum_state_delta": 0.01171875,
+              "maximum_total_variation": 0.007299306530691381,
+              "mean_nll_delta_nats": -0.000261627129187314,
+              "mean_total_variation": 0.0019071881191283634,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2405.1764391963957,
+                  "integer_nll_sum": 2404.908533016108,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "00f6338b7fa85bfccc36e82b8a869f0a21a30f9903da056eb35279ff81be50e5",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.005859375,
+              "top1_disagreements": 6,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": false
+            },
+            "panels_seconds": 40.457334667,
+            "source_variants": 32
+          },
+          "attempt2": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 24,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 24,
+            "mode": "enabled",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 17.306591209,
+              "f32_mean_nll_nats": 2.3486091814159034,
+              "f32_step_seconds": 0.5700240279999997,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.348543489273543,
+              "integer_step_seconds": 16.4754366,
+              "maximum_copy_gate_delta": 0.004852294921875,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0059231590045421,
+              "maximum_probability_delta": 0.008505232794838946,
+              "maximum_state_delta": 0.005859375,
+              "maximum_total_variation": 0.009039325671709439,
+              "mean_nll_delta_nats": -6.569214236051835e-05,
+              "mean_total_variation": 0.0018720340650863459,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2404.975801769885,
+                  "integer_nll_sum": 2404.908533016108,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "4cb80cd72ad6c4afcc336e2aa6ef8e62f2537abb60f7cc4730ab3689f1f14d57",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.001953125,
+              "top1_disagreements": 2,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 40.475864041,
+            "source_variants": 32
+          },
+          "integer_attempt1_vs2": {
+            "target_rows": 1024,
+            "full_probability_digest_differences": 0,
+            "recorded_integer_target_value_differences": [],
+            "source_variants": 32,
+            "source_value_differences_excluding_elapsed_time": [],
+            "continuation_count": 5,
+            "continuation_value_differences_excluding_elapsed_time": [],
+            "equality_scope": "Full Q48 distributions are compared by recorded per-target SHA256. Source/continuation values, decisions, decodedbytes and tokens compare exactly after removing only elapsed_seconds. Files themselves differ in timings; integer states were not stored as full vectors and are not asserted bitwise identical."
+          },
+          "feature_matched_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "attempt1_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "integer_vs_feature_matched_f32": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [
+              {
+                "id": "story-source-edit-05/original",
+                "reference": "cup, but he was still there.",
+                "actual": "cup, but he did not know anything."
+              }
+            ],
+            "tokens_identical": 31,
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "integer_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [
+              {
+                "id": "story-source-edit-05/original",
+                "reference": "cup, but he was still there.",
+                "actual": "cup, but he did not know anything."
+              }
+            ],
+            "tokens_identical": 31,
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "maximum_state_row": {
+            "block_index": 2,
+            "exposed_causal_slots": 160,
+            "f32_copy_gate": 0.734130859375,
+            "f32_nll_nats": 3.0187015513550866,
+            "f32_no_read_mass": 0.4367446303367615,
+            "f32_prediction": 1114,
+            "f32_probability_sha256_le_f32": "320c9b42cb8fcf75339e54d22c92f3db62f408200bd959a9906b0f9ecfd3adee",
+            "f32_target_probability": 0.04886462539434433,
+            "input_offset": 672,
+            "input_token": 268,
+            "integer_copy_gate": 0.733367919921875,
+            "integer_nll_nats": 3.0196688362659234,
+            "integer_no_read_mass": 0.43808964165968334,
+            "integer_prediction": 1114,
+            "integer_probability_sha256_le_u64": "b8dcf147457aaaef0830664bbf58a1402be70aafde36fbf83ffd48bd2a75c7ec",
+            "integer_target_probability": 0.048817382232009265,
+            "maximum_probability_delta": 0.001355055922189763,
+            "maximum_state_delta": 0.005859375,
+            "position_in_block": 160,
+            "target_offset": 673,
+            "target_token": 812,
+            "total_variation": 0.0022100753909794846
+          },
+          "maximum_probability_row": {
+            "block_index": 0,
+            "exposed_causal_slots": 108,
+            "f32_copy_gate": 0.376617431640625,
+            "f32_nll_nats": 0.7514629235342414,
+            "f32_no_read_mass": 0.9893028140068054,
+            "f32_prediction": 579,
+            "f32_probability_sha256_le_f32": "6e2f86911dad6473813d49805f82fd1d4786ab29a5f5e2654b4474091a01b5bf",
+            "f32_target_probability": 0.4716760218143463,
+            "input_offset": 108,
+            "input_token": 657,
+            "integer_copy_gate": 0.376617431640625,
+            "integer_nll_nats": 0.7335916325892007,
+            "integer_no_read_mass": 0.9892988767848934,
+            "integer_prediction": 579,
+            "integer_probability_sha256_le_u64": "993505f3fea18a3a8e0aca45265b482d2f9311c3198c0b7acf6ed9948baffec7",
+            "integer_target_probability": 0.48018125460918526,
+            "maximum_probability_delta": 0.008505232794838946,
+            "maximum_state_delta": 0.0029296875,
+            "position_in_block": 108,
+            "target_offset": 109,
+            "target_token": 579,
+            "total_variation": 0.009039325671709439
+          },
+          "rows_exceeding_state_0_01": [],
+          "rows_exceeding_probability_0_01": [],
+          "attempt1_rows_exceeding_state_0_01": [
+            {
+              "input_offset": 255,
+              "state_delta": 0.01171875
+            }
+          ],
+          "integer_vs_f32_step_time_ratio": 28.90305634624933,
+          "integer_step_milliseconds_per_token": 16.089293554687497,
+          "actual_integer_stop_reasons": [
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "eos"
+            }
+          ],
+          "retained_incorrect_source_answers": [
+            {
+              "id": "story-source-edit-01/edited",
+              "expected": [
+                "kite."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "kite, but he was still there.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-03/original",
+              "expected": [
+                "bell."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "bell to the kitchen.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-05/original",
+              "expected": [
+                "cup."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "cup, but he did not know anything.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-05/edited",
+              "expected": [
+                "bowl."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "bowl, but he did not know.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-06/edited",
+              "expected": [
+                "cap."
+              ],
+              "first_noun_correct": false,
+              "complete_correct": false,
+              "response": "capes.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-14/original",
+              "expected": [
+                "pencil."
+              ],
+              "first_noun_correct": false,
+              "complete_correct": false,
+              "response": "pencils.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-15/original",
+              "expected": [
+                "rope."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "rope to the kitchen.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            },
+            {
+              "id": "story-source-edit-15/edited",
+              "expected": [
+                "ribbon."
+              ],
+              "first_noun_correct": true,
+              "complete_correct": false,
+              "response": "ribbon to his house.",
+              "stop": {
+                "reason": "first_sentence_boundary"
+              }
+            }
+          ]
+        },
+        "no-read": {
+          "attempt1": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 0,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 0,
+            "mode": "no_read",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 14.819847292,
+              "f32_mean_nll_nats": 2.820686307794275,
+              "f32_step_seconds": 0.5660659610000006,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.8208783283395693,
+              "integer_step_seconds": 14.002956410000001,
+              "maximum_copy_gate_delta": 0.002899169921875,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0,
+              "maximum_probability_delta": 0.0063472655224998675,
+              "maximum_state_delta": 0.00634765625,
+              "maximum_total_variation": 0.0076353917248591025,
+              "mean_nll_delta_nats": 0.00019202054529410262,
+              "mean_total_variation": 0.002113433146711787,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2888.382779181338,
+                  "integer_nll_sum": 2888.579408219719,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "750c07d5769e88e0c5ad99d2dbe80531e69413cd042ee0b2f3097459e8cd612a",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.0009765625,
+              "top1_disagreements": 1,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 35.162814667,
+            "source_variants": 32
+          },
+          "attempt2": {
+            "complete_gains_vs_f32": 0,
+            "complete_losses_vs_f32": 0,
+            "continuations": 5,
+            "f32_complete_source_answers": 0,
+            "first_noun_losses_vs_f32": 0,
+            "integer_complete_source_answers": 0,
+            "mode": "no_read",
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 15.051839667,
+              "f32_mean_nll_nats": 2.8207941775363476,
+              "f32_step_seconds": 0.5293278009999993,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.8208783283395693,
+              "integer_step_seconds": 14.248875743,
+              "maximum_copy_gate_delta": 0.002899169921875,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0,
+              "maximum_probability_delta": 0.005971637051125356,
+              "maximum_state_delta": 0.00732421875,
+              "maximum_total_variation": 0.007085437927233464,
+              "mean_nll_delta_nats": 8.415080322166091e-05,
+              "mean_total_variation": 0.0021858717586745163,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2888.49323779722,
+                  "integer_nll_sum": 2888.579408219719,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "b17c2e8439a13334d6df1caf32f3091d2e2a9c0f3c70c0865f4716ac8967a2c2",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.0029296875,
+              "top1_disagreements": 3,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "panels_seconds": 34.581268083,
+            "source_variants": 32
+          },
+          "integer_attempt1_vs2": {
+            "target_rows": 1024,
+            "full_probability_digest_differences": 0,
+            "recorded_integer_target_value_differences": [],
+            "source_variants": 32,
+            "source_value_differences_excluding_elapsed_time": [],
+            "continuation_count": 5,
+            "continuation_value_differences_excluding_elapsed_time": [],
+            "equality_scope": "Full Q48 distributions are compared by recorded per-target SHA256. Source/continuation values, decisions, decodedbytes and tokens compare exactly after removing only elapsed_seconds. Files themselves differ in timings; integer states were not stored as full vectors and are not asserted bitwise identical."
+          },
+          "feature_matched_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "attempt1_f32_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "integer_vs_feature_matched_f32": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "integer_vs_historical": {
+            "variants": 32,
+            "first_noun_losses": [],
+            "first_noun_gains": [],
+            "complete_losses": [],
+            "complete_gains": [],
+            "generated_token_differences": [],
+            "tokens_identical": 32,
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "maximum_state_row": {
+            "block_index": 2,
+            "exposed_causal_slots": 162,
+            "f32_copy_gate": 0.621551513671875,
+            "f32_nll_nats": 4.953050292649879,
+            "f32_no_read_mass": 1.0,
+            "f32_prediction": 688,
+            "f32_probability_sha256_le_f32": "852c1960a0233ce97acb1d2d03745620a7da62bc2a59a33d3750ae8ca910d10b",
+            "f32_target_probability": 0.007061835378408432,
+            "input_offset": 674,
+            "input_token": 627,
+            "integer_copy_gate": 0.623382568359375,
+            "integer_nll_nats": 4.958657742101429,
+            "integer_no_read_mass": 1.0,
+            "integer_prediction": 688,
+            "integer_probability_sha256_le_u64": "74d0998a1529c571b8e209583bc829ff61c2ff789aa290fa0c3c3aa8c1ae3b27",
+            "integer_target_probability": 0.007022347310631005,
+            "maximum_probability_delta": 0.0014505230036974126,
+            "maximum_state_delta": 0.00732421875,
+            "position_in_block": 162,
+            "target_offset": 675,
+            "target_token": 804,
+            "total_variation": 0.0030658492585050314
+          },
+          "maximum_probability_row": {
+            "block_index": 2,
+            "exposed_causal_slots": 67,
+            "f32_copy_gate": 0.79437255859375,
+            "f32_nll_nats": 0.6747207495755321,
+            "f32_no_read_mass": 1.0,
+            "f32_prediction": 446,
+            "f32_probability_sha256_le_f32": "40ca2efe8933403beaf56c9378e5dfe08a90c116194ec40319ef6692943a2aa6",
+            "f32_target_probability": 0.5092986226081848,
+            "input_offset": 579,
+            "input_token": 1121,
+            "integer_copy_gate": 0.793731689453125,
+            "integer_nll_nats": 0.6630637399276965,
+            "integer_no_read_mass": 1.0,
+            "integer_prediction": 446,
+            "integer_probability_sha256_le_u64": "56c25bd41277b9e674054a9a600e21ea99d4d43aece829e21c5a70421721884c",
+            "integer_target_probability": 0.5152702596593102,
+            "maximum_probability_delta": 0.005971637051125356,
+            "maximum_state_delta": 0.0029296875,
+            "position_in_block": 67,
+            "target_offset": 580,
+            "target_token": 446,
+            "total_variation": 0.0061589873495322325
+          },
+          "rows_exceeding_state_0_01": [],
+          "rows_exceeding_probability_0_01": [],
+          "attempt1_rows_exceeding_state_0_01": [],
+          "integer_vs_f32_step_time_ratio": 26.918812342902083,
+          "integer_step_milliseconds_per_token": 13.914917717773436,
+          "actual_integer_stop_reasons": [
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "maximum_new_tokens"
+            },
+            {
+              "reason": "eos"
+            },
+            {
+              "reason": "eos"
+            }
+          ]
+        }
+      },
+      "read_generation_quality": [
+        {
+          "prompt_index": 0,
+          "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+          "integer_text": "had a special surprise. She was a kind boy, so little one. \nOne day, Mommy said they needed to buy new presents for the birthday party. She had a surprise for \nInside the party party, everyone like everyone in town. The party had a fun time, and everyone loved their birthday. Everyone clapped and danced when they played with every day. \nAfter a while, Mommy and Daddy went to an ancient room. There was a big, ugly bird. Mommy and their mommy were very happy. They had been very excited to play together. \nThe birthday party was in the party all day,",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "f32_text": "had a special surprise. She was a kind boy, so little one. \nOne day, Mommy said they needed to buy new presents for the birthday party. She had a surprise for \nInside the party party, everyone like everyone in town. The party had a fun time, and everyone loved their birthday. Everyone clapped and danced when they played with every day. \nAfter a while, Mommy and Daddy went to an ancient room. There was a big, ugly bird. Mommy and their mommy were very happy. They had been very excited to play together. \nThe birthday party was in the party all day,",
+          "first_token_difference_vs_f32": null,
+          "same_generated_tokens_vs_f32": true
+        },
+        {
+          "prompt_index": 1,
+          "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+          "integer_text": "spotted a rabbit. The rabbit said hello, and he was very excited.\nHe grabbed his boat, Sam and the rabbit, and the rabbit went to the rabbit. \nSuddenly, the rabbit opened it and landed there. He was looking at them. He was amazed. He asked the rabbit, \"What are you doing?\" The rabbit smiled and said, \"This is a rabbit. I have a big surprise for you!\" Then he was curious. He asked if he could take back to the rabbit. \nThe rabbit smiled. \"Let's have a picnic with your friends in the garden,\" he said. The rabbit nodded",
+          "integer_tokens": 128,
+          "integer_stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "f32_text": "spotted a rabbit. The rabbit said hello, and he was very excited.\nHe grabbed his boat, Sam and the rabbit, and the rabbit went to the rabbit. \nSuddenly, the rabbit opened it and landed there. He was looking at them. He was amazed. He asked the rabbit, \"What are you doing?\" The rabbit smiled and said, \"This is a rabbit. I have a big surprise for you!\".\nThe lion then looked at them. He was holding a big smile. \"I have a surprise, rabbit! I can show you a rabbit.\" the lion said.\nThe rabbit watched the rabbit",
+          "first_token_difference_vs_f32": 87,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 2,
+          "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+          "integer_text": "day, they saw a big cake in the garden.\nThe goose and corn went over the cake. It was very colorful and had a big bow in the grass. The goose tried to take it out, but then it was too high.\nSuddenly, it saw a shiny thing in the garden. It was a small, red, scary dog. The dog chased the goose away. The goose and corn were very happy. They played with the red ball all day long, and they lived happily ever after.",
+          "integer_tokens": 104,
+          "integer_stop": {
+            "reason": "eos"
+          },
+          "f32_text": "day, they saw a big cake in the garden.\nThe goose and corn went over the cake. It was very colorful and had a big sun with a flag.\nThey found a pretty paper with many leaves and colors. They wanted to eat it, so they started to eat.\nBut then, a big wave came and blew. The goose's little sister, the pig, took the paper to the cake. The goose was very happy. It took the cake from the cake. Everyone was happy. The goose's sister was not happy anymore.",
+          "first_token_difference_vs_f32": 29,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 3,
+          "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+          "integer_text": ". Tim was very excited to show his bike.\nTim rode the bike very fast. The big hill let Tim go back. Tim was very happy. He rode his bike to the big hill every day. He rode his bike, up, up, and then he had never seen the big hill hill.",
+          "integer_tokens": 63,
+          "integer_stop": {
+            "reason": "eos"
+          },
+          "f32_text": ". Tim was very excited to show his bike.\nTim rode the bike very fast. The big hill goes fast and loud. Tim was very fast. The big hill hit the bike and it started to go on the trip. Tim's mom said, \"Tim, you're very careful.\"\n Tim did not like the bike. He rode ride, but then he saw that there was a big surprise. He found out that the bike was in his room. Tim was very happy. He showed Tim his bike and he went to the park.\nAt the park, Tim saw a new toy. He felt happy. The next day",
+          "first_token_difference_vs_f32": 21,
+          "same_generated_tokens_vs_f32": false
+        },
+        {
+          "prompt_index": 4,
+          "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+          "integer_text": "wanted to make a cake for their friend, Sam, and their home. \nWhen Sam got the new train, they found something shiny in the ground. It was a small, old cake. Sam said, \"This is my cake! I want to keep it for the party, Sam.\"\nSo, Sam and Dave got home and sat down in the ground. They had a big smile on their faces. They had lots of fun and made their cake together. \nAt the end of their day, Lily and Dave were very happy. They had a special cake, and Sam loved their new train.",
+          "integer_tokens": 127,
+          "integer_stop": {
+            "reason": "eos"
+          },
+          "f32_text": "wanted to make a cake for their friend, Sam, and their home. \nWhen Sam got the new train, they found something shiny in the ground. It was a small, old cake. Sam said, \"This is my cake! I want to keep it for the party, Sam.\"\nSo, Sam and Dave got home and sat down in the ground. They made a delicious cake for Sam's birthday. Sam gave a big smile, and Sam was very happy. They both had a lot of fun and had lots of fun.",
+          "first_token_difference_vs_f32": 77,
+          "same_generated_tokens_vs_f32": false
+        }
+      ],
+      "integer_no_read_nll_penalty": 0.47233483906602647
+    }
+  },
+  "claim_boundaries": [
+    "1024 calibration-prefix targets per read mode and arm; zero comparison-tail targets; not a full development language gate or new holdout.",
+    "Full causal slot count reaches255 at final position of each256 input window. A slot may have zero mass without being omitted.",
+    "Generation uses host F32/F64 seeded sampler; numerical kernel audit is separate.",
+    "Batch1 incremental call timing excludes loading, allocations outside step, reporting and complete application cost; not energy evidence.",
+    "Source-answer mechanics and nonconstant prose do not establish useful general-language, coding, reasoning or geometric advantage."
+  ],
+  "qualitative_adjudication": {
+    "read_outputs": "All10 read continuations are nonconstant and end by existing EOS/max-token rule; source/entity continuity, grammar and physical/event coherence remain unreliable. No short-cycle stop is not a coherence guarantee.",
+    "quaternion_examples": [
+      "Prompt1 calls Max a dog, then a big cat named Bob, and shifts to a mighty lion.",
+      "Prompt3 repeatedly rides a hill and has cat/hill role confusion.",
+      "Prompt4 introduces an expensive ball and unstable train/dance speaker roles."
+    ],
+    "ordinary_examples": [
+      "Prompt0 says she was a kind boy and repeats party with incompatible scene details.",
+      "Prompt2 turns goose/corn into a cake/red-dog/red-ball sequence.",
+      "Prompt3 repeats big hill hill."
+    ],
+    "attention_intervention": "Read source28/24 and NoRead0/0, together with positive limited-prefix NoRead NLL penalties, support retained source-sensitive/contextual read behavior in this scope. They do not prove geometric advantage or general semantic attention."
+  },
+  "summary": {
+    "integer_target_distribution_digests_identical_between_attempts": true,
+    "integer_source_and_continuation_values_identical_except_timings": true,
+    "feature_matched_f32_source_token_replay_identical_to_historical": true,
+    "all_four_final_modes_within_original_numerical_bounds": true,
+    "no_first_noun_or_complete_source_losses_or_gains_vs_matched_f32": true
+  }
+}

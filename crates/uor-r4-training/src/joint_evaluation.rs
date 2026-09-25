@@ -832,11 +832,11 @@ fn judge_story(
 
 /// Same RNG and Q32 draw arithmetic as reference_eval; only the explicit score
 /// input changes from raw logits to ln(model probabilities).
-struct SplitMix64 {
-    state: u64,
+pub(crate) struct SplitMix64 {
+    pub(crate) state: u64,
 }
 impl SplitMix64 {
-    const fn new(seed: u64) -> Self {
+    pub(crate) const fn new(seed: u64) -> Self {
         Self { state: seed }
     }
     fn next_u64(&mut self) -> u64 {
@@ -848,7 +848,7 @@ impl SplitMix64 {
     }
 }
 
-fn sample_top_k_q32(probabilities: &[f32], sampler: &mut SplitMix64) -> Result<u32> {
+pub(crate) fn sample_top_k_q32(probabilities: &[f32], sampler: &mut SplitMix64) -> Result<u32> {
     row_summary(probabilities)?;
     let mut ranked = probabilities
         .iter()

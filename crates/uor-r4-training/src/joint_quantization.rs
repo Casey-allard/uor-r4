@@ -160,7 +160,9 @@ impl ParameterQuantization {
             )));
         }
         for &exponent in &self.row_exponents {
-            step(exponent)?;
+            if !(MIN_EXPONENT..=MAX_EXPONENT).contains(&exponent) {
+                return Err(invalid("dyadic exponent outside [-24,16]"));
+            }
         }
         Ok(count)
     }
@@ -691,6 +693,30 @@ pub fn load_hard_parameters(
     directory: &Path,
     device: &Device,
 ) -> Result<(QuantizationSpec, BTreeMap<String, Var>)> {
+    let (spec, codes) = load_hard_codes(directory)?;
+    let mut variables = BTreeMap::new();
+    for (name, codes) in codes {
+        let parameter = &spec.parameters[&name];
+        let values = codes
+            .iter()
+            .enumerate()
+            .map(|(index, &code)| {
+                Ok(f32::from(code) * step(parameter.row_exponents[index / parameter.row_width()])?)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        variables.insert(
+            name,
+            Var::from_vec(values, parameter.shape.as_slice(), device)?,
+        );
+    }
+    spec.validate(&variables)?;
+    Ok((spec, variables))
+}
+
+/// Validated integer parameter codes, sharing all codec/hash checks with the
+/// offline emulator. Diagnostic metadata is parsed at load time only; no
+/// parameter is converted to floating point on this path.
+pub fn load_hard_codes(directory: &Path) -> Result<(QuantizationSpec, BTreeMap<String, Vec<i16>>)> {
     let descriptor_path = directory.join(HARD_DESCRIPTOR_FILE);
     if fs::metadata(&descriptor_path)?.len() > MAX_DESCRIPTOR_BYTES {
         return Err(invalid("hard parameter descriptor exceeds size limit"));
@@ -785,18 +811,11 @@ pub fn load_hard_parameters(
                 }
                 i32::from(code)
             };
-            let value = code as f32 * step(parameter.row_exponents[index / parameter.row_width()])?;
-            if !value.is_finite() {
-                return Err(invalid("nonfinite decoded hard parameter"));
-            }
-            values.push(value);
+            values.push(code as i16);
         }
-        variables.insert(
-            entry.name.clone(),
-            Var::from_vec(values, parameter.shape.as_slice(), device)?,
-        );
+        variables.insert(entry.name.clone(), values);
     }
-    descriptor.specification.validate(&variables)?;
+    descriptor.specification.validate_structure()?;
     Ok((descriptor.specification, variables))
 }
 

@@ -1,6 +1,6 @@
 # Offline Rust training foundation
 
-This crate contains the offline recurrent-memory learner, its matched transport control, and differentiable research references. No serving crate depends on it. The recurrent learner trains state, causal memory reads/writes and token output jointly. The separate reference modes reproduce the retained #1017 ordinary transformer. Integer export remains a later integration step.
+This crate contains the offline recurrent-memory learner, its matched transport control, and differentiable research references. No serving crate depends on it. The recurrent learner trains state, causal memory reads/writes and token output jointly. The separate reference modes reproduce the retained #1017 ordinary transformer. The integer numerical bridge now executes accepted packed codes; standalone serving integration remains open.
 
 **Memory profile: allocation-conscious offline computation.** Construction,
 autodiff graphs, whole-sequence worker gradients and serialization allocate.
@@ -9,11 +9,38 @@ the process supervisor monitors RSS, storage and elapsed time. This crate makes
 no heapless or allocation-free steady-state guarantee. Portable serving crates
 retain their separate stricter contracts.
 
+## Integer numerical execution bridge
+
+`joint_integer.rs` loads validated signed codes and runs learned full-context
+attention, R4/ordinary transport, recurrence and vocabulary/copy output with
+integer model-value arithmetic. `joint_integer_math.rs` implements checked
+shift/add products, long division and integer square roots; the compiled runtime
+uses bound tables from `joint_integer_tables.rs`. Dense access/allocation remain.
+
+```text
+uor-r4-training joint-integer-tables NEW_ROOT
+uor-r4-training joint-integer-evaluate PACKED TABLES EVALUATOR NEW_ROOT [MAX_WINDOWS]
+```
+
+Both commands claim/seal new report roots. The evaluator uses the existing source
+and continuation panels, Read/NoRead, then same-token full256 windows. Its
+floating comparator and historical floating seeded sampler are outside the
+integer numerical kernel. Integer greedy source selection is separate. This
+crate is still offline infrastructure; it is not the standalone serving product.
+
+[Executed result](../../docs/integration/integer-execution-result-2026-09-25.md):
+source28/24 retained, numerical bounds met on four exposed development windows,
+compiled numerical-value audit scoped explicitly, about28–29x slower measured
+steps than F32. Existing float build features must match the original parent:
+`metal,cpu-accelerate,reference-accelerate`, even for a CPU comparison. All4096
+integer target hashes match across the two builds; float accumulation does not.
+No new learning, general language or energy qualification follows.
+
 ## Joint recurrent-memory learning
 
 The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../docs/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. The [learned-code successor](../../docs/integration/learned-rounding-result-2026-09-25.md) now passes all five original hard-artifact gates in both arms. Its packed-minus-continuous gaps are+0.023708/+0.046477; both candidates are retained for trained bounded admission/transport. Individual complete-answer regressions and unreliable prose remain.
 
-The [bounded-admission successor](../../docs/integration/bounded-admission-result-2026-09-25.md) is complete: both orthant64 arms recover numerical retention but fail source retention (17/32 complete answers each). Same-weights recent64 restores27/25 at lower NLL, but its proposed training follow-up is withdrawn under [D9](../../docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract). Preserve full 256-token access while implementing the quantized transport/integer bridge; the [active contract](../../docs/integration/current-state.md#active-execution-contract) owns that work. The sign index has measured utility versus recent32; this does not override its failure. Accepted learned-code parents remain preserved, and no diagnostic policy override is promoted.
+The [bounded-admission successor](../../docs/integration/bounded-admission-result-2026-09-25.md) is complete: both orthant64 arms recover numerical retention but fail source retention (17/32 complete answers each). Same-weights recent64 restores27/25 at lower NLL, but its proposed training follow-up is withdrawn under [D9](../../docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract). The integer numerical bridge below preserves full256 access; the [active contract](../../docs/integration/current-state.md#active-execution-contract) owns that work. The sign index has measured utility versus recent32; this does not override its failure. Accepted learned-code parents remain preserved, and no diagnostic policy override is promoted.
 
 ```text
 uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESUME_CHECKPOINT]

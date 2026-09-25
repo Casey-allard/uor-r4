@@ -117,7 +117,7 @@ impl JointConfig {
         Ok(())
     }
 
-    fn shapes(&self) -> BTreeMap<String, Vec<usize>> {
+    pub(crate) fn shapes(&self) -> BTreeMap<String, Vec<usize>> {
         let d = self.width;
         let r = self.read_width;
         BTreeMap::from([
