@@ -1,0 +1,71 @@
+{
+  "schema": "uor-r4.joint-recurrent-checkpoint-selection/1",
+  "recorded_utc": "2026-09-25T05:54:34.126896+00:00",
+  "rule": "Lower recorded F32-origin quick_loss tune64 score among global4714/7324; exact tie chooses earlier. Fixed before opening comparison-tail results.",
+  "comparison_tail_evaluations_started": false,
+  "shared_evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+  "arms": {
+    "quaternion": {
+      "candidates": [
+        {
+          "step": 4714,
+          "recorded_f32_origin_tune64_nll": 2.2884544730186462,
+          "checkpoint": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-3/checkpoint-00004714",
+          "checkpoint_sha256": "bcedad73d4215afdb6b4ed4fd7777e4e671dc8bf90acb94a3404062c592ede16",
+          "model_sha256": "1c3f126a13c549148f8b42ce9169c050ae875599e28938a003dcba288bd88092",
+          "campaign_sha256": "5b21a2792674463297fd7fde61706412a7e104a1883bdc0a66208f788418c4cf"
+        },
+        {
+          "step": 7324,
+          "recorded_f32_origin_tune64_nll": 2.2136868834495544,
+          "checkpoint": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-3/checkpoint-final",
+          "checkpoint_sha256": "b6f442589ab60c158dd737ead4917e2f7400b55dbb3035459bfaec8acc0375d0",
+          "model_sha256": "3ca828e5668e8faccfb434d5f74ba4cd7556e144eadcceaf3f8d2177b64be99f",
+          "campaign_sha256": "5b21a2792674463297fd7fde61706412a7e104a1883bdc0a66208f788418c4cf"
+        }
+      ],
+      "selected": {
+        "step": 7324,
+        "recorded_f32_origin_tune64_nll": 2.2136868834495544,
+        "checkpoint": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-3/checkpoint-final",
+        "checkpoint_sha256": "b6f442589ab60c158dd737ead4917e2f7400b55dbb3035459bfaec8acc0375d0",
+        "model_sha256": "3ca828e5668e8faccfb434d5f74ba4cd7556e144eadcceaf3f8d2177b64be99f",
+        "campaign_sha256": "5b21a2792674463297fd7fde61706412a7e104a1883bdc0a66208f788418c4cf"
+      },
+      "fit_report_sha256": "6fb3f682fb352852c0fe84f409f60012647d18d34a1a286f681bc6462e4ad1c0",
+      "completed_total_visits": 29999104,
+      "full256_target_visits": 21381120
+    },
+    "householder_pair": {
+      "candidates": [
+        {
+          "step": 4714,
+          "recorded_f32_origin_tune64_nll": 2.2636188864707947,
+          "checkpoint": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-3/checkpoint-00004714",
+          "checkpoint_sha256": "6ac2e3ff77cae71522b355f2fdf5a2e44ae20967a39cd45cca2142d154e2c243",
+          "model_sha256": "e070631b964f3130a87bb9530b8b5b9213621da23f764bb9d7c2345da021c7f0",
+          "campaign_sha256": "bd5cefe5cb4d52bfe7588fba0fbf1dfa0386cba2d737c8256f3275eeba809a25"
+        },
+        {
+          "step": 7324,
+          "recorded_f32_origin_tune64_nll": 2.182432770729065,
+          "checkpoint": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-3/checkpoint-final",
+          "checkpoint_sha256": "90f5a5d1108b14961304715177dc4d427604a2709c795ab9769cdb32a7276c2c",
+          "model_sha256": "7c6f922754aea410cfaacd9162f7d08032fa47ddd909f3e401846324ff3e2f03",
+          "campaign_sha256": "bd5cefe5cb4d52bfe7588fba0fbf1dfa0386cba2d737c8256f3275eeba809a25"
+        }
+      ],
+      "selected": {
+        "step": 7324,
+        "recorded_f32_origin_tune64_nll": 2.182432770729065,
+        "checkpoint": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-3/checkpoint-final",
+        "checkpoint_sha256": "90f5a5d1108b14961304715177dc4d427604a2709c795ab9769cdb32a7276c2c",
+        "model_sha256": "7c6f922754aea410cfaacd9162f7d08032fa47ddd909f3e401846324ff3e2f03",
+        "campaign_sha256": "bd5cefe5cb4d52bfe7588fba0fbf1dfa0386cba2d737c8256f3275eeba809a25"
+      },
+      "fit_report_sha256": "e0cf7cb5032ee2f41c109ce15995173fd3374dc5ed8da970a8a47d1af4e1b4fd",
+      "completed_total_visits": 29999104,
+      "full256_target_visits": 21381120
+    }
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "schema": "uor-r4.joint-recurrent-hardware-selection/1",
+  "recorded_utc": "2026-09-25T01:15:01.665663+00:00",
+  "status": "SELECTED_BEFORE_FULL_FIT",
+  "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+  "executable": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/joint-training-ad4e639f",
+  "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+  "profiles": [
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-quaternion-1",
+      "report_sha256": "b14adfef7f84b0070def12e667adce5c9ba6256816c53c29b1351204e70cb324",
+      "arm": "quaternion",
+      "configuration": "cpu_env2_unsharded",
+      "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+      "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+      "elapsed_seconds": 44.031752917,
+      "steady_targets_per_second": 1246.9765790186573,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2104,
+      "completed_step": 2116
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-householder_pair-1",
+      "report_sha256": "aebffda5de9a4360557d700c6c7a73cb195248123f6f9c2a019ce4d8858e0ec1",
+      "arm": "householder_pair",
+      "configuration": "cpu_env2_unsharded",
+      "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+      "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+      "elapsed_seconds": 43.514661375,
+      "steady_targets_per_second": 1267.2356125905778,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2104,
+      "completed_step": 2116
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-cpu4-quaternion-1",
+      "report_sha256": "5411ff832ffd7bd87d755395bbbbc8c7fff18b55d9f6ab1f7fa1f2aa0e6172f9",
+      "arm": "quaternion",
+      "configuration": "cpu4",
+      "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+      "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+      "elapsed_seconds": 47.466700125,
+      "steady_targets_per_second": 1199.8735430892484,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-cpu4-householder_pair-1",
+      "report_sha256": "be55441ef2a8da77f15558def24eeeb411427edf48b7418151de5ca7e59fa8d4",
+      "arm": "householder_pair",
+      "configuration": "cpu4",
+      "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+      "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+      "elapsed_seconds": 46.289680167,
+      "steady_targets_per_second": 1195.039263980298,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-metal-quaternion-1",
+      "report_sha256": "d7d2c0c3e4ae1ed8ff12c76ea392710f159f6fef1bb8a033050aba2060736e51",
+      "arm": "quaternion",
+      "configuration": "metal",
+      "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+      "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+      "elapsed_seconds": 63.404091583,
+      "steady_targets_per_second": 822.8982563087945,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-quaternion-1",
+      "report_sha256": "7a193fffe9b3e47c4a6ee9bc312bd31c2016e0c39a6e425c745da75ef3ad9ef0",
+      "arm": "quaternion",
+      "configuration": "shards2",
+      "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+      "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+      "elapsed_seconds": 37.764866958,
+      "steady_targets_per_second": 1418.825006642514,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-householder_pair-1",
+      "report_sha256": "7869786f0653fd940e086727d131f2f3b97627b7daf6e73654a8a5f452d324d9",
+      "arm": "householder_pair",
+      "configuration": "shards2",
+      "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+      "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+      "elapsed_seconds": 36.802741334,
+      "steady_targets_per_second": 1574.9002957460664,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards4-quaternion-1",
+      "report_sha256": "f645621138e2e988fa65df512d8ff8e6ccd7d54a5b1dca2795a5aded0c0d573b",
+      "arm": "quaternion",
+      "configuration": "shards4",
+      "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+      "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+      "elapsed_seconds": 39.204391042,
+      "steady_targets_per_second": 1333.478607406554,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    },
+    {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards4-householder_pair-1",
+      "report_sha256": "808b9e8702bb732d5600eda57d19e66a89a87a7e7a8bbf06cf784ca2a437225d",
+      "arm": "householder_pair",
+      "configuration": "shards4",
+      "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+      "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+      "elapsed_seconds": 38.55935975,
+      "steady_targets_per_second": 1479.3026251094284,
+      "status": "TARGET_COMPLETE",
+      "reload_absolute_delta": 0.0,
+      "starting_step": 2116,
+      "completed_step": 2128
+    }
+  ],
+  "selected": {
+    "backend": "cpu",
+    "cpu_gradient_shards_per_arm": 2,
+    "concurrent_arms": 2,
+    "gradient_workers_combined": 4,
+    "rayon_threads_per_process": 1,
+    "veclib_max_threads_per_process": 1,
+    "parents": {
+      "quaternion": {
+        "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-quaternion-1/checkpoint-final",
+        "checkpoint_sha256": "d37c1ea7a989411088779af7cf9ff0cd84385bb9a19c46cc7e2e8ef5d8d5a8a9",
+        "campaign_sha256": "941d24f1ee9358e445f4dc0ea874c490a7197b3b233ac030b2c40639a618245f",
+        "global_step": 2128
+      },
+      "householder_pair": {
+        "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-householder_pair-1/checkpoint-final",
+        "checkpoint_sha256": "1ffde6bff62fb4b760275f61aff4435c6dd581860778fb9c9780cc2c9e2b2838",
+        "campaign_sha256": "fbd8af8144bab3af012995ff74647cce21589a35034b41f6025dc6790a03d89f",
+        "global_step": 2128
+      }
+    }
+  },
+  "reason": "Both arms completed faster with two synchronous sequence workers than the tested single-worker or four-worker options. Metal was slower on the measured quaternion arm. Select symmetrically by execution speed, not profile loss. Retain all alternative branches.",
+  "comparison_limits": "Short12-update profiles, one laptop, staggered launches. InitialCPU2 profile usessteps2104..2116; otherprofiles use2116..2128. The newsharded implementation includes forward-graph teardown in step timing; previous code timed immediatelybefore that teardown. Whole-attempt walltime also favors two shards. No energy claim.",
+  "semantics": "Whole256-token sequences remain intact; weighted mean gradients before one global clip/AdamW. Shared read-only parameters. F32 reduction order differs; no bitwise training equivalence claim.",
+  "batch": 16,
+  "training_context": 256,
+  "evaluation_context": 256,
+  "remaining_steps": 5196,
+  "remaining_target_visits": 21282816,
+  "final_global_step": 7324,
+  "total_target_visits_per_arm": 29999104,
+  "full256_target_visits_per_arm": 21381120,
+  "checkpoint_selection_steps": [
+    4714,
+    7324
+  ],
+  "remaining_fit_seconds_slowest_profile": 15000.310750346398,
+  "per_process_training_deadline_seconds": 17400,
+  "closeout_seconds": 180,
+  "evaluation_and_delivery_projection_seconds": 1800,
+  "combined_peak_sampled_rss_bytes": 6180077568,
+  "physical_free_before_full_launch_bytes": 26298982400,
+  "physical_free_stop_bytes": 26105348096,
+  "no_paid_external_compute": true,
+  "focused_release_checks_passed": 8,
+  "checkpoint_selection_rule": "Select4714 or7324 independently per arm on recorded F32-origin tune64 NLL; exact ties choose earlier. Freeze selected identities before any comparison-tail result.",
+  "actual_launch": {
+    "jobs": [
+      {
+        "pid": 93408,
+        "arm": "quaternion",
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-quaternion"
+      },
+      {
+        "pid": 93418,
+        "arm": "householder_pair",
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-householder_pair"
+      }
+    ],
+    "executable": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/joint-training-ad4e639f",
+    "aggregate_rss_stop_bytes": 8589934592,
+    "process_rss_stop_bytes": 6442450944,
+    "physical_free_stop_bytes": 26105348096,
+    "max_supervisor_seconds": 17580,
+    "checkpoint_grace_seconds": 180,
+    "launch_utc": "2026-09-25T01:17:48.797472+00:00"
+  },
+  "rdc_sessions": {
+    "quaternion": 93402,
+    "householder_pair": 93412,
+    "supervisor": 93426
+  }
+}

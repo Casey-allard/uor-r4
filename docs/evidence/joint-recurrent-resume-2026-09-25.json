@@ -1,0 +1,61 @@
+{
+  "recorded_utc": "2026-09-25T01:28:20.891573+00:00",
+  "reason": "Physical-reserve supervisor requested safe checkpoints after a1GiB available-space fall. Both parents reloaded with zero loss delta; retain all learning and continue sameB16/T256/two-shard CPU optimizer/sampler. No cause attribution beyond observed OS swap without a paired earlier measurement.",
+  "stopped_attempt_status": "RESOURCE_CHECKPOINT",
+  "parents": {
+    "quaternion": {
+      "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-1/checkpoint-final",
+      "checkpoint_sha256": "106e7d85d96e63693529c6333147027115da26d34dd8541092ff8076a9170240",
+      "campaign_sha256": "a8bca90f083d823824b26011e89edf7fa6e35a5e1300b9e1a519a8fc506bec6e",
+      "global_step": 2232,
+      "remaining_updates": 5092
+    },
+    "householder_pair": {
+      "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-1/checkpoint-final",
+      "checkpoint_sha256": "81d5843e58d9614f76ca20bf496539fee38ad87bd2b0e44e9878c7108bfa7996",
+      "campaign_sha256": "b843249146e09beaf64bacd476539509d84a3841c86aaea6239ba35305142dce",
+      "global_step": 2230,
+      "remaining_updates": 5094
+    }
+  },
+  "cleanup_receipt": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/reserve-recovery-compiler-cache-cleanup.json",
+  "measured_physical_reclaimed_bytes": 3652976640,
+  "physical_free_before_resume_bytes": 29516242944,
+  "unchanged_physical_free_stop_bytes": 26105348096,
+  "new_storage_increment_bytes": 67108864,
+  "gross_new_storage_updated_limit_bytes": 1040187392,
+  "time_extension_ms": 0,
+  "remaining_fit_projection_seconds": 16200,
+  "training_seconds_limit_per_attempt": 17400,
+  "closeout_seconds": 180,
+  "evaluation_delivery_seconds": 1800,
+  "complete_cycle_limit_ms_unchanged": 29700000,
+  "shared_cumulative_clock_not_reset": true,
+  "scope": "No complete training or model-quality verdict yet; preserve stopped roots and all hardware alternatives.",
+  "actual_launch": {
+    "jobs": [
+      {
+        "pid": 94319,
+        "arm": "quaternion",
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-quaternion-2"
+      },
+      {
+        "pid": 94337,
+        "arm": "householder_pair",
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-householder_pair-2"
+      }
+    ],
+    "executable": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/joint-training-ad4e639f",
+    "aggregate_rss_stop_bytes": 8589934592,
+    "process_rss_stop_bytes": 6442450944,
+    "physical_free_stop_bytes": 26105348096,
+    "max_supervisor_seconds": 17580,
+    "checkpoint_grace_seconds": 180,
+    "launch_utc": "2026-09-25T01:28:26.478540+00:00"
+  },
+  "rdc_sessions": {
+    "quaternion": 94313,
+    "householder_pair": 94331,
+    "supervisor": 94345
+  }
+}

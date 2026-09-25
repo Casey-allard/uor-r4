@@ -1,0 +1,67 @@
+{
+  "recorded_utc": "2026-09-25T01:34:58.731151+00:00",
+  "reason": "Owner correctly noted that~25.2GB remained free. The lead had carried forward an overly restrictive26.1GB stop, although remaining checkpoint/curve/evaluation outputs need only200\u2013250MB. Correct this operational projection under standing necessary local storage authorization; no scientific gate changes. Claude VM modification and OS swap growth were concurrent; no attribution of the full disk delta is established. Model footprints remained stable, and disk also fell after both jobs exited.",
+  "authority": "Standing owner local storage-extension authorization, plus current direction to continue full planned exposure. Adjustment disclosed before resume.",
+  "old_protected_physical_reserve_bytes": 25904021504,
+  "new_protected_physical_reserve_bytes": 21474836480,
+  "operational_headroom_increment_bytes": 4429185024,
+  "required_storage_stop_margin_bytes": 134217728,
+  "checkpoint_closeout_headroom_bytes": 67108864,
+  "old_physical_free_stop_bytes": 26105348096,
+  "new_physical_free_stop_bytes": 21676163072,
+  "gross_new_experiment_storage_limit_bytes_unchanged": 1040187392,
+  "projected_remaining_outputs_bytes_max": 262144000,
+  "physical_free_before_resume_bytes": 25197559808,
+  "parents": {
+    "quaternion": {
+      "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-2/checkpoint-final",
+      "checkpoint_sha256": "20d3c5d255d073b2c9231142efe4ba57b609106458d4d98f0857347466f257da",
+      "campaign_sha256": "a5113bba1a1d145dab59f09e6728e17f2a9b08a1613fc5f065d70395a81f2c00",
+      "global_step": 2241,
+      "remaining_updates": 5083
+    },
+    "householder_pair": {
+      "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-2/checkpoint-final",
+      "checkpoint_sha256": "16ca2ee387a23d131a980a6cd20454f7dc7872994249243344befaed525c2810",
+      "campaign_sha256": "b434070d5062d02d9fcd35ff54f228fa5f9f8d550d0f99ffda63cfe0f73674e2",
+      "global_step": 2238,
+      "remaining_updates": 5086
+    }
+  },
+  "remaining_fit_projection_seconds": 16200,
+  "training_seconds_limit": 17400,
+  "closeout_seconds": 180,
+  "evaluation_delivery_seconds": 1800,
+  "complete_cycle_limit_ms_unchanged": 29700000,
+  "cumulative_ledger_not_reset": true,
+  "further_deletions": 0,
+  "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+  "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+  "same_model_horizon_batch_shards_optimizer_sampler_and_final_target": true,
+  "actual_launch": {
+    "jobs": [
+      {
+        "pid": 95231,
+        "arm": "quaternion",
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-quaternion-3"
+      },
+      {
+        "pid": 95240,
+        "arm": "householder_pair",
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-householder_pair-3"
+      }
+    ],
+    "executable": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/joint-training-ad4e639f",
+    "aggregate_rss_stop_bytes": 8589934592,
+    "process_rss_stop_bytes": 6442450944,
+    "physical_free_stop_bytes": 21676163072,
+    "max_supervisor_seconds": 17580,
+    "checkpoint_grace_seconds": 180,
+    "launch_utc": "2026-09-25T01:35:34.826106+00:00"
+  },
+  "rdc_sessions": {
+    "quaternion": 95225,
+    "householder_pair": 95234,
+    "supervisor": 95251
+  }
+}

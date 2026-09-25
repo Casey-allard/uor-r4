@@ -9,6 +9,12 @@
 
 pub mod baseline_counts;
 pub mod baseline_protocol;
+pub mod joint_campaign;
+pub mod joint_comparison;
+pub mod joint_evaluation;
+pub mod joint_model;
+pub mod joint_optimizer;
+pub mod joint_parallel;
 pub mod ngram;
 pub mod reference_campaign;
 pub mod reference_eval;
@@ -41,6 +47,7 @@ pub enum TrainingError {
     Json(serde_json::Error),
     Tensor(candle_core::Error),
     Safetensors(safetensors::SafeTensorError),
+    Optimizer(joint_optimizer::OptimizerError),
     Invalid(String),
     Reference(String),
 }
@@ -51,6 +58,7 @@ impl fmt::Display for TrainingError {
             Self::Json(error) => write!(f, "JSON: {error}"),
             Self::Tensor(error) => write!(f, "autodiff tensor: {error}"),
             Self::Safetensors(error) => write!(f, "safetensors: {error}"),
+            Self::Optimizer(error) => write!(f, "optimizer: {error}"),
             Self::Invalid(error) => write!(f, "invalid reference request: {error}"),
             Self::Reference(error) => write!(f, "existing Rust reference: {error}"),
         }
@@ -70,6 +78,7 @@ convert!(std::io::Error, Io);
 convert!(serde_json::Error, Json);
 convert!(candle_core::Error, Tensor);
 convert!(safetensors::SafeTensorError, Safetensors);
+convert!(joint_optimizer::OptimizerError, Optimizer);
 pub type Result<T> = std::result::Result<T, TrainingError>;
 
 fn invalid(message: impl Into<String>) -> TrainingError {

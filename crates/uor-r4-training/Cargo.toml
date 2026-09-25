@@ -8,6 +8,7 @@ description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 r
 [features]
 default = []
 metal = ["candle-core/metal", "candle-nn/metal"]
+cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
 reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
 
 [dependencies]

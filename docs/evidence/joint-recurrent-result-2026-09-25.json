@@ -1,0 +1,2834 @@
+{
+  "schema": "uor-r4.joint-recurrent-result/1",
+  "recorded_utc": "2026-09-25T06:08:28.466672+00:00",
+  "status": "ACCEPT_FROZEN_RUNG1_ENGINEERING_CONTINUATION_SCOPE",
+  "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+  "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+  "artifact_container": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924",
+  "selection_receipt_sha256": "34c184c0e351a524f4cd88d4098c3298e2045b4e19bacefe1d7625ffc96aaa65",
+  "comparison_root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/comparison256-1",
+  "comparison_report_sha256": "b5de7398ecf9eae1180996f1b503ffc51cba463204742ee72230db87ce19e889",
+  "comparison_manifest_sha256": "e43898a54e1b1f7c2b09b835e0de53a953e3180fcec3e2fd44a9248095d6a302",
+  "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+  "exposure_per_arm": {
+    "total_target_visits": 29999104,
+    "warmup_context64_visits": 8617984,
+    "context256_visits": 21381120,
+    "global_steps": 7324,
+    "selected_step": 7324
+  },
+  "joined_targets": 249856,
+  "original_summary_agreement": {
+    "absolute_tolerance_nats": 1e-10,
+    "all_21_means_match": true,
+    "maximum_absolute_delta_nats": 1.7763568394002505e-15,
+    "scope": "Serialization/reduction consistency check; not a model-quality or statistical tolerance."
+  },
+  "numerical_component_gates": [
+    {
+      "arm": "quaternion_read",
+      "comparison_targets": 233472,
+      "enabled_mean_nll_nats": 2.110368251192894,
+      "frozen_cache_threshold_nats": 2.391786178860742,
+      "generation_quality_gate": "NOT_ASSESSED_BY_COMPARISON",
+      "likelihood_component_pass": true,
+      "minimum_read_penalty_nats": 0.02,
+      "no_read_minus_enabled_nats": 0.4826231935691833,
+      "read_utility_component_pass": true,
+      "rung1_complete": "NOT_DETERMINED_BY_NUMERICAL_COMPONENTS",
+      "whole_prefix_no_read_mean_nll_nats": 2.5929914447620774
+    },
+    {
+      "arm": "ordinary_read",
+      "comparison_targets": 233472,
+      "enabled_mean_nll_nats": 2.0852410021634538,
+      "frozen_cache_threshold_nats": 2.391786178860742,
+      "generation_quality_gate": "NOT_ASSESSED_BY_COMPARISON",
+      "likelihood_component_pass": true,
+      "minimum_read_penalty_nats": 0.02,
+      "no_read_minus_enabled_nats": 0.47647059379841594,
+      "read_utility_component_pass": true,
+      "rung1_complete": "NOT_DETERMINED_BY_NUMERICAL_COMPONENTS",
+      "whole_prefix_no_read_mean_nll_nats": 2.56171159596187
+    }
+  ],
+  "partitions": {
+    "comparison": {
+      "arms": {
+        "cache": {
+          "mean_nll_nats": 2.391786178860743,
+          "nll_sum_nats": 558415.1027509754
+        },
+        "ngram": {
+          "mean_nll_nats": 2.405626957625589,
+          "nll_sum_nats": 561646.5370507615
+        },
+        "ordinary_no_read": {
+          "mean_nll_nats": 2.56171159596187,
+          "nll_sum_nats": 598087.9297324097
+        },
+        "ordinary_read": {
+          "mean_nll_nats": 2.0852410021634538,
+          "nll_sum_nats": 486845.38725710585
+        },
+        "quaternion_no_read": {
+          "mean_nll_nats": 2.5929914447620774,
+          "nll_sum_nats": 605390.8985914917
+        },
+        "quaternion_read": {
+          "mean_nll_nats": 2.110368251192894,
+          "nll_sum_nats": 492711.89634250733
+        },
+        "reference": {
+          "mean_nll_nats": 1.5740235956379076,
+          "nll_sum_nats": 367490.4369207736
+        }
+      },
+      "comparisons": [
+        {
+          "candidate": "quaternion_read",
+          "comparator": "reference",
+          "equal_targets": 0,
+          "improved_targets": 59396,
+          "paired_mean_nll_delta_nats": 0.5363446555549863,
+          "paired_nll_delta_sum_nats": 125221.45942173376,
+          "worse_targets": 174076
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "ngram",
+          "equal_targets": 0,
+          "improved_targets": 128034,
+          "paired_mean_nll_delta_nats": -0.2952587064326951,
+          "paired_nll_delta_sum_nats": -68934.64070825418,
+          "worse_targets": 105438
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "cache",
+          "equal_targets": 0,
+          "improved_targets": 141629,
+          "paired_mean_nll_delta_nats": -0.28141792766784884,
+          "paired_nll_delta_sum_nats": -65703.206408468,
+          "worse_targets": 91843
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "reference",
+          "equal_targets": 0,
+          "improved_targets": 59865,
+          "paired_mean_nll_delta_nats": 0.5112174065255459,
+          "paired_nll_delta_sum_nats": 119354.95033633226,
+          "worse_targets": 173607
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "ngram",
+          "equal_targets": 0,
+          "improved_targets": 128685,
+          "paired_mean_nll_delta_nats": -0.32038595546213544,
+          "paired_nll_delta_sum_nats": -74801.14979365568,
+          "worse_targets": 104787
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "cache",
+          "equal_targets": 0,
+          "improved_targets": 143341,
+          "paired_mean_nll_delta_nats": -0.3065451766972892,
+          "paired_nll_delta_sum_nats": -71569.7154938695,
+          "worse_targets": 90131
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "quaternion_no_read",
+          "equal_targets": 914,
+          "improved_targets": 142356,
+          "paired_mean_nll_delta_nats": -0.4826231935691833,
+          "paired_nll_delta_sum_nats": -112679.00224898437,
+          "worse_targets": 90202
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "ordinary_no_read",
+          "equal_targets": 918,
+          "improved_targets": 142916,
+          "paired_mean_nll_delta_nats": -0.47647059379841594,
+          "paired_nll_delta_sum_nats": -111242.54247530377,
+          "worse_targets": 89638
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "ordinary_read",
+          "equal_targets": 0,
+          "improved_targets": 111888,
+          "paired_mean_nll_delta_nats": 0.025127249029440364,
+          "paired_nll_delta_sum_nats": 5866.509085401501,
+          "worse_targets": 121584
+        },
+        {
+          "candidate": "quaternion_no_read",
+          "comparator": "ordinary_no_read",
+          "equal_targets": 3,
+          "improved_targets": 112530,
+          "paired_mean_nll_delta_nats": 0.03127984880020777,
+          "paired_nll_delta_sum_nats": 7302.968859082108,
+          "worse_targets": 120939
+        }
+      ],
+      "scored_targets": 233472
+    },
+    "full": {
+      "arms": {
+        "cache": {
+          "mean_nll_nats": 2.3980382936868896,
+          "nll_sum_nats": 599164.2559074315
+        },
+        "ngram": {
+          "mean_nll_nats": 2.4118351731909984,
+          "nll_sum_nats": 602611.4890328101
+        },
+        "ordinary_no_read": {
+          "mean_nll_nats": 2.5684492982113816,
+          "nll_sum_nats": 641742.467853903
+        },
+        "ordinary_read": {
+          "mean_nll_nats": 2.091614236548744,
+          "nll_sum_nats": 522602.36668712297
+        },
+        "quaternion_no_read": {
+          "mean_nll_nats": 2.5998199559754176,
+          "nll_sum_nats": 649580.6149201939
+        },
+        "quaternion_read": {
+          "mean_nll_nats": 2.1171432423638388,
+          "nll_sum_nats": 528980.9419640593
+        },
+        "reference": {
+          "mean_nll_nats": 1.5802411896906157,
+          "nll_sum_nats": 394832.74269133847
+        }
+      },
+      "comparisons": [
+        {
+          "candidate": "quaternion_read",
+          "comparator": "reference",
+          "equal_targets": 0,
+          "improved_targets": 63699,
+          "paired_mean_nll_delta_nats": 0.536902052673223,
+          "paired_nll_delta_sum_nats": 134148.1992727208,
+          "worse_targets": 186157
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "ngram",
+          "equal_targets": 0,
+          "improved_targets": 136994,
+          "paired_mean_nll_delta_nats": -0.2946919308271598,
+          "paired_nll_delta_sum_nats": -73630.54706875084,
+          "worse_targets": 112862
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "cache",
+          "equal_targets": 0,
+          "improved_targets": 151536,
+          "paired_mean_nll_delta_nats": -0.280895051323051,
+          "paired_nll_delta_sum_nats": -70183.31394337222,
+          "worse_targets": 98320
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "reference",
+          "equal_targets": 0,
+          "improved_targets": 64188,
+          "paired_mean_nll_delta_nats": 0.5113730468581283,
+          "paired_nll_delta_sum_nats": 127769.62399578452,
+          "worse_targets": 185668
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "ngram",
+          "equal_targets": 0,
+          "improved_targets": 137614,
+          "paired_mean_nll_delta_nats": -0.3202209366422544,
+          "paired_nll_delta_sum_nats": -80009.12234568711,
+          "worse_targets": 112242
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "cache",
+          "equal_targets": 0,
+          "improved_targets": 153287,
+          "paired_mean_nll_delta_nats": -0.30642405713814563,
+          "paired_nll_delta_sum_nats": -76561.88922030851,
+          "worse_targets": 96569
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "quaternion_no_read",
+          "equal_targets": 978,
+          "improved_targets": 152243,
+          "paired_mean_nll_delta_nats": -0.4826767136115787,
+          "paired_nll_delta_sum_nats": -120599.67295613461,
+          "worse_targets": 96635
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "ordinary_no_read",
+          "equal_targets": 982,
+          "improved_targets": 152856,
+          "paired_mean_nll_delta_nats": -0.4768350616626375,
+          "paired_nll_delta_sum_nats": -119140.10116677996,
+          "worse_targets": 96018
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "ordinary_read",
+          "equal_targets": 0,
+          "improved_targets": 119749,
+          "paired_mean_nll_delta_nats": 0.02552900581509461,
+          "paired_nll_delta_sum_nats": 6378.575276936279,
+          "worse_targets": 130107
+        },
+        {
+          "candidate": "quaternion_no_read",
+          "comparator": "ordinary_no_read",
+          "equal_targets": 3,
+          "improved_targets": 120468,
+          "paired_mean_nll_delta_nats": 0.03137065776403583,
+          "paired_nll_delta_sum_nats": 7838.147066290936,
+          "worse_targets": 129385
+        }
+      ],
+      "scored_targets": 249856
+    },
+    "tune": {
+      "arms": {
+        "cache": {
+          "mean_nll_nats": 2.487130929959481,
+          "nll_sum_nats": 40749.15315645614
+        },
+        "ngram": {
+          "mean_nll_nats": 2.500302244998081,
+          "nll_sum_nats": 40964.95198204856
+        },
+        "ordinary_no_read": {
+          "mean_nll_nats": 2.6644615552669264,
+          "nll_sum_nats": 43654.53812149332
+        },
+        "ordinary_read": {
+          "mean_nll_nats": 2.1824328265391317,
+          "nll_sum_nats": 35756.979430017134
+        },
+        "quaternion_no_read": {
+          "mean_nll_nats": 2.6971262407655123,
+          "nll_sum_nats": 44189.716328702154
+        },
+        "quaternion_read": {
+          "mean_nll_nats": 2.213686866549799,
+          "nll_sum_nats": 36269.04562155191
+        },
+        "reference": {
+          "mean_nll_nats": 1.668841904941703,
+          "nll_sum_nats": 27342.30577056486
+        }
+      },
+      "comparisons": [
+        {
+          "candidate": "quaternion_read",
+          "comparator": "reference",
+          "equal_targets": 0,
+          "improved_targets": 4303,
+          "paired_mean_nll_delta_nats": 0.5448449616080961,
+          "paired_nll_delta_sum_nats": 8926.739850987047,
+          "worse_targets": 12081
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "ngram",
+          "equal_targets": 0,
+          "improved_targets": 8960,
+          "paired_mean_nll_delta_nats": -0.2866153784482817,
+          "paired_nll_delta_sum_nats": -4695.906360496648,
+          "worse_targets": 7424
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "cache",
+          "equal_targets": 0,
+          "improved_targets": 9907,
+          "paired_mean_nll_delta_nats": -0.27344406340968197,
+          "paired_nll_delta_sum_nats": -4480.107534904229,
+          "worse_targets": 6477
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "reference",
+          "equal_targets": 0,
+          "improved_targets": 4323,
+          "paired_mean_nll_delta_nats": 0.5135909215974286,
+          "paired_nll_delta_sum_nats": 8414.67365945227,
+          "worse_targets": 12061
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "ngram",
+          "equal_targets": 0,
+          "improved_targets": 8929,
+          "paired_mean_nll_delta_nats": -0.3178694184589493,
+          "paired_nll_delta_sum_nats": -5207.972552031425,
+          "worse_targets": 7455
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "cache",
+          "equal_targets": 0,
+          "improved_targets": 9946,
+          "paired_mean_nll_delta_nats": -0.30469810342034953,
+          "paired_nll_delta_sum_nats": -4992.173726439007,
+          "worse_targets": 6438
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "quaternion_no_read",
+          "equal_targets": 64,
+          "improved_targets": 9887,
+          "paired_mean_nll_delta_nats": -0.48343937421571315,
+          "paired_nll_delta_sum_nats": -7920.670707150244,
+          "worse_targets": 6433
+        },
+        {
+          "candidate": "ordinary_read",
+          "comparator": "ordinary_no_read",
+          "equal_targets": 64,
+          "improved_targets": 9940,
+          "paired_mean_nll_delta_nats": -0.482028728727795,
+          "paired_nll_delta_sum_nats": -7897.558691476193,
+          "worse_targets": 6380
+        },
+        {
+          "candidate": "quaternion_read",
+          "comparator": "ordinary_read",
+          "equal_targets": 0,
+          "improved_targets": 7861,
+          "paired_mean_nll_delta_nats": 0.031254040010667596,
+          "paired_nll_delta_sum_nats": 512.0661915347779,
+          "worse_targets": 8523
+        },
+        {
+          "candidate": "quaternion_no_read",
+          "comparator": "ordinary_no_read",
+          "equal_targets": 0,
+          "improved_targets": 7938,
+          "paired_mean_nll_delta_nats": 0.0326646854985857,
+          "paired_nll_delta_sum_nats": 535.1782072088281,
+          "worse_targets": 8446
+        }
+      ],
+      "scored_targets": 16384
+    }
+  },
+  "position_horizon_means": {
+    "comparison": {
+      "positions_0_through_63": {
+        "arms": {
+          "cache": {
+            "mean_nll_nats": 2.4364189136752437,
+            "nll_sum_nats": 142208.89915339663
+          },
+          "ngram": {
+            "mean_nll_nats": 2.4358564759557466,
+            "nll_sum_nats": 142176.07078858503
+          },
+          "ordinary_no_read": {
+            "mean_nll_nats": 2.597696293504373,
+            "nll_sum_nats": 151622.33725926324
+          },
+          "ordinary_read": {
+            "mean_nll_nats": 2.305186510127767,
+            "nll_sum_nats": 134549.12622313751
+          },
+          "quaternion_no_read": {
+            "mean_nll_nats": 2.625017030742765,
+            "nll_sum_nats": 153216.9940503937
+          },
+          "quaternion_read": {
+            "mean_nll_nats": 2.327908332178048,
+            "nll_sum_nats": 135875.35353256832
+          },
+          "reference": {
+            "mean_nll_nats": 1.815499963164224,
+            "nll_sum_nats": 105967.10184996942
+          }
+        },
+        "scored_targets": 58368
+      },
+      "positions_64_through_255": {
+        "arms": {
+          "cache": {
+            "mean_nll_nats": 2.3769086005892426,
+            "nll_sum_nats": 416206.20359757874
+          },
+          "ngram": {
+            "mean_nll_nats": 2.3955504515155366,
+            "nll_sum_nats": 419470.4662621765
+          },
+          "ordinary_no_read": {
+            "mean_nll_nats": 2.549716696781035,
+            "nll_sum_nats": 446465.5924731464
+          },
+          "ordinary_read": {
+            "mean_nll_nats": 2.011925832842016,
+            "nll_sum_nats": 352296.26103396836
+          },
+          "quaternion_no_read": {
+            "mean_nll_nats": 2.5823162494351815,
+            "nll_sum_nats": 452173.904541098
+          },
+          "quaternion_read": {
+            "mean_nll_nats": 2.037854890864509,
+            "nll_sum_nats": 356836.542809939
+          },
+          "reference": {
+            "mean_nll_nats": 1.4935314731291356,
+            "nll_sum_nats": 261523.33507080417
+          }
+        },
+        "scored_targets": 175104
+      }
+    },
+    "full": {
+      "positions_0_through_63": {
+        "arms": {
+          "cache": {
+            "mean_nll_nats": 2.4432694909030426,
+            "nll_sum_nats": 152616.38547976766
+          },
+          "ngram": {
+            "mean_nll_nats": 2.4429372996841967,
+            "nll_sum_nats": 152595.63548747366
+          },
+          "ordinary_no_read": {
+            "mean_nll_nats": 2.6072237385452732,
+            "nll_sum_nats": 162857.62360449194
+          },
+          "ordinary_read": {
+            "mean_nll_nats": 2.312295411604513,
+            "nll_sum_nats": 144435.2205904643
+          },
+          "quaternion_no_read": {
+            "mean_nll_nats": 2.63369995807826,
+            "nll_sum_nats": 164511.43418140043
+          },
+          "quaternion_read": {
+            "mean_nll_nats": 2.3355953062381216,
+            "nll_sum_nats": 145890.62520885802
+          },
+          "reference": {
+            "mean_nll_nats": 1.820443143059997,
+            "nll_sum_nats": 113712.16048809965
+          }
+        },
+        "scored_targets": 62464
+      },
+      "positions_64_through_255": {
+        "arms": {
+          "cache": {
+            "mean_nll_nats": 2.382961227948172,
+            "nll_sum_nats": 446547.87042766385
+          },
+          "ngram": {
+            "mean_nll_nats": 2.401467797693266,
+            "nll_sum_nats": 450015.85354533646
+          },
+          "ordinary_no_read": {
+            "mean_nll_nats": 2.555524484766751,
+            "nll_sum_nats": 478884.844249411
+          },
+          "ordinary_read": {
+            "mean_nll_nats": 2.0180538448634877,
+            "nll_sum_nats": 378167.1460966587
+          },
+          "quaternion_no_read": {
+            "mean_nll_nats": 2.5885266219411367,
+            "nll_sum_nats": 485069.18073879345
+          },
+          "quaternion_read": {
+            "mean_nll_nats": 2.044325887739078,
+            "nll_sum_nats": 383090.31675520126
+          },
+          "reference": {
+            "mean_nll_nats": 1.5001738719008217,
+            "nll_sum_nats": 281120.5822032388
+          }
+        },
+        "scored_targets": 187392
+      }
+    },
+    "tune": {
+      "positions_0_through_63": {
+        "arms": {
+          "cache": {
+            "mean_nll_nats": 2.5408902163991773,
+            "nll_sum_nats": 10407.48632637103
+          },
+          "ngram": {
+            "mean_nll_nats": 2.5438390378146063,
+            "nll_sum_nats": 10419.564698888627
+          },
+          "ordinary_no_read": {
+            "mean_nll_nats": 2.742989830378097,
+            "nll_sum_nats": 11235.286345228686
+          },
+          "ordinary_read": {
+            "mean_nll_nats": 2.413597257648142,
+            "nll_sum_nats": 9886.09436732679
+          },
+          "quaternion_no_read": {
+            "mean_nll_nats": 2.757431672609063,
+            "nll_sum_nats": 11294.440131006722
+          },
+          "quaternion_read": {
+            "mean_nll_nats": 2.4451346865941646,
+            "nll_sum_nats": 10015.271676289698
+          },
+          "reference": {
+            "mean_nll_nats": 1.8908834565747608,
+            "nll_sum_nats": 7745.05863813022
+          }
+        },
+        "scored_targets": 4096
+      },
+      "positions_64_through_255": {
+        "arms": {
+          "cache": {
+            "mean_nll_nats": 2.4692111678129156,
+            "nll_sum_nats": 30341.66683008511
+          },
+          "ngram": {
+            "mean_nll_nats": 2.485789980725906,
+            "nll_sum_nats": 30545.38728315993
+          },
+          "ordinary_no_read": {
+            "mean_nll_nats": 2.638285463563203,
+            "nll_sum_nats": 32419.25177626464
+          },
+          "ordinary_read": {
+            "mean_nll_nats": 2.1053780161694613,
+            "nll_sum_nats": 25870.88506269034
+          },
+          "quaternion_no_read": {
+            "mean_nll_nats": 2.677024430150995,
+            "nll_sum_nats": 32895.27619769543
+          },
+          "quaternion_read": {
+            "mean_nll_nats": 2.1365375932016772,
+            "nll_sum_nats": 26253.77394526221
+          },
+          "reference": {
+            "mean_nll_nats": 1.5948280543973503,
+            "nll_sum_nats": 19597.24713243464
+          }
+        },
+        "scored_targets": 12288
+      }
+    }
+  },
+  "evaluation": {
+    "quaternion_read": {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/evaluate256-quaternion-read-1",
+      "evaluation_report_sha256": "5bf8796aff109b786d8afcc71bdbb5ccdf6e8d5689582af5d1182cd6983c61f7",
+      "manifest_sha256": "c6abfc56ed8530cfeb3265fa52fcb9b95eafe49999eda320d13389c129f142c5",
+      "targets_sha256": "67f2e3ec148d29e28160de70bb9fcc700d9f5c64614320bc61e9ac7ef880d659",
+      "generations_sha256": "44b7a653a26710974c963fd6fe58f02dccdcbdb16fcd5378d2fd04d8e60736d1",
+      "story_probes_sha256": "e3f55478ff07046713a356ccb9d03cd6836ae108e173bb9a31f8df03fc4a7d34",
+      "checkpoint_binding": {
+        "cpu_gradient_shards": 2,
+        "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "data_seed": 240924,
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "model_sha256": "3ca828e5668e8faccfb434d5f74ba4cd7556e144eadcceaf3f8d2177b64be99f",
+        "next_data_step": 7324,
+        "optimizer_step": 7324,
+        "sampled_target_visits": 29999104,
+        "sampled_targets_per_step": 4096,
+        "schema": "uor-r4.joint-recurrent-checkpoint/1",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "status": "TARGET_COMPLETE",
+        "training_batch": 16,
+        "training_context": 256,
+        "training_window_transition": {
+          "new_batch": 16,
+          "new_context": 256,
+          "old_batch": 64,
+          "old_context": 64,
+          "parent_campaign_sha256": "20729fcb12ed3ec9b186ac9575667fae4a4a10a5fedf2162430cacdc2ec6d750",
+          "parent_checkpoint_sha256": "bc4a56880d2991502ad61db1940015e82f69613f458c9274ef0145a16da30670",
+          "parent_optimizer_step": 2104,
+          "parent_sampled_target_visits": 8617984,
+          "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+        }
+      },
+      "evaluation": {
+        "comparison": {
+          "blocks": 912,
+          "correct": 118775,
+          "mean_nll_nats": 2.110368251192894,
+          "nll_sum_nats": 492711.89634250733,
+          "perplexity": 8.25127926865529,
+          "scored_targets": 233472,
+          "top1_accuracy": 0.5087333813048246
+        },
+        "complete": true,
+        "completed_batches": 61,
+        "completed_blocks": 976,
+        "context": 256,
+        "elapsed_seconds": 36.733933458,
+        "forward_and_transfer_seconds": 31.885592331999995,
+        "full": {
+          "blocks": 976,
+          "correct": 126898,
+          "mean_nll_nats": 2.1171432423638388,
+          "nll_sum_nats": 528980.9419640593,
+          "perplexity": 8.307371410176575,
+          "scored_targets": 249856,
+          "top1_accuracy": 0.5078845414959017
+        },
+        "gradients_tracked": false,
+        "input_token_count": 250000,
+        "maximum_probability_sum_error": 2.874456056289887e-06,
+        "mode": "enabled",
+        "optimizer_steps": 0,
+        "requested_batch_size": 16,
+        "schema": "uor-r4.joint-population-evaluation/1",
+        "stride": 256,
+        "tune": {
+          "blocks": 64,
+          "correct": 8123,
+          "mean_nll_nats": 2.213686866549799,
+          "nll_sum_nats": 36269.04562155191,
+          "perplexity": 9.149386853995203,
+          "scored_targets": 16384,
+          "top1_accuracy": 0.49578857421875
+        },
+        "unscored_tail_targets": 143
+      },
+      "actual_generations": [
+        {
+          "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+          "seed": 2014,
+          "response_text": "had a job to take a long nap under a big tree on the grass. The mommy told her, \"We must take a cloth from the tree to get it back.\"\nThe mommy said. \"Threeze when I want to get you so big?\" The mommy said, “No, mommy. I'm glad you like this nap!”\nThe mommy thanked Mommy and said, “I’m going to look at the job from the tree. You can keep it on!”\nThe mommy agreed, “I’m sorry, but let’s get an adventure. I'm sure you can use this nap after.”",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+          "seed": 2015,
+          "response_text": "found his best friend, a small squirrel. The squirrel was very happy to be all sorting the fun finding the lions.\nOne day, the mighty lion met a big fish named Bob. They wanted to teach all the fun things they had made. The mighty lion was happy and went to find the fun things they were. They all felt happy and happy.\nThe mighty lion and Bob decided to go on the journey to start their journey to find the way out of the journey. They found a big bush and a big smile. They both smiled and played with the new things from the mighty lion. The mighty lion was happy",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+          "seed": 2016,
+          "response_text": "day, it was an invitation for his friend, Tom. \"Let's rest on the invitation to go!\" Tom said. They went to look for him. They found the best spots. Tom and Tom were very happy. They sat and talked all day long.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 59
+        },
+        {
+          "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+          "seed": 2017,
+          "response_text": ". He had a great idea to help his friend.\nThe little girl and the boy played with the toy. They were so happy. They laughed and had fun.\nBut then, something unexpected happened. When they got tired, they sat down to rest. The little girl was sad because she did not have the toy to help him have lots of fun. The boy looked in the mirror and saw a tiny bird named Lily. Lily was playing and wanted to play with it. They both knew it was not fair. They all became friends and played together in the mirror.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 117
+        },
+        {
+          "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+          "seed": 2018,
+          "response_text": "all lived in the train and they played together. They had lots of fun at the train and had so much fun.\nOne day, Lily and Dave went to the train and started to play. The train was very happy to see and play with them all day. The sun set on, and they played together. They had lots of fun.\nBut then, something unexpected happened. A big, friendly dog came to the train! The dog wanted to play too. But the dog was not nice at all. The dog said, \"I can't play with my toys. I can't have my toys.\" The train was",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        }
+      ],
+      "source_edit_summary": {
+        "first_noun_correct": 28,
+        "complete_correct": 28,
+        "variants": 32,
+        "both_variants_complete": 14,
+        "output_changed_pairs": 14,
+        "pairs": 16
+      },
+      "actual_source_edit_responses": [
+        {
+          "id": "story-source-edit-00",
+          "template": 0,
+          "expected_original": [
+            "apple."
+          ],
+          "expected_edited": [
+            "pear."
+          ],
+          "original": "apple.",
+          "edited": "pear.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-01",
+          "template": 1,
+          "expected_original": [
+            "ball."
+          ],
+          "expected_edited": [
+            "kite."
+          ],
+          "original": "ball.",
+          "edited": "kite.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-02",
+          "template": 2,
+          "expected_original": [
+            "book."
+          ],
+          "expected_edited": [
+            "toy."
+          ],
+          "original": "book.",
+          "edited": "toy.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-03",
+          "template": 3,
+          "expected_original": [
+            "bell."
+          ],
+          "expected_edited": [
+            "drum."
+          ],
+          "original": "bell.",
+          "edited": "drum.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-04",
+          "template": 0,
+          "expected_original": [
+            "doll."
+          ],
+          "expected_edited": [
+            "bear."
+          ],
+          "original": "door.",
+          "edited": "door.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-05",
+          "template": 1,
+          "expected_original": [
+            "cup."
+          ],
+          "expected_edited": [
+            "bowl."
+          ],
+          "original": "cup.",
+          "edited": "bowl.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-06",
+          "template": 2,
+          "expected_original": [
+            "hat."
+          ],
+          "expected_edited": [
+            "cap."
+          ],
+          "original": "hat.",
+          "edited": "cap.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-07",
+          "template": 3,
+          "expected_original": [
+            "shoe."
+          ],
+          "expected_edited": [
+            "boot."
+          ],
+          "original": "shoe.",
+          "edited": "boot.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-08",
+          "template": 0,
+          "expected_original": [
+            "brush."
+          ],
+          "expected_edited": [
+            "comb."
+          ],
+          "original": "brush.",
+          "edited": "comb.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-09",
+          "template": 1,
+          "expected_original": [
+            "spoon."
+          ],
+          "expected_edited": [
+            "fork."
+          ],
+          "original": "spoon.",
+          "edited": "fork.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-10",
+          "template": 2,
+          "expected_original": [
+            "flower."
+          ],
+          "expected_edited": [
+            "leaf."
+          ],
+          "original": "flower.",
+          "edited": "leaf.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-11",
+          "template": 3,
+          "expected_original": [
+            "key."
+          ],
+          "expected_edited": [
+            "coin."
+          ],
+          "original": "key.",
+          "edited": "coin.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-12",
+          "template": 0,
+          "expected_original": [
+            "box."
+          ],
+          "expected_edited": [
+            "bag."
+          ],
+          "original": "door.",
+          "edited": "door.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-13",
+          "template": 1,
+          "expected_original": [
+            "stone."
+          ],
+          "expected_edited": [
+            "shell."
+          ],
+          "original": "stone.",
+          "edited": "shell.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-14",
+          "template": 2,
+          "expected_original": [
+            "pencil."
+          ],
+          "expected_edited": [
+            "crayon."
+          ],
+          "original": "pencil.",
+          "edited": "crayon.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-15",
+          "template": 3,
+          "expected_original": [
+            "rope."
+          ],
+          "expected_edited": [
+            "ribbon."
+          ],
+          "original": "rope.",
+          "edited": "ribbon.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 57,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        }
+      ]
+    },
+    "quaternion_no-read": {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/evaluate256-quaternion-no-read-1",
+      "evaluation_report_sha256": "cfd5ee5627410b38a36ad14abf16240a473ca9dc8a7069e8c92e228651ce650e",
+      "manifest_sha256": "966ae3672fd4b037fef4539e77782fc70ce5893c998240b655ac87758e163ca5",
+      "targets_sha256": "e773976f88bbcd4de7f8404a080526ee40683878304530eb04381af501e4e153",
+      "generations_sha256": "6c5ee64a6ddc9b8a4a373475659bce9a453af3c9dfdffe19ce8be145e3919e45",
+      "story_probes_sha256": "b72cd3149493f69ee71ba7abf5d7e4903792e807125f7ebcaffa85980b472287",
+      "checkpoint_binding": {
+        "cpu_gradient_shards": 2,
+        "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "data_seed": 240924,
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "model_sha256": "3ca828e5668e8faccfb434d5f74ba4cd7556e144eadcceaf3f8d2177b64be99f",
+        "next_data_step": 7324,
+        "optimizer_step": 7324,
+        "sampled_target_visits": 29999104,
+        "sampled_targets_per_step": 4096,
+        "schema": "uor-r4.joint-recurrent-checkpoint/1",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "status": "TARGET_COMPLETE",
+        "training_batch": 16,
+        "training_context": 256,
+        "training_window_transition": {
+          "new_batch": 16,
+          "new_context": 256,
+          "old_batch": 64,
+          "old_context": 64,
+          "parent_campaign_sha256": "20729fcb12ed3ec9b186ac9575667fae4a4a10a5fedf2162430cacdc2ec6d750",
+          "parent_checkpoint_sha256": "bc4a56880d2991502ad61db1940015e82f69613f458c9274ef0145a16da30670",
+          "parent_optimizer_step": 2104,
+          "parent_sampled_target_visits": 8617984,
+          "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+        }
+      },
+      "evaluation": {
+        "comparison": {
+          "blocks": 912,
+          "correct": 103358,
+          "mean_nll_nats": 2.5929914447620774,
+          "nll_sum_nats": 605390.8985914917,
+          "perplexity": 13.369706580496532,
+          "scored_targets": 233472,
+          "top1_accuracy": 0.44269976699561403
+        },
+        "complete": true,
+        "completed_batches": 61,
+        "completed_blocks": 976,
+        "context": 256,
+        "elapsed_seconds": 28.181300333,
+        "forward_and_transfer_seconds": 23.186240707,
+        "full": {
+          "blocks": 976,
+          "correct": 110439,
+          "mean_nll_nats": 2.5998199559754176,
+          "nll_sum_nats": 649580.6149201939,
+          "perplexity": 13.461314187626112,
+          "scored_targets": 249856,
+          "top1_accuracy": 0.4420105981045082
+        },
+        "gradients_tracked": false,
+        "input_token_count": 250000,
+        "maximum_probability_sum_error": 2.7760140850485726e-06,
+        "mode": "no_read",
+        "optimizer_steps": 0,
+        "requested_batch_size": 16,
+        "schema": "uor-r4.joint-population-evaluation/1",
+        "stride": 256,
+        "tune": {
+          "blocks": 64,
+          "correct": 7081,
+          "mean_nll_nats": 2.6971262407655123,
+          "nll_sum_nats": 44189.716328702154,
+          "perplexity": 14.837032341681198,
+          "scored_targets": 16384,
+          "top1_accuracy": 0.43218994140625
+        },
+        "unscored_tail_targets": 143
+      },
+      "actual_generations": [
+        {
+          "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+          "seed": 2014,
+          "response_text": "'s dad, you can have some delicious, sweet fruit!\" Tommy says. He picks up his toys and threw them far away. \"Look at my book!\" Tom says.\n\"I'm sad,\" Max said. He wanted to be friends with her too. So, he gave them a big hug and said, \"Thank you, Tim.\"\nThe moral of the story is that being kind and helping others can solve problems of fun things.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 92
+        },
+        {
+          "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+          "seed": 2015,
+          "response_text": "couldn't help. He was so eager to have a new friend. He looked up in the sky, there was a little girl named Lily. One day, she saw a big, noisy dog. The bird was running through the tree. The cat took the ball from Tim and Tim.\n\"I am sorry, Max. I am sorry for being mean. I have to go home.\"\nSpot said, \"I will help you, but your best friend is magic. I will fly to you and play with you.\"\nThe cows on the paper and laughed. Lily and Spot went inside to play. They all played together",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+          "seed": 2016,
+          "response_text": "sunny day, he found a big, shiny jewel. The red berries was rolling and roll down. Tim and Sue were so surprised. They wanted to win the cake, but something unexpected happened.\n\"Where is Ben?\" asked Lily. The bird smiled and said, \"No, I want to try the trophy.\" So, the little fox and the cat were both very happy. They looked for the toy everywhere. They found a big tree. They looked and looked for help.\nSuddenly, a big bird flew down and took the toy away from its nest. Tim wanted to help his build the house.\nMom saw Tim and",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+          "seed": 2017,
+          "response_text": ". One day, a new cat named Tom came to the park. The kids were sad. They wanted to play with their ball. But it was too fast.\nOne day, a little boy named Tim walked to the park. He saw a big box. He wanted to play with it. One day, the cat went to the backyard with her mom. They saw an egg. The bird was very hungry. They wanted to play with the new toy.\nThey went to the park. Tim said, \"Look, I found a big ball. It is big and strong. Do you want to write it with me?\"",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+          "seed": 2018,
+          "response_text": "like to fly around the park. The sun was shining, and the sky was blue. Then, Tim knew that he would never give up to the animals and meeting his new friend.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 39
+        }
+      ],
+      "source_edit_summary": {
+        "first_noun_correct": 0,
+        "complete_correct": 0,
+        "variants": 32,
+        "both_variants_complete": 0,
+        "output_changed_pairs": 0,
+        "pairs": 16
+      },
+      "actual_source_edit_responses": [
+        {
+          "id": "story-source-edit-00",
+          "template": 0,
+          "expected_original": [
+            "apple."
+          ],
+          "expected_edited": [
+            "pear."
+          ],
+          "original": "ball.",
+          "edited": "ball.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-01",
+          "template": 1,
+          "expected_original": [
+            "ball."
+          ],
+          "expected_edited": [
+            "kite."
+          ],
+          "original": "toy car.",
+          "edited": "toy car.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-02",
+          "template": 2,
+          "expected_original": [
+            "book."
+          ],
+          "expected_edited": [
+            "toy."
+          ],
+          "original": "new friend.",
+          "edited": "new friend.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-03",
+          "template": 3,
+          "expected_original": [
+            "bell."
+          ],
+          "expected_edited": [
+            "drum."
+          ],
+          "original": "hand.",
+          "edited": "hand.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-04",
+          "template": 0,
+          "expected_original": [
+            "doll."
+          ],
+          "expected_edited": [
+            "bear."
+          ],
+          "original": "ball.",
+          "edited": "ball.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-05",
+          "template": 1,
+          "expected_original": [
+            "cup."
+          ],
+          "expected_edited": [
+            "bowl."
+          ],
+          "original": "toy car.",
+          "edited": "toy car.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-06",
+          "template": 2,
+          "expected_original": [
+            "hat."
+          ],
+          "expected_edited": [
+            "cap."
+          ],
+          "original": "new friend.",
+          "edited": "new friend.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-07",
+          "template": 3,
+          "expected_original": [
+            "shoe."
+          ],
+          "expected_edited": [
+            "boot."
+          ],
+          "original": "hand.",
+          "edited": "hand.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-08",
+          "template": 0,
+          "expected_original": [
+            "brush."
+          ],
+          "expected_edited": [
+            "comb."
+          ],
+          "original": "ball.",
+          "edited": "ball.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-09",
+          "template": 1,
+          "expected_original": [
+            "spoon."
+          ],
+          "expected_edited": [
+            "fork."
+          ],
+          "original": "toy car.",
+          "edited": "toy car.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-10",
+          "template": 2,
+          "expected_original": [
+            "flower."
+          ],
+          "expected_edited": [
+            "leaf."
+          ],
+          "original": "new friend.",
+          "edited": "new friend.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-11",
+          "template": 3,
+          "expected_original": [
+            "key."
+          ],
+          "expected_edited": [
+            "coin."
+          ],
+          "original": "hand.",
+          "edited": "hand.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-12",
+          "template": 0,
+          "expected_original": [
+            "box."
+          ],
+          "expected_edited": [
+            "bag."
+          ],
+          "original": "ball.",
+          "edited": "ball.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-13",
+          "template": 1,
+          "expected_original": [
+            "stone."
+          ],
+          "expected_edited": [
+            "shell."
+          ],
+          "original": "toy car.",
+          "edited": "toy car.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-14",
+          "template": 2,
+          "expected_original": [
+            "pencil."
+          ],
+          "expected_edited": [
+            "crayon."
+          ],
+          "original": "new friend.",
+          "edited": "new friend.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-15",
+          "template": 3,
+          "expected_original": [
+            "rope."
+          ],
+          "expected_edited": [
+            "ribbon."
+          ],
+          "original": "hand.",
+          "edited": "hand.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 57,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        }
+      ]
+    },
+    "householder_pair_read": {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/evaluate256-householder_pair-read-1",
+      "evaluation_report_sha256": "f73ac7210cc48d7be36c9e02f2487886635f468bde229dd0970d1bb10b7b765a",
+      "manifest_sha256": "501d8ed05f5d51b3dd47d2ddd1027b92f835164444cb5b22800407fd83336051",
+      "targets_sha256": "324fc75a3fc693c33776d339f5f31797dc7ec6d37d5865907f17fe4eecfc669d",
+      "generations_sha256": "389bd4dd431bae63e81ea68044b6c273607bdf309bf682fa849d5b0db8e0c2df",
+      "story_probes_sha256": "18d203897324fa43888fd188eb7b5abcfda21cb32de2277b5b8a451ee17f7f06",
+      "checkpoint_binding": {
+        "cpu_gradient_shards": 2,
+        "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "data_seed": 240924,
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "model_sha256": "7c6f922754aea410cfaacd9162f7d08032fa47ddd909f3e401846324ff3e2f03",
+        "next_data_step": 7324,
+        "optimizer_step": 7324,
+        "sampled_target_visits": 29999104,
+        "sampled_targets_per_step": 4096,
+        "schema": "uor-r4.joint-recurrent-checkpoint/1",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "status": "TARGET_COMPLETE",
+        "training_batch": 16,
+        "training_context": 256,
+        "training_window_transition": {
+          "new_batch": 16,
+          "new_context": 256,
+          "old_batch": 64,
+          "old_context": 64,
+          "parent_campaign_sha256": "5c517312879c5ac85675d6ab8433e0b9d69c96cc354f1f079ff333819eccddb2",
+          "parent_checkpoint_sha256": "6b82a1cd1e296bae55d6b1762f0ded123df9179d36358f9ec2f49b1550f5e7f9",
+          "parent_optimizer_step": 2104,
+          "parent_sampled_target_visits": 8617984,
+          "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+        }
+      },
+      "evaluation": {
+        "comparison": {
+          "blocks": 912,
+          "correct": 119895,
+          "mean_nll_nats": 2.0852410021634538,
+          "nll_sum_nats": 486845.38725710585,
+          "perplexity": 8.046530479290803,
+          "scored_targets": 233472,
+          "top1_accuracy": 0.5135305304276315
+        },
+        "complete": true,
+        "completed_batches": 61,
+        "completed_blocks": 976,
+        "context": 256,
+        "elapsed_seconds": 35.510722791,
+        "forward_and_transfer_seconds": 30.724119539999993,
+        "full": {
+          "blocks": 976,
+          "correct": 128100,
+          "mean_nll_nats": 2.091614236548744,
+          "nll_sum_nats": 522602.36668712297,
+          "perplexity": 8.097976669199806,
+          "scored_targets": 249856,
+          "top1_accuracy": 0.5126953125
+        },
+        "gradients_tracked": false,
+        "input_token_count": 250000,
+        "maximum_probability_sum_error": 2.9250211239784107e-06,
+        "mode": "enabled",
+        "optimizer_steps": 0,
+        "requested_batch_size": 16,
+        "schema": "uor-r4.joint-population-evaluation/1",
+        "stride": 256,
+        "tune": {
+          "blocks": 64,
+          "correct": 8205,
+          "mean_nll_nats": 2.1824328265391317,
+          "nll_sum_nats": 35756.979430017134,
+          "perplexity": 8.867853987676037,
+          "scored_targets": 16384,
+          "top1_accuracy": 0.50079345703125
+        },
+        "unscored_tail_targets": 143
+      },
+      "actual_generations": [
+        {
+          "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+          "seed": 2014,
+          "response_text": "said, “Let’s have a plan to make it shiny!”\nDad looked at his mother and said, “I’re able to make the shinyest thing!\" \nThe mommy grabbed the paper and started to cut the shiny thing. After the cut, it started to start. It was so much fun! But when he got over, he was excited and said, “Yummy! I’m glad you are both beautiful!” \nDaddy smiled and replied, “You’ll be very careful.”\nDaddy told the mommy that he had to be careful and not like the cut. The shiny thing was",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+          "seed": 2015,
+          "response_text": "couldn't believe his eyes. He couldn't wait to see what was inside the lion and he could never know.\nHe saw a little girl looking at the lion and told him to leave. The girl said, “What are you doing? That can make you sad and I have been punished. I need to punish you for being very kind and kind. You can have to be a little bit if you have me, no one can break.\"\nThe little girl was scared that she could not open her eyes. She thought to find someone who was there to help her. Suddenly, she heard a voice say, “I",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+          "seed": 2016,
+          "response_text": "day, She decided to go to the park.\nThe goose walked around to find more bugs. He went to the corn and saw a big ball on the side. The ball looked sad.\nThe goose tried to help the ball. He thought for a friend to help the ball. The ball went too fast. It started to fall back. The ball was very sad. The goose wished for a friend to help him.\nThe goose went to the park. The big ball was still scared. It could not find any way. The goose was not happy. The pink goose was not find the ball. It was a sad ending",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+          "seed": 2017,
+          "response_text": ". Tim had a very good job. He had many friends in the hill.\nAt the hill, he saw a big fish. The fish said, \"Hi, Tim! I want to ride too. The fish is fun!\" Tim said, \"Yes, I want to ride with you.\" So, Tim and the fish ride all too, and they both had fun and the big fish was happy.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 83
+        },
+        {
+          "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+          "seed": 2018,
+          "response_text": "wanted to introduce their names and everyone were so happy.\nMave was very excited when his friends came and ran over to the train. They were so excited and started to play. They had lots of fun and decided to play a game. Suddenly, a big box popped out of the train and the train started to play.\n\"Oh no, Dave!\" said Lily. \"I'm so happy!\" \nMave looked at the train and said, \"I'm sorry because I was so modest. You should have listened to me and the other people who were happy.\" \nMave was so",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        }
+      ],
+      "source_edit_summary": {
+        "first_noun_correct": 31,
+        "complete_correct": 23,
+        "variants": 32,
+        "both_variants_complete": 10,
+        "output_changed_pairs": 16,
+        "pairs": 16
+      },
+      "actual_source_edit_responses": [
+        {
+          "id": "story-source-edit-00",
+          "template": 0,
+          "expected_original": [
+            "apple."
+          ],
+          "expected_edited": [
+            "pear."
+          ],
+          "original": "apple.",
+          "edited": "pear.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-01",
+          "template": 1,
+          "expected_original": [
+            "ball."
+          ],
+          "expected_edited": [
+            "kite."
+          ],
+          "original": "ball.",
+          "edited": "kite.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-02",
+          "template": 2,
+          "expected_original": [
+            "book."
+          ],
+          "expected_edited": [
+            "toy."
+          ],
+          "original": "book.",
+          "edited": "toy.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-03",
+          "template": 3,
+          "expected_original": [
+            "bell."
+          ],
+          "expected_edited": [
+            "drum."
+          ],
+          "original": "bell to the kitchen.",
+          "edited": "drum.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            false,
+            true
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-04",
+          "template": 0,
+          "expected_original": [
+            "doll."
+          ],
+          "expected_edited": [
+            "bear."
+          ],
+          "original": "doll.",
+          "edited": "bear.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-05",
+          "template": 1,
+          "expected_original": [
+            "cup."
+          ],
+          "expected_edited": [
+            "bowl."
+          ],
+          "original": "cup, but he was not happy.",
+          "edited": "bowl.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            false,
+            true
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-06",
+          "template": 2,
+          "expected_original": [
+            "hat."
+          ],
+          "expected_edited": [
+            "cap."
+          ],
+          "original": "hat.",
+          "edited": "captain.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            false
+          ],
+          "complete_correct": [
+            true,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-07",
+          "template": 3,
+          "expected_original": [
+            "shoe."
+          ],
+          "expected_edited": [
+            "boot."
+          ],
+          "original": "shoe home.",
+          "edited": "boot back to his house.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-08",
+          "template": 0,
+          "expected_original": [
+            "brush."
+          ],
+          "expected_edited": [
+            "comb."
+          ],
+          "original": "brush.",
+          "edited": "comb.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-09",
+          "template": 1,
+          "expected_original": [
+            "spoon."
+          ],
+          "expected_edited": [
+            "fork."
+          ],
+          "original": "spoon.",
+          "edited": "fork.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-10",
+          "template": 2,
+          "expected_original": [
+            "flower."
+          ],
+          "expected_edited": [
+            "leaf."
+          ],
+          "original": "flower.",
+          "edited": "leaf.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-11",
+          "template": 3,
+          "expected_original": [
+            "key."
+          ],
+          "expected_edited": [
+            "coin."
+          ],
+          "original": "key to the table.",
+          "edited": "coin home.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-12",
+          "template": 0,
+          "expected_original": [
+            "box."
+          ],
+          "expected_edited": [
+            "bag."
+          ],
+          "original": "box.",
+          "edited": "bag.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-13",
+          "template": 1,
+          "expected_original": [
+            "stone."
+          ],
+          "expected_edited": [
+            "shell."
+          ],
+          "original": "stone.",
+          "edited": "shell.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-14",
+          "template": 2,
+          "expected_original": [
+            "pencil."
+          ],
+          "expected_edited": [
+            "crayon."
+          ],
+          "original": "pencil.",
+          "edited": "crayon.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            true,
+            true
+          ],
+          "pair_complete_correct": true,
+          "outputs_differ": true
+        },
+        {
+          "id": "story-source-edit-15",
+          "template": 3,
+          "expected_original": [
+            "rope."
+          ],
+          "expected_edited": [
+            "ribbon."
+          ],
+          "original": "rope home.",
+          "edited": "ribbon to the chair.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 57,
+          "first_noun_correct": [
+            true,
+            true
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": true
+        }
+      ]
+    },
+    "householder_pair_no-read": {
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/evaluate256-householder_pair-no-read-1",
+      "evaluation_report_sha256": "397d9d24dbeeadfa7671c26ca5da4f3724e6532fea4a221cbaca4aab3a42f506",
+      "manifest_sha256": "da02cc63bb706594fe62d186b0a8067f33d79cd6a61c9df5c4892882d0c1edd4",
+      "targets_sha256": "ab9c36d2b0cd5829f7b3217f3e96fdd55eef89da285d4d8b52a84c1b3d16e512",
+      "generations_sha256": "caf3290131f86040ff244018f7bcd18e5fafb3edb7a02ef0de1b3c31d53046b9",
+      "story_probes_sha256": "15cc1ede4da7f4412bb8a6e35ba5690b27adebb65c59e17ebbc35e19d908c9ce",
+      "checkpoint_binding": {
+        "cpu_gradient_shards": 2,
+        "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "data_seed": 240924,
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "model_sha256": "7c6f922754aea410cfaacd9162f7d08032fa47ddd909f3e401846324ff3e2f03",
+        "next_data_step": 7324,
+        "optimizer_step": 7324,
+        "sampled_target_visits": 29999104,
+        "sampled_targets_per_step": 4096,
+        "schema": "uor-r4.joint-recurrent-checkpoint/1",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "status": "TARGET_COMPLETE",
+        "training_batch": 16,
+        "training_context": 256,
+        "training_window_transition": {
+          "new_batch": 16,
+          "new_context": 256,
+          "old_batch": 64,
+          "old_context": 64,
+          "parent_campaign_sha256": "5c517312879c5ac85675d6ab8433e0b9d69c96cc354f1f079ff333819eccddb2",
+          "parent_checkpoint_sha256": "6b82a1cd1e296bae55d6b1762f0ded123df9179d36358f9ec2f49b1550f5e7f9",
+          "parent_optimizer_step": 2104,
+          "parent_sampled_target_visits": 8617984,
+          "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+        }
+      },
+      "evaluation": {
+        "comparison": {
+          "blocks": 912,
+          "correct": 104493,
+          "mean_nll_nats": 2.56171159596187,
+          "nll_sum_nats": 598087.9297324097,
+          "perplexity": 12.957977167170242,
+          "scored_targets": 233472,
+          "top1_accuracy": 0.44756116365131576
+        },
+        "complete": true,
+        "completed_batches": 61,
+        "completed_blocks": 976,
+        "context": 256,
+        "elapsed_seconds": 27.574009625,
+        "forward_and_transfer_seconds": 22.625472501000004,
+        "full": {
+          "blocks": 976,
+          "correct": 111626,
+          "mean_nll_nats": 2.5684492982113816,
+          "nll_sum_nats": 641742.467853903,
+          "perplexity": 13.045578945024575,
+          "scored_targets": 249856,
+          "top1_accuracy": 0.44676133452868855
+        },
+        "gradients_tracked": false,
+        "input_token_count": 250000,
+        "maximum_probability_sum_error": 2.9111787755997653e-06,
+        "mode": "no_read",
+        "optimizer_steps": 0,
+        "requested_batch_size": 16,
+        "schema": "uor-r4.joint-population-evaluation/1",
+        "stride": 256,
+        "tune": {
+          "blocks": 64,
+          "correct": 7133,
+          "mean_nll_nats": 2.6644615552669264,
+          "nll_sum_nats": 43654.53812149332,
+          "perplexity": 14.36021528166245,
+          "scored_targets": 16384,
+          "top1_accuracy": 0.43536376953125
+        },
+        "unscored_tail_targets": 143
+      },
+      "actual_generations": [
+        {
+          "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+          "seed": 2014,
+          "response_text": "and Daddy went to the park and played. They were all three friends, and there was the king of the big green sea. Every day, he saw a big fish in the yard. The bees were making food and it was very funny. Tim decided to listen to the bird's loud voice.\nTim went to his friend, Sam,. He said, \"You are a good friend, but I can help you find your special snack.\"\nTim was so happy that his work was his friend to be. They played together all day. They became good friends, and they played together every day.\nOne day, Spot saw",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+          "seed": 2015,
+          "response_text": "couldn't wait to find out what he was. He was so happy and thanked the birds for being nice and. They decided to keep the warm, warm sun and a sun set on its fun day, and they shared all the food together.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 50
+        },
+        {
+          "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+          "seed": 2016,
+          "response_text": "day, her mom saw her daughter and she had a surprise for them. \"Please give you a big toy, a book with a big bow that says. My name is Sue,\" she says.\nLily was shocked. She did not know what to do. She said to Tom, \"I need to be more careful when you try not to be happy.\"\nTim was sad and miserable. He did not want to lose his toy car. So, he went to her friend, Sue, to help him.\nThey went to the store to find a new toy and a book. Maybe they could buy more things. One day",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+          "seed": 2017,
+          "response_text": ". He loved to jump high in the sky and laugh. One day, he found a big, shiny bug. He wanted to play with it.\nBen said, \"Hi, I am Fin. I name is Max. Do you want to play with me?\" The woman said, \"I love to play with you. You are having some fun!\"\nLily and Mia took their shovels and said, \"We are so pretty and we love the sun!\"\nOne day, while playing near the deep, dark clouds, there was a little boy named Tim. He had a toy car that he loved very much. He",
+          "stop": {
+            "reason": "maximum_new_tokens"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 128
+        },
+        {
+          "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+          "seed": 2018,
+          "response_text": "all lived together in the park. The sun was shining, and the sun was shining.",
+          "stop": {
+            "reason": "eos"
+          },
+          "utf8_decodable": true,
+          "max_new_tokens": 128,
+          "prompt_token_count": 25,
+          "generated_token_count": 19
+        }
+      ],
+      "source_edit_summary": {
+        "first_noun_correct": 0,
+        "complete_correct": 0,
+        "variants": 32,
+        "both_variants_complete": 0,
+        "output_changed_pairs": 0,
+        "pairs": 16
+      },
+      "actual_source_edit_responses": [
+        {
+          "id": "story-source-edit-00",
+          "template": 0,
+          "expected_original": [
+            "apple."
+          ],
+          "expected_edited": [
+            "pear."
+          ],
+          "original": "toy.",
+          "edited": "toy.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-01",
+          "template": 1,
+          "expected_original": [
+            "ball."
+          ],
+          "expected_edited": [
+            "kite."
+          ],
+          "original": "mom's toy.",
+          "edited": "mom's toy.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-02",
+          "template": 2,
+          "expected_original": [
+            "book."
+          ],
+          "expected_edited": [
+            "toy."
+          ],
+          "original": "favorite toy.",
+          "edited": "favorite toy.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-03",
+          "template": 3,
+          "expected_original": [
+            "bell."
+          ],
+          "expected_edited": [
+            "drum."
+          ],
+          "original": "nap.",
+          "edited": "nap.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-04",
+          "template": 0,
+          "expected_original": [
+            "doll."
+          ],
+          "expected_edited": [
+            "bear."
+          ],
+          "original": "toy.",
+          "edited": "toy.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-05",
+          "template": 1,
+          "expected_original": [
+            "cup."
+          ],
+          "expected_edited": [
+            "bowl."
+          ],
+          "original": "mom's toy.",
+          "edited": "mom's toy.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-06",
+          "template": 2,
+          "expected_original": [
+            "hat."
+          ],
+          "expected_edited": [
+            "cap."
+          ],
+          "original": "favorite toy.",
+          "edited": "favorite toy.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-07",
+          "template": 3,
+          "expected_original": [
+            "shoe."
+          ],
+          "expected_edited": [
+            "boot."
+          ],
+          "original": "nap.",
+          "edited": "nap.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-08",
+          "template": 0,
+          "expected_original": [
+            "brush."
+          ],
+          "expected_edited": [
+            "comb."
+          ],
+          "original": "toy.",
+          "edited": "toy.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-09",
+          "template": 1,
+          "expected_original": [
+            "spoon."
+          ],
+          "expected_edited": [
+            "fork."
+          ],
+          "original": "mom's toy.",
+          "edited": "mom's toy.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-10",
+          "template": 2,
+          "expected_original": [
+            "flower."
+          ],
+          "expected_edited": [
+            "leaf."
+          ],
+          "original": "favorite toy.",
+          "edited": "favorite toy.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-11",
+          "template": 3,
+          "expected_original": [
+            "key."
+          ],
+          "expected_edited": [
+            "coin."
+          ],
+          "original": "nap.",
+          "edited": "nap.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-12",
+          "template": 0,
+          "expected_original": [
+            "box."
+          ],
+          "expected_edited": [
+            "bag."
+          ],
+          "original": "toy.",
+          "edited": "toy.",
+          "original_prompt_tokens": 62,
+          "edited_prompt_tokens": 62,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-13",
+          "template": 1,
+          "expected_original": [
+            "stone."
+          ],
+          "expected_edited": [
+            "shell."
+          ],
+          "original": "mom's toy.",
+          "edited": "mom's toy.",
+          "original_prompt_tokens": 58,
+          "edited_prompt_tokens": 58,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-14",
+          "template": 2,
+          "expected_original": [
+            "pencil."
+          ],
+          "expected_edited": [
+            "crayon."
+          ],
+          "original": "favorite toy.",
+          "edited": "favorite toy.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 56,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        },
+        {
+          "id": "story-source-edit-15",
+          "template": 3,
+          "expected_original": [
+            "rope."
+          ],
+          "expected_edited": [
+            "ribbon."
+          ],
+          "original": "nap.",
+          "edited": "nap.",
+          "original_prompt_tokens": 56,
+          "edited_prompt_tokens": 57,
+          "first_noun_correct": [
+            false,
+            false
+          ],
+          "complete_correct": [
+            false,
+            false
+          ],
+          "pair_complete_correct": false,
+          "outputs_differ": false
+        }
+      ]
+    }
+  },
+  "fit": {
+    "quaternion": {
+      "status": "TARGET_COMPLETE",
+      "parameter_count": 1678466,
+      "starting_step": 2241,
+      "completed_step": 7324,
+      "new_optimizer_steps": 5083,
+      "new_sampled_target_visits": 20819968,
+      "cumulative_sampled_target_visits": 29999104,
+      "elapsed_seconds": 15424.612303166,
+      "steady_complete_step_tokens_per_second": 1362.2888356439246,
+      "initial_retained_batch_nll": 2.5365066528320312,
+      "final_retained_batch_nll": 2.2244248390197754,
+      "initial_development_nll": 2.5096457600593567,
+      "final_development_nll": 2.2136868834495544,
+      "reload_absolute_delta": 0.0,
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-3",
+      "fit_report_sha256": "6fb3f682fb352852c0fe84f409f60012647d18d34a1a286f681bc6462e4ad1c0",
+      "manifest_sha256": "0e012f3cee0ec9cea0b21dd916b25a9069727ee9b405f3ce2bed53924c4c6704"
+    },
+    "householder_pair": {
+      "status": "TARGET_COMPLETE",
+      "parameter_count": 1678466,
+      "starting_step": 2238,
+      "completed_step": 7324,
+      "new_optimizer_steps": 5086,
+      "new_sampled_target_visits": 20832256,
+      "cumulative_sampled_target_visits": 29999104,
+      "elapsed_seconds": 15410.626366625,
+      "steady_complete_step_tokens_per_second": 1364.5520537300656,
+      "initial_retained_batch_nll": 2.5028064250946045,
+      "final_retained_batch_nll": 2.200559616088867,
+      "initial_development_nll": 2.4890576004981995,
+      "final_development_nll": 2.182432770729065,
+      "reload_absolute_delta": 0.0,
+      "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-3",
+      "fit_report_sha256": "e0cf7cb5032ee2f41c109ce15995173fd3374dc5ed8da970a8a47d1af4e1b4fd",
+      "manifest_sha256": "c93e69e73edf21686e7bebfb0e4543897bee3274db408584fd815d9fbbff9388"
+    }
+  },
+  "review": {
+    "scientific": "Independent architecture reviewer and principal inspected all actual generations, source edits, selection scores and joined comparison; accept only the frozen engineering continuation gate.",
+    "execution": "Independent execution reviewer reconciled15 modern parent resumes,23 learning curves, all selection hashes and optimizer counters, data/tokenizer/evaluator/executable hashes and four full evaluations; no consequential continuity defect.",
+    "gross_new_storage": "UNRESOLVED; retained size and physical free space cannot reconstruct overwritten/deleted compiler allocations."
+  },
+  "limits": [
+    "Previously exposed development; no fresh final holdout.",
+    "One paired seed; ordinary has lower natural NLL; no geometric advantage.",
+    "Free generations are varied but semantically unreliable; no useful general chat/reasoning/coding.",
+    "Whole-prefix NoRead removes both recurrent value feedback and pointer copy.",
+    "Source-edit prompts are56-62tokens with relevant nouns roughly48-54positions earlier; no beyond64 retrieval qualification.",
+    "Continuous floating-point learner; no integer export, terminal parameter sparsity, Hamiltonian dynamics or energy qualification."
+  ],
+  "next": "D8 rung2: quantization-aware continuation of this same learner and ordinary control, with frozen retention/cost gates and actual loaded hard-path generation."
+}

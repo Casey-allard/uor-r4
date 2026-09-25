@@ -1,0 +1,40 @@
+{
+  "schema": "uor-r4.joint-recurrent-campaign/1",
+  "evaluator_path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/docs/integration/reference-evaluator-v2.json",
+  "model": {
+    "vocab_size": 4096,
+    "width": 256,
+    "read_width": 64,
+    "context": 256,
+    "transport": "householder_pair",
+    "seed": 240924
+  },
+  "optimizer": {
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "parameter_abs_limit": 1000000.0,
+    "allowed_missing_gradients": []
+  },
+  "data_seed": 240924,
+  "batch": 16,
+  "context": 256,
+  "total_steps": 2128,
+  "development_every_steps": 0,
+  "development_blocks": 0,
+  "checkpoint_steps": [],
+  "max_process_seconds": 240,
+  "trial_scope": "HARDWARE_THROUGHPUT_ONLY: B16/T256 unchanged; four synchronous CPU gradient workers each own complete sequences, ordered mean then one clip/AdamW update. Start from shared step2116 checkpoint. F32 reduction order differs. Preserve and charge this branch.",
+  "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-profile256-shards4-householder_pair",
+  "training_window_transition": {
+    "parent_checkpoint_sha256": "6b82a1cd1e296bae55d6b1762f0ded123df9179d36358f9ec2f49b1550f5e7f9",
+    "parent_campaign_sha256": "5c517312879c5ac85675d6ab8433e0b9d69c96cc354f1f079ff333819eccddb2",
+    "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained.",
+    "old_batch": 64,
+    "old_context": 64,
+    "new_batch": 16,
+    "new_context": 256,
+    "parent_optimizer_step": 2104,
+    "parent_sampled_target_visits": 8617984
+  },
+  "cpu_gradient_shards": 4
+}

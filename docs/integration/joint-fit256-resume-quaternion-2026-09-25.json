@@ -1,0 +1,42 @@
+{
+  "schema": "uor-r4.joint-recurrent-campaign/1",
+  "evaluator_path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/docs/integration/reference-evaluator-v2.json",
+  "model": {
+    "vocab_size": 4096,
+    "width": 256,
+    "read_width": 64,
+    "context": 256,
+    "transport": "quaternion",
+    "seed": 240924
+  },
+  "optimizer": {
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "parameter_abs_limit": 1000000.0,
+    "allowed_missing_gradients": []
+  },
+  "data_seed": 240924,
+  "batch": 16,
+  "context": 256,
+  "total_steps": 7324,
+  "development_every_steps": 4714,
+  "development_blocks": 64,
+  "checkpoint_steps": [
+    4714
+  ],
+  "max_process_seconds": 17400,
+  "trial_scope": "FULL_CORRECTED_HORIZON_EXPOSURE: preserve matched2104-step64-token warmup and24 full256-token profile updates throughstep2128. Continue B16/T256, two CPU gradient shards, one AdamW update, to7324 globalsteps/29,999,104totalvisits. Select only4714 or7324 by recorded F32-origin tune64 NLL; exact tie chooses earlier. One exploratory paired seed; no geometry promotion or integer-serving claim. Resume the sealed physical-reserve checkpoint from fit256attempt1; training dimensions, shard reduction, global sampler and optimizer continue unchanged. No alignment update is needed because there is no new sampler phase.",
+  "stop_file": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/stop-fit256-quaternion-2",
+  "training_window_transition": {
+    "parent_checkpoint_sha256": "bc4a56880d2991502ad61db1940015e82f69613f458c9274ef0145a16da30670",
+    "parent_campaign_sha256": "20729fcb12ed3ec9b186ac9575667fae4a4a10a5fedf2162430cacdc2ec6d750",
+    "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained.",
+    "old_batch": 64,
+    "old_context": 64,
+    "new_batch": 16,
+    "new_context": 256,
+    "parent_optimizer_step": 2104,
+    "parent_sampled_target_visits": 8617984
+  },
+  "cpu_gradient_shards": 2
+}

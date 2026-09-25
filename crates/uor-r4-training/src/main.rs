@@ -74,6 +74,19 @@ fn run_comparison(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().is_some_and(|mode| mode.starts_with("joint-")) {
+        // Candle traverses the sequential recurrence graph recursively during
+        // backward. This is stack capacity, not a different numerical kernel.
+        let worker = std::thread::Builder::new()
+            .name("joint-recurrent-training".into())
+            .stack_size(64 * 1024 * 1024)
+            .spawn(move || uor_r4_training::joint_campaign::run_cli(&args))?;
+        match worker.join() {
+            Ok(result) => result?,
+            Err(_) => return Err("joint training worker panicked; partial attempt retained".into()),
+        }
+        return Ok(());
+    }
     if args.first().is_some_and(|mode| mode != "integrity") {
         return run_comparison(&args);
     }

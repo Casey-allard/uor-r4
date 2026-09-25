@@ -1,0 +1,518 @@
+{
+  "schema": "uor-r4.joint-recurrent-budget/1",
+  "recorded_utc": "2026-09-24T23:00:34.689485+00:00",
+  "cycle_started_utc": "2026-09-24T22:55:18+00:00",
+  "base_source": "c84b198df3b47bc8326307dd9964dc9c87cb830c",
+  "objective": "One coherent D8 rung1 recurrent-memory learning campaign with matched ordinary/geometric arms, actual learning and loaded causal generation. No geometry promotion from one seed.",
+  "ledger_before": {
+    "cumulative_ms": 482023963,
+    "limit_ms": 487800000
+  },
+  "increment_ms": 7200000,
+  "ledger_after_extension": {
+    "cumulative_ms": 482023963,
+    "limit_ms": 495000000
+  },
+  "reason": "Complete three-hour engineering/profile/paired-training/evaluation/delivery projection exceeds current96-minute balance. Standing local extensions apply; actual dose/device fixed after full-step throughput measurement before full training.",
+  "complete_cycle_limit_ms": 29700000,
+  "phase_projection_seconds": {
+    "engineering_and_review": 3600,
+    "build_and_integrity_throughput": 1800,
+    "paired_training_and_evaluation": 11500,
+    "delivery": 600
+  },
+  "profile_optimizer_steps_max_per_arm": 120,
+  "profile_tokens_max_per_arm": 400000,
+  "intended_full_tokens_per_arm": 30000000,
+  "full_fit_launch_gate": "Record measured full forward/backward/optimizer throughput, exact chosen graph/config/dose and projection before full fit; diagnose implementation failures within remaining budget.",
+  "context_training_and_evaluation_max": 256,
+  "batch_max": 64,
+  "seed_count": 1,
+  "seed_scope": "exploratory only; >=3 seeds required for comparative promotion",
+  "ram_process_limit_bytes": 6442450944,
+  "aggregate_ram_target_bytes": 8589934592,
+  "one_cargo_process": true,
+  "one_metal_training_owner": true,
+  "cpu_threads": 4,
+  "new_storage_limit_bytes": 1040187392,
+  "storage_projection_bytes": {
+    "build_and_retained_binaries": 377487360,
+    "model_optimizer_checkpoints_both_arms": 188743680,
+    "reports_logs_temp": 104857600
+  },
+  "physical_free_before_bytes": 26525868032,
+  "protected_physical_reserve_bytes": 21474836480,
+  "stop_margin_bytes": 134217728,
+  "resource_limits_preserve_all_previous_charges": true,
+  "paid_external_compute": false,
+  "deletions_authorized": "Seven canceled-build objects in canceled-build-cleanup.json, plus the two inspected obsolete Cargo core objects in horizon-correction-cache-cleanup.json. No research/model/report/worktree or executed binary deletion. Four obsolete original-backend Candle objects enumerated in hardware-profile-cache-cleanup.json are also disposable after fingerprint/source preservation checks.",
+  "profile_extension": {
+    "recorded_utc": "2026-09-24T23:22:54.453091+00:00",
+    "reason": "Initial Metal B16 complete steps take about10s (~400targets/s), incompatible with paired30M planning anchor. Permit bounded CPU/backend/batch diagnosis before freezing full campaign; reuse unchanged graph. Existing cycle/time/storage limits unchanged.",
+    "additional_profile_time_projection_seconds": 300,
+    "additional_retained_checkpoint_bytes_max": 44000000,
+    "further_profile_reason": "Optimized256-step Metal unroll remains about5.4s/update. Permit one12-step B64/T64 CPU profile with actual stack sampling to select learning implementation, under existing total cycle and storage ceilings.",
+    "further_recorded_utc": "2026-09-24T23:36:12.132834+00:00",
+    "final_backend_profile": "One12-step corrected CPU Accelerate profile at B64/T64, then freeze full training schedule. Patched source and exact upstream identity retained. No generic backend rewrite."
+  },
+  "storage_extension": {
+    "recorded_utc": "2026-09-24T23:28:27.458491+00:00",
+    "increment_bytes": 83886080,
+    "reason": "One optional backend build was canceled after a dependency safety issue was found; compiled cache is retained. Actual build allocation plus two profile artifacts consumed about235MB. Limit full-fit retained checkpoints to one midpoint and final per arm. Remaining projected writes fit above the unchanged physical reserve and128MiB stop margin.",
+    "physical_free_bytes_at_extension": 26317471744,
+    "physical_headroom_above_reserve_and_margin": 279232512
+  },
+  "storage_extension_2": {
+    "recorded_utc": "2026-09-24T23:37:46.851073+00:00",
+    "increment_bytes": 167772160,
+    "reason": "Corrected vendored backend compiler inputs require a bounded rebuild. Gross new-storage accounting retains canceled-build allocations; reclaim only its identified unexecuted objects before rebuild. Actual free-space reserve and128MiB margin remain fixed.",
+    "reclaimed_logical_bytes": 99780915
+  },
+  "time_extension_for_full_fit": {
+    "recorded_utc": "2026-09-24T23:45:50.163982+00:00",
+    "ledger_before": {
+      "cumulative_ms": 482023963,
+      "limit_ms": 495000000
+    },
+    "increment_ms": 5400000,
+    "ledger_after": {
+      "cumulative_ms": 482023963,
+      "limit_ms": 500400000
+    },
+    "reason": "Measured corrected CPU backend supports the actual30M-visits paired learner but requires a longer campaign than the initial three-hour cycle. Run two CPU arms concurrently within measured RAM/thread limits; project up to3.2h per process plus completed preparation, evaluation and delivery. Standing local extensions apply; no external compute."
+  },
+  "cpu_threads_per_process": 2,
+  "concurrent_cpu_training_processes": 2,
+  "ram_expected_two_training_processes_bytes": 6010000000,
+  "ram_supervisor_stop_bytes": 8589934592,
+  "physical_supervisor_stop_bytes": 21676163072,
+  "closeout_reserve_seconds_per_process": 180,
+  "full_fit_launch_gate_satisfied": {
+    "recorded_utc": "2026-09-24T23:45:50.163982+00:00",
+    "profile_root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile-quaternion-accelerate-short-1",
+    "measured_profile": {
+      "actual_device": "Cpu",
+      "campaign": {
+        "batch": 64,
+        "checkpoint_steps": [],
+        "context": 64,
+        "data_seed": 240924,
+        "development_blocks": 0,
+        "development_every_steps": 0,
+        "evaluator_path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/docs/integration/reference-evaluator-v2.json",
+        "max_process_seconds": 480,
+        "model": {
+          "context": 256,
+          "read_width": 64,
+          "seed": 240924,
+          "transport": "quaternion",
+          "vocab_size": 4096,
+          "width": 256
+        },
+        "optimizer": {
+          "allowed_missing_gradients": [],
+          "learning_rate": 0.001,
+          "parameter_abs_limit": 1000000.0,
+          "weight_decay": 0.01
+        },
+        "schema": "uor-r4.joint-recurrent-campaign/1",
+        "total_steps": 12,
+        "trial_scope": "INTEGRITY_THROUGHPUT_ONLY; resource profile of shorter learning unroll, same model and256-token evaluation; no language qualification"
+      },
+      "candle_source": "vendored0.9.2; four-line Accelerate operand slice correction; UPSTREAM.json",
+      "completed_step": 12,
+      "cpu_accelerate_compiled": true,
+      "deadline_scope": "max_process_seconds stops new updates; measured closeout allowance is budgeted separately",
+      "elapsed_seconds": 15.740428083,
+      "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+      "executable_sha256": "861dfec38ddd5def20f77bd5dc952ed313c60a865a3dda1270d90d125931792f",
+      "final_development_nll": null,
+      "final_retained_batch_nll": 6.112104415893555,
+      "initial_development_nll": null,
+      "initial_retained_batch_nll": 7.445707321166992,
+      "mode": "joint-fit",
+      "new_optimizer_steps": 12,
+      "new_sampled_target_visits": 49152,
+      "parameter_count": 1678466,
+      "reload_absolute_delta": 0.0,
+      "reloaded_retained_batch_nll": 6.112104415893555,
+      "requested_device": "cpu",
+      "schema": "uor-r4.joint-recurrent-report/1",
+      "scope": "Offline continuous recurrent-memory learner; no transformer backbone, hard integer export, geometry promotion or energy claim",
+      "source_commit": "2ac8e1a3f89385f28a2cbea075c283c8e4821e02",
+      "starting_step": 0,
+      "status": "TARGET_COMPLETE",
+      "steady_complete_step_tokens_per_second": 3629.4969329874552,
+      "training_complete_steps_seconds": 13.636009625,
+      "training_sources": [
+        {
+          "bytes": 60000000,
+          "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1014/tokens/train.u16",
+          "sha256": "8a438765856de5434961609c2ee4dc3f82c25295b9695c9b70b54e29dc8f7efc"
+        },
+        {
+          "bytes": 239992832,
+          "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokens/train.u16",
+          "sha256": "7b12a8b0cad32689584d5b14e10aa60d449859dcb735c57cdec26bcddd2d4873"
+        }
+      ]
+    },
+    "schedule": "Two concurrent CPU jobs; each30Mvisits approximately; same arrays, windows, exposure and optimizer. Monitor summed RSS and disk; request per-job checkpoint on ceiling. Thirty-percent overlap/thermal allowance; deadline11500s plus180s closeout. Both jobs checkpoint safely if throughput does not reach target."
+  },
+  "horizon_correction_preparation": {
+    "recorded_utc": "2026-09-25T00:41:23.876179+00:00",
+    "owner_direction": "Correct64-token fit versus256-token evaluation before spending the remaining full dose. Preserve learning and optimizer; originalfull64campaignsuperseded.",
+    "stopped_steps": {
+      "quaternion": 2048,
+      "householder_pair": 2104
+    },
+    "common_warmup_step": 2104,
+    "alignment_updates": 56,
+    "alignment_target_visits": 229376,
+    "alignment_seconds_limit": 240,
+    "corrected_profile_updates_max_per_arm": 12,
+    "corrected_profile_batch": 16,
+    "corrected_profile_context": 256,
+    "corrected_profile_time_limit_seconds_per_arm": 240,
+    "preparation_build_alignment_profile_projection_seconds": 900,
+    "new_storage_increment_bytes": 134217728,
+    "gross_new_storage_updated_limit_bytes": 805306368,
+    "reason": "Preserve stopped parents and add aligned parent, explicit256-window profiles and continuation checkpoints. Necessary local correction under standing authorization. Before new large writes reclaim only inspected reproducible obsolete compiler cache objects; unchanged physical reserve and128MiB margin.",
+    "full_continuation_launch_gate": "Record actual complete-step throughput and RAM for256-token fit, then freeze remaining dose and full time projection. No silent timer or criterion change.",
+    "shared_wall_ledger_unchanged_until_projected_full_continuation": true
+  },
+  "owner_full_horizon_hardware_extension": {
+    "recorded_utc": "2026-09-25T00:56:24.350757+00:00",
+    "owner_direction": "Finish the full planned exposure, about5morehours; investigate allCPUcores andAppleGPU acceleration.",
+    "ledger_before": {
+      "cumulative_ms": 482023963,
+      "limit_ms": 500400000
+    },
+    "ledger_after": {
+      "cumulative_ms": 482023963,
+      "limit_ms": 512400000
+    },
+    "increment_ms": 12000000,
+    "complete_cycle_limit_ms": 29700000,
+    "projection": "Already2happroximately including preparation and short-window warmup; <=15minutes boundedhardwareprofiling; correctedfullfitprojected4.75h plus15percentthermalallowance; <=30minutes evaluation andprotected delivery. Chargeactualcompletewalltime,notunusedallowance.",
+    "full_training_horizon": 256,
+    "hardware_profile_additional_updates_max_per_arm": 24,
+    "hardware_profile_max_seconds_per_attempt": 240,
+    "hardware_candidates": "TwoCPUarmswith4workerthreadsperprocess; oneMetalprofileofsameB16/T256graph andloadedparent. At most oneMetalowner; RAM/storage ceilings unchanged. Do notcomparegeometryacrossdifferenttrainingbackendswithoutmatching.",
+    "sampled_cpu2_profile_peak_combined_rss_bytes": 5833981952,
+    "cpu2_profile_targets_per_second": {
+      "quaternion": 1246.9765790186573,
+      "householder_pair": 1267.2356125905778
+    },
+    "new_storage_increment_bytes": 67108864,
+    "new_storage_limit_bytes": 872415232,
+    "paid_external_compute": false
+  },
+  "synchronous_cpu_profile": {
+    "recorded_utc": "2026-09-25T01:03:15.028859+00:00",
+    "reason": "Owner requests usefulall-coreparallelism. MeasuredCPU4settingsslightlyslower;3-secondstackshowsmostlyserialtensorcopy/elementwisework. Oneboundedbatch-data-parallelcandidate preservesB16/T256, languageobjectiveandoneAdamWupdate; profile2shardsand,onlyifuseful,4shardsperarm. No modelarchitectureorlearning-ratechange.",
+    "additional_updates_max_per_arm": 24,
+    "profile_seconds_limit_per_attempt": 240,
+    "worker_stacks_bytes_each": 67108864,
+    "max_gradient_workers_both_arms": 8,
+    "nested_blas_rayon_threads_per_process": 1,
+    "memory_stop_unchanged_bytes": 8589934592,
+    "full_horizon_and_planned_exposure_unchanged": true,
+    "gross_new_storage_increment_bytes": 100663296,
+    "gross_new_storage_updated_limit_bytes": 973078528,
+    "time_within_existing_full_horizon_extension": true
+  },
+  "selected_full256_launch": {
+    "schema": "uor-r4.joint-recurrent-hardware-selection/1",
+    "recorded_utc": "2026-09-25T01:15:01.665663+00:00",
+    "status": "SELECTED_BEFORE_FULL_FIT",
+    "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+    "executable": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/joint-training-ad4e639f",
+    "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+    "profiles": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-quaternion-1",
+        "report_sha256": "b14adfef7f84b0070def12e667adce5c9ba6256816c53c29b1351204e70cb324",
+        "arm": "quaternion",
+        "configuration": "cpu_env2_unsharded",
+        "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+        "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+        "elapsed_seconds": 44.031752917,
+        "steady_targets_per_second": 1246.9765790186573,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2104,
+        "completed_step": 2116
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-householder_pair-1",
+        "report_sha256": "aebffda5de9a4360557d700c6c7a73cb195248123f6f9c2a019ce4d8858e0ec1",
+        "arm": "householder_pair",
+        "configuration": "cpu_env2_unsharded",
+        "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+        "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+        "elapsed_seconds": 43.514661375,
+        "steady_targets_per_second": 1267.2356125905778,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2104,
+        "completed_step": 2116
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-cpu4-quaternion-1",
+        "report_sha256": "5411ff832ffd7bd87d755395bbbbc8c7fff18b55d9f6ab1f7fa1f2aa0e6172f9",
+        "arm": "quaternion",
+        "configuration": "cpu4",
+        "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+        "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+        "elapsed_seconds": 47.466700125,
+        "steady_targets_per_second": 1199.8735430892484,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-cpu4-householder_pair-1",
+        "report_sha256": "be55441ef2a8da77f15558def24eeeb411427edf48b7418151de5ca7e59fa8d4",
+        "arm": "householder_pair",
+        "configuration": "cpu4",
+        "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+        "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+        "elapsed_seconds": 46.289680167,
+        "steady_targets_per_second": 1195.039263980298,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-metal-quaternion-1",
+        "report_sha256": "d7d2c0c3e4ae1ed8ff12c76ea392710f159f6fef1bb8a033050aba2060736e51",
+        "arm": "quaternion",
+        "configuration": "metal",
+        "source_commit": "0628c68a91cbff379379f377dce9c62dab12fba7",
+        "executable_sha256": "072f0937897eb9aa66291911aa7c8e2f3ff4c17af639df907b2a7b55dfa4a23a",
+        "elapsed_seconds": 63.404091583,
+        "steady_targets_per_second": 822.8982563087945,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-quaternion-1",
+        "report_sha256": "7a193fffe9b3e47c4a6ee9bc312bd31c2016e0c39a6e425c745da75ef3ad9ef0",
+        "arm": "quaternion",
+        "configuration": "shards2",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+        "elapsed_seconds": 37.764866958,
+        "steady_targets_per_second": 1418.825006642514,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-householder_pair-1",
+        "report_sha256": "7869786f0653fd940e086727d131f2f3b97627b7daf6e73654a8a5f452d324d9",
+        "arm": "householder_pair",
+        "configuration": "shards2",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+        "elapsed_seconds": 36.802741334,
+        "steady_targets_per_second": 1574.9002957460664,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards4-quaternion-1",
+        "report_sha256": "f645621138e2e988fa65df512d8ff8e6ccd7d54a5b1dca2795a5aded0c0d573b",
+        "arm": "quaternion",
+        "configuration": "shards4",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+        "elapsed_seconds": 39.204391042,
+        "steady_targets_per_second": 1333.478607406554,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards4-householder_pair-1",
+        "report_sha256": "808b9e8702bb732d5600eda57d19e66a89a87a7e7a8bbf06cf784ca2a437225d",
+        "arm": "householder_pair",
+        "configuration": "shards4",
+        "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+        "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+        "elapsed_seconds": 38.55935975,
+        "steady_targets_per_second": 1479.3026251094284,
+        "status": "TARGET_COMPLETE",
+        "reload_absolute_delta": 0.0,
+        "starting_step": 2116,
+        "completed_step": 2128
+      }
+    ],
+    "selected": {
+      "backend": "cpu",
+      "cpu_gradient_shards_per_arm": 2,
+      "concurrent_arms": 2,
+      "gradient_workers_combined": 4,
+      "rayon_threads_per_process": 1,
+      "veclib_max_threads_per_process": 1,
+      "parents": {
+        "quaternion": {
+          "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-quaternion-1/checkpoint-final",
+          "checkpoint_sha256": "d37c1ea7a989411088779af7cf9ff0cd84385bb9a19c46cc7e2e8ef5d8d5a8a9",
+          "campaign_sha256": "941d24f1ee9358e445f4dc0ea874c490a7197b3b233ac030b2c40639a618245f",
+          "global_step": 2128
+        },
+        "householder_pair": {
+          "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/profile256-shards2-householder_pair-1/checkpoint-final",
+          "checkpoint_sha256": "1ffde6bff62fb4b760275f61aff4435c6dd581860778fb9c9780cc2c9e2b2838",
+          "campaign_sha256": "fbd8af8144bab3af012995ff74647cce21589a35034b41f6025dc6790a03d89f",
+          "global_step": 2128
+        }
+      }
+    },
+    "reason": "Both arms completed faster with two synchronous sequence workers than the tested single-worker or four-worker options. Metal was slower on the measured quaternion arm. Select symmetrically by execution speed, not profile loss. Retain all alternative branches.",
+    "comparison_limits": "Short12-update profiles, one laptop, staggered launches. InitialCPU2 profile usessteps2104..2116; otherprofiles use2116..2128. The newsharded implementation includes forward-graph teardown in step timing; previous code timed immediatelybefore that teardown. Whole-attempt walltime also favors two shards. No energy claim.",
+    "semantics": "Whole256-token sequences remain intact; weighted mean gradients before one global clip/AdamW. Shared read-only parameters. F32 reduction order differs; no bitwise training equivalence claim.",
+    "batch": 16,
+    "training_context": 256,
+    "evaluation_context": 256,
+    "remaining_steps": 5196,
+    "remaining_target_visits": 21282816,
+    "final_global_step": 7324,
+    "total_target_visits_per_arm": 29999104,
+    "full256_target_visits_per_arm": 21381120,
+    "checkpoint_selection_steps": [
+      4714,
+      7324
+    ],
+    "remaining_fit_seconds_slowest_profile": 15000.310750346398,
+    "per_process_training_deadline_seconds": 17400,
+    "closeout_seconds": 180,
+    "evaluation_and_delivery_projection_seconds": 1800,
+    "combined_peak_sampled_rss_bytes": 6180077568,
+    "physical_free_before_full_launch_bytes": 26298982400,
+    "physical_free_stop_bytes": 26105348096,
+    "no_paid_external_compute": true,
+    "focused_release_checks_passed": 8,
+    "checkpoint_selection_rule": "Select4714 or7324 independently per arm on recorded F32-origin tune64 NLL; exact ties choose earlier. Freeze selected identities before any comparison-tail result."
+  },
+  "full256_cache_cleanup": {
+    "receipt": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/full256-cache-cleanup.json",
+    "physical_reclaimed_bytes": 68448256,
+    "active_objects_and_all_models_preserved": true
+  },
+  "physical_reserve_resume": {
+    "recorded_utc": "2026-09-25T01:28:20.891573+00:00",
+    "reason": "Physical-reserve supervisor requested safe checkpoints after a1GiB available-space fall. Both parents reloaded with zero loss delta; retain all learning and continue sameB16/T256/two-shard CPU optimizer/sampler. No cause attribution beyond observed OS swap without a paired earlier measurement.",
+    "stopped_attempt_status": "RESOURCE_CHECKPOINT",
+    "parents": {
+      "quaternion": {
+        "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-1/checkpoint-final",
+        "checkpoint_sha256": "106e7d85d96e63693529c6333147027115da26d34dd8541092ff8076a9170240",
+        "campaign_sha256": "a8bca90f083d823824b26011e89edf7fa6e35a5e1300b9e1a519a8fc506bec6e",
+        "global_step": 2232,
+        "remaining_updates": 5092
+      },
+      "householder_pair": {
+        "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-1/checkpoint-final",
+        "checkpoint_sha256": "81d5843e58d9614f76ca20bf496539fee38ad87bd2b0e44e9878c7108bfa7996",
+        "campaign_sha256": "b843249146e09beaf64bacd476539509d84a3841c86aaea6239ba35305142dce",
+        "global_step": 2230,
+        "remaining_updates": 5094
+      }
+    },
+    "cleanup_receipt": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/reserve-recovery-compiler-cache-cleanup.json",
+    "measured_physical_reclaimed_bytes": 3652976640,
+    "physical_free_before_resume_bytes": 29516242944,
+    "unchanged_physical_free_stop_bytes": 26105348096,
+    "new_storage_increment_bytes": 67108864,
+    "gross_new_storage_updated_limit_bytes": 1040187392,
+    "time_extension_ms": 0,
+    "remaining_fit_projection_seconds": 16200,
+    "training_seconds_limit_per_attempt": 17400,
+    "closeout_seconds": 180,
+    "evaluation_delivery_seconds": 1800,
+    "complete_cycle_limit_ms_unchanged": 29700000,
+    "shared_cumulative_clock_not_reset": true,
+    "scope": "No complete training or model-quality verdict yet; preserve stopped roots and all hardware alternatives."
+  },
+  "operational_reserve_correction": {
+    "recorded_utc": "2026-09-25T01:34:58.731151+00:00",
+    "reason": "Owner correctly noted that~25.2GB remained free. The lead had carried forward an overly restrictive26.1GB stop, although remaining checkpoint/curve/evaluation outputs need only200\u2013250MB. Correct this operational projection under standing necessary local storage authorization; no scientific gate changes. Claude VM modification and OS swap growth were concurrent; no attribution of the full disk delta is established. Model footprints remained stable, and disk also fell after both jobs exited.",
+    "authority": "Standing owner local storage-extension authorization, plus current direction to continue full planned exposure. Adjustment disclosed before resume.",
+    "old_protected_physical_reserve_bytes": 25904021504,
+    "new_protected_physical_reserve_bytes": 21474836480,
+    "operational_headroom_increment_bytes": 4429185024,
+    "required_storage_stop_margin_bytes": 134217728,
+    "checkpoint_closeout_headroom_bytes": 67108864,
+    "old_physical_free_stop_bytes": 26105348096,
+    "new_physical_free_stop_bytes": 21676163072,
+    "gross_new_experiment_storage_limit_bytes_unchanged": 1040187392,
+    "projected_remaining_outputs_bytes_max": 262144000,
+    "physical_free_before_resume_bytes": 25197559808,
+    "parents": {
+      "quaternion": {
+        "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-2/checkpoint-final",
+        "checkpoint_sha256": "20d3c5d255d073b2c9231142efe4ba57b609106458d4d98f0857347466f257da",
+        "campaign_sha256": "a5113bba1a1d145dab59f09e6728e17f2a9b08a1613fc5f065d70395a81f2c00",
+        "global_step": 2241,
+        "remaining_updates": 5083
+      },
+      "householder_pair": {
+        "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-householder_pair-2/checkpoint-final",
+        "checkpoint_sha256": "16ca2ee387a23d131a980a6cd20454f7dc7872994249243344befaed525c2810",
+        "campaign_sha256": "b434070d5062d02d9fcd35ff54f228fa5f9f8d550d0f99ffda63cfe0f73674e2",
+        "global_step": 2238,
+        "remaining_updates": 5086
+      }
+    },
+    "remaining_fit_projection_seconds": 16200,
+    "training_seconds_limit": 17400,
+    "closeout_seconds": 180,
+    "evaluation_delivery_seconds": 1800,
+    "complete_cycle_limit_ms_unchanged": 29700000,
+    "cumulative_ledger_not_reset": true,
+    "further_deletions": 0,
+    "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+    "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+    "same_model_horizon_batch_shards_optimizer_sampler_and_final_target": true
+  },
+  "final_evaluation_projection": {
+    "recorded_utc": "2026-09-25T05:54:34.126896+00:00",
+    "selected_steps": {
+      "quaternion": 7324,
+      "householder_pair": 7324
+    },
+    "evaluations": 4,
+    "concurrent_cpu_processes": 4,
+    "backend_threads_each": 1,
+    "batch": 16,
+    "context": 256,
+    "target_rows_per_evaluation": 249856,
+    "maximum_total_output_projection_bytes": 67108864,
+    "model_optimization_steps": 0,
+    "paired_evaluation_wall_projection_seconds": 600,
+    "supervisor_seconds": 720,
+    "aggregate_rss_stop_bytes": 8589934592,
+    "physical_free_stop_bytes": 21676163072,
+    "termination_grace_seconds": 15,
+    "remaining_comparison_review_docs_delivery_projection_seconds": 1800,
+    "within_existing_cycle_and_storage_limits": true
+  },
+  "current_gradient_workers_per_process": 2,
+  "current_nested_backend_thread_limits": {
+    "RAYON_NUM_THREADS": 1,
+    "VECLIB_MAXIMUM_THREADS": 1
+  },
+  "cpu_threads_per_process_scope": "Original pre-sharding backend setting; current selection uses two explicit gradient workers and nested backend limits of one.",
+  "gross_new_storage_closeout_status": "UNRESOLVED: retained artifacts and cleanup receipts do not fully reconstruct overwritten/deleted and surviving compiler allocations; see closeout. No gross compliance claim."
+}

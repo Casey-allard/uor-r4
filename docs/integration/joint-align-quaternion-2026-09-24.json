@@ -1,0 +1,28 @@
+{
+  "schema": "uor-r4.joint-recurrent-campaign/1",
+  "evaluator_path": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/docs/integration/reference-evaluator-v2.json",
+  "model": {
+    "vocab_size": 4096,
+    "width": 256,
+    "read_width": 64,
+    "context": 256,
+    "transport": "quaternion",
+    "seed": 240924
+  },
+  "optimizer": {
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "parameter_abs_limit": 1000000.0,
+    "allowed_missing_gradients": []
+  },
+  "data_seed": 240924,
+  "batch": 64,
+  "context": 64,
+  "total_steps": 2104,
+  "development_every_steps": 0,
+  "development_blocks": 64,
+  "checkpoint_steps": [],
+  "max_process_seconds": 240,
+  "trial_scope": "HORIZON_CORRECTION_ALIGNMENT: retain2048-step learned quaternion and optimizer; finish identical64-token warmup data through step2104 before both arms transition explicitly to256. Not the superseded30M/64-window campaign.",
+  "stop_file": null
+}

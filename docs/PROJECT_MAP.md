@@ -1,8 +1,10 @@
 # UOR-R4 Geometric Language Model — project map
 
-## Current navigation, September 24 UTC
+## Current navigation, September 25 UTC
 
 The [current state](integration/current-state.md) and [canonical plan](integration/project-track.md) own current results and sequencing. [D8](integration/DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) corrects D7's learning method while retaining exact event memory, learned admission/ranking, shared geometric operators and a matched ordinary arm. [`crates/uor-r4-training`](../crates/uor-r4-training/README.md) now owns the offline Rust autodiff reference and common likelihood/generation evaluator. `reference_eval.rs` and `reference_campaign.rs` implement actual reference execution; `ngram.rs` and `baseline_counts.rs` implement the normalized count/cache comparator; [evaluator v2](integration/reference-evaluator-v2.json) binds their common data and selection protocol. No serving crate depends on this offline tool.
+
+The same crate now owns the [completed joint recurrent-memory campaign](integration/joint-recurrent-result-2026-09-25.md): `joint_model.rs` implements its causal language graph, `joint_optimizer.rs` named AdamW continuation, `joint_parallel.rs` synchronous whole-sequence CPU gradient partitions, `joint_campaign.rs` fitting/loading/evaluation, and `joint_comparison.rs` exact common-population comparison. Rung 1 passes only its frozen engineering gate; the canonical next dependency is quantization-aware continuation of the retained learner and ordinary control. Actual generated text, scope limits and selected identities are in the [result receipt](evidence/joint-recurrent-result-2026-09-25.json).
 
 The earlier [principal attention programme](integration/principal-attention-plan-2026-09-24.md) and [A1](integration/integrated-attention-a1-plan-2026-09-24.md) locate `native_geometric/learner/integrated_attention/` and `bin/integrated-attention.rs`. A1–A4 preserve useful native scaffolding, but [A4's loaded result](integration/integrated-attention-a4-result-2026-09-24.md) fails complete generation. Further local selector tuning is parked; the active plan specifies one recurrent-memory learner with end-to-end language credit, followed by measured hardening and integer export.
 

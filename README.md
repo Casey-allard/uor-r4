@@ -6,6 +6,8 @@ UOR-R4 is an experimental autoregressive geometric state model with exact addres
 
 **Active September 24 correction:** the [stuck-point assessment](docs/integration/stuck-point-review-response-2026-09-24.md) and [D8 ladder](docs/integration/project-track.md) move development from successive local discrete-selector fixes to a coherent Rust autodiff training path, a pinned working language reference, explicit discretization and the actual hard serving path. A4's four matched continuations still produce zero complete answers; they are retained evidence. The historical #1017 transformer is an offline comparator/possible teacher, while the target remains a native transformerless geometric model. The [current state](docs/integration/current-state.md) is now a short handoff with its complete prior history linked separately.
 
+**Executed September 25:** the [joint recurrent-memory campaign](docs/integration/joint-recurrent-result-2026-09-25.md) completed 29,999,104 target visits per arm, including 21,381,120 with matched 256-token training/evaluation. Comparison-tail NLL is **2.110368** for quaternion, **2.085241** for the matched ordinary recurrent control, and **2.391786** for count/cache. The combined read/copy path materially contributes; loaded text is varied but semantically unreliable. The frozen rung 1 engineering gate is accepted. These are floating-point offline learners, with no geometric-advantage or integer-serving qualification. Next is quantization-aware continuation of the same learner.
+
 For the live research position, read [current state](docs/integration/current-state.md), the [canonical plan](docs/integration/project-track.md) and the [September 23 ordinary-lexical audit](docs/integration/ordinary-lexical-audit-2026-09-23.md). The [research-leader handoff](docs/integration/research-leader-handoff-2026-09-23.md) connects the full history to the current decision method. The [September 19 takeover review](docs/integration/takeover-review-2026-09-19.md) and [evidence index](docs/integration/EVIDENCE.md) preserve the wider mechanism history. Live [programme issue #820](https://github.com/UOR-Foundation/uor-r4/issues/820) owns delivery status; dated experiments remain evidence at their original scope. Contributors and research agents start with [AGENTS.md](AGENTS.md); the optional [Kimi/DeepSeek workspace](.kimi-code/README.md) documents its team, tool and handoff workflow.
 
 ## Goal and serving contract
@@ -21,19 +23,21 @@ The owner confirmed [DECISIONS.md D0-b](docs/integration/DECISIONS.md#d0-b--what
 
 **Owner direction (2026-09-23):** the ultimate goal is a **fully transformerless geometric language model in which geometry *replaces* floating-point matrix multiplication** — not merely a table-native output layer. Training may use float and matmul; the declared serving kernel may not. This is a **multiplier-free serving target**, not a mathematical prohibition on every linear map. Whole-path compliance is not yet established for every experimental or shipped path. Allocation tests, symbol-level instruction checks and arithmetic parity tests support only their tested boundaries. The separate frozen TLA/R4G1 runtime retains its own stricter scoped contract. See [AGENTS.md](AGENTS.md) and the [execution policy](docs/integration/agent-execution-policy.md).
 
-## Three model paths and their evidence
+## Model paths and their evidence
 
 | Path | What exists | What the evidence establishes |
 | --- | --- | --- |
+| Current offline joint recurrent-memory learner | One differentiable Rust graph trains quaternion transport, state, causal contextual reads/writes and vocabulary/copy output; a matched Householder-pair arm is retained | Both pass the frozen development likelihood, noncollapse and combined read-effect engineering gates after full planned exposure. Ordinary has lower natural NLL. General conversation, integer export, bounded admission, geometric advantage and energy remain unqualified. |
 | Retained native memory and shared language experiments | Exact retained values, versioned relations, Copy/Add, learned source choice, dependent reads, Read/Emit/Stop and bounded phrase/role composition | Causal generated behavior on authored tasks with retained controls. Later contextual-role repairs also use authored syntax rules. These are not general prose or an integrated chat model. |
 | TinyStories prose learner and `.rgm` serving | Learned root assignments, JEPA/lexical objectives, lattice/count features, VSA routing, binary artifacts, CLI/API generation | A reported 555M-token training run and measurable text prediction. Training-time, exported full-vocabulary and routed serving scorers differ. Generations remain repetitive; historical memory tests do not qualify this new prose artifact. |
 | Current geometric addressed-memory core and exact-token prior | Fixed token-to-element assignment, ordered address pairs, accumulated value memory, two learned token-position tables, bounded nonlinearity and shared ternary readout | The memory-only configuration has 85–94% cold reads on the measured internal corpora. PR #1294 implements the local prior and a negative paired pilot. PR #1298 repairs the learner and fits the consistent 16-context task at 16/16. PR #1300 trains the prior on repository text and records a 1.99-bit gain over its frozen bias. PR #1301's review found the permutation and document bootstrap defective; the executed evaluation-only replay corrects both, reproduces the recorded losses exactly, passes the frozen 0.10-bit threshold on the legacy and spread-position panels, and shows the two-token readout is dominated by an order-2 count reference. The stored geometric element table is unused by this predictor. |
 
-**The retained integer Generate/Copy/Stop language artifact contains no geometry.** The shared Generate/Copy/Stop learner
+**The earlier retained integer Generate/Copy/Stop language artifact contains no geometry.** The shared Generate/Copy/Stop learner
 (`learner/transferable_lexical.rs`) is a plain 64-dimensional integer RNN with a linear readout; it has no
-prime/zeta/R4/S3/H4/`Z[phi]` reference. Where geometry appears in this repository it is a bounded feature or a
-retained memory/identity substrate, not the computation that predicts language. No geometric mechanism has yet
-beaten an information- and compute-matched ordinary control on any task.
+prime/zeta/R4/S3/H4/`Z[phi]` reference. This statement is scoped to that artifact.
+The new offline recurrent learner executes quaternion transport in the actual language prediction graph.
+Its integer export remains unimplemented, and its matched ordinary control has lower natural likelihood loss.
+No general geometric predictive advantage is qualified by this one-seed result.
 
 UOR-R4 is **not** a "world model" in either industry sense (a learned, action-conditioned latent dynamics model used
 for planning, or an observation-level generative simulator). At most it is trivially "an autoregressive latent-state
@@ -54,6 +58,8 @@ The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measuremen
 ## Current research step
 
 [D8's persistent ladder](docs/integration/project-track.md) is the active sequence: reproduce the reference and common baselines, learn one recurrent-memory model with continuous language credit, then discretize, bound admission and export integer serving. The [current state](docs/integration/current-state.md) records executed results and the active dependency. The offline Rust tool is [`crates/uor-r4-training`](crates/uor-r4-training/README.md). Further A1–A4 local-selector tuning is parked.
+
+Rung 1 now passes at its frozen engineering scope. Preserve its continuous checkpoints and proceed to rung 2: specify and train the quantized forward path, then measure actual hard-path likelihood and loaded generation against the retained continuous and ordinary controls. No new training or integer result is implied by this next-step statement.
 
 ### Historical direction and component results
 
@@ -132,6 +138,7 @@ The longer programme still requires coherent language, durable isolated memory, 
 
 | Component | Source |
 | --- | --- |
+| Current offline joint learner and continuation | [joint_model.rs](crates/uor-r4-training/src/joint_model.rs), [joint_campaign.rs](crates/uor-r4-training/src/joint_campaign.rs), [joint_parallel.rs](crates/uor-r4-training/src/joint_parallel.rs), [joint_comparison.rs](crates/uor-r4-training/src/joint_comparison.rs) |
 | Current exact-token prior, geometric memory and low-bit substrate | [prior_learning.rs](crates/uor-r4-core/src/native_geometric/learner/prior_learning.rs), [cold_prior.rs](crates/uor-r4-core/src/native_geometric/learner/cold_prior.rs), [geometric_attention.rs](crates/uor-r4-core/src/native_geometric/learner/geometric_attention.rs), [lowbit.rs](crates/uor-r4-core/src/native_geometric/learner/lowbit.rs), [group_table.rs](crates/uor-r4-core/src/native_geometric/learner/group_table.rs) |
 | Retained memory and shared language composition | [memory_runtime.rs](crates/uor-r4-core/src/native_geometric/memory_runtime.rs), [relation.rs](crates/uor-r4-core/src/native_geometric/relation.rs), [value_runtime.rs](crates/uor-r4-core/src/native_geometric/value_runtime.rs), [dependent_language](crates/uor-r4-core/src/native_geometric/dependent_language/) |
 | Prose training and artifact | [jepa_trainer.rs](crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs), [binary_model.rs](crates/uor-r4-core/src/native_geometric/learner/binary_model.rs), [train-native-prose.rs](crates/uor-r4-core/src/bin/train-native-prose.rs) |

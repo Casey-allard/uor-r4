@@ -1,0 +1,83 @@
+{
+  "schema": "uor-r4.joint-recurrent-closeout/1",
+  "recorded_utc": "2026-09-25T06:10:43.616182+00:00",
+  "cycle_started_utc": "2026-09-24T22:55:18+00:00",
+  "charged_through_utc": "2026-09-25T06:10:43.616182+00:00",
+  "charge_scope": "All unique campaign wall time from preparation through this pre-delivery cutoff: engineering, review, builds, profiles, warmup, horizon correction, interruptions, full fitting, comparison and documentation. Concurrent process times are not added to wall.",
+  "delivery_tail": "PENDING at this committed cutoff; measured tail after protected delivery will be charged once in artifact-container/delivery-closeout.json and recorded on the owning issues.",
+  "complete_cycle_limit_ms": 29700000,
+  "wall_charge_ms": 26125616,
+  "fit_attempts": 23,
+  "gross_fit_target_visits": 60440576,
+  "gross_fit_new_optimizer_steps": 14756,
+  "summed_fit_process_elapsed_seconds": 38586.201519334,
+  "selected_model_total_visits_both_arms": 59998208,
+  "off_selected_lineage_fit_visits": 442368,
+  "summed_process_time_is_not_unique_wall": true,
+  "physical_resources": {
+    "recorded_free_bytes": 26224922624,
+    "reserve_bytes": 21474836480,
+    "stop_margin_bytes": 134217728,
+    "checkpoint_closeout_headroom_bytes": 67108864,
+    "corrected_supervisor_stop_bytes": 21676163072,
+    "final_phase_peak_sampled_aggregate_rss_bytes": 6455672832,
+    "final_phase_min_physical_free_bytes": 25032024064,
+    "final_fit_supervisor": {
+      "samples": 1027,
+      "elapsed_seconds": 15433.871408,
+      "checkpoint_requested_reason": null,
+      "all_registered_model_processes_exited": true
+    },
+    "evaluation_supervisor": {
+      "samples": 4,
+      "elapsed_seconds": 45.211326208,
+      "checkpoint_requested_reason": null,
+      "all_registered_model_processes_exited": true
+    },
+    "ram_aggregate_stop_bytes": 8589934592,
+    "ram_per_process_stop_bytes": 6442450944
+  },
+  "storage": {
+    "retained_experiment_allocated_bytes": 635785216,
+    "retained_measurement_method": "du -sk allocation, captured at receipt time; distinct from physical free and gross cumulative new writes",
+    "gross_new_limit_bytes": 1040187392,
+    "exact_gross_new_allocation_status": "UNRESOLVED",
+    "reason": "No complete creation/overwrite inventory survives for deleted and current compiler intermediates. Retained du and physical df do not establish cumulative new-storage compliance.",
+    "known_canceled_build_deleted_this_cycle_logical_bytes": 99780915,
+    "other_deleted_release_objects_logical_bytes_creation_scope_unresolved": 302210933,
+    "main_older_cache_cleanup_logical_bytes": 3644345262,
+    "main_older_cache_cleanup_measured_physical_reclaimed_bytes": 3652976640,
+    "gross_limit_compliance_claim": false,
+    "unique_models_executed_binaries_reports_source_worktrees_preserved": true,
+    "next_campaign_accounting_action": "Inventory retained and new compiler allocations before build; preserve cumulative charges and any unresolved historical cost. No model rerun needed."
+  },
+  "validation": {
+    "release_joint_tests_passed": 8,
+    "test_log_sha256": "2ab93aa37a68d1bb3fb26008fa59f8b8600f3e52537c33d3fdad5fb8dbdf073d",
+    "test_command": "cargo test -p uor-r4-training --release --offline --features metal,cpu-accelerate,reference-accelerate joint_",
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS",
+    "final_fit_roots": "SEALED_AND_VERIFIED",
+    "four_evaluation_roots": "SEALED_AND_VERIFIED_BY_JOINT_COMPARE",
+    "comparison_output": "COMPLETE_FILE_SET_VERIFIED_BY_RUST",
+    "comparison_rows": 249856,
+    "all_21_original_means_agree": true,
+    "compatibility_queue_checks_are_not_tests": true
+  },
+  "source_execution": {
+    "source_commit": "ad4e639fedecf9d490035f9986be736117bd3e29",
+    "executable_sha256": "f68d654294607df7891e300d572d08bffa772606674c80cdaad2b95c7d122238",
+    "source_tree_vs_post_execution_commits": "Executable code and dependency inputs unchanged; later updates are evidence/config/documentation. Final reviewed/merged identity checked during delivery."
+  },
+  "paid_external_compute": false,
+  "next_model_work": "D8 rung2 quantization-aware continuation; NOT_RUN by this receipt.",
+  "ledger_before": {
+    "cumulative_ms": 482023963,
+    "limit_ms": 512400000
+  },
+  "ledger_after_pre_delivery_charge": {
+    "cumulative_ms": 508149579,
+    "limit_ms": 512400000
+  }
+}

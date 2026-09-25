@@ -24,7 +24,7 @@ default-members = [
     "crates/uor-r4-proof-model",
     "crates/uor-r4-graph-runtime",
 ]
-exclude = ["uor_standards", "crates/uor-r4-graph-format/fuzz", "research", "third_party/arrayref"]
+exclude = ["uor_standards", "crates/uor-r4-graph-format/fuzz", "research", "third_party/arrayref", "third_party/candle-core-0.9.2"]
 resolver = "2"
 
 [package]
@@ -103,6 +103,8 @@ harness = false
 # crates are code-identical to published 0.5.2 (README-only delta, audited in
 # #618); bump these together with the [dependencies] pins, never separately.
 [patch.crates-io]
+# See third_party/candle-core-0.9.2/UOR-PATCH.md: four-line BLAS slice correction.
+candle-core = { path = "third_party/candle-core-0.9.2" }
 uor-foundation = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
 uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
 
