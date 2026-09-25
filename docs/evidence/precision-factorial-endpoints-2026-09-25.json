@@ -1,0 +1,475 @@
+{
+  "schema": "uor-r4.precision-factorial-endpoints/1",
+  "status": "PASS_EXACT_RETAINED_ENDPOINTS",
+  "recorded_utc": "2026-09-25T14:44:51.689467+00:00",
+  "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+  "verification_executable": {
+    "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/joint-training-49dfd0b1",
+    "bytes": 8323632,
+    "sha256": "cf5ce19a5eb63b674bf9ee23fe671ceed477cb26ad8d5e3e796c974c04a01f9f"
+  },
+  "analysis_script": {
+    "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/analyze-factorial.py",
+    "bytes": 43989,
+    "sha256": "d021f90490941ebde06264d0e900d8f9ef242670038eba0e30bb0fc5aab51555"
+  },
+  "targets_per_endpoint": 249856,
+  "checks": [
+    {
+      "endpoint": "quaternion/new/FF",
+      "retained": "quaternion/retained/FF",
+      "targets_byte_exact": true,
+      "complete_generation_structures_equal": true,
+      "complete_story_probe_structures_equal": true,
+      "ignored_json_keys": [
+        "elapsed_seconds (recursively; no other field ignored)"
+      ],
+      "canonical_output_sha256_after_elapsed_removal": {
+        "generations.json": "4feb33d8922914ebc0b5593440f7ab0950ce4c656e6ea1d62d84bfde7fc4a297",
+        "story-probes.json": "9bcde695c8eeef5004b03d0a14e036e05c7b5074ac38f0212ec7977edc254bc8"
+      },
+      "new_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-FF-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-FF-1/manifest.json",
+          "bytes": 1257,
+          "sha256": "7a38151c99df98c0d62d0a9bc18096fd648cd50c5ca1d333e4ab13ee1b641da2"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-FF-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "e141482d548591160dbf7b0cb1d8f8c2bcd98cfc2386bb806574aedfded92cc6"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-FF-1/generations.json",
+          "bytes": 479311,
+          "sha256": "8a197c1382acf95e6a4777f7da9ff438bc20b084ab42140318001fd18cf7656c"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-FF-1/story-probes.json",
+          "bytes": 150854,
+          "sha256": "d1bde295db3b386f7750f478ee4c8e39a99279c592090be3e12c099dbbe6f23b"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-FF-1/evaluation-report.json",
+          "bytes": 236923,
+          "sha256": "0f01abf92092d389a937a95ede7f0529f424f31c1b5e484b3454fe16157aac62"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "c34d64b54d57d8ae2c5b623d3062c34464a5111768fab70083f2ba6a423a9762"
+        },
+        "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+        "executable_sha256": "cf5ce19a5eb63b674bf9ee23fe671ceed477cb26ad8d5e3e796c974c04a01f9f",
+        "artifact_kind": "training_checkpoint"
+      },
+      "retained_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1/manifest.json",
+          "bytes": 1117,
+          "sha256": "75a20d1384674822e7b8f463857b88be5919c18ccc03ecfa29e464698bc94f6d"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "e141482d548591160dbf7b0cb1d8f8c2bcd98cfc2386bb806574aedfded92cc6"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1/generations.json",
+          "bytes": 479313,
+          "sha256": "4f59043bcb15438b7ae8d6b6ffb007963d8edd3fa14f8d6864f7627a23022d66"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1/story-probes.json",
+          "bytes": 150857,
+          "sha256": "09eeb4220208a598ef8bb173a366269da40ea7ccbcd022a622773a4a28618d9a"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1/evaluation-report.json",
+          "bytes": 127427,
+          "sha256": "421d07c14cfd454921084a4f408a6fd7ed4569fb98c1921d983203963ef773bf"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "c34d64b54d57d8ae2c5b623d3062c34464a5111768fab70083f2ba6a423a9762"
+        },
+        "source_commit": "66349cdb69883dd7d438c76394c22f4e19000c73",
+        "executable_sha256": "b14698807c4ab2635ca1de777f2c882d75b1d1ca96ebe61005581f6bcf360cec",
+        "artifact_kind": "training_checkpoint"
+      },
+      "scope": "Numerical/output endpoint identity. Floating checkpoint and packed export metadata are validated separately and are intentionally not required to be identical."
+    },
+    {
+      "endpoint": "quaternion/new/QQ",
+      "retained": "quaternion/retained/QQ",
+      "targets_byte_exact": true,
+      "complete_generation_structures_equal": true,
+      "complete_story_probe_structures_equal": true,
+      "ignored_json_keys": [
+        "elapsed_seconds (recursively; no other field ignored)"
+      ],
+      "canonical_output_sha256_after_elapsed_removal": {
+        "generations.json": "d93e12e1c997f71e793b2ee851b5dbcf573fe7d6e0013287bff64062afafcec1",
+        "story-probes.json": "5723f385f2fe8b52e69c559a34fca2405e0bcaf6d5b15493e9e11bdec1b78960"
+      },
+      "new_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-QQ-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-QQ-1/manifest.json",
+          "bytes": 1257,
+          "sha256": "8cbd87e5f5b84249476ff20666d27192e1f49a64ae026314e56279e65b39798f"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-QQ-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "52454fef2607d4c9c5fbc4f3dcebffcdead3e539a5a2da52c5a3984653e92818"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-QQ-1/generations.json",
+          "bytes": 497683,
+          "sha256": "dcb7884d89916c36a5ba94819208995f0eb6f582e332c01521a3656eaf9e64d7"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-QQ-1/story-probes.json",
+          "bytes": 162918,
+          "sha256": "b5b3fb7752c5e08d6998ca693c05d3b5693777dff527a98755e4304f0f5bb0ca"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-quaternion-QQ-1/evaluation-report.json",
+          "bytes": 236920,
+          "sha256": "06bba5f7f68368ba07e6bc23051f471f07f352a2f62d7654f7059cdc223af742"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "c34d64b54d57d8ae2c5b623d3062c34464a5111768fab70083f2ba6a423a9762"
+        },
+        "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+        "executable_sha256": "cf5ce19a5eb63b674bf9ee23fe671ceed477cb26ad8d5e3e796c974c04a01f9f",
+        "artifact_kind": "training_checkpoint"
+      },
+      "retained_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1/manifest.json",
+          "bytes": 1115,
+          "sha256": "6c33220da48ccfc619e1b28d6c9278fc7d3f43ad16391848c598814cd5dbeaf9"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "52454fef2607d4c9c5fbc4f3dcebffcdead3e539a5a2da52c5a3984653e92818"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1/generations.json",
+          "bytes": 497683,
+          "sha256": "b98ac216237ac5b672db781bb9363fe37d87b6344647acc027f28cc5e26ae7cc"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1/story-probes.json",
+          "bytes": 162917,
+          "sha256": "aba7508d0d85186f8b43f633063c1e34c17f115cbb9db59538283dd9f66ec587"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1/evaluation-report.json",
+          "bytes": 640081,
+          "sha256": "712950da781b5ec16e5bfa1c99d414f88cd84a51993fc98c6391c6ebf75f743b"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "c34d64b54d57d8ae2c5b623d3062c34464a5111768fab70083f2ba6a423a9762"
+        },
+        "source_commit": "66349cdb69883dd7d438c76394c22f4e19000c73",
+        "executable_sha256": "b14698807c4ab2635ca1de777f2c882d75b1d1ca96ebe61005581f6bcf360cec",
+        "artifact_kind": "packed_hard_export"
+      },
+      "scope": "Numerical/output endpoint identity. Floating checkpoint and packed export metadata are validated separately and are intentionally not required to be identical."
+    },
+    {
+      "endpoint": "householder_pair/new/FF",
+      "retained": "householder_pair/retained/FF",
+      "targets_byte_exact": true,
+      "complete_generation_structures_equal": true,
+      "complete_story_probe_structures_equal": true,
+      "ignored_json_keys": [
+        "elapsed_seconds (recursively; no other field ignored)"
+      ],
+      "canonical_output_sha256_after_elapsed_removal": {
+        "generations.json": "3b8a2d6e04b269833ada912b32c92d8a82dc29648da14640c0f09d01367acfb4",
+        "story-probes.json": "ca4aa1ca9e373f06cb0a63d8bec8a50bd0c7bea211b631be1a8a69e087550140"
+      },
+      "new_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-FF-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-FF-1/manifest.json",
+          "bytes": 1263,
+          "sha256": "e47cefdb1805a0cdcfa178886199d3e332d3a4bae23768c1bf87cc48637d5999"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-FF-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "7ca8c1908cf05c5dae6fe0b62e8867949862c438f33d77b3a00fa8fe5a4dbfea"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-FF-1/generations.json",
+          "bytes": 497556,
+          "sha256": "1b407ff4e86a11c53d15d8a96e232fc981b9fa2895d74757f116484de4944646"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-FF-1/story-probes.json",
+          "bytes": 158696,
+          "sha256": "1b4fc24324e8f1442087a82b55ea66e814a1d271aa61ba211dd4a2fc57b0a876"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-FF-1/evaluation-report.json",
+          "bytes": 236958,
+          "sha256": "8015e5de3202b70b65e753bb8fd87615dd07d2a84dd0b4aaf11e45ba360670c2"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "1c2d0af7ffabafce7042384392435963b0513357862bac5faff19dc0f3771e79"
+        },
+        "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+        "executable_sha256": "cf5ce19a5eb63b674bf9ee23fe671ceed477cb26ad8d5e3e796c974c04a01f9f",
+        "artifact_kind": "training_checkpoint"
+      },
+      "retained_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1/manifest.json",
+          "bytes": 1123,
+          "sha256": "c8b44b89ef9ea6a560778c39642f485e3e5370b9da78889b5e91e999d808ac92"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "7ca8c1908cf05c5dae6fe0b62e8867949862c438f33d77b3a00fa8fe5a4dbfea"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1/generations.json",
+          "bytes": 497550,
+          "sha256": "40b75402904c1b83b374574e27fc829382fc5f75327afe2e88db76710bb9dfe4"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1/story-probes.json",
+          "bytes": 158693,
+          "sha256": "c09b488dafc687f0e3813d4d044bb774d531890066ae82bb4a2ea3b8b507d426"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1/evaluation-report.json",
+          "bytes": 127455,
+          "sha256": "948d3bf7e6e9da008eee5f6f60fa28d86c4fe219ef004d8ecf397db03eb1b498"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "1c2d0af7ffabafce7042384392435963b0513357862bac5faff19dc0f3771e79"
+        },
+        "source_commit": "66349cdb69883dd7d438c76394c22f4e19000c73",
+        "executable_sha256": "b14698807c4ab2635ca1de777f2c882d75b1d1ca96ebe61005581f6bcf360cec",
+        "artifact_kind": "training_checkpoint"
+      },
+      "scope": "Numerical/output endpoint identity. Floating checkpoint and packed export metadata are validated separately and are intentionally not required to be identical."
+    },
+    {
+      "endpoint": "householder_pair/new/QQ",
+      "retained": "householder_pair/retained/QQ",
+      "targets_byte_exact": true,
+      "complete_generation_structures_equal": true,
+      "complete_story_probe_structures_equal": true,
+      "ignored_json_keys": [
+        "elapsed_seconds (recursively; no other field ignored)"
+      ],
+      "canonical_output_sha256_after_elapsed_removal": {
+        "generations.json": "aef5fce733e242295ceb51b8be2d790c4fb0916aa4d5338a1057f1ad8aaa7298",
+        "story-probes.json": "a6c18e041a9acb33a2958372e2cd211404a5bd7c4954366a457c7408dd5c5c03"
+      },
+      "new_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-QQ-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-QQ-1/manifest.json",
+          "bytes": 1263,
+          "sha256": "36d3ecadfda232087ec11fd787ac27ce5b60cf63023981391153e9ba9870081d"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-QQ-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "828bea42e68024243a0a4f30c7c2af40e0ca65653459e195445514bd0f930a3c"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-QQ-1/generations.json",
+          "bytes": 384523,
+          "sha256": "8fad7a1eff1950ed8be8acea1f71c48781c58d389c322015d4a156d7b929bda5"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-QQ-1/story-probes.json",
+          "bytes": 175358,
+          "sha256": "8f3cef1211b405e4e22568c4e3a039bc5ed5d29af03b0107c4b66ed07433079a"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/evaluate-householder_pair-QQ-1/evaluation-report.json",
+          "bytes": 236946,
+          "sha256": "b984b10097a7b5f8662fe1503d15ed280e473321389341f460a063663c69eb24"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "1c2d0af7ffabafce7042384392435963b0513357862bac5faff19dc0f3771e79"
+        },
+        "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+        "executable_sha256": "cf5ce19a5eb63b674bf9ee23fe671ceed477cb26ad8d5e3e796c974c04a01f9f",
+        "artifact_kind": "training_checkpoint"
+      },
+      "retained_binding": {
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1/manifest.json",
+          "bytes": 1121,
+          "sha256": "3307d51b90bfb4e4fea3267450077ab308bd1d5239e0f0c8650eee5c2f91ca93"
+        },
+        "targets": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1/targets.bin",
+          "bytes": 10993664,
+          "sha256": "828bea42e68024243a0a4f30c7c2af40e0ca65653459e195445514bd0f930a3c"
+        },
+        "generations": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1/generations.json",
+          "bytes": 384525,
+          "sha256": "6cfa153b7db0977201a63fb31243d912c8eb26d785773e950b0f7ea2754f1ae4"
+        },
+        "story_probes": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1/story-probes.json",
+          "bytes": 175365,
+          "sha256": "2f255d2b64b75aa3a83a11ce19605027603304a7f9848ff171024741d84222f6"
+        },
+        "report": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1/evaluation-report.json",
+          "bytes": 640144,
+          "sha256": "b3fc8efd0332295a2fda9b2e63552034644e897f38c9bfa9bec56c6f5bd73a14"
+        },
+        "parent_checkpoint": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final/checkpoint.json",
+          "bytes": 106728,
+          "sha256": "1c2d0af7ffabafce7042384392435963b0513357862bac5faff19dc0f3771e79"
+        },
+        "source_commit": "66349cdb69883dd7d438c76394c22f4e19000c73",
+        "executable_sha256": "b14698807c4ab2635ca1de777f2c882d75b1d1ca96ebe61005581f6bcf360cec",
+        "artifact_kind": "packed_hard_export"
+      },
+      "scope": "Numerical/output endpoint identity. Floating checkpoint and packed export metadata are validated separately and are intentionally not required to be identical."
+    }
+  ],
+  "retained_inputs": {
+    "receipt": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/precision-factorial-20260925/docs/evidence/precision-factorial-inputs-2026-09-25.json",
+      "bytes": 20526,
+      "sha256": "b971ecbeed0dbcea973e49ece111b391a7a78d9eef4d52d986cca8fedbe0735b"
+    },
+    "complete_roots_checked": [
+      {
+        "arm": "quaternion",
+        "kind": "shadow_parent",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final",
+        "files": 8,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final/manifest.json",
+          "bytes": 1274,
+          "sha256": "599a7bff62832c96a58668f5b0b07909da25c0fe84b23440dba68934e45c79e8"
+        }
+      },
+      {
+        "arm": "quaternion",
+        "kind": "packed_parent",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-quaternion-1",
+        "files": 10,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-quaternion-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-quaternion-1/manifest.json",
+          "bytes": 1585,
+          "sha256": "a82e6007c0f3c416c39dbca5db05ee410848da3eae084dc4e853aaa969afec6d"
+        }
+      },
+      {
+        "arm": "quaternion",
+        "kind": "FF_reference",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1",
+        "files": 7,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1/manifest.json",
+          "bytes": 1117,
+          "sha256": "75a20d1384674822e7b8f463857b88be5919c18ccc03ecfa29e464698bc94f6d"
+        }
+      },
+      {
+        "arm": "quaternion",
+        "kind": "QQ_reference",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1",
+        "files": 7,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1/manifest.json",
+          "bytes": 1115,
+          "sha256": "6c33220da48ccfc619e1b28d6c9278fc7d3f43ad16391848c598814cd5dbeaf9"
+        }
+      },
+      {
+        "arm": "householder_pair",
+        "kind": "shadow_parent",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final",
+        "files": 8,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final/manifest.json",
+          "bytes": 1280,
+          "sha256": "71ebd4700d5a682e2c3760c1cf27623bda68aeef8a5947105599ea0515f9b022"
+        }
+      },
+      {
+        "arm": "householder_pair",
+        "kind": "packed_parent",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-householder_pair-1",
+        "files": 10,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-householder_pair-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-householder_pair-1/manifest.json",
+          "bytes": 1591,
+          "sha256": "0abdf6a6ec1dc60fc1ad0ad1a8ffbdf711bc97c5794ef5f6e26c790c463f48ca"
+        }
+      },
+      {
+        "arm": "householder_pair",
+        "kind": "FF_reference",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1",
+        "files": 7,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1/manifest.json",
+          "bytes": 1123,
+          "sha256": "c8b44b89ef9ea6a560778c39642f485e3e5370b9da78889b5e91e999d808ac92"
+        }
+      },
+      {
+        "arm": "householder_pair",
+        "kind": "QQ_reference",
+        "root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1",
+        "files": 7,
+        "original_bound_root": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1",
+        "manifest": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1/manifest.json",
+          "bytes": 1121,
+          "sha256": "3307d51b90bfb4e4fea3267450077ab308bd1d5239e0f0c8650eee5c2f91ca93"
+        }
+      }
+    ],
+    "all_bound_file_sets_and_sha256_unchanged": true,
+    "optimizer_updates": 0
+  },
+  "scope": "Endpoint integrity only; no mixed-mode result or model-quality acceptance is inferred."
+}

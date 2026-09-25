@@ -15,7 +15,7 @@ use crate::baseline_protocol::{
     device, load_evaluator, read_tokens, save_json, verify_identity, Evaluator,
 };
 use crate::joint_evaluation::{self, STORY_PROBE_SCOPE, STORY_STOP_POLICY};
-use crate::joint_model::{JointConfig, JointModel, ReadMode};
+use crate::joint_model::{JointConfig, JointModel, PrecisionMode, ReadMode};
 use crate::joint_optimizer::{AdamConfig, NamedAdamW};
 use crate::joint_quantization::QuantizationSpec;
 use crate::{invalid, sha256_file, Result};
@@ -1164,6 +1164,9 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("joint-compare") {
         return crate::joint_comparison::run_cli(args);
     }
+    if args.first().map(String::as_str) == Some("joint-evaluate-precision") {
+        return evaluate_precision_cli(args);
+    }
     if args.first().is_some_and(|mode| {
         matches!(
             mode.as_str(),
@@ -1281,6 +1284,52 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
                 &input, &evaluator, source, out, &args[0], &args[4], mode, batch,
             )
         }
+    })();
+    finish_attempt(out, result)
+}
+
+/// A fixed-checkpoint numerical intervention, never a training or export mode.
+fn evaluate_precision_cli(args: &[String]) -> Result<()> {
+    if args.len() != 7 || args[4] != "cpu" {
+        return Err(invalid("usage: joint-evaluate-precision SEALED_SHADOW_CHECKPOINT EVALUATOR_JSON NEW_REPORT_ROOT cpu {FF|QF|FQ|QQ} BATCH"));
+    }
+    let precision = PrecisionMode::parse(&args[5])?;
+    let batch: usize = args[6].parse().map_err(|_| invalid("evaluation batch"))?;
+    if !(1..=joint_evaluation::MAX_EVALUATION_BATCH).contains(&batch) {
+        return Err(invalid("evaluation batch1..32"));
+    }
+    let out = Path::new(&args[3]);
+    report_output::claim(out)?;
+    let result = (|| {
+        let evaluator = load_evaluator(Path::new(&args[2]))?;
+        let source = Path::new(&args[1]);
+        let mut input =
+            load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        input.model = input.model.precision_view(precision)?;
+        input.artifact["precision_intervention"] = json!({
+            "mode":precision,
+            "quantize_parameters":precision.quantizes_parameters(),
+            "quantize_interfaces":precision.quantizes_interfaces(),
+            "optimizer_updates":0,
+            "parameters_mutated":false,
+            "scales_recalibrated":false,
+            "scope":"Evaluation-only forward intervention on the same fully quantized-training shadows; mixed modes are not serving candidates."
+        });
+        input.artifact["numerical_path"] = json!(format!(
+            "Evaluation-only {} view of the same floating checkpoint; parameter/interface switches are explicit in precision_intervention; execution remains F32",
+            precision.name()
+        ));
+        save_json(&out.join("evaluator.json"), &evaluator.document)?;
+        evaluate_loaded(
+            &input,
+            &evaluator,
+            source,
+            out,
+            &args[0],
+            "cpu",
+            ReadMode::Enabled,
+            batch,
+        )
     })();
     finish_attempt(out, result)
 }
@@ -1639,6 +1688,24 @@ fn evaluate_loaded(
     } else {
         0.0
     });
+    if let Some(precision) = model.precision_mode() {
+        report["precision_intervention"] = input.artifact["precision_intervention"].clone();
+        report["executed_numerical_contract"] = model.numerical_contract();
+        report["executed_quantization_scope"] = json!(
+            "Immutable retained quantizer metadata; the actual parameter/interface switches are recorded separately in precision_intervention."
+        );
+        match precision {
+            PrecisionMode::FF => report["evaluation_quantization_strength"] = json!(0.0),
+            PrecisionMode::QQ => report["evaluation_quantization_strength"] = json!(1.0),
+            PrecisionMode::QF | PrecisionMode::FQ => {
+                // One scalar cannot describe two independently selected grids.
+                // Existing commands retain their original numerical field.
+                if let Some(fields) = report.as_object_mut() {
+                    fields.remove("evaluation_quantization_strength");
+                }
+            }
+        }
+    }
     let tokenizer = load_tokenizer(&evaluator.document)?;
     let prompts_path = verify_identity(&evaluator.document["prompt_source"])?;
     let prompts: Value = serde_json::from_slice(&fs::read(prompts_path)?)?;

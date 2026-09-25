@@ -15,10 +15,64 @@ ladder. #973 remains active under programme #820; their full acceptance is open.
 **Park further A1–A4 local selector tuning.** Preserve its native serving and
 exact-memory scaffolds. The joint recurrent-memory learner now passes its frozen engineering continuation
 gate. Both explicit quantized recipes fail retention; keep the same
-learner and competitive ordinary control while isolating the numerical gap.
+learner and competitive ordinary control. The completed precision comparison
+localizes the dominant immediate numerical loss to the parameter family.
+Next is one jointly learned integer-code assignment on those fixed parents;
+its implementation and fit are NOT_RUN.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
-## Latest result: D8 projected continuation completed and rejected
+## Latest result: parameter/interface precision diagnosis complete
+
+The [fixed-parent comparison](precision-factorial-result-2026-09-25.md) evaluates
+all four precision combinations in both retained step-8,348 parents. Both new
+FF/QQ endpoint pairs reproduce every retained target record and response field
+apart from elapsed time. No training, scale search or new holdout occurs.
+
+| Comparison-tail NLL, nats/target | Quaternion | Householder pair |
+|---|---:|---:|
+| Floating parameters / floating interfaces (FF) | 2.113220567 | 2.098025647 |
+| Quantized parameters / floating interfaces (QF) | 2.150291052 | 2.147912004 |
+| Floating parameters / quantized interfaces (FQ) | 2.113217828 | 2.098039459 |
+| Quantized parameters / quantized interfaces (QQ) | 2.150319798 | 2.147928712 |
+
+At floating interfaces, parameter quantization costs **+0.037070/+0.049886**
+nats/target. Interface quantization costs **−0.000002739/+0.000013812** at
+floating parameters; interaction is **+0.000031484/+0.000002896**. Parameter
+cost dominates in both arms, the tune prefix and every comparison quarter.
+Even QF misses the original +0.05 allowance against continuous. This diagnoses
+these fixed forward paths; it does not isolate individual tensors, predict
+retraining recovery or establish geometric advantage.
+
+Small mean interface loss is not behavioral identity: FF→FQ changes nine of ten
+free generations, and QF→QQ changes eight of ten. All 40 free generations and
+256 source responses are retained in the [complete output record](precision-factorial-outputs-2026-09-25.md).
+Exact source completions, in FF/QF/FQ/QQ order, are **25/22/25/23** of 32 for
+quaternion and **28/22/28/22** for ordinary; row gains and losses stay separate.
+Prose remains semantically unreliable. Both prior quantized recipes remain
+rejected and all computation here remains F32 emulation.
+
+**Next, NOT_RUN:** [one paired learning of neighboring integer-code choices](precision-factorial-result-2026-09-25.md#recommended-next-learn-rounding-decisions-within-the-existing-parameter-grids)
+with fixed parents/scales/bit widths/interfaces, the full 256-step recurrent
+language objective and training-only calibration. Freeze one recipe and complete
+resource projection before fitting; decide once on the final hard export/reload
+using the original five gates. No scale/per-tensor sweep or automatic fallback
+is adopted. Success would permit trained bounded admission/transport, followed
+by integer execution and useful complete outputs; it would not itself qualify
+them.
+
+Executed Rust source: `49dfd0b15486ba3a7a763c598257f651e857279f`.
+Artifact container: `/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925`.
+[Full arithmetic and bindings](../evidence/precision-factorial-result-2026-09-25.json),
+[endpoint receipt](../evidence/precision-factorial-endpoints-2026-09-25.json),
+[resource closeout](../evidence/precision-factorial-closeout-2026-09-25.json),
+[independent review and primary research](precision-factorial-review-2026-09-25.md).
+Eight model evaluations took about three minutes of concurrent pair wall time;
+25 focused tests took 2.16 seconds, with about seven minutes of compilation.
+Whole-cycle accounting includes preparation, analysis, review and delivery.
+The owner's September 25 cost direction makes DeepSeek the default for all
+specialists, including architecture; Kimi requires a new explicit owner request.
+
+## Retained result: D8 projected continuation completed and rejected
 
 [PR #1391](https://github.com/UOR-Foundation/uor-r4/pull/1391) delivers the
 [completed paired result](projected-recurrent-result-2026-09-25.md) under the
@@ -59,16 +113,12 @@ continuous and packed artifacts are preserved without rewriting that outcome.
 All model paths here remain F32 emulators: integer serving, D5 parameter
 sparsity, Hamiltonian dynamics, general language and energy are unqualified.
 
-### Next: isolate parameter and interface quantization, NOT_RUN
+### Successor diagnosis completed
 
-The [next recommendation](projected-recurrent-result-2026-09-25.md#recommended-next-milestone-isolate-the-numerical-bridge-once)
-is one fixed-checkpoint **2 × 2 forward comparison**: floating/quantized parameters
-crossed with floating/quantized interfaces. Reproduce both retained endpoints,
-then evaluate the two new mixed modes on the same population and actual response
-panels in both arms. No training, scale search or fresh final holdout is part of
-this diagnosis. Report conditional costs and interaction, then choose one
-coherent integer-realizable bridge change. No third training recipe is chosen
-from the present confounded hard-versus-shadow difference.
+The recommended fixed-checkpoint precision comparison is complete above. Its
+[one code-choice successor](precision-factorial-result-2026-09-25.md#recommended-next-learn-rounding-decisions-within-the-existing-parameter-grids)
+is the current NOT_RUN recommendation. This projected experiment's artifacts
+and rejection remain unchanged.
 
 Artifact container:
 `/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925`.

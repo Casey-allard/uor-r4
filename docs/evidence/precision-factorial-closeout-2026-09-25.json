@@ -1,0 +1,343 @@
+{
+  "schema": "uor-r4.precision-factorial-closeout/1",
+  "status": "CHARGED_THROUGH_PRE_DELIVERY_CUTOFF",
+  "cycle_started_utc": "2026-09-25T14:17:00+00:00",
+  "charged_through_utc": "2026-09-25T15:09:45.744958+00:00",
+  "unique_wall_charge_ms": 3165745,
+  "complete_cycle_limit_ms": 7200000,
+  "ledger_before": {
+    "cumulative_ms": 525450643,
+    "limit_ms": 532800000
+  },
+  "ledger_after_pre_delivery_charge": {
+    "cumulative_ms": 528616388,
+    "limit_ms": 532800000
+  },
+  "executed_source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+  "source_unchanged_since_build": true,
+  "build": {
+    "schema": "uor-r4.precision-factorial-build/1",
+    "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+    "executable": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/joint-training-49dfd0b1",
+    "executable_sha256": "cf5ce19a5eb63b674bf9ee23fe671ceed477cb26ad8d5e3e796c974c04a01f9f",
+    "phases": [
+      {
+        "phase": "focused-tests",
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--lib",
+          "joint_",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 385.052033662796
+      },
+      {
+        "phase": "release-binary",
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--bin",
+          "uor-r4-training"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 28.19965410232544
+      }
+    ],
+    "elapsed_seconds": 413.9983880519867,
+    "allocation": {
+      "categories": {
+        "worktree": 1263763456,
+        "new_or_replaced_target": 311238656,
+        "campaign": 27111424
+      },
+      "retained_bytes": 1602113536,
+      "temporary_allowance_bytes": 268435456,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 1871597568
+    },
+    "physical_free_bytes": 22405836800,
+    "cargo_fmt_check": "PASS after formatting pre-commit; initial check found a wrapping-only difference, corrected before this source commit"
+  },
+  "validation": {
+    "status": "PASS",
+    "utc": "2026-09-25T15:09:29.342801+00:00",
+    "commands": [
+      {
+        "argv": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "fmt",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 6.712704084,
+        "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/final-check-1.log"
+      },
+      {
+        "argv": [
+          "python3",
+          "scripts/check_claim_wording.py"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.40452929199999943,
+        "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/final-check-2.log"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.033538499999999694,
+        "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/final-check-3.log"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--exit-code",
+          "49dfd0b15486ba3a7a763c598257f651e857279f",
+          "--",
+          "crates/uor-r4-training/src",
+          "crates/uor-r4-training/Cargo.toml",
+          "Cargo.toml",
+          "Cargo.lock"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.016744375000000034,
+        "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/final-check-4.log"
+      }
+    ],
+    "published_evidence_exact_copies": [
+      {
+        "source": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/analyze-factorial.py",
+        "published": "scripts/research/analyze_precision_factorial.py",
+        "sha256": "d021f90490941ebde06264d0e900d8f9ef242670038eba0e30bb0fc5aab51555",
+        "bytes": 43989
+      },
+      {
+        "source": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/precision-factorial-result.json",
+        "published": "docs/evidence/precision-factorial-result-2026-09-25.json",
+        "sha256": "7327f3bcec911a99df56ae7e702ac55573ea64c61aeaa1544f931301c20f9c72",
+        "bytes": 1686223
+      },
+      {
+        "source": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/precision-factorial-endpoints.json",
+        "published": "docs/evidence/precision-factorial-endpoints-2026-09-25.json",
+        "sha256": "0c8d61067494daa8f4db5653c9ccd9d03b7bd3f7dafa033ddd13adb1c9f2fc8c",
+        "bytes": 26633
+      },
+      {
+        "source": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/precision-factorial-generations-and-probes.md",
+        "published": "docs/integration/precision-factorial-outputs-2026-09-25.md",
+        "sha256": "9342f79494cbc12194043e5a6cffcf70f56081e9c25a98a89d114c84302bd616",
+        "bytes": 134838
+      }
+    ],
+    "rust_source_unchanged_since_executed_build": true,
+    "focused_tests": "25 passed; 0 failed; completed in the retained optimized build receipt; not rerun",
+    "scope": "Final formatting, claim wording, whitespace, source identity and publication-copy validation. No new model or test execution."
+  },
+  "principal_decision": {
+    "schema": "uor-r4.precision-factorial-principal-decision/1",
+    "recorded_utc": "2026-09-25T15:00:47.079000+00:00",
+    "status": "COMPLETE_DIAGNOSIS_NO_PROMOTION",
+    "decision": "PRIORITIZE_PARAMETER_CODE_CHOICE_WITH_FIXED_INTERFACES",
+    "source_commit": "49dfd0b15486ba3a7a763c598257f651e857279f",
+    "evidence_sha256": "7327f3bcec911a99df56ae7e702ac55573ea64c61aeaa1544f931301c20f9c72",
+    "scope": "Two fixed projected step8348 parents, onepairedseed,8 fullpopulations,249856 targets per mode, no optimizerupdates/recalibration/selection/freshholdout. Conditional meanNLL costs include wholeendogenous256step histories.",
+    "dominance": "Positive parameter conditional costs dominate both arms, tune/comparison and all4comparisonquarters; no tensor, scale-vs-rounding or training-gain attribution.",
+    "endpoint_gate": "All4 freshFF/QQ endpoints bitexact in allretainedtargetbytes and complete generation/sourceJSON exceptelapsed_seconds;16 sealedroots and all8boundinputfile sets verified.",
+    "generation_review": "Principal independently inspected all40freegenerationrecords by groups ofidentical text and all256source outputs. Semanticallyunreliable prose persists. Interface changes9/10 freecontinuations withfloatingparameters and8/10 withquantizedparameters despite smallmeanNLL effects.",
+    "next_recommendation": "One paired learning of neighboring integer-code choices on the exact projected parents; full256step nexttokenNLL with declaredbinaryhardening; fixedscales/bitwidths/interfaces and sharedtied/recurrentparameters; trainonlycalibration, sameordinarycontrol, freshprospectivecompletebudget, fixedfinalhardexportandreload and originalfivegates. No fallback sweep.",
+    "next_status": "NOT_RUN",
+    "retained_previous_gate_vectors": {
+      "quaternion": [
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
+      "householder_pair": [
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "not_adopted_from_reviews": [
+      "Reversedconditionalcostlabels andinteractiondecomposition",
+      "Arbitraryextra recoverythreshold oraggregatecountretention substitution",
+      "Automaticattributionof failedrepair residualto scales/learningpath",
+      "Interpretationof FF as attainable4bitmodel",
+      "Losslessinterfaces/bitcountas tasksensitivity proof"
+    ],
+    "nonclaims": [
+      "general language/reasoning/coding",
+      "geometric superiority",
+      "Hamiltonian dynamics",
+      "integer serving",
+      "D5parameter sparsity",
+      "physical energy savings"
+    ]
+  },
+  "result": {
+    "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/precision-factorial-result.json",
+    "bytes": 1686223,
+    "sha256": "7327f3bcec911a99df56ae7e702ac55573ea64c61aeaa1544f931301c20f9c72"
+  },
+  "endpoint_receipt": {
+    "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/precision-factorial-endpoints.json",
+    "bytes": 26633,
+    "sha256": "0c8d61067494daa8f4db5653c9ccd9d03b7bd3f7dafa033ddd13adb1c9f2fc8c"
+  },
+  "analysis_source": {
+    "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/analyze-factorial.py",
+    "bytes": 43989,
+    "sha256": "d021f90490941ebde06264d0e900d8f9ef242670038eba0e30bb0fc5aab51555"
+  },
+  "review_receipts": {
+    "math": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/rdc-math-review-1.json",
+        "bytes": 311,
+        "sha256": "239cfb4d4071d196d26f63fe3c6e1338c24a883dbe2e62fce3b035ac7293df15"
+      },
+      "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/rdc-math-review-1.log",
+      "model": "DeepSeek/deepseek-flash",
+      "profile": "uor-source-falsifier.md",
+      "started_utc": "2026-09-25T14:21:24.991924+00:00",
+      "completed_utc": "2026-09-25T14:24:13.239257+00:00",
+      "exit_code": 0
+    },
+    "systems": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/rdc-systems-review-1.json",
+        "bytes": 310,
+        "sha256": "b2c3da734760ab19a9f5daff9c0ebcb137c0673600a8bc9c9bd3969754110bf6"
+      },
+      "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/rdc-systems-review-1.log",
+      "model": "DeepSeek/deepseek-flash",
+      "profile": "uor-systems-cost.md",
+      "started_utc": "2026-09-25T14:21:34.399295+00:00",
+      "completed_utc": "2026-09-25T14:25:23.952047+00:00",
+      "exit_code": 0
+    },
+    "architect": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/rdc-architect-review-1.json",
+        "bytes": 314,
+        "sha256": "af400197e3ba7f4274935bceecdd99918791f7632e83c2a4cb436e9763adef4c"
+      },
+      "log": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/rdc-architect-review-1.log",
+      "model": "moonshot-ai/kimi-k3",
+      "profile": "uor-architect-reviewer.md",
+      "started_utc": "2026-09-25T14:47:28.226706+00:00",
+      "completed_utc": "2026-09-25T14:59:38.508202+00:00",
+      "exit_code": 0
+    }
+  },
+  "physical_resources": {
+    "sample_count": 180,
+    "peak_sampled_aggregate_model_rss_bytes": 1544175616,
+    "peak_sampled_individual_model_rss_bytes": 777158656,
+    "minimum_sampled_physical_free_bytes": 22251184128
+  },
+  "evaluation_pairs": [
+    {
+      "name": "precision-FF-1",
+      "start": 1790347180.450136,
+      "end": 1790347211.023711,
+      "exit_codes": {
+        "evaluate-quaternion-FF-1": 0,
+        "evaluate-householder_pair-FF-1": 0
+      }
+    },
+    {
+      "name": "precision-QQ-1",
+      "start": 1790347211.414797,
+      "end": 1790347273.548666,
+      "exit_codes": {
+        "evaluate-quaternion-QQ-1": 0,
+        "evaluate-householder_pair-QQ-1": 0
+      }
+    },
+    {
+      "name": "precision-QF-1",
+      "start": 1790347492.050123,
+      "end": 1790347522.718996,
+      "exit_codes": {
+        "evaluate-quaternion-QF-1": 0,
+        "evaluate-householder_pair-QF-1": 0
+      }
+    },
+    {
+      "name": "precision-FQ-1",
+      "start": 1790347523.094437,
+      "end": 1790347583.183145,
+      "exit_codes": {
+        "evaluate-quaternion-FQ-1": 0,
+        "evaluate-householder_pair-FQ-1": 0
+      }
+    }
+  ],
+  "sum_nonoverlapping_model_pair_wall_seconds": 183.4650251865387,
+  "allocation": {
+    "categories": {
+      "worktree": 1265692672,
+      "new_or_replaced_target": 311238656,
+      "campaign": 131178496
+    },
+    "retained_bytes": 1708109824,
+    "temporary_allowance_bytes": 268435456,
+    "metadata_allowance_bytes": 1048576,
+    "charged_projection_bytes": 1977593856
+  },
+  "physical_free_bytes": 22244298752,
+  "physical_free_stop_bytes": 21676163072,
+  "budget": {
+    "path": "/Users/casey.allard/uor-r4-investigations/precision-factorial-20260925/budget.json",
+    "bytes": 2425,
+    "sha256": "fb3007d0bb2e7ae825bde616973c523f0fe9cc62e95cbaadc76f8af15293722b"
+  },
+  "optimizer_updates": 0,
+  "all_unique_artifacts_preserved": true,
+  "cleanup_performed_this_milestone": false,
+  "paid_external_training_compute": false,
+  "limitations": "Model RSS is sampled; compiler RSS/temporary peaks and physical energy are unmeasured. Current allocated files do not measure historical gross allocation or APFS unique physical extents. Delivery tail is charged separately after verified protected merge.",
+  "publication_validation": {
+    "status": "PASS_FOR_AUTHORED_FILES",
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "ada3c77bbebcde37c36e3cd5a68b242857dc2be9",
+      "HEAD",
+      "--",
+      ".",
+      ":(exclude)docs/integration/precision-factorial-outputs-2026-09-25.md"
+    ],
+    "exit_code": 0,
+    "verbatim_output_exception": {
+      "path": "docs/integration/precision-factorial-outputs-2026-09-25.md",
+      "reason": "The full staged whitespace check reports 18 trailing-space lines inside literal generated text. Preserve those model bytes; exact equality to the retained output is separately verified. The earlier unstaged diff check did not include then-untracked files."
+    }
+  }
+}

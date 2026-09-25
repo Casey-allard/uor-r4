@@ -109,6 +109,18 @@ Bounded inference and contextual/copy attention exist. General prose, general re
 - `docs/integration/project-track.md` owns roadmap responsibilities; `current-state.md` owns changing artifact/results/next action. Update claims where asserted, without creating duplicate stage mirrors.
 - Per-experiment records and imports are preserved. A dated “next” inside them does not override the live plan. See the [complete README disposition](docs/integration/readme-inventory-2026-09.json).
 
+## Specialist routing and research cadence
+
+**Owner direction, September 25:** use DeepSeek as the default specialist model,
+including architecture review, where the configured route is available. Kimi/
+Moonshot is reserved for a new explicit owner request. Independent review is an
+evidence role, not a requirement to use a more expensive provider. Reuse current
+source audits, valid binaries and completed relevant reviews. Choose substantive
+implementation and decisive measurements that can change the programme's next
+action; add checks only for a concrete unresolved risk. Report complete elapsed
+preparation, review and delivery cost alongside model and build time. The model's
+acceptance criteria and protected delivery requirements remain in force.
+
 ## Resources, verification and delivery
 
 Project complete preparation/build/fit/controls/evaluation/retries/checkpoint work before execution: context/data windows, wall time, CPU/threads, peak RAM, new/temporary/retained storage and stop margin. Charge the shared cumulative ledger; an issue or session does not reset it. Training duration is secondary to inference usefulness and efficiency, but authorization and machine ceilings still apply. Do not silently raise limits or incur external compute cost. Reuse valid binaries/checkpoints and preserve negative candidates. No CUDA/external GPU is authorized by this plan.

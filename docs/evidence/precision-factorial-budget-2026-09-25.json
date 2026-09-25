@@ -1,0 +1,63 @@
+{
+  "schema": "uor-r4.precision-factorial-budget/1",
+  "recorded_utc": "2026-09-25T14:19:29.846827+00:00",
+  "cycle_started_utc": "2026-09-25T14:17:00+00:00",
+  "base_commit": "ada3c77bbebcde37c36e3cd5a68b242857dc2be9",
+  "objective": "Fixed-final projected checkpoint 2x2 parameter/interface quantization forward comparison; no model fitting or scale selection. Reproduce FF and QQ endpoints, evaluate QF and FQ on same full development and actual response panels in both arms.",
+  "complete_cycle_limit_ms": 7200000,
+  "phase_projection_seconds": {
+    "recovery_review_implementation": 2700,
+    "build_and_focused_checks": 900,
+    "evaluations_and_endpoint_parity": 600,
+    "synthesis_and_delivery": 1800,
+    "stop_margin": 1200
+  },
+  "ledger_before": {
+    "cumulative_ms": 525450643,
+    "limit_ms": 532800000
+  },
+  "ledger_after_extension": {
+    "cumulative_ms": 525450643,
+    "limit_ms": 532800000
+  },
+  "prospective_extension_ms": 0,
+  "training_updates": 0,
+  "context_training_parent_and_evaluation": 256,
+  "full_evaluation_targets_per_mode": 249856,
+  "modes": [
+    "FF",
+    "QF",
+    "FQ",
+    "QQ"
+  ],
+  "arms": [
+    "quaternion",
+    "householder_pair"
+  ],
+  "concurrent_model_processes_max": 2,
+  "evaluation_batch": 16,
+  "nested_backend_threads": 1,
+  "one_cargo_process": true,
+  "model_process_rss_stop_bytes": 4294967296,
+  "aggregate_model_rss_stop_bytes": 6442450944,
+  "storage_new_output_and_build_growth_limit_bytes": 2147483648,
+  "storage_projection_bytes": {
+    "new_full_worktree": 1264000000,
+    "new_or_replaced_compiler_outputs": 320000000,
+    "artifacts_reports_logs": 145000000,
+    "temporary_build_allowance": 268435456,
+    "metadata": 16777216
+  },
+  "physical_reserve_bytes": 21474836480,
+  "storage_stop_margin_bytes": 134217728,
+  "checkpoint_closeout_headroom_bytes": 67108864,
+  "physical_free_stop_bytes": 21676163072,
+  "physical_free_now_bytes": 23882731520,
+  "warm_build_cache": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target",
+  "worktree": "/Users/casey.allard/uor-r4-worktrees/precision-factorial-20260925",
+  "historical_gross_allocation_status": "UNRESOLVED; compiler temporary/RSS peaks unmeasured unless explicitly sampled.",
+  "paid_external_training_compute": false,
+  "preserve_all_unique_artifacts": true,
+  "cleanup_planned": false,
+  "pre_execution_correction": "Use retained endpoint batch16; initial batch8 draft never executed."
+}

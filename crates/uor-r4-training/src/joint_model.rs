@@ -41,6 +41,46 @@ pub enum ReadMode {
     NoRead,
 }
 
+/// Forward-only precision interventions on one fully quantized floating parent.
+/// The first letter selects parameter precision; the second selects every
+/// declared recurrent/read/output interface. `Q` uses the existing fixed grid.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum PrecisionMode {
+    FF,
+    QF,
+    FQ,
+    QQ,
+}
+
+impl PrecisionMode {
+    pub fn parse(value: &str) -> Result<Self> {
+        match value.to_ascii_uppercase().as_str() {
+            "FF" => Ok(Self::FF),
+            "QF" => Ok(Self::QF),
+            "FQ" => Ok(Self::FQ),
+            "QQ" => Ok(Self::QQ),
+            _ => Err(invalid("precision mode must be FF, QF, FQ or QQ")),
+        }
+    }
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::FF => "FF",
+            Self::QF => "QF",
+            Self::FQ => "FQ",
+            Self::QQ => "QQ",
+        }
+    }
+
+    pub const fn quantizes_parameters(self) -> bool {
+        matches!(self, Self::QF | Self::QQ)
+    }
+
+    pub const fn quantizes_interfaces(self) -> bool {
+        matches!(self, Self::FQ | Self::QQ)
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct JointConfig {
     pub vocab_size: usize,
@@ -111,6 +151,9 @@ pub struct JointModel {
     device: Device,
     age_order: Tensor,
     quantization: Option<QuantizedTrainingState>,
+    // An in-memory evaluation intervention, never a checkpoint field. None
+    // preserves the original continuous/QAT/packed behavior without changes.
+    precision_mode: Option<PrecisionMode>,
     // Prepared once per full-window forward (or incremental session). The STE
     // tensors retain the original Var IDs, and never survive an optimizer step.
     prepared_parameters: Option<BTreeMap<String, Tensor>>,
@@ -308,6 +351,7 @@ impl JointModel {
             device: device.clone(),
             age_order,
             quantization: None,
+            precision_mode: None,
             prepared_parameters: None,
             hard_only: false,
             interface_audit: None,
@@ -318,8 +362,47 @@ impl JointModel {
         self.quantization.as_ref()
     }
 
+    pub fn precision_mode(&self) -> Option<PrecisionMode> {
+        self.precision_mode
+    }
+
+    /// Preserve the stored shadows and frozen quantizers while independently
+    /// selecting their use in evaluation. No parameters or clocks are changed.
+    /// The caller binds the sealed source checkpoint in its diagnostic report.
+    pub fn precision_view(&self, mode: PrecisionMode) -> Result<Self> {
+        if self.hard_only || self.prepared_parameters.is_some() || self.precision_mode.is_some() {
+            return Err(invalid(
+                "precision views require an unprepared floating checkpoint, not a packed or diagnostic view",
+            ));
+        }
+        let state = self
+            .quantization
+            .as_ref()
+            .ok_or_else(|| invalid("precision views require a quantized floating checkpoint"))?;
+        // training_strength describes the *next* update, so checking it alone
+        // would admit the checkpoint immediately before the last ramp update.
+        if state.ramp_steps == 0
+            || state
+                .completed_step
+                .checked_sub(state.start_step)
+                .is_none_or(|completed| completed < state.ramp_steps)
+        {
+            return Err(invalid(
+                "precision views require the complete quantization ramp to have finished",
+            ));
+        }
+        state.spec.validate(&self.variables)?;
+        let mut model = self.detached_view()?;
+        model.precision_mode = Some(mode);
+        Ok(model)
+    }
+
     pub fn configure_quantization(&mut self, start_step: usize, ramp_steps: usize) -> Result<()> {
-        if self.quantization.is_some() || self.hard_only || ramp_steps == 0 {
+        if self.quantization.is_some()
+            || self.hard_only
+            || self.precision_mode.is_some()
+            || ramp_steps == 0
+        {
             return Err(invalid(
                 "quantization requires an unquantized parent and positive ramp",
             ));
@@ -334,8 +417,10 @@ impl JointModel {
     }
 
     pub fn set_completed_step(&mut self, step: usize) -> Result<()> {
-        if self.prepared_parameters.is_some() || self.hard_only {
-            return Err(invalid("cannot update a prepared or hard-only model"));
+        if self.prepared_parameters.is_some() || self.hard_only || self.precision_mode.is_some() {
+            return Err(invalid(
+                "cannot update a prepared, hard-only or precision-view model",
+            ));
         }
         if let Some(state) = &mut self.quantization {
             if step < state.completed_step {
@@ -361,12 +446,18 @@ impl JointModel {
         let mut model =
             Self::from_variables(self.config.clone(), self.variables.clone(), &self.device)?;
         model.quantization = self.quantization.clone();
+        model.precision_mode = self.precision_mode;
         model.hard_only = self.hard_only;
         model.interface_audit = self.interface_audit.clone();
         Ok(model)
     }
 
     pub fn without_quantization(&self) -> Result<Self> {
+        if self.precision_mode.is_some() {
+            return Err(invalid(
+                "a precision view cannot discard its evaluation-only mode; request FF from its parent",
+            ));
+        }
         if self.hard_only {
             return Err(invalid("a packed model has no floating shadow parameters"));
         }
@@ -376,8 +467,10 @@ impl JointModel {
     }
 
     fn prepare(&self, training: bool) -> Result<Self> {
-        if training && self.hard_only {
-            return Err(invalid("a packed model is evaluation-only"));
+        if training && (self.hard_only || self.precision_mode.is_some()) {
+            return Err(invalid(
+                "packed models and precision views are evaluation-only",
+            ));
         }
         let mut model = self.detached_view()?;
         let strength = if training {
@@ -385,6 +478,10 @@ impl JointModel {
         } else {
             1.0
         };
+        let parameter_quantization = self.quantization.as_ref().filter(|_| {
+            self.precision_mode
+                .is_none_or(PrecisionMode::quantizes_parameters)
+        });
         let parameters = self
             .variables
             .iter()
@@ -394,7 +491,7 @@ impl JointModel {
                 } else {
                     variable.detach()
                 };
-                let tensor = if let Some(state) = &self.quantization {
+                let tensor = if let Some(state) = parameter_quantization {
                     state.spec.parameter(name, &tensor, strength, training)?
                 } else {
                     tensor
@@ -407,7 +504,11 @@ impl JointModel {
     }
 
     fn interface(&self, input: &Tensor, kind: Interface, training: bool) -> Result<Tensor> {
-        if self.quantization.is_none() {
+        if self.quantization.is_none()
+            || self
+                .precision_mode
+                .is_some_and(|mode| !mode.quantizes_interfaces())
+        {
             return Ok(input.clone());
         }
         let (exponent, low, high) = kind.format();
@@ -527,6 +628,9 @@ impl JointModel {
         mode: ReadMode,
         training: bool,
     ) -> Result<JointOutput> {
+        if training && self.precision_mode.is_some() {
+            return Err(invalid("a precision view is evaluation-only"));
+        }
         if self.prepared_parameters.is_none() {
             return self
                 .prepare(training)?
@@ -618,6 +722,7 @@ impl JointModel {
     ) -> Result<JointStep> {
         if session.config != self.config
             || session.prepared.quantization != self.quantization
+            || session.prepared.precision_mode != self.precision_mode
             || session.prepared.variables.iter().any(|(name, variable)| {
                 self.variables
                     .get(name)
@@ -870,9 +975,9 @@ impl JointModel {
     /// Only parameter/config files are owned here. Caller claims the directory
     /// and saves optimizer, source, data and budget provenance alongside them.
     pub fn save(&self, directory: &Path) -> Result<()> {
-        if self.hard_only || self.prepared_parameters.is_some() {
+        if self.hard_only || self.prepared_parameters.is_some() || self.precision_mode.is_some() {
             return Err(invalid(
-                "save a training model, not a prepared or packed view",
+                "save a training model, not a prepared, packed or precision view",
             ));
         }
         let mut buffers = BTreeMap::new();
@@ -964,17 +1069,34 @@ impl JointModel {
     }
 
     pub fn numerical_contract(&self) -> Value {
-        if self.quantization.is_some() {
+        let mut contract = if self.quantization.is_some() {
             quantized_numerical_contract()
         } else {
             numerical_contract()
+        };
+        if let Some(mode) = self.precision_mode {
+            contract["precision_evaluation"] = json!({
+                "mode":mode,
+                "parameter_quantization":mode.quantizes_parameters(),
+                "interface_quantization":mode.quantizes_interfaces(),
+                "scope":"Evaluation-only intervention on the same stored shadows and frozen grids; no calibration, optimizer update, checkpoint selection or serving qualification",
+                "quantization_contract_scope":"The retained grid definitions apply only where the corresponding precision switch is enabled"
+            });
+            contract["quantization"]["backward"] =
+                json!("Disabled: precision views reject training and use full-strength grids only where enabled");
+            contract["quantization"]["artifact"] =
+                json!("In-memory diagnostic view of a floating checkpoint; cannot be saved as a training or packed model");
         }
+        contract
     }
 
     /// Packed parameter export for the shared quantized F32 evaluator. This is
     /// deliberately not an integer execution kernel: the nonlinearities,
     /// accumulations, normalization and probability calculations remain F32.
     pub fn save_hard(&self, directory: &Path) -> Result<Value> {
+        if self.precision_mode.is_some() {
+            return Err(invalid("a precision view cannot be exported"));
+        }
         let state = self
             .quantization
             .as_ref()
@@ -1232,6 +1354,261 @@ mod tests {
     }
     fn max_delta(a: &Tensor, b: &Tensor) -> Result<f32> {
         Ok(a.sub(b)?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?)
+    }
+
+    fn same_bits(a: &Tensor, b: &Tensor) -> Result<bool> {
+        Ok(a.dims() == b.dims()
+            && a.flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|value| value.to_bits())
+                .eq(b
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .map(|value| value.to_bits())))
+    }
+
+    fn precision_test_root(label: &str) -> Result<std::path::PathBuf> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock before epoch"))?
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "uor-joint-precision-{label}-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir(&root)?;
+        Ok(root)
+    }
+
+    #[test]
+    fn precision_modes_apply_independent_frozen_quantizers() -> Result<()> {
+        let mut parent = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
+        parent.configure_quantization(7, 4)?;
+        parent.set_completed_step(11)?;
+        let state = parent
+            .quantization()
+            .ok_or_else(|| invalid("test quantization missing"))?;
+        let original = parent
+            .variables()
+            .iter()
+            .map(|(name, value)| Ok((name.clone(), (value.id(), value.detach().copy()?))))
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        let probe = Tensor::from_vec(
+            vec![-999f32, -0.1234567, -0.0, 0.0, 0.00012, 0.345, 999.0],
+            (7,),
+            &Device::Cpu,
+        )?;
+        for (mode, parameters, interfaces) in [
+            (PrecisionMode::FF, false, false),
+            (PrecisionMode::QF, true, false),
+            (PrecisionMode::FQ, false, true),
+            (PrecisionMode::QQ, true, true),
+        ] {
+            assert_eq!(PrecisionMode::parse(mode.name())?, mode);
+            assert_eq!(
+                PrecisionMode::parse(&mode.name().to_ascii_lowercase())?,
+                mode
+            );
+            assert_eq!(serde_json::to_value(mode)?, json!(mode.name()));
+            assert_eq!(
+                serde_json::from_value::<PrecisionMode>(json!(mode.name()))?,
+                mode
+            );
+            assert_eq!(mode.quantizes_parameters(), parameters);
+            assert_eq!(mode.quantizes_interfaces(), interfaces);
+            let view = parent.precision_view(mode)?;
+            let prepared = view.prepare(false)?;
+            assert_eq!(prepared.precision_mode(), Some(mode));
+            assert_eq!(prepared.quantization(), parent.quantization());
+            let contract = view.numerical_contract();
+            assert_eq!(contract["precision_evaluation"]["mode"], mode.name());
+            assert_eq!(
+                contract["precision_evaluation"]["parameter_quantization"],
+                parameters
+            );
+            assert_eq!(
+                contract["precision_evaluation"]["interface_quantization"],
+                interfaces
+            );
+            let mut rounding_witnessed = false;
+            for (name, variable) in parent.variables() {
+                let shadow = variable.detach();
+                let hard = state.spec.parameter(name, &shadow, 1.0, false)?;
+                rounding_witnessed |= !same_bits(&shadow, &hard)?;
+                let actual = prepared.weight(name, false)?;
+                assert!(!actual.track_op());
+                assert!(
+                    same_bits(&actual, if parameters { &hard } else { &shadow })?,
+                    "{mode:?}: {name}"
+                );
+            }
+            assert!(rounding_witnessed);
+            for kind in [
+                Interface::State,
+                Interface::Normalized,
+                Interface::Affine,
+                Interface::Unit,
+                Interface::Gate,
+            ] {
+                let (exponent, low, high) = kind.format();
+                let hard = joint_quantization::fake_quant(&probe, exponent, low, high, 1.0, false)?;
+                assert!(!same_bits(&probe, &hard)?);
+                let actual = prepared.interface(&probe, kind, false)?;
+                assert!(
+                    same_bits(&actual, if interfaces { &hard } else { &probe })?,
+                    "{mode:?}: {}",
+                    kind.name()
+                );
+            }
+        }
+        assert!(PrecisionMode::parse("F").is_err());
+        for (name, variable) in parent.variables() {
+            let (id, value) = &original[name];
+            assert_eq!(&variable.id(), id);
+            assert!(same_bits(variable.as_tensor(), value)?, "{name}");
+        }
+        assert_eq!(parent.precision_mode(), None);
+        assert_eq!(parent.numerical_contract(), quantized_numerical_contract());
+        Ok(())
+    }
+
+    #[test]
+    fn precision_views_match_endpoints_sessions_and_causal_prefix() -> Result<()> {
+        let ids = [3, 17, 4, 9, 2, 10, 6, 11, 7, 22];
+        let mut edited = ids;
+        edited[4] = 8;
+        edited[9] = 5;
+        for transport in [Transport::Quaternion, Transport::HouseholderPair] {
+            let mut parent = JointModel::new(small(transport), &Device::Cpu)?;
+            parent.configure_quantization(7, 4)?;
+            parent.set_completed_step(11)?;
+            let root = precision_test_root("endpoints")?;
+            let floating = root.join("floating");
+            let packed = root.join("packed");
+            fs::create_dir(&floating)?;
+            fs::create_dir(&packed)?;
+            parent.save(&floating)?;
+            parent.save_hard(&packed)?;
+            let parent = JointModel::load(&floating, &Device::Cpu)?;
+            let hard = JointModel::load_hard(&packed, &Device::Cpu)?;
+            let shadow = parent.without_quantization()?;
+            let modes = [
+                PrecisionMode::FF,
+                PrecisionMode::QF,
+                PrecisionMode::FQ,
+                PrecisionMode::QQ,
+            ];
+            for mode in modes {
+                assert!(hard.precision_view(mode).is_err());
+                let view = parent.precision_view(mode)?;
+                for read_mode in [ReadMode::Enabled, ReadMode::NoRead] {
+                    let whole = view.forward(&ids, 2, 5, read_mode, false)?;
+                    assert!(!whole.probabilities.track_op());
+                    for reference in match mode {
+                        PrecisionMode::FF => vec![&shadow],
+                        PrecisionMode::QQ => vec![&parent, &hard],
+                        _ => vec![],
+                    } {
+                        let expected = reference.forward(&ids, 2, 5, read_mode, false)?;
+                        for (actual, expected) in [
+                            (&whole.probabilities, &expected.probabilities),
+                            (&whole.states, &expected.states),
+                            (&whole.read_masses, &expected.read_masses),
+                            (&whole.no_read_mass, &expected.no_read_mass),
+                            (&whole.copy_gate, &expected.copy_gate),
+                        ] {
+                            assert!(same_bits(actual, expected)?, "{transport:?} {mode:?}");
+                        }
+                    }
+                    let mut session = view.new_session(2)?;
+                    assert_eq!(session.prepared.precision_mode(), Some(mode));
+                    assert!(parent.step(&mut session, &[3, 10], read_mode).is_err());
+                    for other in modes.into_iter().filter(|other| *other != mode) {
+                        assert!(parent
+                            .precision_view(other)?
+                            .step(&mut session, &[3, 10], read_mode)
+                            .is_err());
+                    }
+                    assert!(session.is_empty());
+                    for position in 0..5 {
+                        let step = view.step(
+                            &mut session,
+                            &[ids[position], ids[5 + position]],
+                            read_mode,
+                        )?;
+                        assert!(
+                            max_delta(
+                                &step.probabilities,
+                                &whole.probabilities.narrow(1, position, 1)?.squeeze(1)?
+                            )? < 3e-6,
+                            "{transport:?} {mode:?} {read_mode:?} position {position}"
+                        );
+                        assert_eq!(step.read_occurrences, (0..position).collect::<Vec<_>>());
+                        assert_eq!(
+                            session.events()[position].tokens,
+                            vec![ids[position], ids[5 + position]]
+                        );
+                    }
+                    let future = view.forward(&edited, 2, 5, read_mode, false)?;
+                    assert!(same_bits(
+                        &whole.probabilities.narrow(1, 0, 4)?,
+                        &future.probabilities.narrow(1, 0, 4)?
+                    )?);
+                    assert!(same_bits(
+                        &whole.states.narrow(1, 0, 4)?,
+                        &future.states.narrow(1, 0, 4)?
+                    )?);
+                }
+            }
+            fs::remove_dir_all(root)?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn precision_views_reject_training_export_and_incomplete_parents() -> Result<()> {
+        let mut parent = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
+        assert!(parent.precision_view(PrecisionMode::FF).is_err());
+        parent.configure_quantization(7, 4)?;
+        assert!(parent.precision_view(PrecisionMode::QQ).is_err());
+        parent.set_completed_step(10)?;
+        assert_eq!(parent.training_strength(), 1.0);
+        assert!(parent.precision_view(PrecisionMode::QQ).is_err());
+        parent.set_completed_step(11)?;
+        assert!(parent
+            .prepare(false)?
+            .precision_view(PrecisionMode::FF)
+            .is_err());
+        let root = precision_test_root("rejections")?;
+        for mode in [
+            PrecisionMode::FF,
+            PrecisionMode::QF,
+            PrecisionMode::FQ,
+            PrecisionMode::QQ,
+        ] {
+            let mut view = parent.precision_view(mode)?;
+            assert!(view
+                .forward(&[3, 4], 1, 2, ReadMode::Enabled, true)
+                .is_err());
+            assert!(view.prepare(true).is_err());
+            assert!(view
+                .prepare(false)?
+                .forward(&[3, 4], 1, 2, ReadMode::Enabled, true)
+                .is_err());
+            assert!(view.save(&root).is_err());
+            assert!(view.save_hard(&root).is_err());
+            assert!(view.configure_quantization(11, 4).is_err());
+            assert!(view.set_completed_step(12).is_err());
+            assert!(view.without_quantization().is_err());
+            assert!(view.precision_view(PrecisionMode::FF).is_err());
+            assert_eq!(view.precision_mode(), Some(mode));
+            assert_eq!(view.quantization(), parent.quantization());
+        }
+        assert!(fs::read_dir(&root)?.next().is_none());
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]

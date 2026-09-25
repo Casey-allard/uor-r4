@@ -1,0 +1,437 @@
+{
+  "schema": "uor-r4.precision-factorial-inputs/1",
+  "recorded_utc": "2026-09-25T14:29:50.402877+00:00",
+  "base_commit": "ada3c77bbebcde37c36e3cd5a68b242857dc2be9",
+  "evaluator": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/precision-factorial-20260925/docs/integration/reference-evaluator-v2.json",
+    "sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62"
+  },
+  "arms": {
+    "quaternion": {
+      "roots": {
+        "shadow_parent": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-quaternion-projected-1/checkpoint-final",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "e74849443a4e1f4224d343b4ab5c076b5fa44ed638a637d652dd3fd6a2416190",
+              "bytes": 648
+            },
+            "campaign.json": {
+              "sha256": "d563db60487d6bfd566487b9d0a395ee1232e6b931c33e5fe72eec2e1a74612b",
+              "bytes": 3156
+            },
+            "checkpoint.json": {
+              "sha256": "c34d64b54d57d8ae2c5b623d3062c34464a5111768fab70083f2ba6a423a9762",
+              "bytes": 106728
+            },
+            "config.json": {
+              "sha256": "eef7963a32c78d58c9fbc6ff1640bf61dba45bc722ae68c61e76ca36750f519c",
+              "bytes": 108601
+            },
+            "manifest.json": {
+              "sha256": "599a7bff62832c96a58668f5b0b07909da25c0fe84b23440dba68934e45c79e8",
+              "bytes": 1274
+            },
+            "model.safetensors": {
+              "sha256": "93c07f94cced0adcc7c3d836aa53078abea8da1be65e525821a57dc92464a5c6",
+              "bytes": 6715592
+            },
+            "optimizer.json": {
+              "sha256": "6084d81d5593cf1b7f460a3e031ec7fe55f6cc5a9d3269bc830b2abe06898cea",
+              "bytes": 2814
+            },
+            "optimizer.safetensors": {
+              "sha256": "c50bba182df0f93a1b0d9df0779e4137a47e4e87a8b519ccfdc63430db472b76",
+              "bytes": 13431312
+            }
+          },
+          "seal_verified": true
+        },
+        "packed_parent": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-quaternion-1",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "d63312355341cb5c0be21642a57dc35b502e1c862b021c43050b0145c2d6be9e",
+              "bytes": 533
+            },
+            "campaign.json": {
+              "sha256": "d563db60487d6bfd566487b9d0a395ee1232e6b931c33e5fe72eec2e1a74612b",
+              "bytes": 3156
+            },
+            "evaluator.json": {
+              "sha256": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+              "bytes": 6757
+            },
+            "hard-export-report.json": {
+              "sha256": "1b20f09e3cf095610575e4d522e22731c48c81885d37e00e630eb9f5e6660e91",
+              "bytes": 534605
+            },
+            "hard-model.json": {
+              "sha256": "8894e07eb5da6325b08ccbfbcd4b519302725194b06e41c2e59fd3127e462754",
+              "bytes": 221623
+            },
+            "hard-parameters.bin": {
+              "sha256": "1b0651159c9f6b589f9819477a2607991be388791c1ff670e0c6fdb8eb664ae2",
+              "bytes": 847876
+            },
+            "hard-parameters.json": {
+              "sha256": "db93815b361ad39d3a6c8ba3dd60581ab839b9018f3673e16e35eb53b3d8b64e",
+              "bytes": 99249
+            },
+            "loaded-generation.json": {
+              "sha256": "6318037d71bcc98f2c2b934a4d1932fab04ae7dcccfb7ad353762ab7b1626894",
+              "bytes": 37711
+            },
+            "manifest.json": {
+              "sha256": "a82e6007c0f3c416c39dbca5db05ee410848da3eae084dc4e853aaa969afec6d",
+              "bytes": 1585
+            },
+            "pre-export-generation.json": {
+              "sha256": "418b2009459ec9ddf4b1a2bb0f74454d6671e3a424d4208f09ff463f613cfc98",
+              "bytes": 37711
+            }
+          },
+          "seal_verified": true
+        },
+        "FF_reference": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-shadow-read-1",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "ea59a7f3f1386a480782c35434028f53336cebb3e64a5c2f4c4b40e6e56f94da",
+              "bytes": 692
+            },
+            "blocks.jsonl": {
+              "sha256": "ff020d23e1789a0734545302412f88ce28370f18057a0edaa2dd3d2a23187e60",
+              "bytes": 220360
+            },
+            "evaluation-report.json": {
+              "sha256": "421d07c14cfd454921084a4f408a6fd7ed4569fb98c1921d983203963ef773bf",
+              "bytes": 127427
+            },
+            "generations.json": {
+              "sha256": "4f59043bcb15438b7ae8d6b6ffb007963d8edd3fa14f8d6864f7627a23022d66",
+              "bytes": 479313
+            },
+            "manifest.json": {
+              "sha256": "75a20d1384674822e7b8f463857b88be5919c18ccc03ecfa29e464698bc94f6d",
+              "bytes": 1117
+            },
+            "story-probes.json": {
+              "sha256": "09eeb4220208a598ef8bb173a366269da40ea7ccbcd022a622773a4a28618d9a",
+              "bytes": 150857
+            },
+            "targets.bin": {
+              "sha256": "e141482d548591160dbf7b0cb1d8f8c2bcd98cfc2386bb806574aedfded92cc6",
+              "bytes": 10993664
+            }
+          },
+          "seal_verified": true
+        },
+        "QQ_reference": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-quaternion-hard-read-1",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "4376eff36298904a61bb703237736ded00c3bab586b242f68ba528a2e133b816",
+              "bytes": 674
+            },
+            "blocks.jsonl": {
+              "sha256": "31d6bb6c32f5c6ddd2c802f77a74c4bc6847a9965914b66e3e014442f87b1c1b",
+              "bytes": 220395
+            },
+            "evaluation-report.json": {
+              "sha256": "712950da781b5ec16e5bfa1c99d414f88cd84a51993fc98c6391c6ebf75f743b",
+              "bytes": 640081
+            },
+            "generations.json": {
+              "sha256": "b98ac216237ac5b672db781bb9363fe37d87b6344647acc027f28cc5e26ae7cc",
+              "bytes": 497683
+            },
+            "manifest.json": {
+              "sha256": "6c33220da48ccfc619e1b28d6c9278fc7d3f43ad16391848c598814cd5dbeaf9",
+              "bytes": 1115
+            },
+            "story-probes.json": {
+              "sha256": "aba7508d0d85186f8b43f633063c1e34c17f115cbb9db59538283dd9f66ec587",
+              "bytes": 162917
+            },
+            "targets.bin": {
+              "sha256": "52454fef2607d4c9c5fbc4f3dcebffcdead3e539a5a2da52c5a3984653e92818",
+              "bytes": 10993664
+            }
+          },
+          "seal_verified": true
+        }
+      },
+      "quantization": {
+        "start_step": 7324,
+        "ramp_steps": 256,
+        "completed_step": 8348,
+        "spec_canonical_json_sha256": "56ec9f0a5b7feea03d182f54c249327ad7063b755b3b2a691a2948e0b1113e40",
+        "spec_hash_encoding": "UTF8 json.dumps sort_keys=True separators comma colon; exact config.json bytes separately bound"
+      },
+      "checkpoint_binding": {
+        "cpu_gradient_shards": 2,
+        "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "data_seed": 240924,
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "model_config_sha256": "eef7963a32c78d58c9fbc6ff1640bf61dba45bc722ae68c61e76ca36750f519c",
+        "model_sha256": "93c07f94cced0adcc7c3d836aa53078abea8da1be65e525821a57dc92464a5c6",
+        "next_data_step": 8348,
+        "optimizer_step": 8348,
+        "projection_transition": {
+          "parent_campaign_sha256": "7ceb4906b274c852aec0e0952c0622751839b308d2d9f2927c89422c6553333e",
+          "parent_checkpoint_sha256": "9dc83887a710f5efb9d3bc1f02dab86d36c508e7c55ae021115e9b7f4b5def02",
+          "parent_optimizer_step": 7836,
+          "policy": "fixed_representable_range",
+          "quantization_spec_sha256": "19f19a1ece8257a55950dc27458d54c927ab0d623eef8295a8073934f5d26832",
+          "reason": "Owner-authorized full-hard midpoint projection at entry and after every AdamW update; preserve frozen quantization grid, moments/clocks, data and all original gates. Entry hard-code and full-context probability parity required."
+        },
+        "quantization": {
+          "completed_step": 8348,
+          "ramp_steps": 256,
+          "start_step": 7324,
+          "spec_canonical_json_sha256": "56ec9f0a5b7feea03d182f54c249327ad7063b755b3b2a691a2948e0b1113e40",
+          "spec_hash_encoding": "UTF8 json.dumps sort_keys=True separators comma colon; exact config.json bytes separately bound"
+        },
+        "quantization_transition": {
+          "parent_campaign_sha256": "5b21a2792674463297fd7fde61706412a7e104a1883bdc0a66208f788418c4cf",
+          "parent_checkpoint_sha256": "b6f442589ab60c158dd737ead4917e2f7400b55dbb3035459bfaec8acc0375d0",
+          "parent_optimizer_step": 7324,
+          "ramp_steps": 256,
+          "reason": "D8 rung2 frozen parent-calibrated dyadic4/16bit parameters and fixed recurrent interfaces; retain Adam moments, sampler clock and full B16/T256; no learned scales, auxiliary loss or new data."
+        },
+        "sampled_target_visits": 34193408,
+        "sampled_targets_per_step": 4096,
+        "schema": "uor-r4.joint-recurrent-checkpoint/1",
+        "source_commit": "66349cdb69883dd7d438c76394c22f4e19000c73",
+        "status": "TARGET_COMPLETE",
+        "training_batch": 16,
+        "training_context": 256,
+        "training_window_transition": {
+          "new_batch": 16,
+          "new_context": 256,
+          "old_batch": 64,
+          "old_context": 64,
+          "parent_campaign_sha256": "20729fcb12ed3ec9b186ac9575667fae4a4a10a5fedf2162430cacdc2ec6d750",
+          "parent_checkpoint_sha256": "bc4a56880d2991502ad61db1940015e82f69613f458c9274ef0145a16da30670",
+          "parent_optimizer_step": 2104,
+          "parent_sampled_target_visits": 8617984,
+          "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+        }
+      }
+    },
+    "householder_pair": {
+      "roots": {
+        "shadow_parent": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/fit-householder_pair-projected-1/checkpoint-final",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "b14aba67d34208f0ef48d1da178e16d60b7267479ca0da0d0f2c6e4f104f02bd",
+              "bytes": 666
+            },
+            "campaign.json": {
+              "sha256": "2e01e94a4c838ea9092f1e3ad16786fc03acba189065fa8e649996595fd6fd5d",
+              "bytes": 3168
+            },
+            "checkpoint.json": {
+              "sha256": "1c2d0af7ffabafce7042384392435963b0513357862bac5faff19dc0f3771e79",
+              "bytes": 106728
+            },
+            "config.json": {
+              "sha256": "a1b4845a94952d99846b187b405b70882a6c5f641f9683444e259b8173ac720b",
+              "bytes": 108607
+            },
+            "manifest.json": {
+              "sha256": "71ebd4700d5a682e2c3760c1cf27623bda68aeef8a5947105599ea0515f9b022",
+              "bytes": 1280
+            },
+            "model.safetensors": {
+              "sha256": "5b34910cea79ee040b0fcc9327a62f9d1014cb720dd1089a613775da9e7838ff",
+              "bytes": 6715592
+            },
+            "optimizer.json": {
+              "sha256": "df5209b48b12a771a67f62b242799cadad029505db61d8df828d76c8cd70e073",
+              "bytes": 2814
+            },
+            "optimizer.safetensors": {
+              "sha256": "7dc32c6729df7acafe79cb2bce8fae00cee2aef54966c9bc30a4e7103bd3b185",
+              "bytes": 13431312
+            }
+          },
+          "seal_verified": true
+        },
+        "packed_parent": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/final-packed-householder_pair-1",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "0d737537ba2743b6b00e55d08fb72a47d374f892a0a88504e2c2bd94ab6b7139",
+              "bytes": 545
+            },
+            "campaign.json": {
+              "sha256": "2e01e94a4c838ea9092f1e3ad16786fc03acba189065fa8e649996595fd6fd5d",
+              "bytes": 3168
+            },
+            "evaluator.json": {
+              "sha256": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+              "bytes": 6757
+            },
+            "hard-export-report.json": {
+              "sha256": "3bcecaf3e032587df36351a2c36be5e89a5f3fa99bece74e08e85d4160bef863",
+              "bytes": 534669
+            },
+            "hard-model.json": {
+              "sha256": "7c652987a462066cbca076938da0335079a0e9fbbf3e03ab9b6673a8c0df0bb1",
+              "bytes": 221661
+            },
+            "hard-parameters.bin": {
+              "sha256": "311f0c9d61cf70b39c80069fcefcfb6cbb731aee7ccc291aae2b89b1e29f8cff",
+              "bytes": 847876
+            },
+            "hard-parameters.json": {
+              "sha256": "049ab392e286bca14a375c30d761e76670663496064fd909b4bb763fd76578ec",
+              "bytes": 99281
+            },
+            "loaded-generation.json": {
+              "sha256": "a647d4978b6d978699eab993d71e45c1df888b1cf4c87fea9ea373d0ef1ef460",
+              "bytes": 37552
+            },
+            "manifest.json": {
+              "sha256": "0abdf6a6ec1dc60fc1ad0ad1a8ffbdf711bc97c5794ef5f6e26c790c463f48ca",
+              "bytes": 1591
+            },
+            "pre-export-generation.json": {
+              "sha256": "e657226668b8d0fc22b2f4ea367ac178d3871852b9fba8239392f5593f271462",
+              "bytes": 37551
+            }
+          },
+          "seal_verified": true
+        },
+        "FF_reference": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-shadow-read-1",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "b1f9e92f9740eb268bbdc4e271a8ffd8e59783e7faa22d244d22d1e8118722f6",
+              "bytes": 710
+            },
+            "blocks.jsonl": {
+              "sha256": "cadf3168f249cd5466ca7049c42fb9e5555a0ecc48ad0f1cc95eb39d9c59f4a2",
+              "bytes": 220431
+            },
+            "evaluation-report.json": {
+              "sha256": "948d3bf7e6e9da008eee5f6f60fa28d86c4fe219ef004d8ecf397db03eb1b498",
+              "bytes": 127455
+            },
+            "generations.json": {
+              "sha256": "40b75402904c1b83b374574e27fc829382fc5f75327afe2e88db76710bb9dfe4",
+              "bytes": 497550
+            },
+            "manifest.json": {
+              "sha256": "c8b44b89ef9ea6a560778c39642f485e3e5370b9da78889b5e91e999d808ac92",
+              "bytes": 1123
+            },
+            "story-probes.json": {
+              "sha256": "c09b488dafc687f0e3813d4d044bb774d531890066ae82bb4a2ea3b8b507d426",
+              "bytes": 158693
+            },
+            "targets.bin": {
+              "sha256": "7ca8c1908cf05c5dae6fe0b62e8867949862c438f33d77b3a00fa8fe5a4dbfea",
+              "bytes": 10993664
+            }
+          },
+          "seal_verified": true
+        },
+        "QQ_reference": {
+          "path": "/Users/casey.allard/uor-r4-investigations/projected-recurrent-20260925/evaluate-householder_pair-hard-read-1",
+          "complete_file_set": {
+            "attempt.json": {
+              "sha256": "8e114a0f9016ee18020432d085b8f100604f99ca71731335546f3574c285789a",
+              "bytes": 686
+            },
+            "blocks.jsonl": {
+              "sha256": "abebcef161ea8af330e2a1da3ac6c6e0e68d5c03137051736259826cabea27c0",
+              "bytes": 220340
+            },
+            "evaluation-report.json": {
+              "sha256": "b3fc8efd0332295a2fda9b2e63552034644e897f38c9bfa9bec56c6f5bd73a14",
+              "bytes": 640144
+            },
+            "generations.json": {
+              "sha256": "6cfa153b7db0977201a63fb31243d912c8eb26d785773e950b0f7ea2754f1ae4",
+              "bytes": 384525
+            },
+            "manifest.json": {
+              "sha256": "3307d51b90bfb4e4fea3267450077ab308bd1d5239e0f0c8650eee5c2f91ca93",
+              "bytes": 1121
+            },
+            "story-probes.json": {
+              "sha256": "2f255d2b64b75aa3a83a11ce19605027603304a7f9848ff171024741d84222f6",
+              "bytes": 175365
+            },
+            "targets.bin": {
+              "sha256": "828bea42e68024243a0a4f30c7c2af40e0ca65653459e195445514bd0f930a3c",
+              "bytes": 10993664
+            }
+          },
+          "seal_verified": true
+        }
+      },
+      "quantization": {
+        "start_step": 7324,
+        "ramp_steps": 256,
+        "completed_step": 8348,
+        "spec_canonical_json_sha256": "d5d895ff4431b38d2ce8265d094aa82185888020df929e92da8e5c487bb54722",
+        "spec_hash_encoding": "UTF8 json.dumps sort_keys=True separators comma colon; exact config.json bytes separately bound"
+      },
+      "checkpoint_binding": {
+        "cpu_gradient_shards": 2,
+        "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+        "data_seed": 240924,
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "model_config_sha256": "a1b4845a94952d99846b187b405b70882a6c5f641f9683444e259b8173ac720b",
+        "model_sha256": "5b34910cea79ee040b0fcc9327a62f9d1014cb720dd1089a613775da9e7838ff",
+        "next_data_step": 8348,
+        "optimizer_step": 8348,
+        "projection_transition": {
+          "parent_campaign_sha256": "8abc853cba8fd49165135522c6b95b7b0f51c01aa8a539c0f1f6c26728cb0542",
+          "parent_checkpoint_sha256": "14f1adf08cc8c08a87a1188252a02ef85864e4973ddde8c2f79c8eef278c8f1c",
+          "parent_optimizer_step": 7836,
+          "policy": "fixed_representable_range",
+          "quantization_spec_sha256": "04ead177c99c8e93bd1c1533531204cd3b3b3a64468148f5865d7eb662f4745b",
+          "reason": "Owner-authorized full-hard midpoint projection at entry and after every AdamW update; preserve frozen quantization grid, moments/clocks, data and all original gates. Entry hard-code and full-context probability parity required."
+        },
+        "quantization": {
+          "completed_step": 8348,
+          "ramp_steps": 256,
+          "start_step": 7324,
+          "spec_canonical_json_sha256": "d5d895ff4431b38d2ce8265d094aa82185888020df929e92da8e5c487bb54722",
+          "spec_hash_encoding": "UTF8 json.dumps sort_keys=True separators comma colon; exact config.json bytes separately bound"
+        },
+        "quantization_transition": {
+          "parent_campaign_sha256": "bd5cefe5cb4d52bfe7588fba0fbf1dfa0386cba2d737c8256f3275eeba809a25",
+          "parent_checkpoint_sha256": "90f5a5d1108b14961304715177dc4d427604a2709c795ab9769cdb32a7276c2c",
+          "parent_optimizer_step": 7324,
+          "ramp_steps": 256,
+          "reason": "D8 rung2 frozen parent-calibrated dyadic4/16bit parameters and fixed recurrent interfaces; retain Adam moments, sampler clock and full B16/T256; no learned scales, auxiliary loss or new data."
+        },
+        "sampled_target_visits": 34193408,
+        "sampled_targets_per_step": 4096,
+        "schema": "uor-r4.joint-recurrent-checkpoint/1",
+        "source_commit": "66349cdb69883dd7d438c76394c22f4e19000c73",
+        "status": "TARGET_COMPLETE",
+        "training_batch": 16,
+        "training_context": 256,
+        "training_window_transition": {
+          "new_batch": 16,
+          "new_context": 256,
+          "old_batch": 64,
+          "old_context": 64,
+          "parent_campaign_sha256": "5c517312879c5ac85675d6ab8433e0b9d69c96cc354f1f079ff333819eccddb2",
+          "parent_checkpoint_sha256": "6b82a1cd1e296bae55d6b1762f0ded123df9179d36358f9ec2f49b1550f5e7f9",
+          "parent_optimizer_step": 2104,
+          "parent_sampled_target_visits": 8617984,
+          "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+        }
+      }
+    }
+  }
+}

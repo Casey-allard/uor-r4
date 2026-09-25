@@ -4,7 +4,7 @@ This crate contains the offline recurrent-memory learner, its matched transport 
 
 ## Joint recurrent-memory learning
 
-The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. A fixed-checkpoint parameter/interface precision comparison is next, NOT_RUN.
+The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../docs/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. One paired learning of legal integer-code choices at fixed parents/scales/interfaces is next, NOT_RUN; the original hard-artifact gates remain unchanged.
 
 ```text
 uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESUME_CHECKPOINT]
@@ -13,6 +13,7 @@ uor-r4-training joint-compare BASELINE_ROOT QUAT_READ QUAT_NOREAD ORD_READ ORD_N
 uor-r4-training joint-export-hard SEALED_CHECKPOINT NEW_REPORT_ROOT [INITIAL_QAT_CAMPAIGN_JSON]
 uor-r4-training joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH
 uor-r4-training joint-evaluate-shadow CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH
+uor-r4-training joint-evaluate-precision SEALED_SHADOW_CHECKPOINT EVALUATOR_JSON NEW_REPORT_ROOT cpu {FF|QF|FQ|QQ} BATCH
 ```
 
 The [frozen campaign](../../docs/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.
@@ -26,6 +27,17 @@ A separately declared `training_window_transition` can change batch/context whil
 `cpu_gradient_shards` defaults to one and accepts one, two or four; more than one is CPU-only and requires a divisible batch. Workers split complete sequences along the batch dimension, share immutable parameters, and return gradients in a fixed order. The caller forms the weighted mean before one global clip/AdamW update. Resume and evaluation bind the selected shard count; floating-point reduction order is not claimed bitwise equal to an unsplit batch. Measured M1 execution selected two workers per arm with both arms concurrent and nested backend thread limits of one. Four workers per arm and the tested Metal path were slower.
 
 `joint-evaluate` loads the actual checkpoint, runs free continuations and all frozen source-edit pairs, and then scores every evaluator-v2 development position. NoRead applies from the start of every prompt/block. Per-target records use the explicit44-byte format in `evaluation-report.json`; probability flooring or answer repair is not added by evaluation. The current natural-story probes measure exploratory task transfer. Their failure alone does not diagnose the read mechanism.
+
+`joint-evaluate-precision` is a CPU, read-enabled, evaluation-only intervention
+on a sealed floating checkpoint whose quantization ramp has completed. The first
+letter enables/bypasses parameter quantization; the second enables/bypasses all
+five declared interface grids. All four modes retain the same stored shadows,
+scales and clocks. The mode follows prepared tensors and incremental sessions;
+training, saving/export and cross-mode session reuse are rejected. Mixed modes
+report both switches rather than one quantization-strength scalar. FF and QQ
+must reproduce the retained shadow and packed endpoints before interpreting
+QF/FQ. None of these views implements integer serving. See the
+[fixed-checkpoint plan](../../docs/integration/precision-factorial-plan-2026-09-25.md).
 
 ### Quantized continuation and packed evaluation
 
