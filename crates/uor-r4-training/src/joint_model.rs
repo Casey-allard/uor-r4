@@ -1,4 +1,4 @@
-//! Continuous causal recurrent memory learner for D8 rung 1.
+//! Causal recurrent memory learner and quantized emulator for D8 rungs 1/2.
 //!
 //! This is F32 offline training scaffolding, with dense learned affine maps and
 //! a differentiable soft read over all earlier events. It is not integer
@@ -10,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use candle_core::{DType, Device, Tensor, Var};
 use safetensors::{tensor::TensorView, Dtype as SafeDtype, SafeTensors};
@@ -17,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
+use crate::joint_quantization::{self, QuantizationSpec};
 use crate::{invalid, Result};
 
 pub const UNIFORM_MIXTURE: f64 = 1e-8;
@@ -108,6 +110,61 @@ pub struct JointModel {
     variables: BTreeMap<String, Var>,
     device: Device,
     age_order: Tensor,
+    quantization: Option<QuantizedTrainingState>,
+    // Prepared once per full-window forward (or incremental session). The STE
+    // tensors retain the original Var IDs, and never survive an optimizer step.
+    prepared_parameters: Option<BTreeMap<String, Tensor>>,
+    hard_only: bool,
+    interface_audit: Option<Arc<Mutex<BTreeMap<String, InterfaceAudit>>>>,
+}
+
+/// Scales are calibrated once from the sealed parent and retained on resume.
+/// Evaluation always uses the complete quantized path, even during the ramp.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct QuantizedTrainingState {
+    pub start_step: usize,
+    pub ramp_steps: usize,
+    pub completed_step: usize,
+    pub spec: QuantizationSpec,
+}
+
+#[derive(Clone, Copy)]
+enum Interface {
+    State,
+    Normalized,
+    Affine,
+    Unit,
+    Gate,
+}
+
+#[derive(Default, Serialize)]
+struct InterfaceAudit {
+    count: u64,
+    clipped: u64,
+    nonfinite: u64,
+    minimum: Option<f32>,
+    maximum: Option<f32>,
+}
+
+impl Interface {
+    fn name(self) -> &'static str {
+        match self {
+            Self::State => "state_transport_provisional_read",
+            Self::Normalized => "rms_normalized_output_hidden",
+            Self::Affine => "fused_affine_qk_scores_logits",
+            Self::Unit => "candidate_update_value_unit_transport",
+            Self::Gate => "sigmoid_gates",
+        }
+    }
+    fn format(self) -> (i16, i32, i32) {
+        match self {
+            Self::State => (-11, -32767, 32767),
+            Self::Normalized => (-10, -32767, 32767),
+            Self::Affine => (-8, -32767, 32767),
+            Self::Unit => (-14, -32767, 32767),
+            Self::Gate => (-15, 0, 32768),
+        }
+    }
 }
 
 /// All output rows are normalized distributions over the same vocabulary.
@@ -161,6 +218,7 @@ pub struct JointSession {
     config: JointConfig,
     batch: usize,
     memory: RecurrentState,
+    prepared: JointModel,
 }
 impl JointSession {
     pub fn len(&self) -> usize {
@@ -249,7 +307,162 @@ impl JointModel {
             variables,
             device: device.clone(),
             age_order,
+            quantization: None,
+            prepared_parameters: None,
+            hard_only: false,
+            interface_audit: None,
         })
+    }
+
+    pub fn quantization(&self) -> Option<&QuantizedTrainingState> {
+        self.quantization.as_ref()
+    }
+
+    pub fn configure_quantization(&mut self, start_step: usize, ramp_steps: usize) -> Result<()> {
+        if self.quantization.is_some() || self.hard_only || ramp_steps == 0 {
+            return Err(invalid(
+                "quantization requires an unquantized parent and positive ramp",
+            ));
+        }
+        self.quantization = Some(QuantizedTrainingState {
+            start_step,
+            ramp_steps,
+            completed_step: start_step,
+            spec: joint_quantization::calibrate(&self.variables)?,
+        });
+        Ok(())
+    }
+
+    pub fn set_completed_step(&mut self, step: usize) -> Result<()> {
+        if self.prepared_parameters.is_some() || self.hard_only {
+            return Err(invalid("cannot update a prepared or hard-only model"));
+        }
+        if let Some(state) = &mut self.quantization {
+            if step < state.completed_step {
+                return Err(invalid("quantization clock moved backwards"));
+            }
+            state.completed_step = step;
+        }
+        Ok(())
+    }
+
+    pub fn training_strength(&self) -> f64 {
+        self.quantization.as_ref().map_or(0.0, |state| {
+            (state
+                .completed_step
+                .saturating_sub(state.start_step)
+                .saturating_add(1) as f64
+                / state.ramp_steps as f64)
+                .min(1.0)
+        })
+    }
+
+    fn detached_view(&self) -> Result<Self> {
+        let mut model =
+            Self::from_variables(self.config.clone(), self.variables.clone(), &self.device)?;
+        model.quantization = self.quantization.clone();
+        model.hard_only = self.hard_only;
+        model.interface_audit = self.interface_audit.clone();
+        Ok(model)
+    }
+
+    pub fn without_quantization(&self) -> Result<Self> {
+        if self.hard_only {
+            return Err(invalid("a packed model has no floating shadow parameters"));
+        }
+        let mut model = self.detached_view()?;
+        model.quantization = None;
+        Ok(model)
+    }
+
+    fn prepare(&self, training: bool) -> Result<Self> {
+        if training && self.hard_only {
+            return Err(invalid("a packed model is evaluation-only"));
+        }
+        let mut model = self.detached_view()?;
+        let strength = if training {
+            self.training_strength()
+        } else {
+            1.0
+        };
+        let parameters = self
+            .variables
+            .iter()
+            .map(|(name, variable)| {
+                let tensor = if training {
+                    variable.as_tensor().clone()
+                } else {
+                    variable.detach()
+                };
+                let tensor = if let Some(state) = &self.quantization {
+                    state.spec.parameter(name, &tensor, strength, training)?
+                } else {
+                    tensor
+                };
+                Ok((name.clone(), tensor))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        model.prepared_parameters = Some(parameters);
+        Ok(model)
+    }
+
+    fn interface(&self, input: &Tensor, kind: Interface, training: bool) -> Result<Tensor> {
+        if self.quantization.is_none() {
+            return Ok(input.clone());
+        }
+        let (exponent, low, high) = kind.format();
+        if let Some(audit) = &self.interface_audit {
+            let scale = 2f32.powi(i32::from(exponent));
+            let values = input.detach().flatten_all()?.to_vec1::<f32>()?;
+            let mut audit = audit
+                .lock()
+                .map_err(|_| invalid("interface audit lock poisoned"))?;
+            let row = audit.entry(kind.name().into()).or_default();
+            for value in values {
+                row.count += 1;
+                if !value.is_finite() {
+                    row.nonfinite += 1;
+                    continue;
+                }
+                row.minimum = Some(row.minimum.map_or(value, |old| old.min(value)));
+                row.maximum = Some(row.maximum.map_or(value, |old| old.max(value)));
+                if value < low as f32 * scale || value > high as f32 * scale {
+                    row.clipped += 1;
+                }
+            }
+        }
+        joint_quantization::fake_quant(
+            input,
+            exponent,
+            low,
+            high,
+            if training {
+                self.training_strength()
+            } else {
+                1.0
+            },
+            training,
+        )
+    }
+
+    /// Opt-in observation only. No full-tensor host reads occur in normal fit.
+    pub fn enable_interface_audit(&mut self) {
+        self.interface_audit = Some(Arc::new(Mutex::new(BTreeMap::new())));
+    }
+
+    pub fn interface_audit(&self) -> Result<Value> {
+        let audit = self
+            .interface_audit
+            .as_ref()
+            .ok_or_else(|| invalid("interface audit was not enabled"))?;
+        let audit = audit
+            .lock()
+            .map_err(|_| invalid("interface audit lock poisoned"))?;
+        Ok(serde_json::to_value(&*audit)?)
+    }
+
+    fn normalized(&self, input: &Tensor, training: bool) -> Result<Tensor> {
+        self.interface(&rms(input)?, Interface::Normalized, training)
     }
 
     pub fn variables(&self) -> &BTreeMap<String, Var> {
@@ -266,6 +479,12 @@ impl JointModel {
     }
 
     fn weight(&self, name: &str, training: bool) -> Result<Tensor> {
+        if let Some(parameters) = &self.prepared_parameters {
+            return parameters
+                .get(name)
+                .cloned()
+                .ok_or_else(|| invalid(format!("missing prepared parameter {name}")));
+        }
         let variable = self
             .variables
             .get(name)
@@ -279,7 +498,11 @@ impl JointModel {
 
     fn linear(&self, input: &Tensor, prefix: &str, training: bool) -> Result<Tensor> {
         let output = input.matmul(&self.weight(&format!("{prefix}.weight"), training)?.t()?)?;
-        Ok(output.broadcast_add(&self.weight(&format!("{prefix}.bias"), training)?)?)
+        self.interface(
+            &output.broadcast_add(&self.weight(&format!("{prefix}.bias"), training)?)?,
+            Interface::Affine,
+            training,
+        )
     }
 
     fn initial_memory(&self, batch: usize) -> Result<RecurrentState> {
@@ -304,6 +527,11 @@ impl JointModel {
         mode: ReadMode,
         training: bool,
     ) -> Result<JointOutput> {
+        if self.prepared_parameters.is_none() {
+            return self
+                .prepare(training)?
+                .forward(ids, batch, time, mode, training);
+        }
         if time == 0
             || time > self.config.context
             || ids.len()
@@ -376,6 +604,7 @@ impl JointModel {
             config: self.config.clone(),
             batch,
             memory: self.initial_memory(batch)?,
+            prepared: self.prepare(false)?,
         })
     }
 
@@ -388,6 +617,12 @@ impl JointModel {
         mode: ReadMode,
     ) -> Result<JointStep> {
         if session.config != self.config
+            || session.prepared.quantization != self.quantization
+            || session.prepared.variables.iter().any(|(name, variable)| {
+                self.variables
+                    .get(name)
+                    .is_none_or(|actual| actual.id() != variable.id())
+            })
             || input_tokens.len() != session.batch
             || input_tokens
                 .iter()
@@ -397,18 +632,19 @@ impl JointModel {
             return Err(invalid("joint session model/batch/context/token mismatch"));
         }
         let occurrence = session.len();
+        let model = &session.prepared;
         let index = Tensor::from_vec(input_tokens.to_vec(), (session.batch,), &self.device)?;
-        let affine = self
+        let affine = model
             .weight("embedding.weight", false)?
             .index_select(&index, 0)?
-            .matmul(&self.weight("recurrent.input.weight", false)?.t()?)?;
-        let core = self.core_step(&mut session.memory, input_tokens, &affine, mode, false)?;
+            .matmul(&model.weight("recurrent.input.weight", false)?.t()?)?;
+        let core = model.core_step(&mut session.memory, input_tokens, &affine, mode, false)?;
         let copy = self.incremental_copy(
             &core.read_masses,
             &session.memory.events[..occurrence],
             session.batch,
         )?;
-        let probabilities = self.output_distribution(
+        let probabilities = model.output_distribution(
             &core.state,
             &core.no_read_mass,
             &core.copy_gate,
@@ -437,20 +673,32 @@ impl JointModel {
         let batch = input.len();
         let d = self.config.width;
         let previous = memory.events.len();
-        let recurrent =
-            rms(&memory.state)?.matmul(&self.weight("recurrent.state.weight", training)?.t()?)?;
+        let recurrent = self
+            .normalized(&memory.state, training)?
+            .matmul(&self.weight("recurrent.state.weight", training)?.t()?)?;
         let fused = token_affine
             .add(&recurrent)?
             .broadcast_add(&self.weight("recurrent.bias", training)?)?;
-        let candidate = fused.narrow(1, 0, d)?.tanh()?;
-        let z = candle_nn::ops::sigmoid(&fused.narrow(1, d, d)?)?;
+        let fused = self.interface(&fused, Interface::Affine, training)?;
+        let candidate =
+            self.interface(&fused.narrow(1, 0, d)?.tanh()?, Interface::Unit, training)?;
+        let z = self.interface(
+            &candle_nn::ops::sigmoid(&fused.narrow(1, d, d)?)?,
+            Interface::Gate,
+            training,
+        )?;
         let raw = fused.narrow(1, 2 * d, d)?;
-        let transported = transport_lanes(&memory.state, &raw, self.config.transport)?;
+        let transported =
+            transport_lanes_with_unit(&memory.state, &raw, self.config.transport, |unit| {
+                self.interface(unit, Interface::Unit, training)
+            })?;
+        let transported = self.interface(&transported, Interface::State, training)?;
         let provisional = z
             .affine(-1.0, 1.0)?
             .mul(&transported)?
             .add(&z.mul(&candidate)?)?;
-        let normalized = rms(&provisional)?;
+        let provisional = self.interface(&provisional, Interface::State, training)?;
+        let normalized = self.normalized(&provisional, training)?;
         let (no_read_mass, read_masses, read) = if previous == 0 || mode == ReadMode::NoRead {
             (
                 Tensor::ones((batch, 1), DType::F32, &self.device)?,
@@ -479,30 +727,45 @@ impl JointModel {
                 .weight("read.age", training)?
                 .index_select(&age_indices, 0)?
                 .unsqueeze(0)?;
-            let scores = scores.broadcast_add(&age)?;
+            let scores =
+                self.interface(&scores.broadcast_add(&age)?, Interface::Affine, training)?;
             let null = self.linear(&normalized, "read.no_read", training)?;
             let mass = candle_nn::ops::softmax(&Tensor::cat(&[&null, &scores], 1)?, 1)?;
             let no_read_mass = mass.narrow(1, 0, 1)?;
             let read_masses = mass.narrow(1, 1, previous)?.contiguous()?;
             let read = read_masses.unsqueeze(1)?.matmul(values)?.squeeze(1)?;
+            let read = self.interface(&read, Interface::State, training)?;
             (no_read_mass, read_masses, read)
         };
         let update_input = Tensor::cat(&[&provisional, &read], 1)?;
-        let update = self.linear(&update_input, "update", training)?.tanh()?;
-        let rho = candle_nn::ops::sigmoid(&self.linear(&update_input, "update.gate", training)?)?;
+        let update = self.interface(
+            &self.linear(&update_input, "update", training)?.tanh()?,
+            Interface::Unit,
+            training,
+        )?;
+        let rho = self.interface(
+            &candle_nn::ops::sigmoid(&self.linear(&update_input, "update.gate", training)?)?,
+            Interface::Gate,
+            training,
+        )?;
         let state = provisional
             .broadcast_mul(&rho.affine(-1.0, 1.0)?)?
             .add(&update.broadcast_mul(&rho)?)?;
+        let state = self.interface(&state, Interface::State, training)?;
         let copy_input = Tensor::cat(&[&state, &read], 1)?;
-        let copy_gate =
-            candle_nn::ops::sigmoid(&self.linear(&copy_input, "copy.gate", training)?)?;
+        let copy_gate = self.interface(
+            &candle_nn::ops::sigmoid(&self.linear(&copy_input, "copy.gate", training)?)?,
+            Interface::Gate,
+            training,
+        )?;
         // Writes happen only after read/update; nothing in this event can be
         // attended until the next call. The last unroll write is unused credit.
-        let normalized_write = rms(&state)?;
+        let normalized_write = self.normalized(&state, training)?;
         let key = self.linear(&normalized_write, "read.key", training)?;
         let value = self
             .linear(&normalized_write, "read.value", training)?
             .tanh()?;
+        let value = self.interface(&value, Interface::Unit, training)?;
         let keys = append_history(memory.keys.as_ref(), &key, training)?;
         let values = append_history(memory.values.as_ref(), &value, training)?;
         memory.state = if training {
@@ -532,10 +795,14 @@ impl JointModel {
         copy: &Tensor,
         training: bool,
     ) -> Result<Tensor> {
-        let hidden = rms(states)?.broadcast_mul(&self.weight("output.norm.weight", training)?)?;
+        let hidden = self
+            .normalized(states, training)?
+            .broadcast_mul(&self.weight("output.norm.weight", training)?)?;
+        let hidden = self.interface(&hidden, Interface::Normalized, training)?;
         let logits = hidden
             .matmul(&self.weight("embedding.weight", training)?.t()?)?
             .broadcast_add(&self.weight("output.bias", training)?)?;
+        let logits = self.interface(&logits, Interface::Affine, training)?;
         let vocabulary = candle_nn::ops::softmax(&logits, 1)?;
         let read_probability = no_read.affine(-1.0, 1.0)?;
         let vocabulary_fraction = gate.mul(&read_probability)?.affine(-1.0, 1.0)?;
@@ -603,6 +870,11 @@ impl JointModel {
     /// Only parameter/config files are owned here. Caller claims the directory
     /// and saves optimizer, source, data and budget provenance alongside them.
     pub fn save(&self, directory: &Path) -> Result<()> {
+        if self.hard_only || self.prepared_parameters.is_some() {
+            return Err(invalid(
+                "save a training model, not a prepared or packed view",
+            ));
+        }
         let mut buffers = BTreeMap::new();
         for (name, variable) in &self.variables {
             let values = variable.detach().flatten_all()?.to_vec1::<f32>()?;
@@ -626,7 +898,8 @@ impl JointModel {
             schema: CHECKPOINT_SCHEMA.to_owned(),
             model: self.config.clone(),
             weights_sha256: hex::encode(Sha256::digest(&bytes)),
-            numerical_contract: numerical_contract(),
+            numerical_contract: self.numerical_contract(),
+            quantization: self.quantization.clone(),
         };
         let mut weights = File::create_new(directory.join("model.safetensors"))?;
         weights.write_all(&bytes)?;
@@ -642,7 +915,12 @@ impl JointModel {
         let config: CheckpointConfig =
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
         config.model.validate()?;
-        if config.schema != CHECKPOINT_SCHEMA || config.numerical_contract != numerical_contract() {
+        let expected_contract = if config.quantization.is_some() {
+            quantized_numerical_contract()
+        } else {
+            numerical_contract()
+        };
+        if config.schema != CHECKPOINT_SCHEMA || config.numerical_contract != expected_contract {
             return Err(invalid(
                 "joint checkpoint schema or numerical contract mismatch",
             ));
@@ -674,7 +952,93 @@ impl JointModel {
             }
             variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
         }
-        Self::from_variables(config.model, variables, device)
+        let mut model = Self::from_variables(config.model, variables, device)?;
+        if let Some(state) = &config.quantization {
+            state.spec.validate(model.variables())?;
+            if state.ramp_steps == 0 || state.completed_step < state.start_step {
+                return Err(invalid("invalid quantization checkpoint clock"));
+            }
+        }
+        model.quantization = config.quantization;
+        Ok(model)
+    }
+
+    pub fn numerical_contract(&self) -> Value {
+        if self.quantization.is_some() {
+            quantized_numerical_contract()
+        } else {
+            numerical_contract()
+        }
+    }
+
+    /// Packed parameter export for the shared quantized F32 evaluator. This is
+    /// deliberately not an integer execution kernel: the nonlinearities,
+    /// accumulations, normalization and probability calculations remain F32.
+    pub fn save_hard(&self, directory: &Path) -> Result<Value> {
+        let state = self
+            .quantization
+            .as_ref()
+            .ok_or_else(|| invalid("hard export requires frozen quantization scales"))?;
+        let parameters =
+            joint_quantization::save_hard_parameters(&state.spec, &self.variables, directory)?;
+        let manifest = json!({
+            "schema":"uor-r4.joint-recurrent-packed-emulator/1",
+            "model":self.config,
+            "quantization":state,
+            "numerical_contract":quantized_numerical_contract(),
+            "parameter_manifest":parameters,
+            "parameter_manifest_sha256":crate::sha256_file(&directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE))?,
+            "scope":"Packed signed 4-bit multiplicative weights and signed 16-bit additive offsets; dyadic scales; quantized recurrent interfaces; F32 emulation, not D0-b integer serving"
+        });
+        let mut file = File::create_new(directory.join("hard-model.json"))?;
+        serde_json::to_writer_pretty(&mut file, &manifest)?;
+        file.write_all(b"\n")?;
+        file.sync_all()?;
+        Ok(manifest)
+    }
+
+    pub fn load_hard(directory: &Path, device: &Device) -> Result<Self> {
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(directory.join("hard-model.json"))?)?;
+        if manifest["schema"] != "uor-r4.joint-recurrent-packed-emulator/1"
+            || manifest["numerical_contract"] != quantized_numerical_contract()
+            || manifest["parameter_manifest_sha256"]
+                != crate::sha256_file(
+                    &directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE),
+                )?
+        {
+            return Err(invalid(
+                "packed model schema, numerical contract or parameter manifest hash",
+            ));
+        }
+        let actual_manifest: Value = serde_json::from_slice(&fs::read(
+            directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE),
+        )?)?;
+        if actual_manifest != manifest["parameter_manifest"] {
+            return Err(invalid("packed model parameter manifest binding"));
+        }
+        let config: JointConfig = serde_json::from_value(manifest["model"].clone())?;
+        config.validate()?;
+        let state: QuantizedTrainingState =
+            serde_json::from_value(manifest["quantization"].clone())?;
+        let (spec, variables) = joint_quantization::load_hard_parameters(directory, device)?;
+        if spec != state.spec
+            || state.ramp_steps == 0
+            || state.completed_step < state.start_step
+            || variables
+                .iter()
+                .map(|(name, var)| (name.clone(), var.dims().to_vec()))
+                .collect::<BTreeMap<_, _>>()
+                != config.shapes()
+        {
+            return Err(invalid(
+                "packed model parameter set, scale or clock mismatch",
+            ));
+        }
+        let mut model = Self::from_variables(config, variables, device)?;
+        model.quantization = Some(state);
+        model.hard_only = true;
+        Ok(model)
     }
 }
 
@@ -684,6 +1048,29 @@ struct CheckpointConfig {
     model: JointConfig,
     weights_sha256: String,
     numerical_contract: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    quantization: Option<QuantizedTrainingState>,
+}
+
+pub fn quantized_numerical_contract() -> Value {
+    let mut contract = numerical_contract();
+    contract["quantization"] = json!({
+        "schema":"uor-r4.joint-recurrent-quantized-interfaces/1",
+        "parameters":"All multiplicative parameters, including embedding and output norm, signed 4-bit [-7,7]; additive biases/age signed 16-bit [-32767,32767]; frozen parent-calibrated power-of-two per-output-row scales (one scale for vectors)",
+        "calibration":"4-bit row reconstruction MSE chooses among bounded ceil(log2(maxabs/7)) minus 2, minus 1, and ceiling; ties prefer larger exponent; additive16 uses ceiling. Scales never learn or recalibrate.",
+        "round":"nearest, ties away from zero; canonical positive zero; clip before round",
+        "backward":"inclusive clipped straight-through gradient; identity inside representable range, zero outside at full strength; convex identity/hard ramp during training; hard path in every evaluation",
+        "state_transport_provisional_read_state":{"exponent":-11,"codes":[-32767,32767]},
+        "rms_normalized_and_output_hidden":{"exponent":-10,"codes":[-32767,32767]},
+        "fused_affine_qk_null_read_scores_and_logits":{"exponent":-8,"codes":[-32767,32767]},
+        "tanh_values_candidates_updates_and_unit_transport":{"exponent":-14,"codes":[-32767,32767]},
+        "sigmoid_gates":{"exponent":-15,"codes":[0,32768]},
+        "transport":"Quantize signed unit coordinates after normalization; do not renormalize off-grid. Approximate quaternion and Householder orthogonality only; no hemisphere folding or H4 codebook.",
+        "remaining_float":"F32 matmul/elementwise products and accumulation, RMS and unit normalization, sigmoid/tanh/softmax, probability mixture and sampling; fixed scalars are not yet integer-lowered. State-state and attention operations remain dense/full-window.",
+        "artifact":"Packed codes plus integer scale exponents, no floating shadow dependency; load decodes dyadic values to F32 for this emulator; training checkpoint separately retains F32 shadows and Adam moments",
+        "cache":"Quantized parameter tensors prepared once per full-window shard; incremental sessions snapshot them once; graph-retaining STE tensors are not cached across optimizer updates"
+    });
+    contract
 }
 
 pub fn numerical_contract() -> Value {
@@ -740,6 +1127,15 @@ fn rms(input: &Tensor) -> Result<Tensor> {
 /// has three tangent degrees of freedom in either arm; the radial direction
 /// is redundant. The alpha/sqrt2 control factor matches local Frobenius scale.
 pub fn transport_lanes(input: &Tensor, raw: &Tensor, transport: Transport) -> Result<Tensor> {
+    transport_lanes_with_unit(input, raw, transport, |unit| Ok(unit.clone()))
+}
+
+fn transport_lanes_with_unit(
+    input: &Tensor,
+    raw: &Tensor,
+    transport: Transport,
+    quantize_unit: impl FnOnce(&Tensor) -> Result<Tensor>,
+) -> Result<Tensor> {
     let (batch, width) = input.dims2()?;
     if width == 0 || width % 4 != 0 || raw.dims() != input.dims() {
         return Err(invalid("transport lane shape mismatch"));
@@ -763,7 +1159,10 @@ pub fn transport_lanes(input: &Tensor, raw: &Tensor, transport: Transport) -> Re
     let active = squared
         .gt((TRANSPORT_MIN_NORM * TRANSPORT_MIN_NORM) as f32)?
         .broadcast_as((batch, lanes, 4))?;
-    let unit = active.where_cond(&normalized, &identity)?;
+    // Quantized coordinates are not renormalized off their declared grid.
+    // Consequently the quantized quaternion/Householder map is approximately,
+    // not exactly, orthogonal; both arms retain their signed coordinates.
+    let unit = quantize_unit(&active.where_cond(&normalized, &identity)?)?;
     let x = input.reshape((batch, lanes, 4))?;
     let result = match transport {
         Transport::Quaternion => {
@@ -833,6 +1232,99 @@ mod tests {
     }
     fn max_delta(a: &Tensor, b: &Tensor) -> Result<f32> {
         Ok(a.sub(b)?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?)
+    }
+
+    #[test]
+    fn quantized_shared_core_gradients_and_packed_reload() -> Result<()> {
+        let ids = [3, 17, 4, 9, 2, 10, 6, 11, 7, 22];
+        let targets = [17, 4, 9, 2, 5, 6, 11, 7, 22, 8];
+        for transport in [Transport::Quaternion, Transport::HouseholderPair] {
+            let mut model = JointModel::new(small(transport), &Device::Cpu)?;
+            model.configure_quantization(7, 4)?;
+            assert_eq!(model.training_strength(), 0.25);
+            model.set_completed_step(10)?;
+            assert_eq!(model.training_strength(), 1.0);
+            let trained = model.forward(&ids, 2, 5, ReadMode::Enabled, true)?;
+            let evaluated = model.forward(&ids, 2, 5, ReadMode::Enabled, false)?;
+            assert_eq!(
+                max_delta(&trained.probabilities, &evaluated.probabilities)?,
+                0.0
+            );
+            let gradients = trained.loss(&targets)?.backward()?;
+            for (name, variable) in model.variables() {
+                let values = gradients
+                    .get(variable.as_tensor())
+                    .ok_or_else(|| invalid(format!("missing STE gradient {name}")))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert!(values.iter().all(|value| value.is_finite()), "{name}");
+                assert!(values.iter().any(|value| *value != 0.0), "{name}");
+            }
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|_| invalid("test clock before epoch"))?
+                .as_nanos();
+            let root = std::env::temp_dir()
+                .join(format!("uor-joint-packed-{}-{nonce}", std::process::id()));
+            std::fs::create_dir(&root)?;
+            let saved = root.join("shadow");
+            let packed = root.join("packed");
+            std::fs::create_dir(&saved)?;
+            std::fs::create_dir(&packed)?;
+            model.save(&saved)?;
+            model.save_hard(&packed)?;
+            let reloaded = JointModel::load(&saved, &Device::Cpu)?;
+            let hard = JointModel::load_hard(&packed, &Device::Cpu)?;
+            assert_eq!(model.quantization(), reloaded.quantization());
+            assert_eq!(model.quantization(), hard.quantization());
+            assert!(!packed.join("model.safetensors").exists());
+            assert!(hard.without_quantization().is_err());
+            assert!(hard.forward(&ids, 2, 5, ReadMode::Enabled, true).is_err());
+            for mode in [ReadMode::Enabled, ReadMode::NoRead] {
+                let expected = model.forward(&ids, 2, 5, mode, false)?;
+                let restored = reloaded.forward(&ids, 2, 5, mode, false)?;
+                let packed_output = hard.forward(&ids, 2, 5, mode, false)?;
+                assert_eq!(
+                    max_delta(&expected.probabilities, &restored.probabilities)?,
+                    0.0
+                );
+                assert_eq!(
+                    max_delta(&expected.probabilities, &packed_output.probabilities)?,
+                    0.0
+                );
+                let mut session = hard.new_session(2)?;
+                for position in 0..5 {
+                    let step =
+                        hard.step(&mut session, &[ids[position], ids[5 + position]], mode)?;
+                    assert!(
+                        max_delta(
+                            &step.probabilities,
+                            &packed_output
+                                .probabilities
+                                .narrow(1, position, 1)?
+                                .squeeze(1)?
+                        )? < 3e-6
+                    );
+                    for value in step.state.flatten_all()?.to_vec1::<f32>()? {
+                        assert_eq!(value * 2048.0, (value * 2048.0).round());
+                    }
+                    assert_eq!(step.read_occurrences, (0..position).collect::<Vec<_>>());
+                }
+            }
+            let mut edited = ids;
+            edited[4] = 8;
+            edited[9] = 5;
+            let future = hard.forward(&edited, 2, 5, ReadMode::Enabled, false)?;
+            assert_eq!(
+                max_delta(
+                    &evaluated.probabilities.narrow(1, 0, 4)?,
+                    &future.probabilities.narrow(1, 0, 4)?
+                )?,
+                0.0
+            );
+            std::fs::remove_dir_all(root)?;
+        }
+        Ok(())
     }
 
     #[test]

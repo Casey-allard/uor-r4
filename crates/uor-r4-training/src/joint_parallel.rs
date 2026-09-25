@@ -158,7 +158,16 @@ mod tests {
 
     #[test]
     fn full_window_shards_match_loss_and_every_named_gradient() -> Result<()> {
-        let model = JointModel::new(
+        check_full_window_shards(false)
+    }
+
+    #[test]
+    fn quantized_shards_keep_original_variable_gradients() -> Result<()> {
+        check_full_window_shards(true)
+    }
+
+    fn check_full_window_shards(quantized: bool) -> Result<()> {
+        let mut model = JointModel::new(
             JointConfig {
                 width: 128,
                 context: 8,
@@ -168,6 +177,9 @@ mod tests {
             },
             &Device::Cpu,
         )?;
+        if quantized {
+            model.configure_quantization(0, 1)?;
+        }
         let inputs: Vec<u32> = (0..32).map(|index| (index * 7 + 3) % 101).collect();
         let targets: Vec<u32> = (0..32).map(|index| (index * 7 + 10) % 101).collect();
         let complete = batch_gradients(&model, &inputs, &targets, 4, 8, 1)?;

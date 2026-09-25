@@ -14,9 +14,67 @@ ladder. #973 remains active under programme #820; their full acceptance is open.
 
 **Park further A1–A4 local selector tuning.** Preserve its native serving and
 exact-memory scaffolds. The joint recurrent-memory learner now passes its frozen engineering continuation
-gate. Next continue these same learned checkpoints through the explicit
-soft-to-hard bridge, retaining the competitive ordinary control.
+gate. Its first explicit quantized continuation fails retention; keep the same
+learner and competitive ordinary control while addressing that measured gap.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
+
+## Latest result: D8 rung 2 recipe completed and rejected
+
+[PR #1390](https://github.com/UOR-Foundation/uor-r4/pull/1390) delivers the
+[completed paired comparison](quantized-recurrent-result-2026-09-25.md) under the
+unchanged [plan](quantized-recurrent-plan-2026-09-25.md) and
+[execution freeze](../evidence/quantized-recurrent-execution-freeze-2026-09-25.json).
+All four branches reach the fixed final step **8,348**, adding 1,024 updates /
+4,194,304 target visits each at B16/T256. QAT's eight profile updates are included;
+256 updates ramp and 768 are fully quantized. No checkpoint was reselected.
+
+| Comparison-tail NLL, nats/target | Quaternion | Householder pair |
+|---|---:|---:|
+| Matched continuous continuation | 2.090518499 | 2.064403221 |
+| Final QAT packed artifact | 2.149631373 | 2.144230654 |
+| Same QAT shadows, quantizers disabled | 2.146147636 | 2.122299133 |
+| Zero-update packed parent | 2.222929353 | 2.211900518 |
+| Packed whole-prefix NoRead | 2.634758168 | 2.605525329 |
+
+Both packed-minus-continuous gaps (**+0.059113/+0.079827**) exceed the frozen
++0.05 allowance. Ordinary also fails the five-prompt generation gate with a
+period-two `daddy` cycle. Quaternion passes limited noncollapse but loses two
+old-correct first nouns and drops from **28 to 19/32 exact completions**; its
+continuous control reaches 23/32. Ordinary exact completions are old/continuous/
+packed **23/26/25**. The [evidence receipt](../evidence/quantized-recurrent-result-2026-09-25.json)
+retains every response, including individual losses and gains.
+
+Read effects remain large, full-context packed reload has zero measured
+probability difference, seeded output hashes agree, and every scored distribution
+is finite/normalized at the declared tolerance. Descriptive packed-versus-shadow
+state RMS differences are 0.059485/0.055451 on the original tune windows. These
+facts do not override the failed quality gates. Both candidates are preserved
+without promotion. This is one paired seed on exposed development; the packed
+loader expands codes into F32 computation. Integer serving, sparse access,
+Hamiltonian dynamics, general language and energy remain unqualified.
+
+### Next: one projected-shadow continuation, NOT_RUN
+
+The [result's next comparison](quantized-recurrent-result-2026-09-25.md#recommended-next-comparison-projected-shadow-updates)
+projects stored parameter shadows into their fixed representable ranges at entry
+and after each AdamW update. Start at the preserved **full-hard midpoint 7,836**
+and finish at **8,348**, 512 new updates per arm. Preserve moments/clocks, scales,
+interfaces, data, learning rate and all five gates. `Q(clip(w)) = Q(w)` at entry;
+witness actual packed-code and hard-probability equality before fitting. Existing
+unprojected second halves are direct controls; continuous branches remain the
+retention reference. This is a proposed complete optimizer policy, not a proved
+clipping diagnosis or authorization to silently alter this result's criteria.
+
+Artifact container:
+`/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925`.
+Final roots are `fit-{quaternion|householder_pair}-{qat|continuous}-1/checkpoint-final`
+and `final-packed-{quaternion|householder_pair}-1`. Fit/evaluation binary source is
+`b5b5fe757b9513877911719f014e73165f704b13`; descriptive state source is `cb81e7c7`,
+with the model library unchanged. All report roots and negative artifacts remain
+sealed. The [closeout](../evidence/quantized-recurrent-closeout-2026-09-25.json)
+records resources and local validation. Independent DeepSeek/Kimi research and
+paired state diagnostics ran through RDC on the same Mac. Queue acknowledgements
+execute no tests.
 
 ## Retained integer-path result: A4
 
@@ -63,7 +121,7 @@ native model promotion occurs. The reference advantage does not isolate attentio
 or geometric causality. #1014 retains the historical attention-off evidence at
 its original scope.
 
-## Latest result: D8 rung 1 complete at its engineering scope
+## Retained result: D8 rung 1 complete at its engineering scope
 
 The [joint recurrent-memory campaign](joint-recurrent-result-2026-09-25.md)
 completed **29,999,104 target visits and 7,324 updates per arm**. This includes a
@@ -106,16 +164,11 @@ vocabulary/copy output. It remains **floating-point offline Rust**, with dense
 affine maps and full soft context access. Integer export, bounded prime/zeta
 admission, exact H4 serving, Hamiltonian dynamics and energy are unqualified.
 
-## Next: D8 rung 2 on the retained student
+## Retained rung 1 identities
 
-Proceed with quantization-aware continuation of these same quaternion and
-ordinary checkpoints. Specify the quantized forward graph, surrogate gradients,
-scales/gains, rounding, saturation and hardening schedule; freeze quality-retention
-and cost criteria before fitting. Compare continuous and actual hard paths and
-inspect loaded generation early. Retain exact token/occurrence identity. The
-[canonical ladder](project-track.md) keeps bounded admission/transport and final
-integer serving as subsequent responsibilities. A1–A4 selector tuning remains
-parked. Rung 2 and the optional 600-cell diagnostic are **NOT_RUN**.
+These parents and their original acceptance remain preserved. The latest rung 2
+result and next comparison above supersede their earlier scheduling statement.
+The optional 600-cell diagnostic remains NOT_RUN.
 
 Artifact container:
 `/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924`.
@@ -124,7 +177,7 @@ Selected roots: `fit256-quaternion-3/checkpoint-final` and
 roots are sealed. Executed source: `ad4e639fedecf9d490035f9986be736117bd3e29`.
 The result receipt binds the exact executable, source, checkpoints and data.
 
-## Delivery, resources and unresolved limits
+## Retained rung 1 delivery/resources and programme limits
 
 The preceding correction was protected [PR #1387](https://github.com/UOR-Foundation/uor-r4/pull/1387),
 merged as `942645b264f73ec49507cffd7c2f4cbd95de3aa2`. Rung0 was delivered through

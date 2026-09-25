@@ -1,0 +1,48 @@
+{
+  "schema": "uor-r4.quantized-recurrent-execution-freeze/1",
+  "recorded_utc": "2026-09-25T07:02:28.729366+00:00",
+  "source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+  "numerics_and_gates_frozen_commit": "38983600",
+  "parent_step": 7324,
+  "final_common_step": 8348,
+  "new_updates_per_arm": 1024,
+  "new_target_visits_per_arm": 4194304,
+  "qat_ramp_steps": 256,
+  "fully_quantized_updates_per_arm": 768,
+  "profile_updates_retained_per_qat_arm": 8,
+  "remaining_qat_updates_per_arm": 1016,
+  "continuous_updates_per_arm": 1024,
+  "selection": "Final common step only; midpoint is retained without posthoc quality selection.",
+  "profile_reports": {
+    "quaternion": {
+      "status": "TARGET_COMPLETE",
+      "new_optimizer_steps": 8,
+      "steady_complete_step_tokens_per_second": 779.5746792373012,
+      "elapsed_seconds": 52.074410333,
+      "reload_absolute_delta": 0.0
+    },
+    "householder_pair": {
+      "status": "TARGET_COMPLETE",
+      "new_optimizer_steps": 8,
+      "steady_complete_step_tokens_per_second": 820.3345294904063,
+      "elapsed_seconds": 50.842974291,
+      "reload_absolute_delta": 0.0
+    }
+  },
+  "profile_peak_combined_rss_bytes": 7201619968,
+  "profile_minimum_physical_free_bytes": 23842172928,
+  "projection_remaining_fit_seconds": 9000,
+  "projection_basis": "Measured QAT steady779.57/820.33targets/s, worst paired time about5339s for remaining1016updates; previous measured continuous pair about3079s; profile/closeout/development overhead within9000s. Full-strength path removes blend operations so ramp profile is not assumed faster than hard phase.",
+  "complete_cycle_limit_ms": 19800000,
+  "physical_free_now_bytes": 23893741568,
+  "model_process_rss_stop_bytes": 6442450944,
+  "aggregate_model_rss_stop_bytes": 8589934592,
+  "physical_free_stop_bytes": 21676163072,
+  "campaign_hashes": {
+    "householder_pair-qat.json": "ba18bacafb96753e1ef0fdc5a9f6e4db5d71d046465038e1115d35e4b743f9ee",
+    "householder_pair-continuous.json": "d41cf90dc38d038cd63da31844b196d59450a253b890f7f787b49f05c31f41f1",
+    "quaternion-qat.json": "6270d5b1a2e62d01dcd0bf1e6b03b64370a08a3eb1403a0aac16075b3aa613db",
+    "quaternion-continuous.json": "847d8bac8fbe91e22eaab41fb874fd473f5b211b80912e8f92cd7560622be7c4"
+  },
+  "acceptance": "Committed five gates apply unchanged; short4blockprofile scores are cost/engineering evidence, not acceptance-population loss."
+}

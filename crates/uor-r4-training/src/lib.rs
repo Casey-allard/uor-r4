@@ -15,6 +15,7 @@ pub mod joint_evaluation;
 pub mod joint_model;
 pub mod joint_optimizer;
 pub mod joint_parallel;
+pub mod joint_quantization;
 pub mod ngram;
 pub mod reference_campaign;
 pub mod reference_eval;

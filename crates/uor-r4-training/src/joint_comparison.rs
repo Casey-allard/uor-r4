@@ -403,7 +403,7 @@ fn compare(
                 } else { "Selected target visits match. One seed and this artifact comparison do not establish a geometric advantage." }
             },
             "read_control":"Read and NoRead bind to the same checkpoint within each arm; NoRead rows have exact null mass1 and no selected prior occurrence. This reader does not replay the models or reconstruct full read/probability distributions.",
-            "checkpoint_selection":"Required caller-owned rule: select by the recorded F32 quick_loss tune score. This comparison consumes the supplied selected roots and never reselects using its later F64 row reductions. Selection-score receipts are not present in the evaluation-report schema and are not independently validated here.",
+            "checkpoint_selection":"Caller owns the prospectively frozen selection or final-step rule. This comparison consumes the supplied roots and never reselects using its later F64 row reductions; it does not independently validate a caller's selection receipt. Rung1 used F32 quick_loss tune selection; rung2 declares the final common step.",
             "loaded_generation_evidence":"Original sealed roots retain actual generations and story probes. Their file identities are recorded; correctness, collapse and task-transfer interpretation require inspecting those responses separately.",
             "geometry_promotion":false, "blocks_sha256":sha256_file(&out.join("comparison-blocks.jsonl"))?,
             "elapsed_seconds_before_sealing":started.elapsed().as_secs_f64()
@@ -463,6 +463,8 @@ fn read_input(
         "evaluator_sha256":report["evaluator_sha256"],"source_commit":report["source_commit"],
         "executable_sha256":report["executable_sha256"],"campaign":report["campaign"],
         "checkpoint":report["checkpoint"],"checkpoint_binding":report["checkpoint_binding"],
+        "evaluation_operation":report["mode"],"artifact":report["artifact"],
+        "executed_quantization":report["executed_quantization"],
         "reference_inputs":report["inputs"],"count_model_sha256":report["model_sha256"],
         "count_selection":report["selection"],"requested_device":report["requested_device"]
     });
@@ -527,7 +529,10 @@ fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Resul
     let context = unsigned(campaign, "context")?;
     let visits = step.checked_mul(batch).and_then(|n| n.checked_mul(context));
     if report["schema"] != "uor-r4.joint-recurrent-report/1"
-        || report["mode"] != "joint-evaluate"
+        || !matches!(
+            report["mode"].as_str(),
+            Some("joint-evaluate" | "joint-evaluate-hard" | "joint-evaluate-shadow")
+        )
         || campaign["schema"] != "uor-r4.joint-recurrent-campaign/1"
         || !(1..=64).contains(&batch)
         || !(8..=256).contains(&context)
@@ -573,8 +578,81 @@ fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Resul
     }
     digest_field(binding, "model_sha256", 64)?;
     digest_field(binding, "source_commit", 40)?;
+    quantization_exposure(report)?;
     training_exposure(report)?;
     Ok(())
+}
+
+/// Quantization scales can differ across separately calibrated arms. The exact
+/// within-arm spec and clock remain bound to the checkpoint and executed path.
+fn quantization_exposure(report: &Value) -> Result<Value> {
+    let campaign = &report["campaign"];
+    let binding = &report["checkpoint_binding"];
+    let transition = &campaign["quantization_transition"];
+    let state = &binding["quantization"];
+    if binding["quantization_transition"] != *transition {
+        return Err(invalid(
+            "campaign/checkpoint quantization transition differs",
+        ));
+    }
+    if transition.is_null() {
+        if !state.is_null()
+            || report["mode"] != "joint-evaluate"
+            || !report["executed_quantization"].is_null()
+        {
+            return Err(invalid(
+                "continuous report has undeclared quantization or shadow mode",
+            ));
+        }
+        return Ok(Value::Null);
+    }
+    digest_field(transition, "parent_checkpoint_sha256", 64)?;
+    digest_field(transition, "parent_campaign_sha256", 64)?;
+    let start = unsigned(transition, "parent_optimizer_step")?;
+    let ramp = unsigned(transition, "ramp_steps")?;
+    let step = unsigned(binding, "optimizer_step")?;
+    if start == 0
+        || ramp == 0
+        || step < start
+        || campaign["batch"] != 16
+        || campaign["context"] != 256
+        || !transition["reason"]
+            .as_str()
+            .is_some_and(|reason| !reason.trim().is_empty())
+        || state["start_step"] != start
+        || state["ramp_steps"] != ramp
+        || state["completed_step"] != step
+        || !state["spec"].is_object()
+    {
+        return Err(invalid(
+            "invalid quantized phase schedule or checkpoint clock",
+        ));
+    }
+    if report["mode"] == "joint-evaluate-shadow" {
+        if !report["executed_quantization"].is_null()
+            || report["evaluation_quantization_strength"] != 0.0
+        {
+            return Err(invalid("shadow report executes a quantized path"));
+        }
+    } else if report["executed_quantization"] != *state
+        || report["evaluation_quantization_strength"] != 1.0
+    {
+        return Err(invalid(
+            "quantized evaluation differs from full-strength checkpoint specification",
+        ));
+    }
+    if report["mode"] == "joint-evaluate-hard"
+        && (report["artifact"]["kind"] != "packed_hard_export"
+            || report["artifact"]["hard_model_manifest_sha256"] != binding["model_sha256"])
+    {
+        return Err(invalid("packed evaluation manifest binding differs"));
+    }
+    Ok(json!({"parent_optimizer_step":start,"ramp_steps":ramp,
+        "completed_quantized_training_updates":step-start,
+        "quantized_training_target_visits":(step-start)*4096,
+        "quantization_transition":transition,"quantization":state,
+        "evaluation_operation":report["mode"],
+        "scope":"Quantized numerical emulator or its explicit continuous shadow. Packed parameter codes do not establish an integer serving kernel."}))
 }
 
 /// Account for the declared single window transition without treating warmup
@@ -652,6 +730,7 @@ fn training_exposure(report: &Value) -> Result<Value> {
             "optimizer_steps":current_steps,"target_visits":current_visits},
         "full256_context_target_visits":full_context_visits,
         "training_window_transition":transition,
+        "quantized_phase":quantization_exposure(report)?,
         "interpretation":"Counts separate exposure by the declared training windows. A256-token unroll makes read ages1..255 eligible for language gradients; exposure alone does not establish effective long-range recall. Weights, optimizer state and global step continue through the declared transition. Parent file hashes are retained from sealed evaluation metadata, not revalidated by loading external checkpoints here."
     }))
 }
@@ -665,6 +744,10 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
             "source_commit",
             "executable_sha256",
             "requested_device",
+            "mode",
+            "artifact",
+            "executed_quantization",
+            "evaluation_quantization_strength",
         ] {
             if reports[first][field] != reports[first + 1][field] {
                 return Err(invalid(format!("read/NoRead pair has different {field}")));
@@ -673,6 +756,42 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
     }
     let q = &reports[0]["campaign"];
     let ordinary = &reports[2]["campaign"];
+    let q_quantization = &q["quantization_transition"];
+    let ordinary_quantization = &ordinary["quantization_transition"];
+    if q_quantization.is_null() != ordinary_quantization.is_null() {
+        return Err(invalid(
+            "transport arms differ in quantization phase presence",
+        ));
+    }
+    if !q_quantization.is_null() {
+        for field in ["parent_optimizer_step", "ramp_steps"] {
+            if q_quantization[field] != ordinary_quantization[field] {
+                return Err(invalid(format!(
+                    "transport arms differ in quantization {field}"
+                )));
+            }
+        }
+        let qs = &reports[0]["checkpoint_binding"]["quantization"]["spec"];
+        let os = &reports[2]["checkpoint_binding"]["quantization"]["spec"];
+        let qp = qs["parameters"]
+            .as_object()
+            .ok_or_else(|| invalid("quaternion quantizer parameters"))?;
+        let op = os["parameters"]
+            .as_object()
+            .ok_or_else(|| invalid("ordinary quantizer parameters"))?;
+        if qs["schema"] != os["schema"]
+            || qp.len() != op.len()
+            || qp.iter().any(|(name, format)| {
+                op.get(name).is_none_or(|other| {
+                    format["bits"] != other["bits"] || format["shape"] != other["shape"]
+                })
+            })
+        {
+            return Err(invalid(
+                "transport arms use different quantizer algorithms or layouts",
+            ));
+        }
+    }
     if gradient_shards(q)? != gradient_shards(ordinary)? {
         return Err(invalid("transport arms differ in CPU gradient shards"));
     }
@@ -722,7 +841,12 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
             )));
         }
     }
-    for field in ["source_commit", "executable_sha256", "requested_device"] {
+    for field in [
+        "source_commit",
+        "executable_sha256",
+        "requested_device",
+        "mode",
+    ] {
         if reports[0][field] != reports[2][field] {
             return Err(invalid(format!(
                 "transport evaluation arms differ in {field}"

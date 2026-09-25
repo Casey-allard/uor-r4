@@ -1,0 +1,74 @@
+{
+  "schema": "uor-r4.quantized-recurrent-budget/1",
+  "recorded_utc": "2026-09-25T06:23:14.680652+00:00",
+  "cycle_started_utc": "2026-09-25T06:20:25+00:00",
+  "base_commit": "74a3530e7569b98d3139d2f194e516d42da1d458",
+  "objective": "D8 rung2: explicit quantized forward continuation of retained jointly learned recurrent model and ordinary control; measure hard-path retention on unchanged exposed development and actual generation. Final integer serving remains subsequent work.",
+  "ledger_before": {
+    "cumulative_ms": 508584092,
+    "limit_ms": 512400000
+  },
+  "prospective_extension_ms": 16800000,
+  "ledger_after_extension": {
+    "cumulative_ms": 508584092,
+    "limit_ms": 529200000
+  },
+  "reason": "Complete prospective implementation/research, build, calibration, matched quantization-aware and continuous fitting, loaded evaluation and protected delivery exceed the current63-minute balance. Necessary local extension is owner-authorized; actual fit dose/backend frozen after complete-step profiling.",
+  "complete_cycle_limit_ms": 19800000,
+  "phase_projection_seconds": {
+    "design_and_implementation": 4800,
+    "build_and_profiles": 1200,
+    "paired_continuations_and_controls": 10200,
+    "evaluation_review_delivery": 1800,
+    "stop_margin": 1800
+  },
+  "context_training_and_evaluation": 256,
+  "batch": 16,
+  "cpu_gradient_workers_per_process": 2,
+  "concurrent_training_processes_max": 2,
+  "nested_backend_threads": 1,
+  "one_cargo_process": true,
+  "model_process_rss_stop_bytes": 6442450944,
+  "aggregate_model_rss_stop_bytes": 8589934592,
+  "storage_new_output_and_build_growth_limit_bytes": 3221225472,
+  "storage_scope": "Current campaign new/replaced retained files plus bounded build temporary allocation; inventory before and after each build/run, preserve prior unresolved historical gross allocation. Not disk write-throughput/endurance bytes.",
+  "storage_projection_bytes": {
+    "new_full_worktree": 1262297088,
+    "new_or_replaced_compiler_outputs": 805306368,
+    "retained_checkpoints_and_hard_exports": 402653184,
+    "evaluation_reports_logs": 134217728,
+    "build_temporary_stop_margin": 268435456
+  },
+  "physical_reserve_bytes": 21474836480,
+  "storage_stop_margin_bytes": 134217728,
+  "checkpoint_closeout_headroom_bytes": 67108864,
+  "physical_free_stop_bytes": 21676163072,
+  "physical_free_now_bytes": 24905707520,
+  "warm_build_cache": "/Users/casey.allard/uor-r4-worktrees/kvar-20260924/target",
+  "historical_gross_new_storage_status": "UNRESOLVED; preserved as reported in prior closeout, not reset to zero or certified by this receipt.",
+  "profile_then_freeze_dose": true,
+  "continuation_planning_anchor_new_targets_per_arm": 4194304,
+  "planned_arms": [
+    "quaternion_quantization_aware",
+    "householder_quantization_aware",
+    "quaternion_continuous_control",
+    "householder_continuous_control"
+  ],
+  "paid_external_compute": false,
+  "deletions": 0,
+  "claim_limits": [
+    "One exploratory paired seed.",
+    "No change to terminal no-float/no-transformer serving objective.",
+    "Quantized values executed by a floating-point hard simulator are not integer-serving qualification.",
+    "No general geometric advantage or energy claim."
+  ],
+  "storage_extension_before_build": {
+    "recorded_utc": "2026-09-25T06:26:04.887398+00:00",
+    "reason": "Measured full worktree allocation is1,262,297,088bytes, larger than the initial384MiB estimate. Preserve checkout and all prior artifacts; increase current-campaign new-output/build ceiling before any build or model execution. Physical20GiB reserve and stop margins unchanged.",
+    "old_limit_bytes": 2147483648,
+    "increment_bytes": 1073741824,
+    "new_limit_bytes": 3221225472,
+    "measured_worktree_allocated_bytes": 1262297088,
+    "existing_warm_target_allocated_bytes": 1117372416
+  }
+}

@@ -9,7 +9,9 @@ use serde_json::{json, Value};
 use uor_r4_core::report_output;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 
-use crate::baseline_protocol::{device, load_evaluator, read_tokens, save_json, verify_identity};
+use crate::baseline_protocol::{
+    device, load_evaluator, read_tokens, save_json, verify_identity, Evaluator,
+};
 use crate::joint_evaluation::{self, STORY_PROBE_SCOPE, STORY_STOP_POLICY};
 use crate::joint_model::{JointConfig, JointModel, ReadMode};
 use crate::joint_optimizer::{AdamConfig, NamedAdamW};
@@ -28,6 +30,16 @@ pub struct TrainingWindowTransition {
     pub new_context: usize,
     pub parent_optimizer_step: usize,
     pub parent_sampled_target_visits: usize,
+}
+
+/// One fixed-scale quantization schedule anchored to an exact continuous parent.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct QuantizationTransition {
+    pub parent_checkpoint_sha256: String,
+    pub parent_campaign_sha256: String,
+    pub parent_optimizer_step: usize,
+    pub ramp_steps: usize,
+    pub reason: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -54,6 +66,8 @@ pub struct Campaign {
     pub stop_file: Option<PathBuf>,
     #[serde(default)]
     pub training_window_transition: Option<TrainingWindowTransition>,
+    #[serde(default)]
+    pub quantization_transition: Option<QuantizationTransition>,
     pub trial_scope: String,
 }
 
@@ -102,7 +116,103 @@ impl Campaign {
                 return Err(invalid("invalid declared training-window transition"));
             }
         }
+        if let Some(transition) = &cfg.quantization_transition {
+            if !is_hex_digest(&transition.parent_checkpoint_sha256, 64)
+                || !is_hex_digest(&transition.parent_campaign_sha256, 64)
+                || transition.reason.trim().is_empty()
+                || transition.parent_optimizer_step == 0
+                || transition.parent_optimizer_step >= cfg.total_steps
+                || transition.ramp_steps == 0
+                || transition.ramp_steps > 100_000
+                || cfg.batch != 16
+                || cfg.context != 256
+                || cfg.model.context != 256
+            {
+                return Err(invalid("invalid declared quantization transition"));
+            }
+        }
         Ok(cfg)
+    }
+}
+
+fn quantization_state_matches(cfg: &Campaign, state: &Value, step: usize) -> Result<()> {
+    match &cfg.quantization_transition {
+        None if state.is_null() => Ok(()),
+        Some(transition)
+            if state["start_step"] == json!(transition.parent_optimizer_step)
+                && state["ramp_steps"] == json!(transition.ramp_steps)
+                && state["completed_step"] == json!(step)
+                && step >= transition.parent_optimizer_step
+                && state["spec"].is_object() =>
+        {
+            Ok(())
+        }
+        _ => Err(invalid(
+            "model quantization schedule/specification/clock differs from campaign",
+        )),
+    }
+}
+
+fn validate_quantization_binding(
+    cfg: &Campaign,
+    checkpoint: &Value,
+    state: &Value,
+    step: usize,
+) -> Result<()> {
+    if checkpoint["quantization_transition"] != json!(cfg.quantization_transition)
+        || checkpoint["quantization"] != *state
+    {
+        return Err(invalid(
+            "checkpoint/model quantization state or transition differs",
+        ));
+    }
+    quantization_state_matches(cfg, state, step)
+}
+
+/// Returns true only for the first, declared continuous-to-quantized transition.
+fn quantization_resume_transition(
+    cfg: &Campaign,
+    old: &Campaign,
+    checkpoint_sha: &str,
+    campaign_sha: &str,
+    step: usize,
+) -> Result<bool> {
+    match (&old.quantization_transition, &cfg.quantization_transition) {
+        (None, None) => Ok(false),
+        (Some(previous), Some(current)) if previous == current => {
+            if old.batch != cfg.batch
+                || old.context != cfg.context
+                || old.training_window_transition != cfg.training_window_transition
+            {
+                return Err(invalid(
+                    "quantized resume changes the retained training horizon",
+                ));
+            }
+            Ok(false)
+        }
+        (None, Some(transition)) => {
+            if transition.parent_checkpoint_sha256 != checkpoint_sha
+                || transition.parent_campaign_sha256 != campaign_sha
+                || transition.parent_optimizer_step != step
+                || old.batch != 16
+                || cfg.batch != 16
+                || old.context != 256
+                || cfg.context != 256
+                || old.model != cfg.model
+                || old.optimizer != cfg.optimizer
+                || old.data_seed != cfg.data_seed
+                || old.cpu_gradient_shards != cfg.cpu_gradient_shards
+                || old.training_window_transition != cfg.training_window_transition
+            {
+                return Err(invalid(
+                    "quantization transition does not match its exact continuous parent",
+                ));
+            }
+            Ok(true)
+        }
+        _ => Err(invalid(
+            "ordinary resume changes quantization transition lineage",
+        )),
     }
 }
 
@@ -128,7 +238,7 @@ fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<Value> {
         "cpu_accelerate_compiled":cfg!(feature="cpu-accelerate"),
         "candle_source":"vendored0.9.2; four-line Accelerate operand slice correction; UPSTREAM.json",
         "deadline_scope":"max_process_seconds stops new updates; measured closeout allowance is budgeted separately",
-        "scope":"Offline continuous recurrent-memory learner; no transformer backbone, hard integer export, geometry promotion or energy claim"}),
+        "scope":"Offline recurrent-memory learner or quantized numerical emulator; no transformer backbone, compliant integer serving kernel, geometry promotion or energy claim"}),
     )
 }
 
@@ -218,6 +328,19 @@ fn quick_loss(
     Ok(Some(weighted / blocks as f64))
 }
 
+fn shadow_loss(
+    model: &JointModel,
+    tokens: &[u16],
+    blocks: usize,
+    batch: usize,
+) -> Result<Option<f64>> {
+    if model.quantization().is_some() {
+        quick_loss(&model.without_quantization()?, tokens, blocks, batch)
+    } else {
+        Ok(None)
+    }
+}
+
 fn save_checkpoint(
     model: &JointModel,
     optimizer: &NamedAdamW,
@@ -227,6 +350,11 @@ fn save_checkpoint(
     status: &str,
     evaluator_sha: &str,
 ) -> Result<()> {
+    let quantization = serde_json::to_value(model.quantization())?;
+    quantization_state_matches(cfg, &quantization, step)?;
+    if optimizer.step_count() as usize != step {
+        return Err(invalid("checkpoint optimizer and model clocks differ"));
+    }
     model.save(directory)?;
     optimizer.save(directory)?;
     save_json(&directory.join("campaign.json"), cfg)?;
@@ -241,8 +369,11 @@ fn save_checkpoint(
             "cpu_gradient_shards":cfg.cpu_gradient_shards,
             "sampled_targets_per_step":cfg.batch*cfg.context,
             "training_window_transition":cfg.training_window_transition,
+            "quantization_transition":cfg.quantization_transition,
+            "quantization":quantization,
             "evaluator_sha256":evaluator_sha,
             "model_sha256":sha256_file(&directory.join("model.safetensors"))?,
+            "model_config_sha256":sha256_file(&directory.join("config.json"))?,
             "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND")
         }),
     )?;
@@ -257,13 +388,22 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     if cfg.cpu_gradient_shards > 1 && device_name != "cpu" {
         return Err(invalid("multiple gradient shards require the CPU backend"));
     }
-    if cfg.training_window_transition.is_some() && resume.is_none() {
+    if (cfg.training_window_transition.is_some() || cfg.quantization_transition.is_some())
+        && resume.is_none()
+    {
         return Err(invalid(
-            "a training-window transition requires its sealed parent",
+            "a declared training transition requires its sealed parent",
         ));
     }
     report["training_window_transition"] = json!(cfg.training_window_transition);
     report["training_window_transition_applied"] = json!(false);
+    report["quantization_transition"] = json!(cfg.quantization_transition);
+    report["quantization_transition_applied"] = json!(false);
+    report["evaluation_numerics"] = json!(if cfg.quantization_transition.is_some() {
+        "Full-strength quantized numerical emulator, including during the training ramp; F32-origin quick_loss reductions. Not an integer serving kernel."
+    } else {
+        "Continuous F32 model; F32-origin quick_loss reductions."
+    });
     let evaluator = load_evaluator(&cfg.evaluator_path)?;
     // Reserve every checkpoint leaf before loading data or model. The final leaf
     // retains a clean resource-limited stop as well as a complete run.
@@ -288,7 +428,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         .collect::<Result<Vec<_>>>()?;
     let dev = read_tokens(&evaluator.document["dev_source"])?;
     let selected = device(device_name)?;
-    let (model, mut optimizer, begin) = if let Some(path) = resume {
+    let (mut model, mut optimizer, begin) = if let Some(path) = resume {
         report_output::verify(path)?;
         let old = Campaign::load(&path.join("campaign.json"))?;
         let checkpoint: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
@@ -310,6 +450,8 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             || old.data_seed != cfg.data_seed
             || checkpoint["evaluator_sha256"] != evaluator.sha256
             || checkpoint["model_sha256"] != sha256_file(&path.join("model.safetensors"))?
+            || (checkpoint.get("model_config_sha256").is_some()
+                && checkpoint["model_config_sha256"] != sha256_file(&path.join("config.json"))?)
             || checkpoint["schema"] != "uor-r4.joint-recurrent-checkpoint/1"
             || !checkpoint["source_commit"]
                 .as_str()
@@ -344,10 +486,33 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
                 "ordinary resume changes training-window transition lineage",
             ));
         }
-        let model = JointModel::load(path, &selected)?;
+        let mut model = JointModel::load(path, &selected)?;
         if model.config != cfg.model {
             return Err(invalid("loaded resume model differs from campaign"));
         }
+        validate_quantization_binding(
+            &old,
+            &checkpoint,
+            &serde_json::to_value(model.quantization())?,
+            begin,
+        )?;
+        if checkpoint["training_window_transition"] != json!(old.training_window_transition) {
+            return Err(invalid(
+                "checkpoint training-window lineage differs from parent campaign",
+            ));
+        }
+        let quantization_changed =
+            quantization_resume_transition(cfg, &old, &checkpoint_sha, &campaign_sha, begin)?;
+        if quantization_changed {
+            model.configure_quantization(
+                begin,
+                cfg.quantization_transition
+                    .as_ref()
+                    .ok_or_else(|| invalid("missing quantization transition"))?
+                    .ramp_steps,
+            )?;
+        }
+        quantization_state_matches(cfg, &serde_json::to_value(model.quantization())?, begin)?;
         let optimizer = NamedAdamW::load(path, model.variables(), &cfg.optimizer)?;
         if optimizer.step_count() as usize != begin
             || begin >= cfg.total_steps
@@ -367,6 +532,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             "sampled_target_visits":parent_visits,
         });
         report["training_window_transition_applied"] = json!(window_changed);
+        report["quantization_transition_applied"] = json!(quantization_changed);
         report["cpu_gradient_shards_changed_on_resume"] =
             json!(old.cpu_gradient_shards != cfg.cpu_gradient_shards);
         report["window_sampler_continuation"] = json!(
@@ -388,6 +554,8 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         .sum::<usize>());
     report["starting_step"] = json!(begin);
     report["starting_sampled_target_visits"] = json!(begin * cfg.batch * cfg.context);
+    report["initial_quantization"] = serde_json::to_value(model.quantization())?;
+    report["initial_training_quantization_strength"] = json!(model.training_strength());
     let (retained_inputs, retained_targets) = training_batch(&stores, cfg, 0)?;
     let initial_fit = f64::from(
         model
@@ -407,6 +575,12 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     let initial_dev = quick_loss(&model, &dev, cfg.development_blocks, cfg.batch)?;
     report["initial_retained_batch_nll"] = json!(initial_fit);
     report["initial_development_nll"] = json!(initial_dev);
+    report["initial_shadow_development_nll"] = json!(shadow_loss(
+        &model,
+        &dev,
+        cfg.development_blocks,
+        cfg.batch
+    )?);
     let mut curve = BufWriter::new(File::create_new(out.join("learning-curve.jsonl"))?);
     let mut step_times = Vec::new();
     let mut complete = begin;
@@ -417,6 +591,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             break;
         }
         let step_started = Instant::now();
+        let quantization_strength = model.training_strength();
         let (inputs, targets) = training_batch(&stores, cfg, step)?;
         let gradients = crate::joint_parallel::batch_gradients(
             &model,
@@ -428,16 +603,25 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         )?;
         let value = gradients.mean_nll;
         let update = optimizer.step(model.variables(), &gradients.gradients)?;
+        model.set_completed_step(step + 1)?;
         let elapsed = step_started.elapsed().as_secs_f64();
         step_times.push(elapsed);
         complete = step + 1;
         let mut row = json!({"step":complete,"sampled_target_visits":complete*cfg.batch*cfg.context,
             "batch_mean_nll":value,"complete_step_seconds":elapsed,"optimizer":update,
-            "cpu_gradient_shards":cfg.cpu_gradient_shards});
+            "cpu_gradient_shards":cfg.cpu_gradient_shards,
+            "training_quantization_strength":quantization_strength,
+            "development_numerics":if model.quantization().is_some() { "full-strength quantized numerical emulator" } else { "continuous" }});
         drop(gradients);
         if cfg.development_every_steps > 0 && complete % cfg.development_every_steps == 0 {
             row["development_nll"] =
                 json!(quick_loss(&model, &dev, cfg.development_blocks, cfg.batch)?);
+            row["shadow_development_nll"] = json!(shadow_loss(
+                &model,
+                &dev,
+                cfg.development_blocks,
+                cfg.batch
+            )?);
         }
         serde_json::to_writer(&mut curve, &row)?;
         writeln!(curve)?;
@@ -484,6 +668,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         return Err(invalid("nonfinite final retained loss"));
     }
     let final_dev = quick_loss(&model, &dev, cfg.development_blocks, cfg.batch)?;
+    let final_shadow_dev = shadow_loss(&model, &dev, cfg.development_blocks, cfg.batch)?;
     save_checkpoint(
         &model,
         &optimizer,
@@ -495,6 +680,11 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     )?;
     // Actual artifact reload; generation/evaluation consume this same checkpoint.
     let restored = JointModel::load(&final_path, &selected)?;
+    if restored.config != model.config || restored.quantization() != model.quantization() {
+        return Err(invalid(
+            "loaded checkpoint changed model configuration or quantization state",
+        ));
+    }
     let reloaded_fit = f64::from(
         restored
             .forward(
@@ -508,7 +698,11 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             .to_scalar::<f32>()?,
     );
     let reload_delta = (final_fit - reloaded_fit).abs();
-    if !reloaded_fit.is_finite() || !reload_delta.is_finite() || reload_delta > 1e-6 {
+    if !reloaded_fit.is_finite()
+        || !reload_delta.is_finite()
+        || reload_delta > 1e-6
+        || (model.quantization().is_some() && final_fit.to_bits() != reloaded_fit.to_bits())
+    {
         return Err(invalid("loaded recurrent checkpoint changed retained loss"));
     }
     let tokenizer = load_tokenizer(&evaluator.document)?;
@@ -533,8 +727,11 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     report["cumulative_sampled_target_visits"] = json!(complete * cfg.batch * cfg.context);
     report["final_retained_batch_nll"] = json!(final_fit);
     report["final_development_nll"] = json!(final_dev);
+    report["final_shadow_development_nll"] = json!(final_shadow_dev);
     report["reloaded_retained_batch_nll"] = json!(reloaded_fit);
     report["reload_absolute_delta"] = json!(reload_delta);
+    report["final_quantization"] = serde_json::to_value(model.quantization())?;
+    report["next_training_quantization_strength"] = json!(model.training_strength());
     report["training_complete_steps_seconds"] = json!(total_seconds);
     report["steady_complete_step_tokens_per_second"] = if steady_seconds > 0.0 {
         json!((warm.len() * cfg.batch * cfg.context) as f64 / steady_seconds)
@@ -551,8 +748,16 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("joint-compare") {
         return crate::joint_comparison::run_cli(args);
     }
-    if args.first().map(String::as_str) == Some("joint-evaluate") {
+    if args.first().is_some_and(|mode| {
+        matches!(
+            mode.as_str(),
+            "joint-evaluate" | "joint-evaluate-shadow" | "joint-evaluate-hard"
+        )
+    }) {
         return evaluate_cli(args);
+    }
+    if args.first().map(String::as_str) == Some("joint-export-hard") {
+        return export_hard_cli(args);
     }
     if !(args.len() == 4 || args.len() == 5)
         || args.first().map(String::as_str) != Some("joint-fit")
@@ -598,9 +803,13 @@ fn load_tokenizer(evaluator: &Value) -> Result<HfBpeTokenizer> {
 
 fn evaluate_cli(args: &[String]) -> Result<()> {
     if args.len() != 7 || !["cpu", "metal"].contains(&args[4].as_str()) {
-        return Err(invalid("usage: joint-evaluate CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH"));
+        return Err(invalid("usage: joint-evaluate[-shadow] CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH; joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH"));
     }
-    let cfg = Campaign::load(Path::new(&args[1]))?;
+    let hard = args[0] == "joint-evaluate-hard";
+    let shadow = args[0] == "joint-evaluate-shadow";
+    if hard && args[4] != "cpu" {
+        return Err(invalid("packed hard evaluation requires the CPU emulator"));
+    }
     let mode = match args[5].as_str() {
         "read" => ReadMode::Enabled,
         "no-read" => ReadMode::NoRead,
@@ -610,10 +819,64 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
     if !(1..=joint_evaluation::MAX_EVALUATION_BATCH).contains(&batch) {
         return Err(invalid("evaluation batch1..32"));
     }
-    let checkpoint = Path::new(&args[2]);
     let out = Path::new(&args[3]);
     report_output::claim(out)?;
-    let result = evaluate_checkpoint(&cfg, checkpoint, out, &args[4], mode, batch);
+    let result = (|| {
+        let selected = device(&args[4])?;
+        if hard {
+            let evaluator = load_evaluator(Path::new(&args[2]))?;
+            let source = Path::new(&args[1]);
+            let input = if source.join("hard-model.json").try_exists()? {
+                load_hard_export(source, &evaluator)?
+            } else {
+                let parent = load_bound_checkpoint(source, &selected, &evaluator.sha256)?;
+                if parent.model.quantization().is_none() {
+                    return Err(invalid(
+                        "continuous checkpoints require an explicit calibrated export campaign",
+                    ));
+                }
+                let packed = out.join("packed-model");
+                report_output::claim(&packed)?;
+                let result = write_hard_export(&parent, source, &evaluator, &packed);
+                finish_attempt(&packed, result)?
+            };
+            evaluate_loaded(
+                &input, &evaluator, source, out, &args[0], &args[4], mode, batch,
+            )
+        } else {
+            let cfg = Campaign::load(Path::new(&args[1]))?;
+            let evaluator = load_evaluator(&cfg.evaluator_path)?;
+            let source = Path::new(&args[2]);
+            let mut input = load_bound_checkpoint(source, &selected, &evaluator.sha256)?;
+            same_learning_configuration(&cfg, &input.campaign)?;
+            input.campaign = cfg;
+            if shadow {
+                if input.model.quantization().is_none() {
+                    return Err(invalid(
+                        "shadow evaluation requires quantized training weights",
+                    ));
+                }
+                input.model = input.model.without_quantization()?;
+                input.artifact["numerical_path"] = json!(
+                    "continuous shadow of the same quantized-training weights; quantizers disabled"
+                );
+            }
+            evaluate_loaded(
+                &input, &evaluator, source, out, &args[0], &args[4], mode, batch,
+            )
+        }
+    })();
+    finish_attempt(out, result)
+}
+
+struct BoundModel {
+    campaign: Campaign,
+    model: JointModel,
+    binding: Value,
+    artifact: Value,
+}
+
+fn finish_attempt<T>(out: &Path, result: Result<T>) -> Result<T> {
     if let Err(error) = &result {
         save_json(
             &out.join("failed-attempt.json"),
@@ -625,20 +888,53 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
     result
 }
 
-fn evaluate_checkpoint(
-    cfg: &Campaign,
+fn same_learning_configuration(a: &Campaign, b: &Campaign) -> Result<()> {
+    if a.model != b.model
+        || a.optimizer != b.optimizer
+        || a.data_seed != b.data_seed
+        || a.batch != b.batch
+        || a.context != b.context
+        || a.cpu_gradient_shards != b.cpu_gradient_shards
+        || a.training_window_transition != b.training_window_transition
+        || a.quantization_transition != b.quantization_transition
+    {
+        return Err(invalid(
+            "evaluation campaign changes bound learning configuration",
+        ));
+    }
+    Ok(())
+}
+
+fn load_bound_checkpoint(
     checkpoint: &Path,
-    out: &Path,
-    device_name: &str,
-    mode: ReadMode,
-    batch: usize,
-) -> Result<()> {
-    let mut report = metadata(cfg, "joint-evaluate", device_name)?;
-    let evaluator = load_evaluator(&cfg.evaluator_path)?;
+    selected: &candle_core::Device,
+    evaluator_sha: &str,
+) -> Result<BoundModel> {
     report_output::verify(checkpoint)?;
+    let cfg = Campaign::load(&checkpoint.join("campaign.json"))?;
     let binding: Value = serde_json::from_slice(&fs::read(checkpoint.join("checkpoint.json"))?)?;
-    if binding["evaluator_sha256"] != evaluator.sha256
+    let step = binding["optimizer_step"]
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| invalid("checkpoint optimizer step"))?;
+    if step > cfg.total_steps
+        || binding["schema"] != "uor-r4.joint-recurrent-checkpoint/1"
+        || binding["evaluator_sha256"] != evaluator_sha
         || binding["model_sha256"] != sha256_file(&checkpoint.join("model.safetensors"))?
+        || (binding.get("model_config_sha256").is_some()
+            && binding["model_config_sha256"] != sha256_file(&checkpoint.join("config.json"))?)
+        || binding["next_data_step"] != json!(step)
+        || binding["sampled_target_visits"] != json!(step.checked_mul(cfg.batch * cfg.context))
+        || binding["data_seed"] != json!(cfg.data_seed)
+        || binding["training_batch"] != json!(cfg.batch)
+        || binding["training_context"] != json!(cfg.context)
+        || binding["sampled_targets_per_step"] != json!(cfg.batch * cfg.context)
+        || binding["training_window_transition"] != json!(cfg.training_window_transition)
+        || binding["data_sampler"]
+            != "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound"
+        || !binding["source_commit"]
+            .as_str()
+            .is_some_and(|s| is_hex_digest(s, 40))
         || binding
             .get("cpu_gradient_shards")
             .map_or(Some(1), Value::as_u64)
@@ -646,11 +942,278 @@ fn evaluate_checkpoint(
     {
         return Err(invalid("checkpoint/evaluator binding differs"));
     }
-    let selected = device(device_name)?;
-    let model = JointModel::load(checkpoint, &selected)?;
+    let model = JointModel::load(checkpoint, selected)?;
     if model.config != cfg.model {
         return Err(invalid("evaluation campaign/model differs"));
     }
+    validate_quantization_binding(
+        &cfg,
+        &binding,
+        &serde_json::to_value(model.quantization())?,
+        step,
+    )?;
+    let artifact = json!({"kind":"training_checkpoint", "parent_checkpoint":checkpoint,
+        "checkpoint_sha256":sha256_file(&checkpoint.join("checkpoint.json"))?,
+        "campaign_sha256":sha256_file(&checkpoint.join("campaign.json"))?,
+        "model_config_sha256":sha256_file(&checkpoint.join("config.json"))?,
+        "parent_file_set_verified":true,
+        "numerical_path":if model.quantization().is_some() {"full-strength quantized numerical emulator from training checkpoint"} else {"continuous F32"}});
+    Ok(BoundModel {
+        campaign: cfg,
+        model,
+        binding,
+        artifact,
+    })
+}
+
+fn export_hard_cli(args: &[String]) -> Result<()> {
+    if !(args.len() == 3 || args.len() == 4) {
+        return Err(invalid("usage: joint-export-hard SEALED_CHECKPOINT NEW_REPORT_ROOT [INITIAL_QAT_CAMPAIGN_JSON]"));
+    }
+    let out = Path::new(&args[2]);
+    report_output::claim(out)?;
+    let result = (|| {
+        let source = Path::new(&args[1]);
+        report_output::verify(source)?;
+        let cfg = Campaign::load(&source.join("campaign.json"))?;
+        let evaluator = load_evaluator(&cfg.evaluator_path)?;
+        let mut parent =
+            load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        if let Some(campaign_path) = args.get(3) {
+            let next = Campaign::load(Path::new(campaign_path))?;
+            if load_evaluator(&next.evaluator_path)?.sha256 != evaluator.sha256 {
+                return Err(invalid("calibrated hard export changes evaluator"));
+            }
+            let step = parent.binding["optimizer_step"]
+                .as_u64()
+                .and_then(|n| usize::try_from(n).ok())
+                .ok_or_else(|| invalid("parent optimizer step"))?;
+            if !quantization_resume_transition(
+                &next,
+                &parent.campaign,
+                &sha256_file(&source.join("checkpoint.json"))?,
+                &sha256_file(&source.join("campaign.json"))?,
+                step,
+            )? || parent.model.quantization().is_some()
+            {
+                return Err(invalid("optional export campaign only declares an initial continuous-parent calibration"));
+            }
+            let optimizer = NamedAdamW::load(source, parent.model.variables(), &next.optimizer)?;
+            if optimizer.step_count() as usize != step {
+                return Err(invalid("calibration parent optimizer clock differs"));
+            }
+            parent.model.configure_quantization(
+                step,
+                next.quantization_transition
+                    .as_ref()
+                    .ok_or_else(|| invalid("missing calibration transition"))?
+                    .ramp_steps,
+            )?;
+            parent.campaign = next;
+        }
+        if parent.model.quantization().is_none() {
+            return Err(invalid(
+                "continuous export requires its declared quantization campaign",
+            ));
+        }
+        write_hard_export(&parent, source, &evaluator, out).map(|_| ())
+    })();
+    finish_attempt(out, result)
+}
+
+fn write_hard_export(
+    parent: &BoundModel,
+    source: &Path,
+    evaluator: &Evaluator,
+    out: &Path,
+) -> Result<BoundModel> {
+    let mut report = metadata(&parent.campaign, "joint-export-hard", "cpu")?;
+    let state = serde_json::to_value(parent.model.quantization())?;
+    let step = state["completed_step"]
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| invalid("hard export requires a quantization clock"))?;
+    quantization_state_matches(&parent.campaign, &state, step)?;
+    let manifest = parent.model.save_hard(out)?;
+    let manifest_sha = sha256_file(&out.join("hard-model.json"))?;
+    let mut binding = parent.binding.clone();
+    binding["model_sha256"] = json!(manifest_sha);
+    binding["quantization_transition"] = json!(parent.campaign.quantization_transition);
+    binding["quantization"] = state;
+    binding["artifact_kind"] = json!("packed_quantized_parameters_with_float_numerical_emulator");
+    if let Some(object) = binding.as_object_mut() {
+        object.remove("model_config_sha256");
+    }
+    let artifact = json!({"kind":"packed_hard_export", "hard_model_manifest_sha256":manifest_sha,
+        "hard_model_manifest":manifest,"parent_checkpoint":source,
+        "parent_checkpoint_sha256":sha256_file(&source.join("checkpoint.json"))?,
+        "parent_campaign_sha256":sha256_file(&source.join("campaign.json"))?,
+        "parent_checkpoint_binding":parent.binding,"parent_artifact":parent.artifact,
+        "parent_file_set_verified_at_export":true,
+        "optimizer_updates_during_export":0,
+        "numerical_path":"Full-strength packed-parameter numerical emulator; floating matmul, normalization and nonlinearities remain. This is not an integer serving kernel."});
+    let mut restored = JointModel::load_hard(out, &candle_core::Device::Cpu)?;
+    if restored.config != parent.model.config
+        || restored.quantization() != parent.model.quantization()
+    {
+        return Err(invalid(
+            "hard export reload changed configuration or quantization state",
+        ));
+    }
+    validate_quantization_binding(
+        &parent.campaign,
+        &binding,
+        &serde_json::to_value(restored.quantization())?,
+        step,
+    )?;
+    let tokenizer = load_tokenizer(&evaluator.document)?;
+    let expected_smoke = joint_evaluation::generate(
+        &parent.model,
+        &tokenizer,
+        "Once upon a time, there was a little girl who",
+        ReadMode::Enabled,
+        Some(240924),
+        48,
+    )?;
+    let dev = read_tokens(&evaluator.document["dev_source"])?;
+    if dev.len() < 256 {
+        return Err(invalid("hard reload check requires a full context"));
+    }
+    let inputs: Vec<u32> = dev[..256].iter().map(|&id| u32::from(id)).collect();
+    let expected_probabilities = parent
+        .model
+        .forward(&inputs, 1, 256, ReadMode::Enabled, false)?
+        .probabilities;
+    let loaded_probabilities = restored
+        .forward(&inputs, 1, 256, ReadMode::Enabled, false)?
+        .probabilities;
+    let reload_delta = expected_probabilities
+        .sub(&loaded_probabilities)?
+        .abs()?
+        .max_all()?
+        .to_scalar::<f32>()?;
+    if reload_delta != 0.0 {
+        return Err(invalid(
+            "packed reload changes actual full-context hard probabilities",
+        ));
+    }
+    restored.enable_interface_audit();
+    let smoke = joint_evaluation::generate(
+        &restored,
+        &tokenizer,
+        "Once upon a time, there was a little girl who",
+        ReadMode::Enabled,
+        Some(240924),
+        48,
+    )?;
+    if smoke.generated_token_ids != expected_smoke.generated_token_ids
+        || smoke
+            .decisions
+            .iter()
+            .map(|row| &row.probabilities_sha256_le_f32)
+            .collect::<Vec<_>>()
+            != expected_smoke
+                .decisions
+                .iter()
+                .map(|row| &row.probabilities_sha256_le_f32)
+                .collect::<Vec<_>>()
+    {
+        return Err(invalid(
+            "packed reload changes generated IDs or probabilities",
+        ));
+    }
+    save_json(&out.join("pre-export-generation.json"), &expected_smoke)?;
+    save_json(&out.join("loaded-generation.json"), &smoke)?;
+    save_json(&out.join("campaign.json"), &parent.campaign)?;
+    save_json(&out.join("evaluator.json"), &evaluator.document)?;
+    report["status"] = json!("PACKED_EXPORT_RELOADED");
+    report["checkpoint_binding"] = binding.clone();
+    report["artifact"] = artifact.clone();
+    report["evaluator_sha256"] = json!(evaluator.sha256);
+    report["optimizer_steps"] = json!(0);
+    report["hard_reload_full_context_probability_max_absolute_delta"] = json!(reload_delta);
+    report["hard_reload_generated_ids_and_probability_hashes_equal"] = json!(true);
+    report["interface_audit"] = restored.interface_audit()?;
+    report["interface_audit_scope"] = json!("Only the recorded 48-token-cap loaded smoke generation; not a corpus-wide saturation bound. Audit observes pre-quantization interfaces of the hard numerical emulator.");
+    report["quantized_training_updates"] = json!(
+        step - parent
+            .campaign
+            .quantization_transition
+            .as_ref()
+            .ok_or_else(|| invalid("export transition missing"))?
+            .parent_optimizer_step
+    );
+    save_json(&out.join("hard-export-report.json"), &report)?;
+    // The smoke audit performs host observations. Do not retain it in the full
+    // population evaluator returned to a checkpoint-to-packed evaluation call.
+    let restored = JointModel::load_hard(out, &candle_core::Device::Cpu)?;
+    Ok(BoundModel {
+        campaign: parent.campaign.clone(),
+        model: restored,
+        binding,
+        artifact,
+    })
+}
+
+fn load_hard_export(source: &Path, evaluator: &Evaluator) -> Result<BoundModel> {
+    report_output::verify(source)?;
+    let report: Value = serde_json::from_slice(&fs::read(source.join("hard-export-report.json"))?)?;
+    let cfg = Campaign::load(&source.join("campaign.json"))?;
+    let binding = report["checkpoint_binding"].clone();
+    if report["status"] != "PACKED_EXPORT_RELOADED"
+        || report["mode"] != "joint-export-hard"
+        || report["evaluator_sha256"] != evaluator.sha256
+        || report["campaign"] != serde_json::to_value(&cfg)?
+        || binding["evaluator_sha256"] != evaluator.sha256
+        || binding["model_sha256"] != sha256_file(&source.join("hard-model.json"))?
+        || report["artifact"]["hard_model_manifest_sha256"] != binding["model_sha256"]
+    {
+        return Err(invalid(
+            "hard export campaign/evaluator/manifest binding differs",
+        ));
+    }
+    let model = JointModel::load_hard(source, &candle_core::Device::Cpu)?;
+    let step = binding["optimizer_step"]
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| invalid("hard export optimizer clock"))?;
+    if model.config != cfg.model {
+        return Err(invalid("hard export model differs from campaign"));
+    }
+    validate_quantization_binding(
+        &cfg,
+        &binding,
+        &serde_json::to_value(model.quantization())?,
+        step,
+    )?;
+    Ok(BoundModel {
+        campaign: cfg,
+        model,
+        binding,
+        artifact: report["artifact"].clone(),
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_loaded(
+    input: &BoundModel,
+    evaluator: &Evaluator,
+    checkpoint: &Path,
+    out: &Path,
+    operation: &str,
+    device_name: &str,
+    mode: ReadMode,
+    batch: usize,
+) -> Result<()> {
+    let model = &input.model;
+    let mut report = metadata(&input.campaign, operation, device_name)?;
+    report["artifact"] = input.artifact.clone();
+    report["executed_quantization"] = serde_json::to_value(model.quantization())?;
+    report["evaluation_quantization_strength"] = json!(if model.quantization().is_some() {
+        1.0
+    } else {
+        0.0
+    });
     let tokenizer = load_tokenizer(&evaluator.document)?;
     let prompts_path = verify_identity(&evaluator.document["prompt_source"])?;
     let prompts: Value = serde_json::from_slice(&fs::read(prompts_path)?)?;
@@ -662,7 +1225,7 @@ fn evaluate_checkpoint(
         .enumerate()
     {
         generated.push(joint_evaluation::generate(
-            &model,
+            model,
             &tokenizer,
             prompt["text"]
                 .as_str()
@@ -675,41 +1238,40 @@ fn evaluate_checkpoint(
     save_json(&out.join("generations.json"), &generated)?;
     save_json(
         &out.join("story-probes.json"),
-        &joint_evaluation::run_story_probes(&model, &tokenizer, mode)?,
+        &joint_evaluation::run_story_probes(model, &tokenizer, mode)?,
     )?;
     let dev = read_tokens(&evaluator.document["dev_source"])?;
     let mut blocks = BufWriter::new(File::create_new(out.join("blocks.jsonl"))?);
     let mut rows = BufWriter::new(File::create_new(out.join("targets.bin"))?);
-    let evaluation =
-        joint_evaluation::evaluate(&model, &dev, mode, batch, |block, predictions| {
-            serde_json::to_writer(&mut blocks, block)?;
-            writeln!(blocks)?;
-            for row in predictions {
-                rows.write_all(&(row.input_offset as u64).to_le_bytes())?;
-                rows.write_all(&row.score.target_token.to_le_bytes())?;
-                rows.write_all(&row.score.predicted_token.to_le_bytes())?;
-                rows.write_all(&row.score.target_probability.to_le_bytes())?;
-                rows.write_all(&row.score.nll_nats.to_le_bytes())?;
-                rows.write_all(&(row.no_read_mass as f32).to_le_bytes())?;
-                rows.write_all(&(row.copy_gate as f32).to_le_bytes())?;
-                rows.write_all(&row.top_read_position.map_or(-1, |p| p as i32).to_le_bytes())?;
-            }
-            if block.block_index % 64 == 0 {
-                eprintln!(
-                    "joint evaluate {:?} block {}/976",
-                    mode,
-                    block.block_index + 1
-                );
-            }
-            Ok(())
-        })?;
+    let evaluation = joint_evaluation::evaluate(model, &dev, mode, batch, |block, predictions| {
+        serde_json::to_writer(&mut blocks, block)?;
+        writeln!(blocks)?;
+        for row in predictions {
+            rows.write_all(&(row.input_offset as u64).to_le_bytes())?;
+            rows.write_all(&row.score.target_token.to_le_bytes())?;
+            rows.write_all(&row.score.predicted_token.to_le_bytes())?;
+            rows.write_all(&row.score.target_probability.to_le_bytes())?;
+            rows.write_all(&row.score.nll_nats.to_le_bytes())?;
+            rows.write_all(&(row.no_read_mass as f32).to_le_bytes())?;
+            rows.write_all(&(row.copy_gate as f32).to_le_bytes())?;
+            rows.write_all(&row.top_read_position.map_or(-1, |p| p as i32).to_le_bytes())?;
+        }
+        if block.block_index % 64 == 0 {
+            eprintln!(
+                "joint evaluate {:?} block {}/976",
+                mode,
+                block.block_index + 1
+            );
+        }
+        Ok(())
+    })?;
     blocks.flush()?;
     blocks.get_ref().sync_all()?;
     rows.flush()?;
     rows.get_ref().sync_all()?;
     report["evaluation"] = serde_json::to_value(evaluation)?;
     report["checkpoint"] = json!(checkpoint);
-    report["checkpoint_binding"] = binding;
+    report["checkpoint_binding"] = input.binding.clone();
     report["evaluator_sha256"] = json!(evaluator.sha256);
     report["targets_format"] = json!({"record_bytes":44,"endianness":"little",
         "fields":["input_offset:u64","target:u32","predicted:u32","target_probability:f64",
@@ -723,6 +1285,110 @@ fn evaluate_checkpoint(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn transition_campaign() -> Campaign {
+        Campaign {
+            schema: "uor-r4.joint-recurrent-campaign/1".into(),
+            evaluator_path: PathBuf::new(),
+            model: JointConfig::default(),
+            optimizer: AdamConfig::default(),
+            data_seed: 42,
+            batch: 16,
+            context: 256,
+            cpu_gradient_shards: 2,
+            total_steps: 8348,
+            development_every_steps: 0,
+            development_blocks: 0,
+            checkpoint_steps: vec![],
+            max_process_seconds: 100,
+            stop_file: None,
+            training_window_transition: None,
+            quantization_transition: None,
+            trial_scope: "transition unit check".into(),
+        }
+    }
+
+    #[test]
+    fn quantization_transition_binds_parent_and_preserves_resume_lineage() {
+        let old = transition_campaign();
+        let mut next = old.clone();
+        next.quantization_transition = Some(QuantizationTransition {
+            parent_checkpoint_sha256: "a".repeat(64),
+            parent_campaign_sha256: "b".repeat(64),
+            parent_optimizer_step: 7324,
+            ramp_steps: 256,
+            reason: "fixed calibration".into(),
+        });
+        assert!(quantization_resume_transition(
+            &next,
+            &old,
+            &"a".repeat(64),
+            &"b".repeat(64),
+            7324
+        )
+        .unwrap());
+        assert!(quantization_resume_transition(
+            &next,
+            &old,
+            &"c".repeat(64),
+            &"b".repeat(64),
+            7324
+        )
+        .is_err());
+        assert!(quantization_resume_transition(
+            &next,
+            &old,
+            &"a".repeat(64),
+            &"b".repeat(64),
+            7325
+        )
+        .is_err());
+        assert!(!quantization_resume_transition(
+            &next,
+            &next,
+            "later checkpoint",
+            "later campaign",
+            7340
+        )
+        .unwrap());
+        let mut altered = next.clone();
+        altered.quantization_transition.as_mut().unwrap().ramp_steps = 128;
+        assert!(quantization_resume_transition(&altered, &next, "unused", "unused", 7340).is_err());
+        assert!(quantization_resume_transition(&old, &next, "unused", "unused", 7340).is_err());
+        let mut changed_horizon = next.clone();
+        changed_horizon.batch = 64;
+        changed_horizon.context = 64;
+        assert!(
+            quantization_resume_transition(&changed_horizon, &next, "unused", "unused", 7340)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn quantization_checkpoint_binds_clock_and_complete_specification() {
+        let mut cfg = transition_campaign();
+        cfg.quantization_transition = Some(QuantizationTransition {
+            parent_checkpoint_sha256: "a".repeat(64),
+            parent_campaign_sha256: "b".repeat(64),
+            parent_optimizer_step: 7324,
+            ramp_steps: 256,
+            reason: "fixed calibration".into(),
+        });
+        let state = json!({"start_step":7324,"ramp_steps":256,"completed_step":7340,
+            "spec":{"schema":"unit-test","parameters":{"weight":{"row_exponents":[-7]}}}});
+        let binding =
+            json!({"quantization_transition":cfg.quantization_transition,"quantization":state});
+        validate_quantization_binding(&cfg, &binding, &state, 7340).unwrap();
+        assert!(validate_quantization_binding(&cfg, &binding, &state, 7341).is_err());
+        let mut altered = state.clone();
+        altered["spec"]["parameters"]["weight"]["row_exponents"] = json!([-6]);
+        assert!(validate_quantization_binding(&cfg, &binding, &altered, 7340).is_err());
+        assert!(
+            validate_quantization_binding(&transition_campaign(), &binding, &state, 7340).is_err()
+        );
+        validate_quantization_binding(&transition_campaign(), &json!({}), &Value::Null, 7340)
+            .unwrap();
+    }
+
     #[test]
     fn counter_windows_resume_without_crossing_store_boundaries() {
         let mut cfg = Campaign {
@@ -741,6 +1407,7 @@ mod tests {
             max_process_seconds: 100,
             stop_file: None,
             training_window_transition: None,
+            quantization_transition: None,
             trial_scope: "sampler".into(),
         };
         let stores = vec![

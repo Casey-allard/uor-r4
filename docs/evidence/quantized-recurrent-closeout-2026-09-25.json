@@ -1,0 +1,730 @@
+{
+  "schema": "uor-r4.quantized-recurrent-closeout/1",
+  "recorded_utc": "2026-09-25T09:24:22.455562+00:00",
+  "cycle_started_utc": "2026-09-25T06:20:25+00:00",
+  "charged_through_utc": "2026-09-25T09:24:22.455562+00:00",
+  "wall_charge_ms": 11037456,
+  "complete_cycle_limit_ms": 19800000,
+  "charge_scope": "All unique elapsed campaign wall from preparation to this pre-delivery cutoff. Includes research, implementation, builds, profiles, all fitting, export, evaluation, diagnosis, review, cleanup and documentation; overlapping process durations are not added.",
+  "delivery_tail": "PENDING at committed cutoff; charge remaining unique wall once after protected delivery in local delivery-closeout.json and owning issue bodies.",
+  "gross_fit_new_optimizer_steps": 4096,
+  "gross_fit_target_visits": 16777216,
+  "fit_attempts_including_retained_profiles": 6,
+  "reported_operation_times": {
+    "fit_reports": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/profile-quaternion-1",
+        "new_optimizer_steps": 8,
+        "new_sampled_target_visits": 32768,
+        "elapsed_seconds": 52.074410333
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-qat-1",
+        "new_optimizer_steps": 1016,
+        "new_sampled_target_visits": 4161536,
+        "elapsed_seconds": 4443.836705958
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-quaternion-continuous-1",
+        "new_optimizer_steps": 1024,
+        "new_sampled_target_visits": 4194304,
+        "elapsed_seconds": 3138.474896417
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/profile-householder_pair-1",
+        "new_optimizer_steps": 8,
+        "new_sampled_target_visits": 32768,
+        "elapsed_seconds": 50.842974291
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-qat-1",
+        "new_optimizer_steps": 1016,
+        "new_sampled_target_visits": 4161536,
+        "elapsed_seconds": 4438.671904875
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/fit-householder_pair-continuous-1",
+        "new_optimizer_steps": 1024,
+        "new_sampled_target_visits": 4194304,
+        "elapsed_seconds": 3110.415441709
+      }
+    ],
+    "population_evaluations": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-no-read-1",
+        "population_loop_elapsed_seconds": 19.601788167
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-continuous-read-1",
+        "population_loop_elapsed_seconds": 27.221015334
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-no-read-1",
+        "population_loop_elapsed_seconds": 50.531930458
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-hard-read-1",
+        "population_loop_elapsed_seconds": 59.76914975
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-parent-ptq-read-1",
+        "population_loop_elapsed_seconds": 59.904764125
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-householder_pair-shadow-read-1",
+        "population_loop_elapsed_seconds": 27.754843583
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-no-read-1",
+        "population_loop_elapsed_seconds": 19.759042708
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-continuous-read-1",
+        "population_loop_elapsed_seconds": 27.23429375
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-no-read-1",
+        "population_loop_elapsed_seconds": 50.928489459
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-hard-read-1",
+        "population_loop_elapsed_seconds": 60.303245834
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-parent-ptq-read-1",
+        "population_loop_elapsed_seconds": 60.414288584
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/evaluate-quaternion-shadow-read-1",
+        "population_loop_elapsed_seconds": 28.021936958
+      }
+    ],
+    "state_diagnostics": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/state-drift-quaternion-1",
+        "reported_elapsed_seconds": 6.073936583
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/state-drift-householder_pair-1",
+        "reported_elapsed_seconds": 6.028256792
+      }
+    ],
+    "reported_fit_seconds_sum": 15234.316333583,
+    "reported_population_loop_seconds_sum": 491.44478871,
+    "reported_state_seconds_sum": 12.102193374999999,
+    "scope": "Internal operation timers have different boundaries; population loops exclude setup/generation/sealing. Sums are neither unique wall charge nor exact complete-process lifetime. Complete-cycle wall covers all work once."
+  },
+  "physical_resources": {
+    "resource_samples": 1797,
+    "peak_sampled_aggregate_model_rss_bytes": 7934820352,
+    "peak_sampled_individual_model_rss_bytes": 4420583424,
+    "minimum_sampled_physical_free_bytes": 22631075840,
+    "physical_free_at_closeout_bytes": 24447295488,
+    "physical_stop_bytes": 21676163072,
+    "model_aggregate_stop_bytes": 8589934592,
+    "model_individual_stop_bytes": 6442450944,
+    "compiler_peak_rss": "UNMEASURED",
+    "compiler_temporary_peak": "UNMEASURED; declared allowance retained in allocation projection",
+    "scope": "Sampled monitored model processes, not complete-machine RSS or between-sample peaks."
+  },
+  "allocation": {
+    "recorded_utc": "2026-09-25T09:24:22.455562+00:00",
+    "categories": {
+      "worktree": 1262751744,
+      "new_or_replaced_target": 316948480,
+      "campaign": 409337856
+    },
+    "retained_total_bytes": 1989038080,
+    "temporary_build_allowance_bytes": 268435456,
+    "post_inventory_receipt_delivery_metadata_allowance_bytes": 1048576,
+    "current_campaign_ceiling_bytes": 3221225472,
+    "scope": "Whole current allocated size of each new/replaced warm-target file compared by path/inode/size/mtime/allocated blocks with pre-build inventory, plus complete new worktree and campaign. Globally deduplicated by device/inode; unchanged baseline aliases excluded. st_blocks*512. Does not measure physical APFS extent ownership or unobserved temporary build peak.",
+    "historical_gross_allocation_status": "UNRESOLVED",
+    "retained_plus_full_temporary_and_metadata_allowance_bytes": 2258522112,
+    "snapshot_retained_total_before_inventory_materialization_bytes": 1984319488,
+    "inventory_materialization_allocated_bytes": 4718592,
+    "inventory_materialization_note": "The complete inventory was written after the file scan. Its measured allocation is explicitly added once; the separate 1MiB allowance remains for smaller closeout/delivery metadata. The preserved inventory file retains the original pre-materialization snapshot."
+  },
+  "allocation_inventory": {
+    "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/final-allocation-inventory-1.json",
+    "sha256": "4854bfb6ae6140367b791ebf9cf3f05475b997f2c778d53c29f21a641ab3a8fb",
+    "bytes": 4717435
+  },
+  "cleanup": {
+    "validated_files_removed": 43,
+    "recorded_net_physical_free_increase_bytes": 1732194304,
+    "gross_allocation_credit_bytes": 0,
+    "scope": "Net df changes across cleanup windows, not isolation of every concurrent disk movement. All unique model/source/research/worktree/executable material preserved.",
+    "receipts": [
+      {
+        "receipt": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/validated-old-compiler-cleanup.json",
+          "sha256": "04e68bb452da8d871914f6953e9564aecbcf0fb548edda17adb93e942b48578d",
+          "bytes": 4702
+        },
+        "content": {
+          "recorded_utc": "2026-09-25T07:12:24.269680+00:00",
+          "reason": "Provide additional physical headroom above the20GiBreserve+128MiBmargin+64MiBcheckpointheadroom during the authorized long local continuation; macOSswapgrew1GiB and upcomingartifactsrequireheadroom. Eight independentlyauditedinactiveRustlibraryintermediates only.",
+          "authorization": "Standing user request to reclaim necessary safe local disk space; unique research/source/models/executables/worktrees preserved.",
+          "files": [
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_r4_core-fc8684a75cfc32d3.rlib",
+              "size": 415400328,
+              "allocated_bytes": 415404032,
+              "inode": 74679014,
+              "mtime_ns": 1790222095469910116,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_r4_core-fc8684a75cfc32d3.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_r4_core-fc8684a75cfc32d3.rmeta",
+              "size": 53502062,
+              "allocated_bytes": 53506048,
+              "inode": 74677858,
+              "mtime_ns": 1790221977071687383,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_r4_core-fc8684a75cfc32d3.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libuor_r4_core-c6081f9555acc56a.rlib",
+              "size": 105373048,
+              "allocated_bytes": 105373696,
+              "inode": 74668064,
+              "mtime_ns": 1790221620125763337,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/uor_r4_core-c6081f9555acc56a.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libuor_r4_core-c6081f9555acc56a.rmeta",
+              "size": 70028031,
+              "allocated_bytes": 70029312,
+              "inode": 74667900,
+              "mtime_ns": 1790221555180244649,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/uor_r4_core-c6081f9555acc56a.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libuor_r4_core-c6081f9555acc56a.rlib",
+              "size": 105338480,
+              "allocated_bytes": 105340928,
+              "inode": 74564393,
+              "mtime_ns": 1790217121586465780,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/uor_r4_core-c6081f9555acc56a.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libuor_r4_core-c6081f9555acc56a.rmeta",
+              "size": 70003970,
+              "allocated_bytes": 70004736,
+              "inode": 74564197,
+              "mtime_ns": 1790217000145111429,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/uor_r4_core-c6081f9555acc56a.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libuor_r4_core-c6081f9555acc56a.rlib",
+              "size": 104744848,
+              "allocated_bytes": 104747008,
+              "inode": 74416546,
+              "mtime_ns": 1790196930565379707,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/uor_r4_core-c6081f9555acc56a.d"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libuor_r4_core-c6081f9555acc56a.rmeta",
+              "size": 69685532,
+              "allocated_bytes": 69689344,
+              "inode": 74416445,
+              "mtime_ns": 1790196875770131721,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/uor_r4_core-c6081f9555acc56a.d"
+            }
+          ],
+          "before": {
+            "raw": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 184824076  22289192    90% 1794688 222891920    1%   /System/Volumes/Data\n",
+            "available_bytes": 22824132608
+          },
+          "current_cycle_gross_allocation_credit": 0,
+          "historical_gross_allocation_status": "UNRESOLVED; this old compiler-cache reclamation does not certify or reduce prior gross charges.",
+          "after": {
+            "raw": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 183853420  23259848    89% 1794681 232598480    1%   /System/Volumes/Data\n",
+            "available_bytes": 23818084352
+          },
+          "measured_physical_free_delta_bytes": 993951744,
+          "deleted_files": 8
+        }
+      },
+      {
+        "receipt": {
+          "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/validated-old-compiler-cleanup-2.json",
+          "sha256": "aed77ae48752332a3adc85ca23a7cc11fb5ba79828434b96c2cb4f8602036c3a",
+          "bytes": 17043
+        },
+        "content": {
+          "utc": "2026-09-25T07:33:24.274736+00:00",
+          "reason": "Previously owner-authorized cleanup of independently identified, revalidated inactive compiler intermediates; preserve physical reserve during matched QAT.",
+          "files": [
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libregex_syntax-09db8c66f5c34ef1.rlib",
+              "bytes": 11678936,
+              "allocated_bytes": 11681792,
+              "inode": 74669849,
+              "mtime_ns": 1790221646570307787,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/regex_syntax-09db8c66f5c34ef1.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libregex_syntax-09db8c66f5c34ef1.rlib",
+              "bytes": 11678936,
+              "allocated_bytes": 11681792,
+              "inode": 74559692,
+              "mtime_ns": 1790216505090014321,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/regex_syntax-09db8c66f5c34ef1.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_r4_model_source-0944d55affd058f4.rlib",
+              "bytes": 37384496,
+              "allocated_bytes": 37388288,
+              "inode": 74671330,
+              "mtime_ns": 1790221667281979643,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_r4_model_source-0944d55affd058f4.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libuor_r4_model_source-0944d55affd058f4.rlib",
+              "bytes": 37383288,
+              "allocated_bytes": 37384192,
+              "inode": 74560407,
+              "mtime_ns": 1790216535955949162,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/uor_r4_model_source-0944d55affd058f4.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libproptest-1f32f88134bbfe9d.rlib",
+              "bytes": 19616240,
+              "allocated_bytes": 19619840,
+              "inode": 74670383,
+              "mtime_ns": 1790221654329301324,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/proptest-1f32f88134bbfe9d.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libproptest-1f32f88134bbfe9d.rlib",
+              "bytes": 19616240,
+              "allocated_bytes": 19619840,
+              "inode": 74559753,
+              "mtime_ns": 1790216508090579300,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/proptest-1f32f88134bbfe9d.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libzerocopy-820969c3793ecc56.rmeta",
+              "bytes": 14296549,
+              "allocated_bytes": 14299136,
+              "inode": 74669886,
+              "mtime_ns": 1790221647669310382,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/zerocopy-820969c3793ecc56.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libzerocopy-820969c3793ecc56.rmeta",
+              "bytes": 14296549,
+              "allocated_bytes": 14299136,
+              "inode": 74558454,
+              "mtime_ns": 1790216462875436315,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/zerocopy-820969c3793ecc56.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_foundation-3c08602e5d943808.rmeta",
+              "bytes": 28951351,
+              "allocated_bytes": 28954624,
+              "inode": 74669876,
+              "mtime_ns": 1790221647454678705,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_foundation-3c08602e5d943808.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libuor_foundation-3c08602e5d943808.rmeta",
+              "bytes": 28951351,
+              "allocated_bytes": 28954624,
+              "inode": 74558446,
+              "mtime_ns": 1790216463000588577,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/uor_foundation-3c08602e5d943808.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_matmul_gemm-b60678ea9c4dca2b.rlib",
+              "bytes": 19719664,
+              "allocated_bytes": 19722240,
+              "inode": 74671448,
+              "mtime_ns": 1790221724818761989,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_matmul_gemm-b60678ea9c4dca2b.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libuor_matmul_gemm-b60678ea9c4dca2b.rlib",
+              "bytes": 19719664,
+              "allocated_bytes": 19722240,
+              "inode": 74560606,
+              "mtime_ns": 1790216542276528725,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/uor_matmul_gemm-b60678ea9c4dca2b.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_foundation-3c08602e5d943808.rlib",
+              "bytes": 29438896,
+              "allocated_bytes": 29442048,
+              "inode": 74669893,
+              "mtime_ns": 1790221647573236729,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_foundation-3c08602e5d943808.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libuor_foundation-3c08602e5d943808.rlib",
+              "bytes": 29438896,
+              "allocated_bytes": 29442048,
+              "inode": 74558488,
+              "mtime_ns": 1790216463161972152,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/uor_foundation-3c08602e5d943808.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libuor_addr-5ba5ccca29b5c2a5.rlib",
+              "bytes": 12058552,
+              "allocated_bytes": 12058624,
+              "inode": 74670242,
+              "mtime_ns": 1790221650548719968,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/uor_addr-5ba5ccca29b5c2a5.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libuor_addr-5ba5ccca29b5c2a5.rlib",
+              "bytes": 12058552,
+              "allocated_bytes": 12058624,
+              "inode": 74559005,
+              "mtime_ns": 1790216469457409488,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/uor_addr-5ba5ccca29b5c2a5.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/libzerocopy-820969c3793ecc56.rlib",
+              "bytes": 14682128,
+              "allocated_bytes": 14684160,
+              "inode": 74669956,
+              "mtime_ns": 1790221647732494237,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/debug/deps/zerocopy-820969c3793ecc56.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libzerocopy-820969c3793ecc56.rlib",
+              "bytes": 14682128,
+              "allocated_bytes": 14684160,
+              "inode": 74558460,
+              "mtime_ns": 1790216462930906878,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/zerocopy-820969c3793ecc56.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libzerocopy-c4692f4d06a662d7.rlib",
+              "bytes": 15483744,
+              "allocated_bytes": 15486976,
+              "inode": 74662833,
+              "mtime_ns": 1790220944538237594,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/zerocopy-c4692f4d06a662d7.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libzerocopy-c4692f4d06a662d7.rlib",
+              "bytes": 15483744,
+              "allocated_bytes": 15486976,
+              "inode": 74563664,
+              "mtime_ns": 1790216919768240130,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/zerocopy-c4692f4d06a662d7.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libzerocopy-c4692f4d06a662d7.rlib",
+              "bytes": 15483744,
+              "allocated_bytes": 15486976,
+              "inode": 74416111,
+              "mtime_ns": 1790196830836725922,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/zerocopy-c4692f4d06a662d7.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libzerocopy-c4692f4d06a662d7.rmeta",
+              "bytes": 15482306,
+              "allocated_bytes": 15482880,
+              "inode": 74662822,
+              "mtime_ns": 1790220944489696650,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/zerocopy-c4692f4d06a662d7.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libzerocopy-c4692f4d06a662d7.rmeta",
+              "bytes": 15482306,
+              "allocated_bytes": 15482880,
+              "inode": 74563657,
+              "mtime_ns": 1790216919728534866,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/zerocopy-c4692f4d06a662d7.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libzerocopy-c4692f4d06a662d7.rmeta",
+              "bytes": 15482306,
+              "allocated_bytes": 15482880,
+              "inode": 74416100,
+              "mtime_ns": 1790196830782367548,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/zerocopy-c4692f4d06a662d7.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libuor_foundation-b61484f40d80e80d.rmeta",
+              "bytes": 30401743,
+              "allocated_bytes": 30404608,
+              "inode": 74662820,
+              "mtime_ns": 1790220945133849636,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/uor_foundation-b61484f40d80e80d.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libuor_foundation-b61484f40d80e80d.rmeta",
+              "bytes": 30401743,
+              "allocated_bytes": 30404608,
+              "inode": 74563079,
+              "mtime_ns": 1790216912573129452,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/uor_foundation-b61484f40d80e80d.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libuor_foundation-b61484f40d80e80d.rmeta",
+              "bytes": 30401743,
+              "allocated_bytes": 30404608,
+              "inode": 74416095,
+              "mtime_ns": 1790196830754643615,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/uor_foundation-b61484f40d80e80d.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libuor_r4_model_source-4c7f510551b5d412.rlib",
+              "bytes": 16788112,
+              "allocated_bytes": 16789504,
+              "inode": 74663119,
+              "mtime_ns": 1790220959084690287,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/uor_r4_model_source-4c7f510551b5d412.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libuor_r4_model_source-4c7f510551b5d412.rlib",
+              "bytes": 16787992,
+              "allocated_bytes": 16789504,
+              "inode": 74564091,
+              "mtime_ns": 1790216960757586229,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/uor_r4_model_source-4c7f510551b5d412.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libuor_r4_model_source-4c7f510551b5d412.rlib",
+              "bytes": 16788208,
+              "allocated_bytes": 16789504,
+              "inode": 74416376,
+              "mtime_ns": 1790196841965660071,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/uor_r4_model_source-4c7f510551b5d412.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/libuor_foundation-b61484f40d80e80d.rlib",
+              "bytes": 30482416,
+              "allocated_bytes": 30482432,
+              "inode": 74662927,
+              "mtime_ns": 1790220945940281501,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924/target/release/deps/uor_foundation-b61484f40d80e80d.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/libuor_foundation-b61484f40d80e80d.rlib",
+              "bytes": 30482416,
+              "allocated_bytes": 30482432,
+              "inode": 74563178,
+              "mtime_ns": 1790216912940019933,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/release/deps/uor_foundation-b61484f40d80e80d.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/libuor_foundation-b61484f40d80e80d.rlib",
+              "bytes": 30482416,
+              "allocated_bytes": 30482432,
+              "inode": 74416160,
+              "mtime_ns": 1790196831211445910,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923/target/release/deps/uor_foundation-b61484f40d80e80d.d",
+              "magic": "213c617263683e0a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libuor_foundation-412eead0108360f5.rmeta",
+              "bytes": 24148259,
+              "allocated_bytes": 24150016,
+              "inode": 74557317,
+              "mtime_ns": 1790216405774879014,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/uor_foundation-412eead0108360f5.d",
+              "magic": "727573740000000a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/libzerocopy-834a01d35099a4e9.rmeta",
+              "bytes": 12794852,
+              "allocated_bytes": 12795904,
+              "inode": 74557754,
+              "mtime_ns": 1790216413848679894,
+              "dependency_file": "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923/target/debug/deps/zerocopy-834a01d35099a4e9.d",
+              "magic": "727573740000000a"
+            }
+          ],
+          "branches": {
+            "/Users/casey.allard/uor-r4-worktrees/local-capacity-adjudication-20260923": "codex/local-capacity-adjudication-20260923",
+            "/Users/casey.allard/uor-r4-worktrees/matched-span-curriculum-20260924": "codex/matched-span-curriculum-20260924",
+            "/Users/casey.allard/uor-r4-worktrees/observer-transport-20260923": "codex/language-transport-20260924"
+          },
+          "df_free_before_bytes": 22632968192,
+          "gross_allocation_credit": 0,
+          "scope": "Only exact listed regular compiler archives/metadata; no executable, model, source, research or worktree deletion.",
+          "df_free_after_bytes": 23371210752,
+          "df_measured_reclaimed_bytes": 738242560,
+          "deleted_count": 35
+        }
+      }
+    ]
+  },
+  "validation": {
+    "focused_release_tests": {
+      "source": "38983600",
+      "joint_tests_passed": 16,
+      "test_log": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/build-test-1.log",
+      "scope": "quantizer/model/campaign tests passed; subsequent changes only add shadow-development reporting and clarify comparator selection text"
+    },
+    "test_log": {
+      "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/build-test-1.log",
+      "sha256": "2118446fdcfdc45b896389bb93ebe7a6073d7bb1984d01ed08fd7ab9c6611d5e",
+      "bytes": 3676
+    },
+    "cargo_fmt_check": "PASS at cb81e7c7; no Rust changes afterward",
+    "state_example_build": {
+      "utc": "2026-09-25T08:19:14.113858+00:00",
+      "source_commit": "cb81e7c70a023a42de300a16ebe9e8a76c8dc222",
+      "reason": "Execute already-required descriptive state drift using unchanged model library; fits have released QAT memory, packed evaluation is active. One warm Cargo job.",
+      "projected_build_seconds": 90,
+      "projected_additional_retained_compiler_bytes": 134217728,
+      "projected_compiler_peak_rss_bytes": 1073741824,
+      "storage_ceiling_unchanged_bytes": 3221225472,
+      "physical_free_before_bytes": 24411058176,
+      "numerical_training_source_unchanged": "b5b5fe757b9513877911719f014e73165f704b13",
+      "no_new_training_or_acceptance_gate": true,
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--features",
+        "metal,cpu-accelerate,reference-accelerate",
+        "--example",
+        "joint-state-drift"
+      ],
+      "elapsed_seconds": 70.954410875,
+      "exit_code": 0,
+      "physical_free_after_bytes": 24398000128
+    },
+    "build_phase_correction": {
+      "utc": "2026-09-25T08:20:10.279545+00:00",
+      "corrects": "diagnostic-build-projection.json reason field saying packed evaluation was still active",
+      "actual_continuous_fit_started_utc": "2026-09-25T08:17:49.571634+00:00",
+      "diagnostic_build_started_utc": "2026-09-25T08:19:14.113858+00:00",
+      "disposition": "Continuous controls had already started. This one-job warm diagnostic build overlapped their early updates. Exposure, sampler, optimizer and primary executable stayed unchanged. Charge overlapping wall time once and retain separate process duration. No assertion of a fit-free build interval or measured compiler peak RSS.",
+      "latest_control_resource": {
+        "utc_seconds": 1790324410.232121,
+        "elapsed_seconds": 140.661805541,
+        "rss_bytes": {
+          "11685": 3174957056,
+          "11686": 2931654656
+        },
+        "aggregate_rss_bytes": 6106611712,
+        "physical_free_bytes": 24407506944,
+        "exit_codes": {
+          "fit-quaternion-continuous-1": null,
+          "fit-householder_pair-continuous-1": null
+        }
+      }
+    },
+    "claim_wording": {
+      "exit_code": 0,
+      "output": "Claim-wording gate passed: no unlinked machine-verified/exact-equivalence wording.\n"
+    },
+    "git_diff_check": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "all_12_population_roots_and_selected_exports_and_state_roots_sealed_verified": true,
+    "independent_result_review": {
+      "schema": "uor-r4.quantized-final-independent-review/1",
+      "recorded_utc": "2026-09-25T09:22:06.474296+00:00",
+      "reviewer": "a4_architecture_review",
+      "scope": "Independent read-only reconciliation of all 12 sealed population roots, two final packed exports, two state diagnostics, 20 packed/continuous generations and 192 source-edit responses across old/continuous/packed.",
+      "all_12_population_offset_target_pairs_aligned": 249856,
+      "all_partition_means_matched": 36,
+      "finite_target_p_and_nll_agree_with_minus_log_p": true,
+      "all_required_seals_verified": true,
+      "gate_results": {
+        "quaternion": [
+          false,
+          true,
+          true,
+          true,
+          true
+        ],
+        "householder_pair": [
+          false,
+          true,
+          false,
+          true,
+          true
+        ]
+      },
+      "source_exact_loss_gain": {
+        "quaternion_vs_original": {
+          "lost": 10,
+          "gained": 1
+        },
+        "quaternion_vs_continuous": {
+          "lost": 8,
+          "gained": 4
+        },
+        "ordinary_vs_original": {
+          "lost": 0,
+          "gained": 2
+        },
+        "ordinary_vs_continuous": {
+          "lost": 1,
+          "gained": 0,
+          "regression": "story-source-edit-11/edited: coin. -> coin home."
+        }
+      },
+      "first_noun_scope": "Both quaternion old-correct first-noun losses also occur in continuous. Packed loses zero against continuous and gains doll. Ordinary loses none against either.",
+      "discrepancies_found": [],
+      "recommendation": "Retain the separate 7836-to-8348 projected-shadow proposal with original five gates, same fixed scales/data/moments/clocks, entry hard parity and 512 new updates per arm. Do not infer a unique clipping cause or change this rejected result."
+    },
+    "compatibility_queue_acknowledgements_execute_no_tests": true
+  },
+  "source_execution": {
+    "source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+    "executable": {
+      "path": "/Users/casey.allard/uor-r4-investigations/quantized-recurrent-20260925/joint-training-b5b5fe75",
+      "bytes": 8151552,
+      "sha256": "96fe2f29cc0b67ff8d8cc9d2f78b5c2942ec9825086d43b52f938c6cb63224a7"
+    },
+    "state_diagnostic_source_commit": "cb81e7c70a023a42de300a16ebe9e8a76c8dc222",
+    "model_library_unchanged_after_fit_source": true
+  },
+  "paid_external_training_compute": false,
+  "next_model_work": "Proposed 7836-to-8348 projected-shadow continuation; NOT_RUN in this result.",
+  "ledger_before": {
+    "cumulative_ms": 508584092,
+    "limit_ms": 529200000
+  },
+  "ledger_after_pre_delivery_charge": {
+    "cumulative_ms": 519621548,
+    "limit_ms": 529200000
+  }
+}
