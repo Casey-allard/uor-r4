@@ -1,0 +1,41 @@
+{
+  "schema": "uor-r4.bounded-admission-final-checks/1",
+  "recorded_utc": "2026-09-25T18:21:59.901193+00:00",
+  "source_commit": "78fde5711ea01f80783eb9911e01197a61406d1a",
+  "checks": [
+    {
+      "command": "~/.cargo/bin/cargo fmt --check",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/check_claim_wording.py",
+      "exit_code": 0,
+      "output": "Claim-wording gate passed: no unlinked machine-verified/exact-equivalence wording."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff source -- crates/uor-r4-training/src Cargo.toml Cargo.lock third_party",
+      "exit_code": 0,
+      "output": "empty; executed Rust/dependency source unchanged"
+    }
+  ],
+  "optimized_rust_tests": {
+    "passed": 62,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 4.79,
+    "scope": "Focused joint_ library filter; not a blanket workspace suite"
+  },
+  "model_result": "Both candidates rejected at the frozen source-retention gate; all prescribed evaluations and arithmetic complete",
+  "github_queue_statuses": "Compatibility acknowledgements execute no tests",
+  "delivery_followup": {
+    "recorded_utc": "2026-09-25T18:24:02.774909+00:00",
+    "finding": "The first committed-range whitespace check included the previously untracked output display and found16 lines of model-generated trailing spaces. Earlier git diff --check covered tracked changes.",
+    "correction": "Trim trailing line spaces in the Markdown display only and label the presentation normalization. Exact JSON strings, sealed reports, operator source, parameters, targets and decisions are unchanged.",
+    "normalized_display_lines": 16,
+    "committed_range_check": "PASS: git diff --check origin/main..HEAD after display normalization"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "uor-r4.bounded-admission-principal-decision/1",
+  "recorded_utc": "2026-09-25T18:18:30.685872+00:00",
+  "status": "REJECTED_FOR_BOUNDED_ADMISSION_RETENTION",
+  "result_sha256": "3b4c9353ac2bffe9ff2a882ece2af3854ef2c980bcbb996123e94a710be81b33",
+  "source_commit": "78fde5711ea01f80783eb9911e01197a61406d1a",
+  "headline": "**Both orthant64 candidates fail the frozen source-retention gate. The implementation and full paired comparison are complete; neither candidate is promoted.**",
+  "interpretation": "Likelihood retention, combined read/copy effect, noncollapse and mechanical/export checks pass in both arms. First-noun losses are11/8 against the immediate parents and11/9 against rung1, beyond the maximum2. Both indexed-complement utility discriminators pass: the index supplies17 additional complete answers over recent32 and lowers late-position NLL by0.110267/0.105152. That utility cannot override the retention failure. Restoring full access on the same final weights recovers10/8 complete answers, localizing much of the loss to the admission policy rather than an inability of those weights to use the information. Recent64 recovers the same27/25 complete answers with lower NLL than either tested indexed proposer. Exact-cache yields23/18, so it is not selected as the next bounded reference. These are same-weights interventions on one paired seed, not independently trained policy superiority.",
+  "accepted_artifacts": "The paired learned-code parents delivered by PR1393 remain accepted at their original engineering scope. All orthant64 candidates and diagnostic controls are retained; no final policy override is promoted.",
+  "gates": {
+    "quaternion": [
+      true,
+      true,
+      true,
+      false,
+      true
+    ],
+    "householder_pair": [
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "indexed_utility": {
+    "quaternion": {
+      "pass": true,
+      "complete_answer_gain_over_recent32": 17,
+      "late_nll_improvement_over_recent32": 0.11026745531255644,
+      "nll_minus_recent64": 0.010425857727253796
+    },
+    "householder_pair": {
+      "pass": true,
+      "complete_answer_gain_over_recent32": 17,
+      "late_nll_improvement_over_recent32": 0.10515233516259226,
+      "nll_minus_recent64": 0.01626246293506073
+    }
+  },
+  "control_retention_rows_sha256": "1070b4073381360dd858788eaa0397e9ef301d869328fbf0176bcc489e75d093",
+  "next_recommendation": "**Use recent64 as the chosen bounded reference for the next matched learning step.** It is already implemented in the shared Rust graph and, on the final weights here, retains27/25 complete answers with lower NLL than either tested indexed policy. Its same-weights first-noun losses are2/0 against the immediate parent and1/1 against rung1. These diagnostic controls were not trained under recent64 and are not silently promoted to accepted artifacts.\n\nComplete one paired recent64 continuation from the accepted learned-code parents, retaining the same fixed grids, optimizer recipe, B16/T256, 256 updates and sampler8860..9115 used here. That supplies a matched policy comparison without another implementation/build programme or new hash/width/scale sweep. Freeze its admission-policy retention gates prospectively, preserve all current negatives, and inspect loaded answers before promotion. The existing binary and checkpoints are reusable; no broad re-audit or test expansion is the next task.\n\nAfter a bounded baseline retains behavior, continue the same model through observable quantized R4 transport and measured state/output drift, then integer/add/subtract/shift/lookup execution. Keep the ordinary transport arm and account for dense parameter access separately. A recency baseline does not solve retrieval beyond64 or qualify D8 rung3 in full.\n\nThe longer-range geometric routing research should target **candidate recall with explicit learning credit**, using train-only full-access parent evidence and a declared address/membership objective. Conditional gradients through already-selected events cannot directly correct every missed event. Preserve exact occurrence/word identity and capacity/eviction semantics; compare learned older access with cost-matched ordinary access on genuine dependencies beyond64 before claiming a geometric benefit. The new objective is a design dependency, not an implemented or measured remedy. This result supplies no reason to remove the geometric recurrent core.",
+  "claims_excluded": [
+    "general language/coding",
+    "geometric advantage",
+    "Hamiltonian dynamics",
+    "integer serving",
+    "terminal D5 parameter sparsity",
+    "physical energy savings",
+    "unbounded-context retrieval"
+  ],
+  "principal_review_scope": "Executed-source independent review adjudicated; all10 primary free continuations read; source losses/gains reviewed against immediate and rung1 anchors; full/recent/cache interventions and every target record verified. Gate thresholds and training dose remained fixed."
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "uor-r4.bounded-admission-budget/1",
+  "cycle_started_utc": "2026-09-25T17:08:39+00:00",
+  "recorded_utc": "2026-09-25T17:11:23.372991+00:00",
+  "base_commit": "196f77d5b9ab75ec3b74ea4eb75811831b2eee9d",
+  "complete_cycle_limit_ms": 7200000,
+  "projected_phases_minutes": {
+    "source_design_parallel_review": 20,
+    "implementation_build_checks": 25,
+    "matched_fit": 35,
+    "loaded_comparisons": 10,
+    "analysis_delivery": 20,
+    "stop_closeout_margin": 10
+  },
+  "ledger_before": {
+    "cumulative_ms": 535193179,
+    "limit_ms": 540000000
+  },
+  "ledger_after_extension": {
+    "cumulative_ms": 535193179,
+    "limit_ms": 547200000
+  },
+  "extension_ms": 7200000,
+  "reason": "Implement one shared bounded candidate access path and matched retained-artifact continuation under D8 rung3; covers prep, parallel DeepSeek, build/failures, fit, actual outputs, review and protected delivery. Existing standing authorization.",
+  "training_recipe": "Freeze after source/design review and before model execution. T256 B16 retained; at most two concurrent model processes; at most 256 updates per arm in the initial projection.",
+  "model_rss_per_process_limit_bytes": 4831838208,
+  "aggregate_model_rss_limit_bytes": 8589934592,
+  "cpu_sequence_workers_per_model": 2,
+  "nested_backend_threads": 1,
+  "concurrent_model_processes": 2,
+  "concurrent_cargo_processes": 1,
+  "storage_new_output_and_build_growth_limit_bytes": 2684354560,
+  "physical_free_at_start_bytes": 17739841536,
+  "physical_free_reserve_bytes": 16106127360,
+  "physical_stop_margin_bytes": 134217728,
+  "closeout_margin_bytes": 67108864,
+  "physical_free_stop_bytes": 16307453952,
+  "temporary_allowance_bytes": 268435456,
+  "metadata_allowance_bytes": 1048576,
+  "preserve_unique_artifacts": true,
+  "paid_external_training_compute": false
+}

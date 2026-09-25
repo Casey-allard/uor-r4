@@ -1,0 +1,17 @@
+{
+  "schema": "uor-r4.bounded-admission-storage-extension/1",
+  "recorded_utc": "2026-09-25T17:54:07.080562+00:00",
+  "authority": "Standing owner authorization for necessary local model/time/storage extensions; no new compute cost or deletion.",
+  "prior_budget_sha256": "6264e6d7e659117bedf5bb0f9ef9cbb6c7855cf6ac44eef853b122d5bf501b5f",
+  "physical_free_bytes": 16398962688,
+  "old_physical_reserve_bytes": 16106127360,
+  "new_physical_reserve_bytes": 15569256448,
+  "additional_physical_use_allowance_bytes": 536870912,
+  "physical_stop_margin_bytes": 134217728,
+  "closeout_margin_bytes": 67108864,
+  "new_allocation_cap_unchanged_bytes": 2684354560,
+  "remaining_output_projection_bytes": 251658240,
+  "reason": "Final two checkpoint/packed roots plus twelve target-record evaluations and protected result documentation need about240MiB. Current free space is only about85MiB above the original stop level because physical storage also includes macOS swap. Retain14.5GiB physical reserve plus128MiB stop and64MiB closeout; preserve every source/artifact/worktree.",
+  "application": "The already-running fit supervisor and pipeline retain their stricter launch-time limits. If they checkpoint or stop, preserve each attempt and use the amended budget only in a new supervisor; all learning continues from exact checkpoints and no gate changes.",
+  "new_physical_free_stop_bytes": 15770583040
+}

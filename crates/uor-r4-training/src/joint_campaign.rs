@@ -1163,6 +1163,12 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
 pub fn run_cli(args: &[String]) -> Result<()> {
     if args
         .first()
+        .is_some_and(|s| matches!(s.as_str(), "joint-bound-fit" | "joint-evaluate-admission"))
+    {
+        return crate::joint_bounded_campaign::run_cli(args);
+    }
+    if args
+        .first()
         .is_some_and(|s| matches!(s.as_str(), "joint-round-fit" | "joint-round-calibrate"))
     {
         return crate::joint_rounding_campaign::run_cli(args);
@@ -1533,6 +1539,7 @@ pub(crate) fn write_hard_export(
     let mut restored = JointModel::load_hard(out, &candle_core::Device::Cpu)?;
     if restored.config != parent.model.config
         || restored.quantization() != parent.model.quantization()
+        || restored.admission_policy() != parent.model.admission_policy()
     {
         return Err(invalid(
             "hard export reload changed configuration or quantization state",
@@ -1633,7 +1640,7 @@ pub(crate) fn write_hard_export(
     })
 }
 
-fn load_hard_export(source: &Path, evaluator: &Evaluator) -> Result<BoundModel> {
+pub(crate) fn load_hard_export(source: &Path, evaluator: &Evaluator) -> Result<BoundModel> {
     report_output::verify(source)?;
     let report: Value = serde_json::from_slice(&fs::read(source.join("hard-export-report.json"))?)?;
     let cfg = Campaign::load(&source.join("campaign.json"))?;
@@ -1673,7 +1680,7 @@ fn load_hard_export(source: &Path, evaluator: &Evaluator) -> Result<BoundModel> 
 }
 
 #[allow(clippy::too_many_arguments)]
-fn evaluate_loaded(
+pub(crate) fn evaluate_loaded(
     input: &BoundModel,
     evaluator: &Evaluator,
     checkpoint: &Path,
@@ -1776,6 +1783,9 @@ fn evaluate_loaded(
         "nll_nats:f64","no_read_mass:f32","copy_gate:f32","top_read_position:i32(-1=None)"],
         "order":"corpus order; target_offset=input_offset+1; same256context reset as evaluator v2"});
     report["targets_sha256"] = json!(sha256_file(&out.join("targets.bin"))?);
+    report["admission_policy"] = json!(model.admission_policy());
+    report["admission_audit"] = model.admission_audit()?;
+    report["executed_numerical_contract"] = model.numerical_contract();
     save_json(&out.join("evaluation-report.json"), &report)?;
     Ok(())
 }

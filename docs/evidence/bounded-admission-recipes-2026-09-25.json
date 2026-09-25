@@ -1,0 +1,70 @@
+{
+  "schema": "uor-r4.bounded-admission-recipes/1",
+  "executed_source_commit": "78fde5711ea01f80783eb9911e01197a61406d1a",
+  "executable_sha256": "3d6bea5024b59119a8d74d79986f926501f113d132af0b58fea1a2b1ef8d2669",
+  "recipes": {
+    "quaternion": {
+      "configuration": {
+        "schema": "uor-r4.joint-bounded-campaign/1",
+        "parent_packed": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-quaternion-rounding-3/packed-model",
+        "parent_manifest_sha256": "5a144f1a338ae2daa7fef6dd728108b9887598fb6781ffc3d84e10085b8b6dde",
+        "evaluator_path": "/Users/casey.allard/uor-r4-worktrees/bounded-admission-20260925/docs/integration/reference-evaluator-v2.json",
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "admission": "orthant64",
+        "optimizer": {
+          "learning_rate": 0.0001,
+          "weight_decay": 0.0,
+          "parameter_abs_limit": 1000000.0,
+          "allowed_missing_gradients": []
+        },
+        "steps": 256,
+        "data_start_step": 8860,
+        "data_seed": 240924,
+        "batch": 16,
+        "context": 256,
+        "cpu_gradient_shards": 2,
+        "max_process_seconds": 2400,
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/stop-quaternion-bounded",
+        "scope": "One fixed whole-model QAT continuation from retained hard codes under the same bounded index used incrementally. Parent grids and quantizer clock preserved; new optimizer and continuous sampler counter explicit. No alpha/scale sweep; one paired seed/exposed development."
+      },
+      "configuration_sha256": "874bf9e1639dd62288818fe7d741b0acde4b332aa37aaec95ea8311604caf68d"
+    },
+    "householder_pair": {
+      "configuration": {
+        "schema": "uor-r4.joint-bounded-campaign/1",
+        "parent_packed": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-householder_pair-rounding-3/packed-model",
+        "parent_manifest_sha256": "94a22080f391e894d300ac7fd57e01bb22f944554432537528071592ce45eff8",
+        "evaluator_path": "/Users/casey.allard/uor-r4-worktrees/bounded-admission-20260925/docs/integration/reference-evaluator-v2.json",
+        "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "admission": "orthant64",
+        "optimizer": {
+          "learning_rate": 0.0001,
+          "weight_decay": 0.0,
+          "parameter_abs_limit": 1000000.0,
+          "allowed_missing_gradients": []
+        },
+        "steps": 256,
+        "data_start_step": 8860,
+        "data_seed": 240924,
+        "batch": 16,
+        "context": 256,
+        "cpu_gradient_shards": 2,
+        "max_process_seconds": 2400,
+        "stop_file": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/stop-householder_pair-bounded",
+        "scope": "One fixed whole-model QAT continuation from retained hard codes under the same bounded index used incrementally. Parent grids and quantizer clock preserved; new optimizer and continuous sampler counter explicit. No alpha/scale sweep; one paired seed/exposed development."
+      },
+      "configuration_sha256": "62827dafd43fe90726ee7c95de4bdf767101ee1f1b07f64eb8c018448424b5b9"
+    }
+  },
+  "resume": {
+    "utc": "2026-09-25T17:58:48.489399+00:00",
+    "reason": "Original physical-reserve checkpoint; prospective extension recorded before stop. Exact same recipe/source/parameters/optimizer/sampler resume.",
+    "retained_updates_per_arm": 166,
+    "remaining_updates_per_arm": 90,
+    "first_segment_sample_sha256": "67263574999ceec49711007e5d0221f04868147582099426bf03b4dec1e6dc50",
+    "physical_free_bytes": 16179859456,
+    "pending_output_projection_bytes": 251658240,
+    "new_stop_bytes": 15770583040
+  },
+  "scope": "Same immutable recipe/source across both attempts; original checkpoint and every code/optimizer parent retained. The original quantizer clock and new optimizer/data clocks remain distinct."
+}

@@ -13,6 +13,8 @@ retain their separate stricter contracts.
 
 The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../docs/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. The [learned-code successor](../../docs/integration/learned-rounding-result-2026-09-25.md) now passes all five original hard-artifact gates in both arms. Its packed-minus-continuous gaps are+0.023708/+0.046477; both candidates are retained for trained bounded admission/transport. Individual complete-answer regressions and unreliable prose remain.
 
+The [bounded-admission successor](../../docs/integration/bounded-admission-result-2026-09-25.md) is complete: both orthant64 arms recover numerical retention but fail source retention (17/32 complete answers each). Same-weights recent64 restores27/25 at lower NLL and is the next matched learning reference. The sign index has measured utility versus recent32; this does not override its failure. Accepted learned-code parents remain preserved, and no diagnostic policy override is promoted.
+
 ```text
 uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESUME_CHECKPOINT]
 uor-r4-training joint-evaluate CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH
@@ -23,6 +25,8 @@ uor-r4-training joint-evaluate-shadow CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT
 uor-r4-training joint-evaluate-precision SEALED_SHADOW_CHECKPOINT EVALUATOR_JSON NEW_REPORT_ROOT cpu {FF|QF|FQ|QQ} BATCH
 uor-r4-training joint-round-calibrate ROUNDING_RECIPE_INPUT_JSON NEW_REPORT_ROOT
 uor-r4-training joint-round-fit RESOLVED_ROUNDING_RECIPE_JSON NEW_REPORT_ROOT [SEALED_ROUNDING_CHECKPOINT]
+uor-r4-training joint-bound-fit BOUNDED_CAMPAIGN_JSON NEW_REPORT_ROOT [SEALED_BOUNDED_CHECKPOINT]
+uor-r4-training joint-evaluate-admission PACKED_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH {full|recent64|recent32|orthant64|exact_cache64}
 ```
 
 The [frozen campaign](../../docs/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.
@@ -47,6 +51,48 @@ report both switches rather than one quantization-strength scalar. FF and QQ
 must reproduce the retained shadow and packed endpoints before interpreting
 QF/FQ. None of these views implements integer serving. See the
 [fixed-checkpoint plan](../../docs/integration/precision-factorial-plan-2026-09-25.md).
+
+### Bounded admission in the shared recurrent graph
+
+`joint_admission.rs` keeps exact occurrence IDs separate from similarity addresses.
+`orthant64` proposes recent32 plus two bounded sign-table searches over read
+coordinates 0..4 and 4..8. Each table probes the matching orthant and the neighbor
+across the least-absolute query coordinate; posting lists have eight entries.
+Duplicate removal yields at most64 earlier occurrences, scored by the existing
+full64-dimensional key/query energy, actual occurrence age and learned NoRead.
+The sign coordinates are learned read projections, not designated R4 state lanes.
+Read precedes write; a missing posting does not prove that the exact tape lacks
+an event. Hard admission has no direct membership gradient. Selected query/key,
+value, state and output paths retain full recurrent language gradients.
+
+`JointModel` uses the same policy during training and incremental generation.
+Batch learning may gather from contiguous differentiable histories and expand
+selected masses for the evaluator. Bounded incremental sessions retain individual
+event tensors and fetch only admitted keys, values and exact copy tokens; they
+do not concatenate or scan the full history to perform a read. The 256-token
+model ceiling, dense parameter maps, floating arithmetic and allocations remain.
+Query/insert counters and logical index bytes describe index work; they are not
+whole-model performance, physical RAM or energy measurements.
+
+`joint-bound-fit` starts a declared new AdamW from actual retained packed values,
+with frozen dyadic grids, full-strength STE and representable-range projection
+after updates. Its new optimizer clock and sampler cursor are separate from the
+inherited quantizer clock. `bounded-campaign.json` is the actual recipe;
+`campaign.json` in its checkpoint preserves the historical parent lineage.
+Resume binds the recipe, model, grids, policy, optimizer and data cursor. A
+checkpointed partial attempt is preserved; only completion emits the final packed
+candidate. Packed manifests and loaded sessions bind the admission policy, with
+omitted policy retaining historical full access.
+
+`joint-evaluate-admission` declares a same-weights policy intervention and executes
+the common target and generated-output evaluator. `recent64` and `recent32` are
+literal recency controls. `exact_cache64` unions recent32 with up to32 historical
+followers of the currently observed token; targets never enter the cache.
+All bounded policies currently maintain the control indexes, so their actual
+storage and insertion work are counted. The [prospective plan](../../docs/integration/bounded-admission-plan-2026-09-25.md)
+separates retention from the indexed complement's utility and preserves the
+ordinary transport control. No index or geometric superiority follows from a
+retention pass.
 
 ### Quantized continuation and packed evaluation
 
@@ -100,8 +146,9 @@ disables quantizers on the same QAT floating parameters for a measured gap.
 
 These are **F32 numerical emulators of quantized values**. Dense matmul,
 normalization, nonlinearities and probability arithmetic remain floating.
-Integer execution, bounded admission, sparse parameter access and energy are
-separate later work. The signed unit transport coordinates are rounded without
+Integer execution, sparse parameter access and energy are separate later work.
+Bounded admission is implemented above and has its own artifact-specific scope.
+The signed unit transport coordinates are rounded without
 off-grid renormalization; exact group closure is not asserted. Packed parameter
 size does not establish measured process RAM or serving speed.
 

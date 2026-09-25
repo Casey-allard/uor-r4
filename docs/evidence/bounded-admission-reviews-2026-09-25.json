@@ -1,0 +1,53 @@
+{
+  "schema": "uor-r4.bounded-admission-independent-review/1",
+  "reviews": {
+    "math": {
+      "receipt": {
+        "model_route": "DeepSeek/deepseek-flash",
+        "profile": "uor-source-falsifier.md",
+        "started_utc": "2026-09-25T17:12:48.292275+00:00",
+        "completed_utc": "2026-09-25T17:18:47.581679+00:00",
+        "exit_code": 0,
+        "log": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-math-1.log"
+      },
+      "receipt_sha256": "cb712019b0dcd7bebca54849697f8c6db9bde269b51965b2b9a6c4c016f2f56a",
+      "log_sha256": "88a37de90972b04fe3701aeeba3e10a7fe24bef5d04c189d63ef0c8fd1f520e9",
+      "log_bytes": 199078
+    },
+    "implementer": {
+      "receipt": {
+        "model_route": "DeepSeek/deepseek-flash",
+        "profile": "uor-implementer.md",
+        "started_utc": "2026-09-25T17:12:55.536389+00:00",
+        "completed_utc": "2026-09-25T17:23:19.475785+00:00",
+        "exit_code": 0,
+        "log": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-implementer-1.log"
+      },
+      "receipt_sha256": "b697f3fbf4bdce4f08fb45d01490c727b300ce74a796d6c08d644a43cef66b6e",
+      "log_sha256": "b6ccd0d9c79002ab6f1ed2d6070d6c0ed2141c81292f287a3b8d1e9ad8c5435a",
+      "log_bytes": 394609
+    },
+    "integrated": {
+      "receipt": {
+        "model_route": "DeepSeek/deepseek-flash",
+        "profile": "uor-source-falsifier.md",
+        "started_utc": "2026-09-25T17:49:16.678569+00:00",
+        "completed_utc": "2026-09-25T17:57:10.084843+00:00",
+        "exit_code": 0,
+        "log": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-integrated-1.log"
+      },
+      "receipt_sha256": "06a71e1aef42c0916e74ddfc7dbfc7564b4a726ef00bc36d382c0ab2e940b4d4",
+      "log_sha256": "f4936d5ee8a7fba9047dbd86a06558a71dfd4d90d832f6bb1bbabbbb3311917e",
+      "log_bytes": 292323
+    }
+  },
+  "principal_adjudication": [
+    "Source review found no blocking defect for this actual two-worker immutable-session recipe. That is not model-quality approval.",
+    "The physical-reserve shortage was measured and a prospective extension was recorded before use. Original stricter guard checkpointed at166; exact resume preserved model/moments/clocks and equal actual sample hashes.",
+    "No omitted-mass or permanent-unlearnability conclusion can be derived from top-read-only target records. Shared parameter learning can indirectly change hard membership.",
+    "A zero weight-decay coefficient does not prove that projection cannot affect future gradients or optimizer trajectories.",
+    "Partial signs are learned read coordinates, not R4 state lanes. Neither index success nor matched transport scores would establish geometric advantage.",
+    "Inherited top-level parent metadata is not the new optimizer/data clock. Bounded continuation lineage is the authority; both actual worker counts are2. Session variable mutation was not used.",
+    "Final retention and indexed utility remain governed by the prospectively frozen tests, with no extra random-index sweep or retroactive thresholds."
+  ]
+}

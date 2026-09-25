@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
+use crate::joint_admission::{AdmissionIndex, AdmissionPolicy, AdmissionWork};
 use crate::joint_quantization::{self, QuantizationSpec};
 use crate::{invalid, Result};
 
@@ -161,6 +162,8 @@ pub struct JointModel {
     // Alpha variables and prepared weights exist only in offline learning.
     rounding_learning: bool,
     interface_audit: Option<Arc<Mutex<BTreeMap<String, InterfaceAudit>>>>,
+    admission: AdmissionPolicy,
+    admission_audit: Option<Arc<Mutex<Value>>>,
 }
 
 /// Scales are calibrated once from the sealed parent and retained on resume.
@@ -256,6 +259,10 @@ struct RecurrentState {
     keys: Option<Tensor>,
     values: Option<Tensor>,
     events: Vec<MemoryEvent>,
+    indexes: Vec<AdmissionIndex>,
+    key_events: Vec<Tensor>,
+    value_events: Vec<Tensor>,
+    dense_batch_history: bool,
 }
 
 /// Detached incremental state; the context bound is enforced without eviction.
@@ -283,11 +290,14 @@ pub struct JointStep {
     pub read_masses: Tensor,
     pub copy_gate: Tensor,
     pub state: Tensor,
+    /// Column identities for the first lane; use the per-lane mapping for batches.
     pub read_occurrences: Vec<usize>,
+    pub read_occurrences_by_lane: Vec<Vec<usize>>,
     pub written_occurrence: usize,
 }
 
 struct CoreStep {
+    occurrences: Vec<Vec<usize>>,
     state: Tensor,
     no_read_mass: Tensor,
     read_masses: Tensor,
@@ -358,7 +368,94 @@ impl JointModel {
             hard_only: false,
             rounding_learning: false,
             interface_audit: None,
+            admission: AdmissionPolicy::Full,
+            admission_audit: None,
         })
+    }
+
+    pub fn admission_policy(&self) -> AdmissionPolicy {
+        self.admission
+    }
+
+    pub fn set_admission_policy(&mut self, policy: AdmissionPolicy) -> Result<()> {
+        if self.prepared_parameters.is_some() {
+            return Err(invalid("admission cannot change inside a prepared graph"));
+        }
+        self.admission = policy;
+        Ok(())
+    }
+
+    /// New offline optimizer starts from the actual packed code values. Parent
+    /// clock/scales remain immutable; campaign lineage records all new updates.
+    pub(crate) fn packed_training_start(&self) -> Result<Self> {
+        if !self.hard_only || self.prepared_parameters.is_some() {
+            return Err(invalid("bounded continuation requires a packed parent"));
+        }
+        let mut model = self.detached_view()?;
+        model.variables = self
+            .variables
+            .iter()
+            .map(|(n, v)| Ok((n.clone(), Var::from_tensor(&v.detach())?)))
+            .collect::<Result<_>>()?;
+        model.hard_only = false;
+        Ok(model)
+    }
+
+    pub fn enable_admission_audit(&mut self) {
+        self.admission_audit = Some(Arc::new(Mutex::new(json!({
+            "queries":0u64,"causally_available":0u64,"scored_candidates":0u64,
+            "max_scored_candidates":0u64,"older_than_recent32":0u64,
+            "work":{},"insert_work":{},"max_index_logical_bytes_per_lane":0u64,"posting_evictions":0u64,"policy":self.admission.name(),
+            "scope":"Actual index query and selected ranking. Offline training may concatenate histories and expand masses; bounded incremental read/value/copy uses selected event tensors. Dense recurrent/output parameter access, host copies, allocations and fixed context ceiling remain."
+        }))));
+    }
+
+    pub fn admission_audit(&self) -> Result<Value> {
+        match &self.admission_audit {
+            Some(a) => Ok(a
+                .lock()
+                .map_err(|_| invalid("admission audit lock"))?
+                .clone()),
+            None => Ok(Value::Null),
+        }
+    }
+
+    fn record_admission(
+        &self,
+        previous: usize,
+        occurrences: &[Vec<usize>],
+        work: &[AdmissionWork],
+    ) -> Result<()> {
+        if let Some(a) = &self.admission_audit {
+            let mut a = a.lock().map_err(|_| invalid("admission audit lock"))?;
+            a["queries"] = json!(a["queries"].as_u64().unwrap_or(0) + occurrences.len() as u64);
+            a["causally_available"] = json!(
+                a["causally_available"].as_u64().unwrap_or(0)
+                    + (previous * occurrences.len()) as u64
+            );
+            for row in occurrences {
+                a["scored_candidates"] =
+                    json!(a["scored_candidates"].as_u64().unwrap_or(0) + row.len() as u64);
+                a["max_scored_candidates"] = json!(a["max_scored_candidates"]
+                    .as_u64()
+                    .unwrap_or(0)
+                    .max(row.len() as u64));
+                a["older_than_recent32"] = json!(
+                    a["older_than_recent32"].as_u64().unwrap_or(0)
+                        + row.iter().filter(|&&i| previous - i > 32).count() as u64
+                );
+            }
+            for row in work {
+                if let Some(fields) = serde_json::to_value(row)?.as_object() {
+                    for (key, value) in fields {
+                        if let Some(count) = value.as_u64() {
+                            a["work"][key] = json!(a["work"][key].as_u64().unwrap_or(0) + count);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn quantization(&self) -> Option<&QuantizedTrainingState> {
@@ -458,6 +555,7 @@ impl JointModel {
         }
         let mut model = Self::from_variables(self.config.clone(), variables, &self.device)?;
         model.quantization = self.quantization.clone();
+        model.admission = self.admission;
         Ok(model)
     }
 
@@ -554,6 +652,8 @@ impl JointModel {
         model.hard_only = self.hard_only;
         model.rounding_learning = self.rounding_learning;
         model.interface_audit = self.interface_audit.clone();
+        model.admission = self.admission;
+        model.admission_audit = self.admission_audit.clone();
         Ok(model)
     }
 
@@ -730,6 +830,10 @@ impl JointModel {
             keys: None,
             values: None,
             events: Vec::new(),
+            indexes: (0..batch).map(|_| AdmissionIndex::new()).collect(),
+            key_events: Vec::new(),
+            value_events: Vec::new(),
+            dense_batch_history: false,
         })
     }
 
@@ -767,6 +871,7 @@ impl JointModel {
             return Err(invalid("joint input shape/context/vocabulary"));
         }
         let mut memory = self.initial_memory(batch)?;
+        memory.dense_batch_history = true;
         let embedding = self.weight("embedding.weight", training)?;
         let index = Tensor::from_vec(ids.to_vec(), (ids.len(),), &self.device)?;
         let token_affine = embedding
@@ -787,12 +892,17 @@ impl JointModel {
             states.push(step.state);
             no_reads.push(step.no_read_mass.squeeze(1)?);
             gates.push(step.copy_gate.squeeze(1)?);
+            let dense_masses = if self.admission == AdmissionPolicy::Full {
+                step.read_masses
+            } else {
+                self.expand_read_masses(&step.read_masses, &step.occurrences, position, batch)?
+            };
             let padded = if position == 0 {
                 Tensor::zeros((batch, time), DType::F32, &self.device)?
             } else {
                 Tensor::cat(
                     &[
-                        &step.read_masses,
+                        &dense_masses,
                         &Tensor::zeros((batch, time - position), DType::F32, &self.device)?,
                     ],
                     1,
@@ -843,7 +953,8 @@ impl JointModel {
         input_tokens: &[u32],
         mode: ReadMode,
     ) -> Result<JointStep> {
-        if session.config != self.config
+        if session.prepared.admission != self.admission
+            || session.config != self.config
             || session.prepared.quantization != self.quantization
             || session.prepared.precision_mode != self.precision_mode
             || session.prepared.variables.iter().any(|(name, variable)| {
@@ -867,11 +978,20 @@ impl JointModel {
             .index_select(&index, 0)?
             .matmul(&model.weight("recurrent.input.weight", false)?.t()?)?;
         let core = model.core_step(&mut session.memory, input_tokens, &affine, mode, false)?;
-        let copy = self.incremental_copy(
-            &core.read_masses,
-            &session.memory.events[..occurrence],
-            session.batch,
-        )?;
+        let copy = if self.admission == AdmissionPolicy::Full {
+            self.incremental_copy(
+                &core.read_masses,
+                &session.memory.events[..occurrence],
+                session.batch,
+            )?
+        } else {
+            self.selected_copy(
+                &core.read_masses,
+                &core.occurrences,
+                &session.memory.events,
+                session.batch,
+            )?
+        };
         let probabilities = model.output_distribution(
             &core.state,
             &core.no_read_mass,
@@ -885,7 +1005,8 @@ impl JointModel {
             read_masses: core.read_masses,
             copy_gate: core.copy_gate.squeeze(1)?,
             state: core.state,
-            read_occurrences: (0..occurrence).collect(),
+            read_occurrences: core.occurrences.first().cloned().unwrap_or_default(),
+            read_occurrences_by_lane: core.occurrences,
             written_occurrence: occurrence,
         })
     }
@@ -927,13 +1048,40 @@ impl JointModel {
             .add(&z.mul(&candidate)?)?;
         let provisional = self.interface(&provisional, Interface::State, training)?;
         let normalized = self.normalized(&provisional, training)?;
+        let mut occurrences = vec![Vec::new(); batch];
+        let mut admission_work = Vec::new();
         let (no_read_mass, read_masses, read) = if previous == 0 || mode == ReadMode::NoRead {
             (
                 Tensor::ones((batch, 1), DType::F32, &self.device)?,
-                Tensor::zeros((batch, previous), DType::F32, &self.device)?,
+                Tensor::zeros(
+                    (
+                        batch,
+                        if self.admission == AdmissionPolicy::Full {
+                            previous
+                        } else {
+                            0
+                        },
+                    ),
+                    DType::F32,
+                    &self.device,
+                )?,
                 Tensor::zeros((batch, d), DType::F32, &self.device)?,
             )
+        } else if self.admission != AdmissionPolicy::Full {
+            let query = self.linear(&normalized, "read.query", training)?;
+            let observed_queries = query.detach().to_vec2::<f32>()?;
+            for lane in 0..batch {
+                let selected = memory.indexes[lane].query(
+                    self.admission,
+                    &observed_queries[lane],
+                    input[lane],
+                )?;
+                occurrences[lane] = selected.occurrences;
+                admission_work.push(selected.work);
+            }
+            self.selected_read(memory, &query, &normalized, &occurrences, training)?
         } else {
+            occurrences = vec![(0..previous).collect(); batch];
             let query = self.linear(&normalized, "read.query", training)?;
             let keys = memory
                 .keys
@@ -965,6 +1113,12 @@ impl JointModel {
             let read = self.interface(&read, Interface::State, training)?;
             (no_read_mass, read_masses, read)
         };
+        if self.admission == AdmissionPolicy::Full && mode == ReadMode::NoRead {
+            occurrences = vec![(0..previous).collect(); batch];
+        }
+        if mode == ReadMode::Enabled {
+            self.record_admission(previous, &occurrences, &admission_work)?;
+        }
         let update_input = Tensor::cat(&[&provisional, &read], 1)?;
         let update = self.interface(
             &self.linear(&update_input, "update", training)?.tanh()?,
@@ -994,25 +1148,243 @@ impl JointModel {
             .linear(&normalized_write, "read.value", training)?
             .tanh()?;
         let value = self.interface(&value, Interface::Unit, training)?;
-        let keys = append_history(memory.keys.as_ref(), &key, training)?;
-        let values = append_history(memory.values.as_ref(), &value, training)?;
+        if self.admission == AdmissionPolicy::Full || memory.dense_batch_history {
+            memory.keys = Some(append_history(memory.keys.as_ref(), &key, training)?);
+            memory.values = Some(append_history(memory.values.as_ref(), &value, training)?);
+        }
+        if self.admission != AdmissionPolicy::Full {
+            let key_rows = key.detach().to_vec2::<f32>()?;
+            for lane in 0..batch {
+                let before = memory.indexes[lane].insert_work();
+                let old_evictions = memory.indexes[lane].footprint().posting_evictions;
+                memory.indexes[lane].insert(&key_rows[lane], input[lane])?;
+                if let Some(audit) = &self.admission_audit {
+                    let mut audit = audit.lock().map_err(|_| invalid("admission audit lock"))?;
+                    let after = serde_json::to_value(memory.indexes[lane].insert_work())?;
+                    let before = serde_json::to_value(before)?;
+                    if let Some(fields) = after.as_object() {
+                        for (name, value) in fields {
+                            let delta =
+                                value.as_u64().unwrap_or(0) - before[name].as_u64().unwrap_or(0);
+                            audit["insert_work"][name] =
+                                json!(audit["insert_work"][name].as_u64().unwrap_or(0) + delta);
+                        }
+                    }
+                    let footprint = memory.indexes[lane].footprint();
+                    audit["posting_evictions"] = json!(
+                        audit["posting_evictions"].as_u64().unwrap_or(0)
+                            + (footprint.posting_evictions - old_evictions) as u64
+                    );
+                    audit["max_index_logical_bytes_per_lane"] = json!(audit
+                        ["max_index_logical_bytes_per_lane"]
+                        .as_u64()
+                        .unwrap_or(0)
+                        .max(footprint.logical_bytes as u64));
+                }
+            }
+            if !memory.dense_batch_history {
+                memory.key_events.push(key.detach());
+                memory.value_events.push(value.detach());
+            }
+        }
         memory.state = if training {
             state.clone()
         } else {
             state.detach()
         };
-        memory.keys = Some(keys);
-        memory.values = Some(values);
         memory.events.push(MemoryEvent {
             occurrence: previous,
             tokens: input.to_vec(),
         });
         Ok(CoreStep {
+            occurrences,
             state,
             no_read_mass,
             read_masses,
             copy_gate,
         })
+    }
+
+    fn selected_read(
+        &self,
+        memory: &RecurrentState,
+        query: &Tensor,
+        normalized: &Tensor,
+        occurrences: &[Vec<usize>],
+        training: bool,
+    ) -> Result<(Tensor, Tensor, Tensor)> {
+        let batch = occurrences.len();
+        let count = occurrences.iter().map(Vec::len).max().unwrap_or(0);
+        if count == 0 || count > 64 {
+            return Err(invalid("bounded read requires 1..64 candidate columns"));
+        }
+        let previous = memory.events.len();
+        let mut masks = Vec::with_capacity(batch * count);
+        let mut ages = Vec::with_capacity(batch * count);
+        for row in occurrences {
+            for slot in 0..count {
+                if let Some(&id) = row.get(slot) {
+                    if id >= previous {
+                        return Err(invalid("noncausal admitted occurrence"));
+                    }
+                    masks.push(0f32);
+                    ages.push((previous - id - 1) as u32);
+                } else {
+                    masks.push(f32::NEG_INFINITY);
+                    ages.push(0);
+                }
+            }
+        }
+        let keys = self.selected_history(
+            memory.keys.as_ref(),
+            &memory.key_events,
+            occurrences,
+            count,
+            self.config.read_width,
+            memory.dense_batch_history,
+        )?;
+        let values = self.selected_history(
+            memory.values.as_ref(),
+            &memory.value_events,
+            occurrences,
+            count,
+            self.config.width,
+            memory.dense_batch_history,
+        )?;
+        let scores = query
+            .unsqueeze(1)?
+            .matmul(&keys.transpose(1, 2)?.contiguous()?)?
+            .squeeze(1)?
+            .affine(1.0 / (self.config.read_width as f64).sqrt(), 0.0)?;
+        let age = self
+            .weight("read.age", training)?
+            .index_select(&Tensor::from_vec(ages, (batch * count,), &self.device)?, 0)?
+            .reshape((batch, count))?;
+        let scores = self
+            .interface(&scores.add(&age)?, Interface::Affine, training)?
+            .add(&Tensor::from_vec(masks, (batch, count), &self.device)?)?;
+        let null = self.linear(normalized, "read.no_read", training)?;
+        let masses = candle_nn::ops::softmax(&Tensor::cat(&[&null, &scores], 1)?, 1)?;
+        let no_read = masses.narrow(1, 0, 1)?;
+        let reads = masses.narrow(1, 1, count)?.contiguous()?;
+        let read = reads.unsqueeze(1)?.matmul(&values)?.squeeze(1)?;
+        Ok((
+            no_read,
+            reads,
+            self.interface(&read, Interface::State, training)?,
+        ))
+    }
+
+    /// Training gathers selected rows from a differentiable contiguous history.
+    /// Incremental execution visits only selected separately stored events.
+    fn selected_history(
+        &self,
+        history: Option<&Tensor>,
+        events: &[Tensor],
+        occurrences: &[Vec<usize>],
+        count: usize,
+        width: usize,
+        training: bool,
+    ) -> Result<Tensor> {
+        let batch = occurrences.len();
+        if training {
+            let history = history.ok_or_else(|| invalid("missing bounded training history"))?;
+            let indexes: Vec<u32> = occurrences
+                .iter()
+                .flat_map(|row| {
+                    (0..count).flat_map(move |slot| {
+                        std::iter::repeat_n(row.get(slot).copied().unwrap_or(0) as u32, width)
+                    })
+                })
+                .collect();
+            Ok(history.gather(
+                &Tensor::from_vec(indexes, (batch, count, width), &self.device)?,
+                1,
+            )?)
+        } else {
+            let mut lanes = Vec::with_capacity(batch);
+            for (lane, row) in occurrences.iter().enumerate() {
+                let mut selected = Vec::with_capacity(count);
+                for slot in 0..count {
+                    if let Some(&id) = row.get(slot) {
+                        selected.push(
+                            events
+                                .get(id)
+                                .ok_or_else(|| invalid("missing exact event tensor"))?
+                                .get(lane)?,
+                        );
+                    } else {
+                        selected.push(Tensor::zeros((width,), DType::F32, &self.device)?);
+                    }
+                }
+                lanes.push(Tensor::stack(&selected, 0)?);
+            }
+            Ok(Tensor::stack(&lanes, 0)?)
+        }
+    }
+
+    /// Offline batch diagnostics/copy retain the old dense occurrence layout.
+    /// This expansion is never used by the bounded incremental serving emulator.
+    fn expand_read_masses(
+        &self,
+        masses: &Tensor,
+        rows: &[Vec<usize>],
+        previous: usize,
+        batch: usize,
+    ) -> Result<Tensor> {
+        let count = masses.dim(1)?;
+        if count == 0 {
+            return Ok(Tensor::zeros((batch, previous), DType::F32, &self.device)?);
+        }
+        let mut expanded = Vec::with_capacity(batch);
+        for (lane, row) in rows.iter().enumerate() {
+            let indexes: Vec<u32> = (0..count)
+                .map(|i| row.get(i).copied().unwrap_or(0) as u32)
+                .collect();
+            expanded.push(
+                Tensor::zeros((previous,), DType::F32, &self.device)?.index_add(
+                    &Tensor::from_vec(indexes, (count,), &self.device)?,
+                    &masses.get(lane)?.contiguous()?,
+                    0,
+                )?,
+            );
+        }
+        Ok(Tensor::stack(&expanded, 0)?)
+    }
+
+    fn selected_copy(
+        &self,
+        masses: &Tensor,
+        rows: &[Vec<usize>],
+        events: &[MemoryEvent],
+        batch: usize,
+    ) -> Result<Tensor> {
+        let count = masses.dim(1)?;
+        let zeros = Tensor::zeros((batch * self.config.vocab_size,), DType::F32, &self.device)?;
+        if count == 0 {
+            return Ok(zeros.reshape((batch, self.config.vocab_size))?);
+        }
+        let mut indexes = Vec::with_capacity(batch * count);
+        for (lane, row) in rows.iter().enumerate() {
+            for slot in 0..count {
+                let token = match row.get(slot) {
+                    Some(&id) => events
+                        .get(id)
+                        .and_then(|e| e.tokens.get(lane))
+                        .copied()
+                        .ok_or_else(|| invalid("missing exact copy token"))?,
+                    None => 0,
+                };
+                indexes.push((lane * self.config.vocab_size + token as usize) as u32);
+            }
+        }
+        Ok(zeros
+            .index_add(
+                &Tensor::from_vec(indexes, (batch * count,), &self.device)?,
+                &masses.flatten_all()?.contiguous()?,
+                0,
+            )?
+            .reshape((batch, self.config.vocab_size))?)
     }
 
     fn output_distribution(
@@ -1128,6 +1500,7 @@ impl JointModel {
             weights_sha256: hex::encode(Sha256::digest(&bytes)),
             numerical_contract: self.numerical_contract(),
             quantization: self.quantization.clone(),
+            admission: self.admission,
         };
         let mut weights = File::create_new(directory.join("model.safetensors"))?;
         weights.write_all(&bytes)?;
@@ -1148,6 +1521,7 @@ impl JointModel {
         } else {
             numerical_contract()
         };
+        let expected_contract = admission_contract(expected_contract, config.admission);
         if config.schema != CHECKPOINT_SCHEMA || config.numerical_contract != expected_contract {
             return Err(invalid(
                 "joint checkpoint schema or numerical contract mismatch",
@@ -1188,6 +1562,7 @@ impl JointModel {
             }
         }
         model.quantization = config.quantization;
+        model.admission = config.admission;
         Ok(model)
     }
 
@@ -1210,7 +1585,7 @@ impl JointModel {
             contract["quantization"]["artifact"] =
                 json!("In-memory diagnostic view of a floating checkpoint; cannot be saved as a training or packed model");
         }
-        contract
+        admission_contract(contract, self.admission)
     }
 
     /// Packed parameter export for the shared quantized F32 evaluator. This is
@@ -1229,15 +1604,18 @@ impl JointModel {
             .ok_or_else(|| invalid("hard export requires frozen quantization scales"))?;
         let parameters =
             joint_quantization::save_hard_parameters(&state.spec, &self.variables, directory)?;
-        let manifest = json!({
+        let mut manifest = json!({
             "schema":"uor-r4.joint-recurrent-packed-emulator/1",
             "model":self.config,
             "quantization":state,
-            "numerical_contract":quantized_numerical_contract(),
+            "numerical_contract":admission_contract(quantized_numerical_contract(), self.admission),
             "parameter_manifest":parameters,
             "parameter_manifest_sha256":crate::sha256_file(&directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE))?,
             "scope":"Packed signed 4-bit multiplicative weights and signed 16-bit additive offsets; dyadic scales; quantized recurrent interfaces; F32 emulation, not D0-b integer serving"
         });
+        if self.admission != AdmissionPolicy::Full {
+            manifest["admission"] = json!(self.admission);
+        }
         let mut file = File::create_new(directory.join("hard-model.json"))?;
         serde_json::to_writer_pretty(&mut file, &manifest)?;
         file.write_all(b"\n")?;
@@ -1248,8 +1626,14 @@ impl JointModel {
     pub fn load_hard(directory: &Path, device: &Device) -> Result<Self> {
         let manifest: Value =
             serde_json::from_slice(&fs::read(directory.join("hard-model.json"))?)?;
+        let admission: AdmissionPolicy = manifest
+            .get("admission")
+            .map(|v| serde_json::from_value(v.clone()))
+            .transpose()?
+            .unwrap_or_default();
         if manifest["schema"] != "uor-r4.joint-recurrent-packed-emulator/1"
-            || manifest["numerical_contract"] != quantized_numerical_contract()
+            || manifest["numerical_contract"]
+                != admission_contract(quantized_numerical_contract(), admission)
             || manifest["parameter_manifest_sha256"]
                 != crate::sha256_file(
                     &directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE),
@@ -1286,6 +1670,7 @@ impl JointModel {
         let mut model = Self::from_variables(config, variables, device)?;
         model.quantization = Some(state);
         model.hard_only = true;
+        model.admission = admission;
         Ok(model)
     }
 }
@@ -1298,6 +1683,23 @@ struct CheckpointConfig {
     numerical_contract: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     quantization: Option<QuantizedTrainingState>,
+    #[serde(default, skip_serializing_if = "admission_is_full")]
+    admission: AdmissionPolicy,
+}
+
+fn admission_is_full(policy: &AdmissionPolicy) -> bool {
+    *policy == AdmissionPolicy::Full
+}
+
+fn admission_contract(mut contract: Value, policy: AdmissionPolicy) -> Value {
+    if policy != AdmissionPolicy::Full {
+        contract["training_credit"] = json!("Full trajectory conditional on a stopped-gradient causal admission mask; selected query/key/value/state paths remain differentiable. No cross-bucket membership estimator.");
+        if contract.get("quantization").is_some() {
+            contract["quantization"]["remaining_float"] = json!("F32 recurrent/output dense maps, selected key/value scoring, normalization, nonlinearities and sampling remain. Bounded incremental admission/read/copy visit at most64 selected events; offline batch storage and diagnostic masses may be dense.");
+        }
+        contract["admission"] = json!({"policy":policy,"maximum_scored_candidates":64,"backward":"Hard causal index mask is stopped-gradient; selected query/key/value/state/output retain full-trajectory language credit. No estimator of cross-bucket membership credit.","scope":"Selected retrieval/ranking/value/copy in the shared recurrent graph; full-context and exact-cache controls. Not integer execution, unbounded context, parameter sparsity or measured energy."});
+    }
+    contract
 }
 
 pub fn quantized_numerical_contract() -> Value {
@@ -1477,6 +1879,138 @@ mod tests {
             seed: 7,
             ..JointConfig::default()
         }
+    }
+
+    #[test]
+    fn bounded_shared_graph_session_causality_and_gradients() -> Result<()> {
+        for transport in [Transport::Quaternion, Transport::HouseholderPair] {
+            let mut config = small(transport);
+            config.context = 96;
+            let base = JointModel::new(config, &Device::Cpu)?;
+            let ids: Vec<u32> = (0..192)
+                .map(|i| ((i * 17 + i / 7) % 4095 + 1) as u32)
+                .collect();
+            for policy in [
+                AdmissionPolicy::Recent64,
+                AdmissionPolicy::Orthant64,
+                AdmissionPolicy::ExactCache64,
+            ] {
+                let mut model = base.detached_view()?;
+                model.set_admission_policy(policy)?;
+                let full = model.forward(&ids, 2, 96, ReadMode::Enabled, false)?;
+                let mut session = model.new_session(2)?;
+                for position in 0..96 {
+                    let step = model.step(
+                        &mut session,
+                        &[ids[position], ids[96 + position]],
+                        ReadMode::Enabled,
+                    )?;
+                    let expected = full.probabilities.narrow(1, position, 1)?.squeeze(1)?;
+                    assert!(
+                        max_delta(&expected, &step.probabilities)? < 2e-6,
+                        "{policy:?} at {position}"
+                    );
+                    assert!(step
+                        .read_occurrences_by_lane
+                        .iter()
+                        .all(|row| row.len() <= 64 && row.iter().all(|&id| id < position)));
+                }
+                assert!(
+                    session.memory.keys.is_none() && session.memory.values.is_none(),
+                    "bounded incremental path must not concatenate history"
+                );
+                assert_eq!(session.memory.key_events.len(), 96);
+                let prefix: Vec<u32> = ids[..48].iter().chain(&ids[96..144]).copied().collect();
+                let prefix_output = model.forward(&prefix, 2, 48, ReadMode::Enabled, false)?;
+                assert!(
+                    max_delta(
+                        &prefix_output.probabilities,
+                        &full.probabilities.narrow(1, 0, 48)?
+                    )? < 2e-6
+                );
+                let no_read = model.forward(&ids, 2, 96, ReadMode::NoRead, false)?;
+                let full_no_read = base.forward(&ids, 2, 96, ReadMode::NoRead, false)?;
+                assert_eq!(
+                    max_delta(&no_read.probabilities, &full_no_read.probabilities)?,
+                    0.0
+                );
+                let trained = model.forward(&ids, 2, 96, ReadMode::Enabled, true)?;
+                assert!(max_delta(&trained.probabilities, &full.probabilities)? < 2e-6);
+                let targets: Vec<u32> = ids.iter().map(|x| (x + 1) % 4096).collect();
+                let gradients = trained.loss(&targets)?.backward()?;
+                for name in [
+                    "read.query.weight",
+                    "read.key.weight",
+                    "read.value.weight",
+                    "recurrent.state.weight",
+                    "embedding.weight",
+                ] {
+                    let gradient = gradients
+                        .get(model.variables()[name].as_tensor())
+                        .ok_or_else(|| {
+                            invalid(format!("missing bounded language gradient {name}"))
+                        })?;
+                    let norm = gradient.abs()?.sum_all()?.to_scalar::<f32>()?;
+                    assert!(norm.is_finite() && norm > 0.0, "{policy:?} {name}");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn bounded_packed_policy_roundtrip_and_session_policy_binding() -> Result<()> {
+        let mut config = small(Transport::Quaternion);
+        config.context = 80;
+        let mut model = JointModel::new(config, &Device::Cpu)?;
+        model.configure_quantization(0, 1)?;
+        model.set_completed_step(1)?;
+        model
+            .quantization()
+            .ok_or_else(|| invalid("quantizers"))?
+            .spec
+            .project_parameters(model.variables())?;
+        model.set_admission_policy(AdmissionPolicy::Orthant64)?;
+        let mut session = model.new_session(1)?;
+        model.set_admission_policy(AdmissionPolicy::Recent64)?;
+        assert!(model.step(&mut session, &[1], ReadMode::Enabled).is_err());
+        model.set_admission_policy(AdmissionPolicy::Orthant64)?;
+        let root = precision_test_root("bounded-packed")?;
+        model.save_hard(&root)?;
+        let loaded = JointModel::load_hard(&root, &Device::Cpu)?;
+        assert_eq!(loaded.admission_policy(), AdmissionPolicy::Orthant64);
+        let ids: Vec<u32> = (1..=80).collect();
+        assert_eq!(
+            max_delta(
+                &model
+                    .forward(&ids, 1, 80, ReadMode::Enabled, false)?
+                    .probabilities,
+                &loaded
+                    .forward(&ids, 1, 80, ReadMode::Enabled, false)?
+                    .probabilities
+            )?,
+            0.0
+        );
+        let training = loaded.packed_training_start()?;
+        assert_eq!(
+            max_delta(
+                &training
+                    .forward(&ids, 1, 80, ReadMode::Enabled, false)?
+                    .probabilities,
+                &loaded
+                    .forward(&ids, 1, 80, ReadMode::Enabled, false)?
+                    .probabilities
+            )?,
+            0.0
+        );
+        assert!(training
+            .forward(&ids, 1, 80, ReadMode::Enabled, true)?
+            .loss(&ids)?
+            .backward()?
+            .get(training.variables()["read.query.weight"].as_tensor())
+            .is_some());
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
     fn max_delta(a: &Tensor, b: &Tensor) -> Result<f32> {
         Ok(a.sub(b)?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?)

@@ -1,0 +1,112 @@
+{
+  "quaternion": {
+    "full_read": {
+      "first_losses_parent": [
+        "story-source-edit-04/edited",
+        "story-source-edit-12/original"
+      ],
+      "first_losses_rung1": [
+        "story-source-edit-15/edited"
+      ],
+      "complete_losses_parent": [
+        "story-source-edit-04/edited",
+        "story-source-edit-12/original"
+      ]
+    },
+    "recent64_read": {
+      "first_losses_parent": [
+        "story-source-edit-04/edited",
+        "story-source-edit-12/original"
+      ],
+      "first_losses_rung1": [
+        "story-source-edit-15/edited"
+      ],
+      "complete_losses_parent": [
+        "story-source-edit-04/edited",
+        "story-source-edit-12/original"
+      ]
+    },
+    "exact_cache64_read": {
+      "first_losses_parent": [
+        "story-source-edit-00/original",
+        "story-source-edit-00/edited",
+        "story-source-edit-04/original",
+        "story-source-edit-04/edited",
+        "story-source-edit-08/original",
+        "story-source-edit-08/edited",
+        "story-source-edit-12/original"
+      ],
+      "first_losses_rung1": [
+        "story-source-edit-00/original",
+        "story-source-edit-00/edited",
+        "story-source-edit-08/original",
+        "story-source-edit-08/edited"
+      ],
+      "complete_losses_parent": [
+        "story-source-edit-00/original",
+        "story-source-edit-00/edited",
+        "story-source-edit-04/original",
+        "story-source-edit-04/edited",
+        "story-source-edit-08/original",
+        "story-source-edit-08/edited",
+        "story-source-edit-12/original"
+      ]
+    }
+  },
+  "householder_pair": {
+    "full_read": {
+      "first_losses_parent": [],
+      "first_losses_rung1": [
+        "story-source-edit-14/original"
+      ],
+      "complete_losses_parent": [
+        "story-source-edit-07/original",
+        "story-source-edit-11/original"
+      ]
+    },
+    "recent64_read": {
+      "first_losses_parent": [],
+      "first_losses_rung1": [
+        "story-source-edit-14/original"
+      ],
+      "complete_losses_parent": [
+        "story-source-edit-07/original",
+        "story-source-edit-11/original"
+      ]
+    },
+    "exact_cache64_read": {
+      "first_losses_parent": [
+        "story-source-edit-00/original",
+        "story-source-edit-00/edited",
+        "story-source-edit-04/original",
+        "story-source-edit-04/edited",
+        "story-source-edit-08/original",
+        "story-source-edit-08/edited",
+        "story-source-edit-12/original",
+        "story-source-edit-12/edited"
+      ],
+      "first_losses_rung1": [
+        "story-source-edit-00/original",
+        "story-source-edit-00/edited",
+        "story-source-edit-04/original",
+        "story-source-edit-04/edited",
+        "story-source-edit-08/original",
+        "story-source-edit-08/edited",
+        "story-source-edit-12/original",
+        "story-source-edit-12/edited",
+        "story-source-edit-14/original"
+      ],
+      "complete_losses_parent": [
+        "story-source-edit-00/original",
+        "story-source-edit-00/edited",
+        "story-source-edit-04/original",
+        "story-source-edit-04/edited",
+        "story-source-edit-07/original",
+        "story-source-edit-08/original",
+        "story-source-edit-08/edited",
+        "story-source-edit-12/original",
+        "story-source-edit-12/edited"
+      ]
+    }
+  }
+}

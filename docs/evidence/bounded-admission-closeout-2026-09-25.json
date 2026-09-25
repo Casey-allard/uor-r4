@@ -1,0 +1,462 @@
+{
+  "schema": "uor-r4.bounded-admission-closeout/1",
+  "scope": "Pre-delivery cutoff; the remaining protected-delivery wall is charged separately once and recorded on the owning issues.",
+  "recorded_utc": "2026-09-25T18:21:59.993894+00:00",
+  "cycle_started_utc": "2026-09-25T17:08:39+00:00",
+  "source_commit": "78fde5711ea01f80783eb9911e01197a61406d1a",
+  "executable": {
+    "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/joint-training-78fde571",
+    "bytes": 8854176,
+    "sha256": "3d6bea5024b59119a8d74d79986f926501f113d132af0b58fea1a2b1ef8d2669"
+  },
+  "build": {
+    "schema": "uor-r4.bounded-admission-build/1",
+    "source_commit": "78fde5711ea01f80783eb9911e01197a61406d1a",
+    "executable": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/joint-training-78fde571",
+    "executable_sha256": "3d6bea5024b59119a8d74d79986f926501f113d132af0b58fea1a2b1ef8d2669",
+    "phases": [
+      {
+        "phase": "focused-tests",
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--lib",
+          "joint_",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 416.68139600753784
+      },
+      {
+        "phase": "release-binary",
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--bin",
+          "uor-r4-training"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 35.50624108314514
+      }
+    ],
+    "elapsed_seconds": 452.95526909828186,
+    "allocation": {
+      "categories": {
+        "worktree": 1271275520,
+        "new_or_replaced_target": 315498496,
+        "campaign": 10264576
+      },
+      "retained_bytes": 1597038592,
+      "temporary_allowance_bytes": 268435456,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 1866522624
+    },
+    "physical_free_bytes": 17635061760,
+    "cargo_fmt_check": "PASS before source freeze"
+  },
+  "budget": {
+    "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/budget.json",
+    "bytes": 1893,
+    "sha256": "693f048894ad5c0a79870547e81fd52630aaf0708dfeff2459286957abe68f62"
+  },
+  "decision": {
+    "schema": "uor-r4.bounded-admission-principal-decision/1",
+    "recorded_utc": "2026-09-25T18:18:30.685872+00:00",
+    "status": "REJECTED_FOR_BOUNDED_ADMISSION_RETENTION",
+    "result_sha256": "3b4c9353ac2bffe9ff2a882ece2af3854ef2c980bcbb996123e94a710be81b33",
+    "source_commit": "78fde5711ea01f80783eb9911e01197a61406d1a",
+    "headline": "**Both orthant64 candidates fail the frozen source-retention gate. The implementation and full paired comparison are complete; neither candidate is promoted.**",
+    "interpretation": "Likelihood retention, combined read/copy effect, noncollapse and mechanical/export checks pass in both arms. First-noun losses are11/8 against the immediate parents and11/9 against rung1, beyond the maximum2. Both indexed-complement utility discriminators pass: the index supplies17 additional complete answers over recent32 and lowers late-position NLL by0.110267/0.105152. That utility cannot override the retention failure. Restoring full access on the same final weights recovers10/8 complete answers, localizing much of the loss to the admission policy rather than an inability of those weights to use the information. Recent64 recovers the same27/25 complete answers with lower NLL than either tested indexed proposer. Exact-cache yields23/18, so it is not selected as the next bounded reference. These are same-weights interventions on one paired seed, not independently trained policy superiority.",
+    "accepted_artifacts": "The paired learned-code parents delivered by PR1393 remain accepted at their original engineering scope. All orthant64 candidates and diagnostic controls are retained; no final policy override is promoted.",
+    "gates": {
+      "quaternion": [
+        true,
+        true,
+        true,
+        false,
+        true
+      ],
+      "householder_pair": [
+        true,
+        true,
+        true,
+        false,
+        true
+      ]
+    },
+    "indexed_utility": {
+      "quaternion": {
+        "pass": true,
+        "complete_answer_gain_over_recent32": 17,
+        "late_nll_improvement_over_recent32": 0.11026745531255644,
+        "nll_minus_recent64": 0.010425857727253796
+      },
+      "householder_pair": {
+        "pass": true,
+        "complete_answer_gain_over_recent32": 17,
+        "late_nll_improvement_over_recent32": 0.10515233516259226,
+        "nll_minus_recent64": 0.01626246293506073
+      }
+    },
+    "control_retention_rows_sha256": "1070b4073381360dd858788eaa0397e9ef301d869328fbf0176bcc489e75d093",
+    "next_recommendation": "**Use recent64 as the chosen bounded reference for the next matched learning step.** It is already implemented in the shared Rust graph and, on the final weights here, retains27/25 complete answers with lower NLL than either tested indexed policy. Its same-weights first-noun losses are2/0 against the immediate parent and1/1 against rung1. These diagnostic controls were not trained under recent64 and are not silently promoted to accepted artifacts.\n\nComplete one paired recent64 continuation from the accepted learned-code parents, retaining the same fixed grids, optimizer recipe, B16/T256, 256 updates and sampler8860..9115 used here. That supplies a matched policy comparison without another implementation/build programme or new hash/width/scale sweep. Freeze its admission-policy retention gates prospectively, preserve all current negatives, and inspect loaded answers before promotion. The existing binary and checkpoints are reusable; no broad re-audit or test expansion is the next task.\n\nAfter a bounded baseline retains behavior, continue the same model through observable quantized R4 transport and measured state/output drift, then integer/add/subtract/shift/lookup execution. Keep the ordinary transport arm and account for dense parameter access separately. A recency baseline does not solve retrieval beyond64 or qualify D8 rung3 in full.\n\nThe longer-range geometric routing research should target **candidate recall with explicit learning credit**, using train-only full-access parent evidence and a declared address/membership objective. Conditional gradients through already-selected events cannot directly correct every missed event. Preserve exact occurrence/word identity and capacity/eviction semantics; compare learned older access with cost-matched ordinary access on genuine dependencies beyond64 before claiming a geometric benefit. The new objective is a design dependency, not an implemented or measured remedy. This result supplies no reason to remove the geometric recurrent core.",
+    "claims_excluded": [
+      "general language/coding",
+      "geometric advantage",
+      "Hamiltonian dynamics",
+      "integer serving",
+      "terminal D5 parameter sparsity",
+      "physical energy savings",
+      "unbounded-context retrieval"
+    ],
+    "principal_review_scope": "Executed-source independent review adjudicated; all10 primary free continuations read; source losses/gains reviewed against immediate and rung1 anchors; full/recent/cache interventions and every target record verified. Gate thresholds and training dose remained fixed."
+  },
+  "result": {
+    "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/bounded-admission-result.json",
+    "bytes": 824666,
+    "sha256": "3b4c9353ac2bffe9ff2a882ece2af3854ef2c980bcbb996123e94a710be81b33"
+  },
+  "outputs": {
+    "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/bounded-admission-outputs.md",
+    "bytes": 86393,
+    "sha256": "e989eebb64d760aeabbbf0bbb86f3c5155d84eb0af0805e9bef5a49c34ee0ee3"
+  },
+  "analysis_source": {
+    "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/summarize.py",
+    "bytes": 14389,
+    "sha256": "d1f068bb87d76f349344ebbd0a8fec176905d17cc2f0e5c1b30d82420a3bff2e"
+  },
+  "ledger_before": {
+    "cumulative_ms": 535193179,
+    "limit_ms": 547200000
+  },
+  "charged_this_cutoff_ms": 4400994,
+  "ledger_after": {
+    "cumulative_ms": 539594173,
+    "limit_ms": 547200000
+  },
+  "review_receipts": {
+    "math": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-math-1.json",
+        "bytes": 308,
+        "sha256": "cb712019b0dcd7bebca54849697f8c6db9bde269b51965b2b9a6c4c016f2f56a"
+      },
+      "log_binding": {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-math-1.log",
+        "bytes": 199078,
+        "sha256": "88a37de90972b04fe3701aeeba3e10a7fe24bef5d04c189d63ef0c8fd1f520e9"
+      },
+      "model_route": "DeepSeek/deepseek-flash",
+      "profile": "uor-source-falsifier.md",
+      "started_utc": "2026-09-25T17:12:48.292275+00:00",
+      "completed_utc": "2026-09-25T17:18:47.581679+00:00",
+      "exit_code": 0,
+      "log": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-math-1.log"
+    },
+    "implementer": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-implementer-1.json",
+        "bytes": 310,
+        "sha256": "b697f3fbf4bdce4f08fb45d01490c727b300ce74a796d6c08d644a43cef66b6e"
+      },
+      "log_binding": {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-implementer-1.log",
+        "bytes": 394609,
+        "sha256": "b6ccd0d9c79002ab6f1ed2d6070d6c0ed2141c81292f287a3b8d1e9ad8c5435a"
+      },
+      "model_route": "DeepSeek/deepseek-flash",
+      "profile": "uor-implementer.md",
+      "started_utc": "2026-09-25T17:12:55.536389+00:00",
+      "completed_utc": "2026-09-25T17:23:19.475785+00:00",
+      "exit_code": 0,
+      "log": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-implementer-1.log"
+    },
+    "integrated": {
+      "receipt": {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-integrated-1.json",
+        "bytes": 314,
+        "sha256": "06a71e1aef42c0916e74ddfc7dbfc7564b4a726ef00bc36d382c0ab2e940b4d4"
+      },
+      "log_binding": {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-integrated-1.log",
+        "bytes": 292323,
+        "sha256": "f4936d5ee8a7fba9047dbd86a06558a71dfd4d90d832f6bb1bbabbbb3311917e"
+      },
+      "model_route": "DeepSeek/deepseek-flash",
+      "profile": "uor-source-falsifier.md",
+      "started_utc": "2026-09-25T17:49:16.678569+00:00",
+      "completed_utc": "2026-09-25T17:57:10.084843+00:00",
+      "exit_code": 0,
+      "log": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/rdc-integrated-1.log"
+    }
+  },
+  "resources": {
+    "sample_count": 862,
+    "logs": [
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/bounded-fit-1-resources.jsonl",
+        "bytes": 110758,
+        "sha256": "14704bd26f7d840673822e82306b65b782f34ba9011891d85db429f82675009d"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/bounded-fit-2-resources.jsonl",
+        "bytes": 52358,
+        "sha256": "8df83bfd4e8d1a160bed89839321a37492dc7687e7f3582a67ad4764000c4c7f"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/entry-full-1-resources.jsonl",
+        "bytes": 10762,
+        "sha256": "604b787c1d4c0d6643f29bf2dbed1f61eab39ecc0c69c48fca1ff80443a298da"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/entry-orthant64-1-resources.jsonl",
+        "bytes": 12561,
+        "sha256": "bb2a8421ded8a6006d081b22538f672fae5da7bc7bb925fba2c3808c0ecf3ae0"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/final-exact_cache64-read-1-resources.jsonl",
+        "bytes": 12072,
+        "sha256": "84bed520b7a68bf1cb2519c07001db5d9c4ea17cbbdd8b74251e345beab52ad7"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/final-full-read-1-resources.jsonl",
+        "bytes": 10948,
+        "sha256": "38d4df63ec98274bc42aa7161e43057d9d6425b69a5f6bce58a2b1b15ab6aa75"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/final-orthant64-no-read-1-resources.jsonl",
+        "bytes": 9008,
+        "sha256": "82c0135b1fcac24512de634f21d647a375788d6ed808ce3ff86cfa9c6c4f0f56"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/final-orthant64-read-1-resources.jsonl",
+        "bytes": 12234,
+        "sha256": "ad92bbd1d44aae5e5fe71a5da21bdeb45a1de9128b0d1f5421cf96704c1afcd4"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/final-recent32-read-1-resources.jsonl",
+        "bytes": 11410,
+        "sha256": "fcb3ce3a5bb0c3f19236bd6f5c7633aa13ed1b09e0e08ee3d3400c80845ce3c6"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/final-recent64-read-1-resources.jsonl",
+        "bytes": 13034,
+        "sha256": "aa939f6578d47f1c868d2048dd377698c83fa1a6a2e0b18bcff2eed824ed0f98"
+      }
+    ],
+    "peak_sampled_aggregate_model_rss_bytes": 7451738112,
+    "peak_sampled_individual_model_rss_bytes": 4252106752,
+    "minimum_sampled_physical_free_bytes": 16061063168,
+    "allocation": {
+      "categories": {
+        "worktree": 1272238080,
+        "new_or_replaced_target": 315498496,
+        "campaign": 332570624
+      },
+      "retained_bytes": 1920307200,
+      "temporary_allowance_bytes": 268435456,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 2189791232
+    },
+    "physical_free_bytes": 16062205952,
+    "physical_free_stop_bytes": 15770583040
+  },
+  "fits": {
+    "quaternion": {
+      "completed_updates": 256,
+      "elapsed_seconds": 465.948279459,
+      "status": "COMPLETE_FIXED_RECIPE",
+      "sampled_input_target_sha256": "f035928f694ecaa832d0bb7d444156862073d0eb4dcb130779d9aa5232b637e4"
+    },
+    "householder_pair": {
+      "completed_updates": 256,
+      "elapsed_seconds": 464.208335208,
+      "status": "COMPLETE_FIXED_RECIPE",
+      "sampled_input_target_sha256": "f035928f694ecaa832d0bb7d444156862073d0eb4dcb130779d9aa5232b637e4"
+    }
+  },
+  "evaluation_pairs": [
+    {
+      "name": "entry-full-1",
+      "elapsed_seconds": 68.262704,
+      "exit_codes": {
+        "entry-quaternion-full-1": 0,
+        "entry-householder_pair-full-1": 0
+      }
+    },
+    {
+      "name": "entry-orthant64-1",
+      "elapsed_seconds": 79.523622,
+      "exit_codes": {
+        "entry-quaternion-orthant64-1": 0,
+        "entry-householder_pair-orthant64-1": 0
+      }
+    },
+    {
+      "name": "final-orthant64-read-1",
+      "elapsed_seconds": 77.152264,
+      "exit_codes": {
+        "final-quaternion-orthant64-read-1": 0,
+        "final-householder_pair-orthant64-read-1": 0
+      }
+    },
+    {
+      "name": "final-orthant64-no-read-1",
+      "elapsed_seconds": 56.893041,
+      "exit_codes": {
+        "final-quaternion-orthant64-no-read-1": 0,
+        "final-householder_pair-orthant64-no-read-1": 0
+      }
+    },
+    {
+      "name": "final-full-read-1",
+      "elapsed_seconds": 69.219602,
+      "exit_codes": {
+        "final-quaternion-full-read-1": 0,
+        "final-householder_pair-full-read-1": 0
+      }
+    },
+    {
+      "name": "final-recent64-read-1",
+      "elapsed_seconds": 82.298748,
+      "exit_codes": {
+        "final-quaternion-recent64-read-1": 0,
+        "final-householder_pair-recent64-read-1": 0
+      }
+    },
+    {
+      "name": "final-recent32-read-1",
+      "elapsed_seconds": 72.119981,
+      "exit_codes": {
+        "final-quaternion-recent32-read-1": 0,
+        "final-householder_pair-recent32-read-1": 0
+      }
+    },
+    {
+      "name": "final-exact_cache64-read-1",
+      "elapsed_seconds": 76.197263,
+      "exit_codes": {
+        "final-quaternion-exact_cache64-read-1": 0,
+        "final-householder_pair-exact_cache64-read-1": 0
+      }
+    }
+  ],
+  "new_updates_total": 512,
+  "fitted_target_visits_total": 2097152,
+  "cleanup_performed": false,
+  "unique_artifacts_preserved": true,
+  "paid_external_training_compute": false,
+  "limitations": "Sampled process RSS, not an allocation trace. Logical index bytes differ from physical memory. Allocation inventory is not unique APFS extents or historical gross allocation. Compiler peaks and physical energy unmeasured. All preparation, agents, build, execution, analysis and delivery use unique chronological wall; concurrency is not double-charged.",
+  "fit_supervisors": {
+    "bounded-fit-1-resource-summary.json": {
+      "name": "bounded-fit-1",
+      "elapsed_seconds": 1008.2891341249999,
+      "samples": 197,
+      "checkpoint_requested_reason": "PHYSICAL_RESERVE",
+      "exit_codes": {
+        "fit-quaternion-bounded-1": 0,
+        "fit-householder_pair-bounded-1": 0
+      },
+      "scope": "Sampled parent-process RSS, five-second physical reserve check; all model work is local Rust."
+    },
+    "bounded-fit-2-resource-summary.json": {
+      "name": "bounded-fit-2",
+      "elapsed_seconds": 472.12902241700004,
+      "samples": 93,
+      "checkpoint_requested_reason": null,
+      "exit_codes": {
+        "fit-quaternion-bounded-2": 0,
+        "fit-householder_pair-bounded-2": 0
+      },
+      "scope": "Sampled parent-process RSS, five-second physical reserve check; all model work is local Rust."
+    }
+  },
+  "sum_nonoverlapping_paired_fit_wall_seconds": 1480.418156542,
+  "fit_segments": {
+    "quaternion": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/fit-quaternion-bounded-1",
+        "new_updates": 166,
+        "completed_updates": 166,
+        "sampled_input_target_sha256": "67263574999ceec49711007e5d0221f04868147582099426bf03b4dec1e6dc50",
+        "status": "STOPPED_CHECKPOINTED"
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/fit-quaternion-bounded-2",
+        "new_updates": 90,
+        "completed_updates": 256,
+        "sampled_input_target_sha256": "f035928f694ecaa832d0bb7d444156862073d0eb4dcb130779d9aa5232b637e4",
+        "status": "COMPLETE_FIXED_RECIPE"
+      }
+    ],
+    "householder_pair": [
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/fit-householder_pair-bounded-1",
+        "new_updates": 166,
+        "completed_updates": 166,
+        "sampled_input_target_sha256": "67263574999ceec49711007e5d0221f04868147582099426bf03b4dec1e6dc50",
+        "status": "STOPPED_CHECKPOINTED"
+      },
+      {
+        "root": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/fit-householder_pair-bounded-2",
+        "new_updates": 90,
+        "completed_updates": 256,
+        "sampled_input_target_sha256": "f035928f694ecaa832d0bb7d444156862073d0eb4dcb130779d9aa5232b637e4",
+        "status": "COMPLETE_FIXED_RECIPE"
+      }
+    ]
+  },
+  "initial_budget": {
+    "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/budget-initial.json",
+    "bytes": 1831,
+    "sha256": "6264e6d7e659117bedf5bb0f9ef9cbb6c7855cf6ac44eef853b122d5bf501b5f"
+  },
+  "storage_extension": {
+    "binding": {
+      "path": "/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925/storage-extension-1.json",
+      "bytes": 1399,
+      "sha256": "e623904038c3d9b13141a3478cbd2c79518489ccd7e603474c0ae5cd42ec068f"
+    },
+    "record": {
+      "schema": "uor-r4.bounded-admission-storage-extension/1",
+      "recorded_utc": "2026-09-25T17:54:07.080562+00:00",
+      "authority": "Standing owner authorization for necessary local model/time/storage extensions; no new compute cost or deletion.",
+      "prior_budget_sha256": "6264e6d7e659117bedf5bb0f9ef9cbb6c7855cf6ac44eef853b122d5bf501b5f",
+      "physical_free_bytes": 16398962688,
+      "old_physical_reserve_bytes": 16106127360,
+      "new_physical_reserve_bytes": 15569256448,
+      "additional_physical_use_allowance_bytes": 536870912,
+      "physical_stop_margin_bytes": 134217728,
+      "closeout_margin_bytes": 67108864,
+      "new_allocation_cap_unchanged_bytes": 2684354560,
+      "remaining_output_projection_bytes": 251658240,
+      "reason": "Final two checkpoint/packed roots plus twelve target-record evaluations and protected result documentation need about240MiB. Current free space is only about85MiB above the original stop level because physical storage also includes macOS swap. Retain14.5GiB physical reserve plus128MiB stop and64MiB closeout; preserve every source/artifact/worktree.",
+      "application": "The already-running fit supervisor and pipeline retain their stricter launch-time limits. If they checkpoint or stop, preserve each attempt and use the amended budget only in a new supervisor; all learning continues from exact checkpoints and no gate changes.",
+      "new_physical_free_stop_bytes": 15770583040
+    }
+  },
+  "resume_decision": {
+    "utc": "2026-09-25T17:58:48.489399+00:00",
+    "reason": "Original physical-reserve checkpoint; prospective extension recorded before stop. Exact same recipe/source/parameters/optimizer/sampler resume.",
+    "retained_updates_per_arm": 166,
+    "remaining_updates_per_arm": 90,
+    "first_segment_sample_sha256": "67263574999ceec49711007e5d0221f04868147582099426bf03b4dec1e6dc50",
+    "physical_free_bytes": 16179859456,
+    "pending_output_projection_bytes": 251658240,
+    "new_stop_bytes": 15770583040
+  }
+}

@@ -16,11 +16,60 @@ ladder. #973 remains active under programme #820; their full acceptance is open.
 exact-memory scaffolds. The joint recurrent-memory learner passes its frozen
 continuation gate. The learned neighboring-code successor now passes all five
 original hard-artifact retention gates in both arms; the two older quantized
-negatives remain preserved. Retain both candidates and advance to D8 rung3
-trained bounded admission/transport. No additional rounding or scale sweep.
+negatives remain preserved. The shared bounded-admission successor now completes
+its paired comparison but fails source retention in both arms. Keep the accepted
+learned-code parents; one matched recent64 continuation is the next bounded
+reference. No additional rounding, hash or scale sweep.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
-## Latest result: paired learned-code retention accepted
+## Latest result: bounded admission complete; source retention fails
+
+The [paired result](bounded-admission-result-2026-09-25.md) completes one shared
+bounded-admission implementation and256 updates /1,048,576 fitted target visits
+per arm at B16/T256. The original stricter physical-reserve guard checkpointed
+at166; both arms resumed the same optimizer/data state for90 more updates.
+Actual data hashes match in both segments. No learning or artifact was discarded.
+
+| Comparison-tail NLL / complete source answers | Quaternion | Householder pair |
+|---|---:|---:|
+| Accepted learned-code parent | 2.114226 /28 of32 | 2.110880 /24 of32 |
+| **Final orthant64** | **2.129595 /17 of32** | **2.124890 /17 of32** |
+| Same final weights, full | 2.080041 /27 of32 | 2.069663 /25 of32 |
+| Same final weights, recent64 | 2.119169 /27 of32 | 2.108628 /25 of32 |
+| Same final weights, exact_cache64 | 2.146802 /23 of32 | 2.136447 /18 of32 |
+
+Both frozen retention vectors are **PASS/PASS/PASS/FAIL/PASS**. First-noun losses
+against the immediate parents are11/8 and against rung1 are11/9, above maximum2.
+NLL, combined NoRead effect, limited noncollapse and mechanical/export checks
+pass. Indexed complement utility also passes versus recent32 (17 additional
+complete answers; late-position NLL gains0.110267/0.105152), but cannot override
+retention failure. Same-weights full/recent64 recovery identifies the access
+policy as a material cause. Neither a diagnostic override nor a lower average
+loss promotes a failed candidate. The accepted learned-code parents remain current.
+
+**Next:** one matched recent64 continuation from those accepted parents, using
+the existing source, fixed grids and same256-update B16/T256 recipe/data window.
+Recent64 is the strongest bounded control here; it has not been independently
+trained or promoted. After bounded retention, proceed to observable quantized
+R4 transport/state drift and integer execution. Longer-range geometric routing
+needs explicit candidate-recall credit; no hash/width/scale sweep is adopted.
+Recency alone does not qualify retrieval beyond64 or finish D8 rung3.
+
+Executed source: `78fde5711ea01f80783eb9911e01197a61406d1a`.
+Rejected but retained artifacts: `fit-{quaternion,householder_pair}-bounded-2/packed-model`
+under `/Users/casey.allard/uor-r4-investigations/bounded-admission-20260925`.
+[Arithmetic and sealed bindings](../evidence/bounded-admission-result-2026-09-25.json),
+[principal decision](../evidence/bounded-admission-decision-2026-09-25.json),
+[all outputs](bounded-admission-outputs-2026-09-25.md),
+[plan/review](bounded-admission-plan-2026-09-25.md),
+[resources](../evidence/bounded-admission-closeout-2026-09-25.json).
+Three DeepSeek sessions and paired Rust jobs ran through RDC on this M1; no Kimi.
+Training supervision totals24.67minutes;62 optimized focused checks pass in4.79seconds.
+F32 dense parameter computation, allocations, unreliable prose and the256-token
+ceiling remain. No geometric advantage, Hamiltonian dynamics, integer-serving,
+terminal sparsity or energy qualification is claimed.
+
+## Retained result: paired learned-code retention accepted
 
 The [completed fixed-recipe learning](learned-rounding-result-2026-09-25.md)
 adds512 alpha-only updates /2,097,152 fitted target visits per arm, B16/T256,
@@ -53,7 +102,7 @@ advantage, Hamiltonian dynamics, useful conversation/code, integer execution,
 terminal D5 parameter sparsity or physical energy savings. Serving of these
 packed artifacts is still F32 numerical emulation.
 
-**Next:** implement the actual bounded serving admission rule in the common
+**Historical successor, now executed above:** implement the actual bounded serving admission rule in the common
 training/session graph. Preserve exact occurrence identity, causality and NoRead;
 keep full-context and matched ordinary/exact-cache controls. Count the complete
 admission cost, then integrate observable quantized group transport and measure
