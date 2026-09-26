@@ -1,0 +1,139 @@
+{
+  "schema": "uor-r4.language-continuation-closeout/1",
+  "recorded_utc": "2026-09-26T23:43:06.082894+00:00",
+  "model_milestone": "COMPLETE_LANGUAGE_TARGET_FAILED_NO_PROMOTION",
+  "result_source_commit": "ddc751e7d8b5dcc659b08a0dd13c78b5df1c5d89",
+  "backup": {
+    "schema": "uor-r4.final-ssd-snapshot-result/1",
+    "verified_utc": "2026-09-26T23:43:06.077446+00:00",
+    "status": "PASS_COMPLETED_SINGLE_FINAL_SNAPSHOT",
+    "snapshot": {
+      "utc": "2026-09-26T23:41:52.812490+00:00",
+      "stage": "COMPLETE",
+      "backup_root": "/Volumes/UOR-Workspace/Backups/language-continuation-final-20260926-6",
+      "source_commit": "ddc751e7d8b5dcc659b08a0dd13c78b5df1c5d89",
+      "manifest_sha256": "53881742c4ad8375d472c462483ea50d07e4199106676534e5b0b182158a2ede",
+      "files_excluding_manifest": 1122,
+      "total_payload_bytes_including_manifest": 1082432690,
+      "rust_sealed_roots_verified": 67,
+      "elapsed_seconds": 64.08600670890883,
+      "disk_after": {
+        "internal_free": 51746230272,
+        "workspace_free": 180251697152,
+        "physical_external_free": 789221212160
+      }
+    },
+    "manifest_sha256": "53881742c4ad8375d472c462483ea50d07e4199106676534e5b0b182158a2ede",
+    "manifest_bytes": 429444,
+    "previous_snapshot_payload_bytes": 885274668,
+    "combined_snapshot_payload_bytes": 1967707358,
+    "combined_payload_plus_metadata_reserve_bytes": 2236142814,
+    "original_total_allowance_bytes": 4294967296,
+    "dependencies_verified_in_previous_snapshot": 240,
+    "existing_first_manifest_unchanged": true,
+    "source_git_bundle": {
+      "create": {
+        "argv": [
+          "git",
+          "-c",
+          "pack.threads=1",
+          "-c",
+          "pack.windowMemory=64m",
+          "-c",
+          "pack.deltaCacheSize=32m",
+          "bundle",
+          "create",
+          "/Volumes/UOR-Workspace/Backups/language-continuation-final-20260926-6/source/uor-r4-all-refs.bundle",
+          "--all"
+        ],
+        "exit_code": 0,
+        "log_relative": "VERIFICATION/git-bundle-create.log"
+      },
+      "verify": {
+        "argv": [
+          "git",
+          "bundle",
+          "verify",
+          "/Volumes/UOR-Workspace/Backups/language-continuation-final-20260926-6/source/uor-r4-all-refs.bundle"
+        ],
+        "exit_code": 0,
+        "log_relative": "VERIFICATION/git-bundle-verify.log"
+      },
+      "list_heads": {
+        "argv": [
+          "git",
+          "bundle",
+          "list-heads",
+          "/Volumes/UOR-Workspace/Backups/language-continuation-final-20260926-6/source/uor-r4-all-refs.bundle"
+        ],
+        "exit_code": 0,
+        "log_relative": "VERIFICATION/git-bundle-heads.log"
+      },
+      "commit_coverage": [
+        {
+          "commit": "ddc751e7d8b5dcc659b08a0dd13c78b5df1c5d89",
+          "included_ref_tip": "ddc751e7d8b5dcc659b08a0dd13c78b5df1c5d89",
+          "method": "Direct bundle ref or local ancestry to included tip; full bundle has no prerequisites"
+        },
+        {
+          "commit": "b5b5fe757b9513877911719f014e73165f704b13",
+          "included_ref_tip": "49ef5009fa6e257e16a108c21fa36dbe20b8f8f2",
+          "method": "Direct bundle ref or local ancestry to included tip; full bundle has no prerequisites"
+        },
+        {
+          "commit": "209483169323563d541df781b8817a4bf6dc31e3",
+          "included_ref_tip": "ddc751e7d8b5dcc659b08a0dd13c78b5df1c5d89",
+          "method": "Direct bundle ref or local ancestry to included tip; full bundle has no prerequisites"
+        }
+      ],
+      "bundle_sha256": "fe9c17240571a15ce35c08cefdfaa9ce93e6d8356dee712b4c102b2248e197b0",
+      "coverage_scope": "Git full-bundle refs plus local ancestry; no independent clone or model build performed"
+    },
+    "snapshot_file_count_excludes_own_manifest": 1122,
+    "model_and_report_integrity_only": true,
+    "self_contained": false,
+    "recovery_set": "New snapshot plus immutable dependency groups in original language-continuation-20260926-1; preserve both. Exact binaries need compatible macOS libraries.",
+    "model_source_and_principal_result_preserved": true,
+    "later_delivery_receipts_included": false,
+    "no_source_deletion_or_relocation": true,
+    "log_sha256": "fd55b5399b56c0dcc480e0b0b9fd4a4feb61a113494bde4d2e36398bad078542"
+  },
+  "cost": {
+    "cycle_start_utc": "2026-09-25T20:41:00Z",
+    "charged_through_utc": "2026-09-26T23:43:06.082894+00:00",
+    "cycle_elapsed_seconds_through_this_receipt": 97326.082894,
+    "cumulative_ledger": {
+      "cumulative_ms": 643296442,
+      "limit_ms": 744000000
+    },
+    "effective_task_limit_ms": 657600000,
+    "external_limit_attribution": "UNRESOLVED; preserve without adopting extra24h",
+    "ledger_receipt_sha256": "877090ca49a7f36791c783dd3b0bdcfb820e4b3878f18d263a3ac5aa156a8166",
+    "later_delivery_tail": "Actual GitHub merge/issue delivery and final local cursor will charge remaining elapsed once; this timestamped receipt does not pretend future work is already charged.",
+    "all_continuous_supervised_phase_seconds": 47677.00487700119,
+    "failed_fit1_included_in_that_total_seconds": 8949.286137250001,
+    "downstream_controller_envelope_seconds": 6464.883413,
+    "alpha_fit_seconds_included_in_downstream": 5521.656608375,
+    "adapter_build_seconds": 258.7583945,
+    "training_hardware": "Local CPU Accelerate, 2 gradient shards; no new GPU profile or external model training.",
+    "whole_cycle_includes": "Preparation, failed work, all resumes, paused intervals, storage work, evaluation, review and delivery; never overlapping process sums."
+  },
+  "delivery": {
+    "pull_request": "https://github.com/UOR-Foundation/uor-r4/pull/1398",
+    "status_at_this_commit": "READY_FOR_PROTECTED_DELIVERY; live GitHub owns subsequent merge status",
+    "issues_retained_open": [
+      973,
+      820
+    ],
+    "future_model_work": "NONE_AUTHORIZED_BY_THIS_CLOSEOUT"
+  },
+  "verification": {
+    "adapter_source_checks": "2 focused calibrated_shadow release tests passed; loaded parent preparation/export/integer exercise for both arms; retained receipt unchanged",
+    "json_parse": "PASS",
+    "changed_markdown_local_links": "PASS",
+    "diff_check": "PASS",
+    "claim_wording": "PASS",
+    "copied_rust_manifest_roots_passed": 67,
+    "github_statuses": "Historical five status names are compatibility acknowledgments, not test executions."
+  }
+}

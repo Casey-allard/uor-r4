@@ -1,0 +1,78 @@
+{
+  "schema": "uor-r4.language-continuation-review/1",
+  "reviews": [
+    {
+      "role": "learning",
+      "receipt": {
+        "model": "DeepSeek/deepseek-flash",
+        "started_utc": "2026-09-25T20:47:53.784890+00:00",
+        "elapsed_seconds": 295.32720479200003,
+        "exit_code": 0
+      },
+      "full_log_sha256": "48492f0e6cc22cd25122615494c63d1261c5bccb0e9166da2aa13144e7ecdacb",
+      "final_sha256": "3a5a7e7ff2d679adf54fb1c9722878f9563fd97151211a6060d7ea72f2f282ae"
+    },
+    {
+      "role": "quality",
+      "receipt": {
+        "model": "DeepSeek/deepseek-flash",
+        "started_utc": "2026-09-25T20:47:56.760562+00:00",
+        "elapsed_seconds": 274.63924912500005,
+        "exit_code": 0
+      },
+      "full_log_sha256": "f8953d2d2d8d6bca71bf10308b9d5812e3e9b8080f9b9be312c1a35a35ba0973",
+      "final_sha256": "4e724752ec9dcbd9a89fdb25b6e66efce5bb627038600fcceee449f2b4ad0616"
+    }
+  ],
+  "principal_decision": "Proceed with one fixed exposure continuation after explicit calibrated-shadow bridge is exercised; retain prospectively written practical text-quality rubric and original numerical gates.",
+  "accepted": [
+    "Continue existing continuous learning rather than infer capacity saturation or missing attention from weak prose.",
+    "Full256/full access and optimizer/data continuity; matched ordinary arm.",
+    "New continuous weights require fresh bound calibration.",
+    "Separate source-copy retention, coherent language and sampling; compare like policy to like policy.",
+    "Five exposed stories yield a practical development decision, not a statistically established capability claim.",
+    "Preserve negative results; no automatic repeated exposure."
+  ],
+  "rejected_or_scoped": [
+    {
+      "proposal": "Replace actual prose judgment with PacketD name/gender/nearest-entity/wordlist heuristics plus new greedy/midpoint panels.",
+      "reason": "New characters and pronoun references can be valid; the heuristics do not measure event/role coherence. Would expand the campaign without fixing the stated semantic measurement need. Existing same-path samples and explicit rubric are retained."
+    },
+    {
+      "proposal": "Treat6-artifact source-score variation as binomial measurement noise and use+6rows as statistical evidence.",
+      "reason": "Deterministic outputs from different fitted/quantized models are not repeated noisy measurements or independent binomial observations. Source panel remains retention, not language qualification."
+    },
+    {
+      "proposal": "Use exact_cache64 published scores as a same-parent standalone copy control.",
+      "reason": "They come from a different trained candidate/access policy; not a matched independent control for this continuation."
+    },
+    {
+      "proposal": "Call repeated-token NLL/copy source slices referent or role correctness.",
+      "reason": "Repeated BPE token identity is not entity/role semantics. Such slices could describe copying but do not replace actual coherence; no new analyzer is required to decide this milestone."
+    },
+    {
+      "proposal": "Expect80-85% of a projected0.14-0.19nat gain to survive export or assume3-10x trainer headroom.",
+      "reason": "Extrapolations are unmeasured hypotheses; new-weight rounding can change, and arithmetic operation estimates do not establish achievable speed. Neither is an acceptance promise."
+    },
+    {
+      "proposal": "Flat token tape means story boundaries absent from objective.",
+      "reason": "An EOS token can be represented in the token stream and next-token objective; lack of state reset is not proof that boundaries are unobserved."
+    },
+    {
+      "proposal": "A convex weighted read preserves distinct entities only when nearly one-hot; lack of explicit role channel means no role/order information.",
+      "reason": "Distributed value components and recurrent state-conditioned keys/values can retain distinctions; actual representational sufficiency is empirical. These claims do not follow from the score/read formula."
+    }
+  ],
+  "independence_limit": "Learning reviewer read its own and peer review logs; these are advisory source investigations, not independent experimental corroboration. Kimi is the CLI client name; requested model and launch receipts specify DeepSeek/deepseek-flash. Provider agreement is not validation.",
+  "external_primary_sources": [
+    {
+      "url": "https://arxiv.org/abs/2305.07759",
+      "scope": "Small-model coherent-language motivation; different architecture/training, no predicted UOR outcome."
+    },
+    {
+      "url": "https://proceedings.mlr.press/v119/nagel20a.html",
+      "scope": "Motivates learned neighboring-code assignment; UOR full recurrent NLL differs from local reconstruction."
+    }
+  ],
+  "model_execution": "NOT_RUN at review adjudication"
+}

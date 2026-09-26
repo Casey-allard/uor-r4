@@ -295,6 +295,19 @@ fn validate_quantization_binding(
             "checkpoint/model quantization state or transition differs",
         ));
     }
+    if state["preparation"] == "calibrated_for_rounding" {
+        let calibration = &checkpoint["shadow_calibration"];
+        if calibration["schema"] != "uor-r4.calibrated-rounding-shadow/1"
+            || calibration["model_step"] != json!(step)
+            || calibration["optimizer_updates"] != 0
+            || calibration["sampler_steps_advanced"] != 0
+            || calibration["quantization_spec_sha256"] != quantization_spec_digest(state)?
+        {
+            return Err(invalid(
+                "calibrated shadow provenance differs from its model clock/grids",
+            ));
+        }
+    }
     quantization_state_matches(cfg, state, step)?;
     validate_projection_binding(cfg, checkpoint, state, step)
 }
@@ -697,6 +710,29 @@ fn save_checkpoint(
     status: &str,
     evaluator_sha: &str,
 ) -> Result<()> {
+    save_checkpoint_with_calibration(
+        model,
+        optimizer,
+        cfg,
+        directory,
+        step,
+        status,
+        evaluator_sha,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn save_checkpoint_with_calibration(
+    model: &JointModel,
+    optimizer: &NamedAdamW,
+    cfg: &Campaign,
+    directory: &Path,
+    step: usize,
+    status: &str,
+    evaluator_sha: &str,
+    calibration: Option<&Value>,
+) -> Result<()> {
     let quantization = serde_json::to_value(model.quantization())?;
     quantization_state_matches(cfg, &quantization, step)?;
     projection_state_matches(cfg, &quantization, step)?;
@@ -724,6 +760,9 @@ fn save_checkpoint(
     });
     if let Some(transition) = &cfg.projection_transition {
         binding["projection_transition"] = json!(transition);
+    }
+    if let Some(calibration) = calibration {
+        binding["shadow_calibration"] = calibration.clone();
     }
     save_json(&directory.join("checkpoint.json"), &binding)?;
     report_output::seal(directory)?;
@@ -847,6 +886,9 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             ));
         }
         let mut model = JointModel::load(path, &selected)?;
+        if model.is_rounding_calibrated() {
+            return Err(invalid("calibrated shadow is reserved for alpha-only rounding; resume the continuous parent for language training"));
+        }
         if model.config != cfg.model {
             return Err(invalid("loaded resume model differs from campaign"));
         }
@@ -1161,6 +1203,9 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
 }
 
 pub fn run_cli(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("joint-calibrate-shadow") {
+        return calibrate_shadow_cli(args);
+    }
     if args.first().map(String::as_str) == Some("joint-integer-tables") {
         if args.len() != 2 {
             return Err(invalid("joint-integer-tables NEW_REPORT_ROOT"));
@@ -1452,6 +1497,199 @@ pub(crate) fn load_bound_checkpoint(
         binding,
         artifact,
     })
+}
+
+/// Calibrate from current continuous parameters, then clip only coordinates
+/// outside legal intervals. Interior shadows retain their fractional choices.
+fn prepare_rounding_shadow(
+    model: &mut JointModel,
+    optimizer: &NamedAdamW,
+    step: usize,
+) -> Result<Value> {
+    if model.quantization().is_some()
+        || model.admission_policy() != crate::joint_admission::AdmissionPolicy::Full
+        || optimizer.step_count() as usize != step
+        || step == 0
+    {
+        return Err(invalid("shadow preparation requires a continuous full-access parent at its actual optimizer clock"));
+    }
+    let optimizer_before = optimizer.continuity_fingerprint()?;
+    let original = model
+        .variables()
+        .iter()
+        .map(|(name, var)| {
+            Ok((
+                name.clone(),
+                (var.id(), var.flatten_all()?.to_vec1::<f32>()?),
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>>>()?;
+    model.configure_rounding_calibration(step)?;
+    let before = hard_parameter_snapshot(model)?;
+    let state = model
+        .quantization()
+        .ok_or_else(|| invalid("missing fresh scales"))?;
+    let spec_sha = quantization_spec_digest(&serde_json::to_value(state)?)?;
+    let statistics = state.spec.project_parameters(model.variables())?;
+    let after = hard_parameter_snapshot(model)?;
+    let mut fractional_coordinates = 0usize;
+    for (name, var) in model.variables() {
+        let (id, initial) = &original[name];
+        if *id != var.id() {
+            return Err(invalid("calibration changed parameter identity"));
+        }
+        let parameter = &state.spec.parameters[name];
+        let width = if parameter.shape.len() == 2 {
+            parameter.shape[1]
+        } else {
+            parameter.shape[0]
+        };
+        let limit = if parameter.bits == 4 {
+            7.0f32
+        } else {
+            32767.0f32
+        };
+        for (index, (&old, value)) in initial
+            .iter()
+            .zip(var.flatten_all()?.to_vec1::<f32>()?)
+            .enumerate()
+        {
+            let scale = 2f32.powi(i32::from(parameter.row_exponents[index / width]));
+            let bound = limit * scale;
+            let expected = if old < -bound {
+                -bound
+            } else if old > bound {
+                bound
+            } else {
+                old
+            };
+            if value.to_bits() != expected.to_bits() {
+                return Err(invalid(
+                    "calibration rounded an interior shadow or changed its legal projection",
+                ));
+            }
+            if (value / scale).fract() != 0.0 {
+                fractional_coordinates += 1;
+            }
+        }
+    }
+    if before.values_and_codes != after.values_and_codes
+        || after.out_of_range_coordinates != 0
+        || statistics.projected_coordinates != before.out_of_range_coordinates
+        || optimizer.continuity_fingerprint()? != optimizer_before
+    {
+        return Err(invalid(
+            "shadow calibration changed hard codes, moments or clocks",
+        ));
+    }
+    Ok(json!({
+        "schema":"uor-r4.calibrated-rounding-shadow/1",
+        "preparation":"calibrated_for_rounding", "model_step":step,
+        "optimizer_updates":0,"sampler_steps_advanced":0,"sampled_target_visits":0,
+        "calibration_rule":crate::joint_quantization::CALIBRATION_RULE,
+        "calibration_input":"Current continuous parameters only; no evaluation data or code selection",
+        "quantization_spec_sha256":spec_sha,"projection":statistics,
+        "fractional_shadow_coordinates":fractional_coordinates,
+        "interior_shadow_bits_preserved":true,"nearest_hard_values_and_codes_preserved":true,
+        "hard_codes_sha256":after.codes_sha256,
+        "hard_values_sha256":after.hard_values_sha256,
+        "continuous_shadow_sha256":before.shadow_sha256,
+        "projected_shadow_sha256":after.shadow_sha256,
+        "optimizer_moments_and_clocks":optimizer_before,
+        "clock_scope":"start_step=completed_step=actual continuous parent step; ramp_steps=1 is unused compatibility metadata, not a completed QAT ramp; only alpha learning is permitted"
+    }))
+}
+
+fn calibrate_shadow_cli(args: &[String]) -> Result<()> {
+    if args.len() != 4 {
+        return Err(invalid(
+            "usage: joint-calibrate-shadow SEALED_CONTINUOUS_PARENT EVALUATOR_JSON NEW_REPORT_ROOT",
+        ));
+    }
+    let source = Path::new(&args[1]);
+    let evaluator_path = Path::new(&args[2]);
+    let out = Path::new(&args[3]);
+    report_output::claim(out)?;
+    let result = (|| {
+        let started = Instant::now();
+        let target = out.join("checkpoint-calibrated");
+        report_output::claim(&target)?;
+        let evaluator = load_evaluator(evaluator_path)?;
+        let mut parent =
+            load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        let step = parent.binding["optimizer_step"]
+            .as_u64()
+            .and_then(|step| usize::try_from(step).ok())
+            .ok_or_else(|| invalid("calibration parent clock"))?;
+        if step >= 100_000
+            || parent.campaign.batch != 16
+            || parent.campaign.context != 256
+            || parent.model.config.context != 256
+            || parent.campaign.quantization_transition.is_some()
+            || parent.campaign.projection_transition.is_some()
+        {
+            return Err(invalid(
+                "calibration requires the unchanged continuous B16/T256 campaign",
+            ));
+        }
+        let optimizer =
+            NamedAdamW::load(source, parent.model.variables(), &parent.campaign.optimizer)?;
+        let mut calibration = prepare_rounding_shadow(&mut parent.model, &optimizer, step)?;
+        calibration["original_continuous_artifact"] = parent.artifact.clone();
+        calibration["original_continuous_binding"] = parent.binding.clone();
+        calibration["original_optimizer_metadata_sha256"] = json!(sha256_file(
+            &source.join(crate::joint_optimizer::METADATA_FILE)
+        )?);
+        calibration["original_optimizer_moments_sha256"] = json!(sha256_file(
+            &source.join(crate::joint_optimizer::MOMENT_FILE)
+        )?);
+        let mut cfg = parent.campaign.clone();
+        cfg.evaluator_path = evaluator_path.to_path_buf();
+        cfg.total_steps = cfg.total_steps.max(step + 1);
+        cfg.checkpoint_steps.clear();
+        cfg.stop_file = None;
+        cfg.quantization_transition = Some(QuantizationTransition {
+            parent_checkpoint_sha256: sha256_file(&source.join("checkpoint.json"))?,
+            parent_campaign_sha256: sha256_file(&source.join("campaign.json"))?,
+            parent_optimizer_step: step,
+            ramp_steps: 1,
+            reason: "Explicit parameter-only calibration and legal-range shadow projection for alpha learning; zero model updates; one-step ramp field is unused preparation metadata".into(),
+        });
+        cfg.trial_scope = "CALIBRATED_SHADOW_NO_MODEL_UPDATES: original continuous parent retained; only alpha code learning may consume this checkpoint; total_steps retains unused schema headroom, not completed exposure".into();
+        let mut report = metadata(&cfg, "joint-calibrate-shadow", "cpu")?;
+        report["calibration"] = calibration.clone();
+        save_checkpoint_with_calibration(
+            &parent.model,
+            &optimizer,
+            &cfg,
+            &target,
+            step,
+            "CALIBRATED_SHADOW_NO_MODEL_UPDATES",
+            &evaluator.sha256,
+            Some(&calibration),
+        )?;
+        let restored =
+            load_bound_checkpoint(&target, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        let restored_optimizer =
+            NamedAdamW::load(&target, restored.model.variables(), &cfg.optimizer)?;
+        if hard_parameter_snapshot(&restored.model)?.shadow_sha256
+            != calibration["projected_shadow_sha256"]
+            || restored_optimizer.continuity_fingerprint()?
+                != calibration["optimizer_moments_and_clocks"]
+            || restored.binding["shadow_calibration"] != calibration
+        {
+            return Err(invalid(
+                "calibrated shadow reload changed parameters, optimizer or provenance",
+            ));
+        }
+        report["checkpoint"] = json!(target);
+        report["checkpoint_sha256"] = json!(sha256_file(&target.join("checkpoint.json"))?);
+        report["reload_shadow_optimizer_and_provenance_equal"] = json!(true);
+        report["elapsed_seconds"] = json!(started.elapsed().as_secs_f64());
+        save_json(&out.join("calibration-report.json"), &report)?;
+        Ok(())
+    })();
+    finish_attempt(out, result)
 }
 
 fn export_hard_cli(args: &[String]) -> Result<()> {
@@ -1803,6 +2041,207 @@ pub(crate) fn evaluate_loaded(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn calibrated_shadow_preserves_fractional_weights_clocks_and_packed_metadata() -> Result<()> {
+        use crate::joint_rounding::{LearnedRounding, RoundingConfig};
+        use candle_core::{Device, Tensor};
+        let mut model = JointModel::new(
+            JointConfig {
+                width: 128,
+                context: 256,
+                ..JointConfig::default()
+            },
+            &Device::Cpu,
+        )?;
+        let mut optimizer = NamedAdamW::new(model.variables(), AdamConfig::default())?;
+        let terms = model
+            .variables()
+            .values()
+            .map(|v| v.sqr()?.sum_all())
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let loss = Tensor::stack(&terms, 0)?.sum_all()?;
+        optimizer.step(model.variables(), &loss.backward()?)?;
+        let embedding = &model.variables()["embedding.weight"];
+        let mut values = embedding.flatten_all()?.to_vec1::<f32>()?;
+        values[..128].fill(0.1);
+        values[0] = 1.0;
+        embedding.set(&Tensor::from_vec(values, embedding.dims(), &Device::Cpu)?)?;
+        let moments = optimizer.continuity_fingerprint()?;
+        let witness = prepare_rounding_shadow(&mut model, &optimizer, 1)?;
+        assert!(witness["projection"]["projected_coordinates"]
+            .as_u64()
+            .is_some_and(|n| n > 0));
+        assert!(witness["fractional_shadow_coordinates"]
+            .as_u64()
+            .is_some_and(|n| n > 0));
+        assert_eq!(moments, optimizer.continuity_fingerprint()?);
+        assert!(model.set_completed_step(2).is_err());
+        assert!(model
+            .forward(&[1, 2], 1, 2, ReadMode::Enabled, true)
+            .is_err());
+        let state = model
+            .quantization()
+            .ok_or_else(|| invalid("test calibration missing"))?;
+        assert_eq!(
+            (state.start_step, state.completed_step, state.ramp_steps),
+            (1, 1, 1)
+        );
+        let learner = LearnedRounding::new(
+            &state.spec,
+            model.variables(),
+            RoundingConfig {
+                steps: 2,
+                warmup_steps: 1,
+                beta_start: 20.0,
+                beta_end: 2.0,
+                regularization: 0.0,
+            },
+        )?;
+        let view = model
+            .rounding_learning_view(learner.variables().clone(), learner.parameters(false)?)?;
+        let alpha_loss = view
+            .forward(&[1, 2], 1, 2, ReadMode::Enabled, true)?
+            .loss(&[2, 3])?;
+        assert!(alpha_loss.to_scalar::<f32>()?.is_finite());
+        let alpha_gradients = alpha_loss.backward()?;
+        let mut nonzero_alpha_gradient = false;
+        for variable in learner.variables().values() {
+            if let Some(gradient) = alpha_gradients.get(variable) {
+                let magnitude = gradient.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(magnitude.is_finite());
+                nonzero_alpha_gradient |= magnitude > 0.0;
+            }
+        }
+        assert!(nonzero_alpha_gradient);
+        let hard = model.materialize_rounding_codes(learner.parameters(true)?)?;
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock"))?
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "uor-calibrated-shadow-{}-{nonce}",
+            std::process::id()
+        ));
+        report_output::claim(&root)?;
+        let packed = root.join("packed");
+        report_output::claim(&packed)?;
+        let manifest = hard.save_hard(&packed)?;
+        report_output::seal(&packed)?;
+        let loaded = JointModel::load_hard(&packed, &Device::Cpu)?;
+        assert_eq!(loaded.quantization(), hard.quantization());
+        // Exercise the exact metadata type and clock predicate used by integer loading.
+        let integer_state: uor_r4_integer::config::QuantizedTrainingState =
+            serde_json::from_value(manifest["quantization"].clone())?;
+        assert_eq!(
+            serde_json::to_value(&integer_state)?,
+            manifest["quantization"]
+        );
+        assert!(uor_r4_integer::config::valid_quantization_clock(
+            integer_state.start_step,
+            integer_state.ramp_steps,
+            integer_state.completed_step,
+            integer_state.preparation
+        ));
+        let checkpoint = root.join("checkpoint");
+        report_output::claim(&checkpoint)?;
+        let mut cfg = transition_campaign();
+        cfg.model = model.config.clone();
+        cfg.total_steps = 2;
+        cfg.quantization_transition = Some(QuantizationTransition {
+            parent_checkpoint_sha256: "a".repeat(64),
+            parent_campaign_sha256: "b".repeat(64),
+            parent_optimizer_step: 1,
+            ramp_steps: 1,
+            reason: "test no-update calibration".into(),
+        });
+        save_checkpoint_with_calibration(
+            &model,
+            &optimizer,
+            &cfg,
+            &checkpoint,
+            1,
+            "CALIBRATED_SHADOW_NO_MODEL_UPDATES",
+            &"c".repeat(64),
+            Some(&witness),
+        )?;
+        let restored = load_bound_checkpoint(&checkpoint, &Device::Cpu, &"c".repeat(64))?;
+        let restored_optimizer =
+            NamedAdamW::load(&checkpoint, restored.model.variables(), &cfg.optimizer)?;
+        assert_eq!(restored_optimizer.continuity_fingerprint()?, moments);
+        assert_eq!(
+            hard_parameter_snapshot(&restored.model)?.shadow_sha256,
+            witness["projected_shadow_sha256"]
+        );
+        let mut missing = restored.binding.clone();
+        missing
+            .as_object_mut()
+            .ok_or_else(|| invalid("test binding object"))?
+            .remove("shadow_calibration");
+        assert!(validate_quantization_binding(
+            &cfg,
+            &missing,
+            &serde_json::to_value(restored.model.quantization())?,
+            1
+        )
+        .is_err());
+        report_output::seal(&root)?;
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn calibrated_shadow_mode_preserves_legacy_serialization_and_rejects_false_clocks() -> Result<()>
+    {
+        use uor_r4_integer::config::{valid_quantization_clock, QuantizationPreparation};
+        let mut model = JointModel::new(
+            JointConfig {
+                width: 128,
+                ..JointConfig::default()
+            },
+            &candle_core::Device::Cpu,
+        )?;
+        model.configure_quantization(7, 4)?;
+        let state = serde_json::to_value(model.quantization())?;
+        assert!(state.get("preparation").is_none());
+        let roundtrip: crate::joint_model::QuantizedTrainingState =
+            serde_json::from_value(state.clone())?;
+        assert_eq!(serde_json::to_value(roundtrip)?, state);
+        assert!(model.materialize_rounding_codes(BTreeMap::new()).is_err());
+        assert!(valid_quantization_clock(7, 4, 7, None));
+        assert!(valid_quantization_clock(
+            7,
+            1,
+            7,
+            Some(QuantizationPreparation::CalibratedForRounding)
+        ));
+        assert!(!valid_quantization_clock(
+            7,
+            1,
+            8,
+            Some(QuantizationPreparation::CalibratedForRounding)
+        ));
+        assert!(!valid_quantization_clock(
+            7,
+            2,
+            7,
+            Some(QuantizationPreparation::CalibratedForRounding)
+        ));
+        let mut invalid_mode = state;
+        invalid_mode["preparation"] = json!("completed_without_updates");
+        assert!(
+            serde_json::from_value::<crate::joint_model::QuantizedTrainingState>(
+                invalid_mode.clone()
+            )
+            .is_err()
+        );
+        assert!(
+            serde_json::from_value::<uor_r4_integer::config::QuantizedTrainingState>(invalid_mode)
+                .is_err()
+        );
+        Ok(())
+    }
+
     fn transition_campaign() -> Campaign {
         Campaign {
             schema: "uor-r4.joint-recurrent-campaign/1".into(),

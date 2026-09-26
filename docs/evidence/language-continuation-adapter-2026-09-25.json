@@ -1,0 +1,667 @@
+{
+  "source_commit": "209483169323563d541df781b8817a4bf6dc31e3",
+  "focused_tests": {
+    "command": "cargo test --offline --release -p uor-r4-training --features metal,cpu-accelerate,reference-accelerate --lib calibrated_shadow -- --test-threads=1",
+    "passed": 2,
+    "failed": 0,
+    "filtered_not_run": 68,
+    "execution_seconds": 0.91
+  },
+  "build": {
+    "source_commit": "209483169323563d541df781b8817a4bf6dc31e3",
+    "started_utc": "2026-09-25T20:56:59.671362+00:00",
+    "phases": [
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "metal,cpu-accelerate,reference-accelerate",
+          "--lib",
+          "calibrated_shadow",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 237.274049292,
+        "log": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bridge-build-20948316-1.log"
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "-p",
+          "uor-r4-integer",
+          "--features",
+          "uor-r4-training/metal,uor-r4-training/cpu-accelerate,uor-r4-training/reference-accelerate",
+          "--bin",
+          "uor-r4-training",
+          "--bin",
+          "uor-r4-integer"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 21.48394858300003,
+        "log": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bridge-build-20948316-2.log"
+      }
+    ],
+    "elapsed_seconds": 258.7583945,
+    "uor-r4-training": {
+      "path": "/Users/casey.allard/uor-r4/target/release/uor-r4-training",
+      "bytes": 9358656,
+      "sha256": "6cf5304cc8d12c68b78ac888bdfb9ce0a009faae18a0d449c9c1367eeee82131"
+    },
+    "uor-r4-integer": {
+      "path": "/Users/casey.allard/uor-r4/target/release/uor-r4-integer",
+      "bytes": 1345568,
+      "sha256": "e94385aa045ef019fe5993012d10948375c13c71271c3ad19fe6265c83487969"
+    }
+  },
+  "preflight": {
+    "quaternion": {
+      "arm": "quaternion",
+      "utc": "2026-09-25T21:02:47.564405+00:00",
+      "elapsed_seconds": 3.000514083,
+      "results": [
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/joint-training-20948316",
+            "joint-calibrate-shadow",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-quaternion-continuous-1/checkpoint-final",
+            "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-shadow-quaternion-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 1.3208272920000002
+        },
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/joint-training-20948316",
+            "joint-export-hard",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-shadow-quaternion-1/checkpoint-calibrated",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-packed-quaternion-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 1.473077041
+        },
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/uor-r4-integer-20948316",
+            "pack",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-packed-quaternion-1",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/full-context-integer-20260925/tables-1",
+            "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/tokenizer.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-bundle-quaternion-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.07416674999999984
+        },
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/uor-r4-integer-20948316",
+            "generate",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-bundle-quaternion-1",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bridge-preflight-requests.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-generate-quaternion-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.13115516700000018
+        }
+      ],
+      "status": "PASS",
+      "scope": "Actual unchanged-clock calibration, hard packing, IntegerModel/bundle loading and eight generated tokens; interface exercise only, not language retention."
+    },
+    "householder_pair": {
+      "arm": "householder_pair",
+      "utc": "2026-09-25T21:02:43.897723+00:00",
+      "elapsed_seconds": 3.014039,
+      "results": [
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/joint-training-20948316",
+            "joint-calibrate-shadow",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-householder_pair-continuous-1/checkpoint-final",
+            "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-shadow-householder_pair-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 1.3172383330000002
+        },
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/joint-training-20948316",
+            "joint-export-hard",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-shadow-householder_pair-1/checkpoint-calibrated",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-packed-householder_pair-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 1.4847975
+        },
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/uor-r4-integer-20948316",
+            "pack",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-packed-householder_pair-1",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/full-context-integer-20260925/tables-1",
+            "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/tokenizer.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-bundle-householder_pair-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.07783000000000007
+        },
+        {
+          "argv": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/uor-r4-integer-20948316",
+            "generate",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-bundle-householder_pair-1",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bridge-preflight-requests.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/preflight-generate-householder_pair-1"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.13291799999999965
+        }
+      ],
+      "status": "PASS",
+      "scope": "Actual unchanged-clock calibration, hard packing, IntegerModel/bundle loading and eight generated tokens; interface exercise only, not language retention."
+    }
+  },
+  "actual_calibration": {
+    "quaternion": {
+      "calibration": {
+        "calibration_input": "Current continuous parameters only; no evaluation data or code selection",
+        "calibration_rule": "frozen-parent; signed4 minimum F64 sum of squared F32 reconstruction error over clamped/deduplicated [ceiling-2,ceiling-1,ceiling], ties larger exponent; signed16 ceiling only; ceiling=ceil(log2(maxabs/qmax)) clamped [-24,16]; exact-zero ceiling=0; ties round away from zero",
+        "clock_scope": "start_step=completed_step=actual continuous parent step; ramp_steps=1 is unused compatibility metadata, not a completed QAT ramp; only alpha learning is permitted",
+        "continuous_shadow_sha256": "6735049c067c0e08c5d4f3739f1882ad1b1ccaf2524e218a23562afc45e5e624",
+        "fractional_shadow_coordinates": 1648037,
+        "hard_codes_sha256": "9b19238673f5db73426eb1c7150bed38790b40e7c2ed91b013d6e56cc9f3c1b6",
+        "hard_values_sha256": "f6ccc8e3eedaefa8a2687849176cd880db122c2f90b9bd7b4c2a27fd5c9f8046",
+        "interior_shadow_bits_preserved": true,
+        "model_step": 8348,
+        "nearest_hard_values_and_codes_preserved": true,
+        "optimizer_moments_and_clocks": {
+          "beta1": 0.9,
+          "beta2": 0.999,
+          "clip_norm": 1.0,
+          "config": {
+            "allowed_missing_gradients": [],
+            "learning_rate": 0.001,
+            "parameter_abs_limit": 1000000.0,
+            "weight_decay": 0.01
+          },
+          "epsilon": 1e-08,
+          "hash_encoding": "Domain tag, name/shape/update metadata with u64-LE byte length, then tagged first/second u64-LE lengths and F32-LE values in sorted name order.",
+          "moment_abs_limit": 1.00001,
+          "named_moment_values_sha256": "795e8afc03af23886bf4cb2dda9980cb55ba03b4fd0919e92e7343c773d05e75",
+          "parameter_coordinates": 1678466,
+          "schema": "uor-r4.adam-moment-continuity/1",
+          "step": 8348,
+          "variables": [
+            {
+              "name": "copy.gate.bias",
+              "shape": [
+                1
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "copy.gate.weight",
+              "shape": [
+                1,
+                512
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "embedding.weight",
+              "shape": [
+                4096,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "output.bias",
+              "shape": [
+                4096
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "output.norm.weight",
+              "shape": [
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.age",
+              "shape": [
+                255
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.key.bias",
+              "shape": [
+                64
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.key.weight",
+              "shape": [
+                64,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.no_read.bias",
+              "shape": [
+                1
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.no_read.weight",
+              "shape": [
+                1,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.query.bias",
+              "shape": [
+                64
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.query.weight",
+              "shape": [
+                64,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.value.bias",
+              "shape": [
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.value.weight",
+              "shape": [
+                256,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "recurrent.bias",
+              "shape": [
+                768
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "recurrent.input.weight",
+              "shape": [
+                768,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "recurrent.state.weight",
+              "shape": [
+                768,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.bias",
+              "shape": [
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.gate.bias",
+              "shape": [
+                1
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.gate.weight",
+              "shape": [
+                1,
+                512
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.weight",
+              "shape": [
+                256,
+                512
+              ],
+              "updates": 8348
+            }
+          ]
+        },
+        "optimizer_updates": 0,
+        "original_continuous_artifact": {
+          "campaign_sha256": "c29481bad331415a186f9f141c755121018c95c0b26daab46cc29b9761f201c5",
+          "checkpoint_sha256": "ae40860e0313fe4515e839e7f91fc41fe0316e52c7363c55b4e50642451cee08",
+          "kind": "training_checkpoint",
+          "model_config_sha256": "c2df5bd23cb15f50610c17f43925564b8b9bd9fa5df39b4d6f6b5047fe1a7056",
+          "numerical_path": "continuous F32",
+          "parent_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-quaternion-continuous-1/checkpoint-final",
+          "parent_file_set_verified": true
+        },
+        "original_continuous_binding": {
+          "cpu_gradient_shards": 2,
+          "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+          "data_seed": 240924,
+          "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+          "model_config_sha256": "c2df5bd23cb15f50610c17f43925564b8b9bd9fa5df39b4d6f6b5047fe1a7056",
+          "model_sha256": "00ee447cf7b00644c078d03794f1127cf68e772ec6cf6c236fdb53a8a2d27885",
+          "next_data_step": 8348,
+          "optimizer_step": 8348,
+          "quantization": null,
+          "quantization_transition": null,
+          "sampled_target_visits": 34193408,
+          "sampled_targets_per_step": 4096,
+          "schema": "uor-r4.joint-recurrent-checkpoint/1",
+          "source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+          "status": "TARGET_COMPLETE",
+          "training_batch": 16,
+          "training_context": 256,
+          "training_window_transition": {
+            "new_batch": 16,
+            "new_context": 256,
+            "old_batch": 64,
+            "old_context": 64,
+            "parent_campaign_sha256": "20729fcb12ed3ec9b186ac9575667fae4a4a10a5fedf2162430cacdc2ec6d750",
+            "parent_checkpoint_sha256": "bc4a56880d2991502ad61db1940015e82f69613f458c9274ef0145a16da30670",
+            "parent_optimizer_step": 2104,
+            "parent_sampled_target_visits": 8617984,
+            "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+          }
+        },
+        "original_optimizer_metadata_sha256": "d185007bd2c10099c3547e8a09082c5b3648f6ba4d97e6a26407936f8a7ff077",
+        "original_optimizer_moments_sha256": "4be39a9da4df651aaf672bf8aea0dcf0f3e6d5bc0bea5244cc9aba776eff6591",
+        "preparation": "calibrated_for_rounding",
+        "projected_shadow_sha256": "5baff80a1472b398a973ac53a48bc6c7fcb1cee0fc90bc59b0376d764d3f7a7d",
+        "projection": {
+          "maximum_absolute_correction": 0.5600013732910156,
+          "projected_coordinates": 30428,
+          "total_coordinates": 1678466
+        },
+        "quantization_spec_sha256": "38d94b81ebebddf3af8f2421230e7a581d11642964390609d01e6ea67ceeb330",
+        "sampled_target_visits": 0,
+        "sampler_steps_advanced": 0,
+        "schema": "uor-r4.calibrated-rounding-shadow/1"
+      },
+      "reload_shadow_optimizer_and_provenance_equal": true
+    },
+    "householder_pair": {
+      "calibration": {
+        "calibration_input": "Current continuous parameters only; no evaluation data or code selection",
+        "calibration_rule": "frozen-parent; signed4 minimum F64 sum of squared F32 reconstruction error over clamped/deduplicated [ceiling-2,ceiling-1,ceiling], ties larger exponent; signed16 ceiling only; ceiling=ceil(log2(maxabs/qmax)) clamped [-24,16]; exact-zero ceiling=0; ties round away from zero",
+        "clock_scope": "start_step=completed_step=actual continuous parent step; ramp_steps=1 is unused compatibility metadata, not a completed QAT ramp; only alpha learning is permitted",
+        "continuous_shadow_sha256": "6a70e3df8c19aa4beb720027b6c37594d4331a3dc946ea5d6dfc97fd60f3ee13",
+        "fractional_shadow_coordinates": 1646255,
+        "hard_codes_sha256": "006b1556e4f7e8555d3d58f681a10ac20ce8c8f863dc4ccaf7cc2c8230f38f1d",
+        "hard_values_sha256": "a10f7dcf16e19b0cc7688b682a349fb9af922a9541444fe3cdb1d730cffe56fd",
+        "interior_shadow_bits_preserved": true,
+        "model_step": 8348,
+        "nearest_hard_values_and_codes_preserved": true,
+        "optimizer_moments_and_clocks": {
+          "beta1": 0.9,
+          "beta2": 0.999,
+          "clip_norm": 1.0,
+          "config": {
+            "allowed_missing_gradients": [],
+            "learning_rate": 0.001,
+            "parameter_abs_limit": 1000000.0,
+            "weight_decay": 0.01
+          },
+          "epsilon": 1e-08,
+          "hash_encoding": "Domain tag, name/shape/update metadata with u64-LE byte length, then tagged first/second u64-LE lengths and F32-LE values in sorted name order.",
+          "moment_abs_limit": 1.00001,
+          "named_moment_values_sha256": "2aac47c5c7d2c0b4377e1170144f67da12586f75470fc05a4431ac61db09bca1",
+          "parameter_coordinates": 1678466,
+          "schema": "uor-r4.adam-moment-continuity/1",
+          "step": 8348,
+          "variables": [
+            {
+              "name": "copy.gate.bias",
+              "shape": [
+                1
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "copy.gate.weight",
+              "shape": [
+                1,
+                512
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "embedding.weight",
+              "shape": [
+                4096,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "output.bias",
+              "shape": [
+                4096
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "output.norm.weight",
+              "shape": [
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.age",
+              "shape": [
+                255
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.key.bias",
+              "shape": [
+                64
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.key.weight",
+              "shape": [
+                64,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.no_read.bias",
+              "shape": [
+                1
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.no_read.weight",
+              "shape": [
+                1,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.query.bias",
+              "shape": [
+                64
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.query.weight",
+              "shape": [
+                64,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.value.bias",
+              "shape": [
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "read.value.weight",
+              "shape": [
+                256,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "recurrent.bias",
+              "shape": [
+                768
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "recurrent.input.weight",
+              "shape": [
+                768,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "recurrent.state.weight",
+              "shape": [
+                768,
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.bias",
+              "shape": [
+                256
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.gate.bias",
+              "shape": [
+                1
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.gate.weight",
+              "shape": [
+                1,
+                512
+              ],
+              "updates": 8348
+            },
+            {
+              "name": "update.weight",
+              "shape": [
+                256,
+                512
+              ],
+              "updates": 8348
+            }
+          ]
+        },
+        "optimizer_updates": 0,
+        "original_continuous_artifact": {
+          "campaign_sha256": "77098956a8e951c67c32e3a835fbbb6d74bdd9249a7303a8569d881c123a2e68",
+          "checkpoint_sha256": "895390ac2e057152c7a6dfe7e01705062968e5ca345d86a3afd30a2d4f3da369",
+          "kind": "training_checkpoint",
+          "model_config_sha256": "2fe1a5db97054fe76efa33bada0e7f331350e1bd22e5e7d83a912dbb42a0ad1c",
+          "numerical_path": "continuous F32",
+          "parent_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-householder_pair-continuous-1/checkpoint-final",
+          "parent_file_set_verified": true
+        },
+        "original_continuous_binding": {
+          "cpu_gradient_shards": 2,
+          "data_sampler": "splitmix64-counter-v1;valid-window-union;no-cross-store;step/lane-bound",
+          "data_seed": 240924,
+          "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+          "model_config_sha256": "2fe1a5db97054fe76efa33bada0e7f331350e1bd22e5e7d83a912dbb42a0ad1c",
+          "model_sha256": "e6335a6a7d008fd7d2780d723f559ee533fec572daa89b12c043eec3a9512432",
+          "next_data_step": 8348,
+          "optimizer_step": 8348,
+          "quantization": null,
+          "quantization_transition": null,
+          "sampled_target_visits": 34193408,
+          "sampled_targets_per_step": 4096,
+          "schema": "uor-r4.joint-recurrent-checkpoint/1",
+          "source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+          "status": "TARGET_COMPLETE",
+          "training_batch": 16,
+          "training_context": 256,
+          "training_window_transition": {
+            "new_batch": 16,
+            "new_context": 256,
+            "old_batch": 64,
+            "old_context": 64,
+            "parent_campaign_sha256": "5c517312879c5ac85675d6ab8433e0b9d69c96cc354f1f079ff333819eccddb2",
+            "parent_checkpoint_sha256": "6b82a1cd1e296bae55d6b1762f0ded123df9179d36358f9ec2f49b1550f5e7f9",
+            "parent_optimizer_step": 2104,
+            "parent_sampled_target_visits": 8617984,
+            "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained."
+          }
+        },
+        "original_optimizer_metadata_sha256": "1bf9e583f750cf8fd01abf2f73072ab58da61df17a9e65cb847f04384c252d6f",
+        "original_optimizer_moments_sha256": "c9e7376aca1f3bec1abecdd7214f4737018300b2a59d05a0ea568250196d0928",
+        "preparation": "calibrated_for_rounding",
+        "projected_shadow_sha256": "9ee4ac5eae459db41386d348ed5bd6574aed35331bade07a6328518ab144ad30",
+        "projection": {
+          "maximum_absolute_correction": 0.5947444438934326,
+          "projected_coordinates": 32207,
+          "total_coordinates": 1678466
+        },
+        "quantization_spec_sha256": "7d3322dfc9059589f6413ffab1e78a72507d12c11b1d8357bfc75402fd958992",
+        "sampled_target_visits": 0,
+        "sampler_steps_advanced": 0,
+        "schema": "uor-r4.calibrated-rounding-shadow/1"
+      },
+      "reload_shadow_optimizer_and_provenance_equal": true
+    }
+  }
+}

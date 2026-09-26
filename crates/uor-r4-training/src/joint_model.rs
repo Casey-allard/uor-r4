@@ -28,6 +28,7 @@ pub const TRANSPORT_MIN_NORM: f64 = 1e-6;
 pub const QUATERNION_DELTA_SCALE: f64 = 0.1;
 pub const CHECKPOINT_SCHEMA: &str = "uor-r4.joint-recurrent-checkpoint/1";
 
+use uor_r4_integer::config::{valid_quantization_clock, QuantizationPreparation};
 pub use uor_r4_integer::{JointConfig, ReadMode, Transport};
 
 /// Forward-only precision interventions on one fully quantized floating parent.
@@ -98,6 +99,8 @@ pub struct QuantizedTrainingState {
     pub ramp_steps: usize,
     pub completed_step: usize,
     pub spec: QuantizationSpec,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preparation: Option<QuantizationPreparation>,
 }
 
 #[derive(Clone, Copy)]
@@ -495,11 +498,16 @@ impl JointModel {
             .quantization
             .as_ref()
             .ok_or_else(|| invalid("rounding requires frozen grids"))?;
-        if state.ramp_steps == 0
-            || state
+        if !valid_quantization_clock(
+            state.start_step,
+            state.ramp_steps,
+            state.completed_step,
+            state.preparation,
+        ) || (state.preparation.is_none()
+            && state
                 .completed_step
                 .checked_sub(state.start_step)
-                .is_none_or(|steps| steps < state.ramp_steps)
+                .is_none_or(|steps| steps < state.ramp_steps))
         {
             return Err(invalid("rounding requires a completed quantization ramp"));
         }
@@ -538,8 +546,27 @@ impl JointModel {
             ramp_steps,
             completed_step: start_step,
             spec: joint_quantization::calibrate(&self.variables)?,
+            preparation: None,
         });
         Ok(())
+    }
+
+    /// Fresh parameter-only calibration for alpha learning, with no model step.
+    /// The one-step ramp field is unused compatibility metadata in this mode.
+    pub(crate) fn configure_rounding_calibration(&mut self, step: usize) -> Result<()> {
+        self.configure_quantization(step, 1)?;
+        let state = self
+            .quantization
+            .as_mut()
+            .ok_or_else(|| invalid("missing fresh quantization state"))?;
+        state.preparation = Some(QuantizationPreparation::CalibratedForRounding);
+        Ok(())
+    }
+
+    pub(crate) fn is_rounding_calibrated(&self) -> bool {
+        self.quantization
+            .as_ref()
+            .is_some_and(|state| state.preparation.is_some())
     }
 
     pub fn set_completed_step(&mut self, step: usize) -> Result<()> {
@@ -549,6 +576,11 @@ impl JointModel {
             ));
         }
         if let Some(state) = &mut self.quantization {
+            if state.preparation.is_some() && step != state.completed_step {
+                return Err(invalid(
+                    "calibrated rounding parent cannot advance the model clock",
+                ));
+            }
             if step < state.completed_step {
                 return Err(invalid("quantization clock moved backwards"));
             }
@@ -771,6 +803,11 @@ impl JointModel {
         mode: ReadMode,
         training: bool,
     ) -> Result<JointOutput> {
+        if training && self.is_rounding_calibrated() && !self.rounding_learning {
+            return Err(invalid(
+                "calibrated shadow permits alpha-only learning, not model training",
+            ));
+        }
         if self.rounding_learning && !training {
             return Err(invalid(
                 "rounding learning views require the training graph",
@@ -1481,7 +1518,12 @@ impl JointModel {
         let mut model = Self::from_variables(config.model, variables, device)?;
         if let Some(state) = &config.quantization {
             state.spec.validate(model.variables())?;
-            if state.ramp_steps == 0 || state.completed_step < state.start_step {
+            if !valid_quantization_clock(
+                state.start_step,
+                state.ramp_steps,
+                state.completed_step,
+                state.preparation,
+            ) {
                 return Err(invalid("invalid quantization checkpoint clock"));
             }
         }
@@ -1579,8 +1621,12 @@ impl JointModel {
             serde_json::from_value(manifest["quantization"].clone())?;
         let (spec, variables) = joint_quantization::load_hard_parameters(directory, device)?;
         if spec != state.spec
-            || state.ramp_steps == 0
-            || state.completed_step < state.start_step
+            || !valid_quantization_clock(
+                state.start_step,
+                state.ramp_steps,
+                state.completed_step,
+                state.preparation,
+            )
             || variables
                 .iter()
                 .map(|(name, var)| (name.clone(), var.dims().to_vec()))

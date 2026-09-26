@@ -1,0 +1,75 @@
+{
+  "schema": "uor-r4.language-continuation-launch/1",
+  "observed_utc": "2026-09-25T21:12:31.522044+00:00",
+  "status": "RUNNING_NO_CANDIDATE_RESULT",
+  "source_commit": "209483169323563d541df781b8817a4bf6dc31e3",
+  "rdc_device": "fb5bd4fc-de68-4f75-b674-a7b5a24eef94",
+  "rdc_supervisor_pid": 54461,
+  "launch": {
+    "utc": "2026-09-25T21:06:32.487159+00:00",
+    "budget": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/budget.json",
+    "environment": {
+      "RAYON_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "GEMM_NUM_THREADS": "1",
+      "RUST_MIN_STACK": "67108864"
+    },
+    "commands": [
+      {
+        "label": "fit-quaternion-1",
+        "pid": 54465,
+        "argv": [
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75",
+          "joint-fit",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion.json",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-1",
+          "cpu",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-quaternion-continuous-1/checkpoint-final"
+        ]
+      },
+      {
+        "label": "fit-householder_pair-1",
+        "pid": 54466,
+        "argv": [
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75",
+          "joint-fit",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair.json",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-1",
+          "cpu",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-householder_pair-continuous-1/checkpoint-final"
+        ]
+      }
+    ]
+  },
+  "early_throughput": {
+    "quaternion": {
+      "completed_updates": 73,
+      "global_step": 8421,
+      "mean_step_seconds": 4.710625927438356,
+      "recent20_mean_step_seconds": 5.3920339354,
+      "all_observed_gradients_present": true,
+      "training_quantization_strength": 0.0
+    },
+    "householder_pair": {
+      "completed_updates": 74,
+      "global_step": 8422,
+      "mean_step_seconds": 4.682988447054054,
+      "recent20_mean_step_seconds": 5.3830898249,
+      "all_observed_gradients_present": true,
+      "training_quantization_strength": 0.0
+    }
+  },
+  "timing_interpretation": "Early throughput is slower than historical estimate; not a stable completion guarantee. Original 7h per-fit and 10h complete-cycle limits unchanged. Checkpoint and exact-state resume require explicit prospective local resource accounting, not a new learning recipe.",
+  "conditions": {
+    "training_tokens": 256,
+    "evaluation_tokens": 256,
+    "session_tokens": 256,
+    "admission": "full causal",
+    "read_width": 64,
+    "state_width": 256,
+    "updates_per_arm": 7324,
+    "final_global_step": 15672
+  },
+  "remaining": "Final continuous evaluation, fresh calibration, established rounding512, hard/integer evaluation, frozen source and prose judgments, principal adjudication and protected delivery are NOT_RUN."
+}

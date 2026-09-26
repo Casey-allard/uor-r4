@@ -49,6 +49,7 @@ uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESU
 uor-r4-training joint-evaluate CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH
 uor-r4-training joint-compare BASELINE_ROOT QUAT_READ QUAT_NOREAD ORD_READ ORD_NOREAD NEW_REPORT_ROOT
 uor-r4-training joint-export-hard SEALED_CHECKPOINT NEW_REPORT_ROOT [INITIAL_QAT_CAMPAIGN_JSON]
+uor-r4-training joint-calibrate-shadow SEALED_CONTINUOUS_PARENT EVALUATOR_JSON NEW_REPORT_ROOT
 uor-r4-training joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH
 uor-r4-training joint-evaluate-shadow CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH
 uor-r4-training joint-evaluate-precision SEALED_SHADOW_CHECKPOINT EVALUATOR_JSON NEW_REPORT_ROOT cpu {FF|QF|FQ|QQ} BATCH
@@ -124,6 +125,18 @@ ordinary transport control. No index or geometric superiority follows from a
 retention pass.
 
 ### Quantized continuation and packed evaluation
+
+`joint-calibrate-shadow` prepares a continuous B16/T256 full-access checkpoint
+for alpha-only rounding without a model optimizer update. It recalibrates the
+existing dyadic grids from that checkpoint's parameters, explicitly clips
+out-of-range shadows, preserves fractional interior values and witnesses
+unchanged nearest hard codes. The sealed `checkpoint-calibrated` retains the
+original model/data clock and Adam moments, plus original-parent hashes and
+clipping statistics. Its typed `calibrated_for_rounding` mode distinguishes
+preparation from completed quantization-aware training; the one-step ramp field
+is unused compatibility metadata. Ordinary model fitting and clock advancement
+reject this prepared state. Resume language training from the original
+continuous parent. See the [integrated continuation plan](../../docs/integration/language-continuation-plan-2026-09-25.md).
 
 `joint-round-calibrate` resolves the declared training-only gradient-norm
 normalization before any optimizer update. `joint-round-fit` learns one shared

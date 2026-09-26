@@ -1,0 +1,65 @@
+{
+  "schema": "uor-r4.language-continuation-budget/1",
+  "recorded_utc": "2026-09-25T20:49:56.369502+00:00",
+  "cycle_started_utc": "2026-09-25T20:41:00+00:00",
+  "complete_cycle_limit_ms": 36000000,
+  "deadline_utc": "2026-09-26T06:41:00+00:00",
+  "ledger_before": {
+    "cumulative_ms": 545970383,
+    "limit_ms": 549600000
+  },
+  "prospective_extension_ms": 36000000,
+  "ledger_after_extension": {
+    "cumulative_ms": 545970383,
+    "limit_ms": 585600000
+  },
+  "reason": "Owner-authorized necessary local extension for one integrated full256 language continuation and calibrated learned-rounding/integer export; no recurring exposure tranche. Preserve all cumulative charges.",
+  "projection_seconds": {
+    "preparation_review_bridge_build": 3600,
+    "paired_continuous_training": 23400,
+    "calibration_and_paired_rounding": 3600,
+    "evaluation_review_protected_delivery": 2400,
+    "checkpoint_and_stop_margin": 3000
+  },
+  "training_new_updates_per_arm": 7324,
+  "training_new_target_visits_per_arm": 29999104,
+  "training_start_step": 8348,
+  "training_midpoint_step": 12010,
+  "training_final_step": 15672,
+  "rounding_updates_per_arm": 512,
+  "rounding_target_visits_per_arm": 2097152,
+  "rounding_initialization_visits_per_arm": 32768,
+  "context": {
+    "training": 256,
+    "evaluation": 256,
+    "session": 256,
+    "admission": "full causal",
+    "read_width": 64,
+    "state_width": 256
+  },
+  "cpu": {
+    "concurrent_model_processes": 2,
+    "sequence_gradient_shards_each": 2,
+    "nested_backend_threads": 1,
+    "cargo_processes": 1
+  },
+  "model_process_rss_stop_bytes": 4831838208,
+  "aggregate_model_rss_stop_bytes": 8589934592,
+  "storage_new_limit_bytes": 4294967296,
+  "storage_projection_bytes": {
+    "worktree": 1342177280,
+    "new_or_replaced_build": 805306368,
+    "checkpoints_exports_bundles": 805306368,
+    "reports_and_logs": 268435456,
+    "temporary_headroom": 536870912
+  },
+  "physical_reserve_bytes": 25769803776,
+  "stop_margin_bytes": 134217728,
+  "checkpoint_headroom_bytes": 67108864,
+  "physical_free_before_bytes": 47566139392,
+  "standing_authorization": "AGENTS.md 2026-09-06 necessary local model/time/storage extensions; no paid/external compute or deletion",
+  "prior_history": "All prior ledger charges and unique artifacts preserved. Historical gross storage unresolved scope is not reset or certified here.",
+  "correction": "Preparation-only128MiB estimate did not include newly created full managed worktree; complete4GiB projection here includes it before any build/model compute.",
+  "claim": "Exploratory one paired seed; no geometry superiority, useful chat, frontier or energy promise.",
+  "physical_free_stop_bytes": 25971130368
+}

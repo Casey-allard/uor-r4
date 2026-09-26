@@ -1,0 +1,219 @@
+{
+  "schema": "uor-r4.final-direction-independent-review/1",
+  "reviewed_utc": "2026-09-26T23:33:44.342596+00:00",
+  "reviewer": "continuation_cycle_driver",
+  "status": "ACCEPT_DIAGNOSTIC_PRIORITY_WITH_EXPLICIT_CAUSAL_LIMITS",
+  "principal_approved": false,
+  "recommendation_accepted": true,
+  "scope": "One bounded read-only review of the principal inference from existing outputs and scoring source. No new model, replay, external research, test, instrumentation, training, decoding change or Git operation. This receipt authorizes none.",
+  "recommendation": "Prioritize one separately authorized same-checkpoint emission/selection causal-localization work card over another exposure-only dose, retaining both arms, full256 access, weights, fixed prose/source criteria and the observed numerical failures. This prioritizes an observable interface; it does not identify the root cause.",
+  "rationale": [
+    "The completed continuation improved comparison-tail likelihood while failing the fixed prose-improvement decision. These existing outcomes provide no decisive new evidence for another exposure-only dose; they do not prove that additional exposure could never help.",
+    "Actual continuous decision traces retain selected and same-prefix greedy token IDs, selected raw model mass, aggregate copy mass, and top source occurrence. The witnessed low-mass choices make the emission/selection interface a specific, inspectable diagnostic starting point.",
+    "Keeping the same checkpoint avoids confounding a future localization observation with another optimization trajectory. Both learned distribution/representation and selection behavior remain possible contributors.",
+    "The proposed card is a bounded decision about causes, not an automatic sampler replacement or a geometric-admission experiment. Existing numerical and source losses remain independently actionable evidence and cannot be waived by any sampling explanation."
+  ],
+  "artifact_field_checks": [
+    {
+      "arm": "quaternion",
+      "lane": "continuous",
+      "actual_hash_and_five_rows_and_decision_field_list_match": true
+    },
+    {
+      "arm": "quaternion",
+      "lane": "integer",
+      "actual_hash_and_five_rows_and_decision_field_list_match": true
+    },
+    {
+      "arm": "householder_pair",
+      "lane": "continuous",
+      "actual_hash_and_five_rows_and_decision_field_list_match": true
+    },
+    {
+      "arm": "householder_pair",
+      "lane": "integer",
+      "actual_hash_and_five_rows_and_decision_field_list_match": true
+    }
+  ],
+  "witness_checks": [
+    {
+      "arm": "quaternion",
+      "seed": 2014,
+      "quoted_clause": "a very big, grey man had an idea called out in.",
+      "decisions": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+      ],
+      "all_quoted_fields_exactly_match_saved_decisions": true,
+      "all_three_raw_BPE_spellings_match_bound_tokenizer": true,
+      "quote_is_in_actual_response": true,
+      "raw_model_nll_and_effective_copy_formulas_match": true,
+      "sampling_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc"
+    },
+    {
+      "arm": "householder_pair",
+      "seed": 2014,
+      "quoted_clause": "He wanted the most so exciting!",
+      "decisions": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "all_quoted_fields_exactly_match_saved_decisions": true,
+      "all_three_raw_BPE_spellings_match_bound_tokenizer": true,
+      "quote_is_in_actual_response": true,
+      "raw_model_nll_and_effective_copy_formulas_match": true,
+      "sampling_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc"
+    }
+  ],
+  "causal_assessment": {
+    "trace_status_component_attribution_unresolved_is_correct": true,
+    "current_trace_interpretation_preserves_greedy_trajectory_caveat": true,
+    "unqualified_sampling_root_cause_supported": false,
+    "coherent_greedy_trajectory_supported": false,
+    "state_or_role_representation_adequacy_supported": false,
+    "extra_exposure_proven_futile": false,
+    "low_probability_token_vs_greedy_supported_only_at_actual_sampled_prefix": true,
+    "principal_phrase_assessed": "direct evidence that selection contributed to this sampled malformed clause",
+    "assessment": "Defensible only in the narrow mechanistic sense that the realized sampler emitted this non-greedy token at the recorded prefix. It is not a controlled counterfactual estimate of semantic error reduction, a demonstrated coherent alternate clause or trajectory, or proof that the sampler is defective. The existing caveat substantially limits the claim; the replacement below is more precise.",
+    "preferred_wording": "At the actual sampled prefix, decision39 emitted called with raw model probability0.0017458474030718207 even though the recorded maximum-probability token was a period. This identifies a concrete selection divergence to localize. No alternate rollout or component attribution has been established."
+  },
+  "required_interpretive_limits": [
+    {
+      "id": "model_probability_not_draw_probability",
+      "finding": "selected_probability is the unmodified model row mass. The source samples after ranking the row, retaining top40, applying temperature0.8 through exp((ln p - ln pmax)/0.8), quantizing weights to Q32 and normalizing the draw.",
+      "consequence": "Do not label0.0017458474 as the sampler draw probability or infer the greedy probability/margin: those values are absent from this trace."
+    },
+    {
+      "id": "same_prefix_not_counterfactual_trajectory",
+      "finding": "greedy_token is argmax of the same row used for the recorded sampled choice. The selected token is then appended and fed into the recurrent session.",
+      "consequence": "Later recorded greedy alternatives are conditioned on prior sampled tokens. Concatenating those alternatives would not reconstruct a coherent greedy rollout."
+    },
+    {
+      "id": "aggregate_copy_mass_not_selected_token_attribution",
+      "finding": "Quaternion decision39 has total effective copy mass0.0020646700403119667, exceeding selected called raw mass0.0017458474030718207. Only one top-read occurrence is recorded.",
+      "consequence": "Low aggregate copy mass and a different top-read token do not rule out copy contribution to the selected token. Per-token vocabulary/copy terms and full source weights are missing."
+    },
+    {
+      "id": "read_state_not_exonerated",
+      "finding": "NoRead mass and top-read summaries do not expose the recurrent state or causally isolate value feedback, copying and vocabulary emission.",
+      "consequence": "Neither adequate role representation nor a faulty attention/read component follows. Preserve unresolved attribution."
+    },
+    {
+      "id": "greedy_source_failures_are_separate",
+      "finding": "Source judging in joint_evaluation.rs calls generate_inner with seed=None, selecting row argmax. Both final arms nonetheless lose previously correct source rows versus the accepted parent.",
+      "consequence": "A stochastic sampling-only explanation cannot explain all observed project failures. The source regressions and Householder hard/state drift failures remain separate findings."
+    }
+  ],
+  "source_ranges": [
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "lines": [
+        40,
+        90
+      ],
+      "role": "Raw probability score and deterministic token-index tie-break argmax."
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "lines": [
+        425,
+        483
+      ],
+      "role": "Sample/greedy selection, decision recording and recurrent feedback of selected token."
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "lines": [
+        568,
+        601
+      ],
+      "role": "Aggregate read/copy audit, including copy_gate*(1-no_read)."
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "lines": [
+        802,
+        830
+      ],
+      "role": "Existing source probes use seed=None and exact answer membership."
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "lines": [
+        851,
+        898
+      ],
+      "role": "Temperature0.8/top40/Q32 sampling transformation."
+    }
+  ],
+  "acceptance_and_corrections": {
+    "accept_next_interface_priority": true,
+    "accept_park_exposure_only_fitting": true,
+    "accept_existing_evidence_not_new_panel": true,
+    "strategy_change_required": false,
+    "wording_clarification_recommended": true,
+    "new_model_work_authorized": false,
+    "no_gate_changes": true,
+    "no_candidate_promotion": true
+  },
+  "input_files": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-semantic-trace-coverage-6.json",
+      "sha256": "de640179d5dd7a722702dce62e5934d4183ec0c5b32d9631146cf30147e0d69f",
+      "bytes": 18077
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-freeze.json",
+      "sha256": "b8fd3b98f70f3f3435b2a57c151b8182a82d5c09c830ea69b074c430284e61f8",
+      "bytes": 8053
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/tokenizer.json",
+      "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "bytes": 109457
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-numerical-source-adjudication-6.json",
+      "sha256": "de3d5b037a12655e2e95907afd4e2be44fac1882894e7cc851e618659bfcc55c",
+      "bytes": 130244
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "sha256": "d38b854947ede48694fafb10149ad9540586623b10273bd78d3199bb847c31e8",
+      "bytes": 33351
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/docs/integration/language-continuation-direction-2026-09-26.md",
+      "sha256": "901d4eeefc33473025b2f3f1969011f3d9601511e8d64ca45549f8830c2d3886",
+      "bytes": 13226
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-continuous-read-6/generations.json",
+      "sha256": "fe6c6b7e3d7ef1178152d4c53982ae41d152982c17be5bc1c7119b6b043760c3",
+      "bytes": 483873
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6/generations.jsonl",
+      "sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+      "bytes": 143187
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-continuous-read-6/generations.json",
+      "sha256": "cf2f574b06706228eecd1f2ba4b4a3fe94e6597e84854f83310d395b471c4e2e",
+      "bytes": 524825
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6/generations.jsonl",
+      "sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+      "bytes": 169268
+    }
+  ]
+}

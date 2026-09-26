@@ -1,0 +1,381 @@
+{
+  "schema": "uor-r4.language-continuation-final-result/1",
+  "adjudicated_utc": "2026-09-26T23:33:04.819886+00:00",
+  "status": "FIXED_MILESTONE_MODEL_WORK_COMPLETE_LANGUAGE_TARGET_FAILED",
+  "principal": "root",
+  "principal_accepts_numerical_review": true,
+  "principal_review_scope": "Independently read actual generation texts and comparison/hard/integer reports, reconciled both prose reviewers, inspected original-source row comparisons and existing token/read/copy records; accept independent complete target-file audit at its recorded scope. Rust full-seal checks already executed by controller; copied-set verification recorded separately at backup. No replacement model run.",
+  "fixed_conditions": {
+    "batch": 16,
+    "training_context": 256,
+    "evaluation_context": 256,
+    "memory_access": "full causal history within256",
+    "read_vector_coordinates": 64,
+    "state_coordinates": 256,
+    "cpu_gradient_shards": 2,
+    "source_commit": "209483169323563d541df781b8817a4bf6dc31e3",
+    "training_source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+    "continuous_start_step": 8348,
+    "continuous_final_step": 15672,
+    "retained_updates_per_arm": 7324,
+    "retained_target_visits_per_arm": 29999104,
+    "rounding_updates_per_arm": 512,
+    "no_read_scope": "Whole-prefix intervention removes both value feedback and copying; penalty establishes combined path utility, not component credit."
+  },
+  "quality": {
+    "continuous_acceptable_of_five": {
+      "quaternion": 0,
+      "householder_pair": 0
+    },
+    "integer_acceptable_of_five": {
+      "quaternion": 0,
+      "householder_pair": 1
+    },
+    "same_path_parents_all_zero_of_five": true,
+    "required_minimum": 3,
+    "required_improvement": 2,
+    "all_four_groups_fail": true,
+    "accepted_parent_story_losses": 0,
+    "retained_dimension_disagreements": {
+      "continuous": 2,
+      "integer": 2
+    },
+    "scope": "Five exposed stories per path and arm, four frozen criteria; no statistical or useful-chat qualification."
+  },
+  "arms": {
+    "quaternion": {
+      "original_continuous_8348_nll": 2.090518498969539,
+      "continuous_nll_change_vs_8348": -0.09402802517945563,
+      "hard_minus_new_continuous_nll": 0.045715189286203994,
+      "continuous_no_read_penalty": 0.4955744151233632,
+      "hard_no_read_penalty": 0.506123034024955,
+      "gates": {
+        "hard_nll_within_same_arm_new_continuous_plus_point05": true,
+        "hard_nll_below_count_cache_reference": true,
+        "hard_no_read_penalty_at_least_point02": true,
+        "f32_hard_five_generation_noncollapse": true,
+        "first_noun_losses_at_most_two_vs_original_rung1": true,
+        "exact_packed_reload_finite_normalized_probability_and_provenance": true,
+        "integer_both_modes_state_drift_at_most_point01": true,
+        "integer_both_modes_probability_drift_at_most_point01": true,
+        "integer_source_matches_new_f32_hard_rows": true,
+        "standalone_integer_five_generation_noncollapse": false
+      },
+      "continuous_read_nll": 1.9964904737900833,
+      "hard_read_nll": 2.0422056630762873,
+      "source_counts": {
+        "first_noun_correct": 28,
+        "complete_correct": 25
+      },
+      "original_rung1_first_noun_changes": {
+        "lost": [],
+        "gained": [],
+        "lost_count": 0,
+        "gained_count": 0
+      },
+      "vs_accepted_standalone": {
+        "first_noun_correct": {
+          "lost": [
+            "story-source-edit-04/original",
+            "story-source-edit-04/edited",
+            "story-source-edit-12/original"
+          ],
+          "gained": [
+            "story-source-edit-06/edited",
+            "story-source-edit-15/edited"
+          ],
+          "lost_count": 3,
+          "gained_count": 2
+        },
+        "complete_correct": {
+          "lost": [
+            "story-source-edit-01/original",
+            "story-source-edit-04/original",
+            "story-source-edit-04/edited",
+            "story-source-edit-09/edited",
+            "story-source-edit-12/original"
+          ],
+          "gained": [
+            "story-source-edit-06/edited",
+            "story-source-edit-15/edited"
+          ],
+          "lost_count": 5,
+          "gained_count": 2
+        }
+      },
+      "integer_read_drift": {
+        "all_causal_slot_counts_verified": true,
+        "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+        "elapsed_seconds": 5.7533776660000004,
+        "f32_mean_nll_nats": 2.2470397709082244,
+        "f32_step_seconds": 0.8596478000000003,
+        "full_context_access": true,
+        "integer_mean_nll_nats": 2.2473662912159442,
+        "integer_step_seconds": 4.577849905999996,
+        "maximum_copy_gate_delta": 0.0047607421875,
+        "maximum_exposed_causal_slots": 255,
+        "maximum_no_read_mass_delta": 0.003830637442771234,
+        "maximum_probability_delta": 0.007270125772471658,
+        "maximum_state_delta": 0.00634765625,
+        "maximum_total_variation": 0.00814065809489914,
+        "mean_nll_delta_nats": 0.0003265203077198464,
+        "mean_total_variation": 0.0018143483287396778,
+        "partitions": [
+          {
+            "f32_nll_sum": 2300.9687254100218,
+            "integer_nll_sum": 2301.303082205127,
+            "name": "calibration_prefix",
+            "targets": 1024
+          },
+          {
+            "f32_nll_sum": 0.0,
+            "integer_nll_sum": 0.0,
+            "name": "comparison_tail",
+            "targets": 0
+          }
+        ],
+        "same_observed_tokens": true,
+        "scored_targets": 1024,
+        "target_rows_sha256": "bf3104df158ad319cf4afe73daae33a3dc0212bb6a9c568d5bdfcf09f8cd9dd5",
+        "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+        "top1_disagreement_fraction": 0.0029296875,
+        "top1_disagreements": 3,
+        "windows": 4,
+        "within_prospective_probability_bound": true,
+        "within_prospective_state_bound": true
+      }
+    },
+    "householder_pair": {
+      "original_continuous_8348_nll": 2.0644032207510112,
+      "continuous_nll_change_vs_8348": -0.08967903132616928,
+      "hard_minus_new_continuous_nll": 0.07216366104086114,
+      "continuous_no_read_penalty": 0.4980345088632474,
+      "hard_no_read_penalty": 0.520197579400151,
+      "gates": {
+        "hard_nll_within_same_arm_new_continuous_plus_point05": false,
+        "hard_nll_below_count_cache_reference": true,
+        "hard_no_read_penalty_at_least_point02": true,
+        "f32_hard_five_generation_noncollapse": true,
+        "first_noun_losses_at_most_two_vs_original_rung1": false,
+        "exact_packed_reload_finite_normalized_probability_and_provenance": true,
+        "integer_both_modes_state_drift_at_most_point01": false,
+        "integer_both_modes_probability_drift_at_most_point01": true,
+        "integer_source_matches_new_f32_hard_rows": true,
+        "standalone_integer_five_generation_noncollapse": true
+      },
+      "continuous_read_nll": 1.974724189424842,
+      "hard_read_nll": 2.046887850465703,
+      "source_counts": {
+        "first_noun_correct": 29,
+        "complete_correct": 21
+      },
+      "original_rung1_first_noun_changes": {
+        "lost": [
+          "story-source-edit-00/edited",
+          "story-source-edit-05/edited",
+          "story-source-edit-11/original"
+        ],
+        "gained": [
+          "story-source-edit-06/edited"
+        ],
+        "lost_count": 3,
+        "gained_count": 1
+      },
+      "vs_accepted_standalone": {
+        "first_noun_correct": {
+          "lost": [
+            "story-source-edit-00/edited",
+            "story-source-edit-05/edited",
+            "story-source-edit-11/original"
+          ],
+          "gained": [
+            "story-source-edit-06/edited",
+            "story-source-edit-14/original"
+          ],
+          "lost_count": 3,
+          "gained_count": 2
+        },
+        "complete_correct": {
+          "lost": [
+            "story-source-edit-00/edited",
+            "story-source-edit-03/edited",
+            "story-source-edit-06/original",
+            "story-source-edit-07/original",
+            "story-source-edit-07/edited",
+            "story-source-edit-11/original",
+            "story-source-edit-11/edited"
+          ],
+          "gained": [
+            "story-source-edit-01/edited",
+            "story-source-edit-05/original",
+            "story-source-edit-06/edited",
+            "story-source-edit-14/original"
+          ],
+          "lost_count": 7,
+          "gained_count": 4
+        }
+      },
+      "integer_read_drift": {
+        "all_causal_slot_counts_verified": true,
+        "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+        "elapsed_seconds": 6.159815084,
+        "f32_mean_nll_nats": 2.265396754003774,
+        "f32_step_seconds": 1.0020837650000003,
+        "full_context_access": true,
+        "integer_mean_nll_nats": 2.265643045406321,
+        "integer_step_seconds": 4.829490238000006,
+        "maximum_copy_gate_delta": 0.005035400390625,
+        "maximum_exposed_causal_slots": 255,
+        "maximum_no_read_mass_delta": 0.00437300294012033,
+        "maximum_probability_delta": 0.006939265603435274,
+        "maximum_state_delta": 0.0126953125,
+        "maximum_total_variation": 0.008875458365248473,
+        "mean_nll_delta_nats": 0.00024629140254717186,
+        "mean_total_variation": 0.0019816197348891244,
+        "partitions": [
+          {
+            "f32_nll_sum": 2319.7662760998646,
+            "integer_nll_sum": 2320.018478496073,
+            "name": "calibration_prefix",
+            "targets": 1024
+          },
+          {
+            "f32_nll_sum": 0.0,
+            "integer_nll_sum": 0.0,
+            "name": "comparison_tail",
+            "targets": 0
+          }
+        ],
+        "same_observed_tokens": true,
+        "scored_targets": 1024,
+        "target_rows_sha256": "d18ba4cb8172fee01a2fd9da91dca9ed48e8cda56c9acf96569aa6561975b7b5",
+        "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+        "top1_disagreement_fraction": 0.0009765625,
+        "top1_disagreements": 1,
+        "windows": 4,
+        "within_prospective_probability_bound": true,
+        "within_prospective_state_bound": false
+      }
+    }
+  },
+  "scope_and_failures": [
+    "Householder_pair fails the frozen +0.05 hard-minus-continuous allowance: actual +0.072163661040861.",
+    "Householder_pair loses3 original-rung1-correct first nouns; allowed maximum2.",
+    "Householder_pair integer Read maximum state drift0.0126953125 exceeds0.01, witnessed at input_offset394/block1/position138.",
+    "Quaternion passes the five scoped F32 numerical/export gates and retained four-window integer drift/source controls, but standalone continuation index2 stops after18 tokens on period1 short cycle.",
+    "Quaternion loses5 complete correct source rows and gains2 versus accepted learned-code/standalone parent (28 to25); Householder_pair loses7 and gains4 (24 to21). The original first-noun gate is not silently replaced by this stricter descriptive comparison.",
+    "Both continuous comparison-tail NLLs improve with the unchanged declared dose, but numerical improvement does not establish prose, geometry, energy, coding or reasoning qualification."
+  ],
+  "claim_boundaries": [
+    "No missing artifact was encountered among the retained paths used for this adjudication. Full integer comparison-tail coverage is absent by design: only4calibration-prefix windows per mode were requested.",
+    "F32 targets.bin contains selected target probabilities and NLLs, not every vocabulary probability. Full-vector finite/normalization evidence is the completed Rust evaluator checks and reported maximum sum error; the read-only parser independently checked every recorded target.",
+    "Integer JSONL contains measured maximum drift and probability hashes, not complete state/probability vectors. Recorded row maxima were independently recomputed; underlying per-coordinate maxima are the existing Rust measurement.",
+    "Zero-update calibration preserves optimizer bytes/clocks and nearest hard codes but changes reported outlying shadow coordinates. It is not a blanket zero-model-change claim.",
+    "Exact export reload is the recorded full-context probability comparison plus48-token-cap loaded smoke; it is not a new replay or corpus-wide saturation proof.",
+    "First-noun and exact complete-source memberships are different measurements. All gains and losses, including historical negatives and admission overrides, remain in the row-level comparison.",
+    "F32 noncollapse pass is only the five fixed continuations and period1..4 final-three-block criterion; useful language is adjudicated separately. Standalone quaternion period1 failure is retained.",
+    "NoRead removes both read feedback and copying. No isolated geometry, attention component, universal semantic memory, frontier capability or energy claim follows.",
+    "Fit1 unsaved work remains charged execution loss, not retained learning or a model-quality result; the verified surviving chains each retain exactly8348-to15672."
+  ],
+  "artifact_roots": {
+    "quaternion": {
+      "continuous": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final",
+      "packed": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model",
+      "bundle": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bundle-quaternion-6",
+      "integer_evaluation": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-integer-6",
+      "continuation": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6",
+      "source": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-quaternion-6"
+    },
+    "householder_pair": {
+      "continuous": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/checkpoint-final",
+      "packed": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model",
+      "bundle": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bundle-householder_pair-6",
+      "integer_evaluation": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-integer-6",
+      "continuation": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6",
+      "source": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-householder_pair-6"
+    }
+  },
+  "evidence": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-fit-continuity-review-6.json",
+      "sha256": "4588c736681a3cabfc6d58fce922c023daaceca31281d0fa165f38229fbb32bf",
+      "bytes": 10213
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit6-final-checkpoint-verification.json",
+      "sha256": "2e1b155ab0496c97a57866810f748b2c1249e8bfc90095beacb35398d83f760c",
+      "bytes": 2122
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-numerical-source-adjudication-6.json",
+      "sha256": "de3d5b037a12655e2e95907afd4e2be44fac1882894e7cc851e618659bfcc55c",
+      "bytes": 130244
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-source-row-comparisons-6.json",
+      "sha256": "055632d9bd4d2d21112648cee2faf8575c1843df9cd919d7192de0779230357d",
+      "bytes": 681476
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuous-prose-review-reconciliation-6.json",
+      "sha256": "448711cc9ecca2612b3d9355927991f8bacf2e0532aca7c81381bb0a7a118d0d",
+      "bytes": 2785
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/integer-prose-principal-review-6.json",
+      "sha256": "e6f45c66b4b730816b8f1236d5595af097458a704c823dc0b2dd87c0561933b6",
+      "bytes": 26296
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/integer-prose-independent-review-6.json",
+      "sha256": "21d4d787d705a165d16b42419d69a02d746131e5f578346e3bbc49973c8e34b8",
+      "bytes": 41697
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/integer-prose-review-reconciliation-6.json",
+      "sha256": "3c3b5b75380df4d2776dfbbe013fa84c397a3c2a7137a0c2b7f52dce458dc63b",
+      "bytes": 3105
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-semantic-trace-coverage-6.json",
+      "sha256": "20a8c6c3d048f907abc5bb4418d786f669a3883a6447c52a9b80952e3ebf34da",
+      "bytes": 18458
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-cost-detail-6.json",
+      "sha256": "2dae77e6c05afd212863a56bfc958a2f786b77fff4c38ad4c275fcb8693d541e",
+      "bytes": 29525
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cycle-output-index-6.json",
+      "sha256": "274e565113ae4abc84cfdb10b4af3d0592d11100f250b6f1012504e3afdaf429",
+      "bytes": 2588
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-direction-independent-review-6.json",
+      "sha256": "1bd828eba23a3004a956d5a6c676adf5e382f98b1eb3f192cf17372114862f59",
+      "bytes": 11740
+    }
+  ],
+  "decision": {
+    "promote_new_quaternion": false,
+    "promote_new_ordinary": false,
+    "retain_accepted_september25_parents": true,
+    "preserve_all_new_checkpoints_and_negative_outputs": true,
+    "additional_exposure_authorized_by_this_result": false,
+    "mechanism_search_authorized_by_this_result": false,
+    "next_recommendation": "Park exposure-only fitting. Recommend one separately authorized, same-checkpoint localization work card at the emission/selection interface using the existing witnessed failures and both arms. Define a causal observation that distinguishes a badly ranked semantic token from a low-probability sampled deviation, and capture missing component probabilities only where necessary. Keep model weights, full256 access, fixed output-quality criteria and ordinary controls. This receipt authorizes no replay, new panel, changed decoding policy or training.",
+    "language_failure_attribution": "UNRESOLVED; witnessed sampled choices differ from same-prefix greedy alternatives, but no alternate trajectory, per-token component attribution or sole learning cause is established.",
+    "conversion_failure_attribution": "Householder has measured numeric/source retention failures. No operation-level causal attribution is established. Continuous prose already fails, so numerical repair alone cannot qualify the language goal."
+  },
+  "delivery_boundary": {
+    "model_result_final": true,
+    "final_ssd_snapshot": "PENDING_SEPARATE_CLOSEOUT_RECEIPT",
+    "protected_PR": 1398,
+    "issues_keep_open": [
+      973,
+      820
+    ],
+    "final_cost": "Follow final closeout receipt and ledger-cursor; cost-detail snapshot remains historical."
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "schema": "uor-r4.language-continuation-interruption/1",
+  "recorded_utc": "2026-09-25T23:48:08.593576+00:00",
+  "scope": "Execution and recovery status only; no candidate model result.",
+  "original_attempt": {
+    "start_utc": "2026-09-25T21:06:32.096039+00:00",
+    "terminal_utc": "2026-09-25T23:35:42.287807+00:00",
+    "elapsed_seconds": 8949.286137250001,
+    "controller_failure": {
+      "exception": "BrokenPipeError",
+      "error": "[Errno 32] Broken pipe"
+    },
+    "workers_exit_codes": {
+      "fit-quaternion-1": -2,
+      "fit-householder_pair-1": -2
+    },
+    "checkpoint_request_reason": "SUPERVISOR_EXCEPTION:KeyboardInterrupt",
+    "curves": {
+      "quaternion": {
+        "logged_new_updates": 2031,
+        "last_logged_step": 10379,
+        "curve_sha256": "b22c0678a468307d2cfedc46b434dbba436057fb1925dd0abe2ee7f0789b7993",
+        "sealed_final_checkpoint": false,
+        "fit_report_exists": false
+      },
+      "householder_pair": {
+        "logged_new_updates": 2032,
+        "last_logged_step": 10380,
+        "curve_sha256": "79e423eb9af281f87926996bd53d5efbc5111c3bc0d86332039fadca06bb3135",
+        "sealed_final_checkpoint": false,
+        "fit_report_exists": false
+      }
+    },
+    "model_state": "UNRECOVERABLE_AFTER_STEP8348; logged updates are not imported into restart",
+    "precise_cause_of_pipe_closure": "UNRESOLVED; output pipe broke, controller encountered SIGINT and workers exited with signal2; do not infer who or what closed the pipe",
+    "resource_peak_sampled_rss_bytes": 6187843584,
+    "minimum_physical_free_bytes": 47482617856,
+    "local_receipts": {
+      "event_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-1.jsonl",
+      "resource_summary": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuous-fit-1-resource-summary.json"
+    }
+  },
+  "replacement_attempt": {
+    "launched_utc": "2026-09-25T23:46:23.506754+00:00",
+    "controller_pid": 40485,
+    "worker_pids": {
+      "quaternion": 40489,
+      "householder_pair": 40490
+    },
+    "detached_controller": true,
+    "controller_log": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/restart-controller-2.log",
+    "start_step": 8348,
+    "final_step": 15672,
+    "new_updates_per_arm": 7324,
+    "new_targets_per_arm": 29999104,
+    "training_evaluation_session_context": [
+      256,
+      256,
+      256
+    ],
+    "causal_admission": "full",
+    "intermediate_recovery_steps": [
+      10000,
+      12010,
+      14000
+    ],
+    "sole_selected_candidate_step": 15672,
+    "training_executable_sha256": "96fe2f29cc0b67ff8d8cc9d2f78b5c2942ec9825086d43b52f938c6cb63224a7",
+    "controller_sha256": "9334d0511630a2964f15ad0bc51ad181da5bfcb3765fe31b45c5bfeaa75ff72b",
+    "supervisor_sha256": "a7c0b0616e52d44771aade60526a8880cfa0100a409fe9b24e0340a023e9fd9c",
+    "campaigns": {
+      "quaternion": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-restart-2.json",
+        "sha256": "383fbe71d0f0746b3f7eb35029221fbe24deeb8d58b95e30a7e7e802fa00e01e",
+        "parent": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-quaternion-continuous-1/checkpoint-final"
+      },
+      "householder_pair": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair-restart-2.json",
+        "sha256": "2f9fc563d19d96d6eb9b51c43e4817da56476858f816a6eb858a66da7a329afd",
+        "parent": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-householder_pair-continuous-1/checkpoint-final"
+      }
+    },
+    "checkpoint_status": "PENDING",
+    "quality_status": "NOT_RUN"
+  },
+  "resource_extension": {
+    "receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resource-extension-restart-2.json",
+    "budget": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/budget-restart-2.json",
+    "recorded_utc": "2026-09-25T23:42:31.390809+00:00",
+    "additional_limit_ms": 21600000,
+    "complete_cycle_deadline_utc": "2026-09-26T12:41:00+00:00",
+    "ledger_limit_ms": 607200000,
+    "new_storage_limit_bytes": 4294967296,
+    "physical_free_stop_bytes": 25971130368
+  },
+  "claim_boundary": "No completed language learning or output improvement follows from unsealed fit1 curves or early restart2 updates."
+}

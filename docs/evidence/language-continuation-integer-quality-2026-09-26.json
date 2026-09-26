@@ -1,0 +1,1259 @@
+{
+  "schema": "uor-r4.language-continuation-integer-quality/1",
+  "principal": {
+    "schema": "uor-r4.integer-prose-principal-review/1",
+    "utc": "2026-09-26T23:19:58.923096+00:00",
+    "status": "INTEGER_FROZEN_PROSE_TARGET_UNMET_BOTH_ARMS",
+    "reviewer": "root principal",
+    "review_process": "Read all ten actual texts and formulated principal scores before the independent agent preliminary count arrived; full independent receipt not read before writing this record. Retain any dimension disagreement.",
+    "rubric": {
+      "all_required": {
+        "entity_role": "Identity, pronouns, dialogue participants and their roles remain resolvable and do not contradict the prompt or prior generated text without an explained change.",
+        "event_progression": "Events form an understandable progression connected to the prompt; agents, objects and effects remain identifiable.",
+        "language": "Malformed, contradictory or repeated language does not prevent ordinary literal understanding. A minor spelling or grammar error that leaves meaning clear is not an automatic failure.",
+        "completion": "The response ends with a complete clause at a stable or resolved narrative point. An unfinished clause, dangling quotation, or unresolved nonsensical endpoint fails."
+      },
+      "allowances": [
+        "Personification and fantastic story premises are allowed. Physical implausibility alone is not failure.",
+        "New explicitly introduced characters and events are allowed.",
+        "No prescribed plot or exact wording is required; not every prompt fact must be repeated.",
+        "EOS is not required; a token-cap response can pass if the complete retained text ends coherently.",
+        "No output truncation, repair, reroll, alternate seed, or post-result prompt expansion.",
+        "A new proper name alone is not an identity or role error; failure needs a contradiction or genuinely unresolved agent relationship in the complete text."
+      ],
+      "judgment_rule": "Read the complete unchanged output; cite exact text for every failure used. A row passes only when all four criteria pass. Apply this same frozen rubric to both arms and both numerical paths."
+    },
+    "meaningful_improvement": {
+      "minimum_acceptable_of_five": 3,
+      "minimum_additional_acceptable_vs_same_path_parent": 2,
+      "maximum_losses_of_parent_acceptable_rows": 0,
+      "per_arm_decision": true,
+      "interpretation": "A majority of the fixed small packet becoming acceptable supports advancing an exploratory conversation integration milestone only; it does not qualify general conversation. Ordinary arm remains a control; one paired seed cannot establish geometric advantage."
+    },
+    "parent_quality_receipt_sha256": "ad60bcc1da949b7381b45c02cb891aadae7929c96a77257c6697ad2fc1f6b2da",
+    "parent_integer_counts": {
+      "quaternion": 0,
+      "householder_pair": 0
+    },
+    "sources": {
+      "quaternion": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6/generations.jsonl",
+        "sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "requests_sha256": "58e64a39de7b68433e32119dd13757e90a6055fa01723e34be5a323452d73a1c",
+        "summary_sha256": "f0b1d5391bafa8c140cac21f36e1c55b719772bb267102845e628523222c964c"
+      },
+      "householder_pair": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6/generations.jsonl",
+        "sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "requests_sha256": "58e64a39de7b68433e32119dd13757e90a6055fa01723e34be5a323452d73a1c",
+        "summary_sha256": "c9740f034bd5ac48666baee6179cf21b7dfbcd533b6d8da33e14f7eac4721a99"
+      }
+    },
+    "rows": [
+      {
+        "arm": "quaternion",
+        "prompt_index_zero_based": 0,
+        "seed": 2014,
+        "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+        "response_text": "looked in a box, but the mommy came out from one further away from a busy one and the mommy asked for permittly. \n\"Can I explain if we fetm, the gestnure,\" the mommy replied.\n\"No, don't worry that,\" the mommy said.\nSo Mommy got out of the gesture and brought off the gesture.\nShe reached for the mommy's hand and grabbed the handle and got on the gesture. She had very yummy!\nSurprised, the gest enough yummy, juicy berries.\nThe gesture was",
+        "source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "criterion_pass": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "She reached for the mommy's hand",
+            "assessment": "The established Mommy reaches for the mommy as a distinct unresolved participant; repeated mommy replies further obscure roles."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "Mommy got out of the gesture and brought off the gesture",
+            "assessment": "The gesture is used as an unexplained place/vehicle/object, breaking understandable event progression."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "Can I explain if we fetm, the gestnure",
+            "assessment": "The dialogue and later predicates do not express a recoverable literal account."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "The gesture was",
+            "assessment": "Ends an unfinished predicate."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914"
+      },
+      {
+        "arm": "quaternion",
+        "prompt_index_zero_based": 1,
+        "seed": 2015,
+        "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+        "response_text": "spotted it in the jungle. The lion saw the lion too close to the soflen, but it was very exciting.\nThe lion's friend, a cow, a rabbit, needed help. The rabbit said, \"Why are you so young lion?\" But he still scared and said, \"I'm sorry, I shouldn't do it. Have you, a lion!\" The lion was scared his friends quickly ran away for him. He wanted to help him, so no one came to the jungle. The lion laughed and gave him food. He couldn't wait to eat the food all by himself.\nThe lion",
+        "source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "criterion_pass": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "The lion's friend, a cow, a rabbit",
+            "assessment": "The appositive assigns incompatible identities without distinguishing the participants."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "He wanted to help him, so no one came to the jungle",
+            "assessment": "The causal transition from help to absence is not made understandable."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "I shouldn't do it. Have you, a lion!",
+            "assessment": "The dialogue does not resolve the intended action or recipient."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "The lion",
+            "assessment": "Ends an unfinished clause."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914"
+      },
+      {
+        "arm": "quaternion",
+        "prompt_index_zero_based": 2,
+        "seed": 2016,
+        "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+        "response_text": "day, the goose went for a walk in the woods.\n\"Behhh",
+        "source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "criterion_pass": [
+          true,
+          true,
+          true,
+          false
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "the goose went for a walk",
+            "assessment": "The single established goose remains identifiable."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "a walk in the woods",
+            "assessment": "A minimal but understandable action follows the prompt."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "the goose went for a walk in the woods",
+            "assessment": "The completed sentence remains literally understandable; a short vocalization alone is not treated as an identity contradiction."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "\"Behhh",
+            "assessment": "An unfinished quoted vocalization terminates in a reported period1 short cycle, not a complete ending."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "period": 1,
+          "reason": "short_cycle"
+        },
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914"
+      },
+      {
+        "arm": "quaternion",
+        "prompt_index_zero_based": 3,
+        "seed": 2017,
+        "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+        "response_text": ". Tim said, \"Yes, run, I can!\"\nTim ran and jumped, trying to win the race. He laughed and jumped out and got into the water. Tim was very hungry, so he watched it roll away.\nTim started to cry. His bike got bigger and bigger. His bike broke the ground and into the mess. Tim got mad and bigger. His friends helped him find out what the noise was.\nTim and his friends went home, and his friends said okay. Tim learned that sometimes, his friends might look after all by mistakes. He was not upset anymore. His friends hugged and laughed too",
+        "source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "criterion_pass": [
+          true,
+          false,
+          false,
+          true
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "Tim and his friends went home",
+            "assessment": "Tim remains identifiable; explicitly mentioned friends are allowed, as are fantastical size changes."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "Tim was very hungry, so he watched it roll away",
+            "assessment": "The asserted reason/action and later changing bike/noise sequence do not form a coherent event chain."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "his friends might look after all by mistakes",
+            "assessment": "The stated lesson is not an understandable literal proposition."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "His friends hugged and laughed too",
+            "assessment": "Ends a complete stable social action; absence of final punctuation at the cap is not itself failure."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914"
+      },
+      {
+        "arm": "quaternion",
+        "prompt_index_zero_based": 4,
+        "seed": 2018,
+        "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+        "response_text": "were very big and scary all along the way. \nAnna asked Dave to give them some food to take the food. But first she didn. She started to unpack the jar, but she was upset and wanted to get the food. \nAnna and Dave kept asking Dave, they were feeling so upset. They argued and Dave didn't want the jar!\nJust then, Dave realized that a bad idea can bring off the food to make the food for them to have taken the food. They shared the food with their family. After they were all clean, they had to go home every day",
+        "source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "criterion_pass": [
+          false,
+          false,
+          false,
+          true
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "Anna and Dave kept asking Dave",
+            "assessment": "The questioner/addressee roles duplicate Dave without explanation. Anna as a new character is allowed; her name is not a failure."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "a bad idea can bring off the food to make the food for them to have taken the food",
+            "assessment": "The food/jar argument does not connect to an understandable resolution."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "But first she didn.",
+            "assessment": "The truncated predicate plus repeated malformed food clause prevents literal interpretation."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "they had to go home every day",
+            "assessment": "Ends a complete stable habitual clause."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914"
+      },
+      {
+        "arm": "householder_pair",
+        "prompt_index_zero_based": 0,
+        "seed": 2014,
+        "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+        "response_text": "came deep in the house and saw a huge tree. Everything was shining and cozy inside! \nSmah saw something that sparkled and sparkled around to a dream. It was a wonderful sight, and beautiful beautiful tree. \nSoon the tree came closer and closer and the tree began to fly. \n\"Mom, look what is this?\"\nSmph's mommy said, \"What is that mommy did. This was my favorite tree today. \nEa said, \"That's my tree, mommy! Let it be there.\u201d \nAnd they all went together to the tree,",
+        "source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "criterion_pass": [
+          true,
+          true,
+          false,
+          true
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "Smah saw something",
+            "assessment": "New named participants are permitted; no name-similarity rule is used to identify Smah with Smph or Ea."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "Soon the tree came closer and closer and the tree began to fly",
+            "assessment": "A magical tree is observed, approaches and prompts family speech; personification/fantasy is allowed."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "What is that mommy did. This was my favorite tree today.",
+            "assessment": "The malformed question and unresolved quoted dialogue prevent reliably interpreting the family exchange; sparkle around to a dream compounds this, beyond a single harmless typo."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "And they all went together to the tree,",
+            "assessment": "The ending contains a complete arrival clause at a stable point. A trailing comma alone is not a mandatory failure; language elsewhere fails."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e"
+      },
+      {
+        "arm": "householder_pair",
+        "prompt_index_zero_based": 1,
+        "seed": 2015,
+        "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+        "response_text": "saw a big field. He was very curious and wanted to look at it, but it was very scared. He looked further and saw a small door behind and he wanted to see what was inside the door.\nFinally, the lion started to get a journey out of the field. He walked up to the door, and opened them, full of colour and magical! \nFinally, the lion had to get some fun and fun new things in the mighty places. He walked and looked around. At last, he was very careful and walked around the jungle. He quickly looked around and saw a big tree by the river.",
+        "source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "criterion_pass": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "the lion started to get a journey out of the field",
+            "assessment": "The same lion remains the acting explorer; awkward pronouns do not erase that identifiable role."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "He walked up to the door",
+            "assessment": "The lion explores a field and door, then resumes looking around the jungle. A new place/adventure is allowed without resolving the original search for friends."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "He quickly looked around and saw a big tree by the river.",
+            "assessment": "The exploratory actions are understandable despite awkward journey phrasing and the door singular/plural slip."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "saw a big tree by the river.",
+            "assessment": "A complete final observational clause gives a stable scene; the token cap does not force failure."
+          }
+        ],
+        "acceptable": true,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e"
+      },
+      {
+        "arm": "householder_pair",
+        "prompt_index_zero_based": 2,
+        "seed": 2016,
+        "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+        "response_text": "day, the goose saw something in the sky. It was a magic, shiny stone. It wanted the same grass to bloom and eat them.\nBut then something amazing happened! It was very pretty! It was flying!\nThe pink goose looked everywhere. It was too high up into the sky. The goose saw something interesting in the corner. It was a real stone! It had a secret - an old, boun, bouncy and fun.\nSo the goose and the goose played together again at the beach. They made it fly home and bloomed all day.",
+        "source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "criterion_pass": [
+          false,
+          false,
+          false,
+          true
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "the goose and the goose played together again",
+            "assessment": "The final pair cannot be distinguished from the one established goose; the stone does not explain the duplicated agent."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "They made it fly home and bloomed all day",
+            "assessment": "The grass/stone/secret/beach sequence does not establish which participants cause the final events."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "It had a secret - an old, boun, bouncy and fun.",
+            "assessment": "The secret clause lacks the thing being described and cannot be resolved literally."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "They made it fly home and bloomed all day.",
+            "assessment": "Ends a complete terminal clause. Unresolved participants are scored separately; fantasy blooming is allowed."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "eos"
+        },
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e"
+      },
+      {
+        "arm": "householder_pair",
+        "prompt_index_zero_based": 3,
+        "seed": 2017,
+        "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+        "response_text": ". He pretended to be driver that the people ride in the hill could go up and down, and his house was red.\nAs Tim went home, the big hill started to rain. He saw his toy car coming very early and started to look at the other people's house. They could not agree to ride.\nJust then, his friend Tom came over and saw him too. \"Hi what people doing in this bike is? Where did you find my friend?\" his friend Tom nodded. \"That's what we found, Tom, we lost their bike on top of the rain. Let's stay back.\"\nBut",
+        "source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "criterion_pass": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "That's what we found, Tom",
+            "assessment": "Tom is the immediately preceding attributed speaker, then is addressed as Tom without a clear turn change; speaker/addressee roles remain unresolved."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "we lost their bike on top of the rain",
+            "assessment": "The bike/car/houses/rain transitions do not give an understandable event sequence."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "Hi what people doing in this bike is?",
+            "assessment": "The question and missing friend relation do not convey a reliable literal account."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "But",
+            "assessment": "Ends an unfinished clause."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e"
+      },
+      {
+        "arm": "householder_pair",
+        "prompt_index_zero_based": 4,
+        "seed": 2018,
+        "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+        "response_text": "liked to play together and look down at the clouds. Today they wanted to play tag.\n\"Let's go,\" said Davela. \"Look at all the train in the train!\u201d\nWould you like to play catch with a train?\nWhen the train arrived, they sat under the train and waited. When it was time for all it, Dave used his modest home.\n\"Ready, Mommy,\" said Mommy. \"Did you two and you will make us laugh and then we can play.\"\nSo they both agreed they built the train. They had so much fun. They were play with the",
+        "source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "criterion_pass": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "criterion_evidence": [
+          {
+            "criterion_index": 1,
+            "quote": "\"Ready, Mommy,\" said Mommy",
+            "assessment": "The speaking Mommy addresses Mommy without establishing a distinct participant or self-address. New Davela or Mommy names themselves are permitted."
+          },
+          {
+            "criterion_index": 2,
+            "quote": "So they both agreed they built the train",
+            "assessment": "The sequence jumps from an arrived train/play to building it without an understandable connection."
+          },
+          {
+            "criterion_index": 3,
+            "quote": "Did you two and you will make us laugh",
+            "assessment": "The spoken condition/question lacks an interpretable predicate relationship."
+          },
+          {
+            "criterion_index": 4,
+            "quote": "They were play with the",
+            "assessment": "Ends an unfinished phrase and clause."
+          }
+        ],
+        "acceptable": false,
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "same_path_parent_acceptable": false,
+        "same_path_parent_source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e"
+      }
+    ],
+    "acceptable_counts": {
+      "quaternion": 0,
+      "householder_pair": 1
+    },
+    "threshold_result": {
+      "quaternion": {
+        "at_least3": false,
+        "at_least2_more_than_parent": false,
+        "no_parent_acceptable_losses": true,
+        "gate_pass": false
+      },
+      "householder_pair": {
+        "at_least3": false,
+        "at_least2_more_than_parent": false,
+        "no_parent_acceptable_losses": true,
+        "gate_pass": false
+      }
+    },
+    "scope": "Fixed exposed development packet only. Ordinary lion is accepted under generous but literal frozen criteria; every other row fails at least one. Positive dimensions and complete clauses are retained even at token limit. Continuous and integer policies differ, so sample divergence does not by itself establish a conversion defect. No extra panel or learning dose."
+  },
+  "independent": {
+    "schema": "uor-r4.integer-prose-independent-review/1",
+    "reviewed_utc": "2026-09-26T23:20:31.130540+00:00",
+    "reviewer": "continuation_execution_audit",
+    "status": "INDEPENDENT_INTEGER_PROSE_REVIEW_COMPLETE",
+    "scope": "Ten actual frozen Read-enabled integer-served stories only; no numerical/source retention or overall model-promotion adjudication.",
+    "frozen_plan": {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/docs/integration/language-continuation-plan-2026-09-25.md",
+      "sha256": "c06eeabb94d4758a2da86c60bb82a12615e98276345e3c6be29bb2c3d25b8558"
+    },
+    "parent_evidence": {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/docs/evidence/language-continuation-parent-quality-2026-09-25.json",
+      "sha256": "ad60bcc1da949b7381b45c02cb891aadae7929c96a77257c6697ad2fc1f6b2da",
+      "integer_source_files_sha256_reconfirmed": [
+        {
+          "path_kind": "integer",
+          "arm": "quaternion",
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/continuation-quaternion-2/generations.jsonl",
+          "sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914",
+          "identity_scope": "SHA256 of the saved parent generation file, read during this audit; no producer or sealed-set rerun."
+        },
+        {
+          "path_kind": "integer",
+          "arm": "householder_pair",
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/continuation-householder_pair-2/generations.jsonl",
+          "sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e",
+          "identity_scope": "SHA256 of the saved parent generation file, read during this audit; no producer or sealed-set rerun."
+        }
+      ],
+      "recorded_parent_counts": {
+        "quaternion": 0,
+        "householder_pair": 0
+      }
+    },
+    "generation_bindings": {
+      "quaternion": {
+        "generation_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6/generations.jsonl",
+        "generation_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "summary_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6/summary.json",
+        "summary_sha256": "f0b1d5391bafa8c140cac21f36e1c55b719772bb267102845e628523222c964c",
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "requests_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/continuation-requests-quaternion.json",
+        "requests_sha256": "58e64a39de7b68433e32119dd13757e90a6055fa01723e34be5a323452d73a1c"
+      },
+      "householder_pair": {
+        "generation_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6/generations.jsonl",
+        "generation_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "summary_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6/summary.json",
+        "summary_sha256": "c9740f034bd5ac48666baee6179cf21b7dfbcd533b6d8da33e14f7eac4721a99",
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "requests_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/continuation-requests-householder_pair.json",
+        "requests_sha256": "58e64a39de7b68433e32119dd13757e90a6055fa01723e34be5a323452d73a1c"
+      }
+    },
+    "criteria": {
+      "all_required": {
+        "entity_role": "Identity, pronouns, dialogue participants and their roles remain resolvable and do not contradict the prompt or prior generated text without an explained change.",
+        "event_progression": "Events form an understandable progression connected to the prompt; agents, objects and effects remain identifiable.",
+        "language": "Malformed, contradictory or repeated language does not prevent ordinary literal understanding. A minor spelling or grammar error that leaves meaning clear is not an automatic failure.",
+        "completion": "The response ends with a complete clause at a stable or resolved narrative point. An unfinished clause, dangling quotation, or unresolved nonsensical endpoint fails."
+      },
+      "allowances": [
+        "Personification and fantastic story premises are allowed. Physical implausibility alone is not failure.",
+        "New explicitly introduced characters and events are allowed.",
+        "No prescribed plot or exact wording is required; not every prompt fact must be repeated.",
+        "EOS is not required; a token-cap response can pass if the complete retained text ends coherently.",
+        "No output truncation, repair, reroll, alternate seed, or post-result prompt expansion.",
+        "A new proper name alone is not an identity or role error; failure needs a contradiction or genuinely unresolved agent relationship in the complete text."
+      ],
+      "judgment_rule": "Read the complete unchanged output; cite exact text for every failure used. A row passes only when all four criteria pass. Apply this same frozen rubric to both arms and both numerical paths."
+    },
+    "threshold": {
+      "minimum_acceptable_of_five": 3,
+      "minimum_additional_acceptable_vs_same_path_parent": 2,
+      "maximum_losses_of_parent_acceptable_rows": 0,
+      "per_arm_decision": true,
+      "interpretation": "A majority of the fixed small packet becoming acceptable supports advancing an exploratory conversation integration milestone only; it does not qualify general conversation. Ordinary arm remains a control; one paired seed cannot establish geometric advantage."
+    },
+    "criterion_interpretation": [
+      "Read the complete unchanged prompt and response. No truncated substitute, text repair, reroll, new prompt or seed was used.",
+      "Every criterion is scored separately and all four must pass. An incomplete last clause fails completion even when earlier sentences are understandable.",
+      "Personification, fantastic events, newly named characters and minor grammatical awkwardness are allowed. No name/gender blacklist, literal-physics requirement, repeated-token score or minimum-event heuristic is used.",
+      "The ordinary lion story receives a favorable reading: one explorer remains identifiable, curiosity/door/jungle actions are understandable, and its final tree observation is a stable complete clause. Neither fulfillment of the original friend-search goal nor a moral/EOS is required.",
+      "The Q goose short_cycle metadata is disclosed but not treated as an added prose scoring rule; its actual unclosed quotation is the decisive completion failure.",
+      "NLL, probability values and other numerical metrics were not used to grade prose. No causal inference about conversion follows from differences from continuous outputs, whose sampler policy differs."
+    ],
+    "summary": {
+      "quaternion": {
+        "acceptable_of_five": 0,
+        "accepted_prompt_indices": [],
+        "parent_acceptable_of_five": 0,
+        "additional_acceptable": 0,
+        "losses_of_parent_acceptable_rows": [],
+        "dimension_pass_counts": {
+          "entity_role": 2,
+          "event_progression": 2,
+          "language": 1,
+          "completion": 2
+        },
+        "at_least_three_acceptable": false,
+        "at_least_two_additional": false,
+        "no_parent_acceptable_losses": true,
+        "frozen_integer_prose_gate_pass": false,
+        "decision": "INTEGER_PROSE_THRESHOLD_NOT_MET"
+      },
+      "householder_pair": {
+        "acceptable_of_five": 1,
+        "accepted_prompt_indices": [
+          2
+        ],
+        "parent_acceptable_of_five": 0,
+        "additional_acceptable": 1,
+        "losses_of_parent_acceptable_rows": [],
+        "dimension_pass_counts": {
+          "entity_role": 2,
+          "event_progression": 2,
+          "language": 1,
+          "completion": 2
+        },
+        "at_least_three_acceptable": false,
+        "at_least_two_additional": false,
+        "no_parent_acceptable_losses": true,
+        "frozen_integer_prose_gate_pass": false,
+        "decision": "INTEGER_PROSE_THRESHOLD_NOT_MET"
+      }
+    },
+    "rows": [
+      {
+        "path_kind": "integer",
+        "arm": "quaternion",
+        "prompt_index": 1,
+        "seed": 2014,
+        "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+        "generation_source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "response_text_sha256_utf8": "b028e1a5ce1c101a7a3fa1eb993fbcd06b3f9abbe40d656557985781d0eb5d7c",
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "response_text": "looked in a box, but the mommy came out from one further away from a busy one and the mommy asked for permittly. \n\"Can I explain if we fetm, the gestnure,\" the mommy replied.\n\"No, don't worry that,\" the mommy said.\nSo Mommy got out of the gesture and brought off the gesture.\nShe reached for the mommy's hand and grabbed the handle and got on the gesture. She had very yummy!\nSurprised, the gest enough yummy, juicy berries.\nThe gesture was",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": false,
+            "quote": "She reached for the mommy's hand",
+            "reason": "Mommy is the active female subject, but this clause reaches for the mommy as though she were a distinct participant without introducing another mommy or woman; the dialogue also repeatedly assigns both sides to the mommy."
+          },
+          "event_progression": {
+            "pass": false,
+            "quote": "So Mommy got out of the gesture and brought off the gesture.",
+            "reason": "The box/gesture/handle/berries sequence does not establish an identifiable object, action or consequence. A fantastic object would be allowed if its role were readable."
+          },
+          "language": {
+            "pass": false,
+            "quote": "Can I explain if we fetm, the gestnure,",
+            "reason": "These malformed words and incomplete conditional do not convey a decipherable proposition; the failure is semantic unreadability rather than a spelling score."
+          },
+          "completion": {
+            "pass": false,
+            "quote": "The gesture was",
+            "reason": "The final clause lacks its predicate complement and stops mid-thought."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914",
+          "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "language",
+              "quote": "We have provide for us!",
+              "reason": "The predicate does not express a clear proposition."
+            },
+            {
+              "dimension": "completion",
+              "quote": "Moral of the story was an important lesson. There was no matter the story to",
+              "reason": "The response ends in an unfinished clause."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "quaternion",
+        "prompt_index": 2,
+        "seed": 2015,
+        "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+        "generation_source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "response_text_sha256_utf8": "7180ed5021a2ca875bdebdb3d29fdb389fc4fbe5a73fac8516c76c7dd6d8dd52",
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "response_text": "spotted it in the jungle. The lion saw the lion too close to the soflen, but it was very exciting.\nThe lion's friend, a cow, a rabbit, needed help. The rabbit said, \"Why are you so young lion?\" But he still scared and said, \"I'm sorry, I shouldn't do it. Have you, a lion!\" The lion was scared his friends quickly ran away for him. He wanted to help him, so no one came to the jungle. The lion laughed and gave him food. He couldn't wait to eat the food all by himself.\nThe lion",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": false,
+            "quote": "The lion's friend, a cow, a rabbit, needed help.",
+            "reason": "The appositions do not resolve whether the friend is a cow, a rabbit, or multiple participants. The later he/him help and food exchange consequently lacks identifiable roles."
+          },
+          "event_progression": {
+            "pass": false,
+            "quote": "He wanted to help him, so no one came to the jungle.",
+            "reason": "The proposed help, nobody arriving, flight of friends and food-giving do not establish a clear relation of agents and effects; the unbound spotted-it opening compounds the problem."
+          },
+          "language": {
+            "pass": false,
+            "quote": "Have you, a lion!",
+            "reason": "The utterance does not express a complete ordinary question, instruction or assertion in its dialogue context; surrounding malformed clauses prevent a clear exchange."
+          },
+          "completion": {
+            "pass": false,
+            "quote": "The lion",
+            "reason": "The output ends with a noun phrase starting a further sentence, without a predicate."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914",
+          "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "entity_role",
+              "quote": "After all the day she had finished, she was very happy. She thanked her and gave her a little kiss all day.",
+              "reason": "The established male lion and female mouse no longer determine who finished, thanked, or received the kiss."
+            },
+            {
+              "dimension": "language",
+              "quote": "He finally got looking for a big lion.",
+              "reason": "The action is not clearly expressed."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "quaternion",
+        "prompt_index": 3,
+        "seed": 2016,
+        "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+        "generation_source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "response_text_sha256_utf8": "09bfb9f88e424d68356ea8b5045e84ba2396256c04a217cf076c86f29490937b",
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "response_text": "day, the goose went for a walk in the woods.\n\"Behhh",
+        "stop": {
+          "period": 1,
+          "reason": "short_cycle"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": true,
+            "quote": "the goose went for a walk in the woods.",
+            "reason": "The established goose remains the only definite actor. The incomplete vocalization is insufficient to assert an identity contradiction or an unintroduced second goose."
+          },
+          "event_progression": {
+            "pass": true,
+            "quote": "day, the goose went for a walk in the woods.",
+            "reason": "The only complete event is an identifiable outing by the prompt goose. Its brevity and lack of ending are scored under completion, not an invented minimum-event count."
+          },
+          "language": {
+            "pass": true,
+            "quote": "day, the goose went for a walk in the woods.",
+            "reason": "The complete sentence is clear, and Behhh can be a vocalization. A nonword or short-cycle label is not automatically a language-grade failure; the unclosed speech still fails completion."
+          },
+          "completion": {
+            "pass": false,
+            "quote": "\"Behhh",
+            "reason": "The response stops inside an open quotation after a vocalization; it does not end with a complete stable clause. The recorded short_cycle stop is disclosed separately, not used as a new prose criterion."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914",
+          "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "event_progression",
+              "quote": "The goose said, \"Hi, I'm lost! Can you help me get a better goose from near the lake?\"\nThe goose did not talk",
+              "reason": "The next statement contradicts the just-recorded speech without an explained transition."
+            },
+            {
+              "dimension": "completion",
+              "quote": "The goose saw",
+              "reason": "The response ends in an unfinished clause."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "quaternion",
+        "prompt_index": 4,
+        "seed": 2017,
+        "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+        "generation_source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "response_text_sha256_utf8": "92c63d79c6e504a2f61fcd96e52787e802b87c1ee195993ffeb6bb29ae9eb05e",
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "response_text": ". Tim said, \"Yes, run, I can!\"\nTim ran and jumped, trying to win the race. He laughed and jumped out and got into the water. Tim was very hungry, so he watched it roll away.\nTim started to cry. His bike got bigger and bigger. His bike broke the ground and into the mess. Tim got mad and bigger. His friends helped him find out what the noise was.\nTim and his friends went home, and his friends said okay. Tim learned that sometimes, his friends might look after all by mistakes. He was not upset anymore. His friends hugged and laughed too",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": true,
+            "quote": "His friends helped him find out what the noise was.",
+            "reason": "Tim remains the protagonist and his friends are explicitly introduced as helpers. The earlier rolling it can refer to his bike from the prompt; growing bikes and a growing Tim are allowed fantastic events."
+          },
+          "event_progression": {
+            "pass": true,
+            "quote": "Tim and his friends went home, and his friends said okay.",
+            "reason": "A rough but identifiable sequence runs from play/racing and a bike mishap to distress, help and going home. The unexplained fantastic growth does not by itself invalidate progression."
+          },
+          "language": {
+            "pass": false,
+            "quote": "Tim learned that sometimes, his friends might look after all by mistakes.",
+            "reason": "The stated lesson has no intelligible object or relation for look after all by mistakes; this is more than a minor spelling/agreement error and prevents literal understanding of the claimed conclusion."
+          },
+          "completion": {
+            "pass": true,
+            "quote": "He was not upset anymore. His friends hugged and laughed too",
+            "reason": "The final emotional resolution and friends hugging/laughing are complete clauses at a stable stopping point; terminal punctuation or EOS is not required."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914",
+          "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "event_progression",
+              "quote": "The big bike hit the bike off the bike.",
+              "reason": "The action and affected objects cannot be resolved into a coherent event."
+            },
+            {
+              "dimension": "language",
+              "quote": "Tim's friend, it was the perfect time for him.",
+              "reason": "A detached participant phrase has no clear relationship to the statement."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "quaternion",
+        "prompt_index": 5,
+        "seed": 2018,
+        "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+        "generation_source_sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+        "response_text_sha256_utf8": "c842d2f6e9204ced736daa754dcfe26688e17ff16d5581109fa602d76dadba51",
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "response_text": "were very big and scary all along the way. \nAnna asked Dave to give them some food to take the food. But first she didn. She started to unpack the jar, but she was upset and wanted to get the food. \nAnna and Dave kept asking Dave, they were feeling so upset. They argued and Dave didn't want the jar!\nJust then, Dave realized that a bad idea can bring off the food to make the food for them to have taken the food. They shared the food with their family. After they were all clean, they had to go home every day",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": false,
+            "quote": "Anna and Dave kept asking Dave,",
+            "reason": "The described asking group includes Dave while treating Dave as the addressee, without resolving a second Dave or self-directed exchange. Anna being a new name and Lily not reappearing are not independently counted as errors."
+          },
+          "event_progression": {
+            "pass": false,
+            "quote": "a bad idea can bring off the food to make the food for them to have taken the food.",
+            "reason": "The food/jar dispute has recognizable pieces, but its asserted causal resolution does not identify an understandable action or effect."
+          },
+          "language": {
+            "pass": false,
+            "quote": "But first she didn.",
+            "reason": "The sentence is unfinished rather than a decipherable minor typo; the subsequent bring-off/make/have-taken-food construction further prevents literal reading of the resolution."
+          },
+          "completion": {
+            "pass": true,
+            "quote": "After they were all clean, they had to go home every day",
+            "reason": "This is a complete closing statement of a routine. It can be a stable endpoint even though earlier role and event failures remain."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "55c1f6a27f30d26a3e86583956f6910fbdeda9a59d5bbd399b6d855a2e0df914",
+          "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "language",
+              "quote": "They also sat on some of the tetween animals.",
+              "reason": "The malformed modifier prevents clear reading."
+            },
+            {
+              "dimension": "completion",
+              "quote": "The big they made them",
+              "reason": "The response ends in an unfinished clause."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "householder_pair",
+        "prompt_index": 1,
+        "seed": 2014,
+        "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+        "generation_source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "response_text_sha256_utf8": "e9e41c206f0371e6ab94df61cd8f6495740544eee59e54066c0df67e99ac0f0f",
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "response_text": "came deep in the house and saw a huge tree. Everything was shining and cozy inside! \nSmah saw something that sparkled and sparkled around to a dream. It was a wonderful sight, and beautiful beautiful tree. \nSoon the tree came closer and closer and the tree began to fly. \n\"Mom, look what is this?\"\nSmph's mommy said, \"What is that mommy did. This was my favorite tree today. \nEa said, \"That's my tree, mommy! Let it be there.\u201d \nAnd they all went together to the tree,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": true,
+            "quote": "Ea said, \"That's my tree, mommy! Let it be there.\u201d",
+            "reason": "Ea is an explicitly named speaker addressing mommy; other named participants are not assumed to be misspellings of each other or replacements for the prompt child. No necessary identity contradiction is established from the names alone."
+          },
+          "event_progression": {
+            "pass": true,
+            "quote": "Soon the tree came closer and closer and the tree began to fly.",
+            "reason": "Seeing a tree, noticing its unusual movement, reacting in dialogue and approaching it is an identifiable fantastic discovery sequence connected to the family scene; flying trees are allowed."
+          },
+          "language": {
+            "pass": false,
+            "quote": "What is that mommy did.",
+            "reason": "The question/statement does not form a clear proposition. The preceding sparkled-around-to-a-dream wording and malformed dialogue leave material meaning unresolved, beyond merely unusual names."
+          },
+          "completion": {
+            "pass": false,
+            "quote": "Smph's mommy said, \"What is that mommy did. This was my favorite tree today. \nEa said,",
+            "reason": "Mommy's quoted speech is left unclosed before another speaker/quotation is introduced, and the retained ending does not repair the dangling dialogue. The final comma alone is not the failure."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e",
+          "bundle_sha256": "521f2a4c3dc68c835db61d01e512412772b24f61722d08edc7cc2bc1cdd9d960",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "language",
+              "quote": "You have hurt you or you or not real that you can take a picture of you.",
+              "reason": "The repeated and broken clause does not express a clear proposition."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "householder_pair",
+        "prompt_index": 2,
+        "seed": 2015,
+        "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+        "generation_source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "response_text_sha256_utf8": "9ca475bcb96c448a04ef6bb925929d6a43ae397349712eebe16d157ab19e9e9b",
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "response_text": "saw a big field. He was very curious and wanted to look at it, but it was very scared. He looked further and saw a small door behind and he wanted to see what was inside the door.\nFinally, the lion started to get a journey out of the field. He walked up to the door, and opened them, full of colour and magical! \nFinally, the lion had to get some fun and fun new things in the mighty places. He walked and looked around. At last, he was very careful and walked around the jungle. He quickly looked around and saw a big tree by the river.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": true,
+            "quote": "He walked up to the door, and opened them,",
+            "reason": "The same lion remains the explorer, and them can be read as a number-agreement error referring to the just-mentioned door, rather than an unintroduced participant. The field being scared is permitted personification."
+          },
+          "event_progression": {
+            "pass": true,
+            "quote": "He looked further and saw a small door behind and he wanted to see what was inside the door.",
+            "reason": "Curiosity leads the lion from a field to a door and further jungle exploration, ending with a tree by the river. The original friend-finding goal need not be repeated or resolved for this different intelligible continuation to pass the stated rubric."
+          },
+          "language": {
+            "pass": true,
+            "quote": "At last, he was very careful and walked around the jungle.",
+            "reason": "Despite awkward get a journey, fun and fun, and number agreement at the door, the exploration actions remain ordinarily understandable. These are not treated as automatic failures for imperfect grammar or style."
+          },
+          "completion": {
+            "pass": true,
+            "quote": "He quickly looked around and saw a big tree by the river.",
+            "reason": "The final observation is a complete sentence at a stable point in the exploration. The rubric allows a stable endpoint, and does not require a moral, EOS or resolution of every initial goal."
+          }
+        },
+        "acceptable": true,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e",
+          "bundle_sha256": "521f2a4c3dc68c835db61d01e512412772b24f61722d08edc7cc2bc1cdd9d960",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "entity_role",
+              "quote": "The lion wanted to meet the lion to meeting something new.",
+              "reason": "The repeated definite lion gives no resolvable second participant."
+            },
+            {
+              "dimension": "language",
+              "quote": "The lion was church.",
+              "reason": "The predicate has no understandable meaning in the narrative."
+            },
+            {
+              "dimension": "completion",
+              "quote": "The lion laughed and said",
+              "reason": "The response ends before the stated speech is supplied."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "householder_pair",
+        "prompt_index": 3,
+        "seed": 2016,
+        "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+        "generation_source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "response_text_sha256_utf8": "ff8cd2e5ef98968bc91fe37fb1e222575754653ce0ee93b5a44923fae36c6f10",
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "response_text": "day, the goose saw something in the sky. It was a magic, shiny stone. It wanted the same grass to bloom and eat them.\nBut then something amazing happened! It was very pretty! It was flying!\nThe pink goose looked everywhere. It was too high up into the sky. The goose saw something interesting in the corner. It was a real stone! It had a secret - an old, boun, bouncy and fun.\nSo the goose and the goose played together again at the beach. They made it fly home and bloomed all day.",
+        "stop": {
+          "reason": "eos"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": false,
+            "quote": "So the goose and the goose played together again at the beach.",
+            "reason": "Only one goose was established; the ending requires two geese without introducing a second or explaining the stone becoming a goose. This is an unresolved participant relationship rather than rejection of fantasy."
+          },
+          "event_progression": {
+            "pass": false,
+            "quote": "It had a secret - an old, boun, bouncy and fun.",
+            "reason": "The stone's secret has no identified object or content, and the unexplained second-goose beach episode prevents a coherent link between discovery and ending."
+          },
+          "language": {
+            "pass": false,
+            "quote": "It had a secret - an old, boun, bouncy and fun.",
+            "reason": "Even allowing boun as a minor stutter, the complement lacks the thing being described and does not communicate the asserted secret."
+          },
+          "completion": {
+            "pass": true,
+            "quote": "They made it fly home and bloomed all day.",
+            "reason": "The final sentence is grammatically complete and closes with an all-day activity. The unclear participants and preceding missing meaning are scored separately; blooming is not rejected for physical implausibility."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e",
+          "bundle_sha256": "521f2a4c3dc68c835db61d01e512412772b24f61722d08edc7cc2bc1cdd9d960",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "language",
+              "quote": "She learned her best friend, the best friend, a new horse named Fin, who was only only a pink friends ever.",
+              "reason": "The sentence does not express a clear action or relationship."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "householder_pair",
+        "prompt_index": 4,
+        "seed": 2017,
+        "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+        "generation_source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "response_text_sha256_utf8": "d1cd3e2cae7b1da83d265be95a2e7071fa51022be023a7eca344d44bf709321f",
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "response_text": ". He pretended to be driver that the people ride in the hill could go up and down, and his house was red.\nAs Tim went home, the big hill started to rain. He saw his toy car coming very early and started to look at the other people's house. They could not agree to ride.\nJust then, his friend Tom came over and saw him too. \"Hi what people doing in this bike is? Where did you find my friend?\" his friend Tom nodded. \"That's what we found, Tom, we lost their bike on top of the rain. Let's stay back.\"\nBut",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": false,
+            "quote": "\"That's what we found, Tom, we lost their bike on top of the rain.",
+            "reason": "The passage after Tom's question/nod does not resolve the speaker addressing Tom, the we who found/lost something, or whose bike their identifies. Tom's explicit introduction itself is allowed."
+          },
+          "event_progression": {
+            "pass": false,
+            "quote": "He saw his toy car coming very early and started to look at the other people's house. They could not agree to ride.",
+            "reason": "The car/house/agreement sequence and following found/lost-bike-on-rain account do not identify a clear sequence of participants, actions and effects."
+          },
+          "language": {
+            "pass": false,
+            "quote": "Hi what people doing in this bike is?",
+            "reason": "The question lacks a decipherable grammatical relation between people and bike; the following found/lost/rain dialogue does not clarify it."
+          },
+          "completion": {
+            "pass": false,
+            "quote": "\nBut",
+            "reason": "The final conjunction begins an uncompleted turn in the story."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e",
+          "bundle_sha256": "521f2a4c3dc68c835db61d01e512412772b24f61722d08edc7cc2bc1cdd9d960",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "entity_role",
+              "quote": "Tim sat down at the bird, and the bird made her ride.",
+              "reason": "The male Tim and the newly introduced bird do not resolve the female referent."
+            },
+            {
+              "dimension": "language",
+              "quote": "He was ready to ride a big, on the bird.",
+              "reason": "The clause lacks the object of big and does not clearly express its event."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      },
+      {
+        "path_kind": "integer",
+        "arm": "householder_pair",
+        "prompt_index": 5,
+        "seed": 2018,
+        "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+        "generation_source_sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+        "response_text_sha256_utf8": "d17e29bba05b604386f6121e650543aa4b012f371c59048868a89a895f9148de",
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "response_text": "liked to play together and look down at the clouds. Today they wanted to play tag.\n\"Let's go,\" said Davela. \"Look at all the train in the train!\u201d\nWould you like to play catch with a train?\nWhen the train arrived, they sat under the train and waited. When it was time for all it, Dave used his modest home.\n\"Ready, Mommy,\" said Mommy. \"Did you two and you will make us laugh and then we can play.\"\nSo they both agreed they built the train. They had so much fun. They were play with the",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "criterion_scores": {
+          "entity_role": {
+            "pass": false,
+            "quote": "\"Ready, Mommy,\" said Mommy.",
+            "reason": "Speech addressing Mommy is assigned to Mommy without an introduced second Mommy or explained self-address. Davela being a new name is not the reason for this failure."
+          },
+          "event_progression": {
+            "pass": false,
+            "quote": "When it was time for all it, Dave used his modest home.",
+            "reason": "The transition from play/tag/train arrival to using a home and agreeing they built the train does not identify an understandable action or cause linking these scenes."
+          },
+          "language": {
+            "pass": false,
+            "quote": "Did you two and you will make us laugh and then we can play.",
+            "reason": "This purported dialogue clause lacks a clear completed question or assertion; it is not merely a minor spelling error."
+          },
+          "completion": {
+            "pass": false,
+            "quote": "They were play with the",
+            "reason": "The final preposition/article is missing its object, leaving an unfinished clause."
+          }
+        },
+        "acceptable": false,
+        "same_path_parent": {
+          "acceptable": false,
+          "source_sha256": "ccae2012acb2de1937d31ff076d2bee9d991d1eb3e29c1d12c4779705807e28e",
+          "bundle_sha256": "521f2a4c3dc68c835db61d01e512412772b24f61722d08edc7cc2bc1cdd9d960",
+          "recorded_decisive_failures": [
+            {
+              "dimension": "language",
+              "quote": "Her train quickly and her dad started his train.",
+              "reason": "The first coordinated clause lacks its predicate."
+            }
+          ],
+          "scope": "Recorded frozen parent judgment retained; unlisted parent dimensions not retroactively graded."
+        }
+      }
+    ],
+    "independence": {
+      "principal_integer_review_consulted": false,
+      "other_new_integer_quality_reviews_consulted": false,
+      "frozen_parent_judgments_consulted": true,
+      "prior_continuous_review_known": "Reviewer authored a separate continuous review earlier; those outputs were not used as integer parent comparisons or as a grading criterion.",
+      "disagreements": "Preserve all later principal/independent disagreements; particularly the favorable ordinary-lion judgment may be adjudicated with the exact unchanged rubric. This receipt is not consensus or a majority-vote result."
+    },
+    "execution": {
+      "model_compute_seconds": 0,
+      "models_builds_tests_verifiers_run": false,
+      "sealed_roots_modified": false,
+      "only_written_file": "integer-prose-independent-review-6.json"
+    }
+  },
+  "reconciliation": {
+    "utc": "2026-09-26T23:27:20.963645+00:00",
+    "status": "INTEGER_PROSE_TARGET_UNMET_BOTH_ARMS",
+    "principal_receipt_sha256": "e6f45c66b4b730816b8f1236d5595af097458a704c823dc0b2dd87c0561933b6",
+    "independent_receipt_sha256": "21d4d787d705a165d16b42419d69a02d746131e5f578346e3bbc49973c8e34b8",
+    "dimension_disagreements": [
+      {
+        "arm": "quaternion",
+        "seed": 2017,
+        "criterion": "event_progression",
+        "principal": {
+          "pass": false,
+          "evidence": {
+            "criterion_index": 2,
+            "quote": "Tim was very hungry, so he watched it roll away",
+            "assessment": "The asserted reason/action and later changing bike/noise sequence do not form a coherent event chain."
+          }
+        },
+        "independent": {
+          "pass": true,
+          "quote": "Tim and his friends went home, and his friends said okay.",
+          "reason": "A rough but identifiable sequence runs from play/racing and a bike mishap to distress, help and going home. The unexplained fantastic growth does not by itself invalidate progression."
+        },
+        "disposition": "Retain both original dimension judgments. Story acceptance and per-arm threshold outcome agree."
+      },
+      {
+        "arm": "householder_pair",
+        "seed": 2014,
+        "criterion": "completion",
+        "principal": {
+          "pass": true,
+          "evidence": {
+            "criterion_index": 4,
+            "quote": "And they all went together to the tree,",
+            "assessment": "The ending contains a complete arrival clause at a stable point. A trailing comma alone is not a mandatory failure; language elsewhere fails."
+          }
+        },
+        "independent": {
+          "pass": false,
+          "quote": "Smph's mommy said, \"What is that mommy did. This was my favorite tree today. \nEa said,",
+          "reason": "Mommy's quoted speech is left unclosed before another speaker/quotation is introduced, and the retained ending does not repair the dangling dialogue. The final comma alone is not the failure."
+        },
+        "disposition": "Retain both original dimension judgments. Story acceptance and per-arm threshold outcome agree."
+      }
+    ],
+    "common_result": {
+      "acceptable_of_five": {
+        "quaternion": 0,
+        "householder_pair": 1
+      },
+      "parent_counts": {
+        "quaternion": 0,
+        "householder_pair": 0
+      },
+      "threshold_result": {
+        "quaternion": {
+          "at_least3": false,
+          "at_least2_more_than_parent": false,
+          "no_parent_acceptable_losses": true,
+          "gate_pass": false
+        },
+        "householder_pair": {
+          "at_least3": false,
+          "at_least2_more_than_parent": false,
+          "no_parent_acceptable_losses": true,
+          "gate_pass": false
+        }
+      },
+      "scope": "Fixed exposed development packet only. Ordinary lion is accepted under generous but literal frozen criteria; every other row fails at least one. Positive dimensions and complete clauses are retained even at token limit. Continuous and integer policies differ, so sample divergence does not by itself establish a conversion defect. No extra panel or learning dose."
+    }
+  }
+}

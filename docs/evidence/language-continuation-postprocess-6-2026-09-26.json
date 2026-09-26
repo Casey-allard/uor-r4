@@ -1,0 +1,225 @@
+{
+  "schema": "uor-r4.language-continuation-postprocess/1",
+  "observed_utc": "2026-09-26T21:20:12.554642+00:00",
+  "status": "CONTINUOUS_DOSE_COMPLETE_FROZEN_DOWNSTREAM_RUNNING",
+  "arms": {
+    "quaternion": {
+      "status": "TARGET_COMPLETE",
+      "starting_fit6_step": 14000,
+      "final_step": 15672,
+      "fit6_updates": 1672,
+      "retained_total_updates_since8348": 7324,
+      "retained_target_visits_since8348": 29999104,
+      "next_data_step": 15672,
+      "optimizer_step": 15672,
+      "fit6_elapsed_seconds": 5604.521178416,
+      "fit6_training_step_seconds": 5509.458257523001,
+      "reload_absolute_delta": 0.0,
+      "training_batch": 16,
+      "training_context": 256,
+      "cpu_gradient_shards": 2,
+      "source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+      "finished_utc": "2026-09-26T18:45:14.760054+00:00",
+      "exit_codes": {
+        "fit-quaternion-6": 0
+      },
+      "checkpoint_requested_reason": null,
+      "peak_sampled_rss_bytes": 3407151104,
+      "minimum_physical_free_bytes": 44725456896,
+      "final_files": {
+        "campaign": {
+          "relative_path": "campaigns/quaternion-resume-6.json",
+          "sha256": "6b34a04d49fa965dc20335002a1948a8253ef74e70890ba1e9484f63d2677f14"
+        },
+        "fit_report": {
+          "relative_path": "fit-quaternion-6/fit-report.json",
+          "sha256": "676c7fdb9d6e9d7eb7e791135f026c62fcb99611bf742d33f71a3696d0c4acb1"
+        },
+        "attempt_manifest": {
+          "relative_path": "fit-quaternion-6/manifest.json",
+          "sha256": "8824a0aacafb8cbb5b83427e1dc05b9662463ca341e3d95fdd9c8b16a474c485"
+        },
+        "checkpoint_manifest": {
+          "relative_path": "fit-quaternion-6/checkpoint-final/manifest.json",
+          "sha256": "ea1a5795435ee47bfe67abc300237c7a67667f5881f5ba1e0b41037da94a1871"
+        },
+        "checkpoint": {
+          "relative_path": "fit-quaternion-6/checkpoint-final/checkpoint.json",
+          "sha256": "490922decefee3e6036331dd0bc112746f24662d4bddfbe540b59c1d00820571"
+        },
+        "model": {
+          "relative_path": "fit-quaternion-6/checkpoint-final/model.safetensors",
+          "sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79"
+        },
+        "optimizer": {
+          "relative_path": "fit-quaternion-6/checkpoint-final/optimizer.json",
+          "sha256": "bc6315334a089290ab890e591cd4ed195d834ce8ca45b195c20800a51849bdc7"
+        },
+        "optimizer_moments": {
+          "relative_path": "fit-quaternion-6/checkpoint-final/optimizer.safetensors",
+          "sha256": "43d2fa4be925f58e77a6a400e5a6943b20ab23a41fe2dd0fa48e0b6311e45c0d"
+        },
+        "learning_curve": {
+          "relative_path": "fit-quaternion-6/learning-curve.jsonl",
+          "sha256": "e6ac4547ab0e56e4018c8b84d2906d1ec2dcdc0fb30a7fcee0f29332f8859dd4"
+        }
+      }
+    },
+    "householder_pair": {
+      "status": "TARGET_COMPLETE",
+      "starting_fit6_step": 13949,
+      "final_step": 15672,
+      "fit6_updates": 1723,
+      "retained_total_updates_since8348": 7324,
+      "retained_target_visits_since8348": 29999104,
+      "next_data_step": 15672,
+      "optimizer_step": 15672,
+      "fit6_elapsed_seconds": 8772.041975417,
+      "fit6_training_step_seconds": 8600.740361049002,
+      "reload_absolute_delta": 0.0,
+      "training_batch": 16,
+      "training_context": 256,
+      "cpu_gradient_shards": 2,
+      "source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+      "finished_utc": "2026-09-26T21:11:35.765710+00:00",
+      "exit_codes": {
+        "fit-householder_pair-6": 0
+      },
+      "checkpoint_requested_reason": null,
+      "peak_sampled_rss_bytes": 3510370304,
+      "minimum_physical_free_bytes": 41875714048,
+      "final_files": {
+        "campaign": {
+          "relative_path": "campaigns/householder_pair-resume-6.json",
+          "sha256": "1f384db27564dea37f578d6d2ede51df57c5723388907011ad47acfd75e4e76c"
+        },
+        "fit_report": {
+          "relative_path": "fit-householder_pair-6/fit-report.json",
+          "sha256": "d5f16e45674f7910aa5318241a82634604057d78e585fcd65ae24b3109a733de"
+        },
+        "attempt_manifest": {
+          "relative_path": "fit-householder_pair-6/manifest.json",
+          "sha256": "79db85df0cb9c0b969d223e7c226f8fc7b512f52c51a07b155745ac10339fed4"
+        },
+        "checkpoint_manifest": {
+          "relative_path": "fit-householder_pair-6/checkpoint-final/manifest.json",
+          "sha256": "904d1c464872df38a8a19c0e994a9055d355ecf9e580ca3d9d47edb2e954b0fe"
+        },
+        "checkpoint": {
+          "relative_path": "fit-householder_pair-6/checkpoint-final/checkpoint.json",
+          "sha256": "4677bad0ce906fa157691f8cd8b6dec9fd11ffdccba8d3c7f8de4d9cfb148d0d"
+        },
+        "model": {
+          "relative_path": "fit-householder_pair-6/checkpoint-final/model.safetensors",
+          "sha256": "cd00577fbed189ee49d6f3d4f1bf6480062a646b1dc2c10b4cc0a4351f9fdb0c"
+        },
+        "optimizer": {
+          "relative_path": "fit-householder_pair-6/checkpoint-final/optimizer.json",
+          "sha256": "24aab196d205e11657a03a6604ca71a1b7295191ff695ec1452c190b847ce7af"
+        },
+        "optimizer_moments": {
+          "relative_path": "fit-householder_pair-6/checkpoint-final/optimizer.safetensors",
+          "sha256": "b043817e1b31ab39e07d894f691ac1cbf1f95530682a61c198f5be26c544b02d"
+        },
+        "learning_curve": {
+          "relative_path": "fit-householder_pair-6/learning-curve.jsonl",
+          "sha256": "fd8ae83d73dda8e82f10afe61a086b4ac383e032795f004f7cfcee7327b5218a"
+        }
+      }
+    }
+  },
+  "original_uncheckpointed_fit1_learning": "LOST; logs preserved, not represented as retained model state",
+  "full_causal_access": true,
+  "state_width": 256,
+  "read_width": 64,
+  "continuous_actual_sample_hash": "NOT_RECORDED_BY_PRESERVED_TRAINER; source/seed/sampler/clocks bound, not a measured token-hash match",
+  "rust_full_seal_verification": {
+    "utc": "2026-09-26T21:20:12.554642+00:00",
+    "status": "RUST_FULL_SEALS_PASS",
+    "verifier": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/joint-training-20948316",
+    "verifier_sha256": "6cf5304cc8d12c68b78ac888bdfb9ce0a009faae18a0d449c9c1367eeee82131",
+    "checks": [
+      {
+        "label": "verify-continuous-fit-quaternion-6",
+        "completed_utc": "2026-09-26T21:17:07.694836+00:00",
+        "exit_code": 0,
+        "log_sha256": "6bf04a233ee8528142f13a83047cb7c8d3f873e3f1824fa8b167bb724975e16e",
+        "resource_summary_sha256": "ca03821e1b321e282579b71caff900faf1fb847cbeeef958b870efbbcce885d5"
+      },
+      {
+        "label": "verify-continuous-fit-householder_pair-6",
+        "completed_utc": "2026-09-26T21:17:16.560775+00:00",
+        "exit_code": 0,
+        "log_sha256": "f924ad1cde5fd7c3d8dea1069551ae59907db246b96285c4c2c1b1b6df49b0fc",
+        "resource_summary_sha256": "37331922b9bf3314fce4d4afd195d5d2f5760fecf2f625309b286ba6c04d0298"
+      },
+      {
+        "label": "verify-continuous-checkpoint-quaternion-6",
+        "completed_utc": "2026-09-26T21:17:27.154583+00:00",
+        "exit_code": 0,
+        "log_sha256": "1bfa90a28bc89af3bafb3da5ca7e4e3cdccb1069a99daf7a5d4b272c0aeb4d35",
+        "resource_summary_sha256": "a4c45cf1bb14c6c5bace2ed9708fe2c31bf4ced5d09675de299e6aa3f2fc1ad3"
+      },
+      {
+        "label": "verify-continuous-checkpoint-householder_pair-6",
+        "completed_utc": "2026-09-26T21:17:35.867782+00:00",
+        "exit_code": 0,
+        "log_sha256": "3c1c861c8880b6f613cc2de693bd0b597a4facf266b37b5b2ce18278e3491dfe",
+        "resource_summary_sha256": "047e58d9b9aa8b875c846608199297651027899834ea5db7546b0c85e4da7f0b"
+      }
+    ],
+    "continuous_output_index_sha256": "ebbb69769ed4a1e16e58b42517f886af9799d063a3cd5d2bf6bc9630b12160d9",
+    "independent_continuity_receipt_sha256": "4588c736681a3cabfc6d58fce922c023daaceca31281d0fa165f38229fbb32bf",
+    "scope": "Both complete fit6 report roots and final checkpoint file sets verified by existing Rust verifier before any evaluation. Integrity/continuity evidence only; language and numerical/source qualification pending."
+  },
+  "postprocess": {
+    "launched_utc": "2026-09-26T21:16:54.891932+00:00",
+    "controller_pid_at_launch": 69815,
+    "detached_file_logging": true,
+    "model_concurrency": 1,
+    "script_sha256": "ce0e319da7d6d0d148389b9d842359cc8db27e3de712699cebe6f874dcd4e4cb",
+    "launch_approval_sha256": "cea7de44590779ba5322a436efe3f442290529d6ada60a5f853b407c262287c8",
+    "latest_observed_operation": "evaluate-quaternion-continuous-no-read-6",
+    "latest_operation_started_utc": "2026-09-26T21:19:35.105164+00:00",
+    "complete_remaining_projection_seconds": 11700,
+    "projection_seconds": {
+      "calibration_and_alpha_rounding_seconds": 7200,
+      "evaluation_output_review_backup_protected_delivery_seconds": 3600,
+      "checkpoint_and_stop_margin_seconds": 900
+    },
+    "new_internal_artifact_projection_bytes": 268435456
+  },
+  "resources_at_launch": {
+    "rss_bytes": {},
+    "aggregate_rss_bytes": 0,
+    "allocation": {
+      "categories": {
+        "worktree": 524333056,
+        "new_or_replaced_target": 20224970752,
+        "campaign": 420446208
+      },
+      "retained_bytes": 21169750016,
+      "temporary_headroom_bytes": 536870912,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 21707669504,
+      "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+    },
+    "physical_free_bytes": 50365452288
+  },
+  "ledger_at_launch": {
+    "cumulative_ms": 634506256,
+    "limit_ms": 657600000
+  },
+  "deadline_utc": "2026-09-27T02:41:00+00:00",
+  "source_preparation_principal_receipt_sha256": "6ec0b598ec2621218262da28962ad0eb7cb52e15799a3b5bfb27b5e29c87b75a",
+  "source_preparation_independent_receipt_sha256": "2cbcefc5b795df3c65f168774b822050c5abb8d9fcee233c9c5f85c462b7e2c9",
+  "independent_final_continuity_receipt_sha256": "4588c736681a3cabfc6d58fce922c023daaceca31281d0fa165f38229fbb32bf",
+  "results": {
+    "continuous_Read_NoRead": "PENDING",
+    "alpha512": "PENDING",
+    "hard_integer_numerical_source_gates": "PENDING",
+    "frozen_prose_rubric_principal_and_independent": "PENDING",
+    "final_external_snapshot": "PENDING_SEALED_FINAL_RESULTS"
+  },
+  "scope": "Execution completion and final checkpoint integrity only. No language/geometry/integer-quality or energy promotion; PR1398 remains draft, issues973/820 open. Frozen final outcome, numerical/source criteria and all parents preserved. No new exposure or model change."
+}

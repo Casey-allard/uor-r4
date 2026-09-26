@@ -1,0 +1,50 @@
+{
+  "parent_arms": [
+    {
+      "arm": "quaternion",
+      "parent": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-quaternion-continuous-1/checkpoint-final",
+      "checkpoint_sha256": "ae40860e0313fe4515e839e7f91fc41fe0316e52c7363c55b4e50642451cee08",
+      "model_sha256": "00ee447cf7b00644c078d03794f1127cf68e772ec6cf6c236fdb53a8a2d27885",
+      "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion.json",
+      "campaign_sha256": "a094390e0142061ff20011c165310798189c5c61bc5095534e0836b38456763c",
+      "data_seed": 240924,
+      "optimizer": {
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "parameter_abs_limit": 1000000.0,
+        "allowed_missing_gradients": []
+      },
+      "context": 256,
+      "new_updates": 7324,
+      "new_targets": 29999104
+    },
+    {
+      "arm": "householder_pair",
+      "parent": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/fit-householder_pair-continuous-1/checkpoint-final",
+      "checkpoint_sha256": "895390ac2e057152c7a6dfe7e01705062968e5ca345d86a3afd30a2d4f3da369",
+      "model_sha256": "e6335a6a7d008fd7d2780d723f559ee533fec572daa89b12c043eec3a9512432",
+      "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair.json",
+      "campaign_sha256": "69fb1cb06e1632f9adc653f53b6596839f87a242cf229df54747e2a513345db4",
+      "data_seed": 240924,
+      "optimizer": {
+        "learning_rate": 0.001,
+        "weight_decay": 0.01,
+        "parameter_abs_limit": 1000000.0,
+        "allowed_missing_gradients": []
+      },
+      "context": 256,
+      "new_updates": 7324,
+      "new_targets": 29999104
+    }
+  ],
+  "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+  "training_executable": "/Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75",
+  "training_executable_sha256": "96fe2f29cc0b67ff8d8cc9d2f78b5c2942ec9825086d43b52f938c6cb63224a7",
+  "build_features": [
+    "metal",
+    "cpu-accelerate",
+    "reference-accelerate"
+  ],
+  "training_executable_source": "b5b5fe75",
+  "execution_status": "NOT_RUN; prerequisite bridge and reviews pending"
+}

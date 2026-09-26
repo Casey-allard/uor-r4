@@ -1,0 +1,696 @@
+{
+  "schema": "uor-r4.language-continuation-cost-detail/1",
+  "utc": "2026-09-26T23:29:43.252691+00:00",
+  "completed_fit_reports": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-2/fit-report.json",
+      "sha256": "1fd4ce20b98bbc8b6e3560c1c72e7399368e9ff5c6925f7536c91b33f48edeab",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 8532.2468165,
+      "training_complete_steps_seconds": 8374.735457833001,
+      "updates": 2140,
+      "targets": 8765440,
+      "start": 8348,
+      "finish": 10488
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-3/fit-report.json",
+      "sha256": "e8e187bc9cc037d917ff42ad4369c66e0dbc0d4e341e1bdce4b7be88098c2bbe",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 10720.943331417,
+      "training_complete_steps_seconds": 10512.185294311012,
+      "updates": 2227,
+      "targets": 9121792,
+      "start": 10488,
+      "finish": 12715
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-4/fit-report.json",
+      "sha256": "896f3b5ed491c2f88b4f2957a8ba62d78ff7fc14e7be7922ef9eb31269e9231e",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 4844.005972959,
+      "training_complete_steps_seconds": 4760.515233577989,
+      "updates": 1234,
+      "targets": 5054464,
+      "start": 12715,
+      "finish": 13949
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/fit-report.json",
+      "sha256": "d5f16e45674f7910aa5318241a82634604057d78e585fcd65ae24b3109a733de",
+      "status": "TARGET_COMPLETE",
+      "elapsed_seconds": 8772.041975417,
+      "training_complete_steps_seconds": 8600.740361049002,
+      "updates": 1723,
+      "targets": 7057408,
+      "start": 13949,
+      "finish": 15672
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/fit-report.json",
+      "sha256": "f293107254b85536fc57f7b4f7021d9ee8c0bb1a9aae22c691528f150b96f505",
+      "status": "COMPLETE_FIXED_RECIPE",
+      "elapsed_seconds": 2820.904464375,
+      "training_complete_steps_seconds": null,
+      "updates": 512,
+      "targets": 2097152,
+      "start": null,
+      "finish": null
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-2/fit-report.json",
+      "sha256": "a08b27ba4f9ef0ed6a4b88133606ea07f0e7bd23c743b94eed68877134507763",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 8531.448255666,
+      "training_complete_steps_seconds": 8374.064099912011,
+      "updates": 2132,
+      "targets": 8732672,
+      "start": 8348,
+      "finish": 10480
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-3/fit-report.json",
+      "sha256": "696389b95c83877d2f9773d3e507cad0c1669b1333b2a39a2061e4648bae900a",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 10723.354346292,
+      "training_complete_steps_seconds": 10518.50799244503,
+      "updates": 2227,
+      "targets": 9121792,
+      "start": 10480,
+      "finish": 12707
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-4/fit-report.json",
+      "sha256": "4c3c96251238ca36f095d5218d6f8066e044db5335e140eacef5f89995127e6d",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 4843.355037458,
+      "training_complete_steps_seconds": 4756.445156580003,
+      "updates": 1232,
+      "targets": 5046272,
+      "start": 12707,
+      "finish": 13939
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-5/fit-report.json",
+      "sha256": "21a321515c7a167c53deebd54484b4840d5020ed0b5e255f0d67c61b63bed1af",
+      "status": "RESOURCE_CHECKPOINT",
+      "elapsed_seconds": 227.391055334,
+      "training_complete_steps_seconds": 214.292112922,
+      "updates": 61,
+      "targets": 249856,
+      "start": 13939,
+      "finish": 14000
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/fit-report.json",
+      "sha256": "676c7fdb9d6e9d7eb7e791135f026c62fcb99611bf742d33f71a3696d0c4acb1",
+      "status": "TARGET_COMPLETE",
+      "elapsed_seconds": 5604.521178416,
+      "training_complete_steps_seconds": 5509.458257523001,
+      "updates": 1672,
+      "targets": 6848512,
+      "start": 14000,
+      "finish": 15672
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/fit-report.json",
+      "sha256": "c6402c7e08b720b7b32a7176fed995bb962baed675d87648405860e009944750",
+      "status": "COMPLETE_FIXED_RECIPE",
+      "elapsed_seconds": 2700.752144,
+      "training_complete_steps_seconds": null,
+      "updates": 512,
+      "targets": 2097152,
+      "start": null,
+      "finish": null
+    }
+  ],
+  "supervisor_phase_intervals": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-1.jsonl",
+      "name": "continuous-fit-1",
+      "utc": "2026-09-25T23:35:42.287484+00:00",
+      "elapsed_seconds": 8949.286137250001,
+      "exit_codes": {
+        "fit-quaternion-1": -2,
+        "fit-householder_pair-1": -2
+      },
+      "peak_sampled_rss_bytes": 6187843584,
+      "min_physical_free_bytes": 47482617856
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-2.jsonl",
+      "name": "continuous-fit-2",
+      "utc": "2026-09-26T02:08:38.161124+00:00",
+      "elapsed_seconds": 8534.802578792,
+      "exit_codes": {
+        "fit-quaternion-2": 0,
+        "fit-householder_pair-2": 0
+      },
+      "peak_sampled_rss_bytes": 6427672576,
+      "min_physical_free_bytes": 42321784832
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-3.jsonl",
+      "name": "continuous-fit-3",
+      "utc": "2026-09-26T05:36:44.197721+00:00",
+      "elapsed_seconds": 10724.641457458,
+      "exit_codes": {
+        "fit-quaternion-3": 0,
+        "fit-householder_pair-3": 0
+      },
+      "peak_sampled_rss_bytes": 6159958016,
+      "min_physical_free_bytes": 27033894912
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-4.jsonl",
+      "name": "continuous-fit-4",
+      "utc": "2026-09-26T07:22:29.249787+00:00",
+      "elapsed_seconds": 4849.211458792,
+      "exit_codes": {
+        "fit-quaternion-4": 0,
+        "fit-householder_pair-4": 0
+      },
+      "peak_sampled_rss_bytes": 6371328000,
+      "min_physical_free_bytes": 24603873280
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-5.jsonl",
+      "name": "continuous-fit-quaternion-5",
+      "utc": "2026-09-26T07:35:48.037407+00:00",
+      "elapsed_seconds": 229.986561292,
+      "exit_codes": {
+        "fit-quaternion-5": 0
+      },
+      "peak_sampled_rss_bytes": 3176955904,
+      "min_physical_free_bytes": 25356619776
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-6.jsonl",
+      "name": "continuous-fit-quaternion-6",
+      "utc": "2026-09-26T18:45:16.270572+00:00",
+      "elapsed_seconds": 5609.986584542086,
+      "exit_codes": {
+        "fit-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 3407151104,
+      "min_physical_free_bytes": 44725456896
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-cycle-events-6.jsonl",
+      "name": "continuous-fit-householder_pair-6",
+      "utc": "2026-09-26T21:11:37.818728+00:00",
+      "elapsed_seconds": 8779.09009887511,
+      "exit_codes": {
+        "fit-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 3510370304,
+      "min_physical_free_bytes": 41875714048
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-fit-6-serial-1",
+      "utc": "2026-09-26T21:17:07.694836+00:00",
+      "elapsed_seconds": 6.293958541937172,
+      "exit_codes": {
+        "verify-continuous-fit-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 32768,
+      "min_physical_free_bytes": 50371891200
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-fit-6-serial-2",
+      "utc": "2026-09-26T21:17:16.560775+00:00",
+      "elapsed_seconds": 6.242018457967788,
+      "exit_codes": {
+        "verify-continuous-fit-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 13074432,
+      "min_physical_free_bytes": 50371862528
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-checkpoint-6-serial-1",
+      "utc": "2026-09-26T21:17:27.154583+00:00",
+      "elapsed_seconds": 8.131057417020202,
+      "exit_codes": {
+        "verify-continuous-checkpoint-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 2949120,
+      "min_physical_free_bytes": 50357784576
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-checkpoint-6-serial-2",
+      "utc": "2026-09-26T21:17:35.867782+00:00",
+      "elapsed_seconds": 6.514973249984905,
+      "exit_codes": {
+        "verify-continuous-checkpoint-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 5832704,
+      "min_physical_free_bytes": 50357637120
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "continuous-read-evaluation-6-serial-1",
+      "utc": "2026-09-26T21:18:28.130162+00:00",
+      "elapsed_seconds": 49.694693540921435,
+      "exit_codes": {
+        "evaluate-quaternion-continuous-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 693043200,
+      "min_physical_free_bytes": 50343956480
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "continuous-read-evaluation-6-serial-2",
+      "utc": "2026-09-26T21:19:17.037565+00:00",
+      "elapsed_seconds": 46.81015004217625,
+      "exit_codes": {
+        "evaluate-householder_pair-continuous-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 697630720,
+      "min_physical_free_bytes": 50330329088
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-read-6-serial-1",
+      "utc": "2026-09-26T21:19:24.511405+00:00",
+      "elapsed_seconds": 5.26182150002569,
+      "exit_codes": {
+        "verify-continuous-read-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 6111232,
+      "min_physical_free_bytes": 50330218496
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-read-6-serial-2",
+      "utc": "2026-09-26T21:19:32.686294+00:00",
+      "elapsed_seconds": 5.136028833920136,
+      "exit_codes": {
+        "verify-continuous-read-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 6094848,
+      "min_physical_free_bytes": 50330198016
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "continuous-no-read-evaluation-6-serial-1",
+      "utc": "2026-09-26T21:20:13.072202+00:00",
+      "elapsed_seconds": 38.331330250017345,
+      "exit_codes": {
+        "evaluate-quaternion-continuous-no-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 689504256,
+      "min_physical_free_bytes": 50308198400
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "continuous-no-read-evaluation-6-serial-2",
+      "utc": "2026-09-26T21:20:52.161175+00:00",
+      "elapsed_seconds": 37.03223525010981,
+      "exit_codes": {
+        "evaluate-householder_pair-continuous-no-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 683311104,
+      "min_physical_free_bytes": 50294665216
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-no-read-6-serial-1",
+      "utc": "2026-09-26T21:21:00.582916+00:00",
+      "elapsed_seconds": 6.2554977079853415,
+      "exit_codes": {
+        "verify-continuous-no-read-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 5390336,
+      "min_physical_free_bytes": 50300719104
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-continuous-no-read-6-serial-2",
+      "utc": "2026-09-26T21:21:07.828165+00:00",
+      "elapsed_seconds": 5.073373292107135,
+      "exit_codes": {
+        "verify-continuous-no-read-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 9109504,
+      "min_physical_free_bytes": 50300727296
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "shadow-calibration-6-serial-1",
+      "utc": "2026-09-26T21:21:15.669482+00:00",
+      "elapsed_seconds": 5.506809832993895,
+      "exit_codes": {
+        "calibrate-quaternion-shadow-6": 0
+      },
+      "peak_sampled_rss_bytes": 5701632,
+      "min_physical_free_bytes": 50290999296
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "shadow-calibration-6-serial-2",
+      "utc": "2026-09-26T21:21:23.453876+00:00",
+      "elapsed_seconds": 5.468680707970634,
+      "exit_codes": {
+        "calibrate-householder_pair-shadow-6": 0
+      },
+      "peak_sampled_rss_bytes": 4882432,
+      "min_physical_free_bytes": 50275262464
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-shadow-calibration-6-serial-1",
+      "utc": "2026-09-26T21:21:30.793470+00:00",
+      "elapsed_seconds": 5.3764760829508305,
+      "exit_codes": {
+        "verify-shadow-calibration-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 5226496,
+      "min_physical_free_bytes": 50278961152
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-shadow-calibration-6-serial-2",
+      "utc": "2026-09-26T21:21:38.702678+00:00",
+      "elapsed_seconds": 5.646707708016038,
+      "exit_codes": {
+        "verify-shadow-calibration-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 5390336,
+      "min_physical_free_bytes": 51352584192
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "normalization-6-serial-1",
+      "utc": "2026-09-26T21:22:44.631525+00:00",
+      "elapsed_seconds": 63.70551583310589,
+      "exit_codes": {
+        "normalize-quaternion-rounding-6": 0
+      },
+      "peak_sampled_rss_bytes": 4068786176,
+      "min_physical_free_bytes": 49192079360
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "normalization-6-serial-2",
+      "utc": "2026-09-26T21:23:25.892071+00:00",
+      "elapsed_seconds": 39.38189495890401,
+      "exit_codes": {
+        "normalize-householder_pair-rounding-6": 0
+      },
+      "peak_sampled_rss_bytes": 4231856128,
+      "min_physical_free_bytes": 49187840000
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-normalization-6-serial-1",
+      "utc": "2026-09-26T21:23:32.863539+00:00",
+      "elapsed_seconds": 4.7795995839405805,
+      "exit_codes": {
+        "verify-normalization-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 5783552,
+      "min_physical_free_bytes": 50290552832
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-normalization-6-serial-2",
+      "utc": "2026-09-26T21:23:40.957279+00:00",
+      "elapsed_seconds": 5.669001958100125,
+      "exit_codes": {
+        "verify-normalization-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 4538368,
+      "min_physical_free_bytes": 50290294784
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "rounding-fit-6-serial-1",
+      "utc": "2026-09-26T22:08:51.565665+00:00",
+      "elapsed_seconds": 2708.321128624957,
+      "exit_codes": {
+        "fit-quaternion-rounding-6": 0
+      },
+      "peak_sampled_rss_bytes": 4636311552,
+      "min_physical_free_bytes": 49083580416
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "rounding-fit-6-serial-2",
+      "utc": "2026-09-26T22:56:02.896553+00:00",
+      "elapsed_seconds": 2827.2080121659674,
+      "exit_codes": {
+        "fit-householder_pair-rounding-6": 0
+      },
+      "peak_sampled_rss_bytes": 4486168576,
+      "min_physical_free_bytes": 47797035008
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-rounding-fit-6-serial-1",
+      "utc": "2026-09-26T22:56:10.986114+00:00",
+      "elapsed_seconds": 5.675909708021209,
+      "exit_codes": {
+        "verify-rounding-fit-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 1163264,
+      "min_physical_free_bytes": 47790379008
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-rounding-fit-6-serial-2",
+      "utc": "2026-09-26T22:56:19.260129+00:00",
+      "elapsed_seconds": 5.5099637501407415,
+      "exit_codes": {
+        "verify-rounding-fit-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 1196032,
+      "min_physical_free_bytes": 47790247936
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "hard-read-evaluation-6-serial-1",
+      "utc": "2026-09-26T22:57:46.929919+00:00",
+      "elapsed_seconds": 85.61196762486361,
+      "exit_codes": {
+        "evaluate-quaternion-hard-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 648101888,
+      "min_physical_free_bytes": 47782465536
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "hard-read-evaluation-6-serial-2",
+      "utc": "2026-09-26T22:59:10.481780+00:00",
+      "elapsed_seconds": 81.31717237480916,
+      "exit_codes": {
+        "evaluate-householder_pair-hard-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 641826816,
+      "min_physical_free_bytes": 49910829056
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-hard-read-6-serial-1",
+      "utc": "2026-09-26T22:59:18.617192+00:00",
+      "elapsed_seconds": 5.950040332973003,
+      "exit_codes": {
+        "verify-hard-read-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 6127616,
+      "min_physical_free_bytes": 49910865920
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-hard-read-6-serial-2",
+      "utc": "2026-09-26T22:59:25.927483+00:00",
+      "elapsed_seconds": 5.2647291659377515,
+      "exit_codes": {
+        "verify-hard-read-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 5242880,
+      "min_physical_free_bytes": 49913413632
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "hard-no-read-evaluation-6-serial-1",
+      "utc": "2026-09-26T23:00:40.939904+00:00",
+      "elapsed_seconds": 72.30557691701688,
+      "exit_codes": {
+        "evaluate-quaternion-hard-no-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 641597440,
+      "min_physical_free_bytes": 49907089408
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "hard-no-read-evaluation-6-serial-2",
+      "utc": "2026-09-26T23:01:53.406705+00:00",
+      "elapsed_seconds": 70.45669641718268,
+      "exit_codes": {
+        "evaluate-householder_pair-hard-no-read-6": 0
+      },
+      "peak_sampled_rss_bytes": 638320640,
+      "min_physical_free_bytes": 50951540736
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-hard-no-read-6-serial-1",
+      "utc": "2026-09-26T23:02:00.721536+00:00",
+      "elapsed_seconds": 5.167565166950226,
+      "exit_codes": {
+        "verify-hard-no-read-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 4145152,
+      "min_physical_free_bytes": 50951442432
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-hard-no-read-6-serial-2",
+      "utc": "2026-09-26T23:02:08.780028+00:00",
+      "elapsed_seconds": 5.531947750132531,
+      "exit_codes": {
+        "verify-hard-no-read-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 5865472,
+      "min_physical_free_bytes": 50951942144
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-comparison-6-serial-1",
+      "utc": "2026-09-26T23:02:46.515952+00:00",
+      "elapsed_seconds": 35.82545862486586,
+      "exit_codes": {
+        "evaluate-quaternion-integer-6": 0
+      },
+      "peak_sampled_rss_bytes": 56852480,
+      "min_physical_free_bytes": 50943758336
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-comparison-6-serial-2",
+      "utc": "2026-09-26T23:03:23.803316+00:00",
+      "elapsed_seconds": 34.6253296660725,
+      "exit_codes": {
+        "evaluate-householder_pair-integer-6": 0
+      },
+      "peak_sampled_rss_bytes": 56164352,
+      "min_physical_free_bytes": 50938597376
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-integer-comparison-6-serial-1",
+      "utc": "2026-09-26T23:03:33.512057+00:00",
+      "elapsed_seconds": 5.338345458963886,
+      "exit_codes": {
+        "verify-integer-comparison-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 6356992,
+      "min_physical_free_bytes": 50938544128
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "verify-integer-comparison-6-serial-2",
+      "utc": "2026-09-26T23:03:43.353881+00:00",
+      "elapsed_seconds": 7.220384417101741,
+      "exit_codes": {
+        "verify-integer-comparison-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 4440064,
+      "min_physical_free_bytes": 50904428544
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-pack-6-serial-1",
+      "utc": "2026-09-26T23:03:51.765836+00:00",
+      "elapsed_seconds": 6.215850041946396,
+      "exit_codes": {
+        "pack-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 32768,
+      "min_physical_free_bytes": 50902872064
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-pack-6-serial-2",
+      "utc": "2026-09-26T23:03:59.203485+00:00",
+      "elapsed_seconds": 5.301947917090729,
+      "exit_codes": {
+        "pack-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 2965504,
+      "min_physical_free_bytes": 50901942272
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-source-6-serial-1",
+      "utc": "2026-09-26T23:04:13.034721+00:00",
+      "elapsed_seconds": 11.514693416887894,
+      "exit_codes": {
+        "source-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 8929280,
+      "min_physical_free_bytes": 50901766144
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-source-6-serial-2",
+      "utc": "2026-09-26T23:04:28.320263+00:00",
+      "elapsed_seconds": 12.871511791134253,
+      "exit_codes": {
+        "source-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 10682368,
+      "min_physical_free_bytes": 50901688320
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-continuation-6-serial-1",
+      "utc": "2026-09-26T23:04:36.197460+00:00",
+      "elapsed_seconds": 5.668598167132586,
+      "exit_codes": {
+        "continuation-quaternion-6": 0
+      },
+      "peak_sampled_rss_bytes": 2637824,
+      "min_physical_free_bytes": 50902085632
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-events-6.jsonl",
+      "name": "integer-continuation-6-serial-2",
+      "utc": "2026-09-26T23:04:43.672252+00:00",
+      "elapsed_seconds": 5.4371715830639005,
+      "exit_codes": {
+        "continuation-householder_pair-6": 0
+      },
+      "peak_sampled_rss_bytes": 3260416,
+      "min_physical_free_bytes": 50901897216
+    }
+  ],
+  "rounding_elapsed_seconds": 5521.656608375,
+  "saved_continuous_process_seconds": 62799.307969459,
+  "interpretation": "Fit report process times overlap in early paired attempts and MUST NOT be added to cumulative elapsed wall. Original fit1 has no complete fit report, so its lost-learning elapsed wall is retained in events and ledger. Cost cursor separately charges the entire elapsed milestone exactly once, including all preparation, interruptions, review and delivery.",
+  "cycle_started_utc": "2026-09-25T20:41:00+00:00",
+  "source_adapter_build_seconds": 258.758,
+  "ledger_cursor_at_collection": {
+    "charged_through_utc": "2026-09-26T23:27:20.967563+00:00",
+    "receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ledger-closeout-20260926T232720Z.json",
+    "ledger": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "last_seen": {
+      "cumulative_ms": 642351327,
+      "limit_ms": 744000000
+    },
+    "extension_receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resource-extension-resume-6.json",
+    "effective_task_limit_ms": 657600000,
+    "external_limit_observation": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ledger-external-limit-observation-6.json"
+  },
+  "final_delivery_charge": "PENDING; final ledger-cursor and delivery receipt supersede this snapshot",
+  "saved_continuous_supervised_phase_seconds_no_overlap": 38727.718739751195,
+  "failed_fit1_controller_envelope_seconds": 8950.191768,
+  "all_continuous_phase_seconds_including_lost_fit1": 47677.00487700119,
+  "controller_phase_scope": "Sequential continuous-fit supervisor phases, each paired phase counted once, including failed fit1. Includes startup/stop/resource observation. Failed fit1 cycle envelope is separately descriptive and NOT added again. Distinct from process-seconds, CPU time, complete-step timer and whole-cycle elapsed wall.",
+  "downstream_controller_envelope_seconds": 6464.883413,
+  "failed_fit1_supervised_phase_seconds": 8949.286137250001
+}

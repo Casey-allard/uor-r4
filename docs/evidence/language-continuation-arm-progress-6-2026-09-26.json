@@ -1,0 +1,121 @@
+{
+  "schema": "uor-r4.language-continuation-arm-progress/1",
+  "utc": "2026-09-26T18:47:30.394099+00:00",
+  "status": "QUATERNION_TARGET_COMPLETE_HOUSEHOLDER_RUNNING",
+  "quaternion": {
+    "target_complete_utc": "2026-09-26T18:45:16.309738+00:00",
+    "starting_step": 14000,
+    "completed_step": 15672,
+    "updates_this_segment": 1672,
+    "new_target_visits_this_segment": 6848512,
+    "total_retained_continuation_updates_since8348": 7324,
+    "total_retained_continuation_targets_since8348": 29999104,
+    "model_optimizer_sampler_clocks": 15672,
+    "fit_elapsed_seconds": 5604.521178416,
+    "files": {
+      "campaign": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-resume-6.json",
+        "sha256": "6b34a04d49fa965dc20335002a1948a8253ef74e70890ba1e9484f63d2677f14"
+      },
+      "fit_report": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/fit-report.json",
+        "sha256": "676c7fdb9d6e9d7eb7e791135f026c62fcb99611bf742d33f71a3696d0c4acb1"
+      },
+      "attempt_manifest": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/manifest.json",
+        "sha256": "8824a0aacafb8cbb5b83427e1dc05b9662463ca341e3d95fdd9c8b16a474c485"
+      },
+      "checkpoint_manifest": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/manifest.json",
+        "sha256": "ea1a5795435ee47bfe67abc300237c7a67667f5881f5ba1e0b41037da94a1871"
+      },
+      "checkpoint": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/checkpoint.json",
+        "sha256": "490922decefee3e6036331dd0bc112746f24662d4bddfbe540b59c1d00820571"
+      },
+      "model": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/model.safetensors",
+        "sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79"
+      },
+      "optimizer": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/optimizer.json",
+        "sha256": "bc6315334a089290ab890e591cd4ed195d834ce8ca45b195c20800a51849bdc7"
+      },
+      "optimizer_moments": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/optimizer.safetensors",
+        "sha256": "43d2fa4be925f58e77a6a400e5a6943b20ab23a41fe2dd0fa48e0b6311e45c0d"
+      },
+      "learning_curve": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/learning-curve.jsonl",
+        "sha256": "e6ac4547ab0e56e4018c8b84d2906d1ec2dcdc0fb30a7fcee0f29332f8859dd4"
+      }
+    },
+    "resource_summary": {
+      "name": "continuous-fit-quaternion-6",
+      "finished_utc": "2026-09-26T18:45:14.760054+00:00",
+      "elapsed_seconds": 5609.986584542086,
+      "checkpoint_requested_reason": null,
+      "samples": 1012,
+      "peak_sampled_rss_bytes": 3407151104,
+      "min_physical_free_bytes": 44725456896,
+      "exit_codes": {
+        "fit-quaternion-6": 0
+      },
+      "allocation": {
+        "categories": {
+          "worktree": 524324864,
+          "new_or_replaced_target": 20144807936,
+          "campaign": 394764288
+        },
+        "retained_bytes": 21063897088,
+        "temporary_headroom_bytes": 536870912,
+        "metadata_allowance_bytes": 1048576,
+        "charged_projection_bytes": 21601816576,
+        "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+      },
+      "scope": "Direct local Rust children, sampled RSS; all sealed/partial outputs preserved."
+    },
+    "verification_scope": "Controller segment/lineage checks and principal matching-file SHA checks. Paired complete Rust report/checkpoint verification remains first downstream stage; not yet run for fit6."
+  },
+  "householder": {
+    "start_utc": "2026-09-26T18:45:17.796440+00:00",
+    "pid": 22553,
+    "starting_step": 13949,
+    "first_observed_step": 13950,
+    "latest_observed_step": 13996,
+    "planned_updates": 1723,
+    "sole_final_step": 15672,
+    "latest_resource_sample": {
+      "utc": "2026-09-26T18:47:29.627964+00:00",
+      "elapsed_seconds": 133.31420391704887,
+      "rss_bytes": {
+        "22553": 1453670400
+      },
+      "aggregate_rss_bytes": 1453670400,
+      "physical_free_bytes": 51294593024,
+      "allocation": {
+        "categories": {
+          "worktree": 524324864,
+          "new_or_replaced_target": 20144807936,
+          "campaign": 394899456
+        },
+        "retained_bytes": 21064032256,
+        "temporary_headroom_bytes": 536870912,
+        "metadata_allowance_bytes": 1048576,
+        "charged_projection_bytes": 21601951744,
+        "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+      },
+      "exit_codes": {
+        "fit-householder_pair-6": null
+      }
+    }
+  },
+  "live_process_commands": "22553 97291    02:13 2653616 /Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75 joint-fit /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair-resume-6.json /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6 cpu /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-4/checkpoint-final\n97291     1 01:35:52  43184 /opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -B /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-continuous-fit-6.py --launch\n",
+  "ledger": {
+    "cumulative_ms": 625560758,
+    "limit_ms": 657600000
+  },
+  "final_quality": "NOT_RUN",
+  "downstream_launch_approved": false,
+  "scope": "Same dose, model configuration and frozen criteria. Preserve completed quaternion even if ordinary stops. No additional fit, checkpoint choice, model-quality or geometric-advantage claim."
+}

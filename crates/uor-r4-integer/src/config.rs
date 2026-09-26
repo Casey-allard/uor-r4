@@ -91,6 +91,27 @@ pub struct QuantizedTrainingState {
     pub ramp_steps: usize,
     pub completed_step: usize,
     pub spec: QuantizationSpec,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preparation: Option<QuantizationPreparation>,
+}
+
+/// A separately calibrated shadow can enter alpha-only code learning without
+/// claiming that the continuous model underwent a quantization training ramp.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QuantizationPreparation {
+    CalibratedForRounding,
+}
+
+pub fn valid_quantization_clock(
+    start_step: usize,
+    ramp_steps: usize,
+    completed_step: usize,
+    preparation: Option<QuantizationPreparation>,
+) -> bool {
+    ramp_steps > 0
+        && completed_step >= start_step
+        && (preparation.is_none() || (ramp_steps == 1 && completed_step == start_step))
 }
 
 /// Exact legacy contract serialized by the accepted packed exporter. Fixed JSON

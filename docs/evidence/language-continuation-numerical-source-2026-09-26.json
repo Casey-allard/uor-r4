@@ -1,0 +1,3032 @@
+{
+  "schema": "uor-r4.final-numerical-source-adjudication/1",
+  "reviewer": "continuation_cycle_driver",
+  "reviewed_utc": "2026-09-26T23:30:26.697281+00:00",
+  "status": "COMPLETED_EXISTING_OUTPUT_REVIEW_WITH_DECLARED_FAILURES",
+  "principal_approved": false,
+  "model_execution_during_review": false,
+  "method": "Read existing frozen reports, source, binary target records, retained generation IDs and source rows; compute only derived comparisons. No model, Rust verifier, build, test, launch or rerun. Root owns full report seal verification and final outcome selection.",
+  "fixed_conditions": {
+    "batch": 16,
+    "training_context": 256,
+    "evaluation_context": 256,
+    "memory_access": "full causal history within256",
+    "read_vector_coordinates": 64,
+    "state_coordinates": 256,
+    "cpu_gradient_shards": 2,
+    "source_commit": "209483169323563d541df781b8817a4bf6dc31e3",
+    "training_source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+    "continuous_start_step": 8348,
+    "continuous_final_step": 15672,
+    "retained_updates_per_arm": 7324,
+    "retained_target_visits_per_arm": 29999104,
+    "rounding_updates_per_arm": 512,
+    "no_read_scope": "Whole-prefix intervention removes both value feedback and copying; penalty establishes combined path utility, not component credit."
+  },
+  "thresholds": {
+    "hard_minus_same_arm_new_continuous_nll_max": 0.05,
+    "hard_nll_strict_upper_bound": 2.391786178860742,
+    "no_read_penalty_min": 0.02,
+    "first_noun_losses_vs_original_selected_rung1_max": 2,
+    "integer_state_absolute_drift_max": 0.01,
+    "integer_probability_absolute_drift_max": 0.01,
+    "f32_runtime_probability_sum_tolerance": 0.0002
+  },
+  "arms": {
+    "quaternion": {
+      "corpus_evaluations": {
+        "continuous_read": {
+          "comparison_nll": 1.9964904737900833,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.648167529928358e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 1.2429256235346742e-10,
+          "target_probability_max": 0.9999880194664001,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 1.9964904737900993,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        },
+        "continuous_no-read": {
+          "comparison_nll": 2.4920648889134465,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.7198603418376877e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 1.9543908158503598e-10,
+          "target_probability_max": 0.9999992847442627,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 2.492064888913429,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        },
+        "hard_read": {
+          "comparison_nll": 2.0422056630762873,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.9371422003432457e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 2.0730299421511944e-10,
+          "target_probability_max": 0.999994695186615,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 2.042205663076304,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        },
+        "hard_no-read": {
+          "comparison_nll": 2.548328697101242,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.673419760235163e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 1.3110276753103278e-10,
+          "target_probability_max": 0.9999992847442627,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 2.548328697101282,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        }
+      },
+      "hard_minus_new_continuous_nll": 0.045715189286203994,
+      "continuous_no_read_penalty": 0.4955744151233632,
+      "hard_no_read_penalty": 0.506123034024955,
+      "original_continuous_8348_nll": 2.090518498969539,
+      "continuous_nll_change_vs_8348": -0.09402802517945563,
+      "f32_noncollapse": {
+        "continuous": {
+          "scope": "Five existing Read continuations only; no semantic quality claim",
+          "observations": [
+            {
+              "index": 0,
+              "seed": 2014,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 1,
+              "seed": 2015,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 2,
+              "seed": 2016,
+              "generated_tokens": 76,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "eos"
+              }
+            },
+            {
+              "index": 3,
+              "seed": 2017,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 4,
+              "seed": 2018,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            }
+          ],
+          "pass": true
+        },
+        "hard": {
+          "scope": "Five existing Read continuations only; no semantic quality claim",
+          "observations": [
+            {
+              "index": 0,
+              "seed": 2014,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 1,
+              "seed": 2015,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 2,
+              "seed": 2016,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 3,
+              "seed": 2017,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 4,
+              "seed": 2018,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            }
+          ],
+          "pass": true
+        }
+      },
+      "source_retention": {
+        "summaries": {
+          "rung1_parent": {
+            "first_noun_correct": 28,
+            "complete_correct": 28
+          },
+          "parent_ptq": {
+            "first_noun_correct": 25,
+            "complete_correct": 23
+          },
+          "continuous": {
+            "first_noun_correct": 26,
+            "complete_correct": 23
+          },
+          "unprojected": {
+            "first_noun_correct": 27,
+            "complete_correct": 19
+          },
+          "projected": {
+            "first_noun_correct": 26,
+            "complete_correct": 23
+          },
+          "rounding": {
+            "first_noun_correct": 29,
+            "complete_correct": 28
+          },
+          "retained_bounded_entry_full": {
+            "first_noun_correct": 29,
+            "complete_correct": 28
+          },
+          "retained_bounded_entry_orthant64": {
+            "first_noun_correct": 22,
+            "complete_correct": 21
+          },
+          "retained_bounded_orthant64_read": {
+            "first_noun_correct": 18,
+            "complete_correct": 17
+          },
+          "retained_bounded_full_read": {
+            "first_noun_correct": 28,
+            "complete_correct": 27
+          },
+          "retained_bounded_recent64_read": {
+            "first_noun_correct": 28,
+            "complete_correct": 27
+          },
+          "retained_bounded_recent32_read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "retained_bounded_exact_cache64_read": {
+            "first_noun_correct": 24,
+            "complete_correct": 23
+          },
+          "final_continuous_read": {
+            "first_noun_correct": 26,
+            "complete_correct": 21
+          },
+          "final_continuous_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "final_hard_read": {
+            "first_noun_correct": 28,
+            "complete_correct": 25
+          },
+          "final_hard_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "final_integer_bridge_read": {
+            "first_noun_correct": 28,
+            "complete_correct": 25
+          },
+          "final_integer_bridge_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "accepted_standalone_integer_read": {
+            "first_noun_correct": 29,
+            "complete_correct": 28
+          },
+          "accepted_standalone_integer_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "final_standalone_integer_read": {
+            "first_noun_correct": 28,
+            "complete_correct": 25
+          },
+          "final_standalone_integer_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          }
+        },
+        "first_noun_vs_original_rung1": {
+          "lost": [],
+          "gained": [],
+          "lost_count": 0,
+          "gained_count": 0
+        },
+        "complete_vs_original_rung1": {
+          "lost": [
+            "story-source-edit-01/original",
+            "story-source-edit-01/edited",
+            "story-source-edit-09/edited"
+          ],
+          "gained": [],
+          "lost_count": 3,
+          "gained_count": 0
+        },
+        "final_standalone_vs_every_parent": {
+          "rung1_parent": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [],
+              "lost_count": 3,
+              "gained_count": 0
+            }
+          },
+          "parent_ptq": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 3
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-11/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 5
+            }
+          },
+          "continuous": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original"
+              ],
+              "lost_count": 0,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-08/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 5
+            }
+          },
+          "unprojected": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original"
+              ],
+              "lost_count": 1,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-04/original",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-02/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-13/original",
+                "story-source-edit-13/edited"
+              ],
+              "lost_count": 2,
+              "gained_count": 8
+            }
+          },
+          "projected": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-13/edited"
+              ],
+              "lost_count": 1,
+              "gained_count": 3
+            }
+          },
+          "rounding": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-12/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-09/edited",
+                "story-source-edit-12/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 5,
+              "gained_count": 2
+            }
+          },
+          "retained_bounded_entry_full": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-12/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-09/edited",
+                "story-source-edit-12/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 5,
+              "gained_count": 2
+            }
+          },
+          "retained_bounded_entry_orthant64": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited"
+              ],
+              "gained": [
+                "story-source-edit-06/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-09/edited",
+                "story-source-edit-11/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 2,
+              "gained_count": 8
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited"
+              ],
+              "gained": [
+                "story-source-edit-06/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 7
+            }
+          },
+          "retained_bounded_orthant64_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original"
+              ],
+              "gained": [
+                "story-source-edit-03/original",
+                "story-source-edit-03/edited",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-09/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-15/original",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 1,
+              "gained_count": 11
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original"
+              ],
+              "gained": [
+                "story-source-edit-03/original",
+                "story-source-edit-03/edited",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-15/original",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 2,
+              "gained_count": 10
+            }
+          },
+          "retained_bounded_full_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original"
+              ],
+              "gained": [
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 1,
+              "gained_count": 1
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 1
+            }
+          },
+          "retained_bounded_recent64_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original"
+              ],
+              "gained": [
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 1,
+              "gained_count": 1
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 1
+            }
+          },
+          "retained_bounded_recent32_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-00/edited",
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-02/original",
+                "story-source-edit-02/edited",
+                "story-source-edit-03/original",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-09/edited",
+                "story-source-edit-10/original",
+                "story-source-edit-10/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-13/original",
+                "story-source-edit-13/edited",
+                "story-source-edit-14/original",
+                "story-source-edit-14/edited",
+                "story-source-edit-15/original",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 28
+            },
+            "complete_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-00/edited",
+                "story-source-edit-02/original",
+                "story-source-edit-02/edited",
+                "story-source-edit-03/original",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-10/original",
+                "story-source-edit-10/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-13/original",
+                "story-source-edit-13/edited",
+                "story-source-edit-14/original",
+                "story-source-edit-14/edited",
+                "story-source-edit-15/original",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 25
+            }
+          },
+          "retained_bounded_exact_cache64_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-00/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 4
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-00/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited"
+              ],
+              "lost_count": 2,
+              "gained_count": 4
+            }
+          },
+          "accepted_standalone_integer_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-12/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-09/edited",
+                "story-source-edit-12/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 5,
+              "gained_count": 2
+            }
+          },
+          "final_continuous_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/edited",
+                "story-source-edit-08/original"
+              ],
+              "lost_count": 0,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-09/edited"
+              ],
+              "gained": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/original",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-11/edited",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 7
+            }
+          },
+          "final_hard_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            }
+          },
+          "final_integer_bridge_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            }
+          }
+        },
+        "all_response_and_generated_id_changes_in_derived_rows": true
+      },
+      "shadow_calibration": {
+        "model_step": 15672,
+        "optimizer_updates": 0,
+        "sampler_steps_advanced": 0,
+        "sampled_target_visits": 0,
+        "projection": {
+          "maximum_absolute_correction": 0.7927435636520386,
+          "projected_coordinates": 23538,
+          "total_coordinates": 1678466
+        },
+        "fractional_shadow_coordinates": 1654926,
+        "quantization_spec_sha256": "73878694c09b2f0294c6f53d64d1b4b68249479152d3759e0452aa111b380699",
+        "interior_shadow_bits_preserved": true,
+        "nearest_hard_values_and_codes_preserved": true,
+        "original_optimizer_metadata_sha256": "bc6315334a089290ab890e591cd4ed195d834ce8ca45b195c20800a51849bdc7",
+        "original_optimizer_moments_sha256": "43d2fa4be925f58e77a6a400e5a6943b20ab23a41fe2dd0fa48e0b6311e45c0d",
+        "reload_shadow_optimizer_and_provenance_equal": true,
+        "actual_original_and_calibrated_optimizer_bytes_identical": true,
+        "actual_parent_checkpoint_matches_report": true,
+        "zero_change_scope": "No neural optimizer update, sampler advance, or change to preserved optimizer bytes; shadow calibration DOES project the reported outlier coordinates. Do not describe all model weights as unchanged."
+      },
+      "lambda_initialization": {
+        "status": "CALIBRATED_NO_UPDATES",
+        "optimizer_updates": 0,
+        "training_batches": 8,
+        "target_visits": 32768,
+        "used_evaluation_data": false,
+        "data_steps": [
+          15672,
+          15680
+        ],
+        "regularization": 14.917379846223886,
+        "sampled_input_target_sha256_le_u32": "9c8fc0b3e50a68ffb451c7029e35848d40f17c5a814a193157a950f0e4bda094",
+        "resolved_recipe_sha256": "0ec147f27ca46b93f58415e219bec3caa02b20ba0875350140817bac9db00de7",
+        "formula": "lambda = L2(mean of 8 full-batch language alpha gradients) / L2(global-mean unit-coefficient rounding penalty alpha gradient at beta=2); ratio=1; no sweep or validation selection"
+      },
+      "alpha_fit": {
+        "status": "COMPLETE_FIXED_RECIPE",
+        "completed_updates": 512,
+        "new_updates_this_attempt": 512,
+        "new_target_visits_this_attempt": 2097152,
+        "next_data_step": 16184,
+        "neural_parent_clock": 15672,
+        "all_21_alpha_parameter_clocks": 512,
+        "learning_curve_exact_steps_1_through_512": true,
+        "learning_curve_exact_data_steps_15672_through_16183": true,
+        "sampled_input_target_sha256_le_u32": "e9c6b08e28607f7e9830270f8149178ff94913fe482248b5d4a5f416673f69d6",
+        "initial_hard_parent_probability_max_delta": 0.0,
+        "resume": null,
+        "training_samples_only": true,
+        "full_evaluation_during_fit": false,
+        "parameter_optimizer_scope": "Only new alpha code-choice variables are optimized. Original weights, scales, parent Adam moments/clocks and architecture are unchanged.",
+        "resolved_recipe_matches_fit_exactly": true,
+        "actual_alpha_moments_hash_matches_metadata": true
+      },
+      "exact_export_reload": {
+        "status": "PACKED_EXPORT_RELOADED",
+        "full_context_probability_max_absolute_delta": 0.0,
+        "actual_saved_generated_ids_and_probability_hashes_equal": true,
+        "generated_tokens_in_reload_check": 48,
+        "interface_audit_scope": "Only the recorded 48-token-cap loaded smoke generation; not a corpus-wide saturation bound. Audit observes pre-quantization interfaces of the hard numerical emulator.",
+        "optimizer_steps": 0,
+        "quantized_training_updates": 0
+      },
+      "integer_evaluation": {
+        "full_fixed_development_complete": false,
+        "scope": "Fixed corpus prefix only; not the full development/comparison gate. First64 windows are existing calibration partition; later windows, if requested, are comparison partition.",
+        "modes": {
+          "read": {
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 5.7533776660000004,
+              "f32_mean_nll_nats": 2.2470397709082244,
+              "f32_step_seconds": 0.8596478000000003,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.2473662912159442,
+              "integer_step_seconds": 4.577849905999996,
+              "maximum_copy_gate_delta": 0.0047607421875,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.003830637442771234,
+              "maximum_probability_delta": 0.007270125772471658,
+              "maximum_state_delta": 0.00634765625,
+              "maximum_total_variation": 0.00814065809489914,
+              "mean_nll_delta_nats": 0.0003265203077198464,
+              "mean_total_variation": 0.0018143483287396778,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2300.9687254100218,
+                  "integer_nll_sum": 2301.303082205127,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "bf3104df158ad319cf4afe73daae33a3dc0212bb6a9c568d5bdfcf09f8cd9dd5",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.0029296875,
+              "top1_disagreements": 3,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "existing_rows_verified": {
+              "sha256_matches_report": true,
+              "count": 1024,
+              "four_complete_contexts_with_ordered_offsets_and_causal_slot_counts": true,
+              "all_recorded_float_values_finite": true,
+              "both_target_probabilities_positive_bounded": true,
+              "row_recomputed_maxima_equal_report": true,
+              "maximum_state_witness": {
+                "block_index": 2,
+                "exposed_causal_slots": 149,
+                "f32_copy_gate": 0.22540283203125,
+                "f32_nll_nats": 5.859306329890591,
+                "f32_no_read_mass": 0.922625720500946,
+                "f32_prediction": 513,
+                "f32_probability_sha256_le_f32": "5b32f6ca381582eec677f424b0c4f746fc82777f6911eb3549aeed3f4ea13433",
+                "f32_target_probability": 0.0028532221913337708,
+                "input_offset": 661,
+                "input_token": 435,
+                "integer_copy_gate": 0.22747802734375,
+                "integer_nll_nats": 5.849115379793698,
+                "integer_no_read_mass": 0.9230526501063459,
+                "integer_prediction": 513,
+                "integer_probability_sha256_le_u64": "a4349a5151aba32b036430324abe33d271af680b886096ebdbcd80a77d832138",
+                "integer_target_probability": 0.002882447902244678,
+                "maximum_probability_delta": 0.0005962589798080842,
+                "maximum_state_delta": 0.00634765625,
+                "position_in_block": 149,
+                "target_offset": 662,
+                "target_token": 546,
+                "total_variation": 0.002815208032381163
+              },
+              "maximum_probability_witness": {
+                "block_index": 1,
+                "exposed_causal_slots": 250,
+                "f32_copy_gate": 0.401702880859375,
+                "f32_nll_nats": 0.6143321281549151,
+                "f32_no_read_mass": 0.944474995136261,
+                "f32_prediction": 3,
+                "f32_probability_sha256_le_f32": "2962fa50d4b10bde63efab6fe95dec301c56b494841aa46ba4da600c6e2a16d5",
+                "f32_target_probability": 0.541002094745636,
+                "input_offset": 506,
+                "input_token": 2265,
+                "integer_copy_gate": 0.401702880859375,
+                "integer_nll_nats": 0.6278614967932187,
+                "integer_no_read_mass": 0.9444738365944012,
+                "integer_prediction": 3,
+                "integer_probability_sha256_le_u64": "875dab655c42dadf387e5c2a16cf71bbd4435267da058d941f8ac13eed25e2ee",
+                "integer_target_probability": 0.5337319689731643,
+                "maximum_probability_delta": 0.007270125772471658,
+                "maximum_state_delta": 0.0029296875,
+                "position_in_block": 250,
+                "target_offset": 507,
+                "target_token": 3,
+                "total_variation": 0.0074418362666159275
+              }
+            },
+            "source_retention": {
+              "integer_complete_source_answers": 25,
+              "f32_complete_source_answers": 25,
+              "first_noun_losses_vs_f32": 0,
+              "complete_losses_vs_f32": 0,
+              "complete_gains_vs_f32": 0
+            }
+          },
+          "no-read": {
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 3.178657583,
+              "f32_mean_nll_nats": 2.7528096657484196,
+              "f32_step_seconds": 0.7168638299999996,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.7528920850137775,
+              "integer_step_seconds": 2.1594075399999975,
+              "maximum_copy_gate_delta": 0.002899169921875,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0,
+              "maximum_probability_delta": 0.0051164902529095,
+              "maximum_state_delta": 0.005859375,
+              "maximum_total_variation": 0.008018918331625368,
+              "mean_nll_delta_nats": 8.241926535790256e-05,
+              "mean_total_variation": 0.0018558373373082366,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2818.8770977263816,
+                  "integer_nll_sum": 2818.961495054108,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "9a1d0c48eaed52fee5e728363e1744b9816be302fd27d471058f4d06031d69a5",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.0048828125,
+              "top1_disagreements": 5,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "existing_rows_verified": {
+              "sha256_matches_report": true,
+              "count": 1024,
+              "four_complete_contexts_with_ordered_offsets_and_causal_slot_counts": true,
+              "all_recorded_float_values_finite": true,
+              "both_target_probabilities_positive_bounded": true,
+              "row_recomputed_maxima_equal_report": true,
+              "maximum_state_witness": {
+                "block_index": 3,
+                "exposed_causal_slots": 68,
+                "f32_copy_gate": 0.019866943359375,
+                "f32_nll_nats": 0.6436329856272772,
+                "f32_no_read_mass": 1.0,
+                "f32_prediction": 1507,
+                "f32_probability_sha256_le_f32": "30f0d3c1f1451035b772b78569dd6bb7ba7daaafbe11473a8e34a2923b05a44f",
+                "f32_target_probability": 0.5253802537918091,
+                "input_offset": 836,
+                "input_token": 265,
+                "integer_copy_gate": 0.019866943359375,
+                "integer_nll_nats": 0.6430051526525936,
+                "integer_no_read_mass": 1.0,
+                "integer_prediction": 1507,
+                "integer_probability_sha256_le_u64": "87910d31467ca50d80c660514eb1de11644e91e72ad2aefc49c544c2c024b8d5",
+                "integer_target_probability": 0.5257102084067427,
+                "maximum_probability_delta": 0.0006012949481437602,
+                "maximum_state_delta": 0.005859375,
+                "position_in_block": 68,
+                "target_offset": 837,
+                "target_token": 1507,
+                "total_variation": 0.0009346252366436176
+              },
+              "maximum_probability_witness": {
+                "block_index": 3,
+                "exposed_causal_slots": 254,
+                "f32_copy_gate": 0.39886474609375,
+                "f32_nll_nats": 1.1867118797570106,
+                "f32_no_read_mass": 1.0,
+                "f32_prediction": 300,
+                "f32_probability_sha256_le_f32": "0d2fdee0fc7322cdf44c256c066c19b1901d79aec752222d583a365eae24681b",
+                "f32_target_probability": 0.3052232265472412,
+                "input_offset": 1022,
+                "input_token": 84,
+                "integer_copy_gate": 0.39886474609375,
+                "integer_nll_nats": 1.1700877208742584,
+                "integer_no_read_mass": 1.0,
+                "integer_prediction": 300,
+                "integer_probability_sha256_le_u64": "82b64bc063e0411e39b13ba03a1d40a6265515728685399cdb272d242ca386f3",
+                "integer_target_probability": 0.3103397168001507,
+                "maximum_probability_delta": 0.0051164902529095,
+                "maximum_state_delta": 0.00341796875,
+                "position_in_block": 254,
+                "target_offset": 1023,
+                "target_token": 300,
+                "total_variation": 0.006161525960911324
+              }
+            },
+            "source_retention": {
+              "integer_complete_source_answers": 0,
+              "f32_complete_source_answers": 0,
+              "first_noun_losses_vs_f32": 0,
+              "complete_losses_vs_f32": 0,
+              "complete_gains_vs_f32": 0
+            }
+          }
+        },
+        "comparison_tail_targets": 0
+      },
+      "standalone_integer_noncollapse": {
+        "scope": "Existing standalone five-story temperature1 Q48/xorshift policy; distinct from F32 temperature0.8 Q32/SplitMix. Failure is observed; sampler causal attribution is not established.",
+        "observations": [
+          {
+            "index": 0,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          },
+          {
+            "index": 1,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          },
+          {
+            "index": 2,
+            "seed": null,
+            "generated_tokens": 18,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": 1,
+            "stop": {
+              "period": 1,
+              "reason": "short_cycle"
+            }
+          },
+          {
+            "index": 3,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          },
+          {
+            "index": 4,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          }
+        ],
+        "pass": false
+      },
+      "bundle_provenance": {
+        "bundle_sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+        "packed_manifest_hash_matches": true,
+        "parent_sealed_manifest_hash_matches": true,
+        "tokenizer_and_tables_bindings_match_freeze": true,
+        "actual_tokenizer_hash_matches": true,
+        "source_and_continuation_request_hashes_match_original_packets": true,
+        "exported_evaluator_byte_sha256": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+        "canonical_evaluator_byte_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "parsed_exported_evaluator_exactly_equal_canonical": true,
+        "evaluator_byte_difference_explanation": "Canonical versus reserialized JSON; semantic equality independently checked.",
+        "generation_probability_records": {
+          "source": {
+            "requests": 64,
+            "decisions": 170,
+            "every_recorded_probability_sum_exact_Q48_one": true,
+            "every_selected_probability_positive_bounded_integer": true,
+            "bundle_and_requests_hashes_match_actual_files": true
+          },
+          "continuation": {
+            "requests": 5,
+            "decisions": 530,
+            "every_recorded_probability_sum_exact_Q48_one": true,
+            "every_selected_probability_positive_bounded_integer": true,
+            "bundle_and_requests_hashes_match_actual_files": true
+          }
+        },
+        "scope": "This read-only audit checks existing linked hashes and recorded decisions. Root performs Rust full report-set verification; no new replay or instruction audit here."
+      },
+      "gates": {
+        "hard_nll_within_same_arm_new_continuous_plus_point05": true,
+        "hard_nll_below_count_cache_reference": true,
+        "hard_no_read_penalty_at_least_point02": true,
+        "f32_hard_five_generation_noncollapse": true,
+        "first_noun_losses_at_most_two_vs_original_rung1": true,
+        "exact_packed_reload_finite_normalized_probability_and_provenance": true,
+        "integer_both_modes_state_drift_at_most_point01": true,
+        "integer_both_modes_probability_drift_at_most_point01": true,
+        "integer_source_matches_new_f32_hard_rows": true,
+        "standalone_integer_five_generation_noncollapse": false
+      }
+    },
+    "householder_pair": {
+      "corpus_evaluations": {
+        "continuous_read": {
+          "comparison_nll": 1.974724189424842,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.5349037746646985e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 4.739147962951051e-10,
+          "target_probability_max": 0.9999984502792358,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 1.9747241894248564,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        },
+        "continuous_no-read": {
+          "comparison_nll": 2.4727586982880894,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.7903694543862656e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 8.423896025178124e-10,
+          "target_probability_max": 1.0,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 2.4727586982881373,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        },
+        "hard_read": {
+          "comparison_nll": 2.046887850465703,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.862814330928387e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 1.5892112625870425e-10,
+          "target_probability_max": 0.9999983906745911,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 2.0468878504656947,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        },
+        "hard_no-read": {
+          "comparison_nll": 2.567085429865854,
+          "complete": true,
+          "context": 256,
+          "full_targets": 249856,
+          "comparison_targets": 233472,
+          "tune_targets": 16384,
+          "unscored_tail_targets": 143,
+          "maximum_probability_sum_error": 2.850709331481127e-06,
+          "within_runtime_normalization_tolerance": true,
+          "target_record_hash_matches_report": true,
+          "all_recorded_target_probabilities_positive_finite": true,
+          "all_recorded_nll_mass_gate_values_finite": true,
+          "target_probability_min": 3.664739900433034e-10,
+          "target_probability_max": 1.0,
+          "maximum_recorded_nll_minus_negative_log_probability_error": 0.0,
+          "recomputed_comparison_nll": 2.5670854298658297,
+          "recorded_vocab_ids_in_range": true,
+          "optimizer_steps": 0,
+          "gradients_tracked": false
+        }
+      },
+      "hard_minus_new_continuous_nll": 0.07216366104086114,
+      "continuous_no_read_penalty": 0.4980345088632474,
+      "hard_no_read_penalty": 0.520197579400151,
+      "original_continuous_8348_nll": 2.0644032207510112,
+      "continuous_nll_change_vs_8348": -0.08967903132616928,
+      "f32_noncollapse": {
+        "continuous": {
+          "scope": "Five existing Read continuations only; no semantic quality claim",
+          "observations": [
+            {
+              "index": 0,
+              "seed": 2014,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 1,
+              "seed": 2015,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 2,
+              "seed": 2016,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 3,
+              "seed": 2017,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 4,
+              "seed": 2018,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            }
+          ],
+          "pass": true
+        },
+        "hard": {
+          "scope": "Five existing Read continuations only; no semantic quality claim",
+          "observations": [
+            {
+              "index": 0,
+              "seed": 2014,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 1,
+              "seed": 2015,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 2,
+              "seed": 2016,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            },
+            {
+              "index": 3,
+              "seed": 2017,
+              "generated_tokens": 119,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "eos"
+              }
+            },
+            {
+              "index": 4,
+              "seed": 2018,
+              "generated_tokens": 128,
+              "nonconstant": true,
+              "final_three_repetitions_period_1_to_4": null,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              }
+            }
+          ],
+          "pass": true
+        }
+      },
+      "source_retention": {
+        "summaries": {
+          "rung1_parent": {
+            "first_noun_correct": 31,
+            "complete_correct": 23
+          },
+          "parent_ptq": {
+            "first_noun_correct": 31,
+            "complete_correct": 22
+          },
+          "continuous": {
+            "first_noun_correct": 32,
+            "complete_correct": 26
+          },
+          "unprojected": {
+            "first_noun_correct": 32,
+            "complete_correct": 25
+          },
+          "projected": {
+            "first_noun_correct": 31,
+            "complete_correct": 22
+          },
+          "rounding": {
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "retained_bounded_entry_full": {
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "retained_bounded_entry_orthant64": {
+            "first_noun_correct": 23,
+            "complete_correct": 17
+          },
+          "retained_bounded_orthant64_read": {
+            "first_noun_correct": 22,
+            "complete_correct": 17
+          },
+          "retained_bounded_full_read": {
+            "first_noun_correct": 30,
+            "complete_correct": 25
+          },
+          "retained_bounded_recent64_read": {
+            "first_noun_correct": 30,
+            "complete_correct": 25
+          },
+          "retained_bounded_recent32_read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "retained_bounded_exact_cache64_read": {
+            "first_noun_correct": 22,
+            "complete_correct": 18
+          },
+          "final_continuous_read": {
+            "first_noun_correct": 31,
+            "complete_correct": 23
+          },
+          "final_continuous_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "final_hard_read": {
+            "first_noun_correct": 29,
+            "complete_correct": 21
+          },
+          "final_hard_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "final_integer_bridge_read": {
+            "first_noun_correct": 29,
+            "complete_correct": 21
+          },
+          "final_integer_bridge_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "accepted_standalone_integer_read": {
+            "first_noun_correct": 30,
+            "complete_correct": 24
+          },
+          "accepted_standalone_integer_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          },
+          "final_standalone_integer_read": {
+            "first_noun_correct": 29,
+            "complete_correct": 21
+          },
+          "final_standalone_integer_no-read": {
+            "first_noun_correct": 0,
+            "complete_correct": 0
+          }
+        },
+        "first_noun_vs_original_rung1": {
+          "lost": [
+            "story-source-edit-00/edited",
+            "story-source-edit-05/edited",
+            "story-source-edit-11/original"
+          ],
+          "gained": [
+            "story-source-edit-06/edited"
+          ],
+          "lost_count": 3,
+          "gained_count": 1
+        },
+        "complete_vs_original_rung1": {
+          "lost": [
+            "story-source-edit-00/edited",
+            "story-source-edit-03/edited",
+            "story-source-edit-05/edited",
+            "story-source-edit-06/original"
+          ],
+          "gained": [
+            "story-source-edit-05/original",
+            "story-source-edit-06/edited"
+          ],
+          "lost_count": 4,
+          "gained_count": 2
+        },
+        "final_standalone_vs_every_parent": {
+          "rung1_parent": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 1
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original"
+              ],
+              "gained": [
+                "story-source-edit-05/original",
+                "story-source-edit-06/edited"
+              ],
+              "lost_count": 4,
+              "gained_count": 2
+            }
+          },
+          "parent_ptq": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 1
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-13/edited"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            }
+          },
+          "continuous": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [],
+              "lost_count": 3,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [],
+              "lost_count": 5,
+              "gained_count": 0
+            }
+          },
+          "unprojected": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [],
+              "lost_count": 3,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original"
+              ],
+              "gained": [],
+              "lost_count": 4,
+              "gained_count": 0
+            }
+          },
+          "projected": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [],
+              "lost_count": 2,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-06/original"
+              ],
+              "gained": [
+                "story-source-edit-02/edited"
+              ],
+              "lost_count": 2,
+              "gained_count": 1
+            }
+          },
+          "rounding": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-01/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 7,
+              "gained_count": 4
+            }
+          },
+          "retained_bounded_entry_full": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-01/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 7,
+              "gained_count": 4
+            }
+          },
+          "retained_bounded_entry_orthant64": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 2,
+              "gained_count": 8
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-03/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 6,
+              "gained_count": 10
+            }
+          },
+          "retained_bounded_orthant64_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 2,
+              "gained_count": 9
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 6,
+              "gained_count": 10
+            }
+          },
+          "retained_bounded_full_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 6,
+              "gained_count": 2
+            }
+          },
+          "retained_bounded_recent64_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 6,
+              "gained_count": 2
+            }
+          },
+          "retained_bounded_recent32_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-02/original",
+                "story-source-edit-02/edited",
+                "story-source-edit-03/original",
+                "story-source-edit-03/edited",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-06/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-09/edited",
+                "story-source-edit-10/original",
+                "story-source-edit-10/edited",
+                "story-source-edit-11/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-13/original",
+                "story-source-edit-13/edited",
+                "story-source-edit-14/original",
+                "story-source-edit-14/edited",
+                "story-source-edit-15/original",
+                "story-source-edit-15/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 29
+            },
+            "complete_correct": {
+              "lost": [],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-01/original",
+                "story-source-edit-01/edited",
+                "story-source-edit-02/original",
+                "story-source-edit-02/edited",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-09/original",
+                "story-source-edit-09/edited",
+                "story-source-edit-10/original",
+                "story-source-edit-10/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-13/original",
+                "story-source-edit-13/edited",
+                "story-source-edit-14/original",
+                "story-source-edit-14/edited"
+              ],
+              "lost_count": 0,
+              "gained_count": 21
+            }
+          },
+          "retained_bounded_exact_cache64_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 2,
+              "gained_count": 9
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-03/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-00/original",
+                "story-source-edit-04/original",
+                "story-source-edit-04/edited",
+                "story-source-edit-06/edited",
+                "story-source-edit-08/original",
+                "story-source-edit-08/edited",
+                "story-source-edit-12/original",
+                "story-source-edit-12/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 6,
+              "gained_count": 9
+            }
+          },
+          "accepted_standalone_integer_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 3,
+              "gained_count": 2
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-00/edited",
+                "story-source-edit-03/edited",
+                "story-source-edit-06/original",
+                "story-source-edit-07/original",
+                "story-source-edit-07/edited",
+                "story-source-edit-11/original",
+                "story-source-edit-11/edited"
+              ],
+              "gained": [
+                "story-source-edit-01/edited",
+                "story-source-edit-05/original",
+                "story-source-edit-06/edited",
+                "story-source-edit-14/original"
+              ],
+              "lost_count": 7,
+              "gained_count": 4
+            }
+          },
+          "final_continuous_read": {
+            "first_noun_correct": {
+              "lost": [
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [],
+              "lost_count": 2,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [
+                "story-source-edit-05/edited",
+                "story-source-edit-11/original"
+              ],
+              "gained": [],
+              "lost_count": 2,
+              "gained_count": 0
+            }
+          },
+          "final_hard_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            }
+          },
+          "final_integer_bridge_read": {
+            "first_noun_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            },
+            "complete_correct": {
+              "lost": [],
+              "gained": [],
+              "lost_count": 0,
+              "gained_count": 0
+            }
+          }
+        },
+        "all_response_and_generated_id_changes_in_derived_rows": true
+      },
+      "shadow_calibration": {
+        "model_step": 15672,
+        "optimizer_updates": 0,
+        "sampler_steps_advanced": 0,
+        "sampled_target_visits": 0,
+        "projection": {
+          "maximum_absolute_correction": 0.8170062303543091,
+          "projected_coordinates": 22522,
+          "total_coordinates": 1678466
+        },
+        "fractional_shadow_coordinates": 1655942,
+        "quantization_spec_sha256": "35a91c38a7218c634554b35d62234473fe686f00b6fd8010317fb9e9a49f0636",
+        "interior_shadow_bits_preserved": true,
+        "nearest_hard_values_and_codes_preserved": true,
+        "original_optimizer_metadata_sha256": "24aab196d205e11657a03a6604ca71a1b7295191ff695ec1452c190b847ce7af",
+        "original_optimizer_moments_sha256": "b043817e1b31ab39e07d894f691ac1cbf1f95530682a61c198f5be26c544b02d",
+        "reload_shadow_optimizer_and_provenance_equal": true,
+        "actual_original_and_calibrated_optimizer_bytes_identical": true,
+        "actual_parent_checkpoint_matches_report": true,
+        "zero_change_scope": "No neural optimizer update, sampler advance, or change to preserved optimizer bytes; shadow calibration DOES project the reported outlier coordinates. Do not describe all model weights as unchanged."
+      },
+      "lambda_initialization": {
+        "status": "CALIBRATED_NO_UPDATES",
+        "optimizer_updates": 0,
+        "training_batches": 8,
+        "target_visits": 32768,
+        "used_evaluation_data": false,
+        "data_steps": [
+          15672,
+          15680
+        ],
+        "regularization": 16.923335160990046,
+        "sampled_input_target_sha256_le_u32": "9c8fc0b3e50a68ffb451c7029e35848d40f17c5a814a193157a950f0e4bda094",
+        "resolved_recipe_sha256": "a58730f10c6adf8776cdcbf686cf8252dab98d2343c7b29b64a67272e1011f05",
+        "formula": "lambda = L2(mean of 8 full-batch language alpha gradients) / L2(global-mean unit-coefficient rounding penalty alpha gradient at beta=2); ratio=1; no sweep or validation selection"
+      },
+      "alpha_fit": {
+        "status": "COMPLETE_FIXED_RECIPE",
+        "completed_updates": 512,
+        "new_updates_this_attempt": 512,
+        "new_target_visits_this_attempt": 2097152,
+        "next_data_step": 16184,
+        "neural_parent_clock": 15672,
+        "all_21_alpha_parameter_clocks": 512,
+        "learning_curve_exact_steps_1_through_512": true,
+        "learning_curve_exact_data_steps_15672_through_16183": true,
+        "sampled_input_target_sha256_le_u32": "e9c6b08e28607f7e9830270f8149178ff94913fe482248b5d4a5f416673f69d6",
+        "initial_hard_parent_probability_max_delta": 0.0,
+        "resume": null,
+        "training_samples_only": true,
+        "full_evaluation_during_fit": false,
+        "parameter_optimizer_scope": "Only new alpha code-choice variables are optimized. Original weights, scales, parent Adam moments/clocks and architecture are unchanged.",
+        "resolved_recipe_matches_fit_exactly": true,
+        "actual_alpha_moments_hash_matches_metadata": true
+      },
+      "exact_export_reload": {
+        "status": "PACKED_EXPORT_RELOADED",
+        "full_context_probability_max_absolute_delta": 0.0,
+        "actual_saved_generated_ids_and_probability_hashes_equal": true,
+        "generated_tokens_in_reload_check": 48,
+        "interface_audit_scope": "Only the recorded 48-token-cap loaded smoke generation; not a corpus-wide saturation bound. Audit observes pre-quantization interfaces of the hard numerical emulator.",
+        "optimizer_steps": 0,
+        "quantized_training_updates": 0
+      },
+      "integer_evaluation": {
+        "full_fixed_development_complete": false,
+        "scope": "Fixed corpus prefix only; not the full development/comparison gate. First64 windows are existing calibration partition; later windows, if requested, are comparison partition.",
+        "modes": {
+          "read": {
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 6.159815084,
+              "f32_mean_nll_nats": 2.265396754003774,
+              "f32_step_seconds": 1.0020837650000003,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.265643045406321,
+              "integer_step_seconds": 4.829490238000006,
+              "maximum_copy_gate_delta": 0.005035400390625,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.00437300294012033,
+              "maximum_probability_delta": 0.006939265603435274,
+              "maximum_state_delta": 0.0126953125,
+              "maximum_total_variation": 0.008875458365248473,
+              "mean_nll_delta_nats": 0.00024629140254717186,
+              "mean_total_variation": 0.0019816197348891244,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2319.7662760998646,
+                  "integer_nll_sum": 2320.018478496073,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "d18ba4cb8172fee01a2fd9da91dca9ed48e8cda56c9acf96569aa6561975b7b5",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.0009765625,
+              "top1_disagreements": 1,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": false
+            },
+            "existing_rows_verified": {
+              "sha256_matches_report": true,
+              "count": 1024,
+              "four_complete_contexts_with_ordered_offsets_and_causal_slot_counts": true,
+              "all_recorded_float_values_finite": true,
+              "both_target_probabilities_positive_bounded": true,
+              "row_recomputed_maxima_equal_report": true,
+              "maximum_state_witness": {
+                "block_index": 1,
+                "exposed_causal_slots": 138,
+                "f32_copy_gate": 0.716217041015625,
+                "f32_nll_nats": 0.2296946368270151,
+                "f32_no_read_mass": 0.9846316576004028,
+                "f32_prediction": 85,
+                "f32_probability_sha256_le_f32": "0990c1ecafdad9f872599c13100856e96a9115a5ccdeeb786dd3504fbf4d84bb",
+                "f32_target_probability": 0.7947762608528137,
+                "input_offset": 394,
+                "input_token": 970,
+                "integer_copy_gate": 0.715423583984375,
+                "integer_nll_nats": 0.22783065334284255,
+                "integer_no_read_mass": 0.9844638907053955,
+                "integer_prediction": 85,
+                "integer_probability_sha256_le_u64": "15bd688e60fd234ea7a6bda9f52059909d54efc490ba7c7db60a23b2b8acff3d",
+                "integer_target_probability": 0.7962590922339245,
+                "maximum_probability_delta": 0.0014828313811108274,
+                "maximum_state_delta": 0.0126953125,
+                "position_in_block": 138,
+                "target_offset": 395,
+                "target_token": 85,
+                "total_variation": 0.0021956205880775334
+              },
+              "maximum_probability_witness": {
+                "block_index": 1,
+                "exposed_causal_slots": 139,
+                "f32_copy_gate": 0.58416748046875,
+                "f32_nll_nats": 1.1516441422256394,
+                "f32_no_read_mass": 0.9602554440498352,
+                "f32_prediction": 16,
+                "f32_probability_sha256_le_f32": "e8b80dbc4e50abc0b747754eadcfd094f4ec97186aeab4dbc2a714c05eb89910",
+                "f32_target_probability": 0.316116601228714,
+                "input_offset": 395,
+                "input_token": 85,
+                "integer_copy_gate": 0.581298828125,
+                "integer_nll_nats": 1.1738402650030608,
+                "integer_no_read_mass": 0.9599549482668586,
+                "integer_prediction": 16,
+                "integer_probability_sha256_le_u64": "6b32b1257b09e8e11e10ca6a4b43902ad53b3caf37aa7048a291ee1ba08277f1",
+                "integer_target_probability": 0.3091773356252787,
+                "maximum_probability_delta": 0.006939265603435274,
+                "maximum_state_delta": 0.01220703125,
+                "position_in_block": 139,
+                "target_offset": 396,
+                "target_token": 16,
+                "total_variation": 0.008875458365248473
+              }
+            },
+            "source_retention": {
+              "integer_complete_source_answers": 21,
+              "f32_complete_source_answers": 21,
+              "first_noun_losses_vs_f32": 0,
+              "complete_losses_vs_f32": 0,
+              "complete_gains_vs_f32": 0
+            }
+          },
+          "no-read": {
+            "numerical": {
+              "all_causal_slot_counts_verified": true,
+              "causal_slot_scope": "One Q48 mass per prior occurrence, oldest to newest, with exact count checked at every step. Slots remain exposed when their resulting weight is zero; positive influence on every slot is not asserted.",
+              "elapsed_seconds": 3.376392583,
+              "f32_mean_nll_nats": 2.7761328393435085,
+              "f32_step_seconds": 0.7967287420000009,
+              "full_context_access": true,
+              "integer_mean_nll_nats": 2.7764665790706844,
+              "integer_step_seconds": 2.275335100999998,
+              "maximum_copy_gate_delta": 0.00286865234375,
+              "maximum_exposed_causal_slots": 255,
+              "maximum_no_read_mass_delta": 0.0,
+              "maximum_probability_delta": 0.0059370137022654035,
+              "maximum_state_delta": 0.00732421875,
+              "maximum_total_variation": 0.006400161960372887,
+              "mean_nll_delta_nats": 0.00033373972717587463,
+              "mean_total_variation": 0.002050210019240314,
+              "partitions": [
+                {
+                  "f32_nll_sum": 2842.7600274877527,
+                  "integer_nll_sum": 2843.101776968381,
+                  "name": "calibration_prefix",
+                  "targets": 1024
+                },
+                {
+                  "f32_nll_sum": 0.0,
+                  "integer_nll_sum": 0.0,
+                  "name": "comparison_tail",
+                  "targets": 0
+                }
+              ],
+              "same_observed_tokens": true,
+              "scored_targets": 1024,
+              "target_rows_sha256": "875d5c4f13e164ddd9022aac87f5803391e0e86e7bf30e0f341c6741fee1389c",
+              "timing_scope": "Same-process batch1 incremental calls; excludes session allocation, loading, audit, generation and serialization; not a population throughput or energy claim",
+              "top1_disagreement_fraction": 0.0029296875,
+              "top1_disagreements": 3,
+              "windows": 4,
+              "within_prospective_probability_bound": true,
+              "within_prospective_state_bound": true
+            },
+            "existing_rows_verified": {
+              "sha256_matches_report": true,
+              "count": 1024,
+              "four_complete_contexts_with_ordered_offsets_and_causal_slot_counts": true,
+              "all_recorded_float_values_finite": true,
+              "both_target_probabilities_positive_bounded": true,
+              "row_recomputed_maxima_equal_report": true,
+              "maximum_state_witness": {
+                "block_index": 2,
+                "exposed_causal_slots": 234,
+                "f32_copy_gate": 0.1104736328125,
+                "f32_nll_nats": 5.31093373358493,
+                "f32_no_read_mass": 1.0,
+                "f32_prediction": 265,
+                "f32_probability_sha256_le_f32": "b6a001b5cddd62c00f5ae9d967d46763b3f86957b82cd70d57ca6b6a99d5746c",
+                "f32_target_probability": 0.004937314428389072,
+                "input_offset": 746,
+                "input_token": 14,
+                "integer_copy_gate": 0.110076904296875,
+                "integer_nll_nats": 5.308549154685062,
+                "integer_no_read_mass": 1.0,
+                "integer_prediction": 265,
+                "integer_probability_sha256_le_u64": "8ad81cdd115dc3aae06c8b17c5852c367247df3f76d8aa638d2b0844bcf387ec",
+                "integer_target_probability": 0.0049491018926808295,
+                "maximum_probability_delta": 0.001636945752519381,
+                "maximum_state_delta": 0.00732421875,
+                "position_in_block": 234,
+                "target_offset": 747,
+                "target_token": 632,
+                "total_variation": 0.0031371285246776753
+              },
+              "maximum_probability_witness": {
+                "block_index": 2,
+                "exposed_causal_slots": 161,
+                "f32_copy_gate": 0.575592041015625,
+                "f32_nll_nats": 4.188470017601112,
+                "f32_no_read_mass": 1.0,
+                "f32_prediction": 478,
+                "f32_probability_sha256_le_f32": "1a1dbae3133c5496cbcb56ff5ebccbd29efa6d3e0d61c21da2fd119cbb9f5e51",
+                "f32_target_probability": 0.01516947615891695,
+                "input_offset": 673,
+                "input_token": 812,
+                "integer_copy_gate": 0.577484130859375,
+                "integer_nll_nats": 4.20234490054171,
+                "integer_no_read_mass": 1.0,
+                "integer_prediction": 478,
+                "integer_probability_sha256_le_u64": "8ae17145c17c2cbeeaf56b6a25cde59ce3a8a7c9e7b500834cbe62a4dbf5d99b",
+                "integer_target_probability": 0.014960454879091145,
+                "maximum_probability_delta": 0.0059370137022654035,
+                "maximum_state_delta": 0.00244140625,
+                "position_in_block": 161,
+                "target_offset": 674,
+                "target_token": 627,
+                "total_variation": 0.006047340592147401
+              }
+            },
+            "source_retention": {
+              "integer_complete_source_answers": 0,
+              "f32_complete_source_answers": 0,
+              "first_noun_losses_vs_f32": 0,
+              "complete_losses_vs_f32": 0,
+              "complete_gains_vs_f32": 0
+            }
+          }
+        },
+        "comparison_tail_targets": 0
+      },
+      "standalone_integer_noncollapse": {
+        "scope": "Existing standalone five-story temperature1 Q48/xorshift policy; distinct from F32 temperature0.8 Q32/SplitMix. Failure is observed; sampler causal attribution is not established.",
+        "observations": [
+          {
+            "index": 0,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          },
+          {
+            "index": 1,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          },
+          {
+            "index": 2,
+            "seed": null,
+            "generated_tokens": 117,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "eos"
+            }
+          },
+          {
+            "index": 3,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          },
+          {
+            "index": 4,
+            "seed": null,
+            "generated_tokens": 128,
+            "nonconstant": true,
+            "final_three_repetitions_period_1_to_4": null,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            }
+          }
+        ],
+        "pass": true
+      },
+      "bundle_provenance": {
+        "bundle_sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+        "packed_manifest_hash_matches": true,
+        "parent_sealed_manifest_hash_matches": true,
+        "tokenizer_and_tables_bindings_match_freeze": true,
+        "actual_tokenizer_hash_matches": true,
+        "source_and_continuation_request_hashes_match_original_packets": true,
+        "exported_evaluator_byte_sha256": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+        "canonical_evaluator_byte_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+        "parsed_exported_evaluator_exactly_equal_canonical": true,
+        "evaluator_byte_difference_explanation": "Canonical versus reserialized JSON; semantic equality independently checked.",
+        "generation_probability_records": {
+          "source": {
+            "requests": 64,
+            "decisions": 260,
+            "every_recorded_probability_sum_exact_Q48_one": true,
+            "every_selected_probability_positive_bounded_integer": true,
+            "bundle_and_requests_hashes_match_actual_files": true
+          },
+          "continuation": {
+            "requests": 5,
+            "decisions": 629,
+            "every_recorded_probability_sum_exact_Q48_one": true,
+            "every_selected_probability_positive_bounded_integer": true,
+            "bundle_and_requests_hashes_match_actual_files": true
+          }
+        },
+        "scope": "This read-only audit checks existing linked hashes and recorded decisions. Root performs Rust full report-set verification; no new replay or instruction audit here."
+      },
+      "gates": {
+        "hard_nll_within_same_arm_new_continuous_plus_point05": false,
+        "hard_nll_below_count_cache_reference": true,
+        "hard_no_read_penalty_at_least_point02": true,
+        "f32_hard_five_generation_noncollapse": true,
+        "first_noun_losses_at_most_two_vs_original_rung1": false,
+        "exact_packed_reload_finite_normalized_probability_and_provenance": true,
+        "integer_both_modes_state_drift_at_most_point01": false,
+        "integer_both_modes_probability_drift_at_most_point01": true,
+        "integer_source_matches_new_f32_hard_rows": true,
+        "standalone_integer_five_generation_noncollapse": true
+      }
+    }
+  },
+  "source_rows": {
+    "derived_comparison": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-source-row-comparisons-6.json",
+      "sha256": "055632d9bd4d2d21112648cee2faf8575c1843df9cd919d7192de0779230357d",
+      "bytes": 681476
+    },
+    "row_count_per_arm": 32,
+    "all_historical_prompts_and_accepted_answers_match": true,
+    "comparison_scope": "Every retained parent and negative diagnostic explicitly bound by the learned-rounding and bounded-admission evidence. Different historical admission overrides are described as diagnostics, not replacement acceptance baselines.",
+    "judgement": "Matches existing Rust first alphabetic word and exact accepted-answer membership with UTF8/EOS-or-sentence-stop requirements."
+  },
+  "paired_sample_evidence": {
+    "both_normalization_sample_hashes_equal": true,
+    "both_alpha_sample_hashes_equal": true,
+    "hashes": {
+      "normalization": "9c8fc0b3e50a68ffb451c7029e35848d40f17c5a814a193157a950f0e4bda094",
+      "alpha": "e9c6b08e28607f7e9830270f8149178ff94913fe482248b5d4a5f416673f69d6"
+    },
+    "scope": "Existing fit/calibration report sample-token hashes; not a newly resampled dataset. Continuous asymmetric segmented schedules are bound by final-fit-continuity-review-6.json; separate segment hashes are not falsely required to match."
+  },
+  "corpus_target_identity": {
+    "all_eight_evaluations_identical_ordered_input_offset_target_records": true,
+    "sha256_u64_offset_u32_target_le": "aa505f7255f57b7d976fd9effdb2a98101a781fd83a03f0bdb26271fcbf32a9f",
+    "targets_per_evaluation": 249856
+  },
+  "decisive_findings": [
+    "Householder_pair fails the frozen +0.05 hard-minus-continuous allowance: actual +0.072163661040861.",
+    "Householder_pair loses3 original-rung1-correct first nouns; allowed maximum2.",
+    "Householder_pair integer Read maximum state drift0.0126953125 exceeds0.01, witnessed at input_offset394/block1/position138.",
+    "Quaternion passes the five scoped F32 numerical/export gates and retained four-window integer drift/source controls, but standalone continuation index2 stops after18 tokens on period1 short cycle.",
+    "Quaternion loses5 complete correct source rows and gains2 versus accepted learned-code/standalone parent (28 to25); Householder_pair loses7 and gains4 (24 to21). The original first-noun gate is not silently replaced by this stricter descriptive comparison.",
+    "Both continuous comparison-tail NLLs improve with the unchanged declared dose, but numerical improvement does not establish prose, geometry, energy, coding or reasoning qualification."
+  ],
+  "decision_boundary": {
+    "both_arms_pass_all_declared_numerical_and_source_requirements": false,
+    "no_unconditional_candidate_promotion": true,
+    "retained_existing_accepted_parents_preserved": true,
+    "recommended_principal_disposition": "Retain all new outputs as completed evidence with failures; preserve accepted prior artifacts and use the frozen conditional direction plus the separate prose review for the final programme decision. No extra dose, sampler search, threshold change or new experiment is implied."
+  },
+  "evidence_boundaries": [
+    "No missing artifact was encountered among the retained paths used for this adjudication. Full integer comparison-tail coverage is absent by design: only4calibration-prefix windows per mode were requested.",
+    "F32 targets.bin contains selected target probabilities and NLLs, not every vocabulary probability. Full-vector finite/normalization evidence is the completed Rust evaluator checks and reported maximum sum error; the read-only parser independently checked every recorded target.",
+    "Integer JSONL contains measured maximum drift and probability hashes, not complete state/probability vectors. Recorded row maxima were independently recomputed; underlying per-coordinate maxima are the existing Rust measurement.",
+    "Zero-update calibration preserves optimizer bytes/clocks and nearest hard codes but changes reported outlying shadow coordinates. It is not a blanket zero-model-change claim.",
+    "Exact export reload is the recorded full-context probability comparison plus48-token-cap loaded smoke; it is not a new replay or corpus-wide saturation proof.",
+    "First-noun and exact complete-source memberships are different measurements. All gains and losses, including historical negatives and admission overrides, remain in the row-level comparison.",
+    "F32 noncollapse pass is only the five fixed continuations and period1..4 final-three-block criterion; useful language is adjudicated separately. Standalone quaternion period1 failure is retained.",
+    "NoRead removes both read feedback and copying. No isolated geometry, attention component, universal semantic memory, frontier capability or energy claim follows.",
+    "Fit1 unsaved work remains charged execution loss, not retained learning or a model-quality result; the verified surviving chains each retain exactly8348-to15672."
+  ],
+  "input_files": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-freeze.json",
+      "sha256": "b8fd3b98f70f3f3435b2a57c151b8182a82d5c09c830ea69b074c430284e61f8",
+      "bytes": 8053
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cycle-output-index-6.json",
+      "sha256": "274e565113ae4abc84cfdb10b4af3d0592d11100f250b6f1012504e3afdaf429",
+      "bytes": 2588
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-source-row-comparisons-6.json",
+      "sha256": "055632d9bd4d2d21112648cee2faf8575c1843df9cd919d7192de0779230357d",
+      "bytes": 681476
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/final-fit-continuity-review-6.json",
+      "sha256": "4588c736681a3cabfc6d58fce922c023daaceca31281d0fa165f38229fbb32bf",
+      "bytes": 10213
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/training-inputs.json",
+      "sha256": "3349d6e9fe0de1e1f340ace1b589af06140f8c890cb2be32bdb2ac7dcb118692",
+      "bytes": 2330
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cycle-launch-inputs-1.json",
+      "sha256": "11d95e954faca90d851308fdfa68ea840a421edd792183e1887dae725e74cef0",
+      "bytes": 10054
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/docs/integration/language-continuation-plan-2026-09-25.md",
+      "sha256": "b2ac2dd1e052c54f998d801290f299c461097978f601991575f70dd1b5cc8ec7",
+      "bytes": 24999
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/docs/integration/current-state.md",
+      "sha256": "37b7366c7fca8afd2867a9c53e54cb553c6b36d6e3496eff1ea790fa98d390bf",
+      "bytes": 45787
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/docs/integration/language-continuation-direction-2026-09-26.md",
+      "sha256": "901d4eeefc33473025b2f3f1969011f3d9601511e8d64ca45549f8830c2d3886",
+      "bytes": 13226
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/conditional-direction-6.md",
+      "sha256": "bb55c5acf02c3b0567154502dd5574a314faa2752715d5379e094ecfe0887bd9",
+      "bytes": 11637
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/joint_evaluation.rs",
+      "sha256": "d38b854947ede48694fafb10149ad9540586623b10273bd78d3199bb847c31e8",
+      "bytes": 33351
+    },
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/language-continuation/uor-r4/crates/uor-r4-training/src/reference_eval.rs",
+      "sha256": "c5772495bfba2924cfa94e7dc618d852e19713e3779e3d90c8407a4d89afe710",
+      "bytes": 22936
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+      "sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+      "bytes": 6755
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-continuous-read-6/evaluation-report.json",
+      "sha256": "f5d55f82513fa23fe60146f863413cc591ffe3f2ca09439065f097c690d66e9b",
+      "bytes": 8987
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-continuous-read-6/targets.bin",
+      "sha256": "ab075f8ad3985dbc29a4d86a045b615d0e42ca677bc7a976ee254ed1c2d12fa7",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-continuous-no-read-6/evaluation-report.json",
+      "sha256": "6932c7fec9ea93cd1465e9d09bc39b891001688222a99da5a78d5f5caa430f95",
+      "bytes": 8997
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-continuous-no-read-6/targets.bin",
+      "sha256": "6508118994c12888666b2fe1ff0fc356296c209966b24c11d35ceeae6a7bd2cb",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-continuous-read-6/generations.json",
+      "sha256": "fe6c6b7e3d7ef1178152d4c53982ae41d152982c17be5bc1c7119b6b043760c3",
+      "bytes": 483873
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-hard-read-6/evaluation-report.json",
+      "sha256": "ff081ebc41fc86086e56588a80f6676d12b6b56e268a5e8c65a2ecb5ed8957b1",
+      "bytes": 714538
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-hard-read-6/targets.bin",
+      "sha256": "fe65dfb3bfbc627f223b8c9b93a3b56fee01f6da73685b06cb4ed139ef86e7b7",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-hard-no-read-6/evaluation-report.json",
+      "sha256": "f718038b41bb033475e25180ce1826a49515d469293d94aea45b4298daca183d",
+      "bytes": 714546
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-hard-no-read-6/targets.bin",
+      "sha256": "74f52f5c05df15497c0ce44b3e1b9a5df87779cc30cd2af23b5c2239d8958874",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-hard-read-6/generations.json",
+      "sha256": "adde04a7397860fb33da6660ad2d96db53c70553b17593390a2e15e54fc799ad",
+      "bytes": 523286
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-quaternion-shadow-6/calibration-report.json",
+      "sha256": "86120220c31dab6a53db5e6d1b28afdfde2f938def0d1542f2b7151d328cc0e0",
+      "bytes": 11276
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/checkpoint.json",
+      "sha256": "490922decefee3e6036331dd0bc112746f24662d4bddfbe540b59c1d00820571",
+      "bytes": 1497
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-quaternion-shadow-6/checkpoint-calibrated/checkpoint.json",
+      "sha256": "ca4c057f6c5074a5b220e9c87ca781a1bdda8af33a02fd9e9b7ee4128714c2f6",
+      "bytes": 113952
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/optimizer.json",
+      "sha256": "bc6315334a089290ab890e591cd4ed195d834ce8ca45b195c20800a51849bdc7",
+      "bytes": 2836
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-quaternion-shadow-6/checkpoint-calibrated/optimizer.json",
+      "sha256": "bc6315334a089290ab890e591cd4ed195d834ce8ca45b195c20800a51849bdc7",
+      "bytes": 2836
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/optimizer.safetensors",
+      "sha256": "43d2fa4be925f58e77a6a400e5a6943b20ab23a41fe2dd0fa48e0b6311e45c0d",
+      "bytes": 13431312
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-quaternion-shadow-6/checkpoint-calibrated/optimizer.safetensors",
+      "sha256": "43d2fa4be925f58e77a6a400e5a6943b20ab23a41fe2dd0fa48e0b6311e45c0d",
+      "bytes": 13431312
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final/model.safetensors",
+      "sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79",
+      "bytes": 6715592
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/normalize-quaternion-rounding-6/calibration-report.json",
+      "sha256": "3c1dcc2c29be86db8f855d3143350538674e0cfdb11f3d89850f1afbb0bc986c",
+      "bytes": 6844
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/normalize-quaternion-rounding-6/rounding-campaign.json",
+      "sha256": "0ec147f27ca46b93f58415e219bec3caa02b20ba0875350140817bac9db00de7",
+      "bytes": 1477
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/fit-report.json",
+      "sha256": "c6402c7e08b720b7b32a7176fed995bb962baed675d87648405860e009944750",
+      "bytes": 162936
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/learning-curve.jsonl",
+      "sha256": "5669f33284fd647e864e9acaf35016bc38a5931f4cb2d9a90d1c67d9b0d90943",
+      "bytes": 689994
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/checkpoint-final/optimizer.json",
+      "sha256": "3220a509e1f4b28556dea0a4df58ccabaf00a3238fdb403eac40ac6783979ce6",
+      "bytes": 2785
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/checkpoint-final/optimizer.safetensors",
+      "sha256": "a24191a544d22bf323231779ae8f8ac051d12dda9c7fbdbac78f77c2078be80b",
+      "bytes": 13431312
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model/hard-export-report.json",
+      "sha256": "a9e33082c70e393b6b9e6051b8085eaa2485286f61da0f93870ac68f234d7ccf",
+      "bytes": 605350
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model/pre-export-generation.json",
+      "sha256": "8bcd26bfa8f3a17ddb8e674c43067bb237bfcc361edf92195c3bc64180f2f540",
+      "bytes": 37746
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model/loaded-generation.json",
+      "sha256": "faaffea8e4872de3358249aa35422f2a4c65e43c5be466253d8aa1c0e4f4ecbf",
+      "bytes": 37746
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-integer-6/evaluation-report.json",
+      "sha256": "07a85f9dd944f0fc4ca100c64f240293feba0599a0e143b20c1ec1d276062788",
+      "bytes": 608536
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-integer-6/mode-read-report.json",
+      "sha256": "0dcbd9e87ac3d1e330b2f2bcc74ea78486bda4fa71a44b5d983509ae579ebb22",
+      "bytes": 2081
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-integer-6/targets-read.jsonl",
+      "sha256": "bf3104df158ad319cf4afe73daae33a3dc0212bb6a9c568d5bdfcf09f8cd9dd5",
+      "bytes": 851027
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-integer-6/mode-no-read-report.json",
+      "sha256": "6e00cfb431c43b31ad2ba5f3cc97aa785b25261819ec15ebc24bf32456a537eb",
+      "bytes": 2055
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-integer-6/targets-no-read.jsonl",
+      "sha256": "9a1d0c48eaed52fee5e728363e1744b9816be302fd27d471058f4d06031d69a5",
+      "bytes": 820315
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bundle-quaternion-6/bundle.json",
+      "sha256": "3cc8372e5d5e9af73a882587624d74a2794f12969b45df97e141f5d04870cbca",
+      "bytes": 1482
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model/hard-model.json",
+      "sha256": "e2339fb45fea372faab85fa7efb1632cbe27e0ec1a35b8f67b7226f792c0e7e0",
+      "bytes": 221012
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model/manifest.json",
+      "sha256": "530db2367285dd0612aec5c017ef7e5125cf827eb7e02ee7d5e6ef73dc165b05",
+      "bytes": 1612
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-rounding-6/packed-model/evaluator.json",
+      "sha256": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+      "bytes": 6757
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bundle-quaternion-6/tokenizer.json",
+      "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "bytes": 109457
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-quaternion-6/summary.json",
+      "sha256": "2681b0f1140baf82c91e10201041f7e4bfb5e28e120e2874a381a112a615ac2c",
+      "bytes": 760
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-quaternion-6/generations.jsonl",
+      "sha256": "e4b5baa6235fc1c5a5d3b8ba255fb259db8e9d9d65954048cef59216f9c08be0",
+      "bytes": 116331
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/source-requests-quaternion.json",
+      "sha256": "1e7a9f6fea0d7d65bf7d7261c671b864607c59cb2d6a3953c914b44dba96ee83",
+      "bytes": 26287
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6/summary.json",
+      "sha256": "f0b1d5391bafa8c140cac21f36e1c55b719772bb267102845e628523222c964c",
+      "bytes": 758
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-quaternion-6/generations.jsonl",
+      "sha256": "d3b5ed4bd48f2941d4b359df646a6e5ac943ca47eb4913f0fab5c18a8f6f82a8",
+      "bytes": 143187
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/continuation-requests-quaternion.json",
+      "sha256": "58e64a39de7b68433e32119dd13757e90a6055fa01723e34be5a323452d73a1c",
+      "bytes": 1507
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-continuous-read-6/evaluation-report.json",
+      "sha256": "d1552ba6a084e4d8f889ab1cccca8d484fdf7577e8648791604abf57c601ec94",
+      "bytes": 9012
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-continuous-read-6/targets.bin",
+      "sha256": "d13cc74451efa49fe4d0863b23e7d2cfbdb46d84c3e1c8607c5b972ad843a4f4",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-continuous-no-read-6/evaluation-report.json",
+      "sha256": "a89f830268194ae9b90b60ef55aad365eee6ed809423d6a2e8a8ba374e42ed93",
+      "bytes": 9020
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-continuous-no-read-6/targets.bin",
+      "sha256": "121a756fb07f6021f05a80f519412ddee95f3c1c4c92d43c3c1d2fc4a39f8ac5",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-continuous-read-6/generations.json",
+      "sha256": "cf2f574b06706228eecd1f2ba4b4a3fe94e6597e84854f83310d395b471c4e2e",
+      "bytes": 524825
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-hard-read-6/evaluation-report.json",
+      "sha256": "9093b799f9a3a53c7dbb48b96fb49d9944ddf3c8a101b5a1ee52e6d38c1b4f19",
+      "bytes": 714828
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-hard-read-6/targets.bin",
+      "sha256": "21af6b98701002b12c3a964f53589bd52f38c0cc9ed7af338ef174fe289bb251",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-hard-no-read-6/evaluation-report.json",
+      "sha256": "38210b2c4301b7ff41d1cf8dfefb1c2fedadb4a3e6cdf88625e3ad1b81cc73c1",
+      "bytes": 714830
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-hard-no-read-6/targets.bin",
+      "sha256": "f9914409786f12ed30296e0416d9668c13646d9fd50a569e0ae337e030b42d55",
+      "bytes": 10993664
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-hard-read-6/generations.json",
+      "sha256": "9e7aaad0078d7b177ee59971dc5d58a45e453d12d038d25fe2296e68c2ef3f74",
+      "bytes": 517353
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-householder_pair-shadow-6/calibration-report.json",
+      "sha256": "40620ff1db6983d3777935eae65bc15d0a7cea142ac4b7ffe9743e0572766c03",
+      "bytes": 11301
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/checkpoint-final/checkpoint.json",
+      "sha256": "4677bad0ce906fa157691f8cd8b6dec9fd11ffdccba8d3c7f8de4d9cfb148d0d",
+      "bytes": 1497
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-householder_pair-shadow-6/checkpoint-calibrated/checkpoint.json",
+      "sha256": "bdcf608dd342cec800a90d1ad884345383776e56aaf808f63c3e9ce48f14a750",
+      "bytes": 113958
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/checkpoint-final/optimizer.json",
+      "sha256": "24aab196d205e11657a03a6604ca71a1b7295191ff695ec1452c190b847ce7af",
+      "bytes": 2836
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-householder_pair-shadow-6/checkpoint-calibrated/optimizer.json",
+      "sha256": "24aab196d205e11657a03a6604ca71a1b7295191ff695ec1452c190b847ce7af",
+      "bytes": 2836
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/checkpoint-final/optimizer.safetensors",
+      "sha256": "b043817e1b31ab39e07d894f691ac1cbf1f95530682a61c198f5be26c544b02d",
+      "bytes": 13431312
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/calibrate-householder_pair-shadow-6/checkpoint-calibrated/optimizer.safetensors",
+      "sha256": "b043817e1b31ab39e07d894f691ac1cbf1f95530682a61c198f5be26c544b02d",
+      "bytes": 13431312
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/checkpoint-final/model.safetensors",
+      "sha256": "cd00577fbed189ee49d6f3d4f1bf6480062a646b1dc2c10b4cc0a4351f9fdb0c",
+      "bytes": 6715592
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/normalize-householder_pair-rounding-6/calibration-report.json",
+      "sha256": "498f6d256a07ec867e373ea4a6a08a1179c788a0a9472b622a095aefcbffc41f",
+      "bytes": 6860
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/normalize-householder_pair-rounding-6/rounding-campaign.json",
+      "sha256": "a58730f10c6adf8776cdcbf686cf8252dab98d2343c7b29b64a67272e1011f05",
+      "bytes": 1489
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/fit-report.json",
+      "sha256": "f293107254b85536fc57f7b4f7021d9ee8c0bb1a9aae22c691528f150b96f505",
+      "bytes": 163064
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/learning-curve.jsonl",
+      "sha256": "5fcf55ad7a9c20ee1053433ffc1209d1ed334c1648732287a11245f5d1287915",
+      "bytes": 698107
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/checkpoint-final/optimizer.json",
+      "sha256": "043e11c4e38b37cf9bf80965d3011e189b5990e48287ea9c9bc5e8b7864f3a95",
+      "bytes": 2785
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/checkpoint-final/optimizer.safetensors",
+      "sha256": "5154882312dfb3e39108b012f2606598719fd63fd61fa598d69d36de5e81781f",
+      "bytes": 13431312
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model/hard-export-report.json",
+      "sha256": "304ff456713f77862f37aa7c490577971407f3c218826fdbf575c93e889505d2",
+      "bytes": 605651
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model/pre-export-generation.json",
+      "sha256": "9e746db7354dad8feacddbe9649464f1652fb329ffb2de40de32c965d16c52d0",
+      "bytes": 37673
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model/loaded-generation.json",
+      "sha256": "a0179d69647fef379ff33cb213c584db572ace08c282766c47be2bf360f133c7",
+      "bytes": 37673
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-integer-6/evaluation-report.json",
+      "sha256": "fd06d8bd454b730858dbae1d5d052b7be7e3934159c3255d8962173139cf5084",
+      "bytes": 608820
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-integer-6/mode-read-report.json",
+      "sha256": "78b0fd5bcb8b59a35099f241bdcb5ac2b84dca438c7a9a34d0938a6eb6fbb811",
+      "bytes": 2075
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-integer-6/targets-read.jsonl",
+      "sha256": "d18ba4cb8172fee01a2fd9da91dca9ed48e8cda56c9acf96569aa6561975b7b5",
+      "bytes": 851164
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-integer-6/mode-no-read-report.json",
+      "sha256": "a2a9d75d6526cb097a1b809df628ef0ba58c508e8397b03f8e3dbd8bdb81589e",
+      "bytes": 2057
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-integer-6/targets-no-read.jsonl",
+      "sha256": "875d5c4f13e164ddd9022aac87f5803391e0e86e7bf30e0f341c6741fee1389c",
+      "bytes": 820537
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bundle-householder_pair-6/bundle.json",
+      "sha256": "5a4028ce182be7beaa9cbb068bac54935499b563dc37d59d2c4abc4f5daf8ad7",
+      "bytes": 1494
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model/hard-model.json",
+      "sha256": "e4773d9bc4e06533785bcd6e684f909636878491b62e3eca9b67d4a206844050",
+      "bytes": 221018
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model/manifest.json",
+      "sha256": "6570de91142aa099862ec1371ea1e7773d37ad29f42faf747c87044cb30084a0",
+      "bytes": 1618
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-rounding-6/packed-model/evaluator.json",
+      "sha256": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+      "bytes": 6757
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/bundle-householder_pair-6/tokenizer.json",
+      "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "bytes": 109457
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-householder_pair-6/summary.json",
+      "sha256": "bb665fa8eba494cb3b7fc77e02dc299438b05fa3adfa91421f04ba016fa49ce0",
+      "bytes": 760
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/source-householder_pair-6/generations.jsonl",
+      "sha256": "2c907e42047ceb010306356b47d08c66dad715aa153d7ea9996e00b6a5b7a2b4",
+      "bytes": 140186
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/source-requests-householder_pair.json",
+      "sha256": "1e7a9f6fea0d7d65bf7d7261c671b864607c59cb2d6a3953c914b44dba96ee83",
+      "bytes": 26287
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6/summary.json",
+      "sha256": "c9740f034bd5ac48666baee6179cf21b7dfbcd533b6d8da33e14f7eac4721a99",
+      "bytes": 758
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/continuation-householder_pair-6/generations.jsonl",
+      "sha256": "0ed1e24bb149c6bd497e07a3eeb9ade50bcdd99cc86396f4ef434970d144ab97",
+      "bytes": 169268
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/continuation-requests-householder_pair.json",
+      "sha256": "58e64a39de7b68433e32119dd13757e90a6055fa01723e34be5a323452d73a1c",
+      "bytes": 1507
+    }
+  ]
+}

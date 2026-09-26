@@ -1,0 +1,346 @@
+{
+  "schema": "uor-r4.language-continuation-recovery/1",
+  "recorded_utc": "2026-09-26T17:14:05.545091+00:00",
+  "status": "VERIFIED_SSD_CACHE_OFFLOAD_SEQUENTIAL_FIT6_RUNNING",
+  "prior_recovery": "language-continuation-recovery-5-2026-09-26.json",
+  "owner_authorization": "Direct September26 instruction to clear space using externalSSD then proceed the same project track; standing necessary local time/storage extensions.",
+  "saved_states": {
+    "quaternion": {
+      "actual_parent_attempt": 5,
+      "saved_step": 14000,
+      "retained_actual_segments": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "retained_updates_since8348": 5652,
+      "remaining_updates_to15672": 1672,
+      "remaining_targets": 6848512,
+      "contiguous_curve_from8349": true,
+      "all_model_data_adam_variable_clocks_match": true,
+      "model_and_optimizer_moment_hashes_match": true,
+      "checkpoint_sha256": "1bcea29a9bd1babe944dbfb0da33d27063ee7b397788d933dc04de19d8723735",
+      "model_sha256": "dbd892ccbc1b364b8d593d4d130c8d0ef75dc3fc6b1b6469be7be6a573814c8a",
+      "optimizer_sha256": "245e0b342526df088a2653f930e4a2b0e5e040d047e7a5819b0d275d3aaf74c8",
+      "moments_sha256": "ef4c0dd18b11bedd0973cd0de6baddf667dbae9b5c4c299ea4b2bdb6d5ad13b2",
+      "resume_campaign_sha256": "6b34a04d49fa965dc20335002a1948a8253ef74e70890ba1e9484f63d2677f14",
+      "campaign_changed_fields": [
+        "checkpoint_steps",
+        "stop_file",
+        "trial_scope"
+      ]
+    },
+    "householder_pair": {
+      "actual_parent_attempt": 4,
+      "saved_step": 13949,
+      "retained_actual_segments": [
+        2,
+        3,
+        4
+      ],
+      "retained_updates_since8348": 5601,
+      "remaining_updates_to15672": 1723,
+      "remaining_targets": 7057408,
+      "contiguous_curve_from8349": true,
+      "all_model_data_adam_variable_clocks_match": true,
+      "model_and_optimizer_moment_hashes_match": true,
+      "checkpoint_sha256": "f4c17b7c7d047c2f5b0205ff34cecc79c32b31993cc7191092ff7979b52a9a6a",
+      "model_sha256": "b81e2114127375f34a0979d76351b420c9f81f17dfe8f1e9d0afabe967c2d56f",
+      "optimizer_sha256": "fea457d5e8f90433f018dac649b62567f74634ec07c07449a39ae256c5ac93f5",
+      "moments_sha256": "304b2e1b076ef7f40828b7bfdf74842c4b275e50bf10874726219099a3aceecf",
+      "resume_campaign_sha256": "1f384db27564dea37f578d6d2ede51df57c5723388907011ad47acfd75e4e76c",
+      "campaign_changed_fields": [
+        "checkpoint_steps",
+        "max_process_seconds",
+        "stop_file",
+        "trial_scope"
+      ]
+    }
+  },
+  "fixed_contract": {
+    "original_parent_step": 8348,
+    "sole_final_step": 15672,
+    "total_additional_updates_per_arm": 7324,
+    "total_additional_targets_per_arm": 29999104,
+    "batch": 16,
+    "training_evaluation_session_context": 256,
+    "full_causal_admission": true,
+    "state_width": 256,
+    "read_width": 64,
+    "gradient_shards_each": 2,
+    "concurrent_model_processes": 1,
+    "alpha_updates": 512
+  },
+  "cleanup": {
+    "utc": "2026-09-26T17:10:06.080975+00:00",
+    "status": "VERIFIED_CACHE_MOVED_TO_SSD_INTERNAL_DUPLICATE_REMOVED",
+    "source_compatibility_link": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target",
+    "canonical_path": "/Users/casey.allard/uor-r4/target",
+    "destination": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target",
+    "external_manifest": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/VERIFIED-CACHE-MANIFEST.json",
+    "external_manifest_sha256": "8d249933757aea30e444288015ca6482c1f2c98ab31c4e9dca2553c408a2ed90",
+    "ssd_uuid": "DAB4FDD9-1A7A-4ECB-A6D7-41D6D853F7CF",
+    "verified_regular_files": 45329,
+    "unique_file_groups": 26087,
+    "retained_allocated_bytes_at_source": 19613335552,
+    "internal_free_before_bytes": 20096036864,
+    "internal_free_after_bytes": 38558433280,
+    "external_free_after_bytes": 791257546752,
+    "elapsed_seconds": 164.77278483309783,
+    "cargo_lock_continuity_receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ssd-cache-cargo-lock-continuity-6.json",
+    "compiler_probe_exception": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ssd-cache-compiler-probe-exception-6.json",
+    "scope": "df/statvfs difference is actual filesystem free-space change during operation, potentially affected by otherapps. All source/model paths stayinternal; sharedbuildcache path resolves to preservedSSD copy. RequiresSSD mounted for future builds.",
+    "observed_internal_free_increase_bytes": 18462396416
+  },
+  "compiler_probe_exception": {
+    "utc": "2026-09-26T17:07:22.829968+00:00",
+    "path": ".rustc_info.json",
+    "reason": "Cargo compiler-probe cache refresh observed outside profile locks. This disposable regenerable cache alone is excluded from live stability and byte-manifest checks; snapshot preserved. No model/source/research data. Latest concurrent probe refresh may be discarded; future Cargo regenerates it.",
+    "preserved_snapshot": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/RUSTC-INFO-PRESERVED-SNAPSHOT.json",
+    "snapshot_sha256": "f130b3dabcffbc6b755dc3d6d1c1129e4b309b653377ac2f5a5d2683fb5c6ed0",
+    "snapshot_bytes": 1972
+  },
+  "cache_lock_continuity": {
+    "utc": "2026-09-26T17:09:34.556312+00:00",
+    "lock_records": [
+      {
+        "old_path": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target/debug/.cargo-artifact-lock",
+        "retained_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cache-locks-6/debug/.cargo-artifact-lock",
+        "ssd_symlink": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target/debug/.cargo-artifact-lock",
+        "inode": 74796768
+      },
+      {
+        "old_path": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target/debug/.cargo-build-lock",
+        "retained_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cache-locks-6/debug/.cargo-build-lock",
+        "ssd_symlink": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target/debug/.cargo-build-lock",
+        "inode": 74796766
+      },
+      {
+        "old_path": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target/debug/.cargo-lock",
+        "retained_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cache-locks-6/debug/.cargo-lock",
+        "ssd_symlink": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target/debug/.cargo-lock",
+        "inode": 74796767
+      },
+      {
+        "old_path": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target/release/.cargo-artifact-lock",
+        "retained_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cache-locks-6/release/.cargo-artifact-lock",
+        "ssd_symlink": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target/release/.cargo-artifact-lock",
+        "inode": 74794783
+      },
+      {
+        "old_path": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target/release/.cargo-build-lock",
+        "retained_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cache-locks-6/release/.cargo-build-lock",
+        "ssd_symlink": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target/release/.cargo-build-lock",
+        "inode": 74794781
+      },
+      {
+        "old_path": "/Users/casey.allard/uor-r4/.worktrees/preserved/kvar-20260924/target/release/.cargo-lock",
+        "retained_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cache-locks-6/release/.cargo-lock",
+        "ssd_symlink": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-20260926-1/target/release/.cargo-lock",
+        "inode": 74794782
+      }
+    ],
+    "source": "https://github.com/rust-lang/cargo/blob/master/src/compiler/layout.rs",
+    "scope": "Retained original lock inodes via internal hardlink and SSD symlink; pending/future Cargo share locks. No other process signaled."
+  },
+  "prospective_extension": {
+    "utc": "2026-09-26T16:29:57.928765+00:00",
+    "owner_authorization": "Direct September26 instruction: clear space, may use externalSSD asstorage, then proceed projecttrack; standing necessary localtime/storage extension authorization.",
+    "previous_budget_sha256": "80771f28871ee8c1118f4e107a8e31604af1d77b60ad3bd806d9dc9e8c833c60",
+    "new_budget_sha256": "f5d21132a3d1542ed7c2f1a180ec608ccd8b5fb9bc062acddc9da35ca85f1b92",
+    "time_increment_ms": 36000000,
+    "cumulative_limit_before_ms": 621600000,
+    "cumulative_limit_after_ms": 657600000,
+    "complete_cycle_deadline": "2026-09-27T02:41:00+00:00",
+    "complete_remaining_projection_seconds": {
+      "cleanup_copy_verification_recovery_preparation": 3600,
+      "sequential_remaining_training_total": 18000,
+      "sequential_calibration_and_rounding": 7200,
+      "sequential_evaluation_review_protected_delivery": 3600,
+      "checkpoint_and_stop_margin": 900
+    },
+    "storage_limit_before_bytes": 21474836480,
+    "storage_limit_after_bytes": 34359738368,
+    "storage_increment_bytes": 12884901888,
+    "external_cache_offload_allowance_bytes": 34359738368,
+    "existing_snapshot_allowance_bytes_unchanged": 4294967296,
+    "ssd_uuid": "DAB4FDD9-1A7A-4ECB-A6D7-41D6D853F7CF",
+    "internal_free_before_bytes": 28028858368,
+    "external_free_before_bytes": 822088826880,
+    "preserved_guards": {
+      "physical_free_stop_bytes": 25971130368,
+      "per_model_rss_bytes": 4831838208,
+      "aggregate_rss_bytes": 8589934592
+    },
+    "cleanup_boundary": "Only inspected inactive buildcache is eligible for verifiedSSDmove/removal of redundant internalcopy. No unique model,source,research,ownerfile deletion. Cache path preserved throughsymlink. No reformat,externalcompute or extraexposure.",
+    "scope": "Original shared-cache baseline retained. Tracked32GiB ceiling covers worktree, campaign and changed cache files, including cache relocated to SSD; relocation device changes count conservatively. This is not32GiB internal consumption. Exact physical reclaim is measured separately. Original physical reserve and RSS guards unchanged."
+  },
+  "launch": {
+    "utc": "2026-09-26T17:14:05.545091+00:00",
+    "status": "SEQUENTIAL_FIT6_ACTUAL_NEW_UPDATES_OBSERVED",
+    "launch": {
+      "utc": "2026-09-26T17:11:38.720170+00:00",
+      "controller_pid": 97291,
+      "caffeinate_pid": 97292,
+      "detached": true,
+      "execution": "sequential arms",
+      "log": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-controller-6.log"
+    },
+    "model_pid": 97308,
+    "process_snapshot": "97291     1 02:27  26848 /opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -B /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-continuous-fit-6.py --launch\n97292     1 02:27    336 /usr/bin/caffeinate -i -w 97291\n97308 97291 02:19 1212688 /Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75 joint-fit /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-resume-6.json /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6 cpu /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-5/checkpoint-final\n",
+    "quaternion": {
+      "starting_step": 14000,
+      "first_new_step": 14001,
+      "last_observed_step": 14016,
+      "new_updates_observed": 16,
+      "gradient_shards": 2,
+      "missing_gradients": []
+    },
+    "householder_pair": {
+      "starting_step": 13949,
+      "state": "NOT_STARTED_SEQUENTIAL_QUEUE"
+    },
+    "resource_sample": {
+      "utc": "2026-09-26T17:13:56.026740+00:00",
+      "elapsed_seconds": 131.51707208319567,
+      "rss_bytes": {
+        "97308": 1164410880
+      },
+      "aggregate_rss_bytes": 1164410880,
+      "physical_free_bytes": 45800247296,
+      "allocation": {
+        "categories": {
+          "worktree": 524296192,
+          "new_or_replaced_target": 20266459136,
+          "campaign": 370618368
+        },
+        "retained_bytes": 21161373696,
+        "temporary_headroom_bytes": 536870912,
+        "metadata_allowance_bytes": 1048576,
+        "charged_projection_bytes": 21699293184,
+        "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+      },
+      "exit_codes": {
+        "fit-quaternion-6": null
+      }
+    },
+    "guard_stop_observed": false,
+    "scope": "New updates are live progress, not sealed checkpoint or language quality. Initial firststep cold-start time is not steady throughput."
+  },
+  "scope": "No additional exposure; Q14000/H13949 resume only1672/1723 updates tosole15672. Saved learning and original parents preserved. Fit1 lost unsaved learning remains lost. Resource recovery and source review are not language results. Final conversion/evaluation/prose NOT_RUN.",
+  "bindings": {
+    "budget-resume-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/budget-resume-6.json",
+      "sha256": "f5d21132a3d1542ed7c2f1a180ec608ccd8b5fb9bc062acddc9da35ca85f1b92"
+    },
+    "resource-extension-resume-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resource-extension-resume-6.json",
+      "sha256": "6ab6caa5d264482189647372cf04679a184cec7fa2bc3074acf0d210955ec187"
+    },
+    "resume-inputs-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-inputs-6.json",
+      "sha256": "674849d87aaa34dbf881e8de6771151bafb8105a754cf32cecab1d4b8e6c2b22"
+    },
+    "recovery-checkpoint-verification-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/recovery-checkpoint-verification-6.json",
+      "sha256": "6d528cc06974018605838958dc73ce3645e489eadbd5dbe8f056c2903f77f308"
+    },
+    "resume-readiness-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-readiness-6.json",
+      "sha256": "029ba65cf0a4125406916c2f0ba2ed46e28875fd09575a5ae0f60b3a7561fe85"
+    },
+    "recovery-execution-review-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/recovery-execution-review-6.json",
+      "sha256": "2cbcefc5b795df3c65f168774b822050c5abb8d9fcee233c9c5f85c462b7e2c9"
+    },
+    "postprocess-preparation-principal-review-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-preparation-principal-review-6.json",
+      "sha256": "6ec0b598ec2621218262da28962ad0eb7cb52e15799a3b5bfb27b5e29c87b75a"
+    },
+    "resume-continuous-fit-6.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-continuous-fit-6.py",
+      "sha256": "dc555db2cc625270f9a075c615caef6eba1a1276406c184079f304b73b752655"
+    },
+    "postprocess-continuation-6.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/postprocess-continuation-6.py",
+      "sha256": "ce0e319da7d6d0d148389b9d842359cc8db27e3de712699cebe6f874dcd4e4cb"
+    },
+    "cycle-processes-resume-6.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/cycle-processes-resume-6.py",
+      "sha256": "9d34f6be49597bc429d300a9c68c61cbf2143953b05eed17ea85111742816786"
+    },
+    "resume-launch-approved-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-launch-approved-6.json",
+      "sha256": "c94a86d673e7e71bba5ae90828a6dc03a26a1656969f4b84abb7a8b2e0b9ff9f"
+    },
+    "resume-controller-launch-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-controller-launch-6.json",
+      "sha256": "b5f46806642bc02618af6f3ff7cf062fb2b1968c343964ebc65a36aaa3367228"
+    },
+    "resume-live-verification-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-live-verification-6.json",
+      "sha256": "5a16ba99e2643da73532137bad3ab5bfa15fb2f85acb0fe903d667500dca8ba9"
+    },
+    "ssd-cache-offload-result-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ssd-cache-offload-result-6.json",
+      "sha256": "58c982d9610c9f091da8fe547f81551b03b39ac495abc6ebe280f3985481e5c2"
+    },
+    "ssd-cache-cargo-lock-continuity-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ssd-cache-cargo-lock-continuity-6.json",
+      "sha256": "a8027a492a2ca07816b7d15a95a29e2aaeabe340c67a1806fbb3d969654ce17d"
+    },
+    "ssd-cache-compiler-probe-exception-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ssd-cache-compiler-probe-exception-6.json",
+      "sha256": "1ffb62aa0d95a2c9bbb07105b0723e41a5c110186919db39f95b1c340c4c949e"
+    },
+    "ssd-cache-allocation-drift-adjudication-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ssd-cache-allocation-drift-adjudication-6.json",
+      "sha256": "291606475ac87c751aa699808b8f1105e1b0420592b1a89c209dd39ebce0bfce"
+    },
+    "ledger-fit6-launch-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/ledger-fit6-launch-6.json",
+      "sha256": "912039c19c982f57d63b60ee88128210e54372fc82da8f5eb0fd7fe562d630f3"
+    }
+  },
+  "direction_memo_provenance": {
+    "source_memo": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/conditional-direction-6.md",
+      "sha256": "bb55c5acf02c3b0567154502dd5574a314faa2752715d5379e094ecfe0887bd9"
+    },
+    "review_receipt": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/deepseek-direction6-receipt.json",
+      "sha256": "a8b3ed18fba8e20cc9a43a07bd686a77d5a1af180ac48017b500e16e57616b20"
+    },
+    "review_log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/deepseek-direction6.log",
+      "sha256": "7ed8506eb9f4e089a5eb3f9bd8088daa6524b2fb63e656fa8241332817116c1b"
+    },
+    "model": "DeepSeek/deepseek-flash",
+    "elapsed_seconds": 107.799496875,
+    "independently_audited_source": "c57ce081dc8414f78a6c5dbd2665f8236987fc0e",
+    "frozen_training_source": "b5b5fe757b9513877911719f014e73165f704b13",
+    "principal_frozen_source_check": "joint_model.rs680..825, learnedQK/age/NoRead/fullread,transport,causalwrite,andcopy/vocabularymixture; sourceonly, no whole-tree equivalence or new experiment.",
+    "adjudication": "Reject absence-of-role-information claim, repeatedBPEsemanticproxy and automaticconversion/depth attribution. Use fixedpacketandavailablefields; unknown causal attribution staysunresolved.",
+    "published_memo_sha256": "8a727a8233f90dd19a20be5dc407d4749e1b57dff8620b824bee31abbcdb77a1"
+  },
+  "validation": {
+    "utc": "2026-09-26T17:16:30.629639+00:00",
+    "changed_model_or_kernel_source": false,
+    "existing_parent_full_rust_seals": "4 PASS, recovery-checkpoint-verification-6.json",
+    "actual_remaining_fit": "new quaternion updates observed; source/provenance fixed",
+    "documentation_checks": {
+      "git diff --check": 0,
+      "scripts/check_claim_wording.py": 0,
+      "recovery JSON parse": 0
+    },
+    "scope": "No extra Rust builds, model panels or broad test suite. Final model quality NOT_RUN."
+  },
+  "delivery": "PR1398 remains draft; issues973/820 stayopen; no merge until actual final evidence.",
+  "monitor": {
+    "automation_id": "finish-uor-r4-language-continuation",
+    "status": "ACTIVE",
+    "interval_minutes": 30,
+    "purpose": "Finish this one milestone; quiet unchanged, notify meaningful result/failure; no new tranche."
+  }
+}

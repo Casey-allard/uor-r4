@@ -160,8 +160,12 @@ impl IntegerModel {
             serde_json::from_value(manifest["quantization"].clone())?;
         let (spec, codes) = joint_quantization::load_hard_codes(directory)?;
         if state.spec != spec
-            || state.ramp_steps == 0
-            || state.completed_step < state.start_step
+            || !crate::config::valid_quantization_clock(
+                state.start_step,
+                state.ramp_steps,
+                state.completed_step,
+                state.preparation,
+            )
             || spec
                 .parameters
                 .iter()

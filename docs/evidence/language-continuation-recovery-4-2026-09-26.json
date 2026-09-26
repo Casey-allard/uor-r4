@@ -1,0 +1,228 @@
+{
+  "schema": "uor-r4.language-continuation-recovery/1",
+  "recorded_utc": "2026-09-26T06:03:51.342051+00:00",
+  "status": "RUNNING_EXACT_SAVED_STATE_RESUME",
+  "prior_recovery": "language-continuation-recovery-2026-09-26.json",
+  "interruption": {
+    "name": "continuous-fit-3",
+    "finished_utc": "2026-09-26T05:36:42.007958+00:00",
+    "elapsed_seconds": 10724.641457458,
+    "checkpoint_requested_reason": "NEW_ALLOCATION_CEILING",
+    "samples": 2007,
+    "peak_sampled_rss_bytes": 6159958016,
+    "min_physical_free_bytes": 27033894912,
+    "exit_codes": {
+      "fit-quaternion-3": 0,
+      "fit-householder_pair-3": 0
+    },
+    "allocation": {
+      "categories": {
+        "worktree": 524238848,
+        "new_or_replaced_target": 16088252416,
+        "campaign": 245997568
+      },
+      "retained_bytes": 16858488832,
+      "temporary_headroom_bytes": 536870912,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 17396408320,
+      "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+    },
+    "scope": "Direct local Rust children, sampled RSS; all sealed/partial outputs preserved."
+  },
+  "saved_states": {
+    "quaternion": {
+      "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-resume-4.json",
+      "campaign_sha256": "b7fcb3e1b868f4d366118778d76b65e87cc4077c74a07701af93dc33bb7f74d1",
+      "parent": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-3/checkpoint-final",
+      "checkpoint_sha256": "c43969c07e68debdcfa032e60fad1b5c3a7ebbf3c1f489414a3f133b7874bd8d",
+      "model_sha256": "1a35ab3bcd5471a7a3e446243b70ce32b811cebb64ca2433b311361d0d119ad6",
+      "optimizer_sha256": "da496d4d299a11ee24a8bf3a6edf013241a712bcf6ebb721430772d9f2029ecc",
+      "moments_sha256": "2eece2b8e2af2f38da895d673b41865cb5ea83a819c942f231c2d2ea7486c921",
+      "starting_step": 12707,
+      "remaining_updates": 2965,
+      "remaining_targets": 12144640,
+      "output": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-4"
+    },
+    "householder_pair": {
+      "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair-resume-4.json",
+      "campaign_sha256": "88e3961b8a0f805a2a78812a842885bd2e1523cbf45efb1ab5a733bb51ce5716",
+      "parent": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-3/checkpoint-final",
+      "checkpoint_sha256": "b7fc0dbbec0c81899c6cc881020cea3b31f42e233e269c69f67d64d2ddee4729",
+      "model_sha256": "812daee9cc22edddebae5516c89e867a655532600e0a4d956c2e685078e976cc",
+      "optimizer_sha256": "880942020b3667dea6e4d631ee020df7806288571f4bea72f802ccbdcca240e9",
+      "moments_sha256": "a9dcaab37bf87d4c8af18fc8362dd14d6c72dd81f35eacdfc5977d62ed6f2bb6",
+      "starting_step": 12715,
+      "remaining_updates": 2957,
+      "remaining_targets": 12111872,
+      "output": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-4"
+    }
+  },
+  "full_seal_verification": {
+    "utc": "2026-09-26T05:57:26.239749+00:00",
+    "status": "RUST_FULL_SEALS_PASS",
+    "verifier_sha256": "6cf5304cc8d12c68b78ac888bdfb9ce0a009faae18a0d449c9c1367eeee82131",
+    "records": [
+      {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-3",
+        "exit_code": 0,
+        "stdout": "complete report file set verified: /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-3",
+        "stderr": ""
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-3/checkpoint-final",
+        "exit_code": 0,
+        "stdout": "complete report file set verified: /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-3/checkpoint-final",
+        "stderr": ""
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-3",
+        "exit_code": 0,
+        "stdout": "complete report file set verified: /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-3",
+        "stderr": ""
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-3/checkpoint-final",
+        "exit_code": 0,
+        "stdout": "complete report file set verified: /Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-3/checkpoint-final",
+        "stderr": ""
+      }
+    ],
+    "scope": "Read/hash complete report sets; no model load or training."
+  },
+  "prospective_extension": {
+    "utc": "2026-09-26T05:58:43.670633+00:00",
+    "standing_authorization": "AGENTS.md September6 necessary local model/time/storage extensions; heartbeat explicitly authorizes exact-state resource recovery.",
+    "reason": "Exact saved-state continuation after second shared-build-cache allocation stop. Fit3 saved Q12707/H12715; all four report/checkpoint seals Rust-verified. No model build by this milestone during fitting. Sharedtarget allocation remains charged from originalbaseline; no cargo/rustc process observed at05:57UTC. Same final15672 and frozencriteria.",
+    "previous_budget_sha256": "d4be3111f1bd0c718539be584d91f1a617ca95326c5a822fae7ee78922b572c8",
+    "new_budget_sha256": "a20a8f1404655da34206d5558411e81691841d5c20f063611a56137d2ad41095",
+    "storage_before_bytes": 17179869184,
+    "storage_increment_bytes": 4294967296,
+    "storage_after_bytes": 21474836480,
+    "time_increment_ms": 0,
+    "cumulative_limit_before_ms": 614400000,
+    "cumulative_limit_after_ms": 614400000,
+    "whole_cycle_deadline": "2026-09-26T14:41:00+00:00",
+    "complete_remaining_projection_seconds": {
+      "resume_preparation_verification": 600,
+      "paired_remaining_training": 21600,
+      "calibration_and_paired_rounding": 3600,
+      "evaluation_review_protected_delivery": 3600,
+      "checkpoint_and_stop_margin": 900
+    },
+    "physical_free_bytes": 29406498816,
+    "physical_reserve_stop_bytes_unchanged": 25971130368,
+    "remaining_allocation_within_physical_headroom": true,
+    "current_allocation": {
+      "categories": {
+        "worktree": 524238848,
+        "new_or_replaced_target": 16900808704,
+        "campaign": 246026240
+      },
+      "retained_bytes": 17671073792,
+      "temporary_headroom_bytes": 536870912,
+      "metadata_allowance_bytes": 1048576,
+      "charged_projection_bytes": 18208993280,
+      "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+    },
+    "scope": "Original allocationbaseline and all charges retained; no deletion, paid compute, weakened physical/RSS guards, changed recipe or extra exposure."
+  },
+  "prelaunch_clock_correction": {
+    "utc": "2026-09-26T06:00:22.959375+00:00",
+    "reason": "Independent review: enforce the prospectively projected6h remainingfit ceiling in both Rust campaign processes so fitting cannot spend the reserved downstream time.",
+    "campaign_changes": {
+      "quaternion": {
+        "old_sha256": "45adeb55b5081d41d670941d20373b876534cb520fe15f88b7ae524e09e444be",
+        "new_sha256": "b7fcb3e1b868f4d366118778d76b65e87cc4077c74a07701af93dc33bb7f74d1",
+        "max_process_seconds_before": 32400,
+        "max_process_seconds_after": 21600
+      },
+      "householder_pair": {
+        "old_sha256": "af5d6135c194d7128857cb023f324f0a6b3edcc9c13650b9a000539ed61a15d4",
+        "new_sha256": "88e3961b8a0f805a2a78812a842885bd2e1523cbf45efb1ab5a733bb51ce5716",
+        "max_process_seconds_before": 32400,
+        "max_process_seconds_after": 21600
+      }
+    },
+    "inputs_sha256_before": "a68d1395da8abf6127ae0b467a02f4775afbb6bfd9661b3a9b06b024c675f47c",
+    "inputs_sha256_after": "828250cf5e94fa7149a31668fe501e10ed90ad14ae150385c2c9efae93050738",
+    "no_launch_yet": true,
+    "scope": "Resource clock only; same retainedweights/Adam/data and solefinal15672; no extra exposure or quality change."
+  },
+  "launch": {
+    "observed_utc": "2026-09-26T06:03:51.342051+00:00",
+    "status": "RUNNING_EXACT_SAVED_STATE_RESUME",
+    "launch": {
+      "utc": "2026-09-26T06:01:36.559254+00:00",
+      "controller_pid": 2946,
+      "caffeinate_pid": 2947,
+      "detached": true,
+      "log": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/resume-controller-4.log"
+    },
+    "workers": {
+      "fit-quaternion-4": 2954,
+      "fit-householder_pair-4": 2955
+    },
+    "progress": {
+      "quaternion": {
+        "first_new_step": 12708,
+        "latest_step": 12746,
+        "updates": 39
+      },
+      "householder_pair": {
+        "first_new_step": 12716,
+        "latest_step": 12754,
+        "updates": 39
+      }
+    },
+    "resources": {
+      "utc": "2026-09-26T06:03:51.118755+00:00",
+      "elapsed_seconds": 132.824897083,
+      "rss_bytes": {
+        "2954": 2830532608,
+        "2955": 2723430400
+      },
+      "aggregate_rss_bytes": 5553963008,
+      "physical_free_bytes": 29406212096,
+      "allocation": {
+        "categories": {
+          "worktree": 524238848,
+          "new_or_replaced_target": 16900808704,
+          "campaign": 246370304
+        },
+        "retained_bytes": 17671417856,
+        "temporary_headroom_bytes": 536870912,
+        "metadata_allowance_bytes": 1048576,
+        "charged_projection_bytes": 18209337344,
+        "scope": "Conservative st_blocks charge; same-inode dedup only; APFS physical free checked independently. Snapshot followed initial build start; all cache mtimes since cycle start charged."
+      },
+      "exit_codes": {
+        "fit-quaternion-4": null,
+        "fit-householder_pair-4": null
+      }
+    },
+    "processes": " 2946     1  2946 Ss   02:15 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n 2947     1  2947 Ss   02:15 /usr/bin/caffeinate\n 2954  2946  2946 R    02:12 /Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75\n 2955  2946  2946 R    02:12 /Users/casey.allard/uor-r4/.uor-models/investigations/quantized-recurrent-20260925/joint-training-b5b5fe75\n",
+    "physical_free_bytes": 29406187520,
+    "final_quality": "NOT_RUN"
+  },
+  "source_bindings": {
+    "resume-continuous-fit-4.py": "33e20d770ba30a5d8eb7020e9c79e87fca3f3f69a96799b9f4bd66a7d369046e",
+    "postprocess-continuation-4.py": "f6d3c4020ee8b33886bfe9dd3c547909763506535664b9125d786bbe43fbe4eb",
+    "resume-launch-approved-4.json": "a27105da3c08ec5543b7777ee4db0e6762e32f7e90eb9d8d662c78336306baed",
+    "budget-resume-4.json": "a20a8f1404655da34206d5558411e81691841d5c20f063611a56137d2ad41095"
+  },
+  "scope": "Total8348-to15672 unchanged. Allfit2+fit3 saved updates retained. Fit1 unsaved updates remain lost. No model quality outcome yet; all final gates unchanged.",
+  "review": {
+    "independent_receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/recovery-execution-review-4.json",
+    "sha256": "bf3174fca6e33b6606ef05d3638781868c8f9519e6b2ffe33d62a0ace6ffc6bc",
+    "remaining_blocking_findings": [],
+    "principal_downstream_preparation": {
+      "recorded_utc": "2026-09-26T06:05:33.205811+00:00",
+      "status": "SOURCE_PREPARATION_ACCEPTED_NO_LAUNCH_APPROVAL",
+      "source_sha256": "f6d3c4020ee8b33886bfe9dd3c547909763506535664b9125d786bbe43fbe4eb",
+      "independent_review_sha256": "bf3174fca6e33b6606ef05d3638781868c8f9519e6b2ffe33d62a0ace6ffc6bc",
+      "principal_review": "Read complete delta from reviewed postprocess3: fit2+fit3+futurefit4 contiguouschain and parent bindings; only attempt paths change in fixed downstream recipe and launchmain. Full Rust seal verification remains first child stage. No concrete source blocker.",
+      "launch_approved": false,
+      "remaining_requirement": "After both actualTARGET_COMPLETE15672finals, inspect actual readiness and remaining resources, create hash-bound approval, then detachedfile launch. All source/numeric/prosecriteria unchanged."
+    }
+  }
+}
