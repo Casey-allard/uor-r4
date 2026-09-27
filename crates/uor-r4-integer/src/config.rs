@@ -26,12 +26,15 @@ pub enum ReadMode {
 /// the scaled geodesic distance below a learned radius. Offline F32 training
 /// implements both; this runtime serves a quantized Lorentz model through the
 /// integer kernel in `crate::lorentz` under [`packed_numerical_contract`].
+/// `LorentzAffine` shares the lift but is an offline-only spacing control.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadGeometry {
     #[default]
     Dot,
     Lorentz,
+    /// Offline radius-preserving control with affine distance spacing.
+    LorentzAffine,
 }
 
 impl ReadGeometry {
@@ -43,6 +46,7 @@ impl ReadGeometry {
         match self {
             Self::Dot => "dot",
             Self::Lorentz => "lorentz",
+            Self::LorentzAffine => "lorentz_affine",
         }
     }
 }
@@ -119,7 +123,7 @@ impl JointConfig {
             ("output.norm.weight".into(), vec![d]),
             ("output.bias".into(), vec![self.vocab_size]),
         ]);
-        if self.read_geometry == ReadGeometry::Lorentz {
+        if !self.read_geometry.is_dot() {
             // Two learned scalars; `Dot` keeps its exact retained inventory.
             shapes.insert(LORENTZ_LOG_BETA.into(), vec![1]);
             shapes.insert(LORENTZ_OFFSET.into(), vec![1]);
@@ -170,6 +174,9 @@ pub fn packed_numerical_contract(geometry: ReadGeometry) -> Result<serde_json::V
     Ok(match geometry {
         ReadGeometry::Dot => contract,
         ReadGeometry::Lorentz => with_lorentz_quantized_read(contract),
+        ReadGeometry::LorentzAffine => {
+            return Err(crate::IntegerError::UnsupportedReadGeometry(geometry));
+        }
     })
 }
 

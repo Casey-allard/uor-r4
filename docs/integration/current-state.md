@@ -25,12 +25,21 @@ remain unchanged. Other labs' active source and model jobs are preserved.
 
 **Concurrent discovery:** the [fourth-lab native-read review](fourth-lab-native-read-review-2026-09-26.md)
 inspects Claude PR#1401's full-context Lorentz implementation and reported
-development results. Reuse its reader interface before a competing 2I
-integration; obtain its retained source/artifact packet and resolve the two
-reported bounded implementation defects. Independent replay and general
-language/M1 qualification remain unavailable or unmeasured at this review.
-That branch's D10 converted-backbone/arithmetic policy awaits owner
-clarification in this lab; native review does not adopt it implicitly.
+development results. Claude fixed the two reported implementation defects and
+guarded the conversational integration risks; PR #1401 is now merged. PR #1406
+supplies its [native packet](../evidence/native-lorentz-packet-2026-09-26/README.md),
+whose 104 listed file identities were verified by the fourth lab. Continuous
+checkpoints and several replay inputs remain external. The
+[radial read comparison](radial-read-control-2026-09-26.md) extends the merged
+reader with an offline affine control while preserving existing upstream paths.
+All six focused checks pass on source `48fd43c1`, covering the affine control
+and retained Dot/Lorentz and checkpoint paths; the
+[source-bound receipt](../evidence/offline-radial-read-validation-2026-09-27.json)
+records executed checks, prior attempts and complete elapsed accounting.
+Its implementation and a future language comparison have distinct scope.
+General language/M1 qualification remains unmeasured here. D10's policy
+clarification remains pending in this lab; the new control introduces no
+additional serving exception or converted backbone.
 
 ## Decision and active work
 

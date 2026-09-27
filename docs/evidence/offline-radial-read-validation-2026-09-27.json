@@ -1,0 +1,123 @@
+{
+  "schema": "uor-r4.offline-radial-read-validation/1",
+  "recorded_at": "2026-09-27T01:43:39.886917+00:00",
+  "source_commit": "48fd43c16cf2596e6379a5869500b19d43571731",
+  "base_main": "ab90b9e524c0588bf7c3c897cca9e650d1dc3c04",
+  "scope": "LorentzAffine offline implementation and retained Dot/Lorentz compatibility; no paired learning study or capability promotion",
+  "source_sha256": {
+    "crates/uor-r4-integer/src/config.rs": "483689b94f95b0e6aba1d831ca36c52b02a0291bd011619b787757b87aa93de9",
+    "crates/uor-r4-integer/src/lib.rs": "c17632a09df0872b0fd52dc59bda2cc063c4d225bd9bee90f409ae600b07d733",
+    "crates/uor-r4-integer/src/model.rs": "4f8ed9736f4adba6eb8be18da4a793f9f771f46fb4031e002486c0c8dcbeabc0",
+    "crates/uor-r4-training/src/joint_model.rs": "1abb1adf49b7aaa5e1581740386a803a7526a78fc1f170fecf5e097e13fa5b15",
+    "crates/uor-r4-training/src/joint_comparison.rs": "241c8d6de6bef726e33850f598195d80597d2d5d593d4b1e398a51765f65f7e5"
+  },
+  "build_source_environment": "UOR_BUILD_SOURCE_COMMIT=48fd43c16cf2596e6379a5869500b19d43571731",
+  "test_binary": {
+    "path": "/Users/casey.allard/uor-r4/target/debug/deps/uor_r4_training-8a35cdf4d038fd04",
+    "sha256": "35e2e4ba40f500779b7f35df003839b5aabbb10a75790b6cefbd862e410e59ea"
+  },
+  "checks": [
+    {
+      "filter": "joint_model::tests::radial_read_",
+      "passed": 4,
+      "failed": 0,
+      "test_seconds": 3.32,
+      "cargo_build_report": "1m 15s",
+      "command_wall_seconds": 79.98,
+      "maximum_rss_bytes": 2237857792
+    },
+    {
+      "filter": "calibrated_shadow_",
+      "passed": 2,
+      "failed": 0,
+      "test_seconds": 11.07,
+      "command_wall_seconds": 11.1,
+      "maximum_rss_bytes": 210714624,
+      "same_binary": true
+    }
+  ],
+  "execution": {
+    "device": "CPU",
+    "build_jobs": 2,
+    "rayon_threads": 2,
+    "test_threads": 1,
+    "functional_forward_backward_and_fixture_updates": true,
+    "paired_training_study": false,
+    "capability_evaluation": false,
+    "accelerator_ms": 0,
+    "paid_compute": false
+  },
+  "prior_attempts": [
+    {
+      "scope": "Before pinned Lorentz metadata correction",
+      "passed": 4,
+      "failed": 0,
+      "command_wall_seconds": 353.79,
+      "test_seconds": 2.56,
+      "maximum_rss_bytes": 1947779072
+    },
+    {
+      "scope": "After pinned metadata correction, before merging advanced main",
+      "passed": 4,
+      "failed": 0,
+      "command_wall_seconds": 9.43,
+      "test_seconds": 2.81,
+      "maximum_rss_bytes": 445874176
+    },
+    {
+      "scope": "Retained checks compiled with source_commit=UNBOUND",
+      "passed": 1,
+      "failed": 1,
+      "command_wall_seconds": 7.72,
+      "test_seconds": 7.71,
+      "maximum_rss_bytes": 236716032,
+      "failure": "checkpoint/evaluator binding differs",
+      "diagnosis": "Only source identity failed the required 40-hex predicate; source-bound rebuild resolves it without a model change",
+      "retained_root": "/private/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T/uor-calibrated-shadow-17142-1790472446206273000"
+    },
+    {
+      "scope": "Source-bound rebuild waiting for shared cargo slot",
+      "status": "NOT_RUN",
+      "reason": "Watcher reached its wait limit without launching build or checks"
+    }
+  ],
+  "independent_review": "Mathematical and adversarial source reviews found no remaining blocker. Final review is against ab90b9e5 and confirms only Affine unsupported guards; existing Lorentz QAT/integer contracts retained.",
+  "non_model_checks": {
+    "touched_rustfmt": "PASS",
+    "git_diff_check": "PASS",
+    "claim_wording": "PASS"
+  },
+  "resource": {
+    "elapsed_accounting_checkpoint": {
+      "recorded_at": "2026-09-27T01:43:39.886917+00:00",
+      "previous_cursor": "2026-09-27T01:07:17.161414+00:00",
+      "tail_ms": 2182725,
+      "charged_elapsed_ms": 4235885,
+      "before": {
+        "cumulative_ms": 647756940,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 649939665,
+        "limit_ms": 744000000
+      },
+      "external_increment_since_prior_cursor_ms": 2031377,
+      "limitations": "Compare-before atomic replacement under local advisory lock; other writers do not share this lock, so no global mutual-exclusion claim. Foreign charges and limit preserved.",
+      "scope": "Fourth lab elapsed preparation, implementation, independent review, shared build-slot waits and focused execution through final source48fd43c; delivery tail remains to charge once."
+    },
+    "owned_elapsed_limit_ms": 7200000,
+    "phase_elapsed_limit_ms": 2700000,
+    "compile_check_projection_ms": 720000,
+    "radial_compile_and_check_command_seconds_total": 462.02,
+    "physical_reserve_bytes": 25971130368,
+    "minimum_stop_margin_bytes": 134217728,
+    "free_bytes_observed": {
+      "internal": 49236561920,
+      "ssd": 174001528832
+    },
+    "worktree_allocated_bytes": 531836928,
+    "local_receipts_allocated_bytes": 1773568,
+    "storage_attribution": "Shared SSD free-space changes include other labs and cannot prove exclusive per-lab cache consumption. Latest prospective shared-cache allowance is 4GiB; no deletion. Worktree allocation is not exclusive APFS physical attribution."
+  },
+  "next": "Choose one prospectively declared continuous Lorentz/affine paired development study; preserve actual tokenizer/data/config identities, fixed selection policy and generated output. Do not infer advantage or start a sweep from these checks."
+}

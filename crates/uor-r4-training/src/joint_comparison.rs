@@ -872,20 +872,26 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
             )));
         }
     }
-    // Absent read_geometry is JSON null for retained dot-read arms.
-    for field in [
-        "vocab_size",
-        "width",
-        "read_width",
-        "context",
-        "seed",
-        "read_geometry",
-    ] {
+    for field in ["vocab_size", "width", "read_width", "context", "seed"] {
         if q["model"][field] != ordinary["model"][field] {
             return Err(invalid(format!(
                 "transport arms differ in shared model {field}"
             )));
         }
+    }
+    // Missing metadata means the retained Dot operator. Transport comparisons
+    // must not silently compare different read operators.
+    let read_geometry = |model: &Value| -> Result<crate::joint_model::ReadGeometry> {
+        Ok(model
+            .get("read_geometry")
+            .map(|value| serde_json::from_value(value.clone()))
+            .transpose()?
+            .unwrap_or_default())
+    };
+    if read_geometry(&q["model"])? != read_geometry(&ordinary["model"])? {
+        return Err(invalid(
+            "transport arms differ in shared model read_geometry",
+        ));
     }
     for field in [
         "source_commit",

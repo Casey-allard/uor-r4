@@ -6,6 +6,8 @@
 //! geometric kernel. Quaternion signs remain distinct. The Householder arm
 //! changes only the lane transport formula and its declared local scale. The
 //! optional Lorentz read geometry changes only the raw query/key read score.
+//! LorentzAffine is an offline radius-preserving control of distance spacing;
+//! the merged Lorentz training and integer contracts remain unchanged.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
@@ -408,6 +410,7 @@ impl JointModel {
     /// selecting their use in evaluation. No parameters or clocks are changed.
     /// The caller binds the sealed source checkpoint in its diagnostic report.
     pub fn precision_view(&self, mode: PrecisionMode) -> Result<Self> {
+        require_quantized_read(self.config.read_geometry)?;
         if self.hard_only || self.prepared_parameters.is_some() || self.precision_mode.is_some() {
             return Err(invalid(
                 "precision views require an unprepared floating checkpoint, not a packed or diagnostic view",
@@ -498,6 +501,7 @@ impl JointModel {
     }
 
     fn validate_rounding_parent(&self) -> Result<()> {
+        require_quantized_read(self.config.read_geometry)?;
         if self.hard_only
             || self.prepared_parameters.is_some()
             || self.precision_mode.is_some()
@@ -543,6 +547,7 @@ impl JointModel {
     }
 
     pub fn configure_quantization(&mut self, start_step: usize, ramp_steps: usize) -> Result<()> {
+        require_quantized_read(self.config.read_geometry)?;
         if self.quantization.is_some()
             || self.hard_only
             || self.precision_mode.is_some()
@@ -644,6 +649,9 @@ impl JointModel {
     }
 
     fn prepare(&self, training: bool) -> Result<Self> {
+        if self.quantization.is_some() {
+            require_quantized_read(self.config.read_geometry)?;
+        }
         if self.rounding_learning {
             return Err(invalid(
                 "rounding tensors must stay in their prepared learning graph",
@@ -814,6 +822,9 @@ impl JointModel {
         mode: ReadMode,
         training: bool,
     ) -> Result<JointOutput> {
+        if self.quantization.is_some() {
+            require_quantized_read(self.config.read_geometry)?;
+        }
         if training && self.is_rounding_calibrated() && !self.rounding_learning {
             return Err(invalid(
                 "calibrated shadow permits alpha-only learning, not model training",
@@ -1184,6 +1195,16 @@ impl JointModel {
                 .matmul(&keys.transpose(1, 2)?.contiguous()?)?
                 .squeeze(1)?
                 .affine(1.0 / (self.config.read_width as f64).sqrt(), 0.0)?),
+            ReadGeometry::LorentzAffine => {
+                let inner = lorentz_inner(query, keys)?;
+                let distance = radial_distance(&inner, &self.config)?;
+                let beta = self.weight(LORENTZ_LOG_BETA, training)?.exp()?;
+                let offset = self.weight(LORENTZ_OFFSET, training)?;
+                Ok(distance
+                    .broadcast_sub(&offset)?
+                    .broadcast_mul(&beta)?
+                    .neg()?)
+            }
             ReadGeometry::Lorentz => {
                 let beta = self.weight(LORENTZ_LOG_BETA, training)?.exp()?;
                 let offset = self.weight(LORENTZ_OFFSET, training)?;
@@ -1471,6 +1492,9 @@ impl JointModel {
     /// Only parameter/config files are owned here. Caller claims the directory
     /// and saves optimizer, source, data and budget provenance alongside them.
     pub fn save(&self, directory: &Path) -> Result<()> {
+        if self.quantization.is_some() {
+            require_quantized_read(self.config.read_geometry)?;
+        }
         if self.hard_only || self.prepared_parameters.is_some() || self.precision_mode.is_some() {
             return Err(invalid(
                 "save a training model, not a prepared, packed or precision view",
@@ -1517,6 +1541,9 @@ impl JointModel {
         let config: CheckpointConfig =
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
         config.model.validate()?;
+        if config.quantization.is_some() {
+            require_quantized_read(config.model.read_geometry)?;
+        }
         let expected_contract = if config.quantization.is_some() {
             quantized_numerical_contract()
         } else {
@@ -1604,6 +1631,7 @@ impl JointModel {
     /// deliberately not an integer execution kernel: the nonlinearities,
     /// accumulations, normalization and probability calculations remain F32.
     pub fn save_hard(&self, directory: &Path) -> Result<Value> {
+        require_quantized_read(self.config.read_geometry)?;
         if self.prepared_parameters.is_some() || self.rounding_learning {
             return Err(invalid("materialize hard codes before export"));
         }
@@ -1647,6 +1675,7 @@ impl JointModel {
             .transpose()?
             .unwrap_or_default();
         let config: JointConfig = serde_json::from_value(manifest["model"].clone())?;
+        require_quantized_read(config.read_geometry)?;
         if manifest["schema"] != "uor-r4.joint-recurrent-packed-emulator/1"
             || manifest["numerical_contract"]
                 != admission_contract(
@@ -1709,6 +1738,13 @@ struct CheckpointConfig {
     admission: AdmissionPolicy,
 }
 
+fn require_quantized_read(geometry: ReadGeometry) -> Result<()> {
+    if geometry == ReadGeometry::LorentzAffine {
+        return Err(uor_r4_integer::IntegerError::UnsupportedReadGeometry(geometry).into());
+    }
+    Ok(())
+}
+
 fn admission_is_full(policy: &AdmissionPolicy) -> bool {
     *policy == AdmissionPolicy::Full
 }
@@ -1729,6 +1765,21 @@ fn admission_contract(mut contract: Value, policy: AdmissionPolicy) -> Value {
 /// quantized contract takes the integer runtime's quantized Lorentz declaration,
 /// so quantized training, packed export and integer serving bind one contract.
 fn read_geometry_contract(mut contract: Value, geometry: ReadGeometry) -> Value {
+    if geometry == ReadGeometry::LorentzAffine {
+        contract["read"] = json!("Query/Key from RMS-normalized provisional/written states; common Lorentz lift x0=sqrt(1+|x|^2), z=max(q0*k0-<q,k>,1+1e-6); score=exp(read.lorentz_log_beta)*(read.lorentz_offset-distance(z))+learned age, competing with unchanged learned NoRead; Value=tanh(affine(normalized written state))");
+        contract["read_geometry"] = json!({
+            "schema":"uor-r4.offline-radial-read/1",
+            "geometry":geometry,
+            "minimum_inner_product":LORENTZ_MIN_INNER,
+            "distance":"d_ref+(z-cosh(d_ref))/sinh(d_ref); fixed d_ref=arcosh(1+2*r*d/(r+d)), independent of learned offset",
+            "initial_offset":"arcosh(1+2*r*d/(r+d))",
+            "initial_log_beta":"ln(sinh(initial_offset)/sqrt(r))",
+            "scalars":"Both radial arms learn read.lorentz_log_beta and read.lorentz_offset; their initialization consumes no random draws",
+            "admission":"Unchanged; this operator scores only the candidates already admitted",
+            "scope":"F32 offline training/evaluation only; quantization, packed export and integer serving are rejected"
+        });
+        return contract;
+    }
     if geometry == ReadGeometry::Lorentz && contract.get("quantization").is_some() {
         return uor_r4_integer::config::with_lorentz_quantized_read(contract);
     }
@@ -1839,12 +1890,10 @@ pub fn lorentz_initial_log_beta(config: &JointConfig) -> f64 {
     (lorentz_initial_offset(config).sinh() / r.sqrt()).ln()
 }
 
-/// Hyperbolic geodesic distance from each query [batch, width] to its keys
-/// [batch, count, width] in the Lorentz model: rows lift to the hyperboloid
-/// x -> (sqrt(1+|x|^2), x), z = q0*k0 - <q,k> is clamped to LORENTZ_MIN_INNER,
-/// and arcosh(z) = ln(z + sqrt(z^2-1)) evaluates z^2-1 as (z-1)(z+1), which
-/// keeps its precision near z=1. All operations are differentiable in Candle.
-fn lorentz_distance(query: &Tensor, keys: &Tensor) -> Result<Tensor> {
+/// Shared lift of queries [batch, width] and keys [batch, count, width]:
+/// x -> (sqrt(1+|x|^2), x), with z = q0*k0 - <q,k> clamped to
+/// LORENTZ_MIN_INNER. Factoring this out preserves the Lorentz operation order.
+fn lorentz_inner(query: &Tensor, keys: &Tensor) -> Result<Tensor> {
     let query_time = query.sqr()?.sum_keepdim(1)?.affine(1.0, 1.0)?.sqrt()?;
     let key_time = keys
         .sqr()?
@@ -1856,12 +1905,35 @@ fn lorentz_distance(query: &Tensor, keys: &Tensor) -> Result<Tensor> {
         .unsqueeze(1)?
         .matmul(&keys.transpose(1, 2)?.contiguous()?)?
         .squeeze(1)?;
-    let z = key_time
+    Ok(key_time
         .broadcast_mul(&query_time)?
         .sub(&spatial)?
-        .clamp(LORENTZ_MIN_INNER as f32, f32::MAX)?;
+        .clamp(LORENTZ_MIN_INNER as f32, f32::MAX)?)
+}
+
+fn lorentz_distance(query: &Tensor, keys: &Tensor) -> Result<Tensor> {
+    lorentz_distance_from_inner(&lorentz_inner(query, keys)?)
+}
+
+fn lorentz_distance_from_inner(z: &Tensor) -> Result<Tensor> {
+    // Retained acosh expression: (z-1)(z+1) preserves precision near z=1.
     let root = z.affine(1.0, -1.0)?.mul(&z.affine(1.0, 1.0)?)?.sqrt()?;
     Ok(z.add(&root)?.log()?)
+}
+
+fn radial_distance(inner: &Tensor, config: &JointConfig) -> Result<Tensor> {
+    match config.read_geometry {
+        ReadGeometry::Lorentz => lorentz_distance_from_inner(inner),
+        ReadGeometry::LorentzAffine => {
+            let reference = lorentz_initial_offset(config);
+            // Fixed reference: the learned offset remains the same additive
+            // competition with NoRead in both radial arms.
+            Ok(inner
+                .affine(1.0, -reference.cosh())?
+                .affine(1.0 / reference.sinh(), reference)?)
+        }
+        ReadGeometry::Dot => Err(invalid("Dot read does not use a radial distance")),
+    }
 }
 
 /// Matched four-coordinate lane transports. Identity-centered normalization
@@ -1961,6 +2033,318 @@ impl Initializer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn radial_config(geometry: ReadGeometry) -> JointConfig {
+        JointConfig {
+            width: 128,
+            seed: 7,
+            read_geometry: geometry,
+            ..JointConfig::default()
+        }
+    }
+
+    #[test]
+    fn radial_read_preserves_dot_identity_and_shared_initial_arrays() -> Result<()> {
+        let legacy = r#"{"vocab_size":4096,"width":256,"read_width":64,"context":256,"transport":"quaternion","seed":0}"#;
+        let config: JointConfig = serde_json::from_str(legacy)?;
+        assert_eq!(serde_json::to_string(&config)?, legacy);
+        assert_eq!(config.read_geometry, ReadGeometry::Dot);
+        let dot = JointModel::new(radial_config(ReadGeometry::Dot), &Device::Cpu)?;
+        assert_eq!(dot.numerical_contract(), numerical_contract());
+        let query = Tensor::from_vec(vec![1f32, -2., 0.5, 3.], (2, 2), &Device::Cpu)?;
+        let keys = Tensor::from_vec(
+            vec![1f32, 2., -1., 0., 3., 1., 0., 2.],
+            (2, 2, 2),
+            &Device::Cpu,
+        )?;
+        let retained = query
+            .unsqueeze(1)?
+            .matmul(&keys.transpose(1, 2)?.contiguous()?)?
+            .squeeze(1)?
+            .affine(1.0 / 8.0, 0.0)?;
+        assert!(same_bits(
+            &retained,
+            &dot.read_scores(&query, &keys, false)?
+        )?);
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            let model = JointModel::new(radial_config(geometry), &Device::Cpu)?;
+            assert_eq!(model.variables().len(), dot.variables().len() + 2);
+            for (name, variable) in dot.variables() {
+                assert!(
+                    same_bits(variable, &model.variables()[name])?,
+                    "{geometry:?} {name}"
+                );
+            }
+            assert_eq!(
+                model.variables()[LORENTZ_OFFSET].to_vec1::<f32>()?,
+                [lorentz_initial_offset(&model.config) as f32]
+            );
+            assert_eq!(
+                model.variables()[LORENTZ_LOG_BETA].to_vec1::<f32>()?,
+                [lorentz_initial_log_beta(&model.config) as f32]
+            );
+            let ids = [3, 17, 4, 9, 2];
+            assert!(same_bits(
+                &model
+                    .forward(&ids, 1, 5, ReadMode::NoRead, false)?
+                    .probabilities,
+                &dot.forward(&ids, 1, 5, ReadMode::NoRead, false)?
+                    .probabilities,
+            )?);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn radial_read_affine_control_keeps_radii_and_matches_reference_tangent() -> Result<()> {
+        let device = Device::Cpu;
+        let query = Tensor::from_vec(vec![1f32, 0.], (1, 2), &device)?;
+        // Equal spatial dots, different key radii: neither arm may discard
+        // their different lifted time coordinates.
+        let keys = Tensor::from_vec(vec![0f32, 1., 0., 2.], (1, 2, 2), &device)?;
+        let inner = lorentz_inner(&query, &keys)?;
+        let expected_inner = [2f64, 10f64.sqrt()];
+        for (&actual, expected) in inner.to_vec2::<f32>()?[0].iter().zip(expected_inner) {
+            assert!((f64::from(actual) - expected).abs() < 1e-6);
+        }
+        let mut tangent_values = Vec::new();
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            let model = JointModel::new(radial_config(geometry), &device)?;
+            model.variables()[LORENTZ_LOG_BETA].set(&Tensor::from_vec(
+                vec![0.5f32],
+                (1,),
+                &device,
+            )?)?;
+            model.variables()[LORENTZ_OFFSET].set(&Tensor::from_vec(
+                vec![1.25f32],
+                (1,),
+                &device,
+            )?)?;
+            let reference = lorentz_initial_offset(&model.config);
+            let scores = model.read_scores(&query, &keys, false)?.to_vec2::<f32>()?;
+            assert!(scores[0][0] > scores[0][1]);
+            for (&score, z) in scores[0].iter().zip(expected_inner) {
+                let distance = if geometry == ReadGeometry::Lorentz {
+                    z.acosh()
+                } else {
+                    reference + (z - reference.cosh()) / reference.sinh()
+                };
+                let expected = 0.5f64.exp() * (1.25 - distance);
+                assert!((f64::from(score) - expected).abs() < 2e-6 * (1.0 + expected.abs()));
+            }
+            let z = Var::from_vec(vec![reference.cosh() as f32], (1, 1), &device)?;
+            let distance = radial_distance(&z, &model.config)?.sum_all()?;
+            let gradients = distance.backward()?;
+            let slope = gradients
+                .get(z.as_tensor())
+                .ok_or_else(|| invalid("missing tangent gradient"))?
+                .to_vec2::<f32>()?[0][0];
+            assert!((f64::from(slope) - 1.0 / reference.sinh()).abs() < 1e-7);
+            tangent_values.push(distance.to_scalar::<f32>()?);
+            let epsilon = 0.125f32;
+            let evaluate = |delta: f32| -> Result<f32> {
+                Ok(radial_distance(
+                    &Tensor::from_vec(vec![reference.cosh() as f32 + delta], (1, 1), &device)?,
+                    &model.config,
+                )?
+                .sum_all()?
+                .to_scalar::<f32>()?)
+            };
+            let numerical_slope = (evaluate(epsilon)? - evaluate(-epsilon)?) / (2.0 * epsilon);
+            assert!((slope - numerical_slope).abs() < 3e-6);
+        }
+        assert!((tangent_values[0] - tangent_values[1]).abs() < 1e-6);
+        let identical = query.unsqueeze(1)?;
+        assert_eq!(
+            lorentz_inner(&query, &identical)?.to_vec2::<f32>()?[0][0],
+            LORENTZ_MIN_INNER as f32
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn radial_read_language_gradients_reach_both_shared_read_paths() -> Result<()> {
+        let ids = [3, 17, 4, 9, 2];
+        let targets = [17, 4, 9, 2, 5];
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            let mut model = JointModel::new(radial_config(geometry), &Device::Cpu)?;
+            for admission in [AdmissionPolicy::Full, AdmissionPolicy::Recent64] {
+                model.set_admission_policy(admission)?;
+                let output = model.forward(&ids, 1, 5, ReadMode::Enabled, true)?;
+                let loss = output.loss(&targets)?;
+                assert!(loss.to_scalar::<f32>()?.is_finite());
+                let gradients = loss.backward()?;
+                for name in [
+                    "read.query.weight",
+                    "read.key.weight",
+                    "read.value.weight",
+                    "read.no_read.weight",
+                    LORENTZ_LOG_BETA,
+                    LORENTZ_OFFSET,
+                ] {
+                    let gradient = gradients
+                        .get(model.variables()[name].as_tensor())
+                        .ok_or_else(|| invalid(format!("missing {geometry:?} {name} gradient")))?;
+                    let values = gradient.flatten_all()?.to_vec1::<f32>()?;
+                    assert!(
+                        values.iter().all(|value| value.is_finite()),
+                        "{geometry:?} {admission:?} {name}"
+                    );
+                    assert!(
+                        values.iter().any(|&value| value != 0.0),
+                        "{geometry:?} {admission:?} {name}"
+                    );
+                }
+                let changed_future =
+                    model.forward(&[3, 17, 4, 9, 88], 1, 5, ReadMode::Enabled, false)?;
+                assert!(
+                    max_delta(
+                        &output.probabilities.narrow(1, 0, 4)?,
+                        &changed_future.probabilities.narrow(1, 0, 4)?
+                    )? < 2e-6
+                );
+                let mut session = model.new_session(1)?;
+                for (position, &token) in ids.iter().enumerate() {
+                    let step = model.step(&mut session, &[token], ReadMode::Enabled)?;
+                    assert!(
+                        max_delta(
+                            &step.probabilities,
+                            &output.probabilities.narrow(1, position, 1)?.squeeze(1)?
+                        )? < 2e-6
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn radial_read_checkpoint_identity_and_integer_boundaries() -> Result<()> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock"))?
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("uor-r4-radial-read-{}-{nonce}", std::process::id()));
+        fs::create_dir(&root)?;
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            let directory = root.join(geometry.name());
+            fs::create_dir(&directory)?;
+            let mut model = JointModel::new(radial_config(geometry), &Device::Cpu)?;
+            let unsupported = |result: Result<()>| {
+                assert!(
+                    matches!(result, Err(crate::TrainingError::Integer(uor_r4_integer::IntegerError::UnsupportedReadGeometry(actual))) if actual == geometry)
+                );
+            };
+            if geometry == ReadGeometry::LorentzAffine {
+                unsupported(model.configure_quantization(0, 1));
+                unsupported(model.configure_rounding_calibration(0));
+                unsupported(model.save_hard(&directory).map(|_| ()));
+                unsupported(model.precision_view(PrecisionMode::FF).map(|_| ()));
+                assert!(matches!(
+                    uor_r4_integer::config::packed_numerical_contract(geometry),
+                    Err(uor_r4_integer::IntegerError::UnsupportedReadGeometry(actual)) if actual == geometry
+                ));
+            } else {
+                let mut quantized = JointModel::new(radial_config(geometry), &Device::Cpu)?;
+                quantized.configure_quantization(0, 1)?;
+                let written: Value =
+                    serde_json::from_str(&serde_json::to_string(&quantized.numerical_contract())?)?;
+                assert_eq!(
+                    written,
+                    uor_r4_integer::config::packed_numerical_contract(geometry)?
+                );
+            }
+            assert!(fs::read_dir(&directory)?.next().is_none());
+            model.save(&directory)?;
+            if geometry == ReadGeometry::Lorentz {
+                // Source-derived compatibility expectation from dcf979df's
+                // continuous read_geometry_contract (lines 1721–1730), not a
+                // replay of any trained artifact. Keep this literal separate
+                // from the implementation so contract edits cannot pass merely
+                // by writing and reloading the same incompatible declaration.
+                let mut pinned = numerical_contract();
+                pinned["read"] = json!("Query/Key from RMS-normalized provisional/written states, each lifted to the hyperboloid x0=sqrt(1+|x|^2); Value=tanh(affine(normalized written state)); score=exp(read.lorentz_log_beta)*(read.lorentz_offset-arcosh(max(q0*k0-<q,k>,1+1e-6)))+learned age, competing with learned NoRead");
+                pinned["read_geometry"] = serde_json::from_str(
+                    r#"{
+                    "geometry":"lorentz",
+                    "minimum_inner_product":1.000001,
+                    "distance":"arcosh(z)=ln(z+sqrt((z-1)(z+1))) after the F32 clamp",
+                    "scale":"exp(read.lorentz_log_beta); learned scalar initialized ln(sinh(offset0)/sqrt(r)), matching the Dot read scale to first order",
+                    "offset":"read.lorentz_offset; learned scalar radius initialized arcosh(1+2*r*d/(r+d)), the distance between independent initial query/key rows",
+                    "admission":"Bounded candidate admission is unchanged; this score ranks admitted candidates only",
+                    "scope":"F32 offline training and evaluation only; no quantized interface, packed export or integer arcosh kernel"
+                }"#,
+                )?;
+                assert_eq!(model.numerical_contract(), pinned);
+                let saved: Value =
+                    serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+                assert_eq!(saved["numerical_contract"], pinned);
+            }
+            let reloaded = JointModel::load(&directory, &Device::Cpu)?;
+            assert_eq!(reloaded.config, model.config);
+            assert_eq!(
+                reloaded.numerical_contract()["read_geometry"]["geometry"],
+                json!(geometry)
+            );
+            let ids = [3, 17, 4, 9, 2];
+            assert!(same_bits(
+                &model
+                    .forward(&ids, 1, 5, ReadMode::Enabled, false)?
+                    .probabilities,
+                &reloaded
+                    .forward(&ids, 1, 5, ReadMode::Enabled, false)?
+                    .probabilities
+            )?);
+            if geometry == ReadGeometry::LorentzAffine {
+                let manifest = json!({"model":model.config});
+                fs::write(
+                    directory.join("hard-model.json"),
+                    serde_json::to_vec(&manifest)?,
+                )?;
+                unsupported(JointModel::load_hard(&directory, &Device::Cpu).map(|_| ()));
+                assert!(
+                    matches!(uor_r4_integer::IntegerModel::load_with_tables(&directory, &directory), Err(uor_r4_integer::IntegerError::UnsupportedReadGeometry(actual)) if actual == geometry)
+                );
+            }
+            let mut manifest: Value =
+                serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+            manifest["model"]["read_geometry"] = json!(if geometry == ReadGeometry::Lorentz {
+                ReadGeometry::LorentzAffine
+            } else {
+                ReadGeometry::Lorentz
+            });
+            fs::write(
+                directory.join("config.json"),
+                serde_json::to_vec(&manifest)?,
+            )?;
+            assert!(JointModel::load(&directory, &Device::Cpu).is_err());
+            // Even a caller mutating the public config of a quantized Dot
+            // shadow cannot obtain an affine quantized evaluation or export.
+            if geometry == ReadGeometry::LorentzAffine {
+                let mut quantized =
+                    JointModel::new(radial_config(ReadGeometry::Dot), &Device::Cpu)?;
+                quantized.configure_quantization(0, 1)?;
+                quantized.config.read_geometry = geometry;
+                unsupported(
+                    quantized
+                        .forward(&ids, 1, 5, ReadMode::Enabled, false)
+                        .map(|_| ()),
+                );
+                unsupported(quantized.new_session(1).map(|_| ()));
+                unsupported(quantized.save(&directory));
+                manifest["model"]["read_geometry"] = json!(geometry);
+                manifest["quantization"] = serde_json::to_value(quantized.quantization())?;
+                fs::write(
+                    directory.join("config.json"),
+                    serde_json::to_vec(&manifest)?,
+                )?;
+                unsupported(JointModel::load(&directory, &Device::Cpu).map(|_| ()));
+            }
+        }
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
 
     fn small(transport: Transport) -> JointConfig {
         JointConfig {

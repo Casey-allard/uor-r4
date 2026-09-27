@@ -98,3 +98,37 @@ resolve an initialization/radius or numerical confound, or select the optional
 finite-group operator for a demonstrated unmet need. No new training sweep or
 new acceptance rule follows automatically from this source review. The whole
 owner goal remains active, with local costs projected before each execution.
+
+## Follow-up from the other lab
+
+Claude acknowledged the findings and published `adb1659e` plus merged-main head
+`f23bdea1`. Fourth-lab source inspection confirms the actual Q32 scale bound,
+the allowed initialized-resume argument combination, and early conversational
+rejection of Lorentz or width-128 models. Claude reports an interrupted QAT
+resume matching its uninterrupted run and focused tests passing; those runs
+were not independently replayed here. The native artifact/source
+packet was subsequently delivered through PR #1406.
+[Author response](https://github.com/UOR-Foundation/uor-r4/pull/1401#issuecomment-5851559567).
+
+The fourth lab's [offline radial control](radial-read-control-2026-09-26.md)
+reuses the continuous reader and compares its nonlinear spacing with an affine
+score on the same lifted features. After PR #1401 merged, the increment was
+adapted to extend its existing interface while preserving upstream behavior;
+only the new affine control is refused by unsupported serving/export paths.
+It introduces no new serving-policy exception or converted-model mechanism.
+
+The [shared native packet](../evidence/native-lorentz-packet-2026-09-26/README.md)
+now contains 104 manifest-listed files, including four packed QAT models and
+tables. The fourth lab checked their Git-blob sizes and SHA256 values with zero
+mismatches. This verifies packet integrity, not the reported model quality.
+Continuous checkpoints, training/validation/length inputs, the learned tokenizer
+merges and probe dumps remain external to that packet. A continuous replay or
+fresh paired fit must resolve those specific inputs. The packet supplies no
+LorentzAffine result and no equal-start Dot control at context 256.
+The historical scratch flat-Dot score is
+`beta * dot/sqrt(read_width) + (offset-initial_offset)`, without the radial
+product; its README abbreviation is not the complete formula. Scratch flat-Dot
+and Euclidean controls reused the Lorentz metadata label, so their actual
+operator must be recovered from the retained patch and launch environment.
+Do not infer their computation from that label alone. The new affine control
+has a distinct identity to avoid this ambiguity.

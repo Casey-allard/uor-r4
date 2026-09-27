@@ -46,6 +46,8 @@ pub enum IntegerError {
     Io(std::io::Error),
     Json(serde_json::Error),
     Invalid(String),
+    /// A model declares an offline read operator with no retained integer path.
+    UnsupportedReadGeometry(ReadGeometry),
 }
 impl fmt::Display for IntegerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -53,6 +55,11 @@ impl fmt::Display for IntegerError {
             Self::Io(error) => write!(f, "integer runtime I/O: {error}"),
             Self::Json(error) => write!(f, "integer runtime JSON: {error}"),
             Self::Invalid(error) => write!(f, "invalid integer runtime input: {error}"),
+            Self::UnsupportedReadGeometry(geometry) => write!(
+                f,
+                "{} read is offline-only; quantization, packed export and integer serving support dot and lorentz reads",
+                geometry.name()
+            ),
         }
     }
 }
