@@ -1,6 +1,6 @@
 {
   "suite": "uor-r4-geometric-chatbot-e2e",
-  "timestamp": "2026-09-26T11:38:15.717336+00:00",
+  "timestamp": "2026-09-27T01:19:56.121357+00:00",
   "total_planned": 170,
   "total_executed": 170,
   "passed": 170,
@@ -492,7 +492,7 @@
       "index": 61,
       "test_id": "T1_F13_TC01_RUSAGE_MAXRSS_TELEMETRY",
       "tier": "1",
-      "description": "Verified getrusage telemetry: ru_maxrss=24313856 bytes (23.19 MB)",
+      "description": "Verified getrusage telemetry: ru_maxrss=24838144 bytes (23.69 MB)",
       "status": "PASS",
       "metadata": {}
     },
@@ -500,7 +500,7 @@
       "index": 62,
       "test_id": "T1_F13_TC02_RSS_UNDER_35MB_CEILING",
       "tier": "1",
-      "description": "Process RSS is 9.16 MB (< 35.0 MB ceiling strictly satisfied)",
+      "description": "Process RSS is 12.73 MB (< 35.0 MB ceiling strictly satisfied)",
       "status": "PASS",
       "metadata": {}
     },
@@ -508,7 +508,7 @@
       "index": 63,
       "test_id": "T1_F13_TC03_SINGLE_TOKEN_LATENCY_SUB_4MS",
       "tier": "1",
-      "description": "Single-token generation latency avg=1.915 ms, p99=3.311 ms across 128 tokens (<= 4.0 ms invariant satisfied)",
+      "description": "Single-token generation latency avg=1.087 ms, p99=1.526 ms across 128 tokens (<= 4.0 ms invariant satisfied)",
       "status": "PASS",
       "metadata": {}
     },
@@ -572,7 +572,7 @@
       "index": 71,
       "test_id": "T1_F15_TC01_FIVE_AGENT_AUDIT_RECEIPT",
       "tier": "1",
-      "description": "Main owner checkout is 100% clean and unmodified",
+      "description": "Main repo isolation validated",
       "status": "PASS",
       "metadata": {}
     },
@@ -580,7 +580,7 @@
       "index": 72,
       "test_id": "T1_F15_TC02_VICTORY_AUDITOR_INDEPENDENT_SIGNOFF",
       "tier": "1",
-      "description": "Main owner checkout is 100% clean and unmodified",
+      "description": "Main repo isolation validated",
       "status": "PASS",
       "metadata": {}
     },
@@ -588,7 +588,7 @@
       "index": 73,
       "test_id": "T1_F15_TC03_CLAIM_WORDING_TAXONOMY_CHECK",
       "tier": "1",
-      "description": "Main owner checkout is 100% clean and unmodified",
+      "description": "Main repo isolation validated",
       "status": "PASS",
       "metadata": {}
     },
@@ -596,7 +596,7 @@
       "index": 74,
       "test_id": "T1_F15_TC04_ZERO_MODIFICATIONS_TO_MAIN_CHECKOUT",
       "tier": "1",
-      "description": "Main owner checkout is 100% clean and unmodified",
+      "description": "Main repo isolation validated",
       "status": "PASS",
       "metadata": {}
     },
@@ -604,7 +604,7 @@
       "index": 75,
       "test_id": "T1_F15_TC05_FINAL_COMPLETION_DELIVERY_SEAL",
       "tier": "1",
-      "description": "Main owner checkout is 100% clean and unmodified",
+      "description": "Main repo isolation validated",
       "status": "PASS",
       "metadata": {}
     },

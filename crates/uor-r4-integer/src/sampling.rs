@@ -24,6 +24,9 @@ pub enum SamplePolicy {
     /// includes all tokens; one is exactly greedy and consumes no random value.
     /// Equal masses at the top-k boundary prefer the lowest token ID.
     Categorical { top_k: usize },
+    /// Calibrated Min-P truncation: filters candidates with mass < min_p_q16 * p_max / 65536.
+    /// Prevents long-tail sampling departures while preserving natural variation.
+    MinP { top_k: usize, min_p_q16: u32 },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -100,14 +103,27 @@ impl Sampler {
         policy: SamplePolicy,
     ) -> Result<usize, SamplingError> {
         let best = validate_distribution(probabilities)?;
-        let top_k = match policy {
-            SamplePolicy::Greedy | SamplePolicy::Categorical { top_k: 1 } => {
+        let (top_k, min_p_q16) = match policy {
+            SamplePolicy::Greedy
+            | SamplePolicy::Categorical { top_k: 1 }
+            | SamplePolicy::MinP { top_k: 1, .. } => {
                 return Ok(best);
             }
-            SamplePolicy::Categorical { top_k } => top_k,
+            SamplePolicy::Categorical { top_k } => (top_k, 0u32),
+            SamplePolicy::MinP { top_k, min_p_q16 } => (top_k, min_p_q16),
         };
 
-        if top_k == 0 || top_k >= probabilities.len() {
+        let p_max = probabilities[best];
+        let min_p_threshold = if min_p_q16 > 0 {
+            let high = (p_max >> 16) as u128;
+            let low = (p_max & 0xffff) as u128;
+            let prod = (high * (min_p_q16 as u128)) + ((low * (min_p_q16 as u128)) >> 16);
+            prod as u64
+        } else {
+            0u64
+        };
+
+        if (top_k == 0 || top_k >= probabilities.len()) && min_p_threshold == 0 {
             let draw = self.draw_below(PROBABILITY_ONE)?;
             return select_ticket(probabilities, 0..probabilities.len(), draw);
         }
@@ -122,7 +138,16 @@ impl Sampler {
                 .cmp(&probabilities[left])
                 .then_with(|| left.cmp(&right))
         });
-        self.ranked.truncate(top_k);
+        if top_k > 0 && top_k < self.ranked.len() {
+            self.ranked.truncate(top_k);
+        }
+        if min_p_threshold > 0 {
+            self.ranked
+                .retain(|&idx| probabilities[idx] >= min_p_threshold);
+            if self.ranked.is_empty() {
+                self.ranked.push(best);
+            }
+        }
         let total = self.ranked.iter().try_fold(0u64, |total, &index| {
             total
                 .checked_add(probabilities[index])
@@ -407,5 +432,48 @@ mod tests {
         assert_eq!(json_cat, "{\"kind\":\"categorical\",\"top_k\":2}");
         let de_cat: SamplePolicy = serde_json::from_str(&json_cat).unwrap();
         assert_eq!(de_cat, policy);
+
+        let policy_min_p = SamplePolicy::MinP {
+            top_k: 40,
+            min_p_q16: 3276,
+        };
+        let json_min_p = serde_json::to_string(&policy_min_p).unwrap();
+        assert_eq!(
+            json_min_p,
+            "{\"kind\":\"min_p\",\"top_k\":40,\"min_p_q16\":3276}"
+        );
+        let de_min_p: SamplePolicy = serde_json::from_str(&json_min_p).unwrap();
+        assert_eq!(de_min_p, policy_min_p);
+    }
+
+    #[test]
+    fn min_p_filters_tail_departures_deterministically() {
+        let p0 = (PROBABILITY_ONE * 90) / 100;
+        let p1 = (PROBABILITY_ONE * 9) / 100;
+        let p2 = PROBABILITY_ONE - p0 - p1;
+        let probabilities = [p0, p1, p2];
+
+        let policy_min_p = SamplePolicy::MinP {
+            top_k: 40,
+            min_p_q16: 6553,
+        };
+
+        let mut sampler = Sampler::new(42);
+        for _ in 0..100 {
+            let token = sampler.select(&probabilities, policy_min_p).unwrap();
+            assert!(
+                token == 0 || token == 1,
+                "Token 2 (1% tail departure) must never be selected under MinP: got {token}"
+            );
+        }
+
+        let policy_strict = SamplePolicy::MinP {
+            top_k: 40,
+            min_p_q16: 13107,
+        };
+        for _ in 0..50 {
+            let token = sampler.select(&probabilities, policy_strict).unwrap();
+            assert_eq!(token, 0, "Strict MinP must select only dominant token 0");
+        }
     }
 }

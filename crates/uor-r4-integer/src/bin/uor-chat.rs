@@ -239,6 +239,10 @@ fn print_welcome_banner(bundle: &Bundle, policy: SamplePolicy, read_mode: ReadMo
     println!("  Zero Transformers | Zero Hardware MatMul | Apple Silicon M1 Native");
     println!("================================================================================");
     println!("  Bundle Identity : {}...", id_short);
+    println!(
+        "  Vocabulary Size : {} tokens",
+        bundle.model().config().vocab_size
+    );
     println!("  Memory Capacity : 256 tokens (32 Persistent Persona, 224 Dialogue Slots)");
     println!("  Sampling Policy : {:?}", policy);
     println!("  Memory Read Mode: {:?}", read_mode);
@@ -248,6 +252,7 @@ fn print_welcome_banner(bundle: &Bundle, policy: SamplePolicy, read_mode: ReadMo
 
 fn print_help() {
     println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Available Slash Commands:");
+    println!("  /persona [PROMPT]     Set or inspect persistent system persona (slots 0..31)");
     println!(
         "  /reset                Clear dialogue slots (32..255) and retain persistent persona"
     );
@@ -283,6 +288,10 @@ fn print_stats(session: &ChatSession) {
         )
     );
     println!("| Dialogue Tokens Seen   : {:<50}|", t.dialogue_tokens_seen);
+    println!(
+        "| L2 Prime Pages         : {:<50}|",
+        format!("{}/{}", t.l2_pages_used, t.l2_capacity)
+    );
     println!("| Persona Sealed         : {:<50}|", t.persistent_sealed);
     println!(
         "| Memory Read Mode       : {:<50}|",
@@ -331,6 +340,39 @@ fn handle_slash_command<'a>(line: &str, session: &mut ChatSession<'a>, bundle: &
         }
         "/help" => {
             print_help();
+        }
+        "/persona" => {
+            let prompt = line["/persona".len()..].trim();
+            if prompt.is_empty() {
+                let p_tokens = &session.state().persistent_tokens;
+                if p_tokens.is_empty() {
+                    println!(
+                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} No persistent persona is currently set (0 slots used)."
+                    );
+                } else {
+                    let decoded = bundle.tokenizer().decode(p_tokens);
+                    println!(
+                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Current Persona ({} tokens, sealed: {}):\n\"{}\"",
+                        p_tokens.len(),
+                        session.telemetry().persistent_sealed,
+                        decoded
+                    );
+                }
+            } else {
+                match session.ingest_system_prompt(prompt) {
+                    Ok(count) => {
+                        println!(
+                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} System persona set and sealed ({} tokens).",
+                            count
+                        );
+                    }
+                    Err(err) => {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}[error]{ANSI_RESET} Failed to set persona: {err}"
+                        );
+                    }
+                }
+            }
         }
         "/reset" => {
             session.reset_dialogue();
@@ -446,6 +488,48 @@ fn run_kernel_verification(bundle: &Bundle) -> Result<()> {
     Ok(())
 }
 
+fn resolve_bundle_path(path: &Path) -> PathBuf {
+    let path_str = path.to_string_lossy();
+    let mapped_alias = if path_str.contains("fit256-quaternion-3") {
+        Some(("fit256-quaternion-3", "bundle-quaternion-1"))
+    } else if path_str.contains("fit256-householder_pair-3") {
+        Some(("fit256-householder_pair-3", "bundle-householder_pair-1"))
+    } else {
+        None
+    };
+
+    if let Some((alias, target)) = mapped_alias {
+        eprintln!(
+            "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} Mapping training alias '{alias}' to pre-trained integer serving bundle '{target}'."
+        );
+        let target_path = Path::new(target);
+        if target_path.exists() {
+            return target_path.to_path_buf();
+        }
+        let full_target =
+            Path::new("/Users/casey.allard/uor-r4-investigations/integer-serving-20260925")
+                .join(target);
+        if full_target.exists() {
+            return full_target;
+        }
+    }
+
+    if path.exists() {
+        return path.to_path_buf();
+    }
+    let default_bases = [
+        "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925",
+        "/Users/casey.allard/uor-r4-investigations/language-continuation-20260925",
+    ];
+    for base in &default_bases {
+        let candidate = Path::new(base).join(path);
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+    path.to_path_buf()
+}
+
 fn main() {
     retain_kernel_symbols();
 
@@ -456,16 +540,19 @@ fn main() {
             Some(p) if p == Path::new("synthetic") || p == Path::new(":synthetic:") => {
                 create_test_bundle_with_byte_vocab()
             }
-            Some(p) => match Bundle::load(p) {
-                Ok(b) => b,
-                Err(err) => {
-                    eprintln!(
-                        "{ANSI_RED_BOLD}error:{ANSI_RESET} failed to load bundle at '{}': {err}",
-                        p.display()
-                    );
-                    process::exit(1);
+            Some(p) => {
+                let resolved = resolve_bundle_path(p);
+                match Bundle::load(&resolved) {
+                    Ok(b) => b,
+                    Err(err) => {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} failed to load bundle at '{}': {err}",
+                            resolved.display()
+                        );
+                        process::exit(1);
+                    }
                 }
-            },
+            }
             None => create_test_bundle_with_byte_vocab(),
         };
 
@@ -476,20 +563,21 @@ fn main() {
         process::exit(0);
     }
 
-    let bundle_path = cli.bundle_path.as_ref().unwrap();
+    let bundle_path_raw = cli.bundle_path.as_ref().unwrap();
 
-    let bundle = if bundle_path == Path::new("synthetic")
-        || bundle_path == Path::new(":synthetic:")
-        || bundle_path.to_str() == Some("synthetic")
+    let bundle = if bundle_path_raw == Path::new("synthetic")
+        || bundle_path_raw == Path::new(":synthetic:")
+        || bundle_path_raw.to_str() == Some("synthetic")
     {
         create_test_bundle_with_byte_vocab()
     } else {
-        match Bundle::load(bundle_path) {
+        let resolved = resolve_bundle_path(bundle_path_raw);
+        match Bundle::load(&resolved) {
             Ok(b) => b,
             Err(err) => {
                 eprintln!(
                     "{ANSI_RED_BOLD}error:{ANSI_RESET} failed to load bundle at '{}': {err}",
-                    bundle_path.display()
+                    resolved.display()
                 );
                 process::exit(1);
             }
@@ -548,13 +636,32 @@ fn main() {
                 print!("{ANSI_GREEN_BOLD}Assistant>{ANSI_RESET} ");
                 io::stdout().flush().ok();
 
+                let start_time = std::time::Instant::now();
                 match session.generate_stream(trimmed, cli.max_tokens, &[]) {
-                    Ok(stream) => {
-                        for chunk in stream {
+                    Ok(mut stream) => {
+                        while let Some(chunk) = stream.next() {
                             print!("{}", chunk);
                             io::stdout().flush().ok();
                         }
                         println!();
+
+                        let elapsed = start_time.elapsed();
+                        let tok_count = stream.tokens_generated();
+                        let elapsed_secs = elapsed.as_secs_f64();
+                        let ms_per_tok = if tok_count > 0 {
+                            (elapsed_secs * 1000.0) / (tok_count as f64)
+                        } else {
+                            0.0
+                        };
+                        let tok_per_sec = if elapsed_secs > 0.0 {
+                            (tok_count as f64) / elapsed_secs
+                        } else {
+                            0.0
+                        };
+                        println!(
+                            "{ANSI_YELLOW_BOLD}[telemetry]{ANSI_RESET} Generated {} tokens in {:.2}s ({:.1} tok/s, {:.3} ms/tok)",
+                            tok_count, elapsed_secs, tok_per_sec, ms_per_tok
+                        );
                     }
                     Err(err) => {
                         println!();

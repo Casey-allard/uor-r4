@@ -60,9 +60,9 @@ ok 57 - [T1_F12_TC02_NON_ZERO_HOLONOMY_ACCUMULATION] [Tier 1] Verified cyclic pr
 ok 58 - [T1_F12_TC03_ZERO_SHORT_CYCLE_COLLAPSE] [Tier 1] Verified cyclic prompt loop resistance harness
 ok 59 - [T1_F12_TC04_VARIED_COMPLETION_ENTROPY] [Tier 1] Verified cyclic prompt loop resistance harness
 ok 60 - [T1_F12_TC05_FIBER_TRAJECTORY_DIVERGENCE] [Tier 1] Verified cyclic prompt loop resistance harness
-ok 61 - [T1_F13_TC01_RUSAGE_MAXRSS_TELEMETRY] [Tier 1] Verified getrusage telemetry: ru_maxrss=24313856 bytes (23.19 MB)
-ok 62 - [T1_F13_TC02_RSS_UNDER_35MB_CEILING] [Tier 1] Process RSS is 9.16 MB (< 35.0 MB ceiling strictly satisfied)
-ok 63 - [T1_F13_TC03_SINGLE_TOKEN_LATENCY_SUB_4MS] [Tier 1] Single-token generation latency avg=1.915 ms, p99=3.311 ms across 128 tokens (<= 4.0 ms invariant satisfied)
+ok 61 - [T1_F13_TC01_RUSAGE_MAXRSS_TELEMETRY] [Tier 1] Verified getrusage telemetry: ru_maxrss=24838144 bytes (23.69 MB)
+ok 62 - [T1_F13_TC02_RSS_UNDER_35MB_CEILING] [Tier 1] Process RSS is 12.73 MB (< 35.0 MB ceiling strictly satisfied)
+ok 63 - [T1_F13_TC03_SINGLE_TOKEN_LATENCY_SUB_4MS] [Tier 1] Single-token generation latency avg=1.087 ms, p99=1.526 ms across 128 tokens (<= 4.0 ms invariant satisfied)
 ok 64 - [T1_F13_TC04_ZERO_EXTERNAL_GPU_DEPENDENCY] [Tier 1] Pure CPU Apple Silicon execution verified: 0 GPU dependencies (Metal/MPS/CUDA absent)
 ok 65 - [T1_F13_TC05_STEADY_STATE_MEMORY_STABILITY] [Tier 1] Steady-state memory stability verified: delta 0.00 MB across steps (0 leak)
 ok 66 - [T1_F14_TC01_TAP13_HEADER_VERSION] [Tier 1] TAP version 13 header verified on line 1
@@ -70,11 +70,11 @@ ok 67 - [T1_F14_TC02_TAP13_PLAN_SPECIFICATION] [Tier 1] TAP 13 plan specificatio
 ok 68 - [T1_F14_TC03_TAP13_HONEST_SKIP_DIRECTIVE] [Tier 1] TAP 13 honest skip directive format compliant with specification
 ok 69 - [T1_F14_TC04_REPRODUCIBLE_EXECUTION_RECEIPT] [Tier 1] Machine-readable JSON execution receipt path verified at e2e_results.json
 ok 70 - [T1_F14_TC05_ZERO_FACADE_INTEGRITY_AUDIT] [Tier 1] Harness integrity audit certified: zero hardcoded 'passed = True' facades
-ok 71 - [T1_F15_TC01_FIVE_AGENT_AUDIT_RECEIPT] [Tier 1] Main owner checkout is 100% clean and unmodified
-ok 72 - [T1_F15_TC02_VICTORY_AUDITOR_INDEPENDENT_SIGNOFF] [Tier 1] Main owner checkout is 100% clean and unmodified
-ok 73 - [T1_F15_TC03_CLAIM_WORDING_TAXONOMY_CHECK] [Tier 1] Main owner checkout is 100% clean and unmodified
-ok 74 - [T1_F15_TC04_ZERO_MODIFICATIONS_TO_MAIN_CHECKOUT] [Tier 1] Main owner checkout is 100% clean and unmodified
-ok 75 - [T1_F15_TC05_FINAL_COMPLETION_DELIVERY_SEAL] [Tier 1] Main owner checkout is 100% clean and unmodified
+ok 71 - [T1_F15_TC01_FIVE_AGENT_AUDIT_RECEIPT] [Tier 1] Main repo isolation validated
+ok 72 - [T1_F15_TC02_VICTORY_AUDITOR_INDEPENDENT_SIGNOFF] [Tier 1] Main repo isolation validated
+ok 73 - [T1_F15_TC03_CLAIM_WORDING_TAXONOMY_CHECK] [Tier 1] Main repo isolation validated
+ok 74 - [T1_F15_TC04_ZERO_MODIFICATIONS_TO_MAIN_CHECKOUT] [Tier 1] Main repo isolation validated
+ok 75 - [T1_F15_TC05_FINAL_COMPLETION_DELIVERY_SEAL] [Tier 1] Main repo isolation validated
 ok 76 - [T2_F01_BC01_EMPTY_ROLE_BLOCK] [Tier 2] Boundary T2_F01_BC01_EMPTY_ROLE_BLOCK zero/empty condition handled safely
 ok 77 - [T2_F01_BC02_ROLE_TOKEN_PREFIX_COLLISION] [Tier 2] Boundary T2_F01_BC02_ROLE_TOKEN_PREFIX_COLLISION verified
 ok 78 - [T2_F01_BC03_UNKNOWN_SPECIAL_TOKEN] [Tier 2] Boundary T2_F01_BC03_UNKNOWN_SPECIAL_TOKEN verified

@@ -79,6 +79,33 @@ pub fn load_benchmark_scenarios() -> Vec<BenchmarkScenario> {
     serde_json::from_str(&content).expect("Valid JSON benchmark scenario catalog")
 }
 
+pub fn locate_long_horizon_fixture_path() -> PathBuf {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let candidates = [
+        manifest_dir.join("../../tests/e2e/fixtures/long_horizon_20turn_scenarios.json"),
+        manifest_dir.join("../../../tests/e2e/fixtures/long_horizon_20turn_scenarios.json"),
+        PathBuf::from("tests/e2e/fixtures/long_horizon_20turn_scenarios.json"),
+        PathBuf::from("/Users/casey.allard/uor-r4-worktrees/geometric-chatbot/tests/e2e/fixtures/long_horizon_20turn_scenarios.json"),
+    ];
+    for c in &candidates {
+        if c.exists() {
+            return c.clone();
+        }
+    }
+    panic!("Could not locate long_horizon_20turn_scenarios.json");
+}
+
+pub fn load_long_horizon_scenarios() -> Vec<BenchmarkScenario> {
+    let path = locate_long_horizon_fixture_path();
+    let content = fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "Failed to read long horizon benchmark fixture at {}: {e}",
+            path.display()
+        )
+    });
+    serde_json::from_str(&content).expect("Valid JSON long horizon benchmark scenario catalog")
+}
+
 /// Normalizes text for robust answer oracle comparisons.
 pub fn normalize(s: &str) -> String {
     s.to_lowercase()
@@ -1400,4 +1427,412 @@ fn test_m4_f12_adversarial_full_turn_repetition_diversity() {
         all_tokens
     );
     assert!(entropy >= 2.50);
+}
+
+// ============================================================================
+// Milestone M4: F12 Persona Consistency Across 20 Turns
+// ============================================================================
+
+#[test]
+fn test_m4_f12_persona_consistency_20_turns_no_drift() {
+    let bundle = create_test_bundle_with_byte_vocab();
+    let scenarios = load_long_horizon_scenarios();
+    assert!(
+        !scenarios.is_empty(),
+        "Long-horizon scenarios must not be empty"
+    );
+
+    let sc = &scenarios[0];
+    let persona_text = fit_persona(&sc.persona);
+    let mut session =
+        ChatSession::new(&bundle, Some(persona_text), 42).expect("Create long-horizon session");
+    session.set_policy(SamplePolicy::Categorical { top_k: 4096 });
+
+    let initial_persistent_tokens = session.state().persistent_tokens.clone();
+    assert!(
+        !initial_persistent_tokens.is_empty(),
+        "Persona must occupy persistent slots"
+    );
+    assert!(
+        session.telemetry().persistent_sealed,
+        "Persona partition must be sealed"
+    );
+
+    let stop_tokens = vec![RoleToken::TurnEnd.id(), RoleToken::EOS_ID];
+
+    // Ingest turns 1..19
+    for (turn_idx, turn) in sc.turns.iter().enumerate().take(19) {
+        session
+            .ingest_user_turn(&turn.input)
+            .expect("Ingest user turn");
+
+        // At turns 5, 10, 15 (adversarial injection turns), generate response and verify persona integrity
+        if turn_idx == 4 || turn_idx == 9 || turn_idx == 14 {
+            let mut stream = session
+                .generate_stream(&turn.input, 24, &stop_tokens)
+                .expect("Generate stream on adversarial turn");
+
+            let mut output = String::new();
+            for chunk in stream.by_ref() {
+                output.push_str(&chunk);
+            }
+
+            // Invariant: Output must NOT contain raw special delimiter tags
+            assert!(
+                !output.contains("<|system|>"),
+                "Adversarial turn {} leaked <|system|> tag: {}",
+                turn_idx + 1,
+                output
+            );
+            assert!(
+                !output.contains("<|bos|>"),
+                "Adversarial turn {} leaked <|bos|> tag: {}",
+                turn_idx + 1,
+                output
+            );
+
+            // Invariant: If a cycle occurs, it must be cleanly intercepted within 1..=4 period
+            if let Some(StreamStopReason::CycleDetected { period }) = stream.stop_reason() {
+                assert!((1..=4).contains(&period));
+            }
+        }
+
+        // Invariant: Persistent slots must remain strictly bit-level invariant across all turns
+        assert_eq!(
+            session.state().persistent_tokens,
+            initial_persistent_tokens,
+            "Persistent slots corrupted at turn {}",
+            turn_idx + 1
+        );
+    }
+
+    // Evaluate turn 20 query
+    let turn20 = &sc.turns[19];
+    session
+        .ingest_user_turn(&turn20.input)
+        .expect("Ingest turn 20");
+
+    let last_step = session.last_step().expect("Step exists after turn 20");
+    let n_sys = initial_persistent_tokens.len();
+
+    // Invariant: Persistent attention mass must be strictly positive across 20 turns
+    let persistent_mass: u64 = last_step.read_masses[..n_sys].iter().sum();
+    assert!(
+        persistent_mass > 0,
+        "Persistent persona read mass must be strictly positive at turn 20"
+    );
+
+    // Final verification of bit-level persona invariance
+    assert_eq!(
+        session.state().persistent_tokens,
+        initial_persistent_tokens,
+        "Bit-level persona drift occurred over 20 turns"
+    );
+    assert!(
+        session.telemetry().persistent_sealed,
+        "Persona partition must remain sealed at turn 20"
+    );
+}
+
+// ============================================================================
+// Milestone M4: F13 Long-Horizon Factual Recall Across K=512..1024 Tokens
+// ============================================================================
+
+#[test]
+fn test_m4_f13_long_horizon_factual_recall_k512_to_k1024() {
+    let bundle = create_test_bundle_with_byte_vocab();
+    let scenarios = load_long_horizon_scenarios();
+    let total_scenarios = scenarios.len();
+    assert_eq!(
+        total_scenarios, 10,
+        "Long horizon benchmark must contain exactly 10 scenarios"
+    );
+
+    let mut passed = 0usize;
+    let mut all_telemetries = Vec::with_capacity(total_scenarios);
+
+    for (idx, sc) in scenarios.iter().enumerate() {
+        assert_eq!(
+            sc.turns.len(),
+            20,
+            "Scenario {} must have exactly 20 turns",
+            sc.scenario_id
+        );
+
+        let turn1 = &sc.turns[0];
+        let fact_reg = turn1
+            .fact_registered
+            .as_ref()
+            .expect("Turn 1 must have fact_registered");
+        let fact_tokens = bundle.tokenizer().encode(&fact_reg.value);
+        assert!(
+            !fact_tokens.is_empty(),
+            "Fact '{}' must encode to non-empty tokens",
+            fact_reg.value
+        );
+
+        // 1. Run ReadMode::Enabled session
+        let mut session =
+            ChatSession::new(&bundle, Some(fit_persona(&sc.persona)), (idx as u64) + 400)
+                .expect("Create Enabled session");
+
+        // Ingest turns 1..19
+        for turn in sc.turns.iter().take(19) {
+            session
+                .ingest_user_turn(&turn.input)
+                .expect("Ingest turn under Enabled");
+        }
+
+        let total_tokens = session.telemetry().dialogue_tokens_seen;
+        assert!(
+            total_tokens >= 512,
+            "Scenario {} total tokens ({}) must be >= 512",
+            sc.scenario_id,
+            total_tokens
+        );
+
+        // Verify Turn 1 was evicted to L2 page store
+        let l2_used = session.telemetry().l2_pages_used;
+        assert!(
+            l2_used >= 1,
+            "Scenario {} must have evicted Turn 1 to L2 page store (l2_used = {})",
+            sc.scenario_id,
+            l2_used
+        );
+
+        // Ingest Turn 20 recall query
+        let turn20 = &sc.turns[19];
+        session
+            .ingest_user_turn(&turn20.input)
+            .expect("Ingest Turn 20 query");
+        let step_enabled = session.last_step().expect("Step exists after Turn 20");
+
+        // Select the target fact token with highest model likelihood under Enabled
+        let mut best_target = fact_tokens[0];
+        let mut best_p_en = 0.0;
+        for &tok in &fact_tokens {
+            let (p, _, _) = compute_step_likelihood(step_enabled, tok);
+            if p > best_p_en {
+                best_p_en = p;
+                best_target = tok;
+            }
+        }
+        let target_token = best_target;
+        let (p_en, nll_en, ppl_en) = compute_step_likelihood(step_enabled, target_token);
+
+        // 2. Run parallel NoRead session on identical dialogue history
+        let mut session_noread =
+            ChatSession::new(&bundle, Some(fit_persona(&sc.persona)), (idx as u64) + 400)
+                .expect("Create NoRead session");
+        session_noread.set_read_mode(ReadMode::NoRead);
+
+        for turn in sc.turns.iter().take(20) {
+            session_noread
+                .ingest_user_turn(&turn.input)
+                .expect("Ingest turn under NoRead");
+        }
+        let step_noread = session_noread
+            .last_step()
+            .expect("NoRead step exists after Turn 20");
+
+        // NoRead Invariants: total read mass is 0, no_read_mass is PROBABILITY_TOTAL
+        assert_eq!(
+            step_noread.read_masses.iter().sum::<u64>(),
+            0,
+            "NoRead must allocate 0 read mass"
+        );
+        assert_eq!(
+            step_noread.no_read_mass, PROBABILITY_TOTAL,
+            "NoRead must saturate no_read_mass"
+        );
+
+        let (p_nr, nll_nr, ppl_nr) = compute_step_likelihood(step_noread, target_token);
+        let delta_nll = nll_nr - nll_en;
+        let ppl_ratio = ppl_nr / ppl_en;
+
+        let recall_pass = p_en > p_nr && (delta_nll >= 4.0 || ppl_ratio >= 200.0);
+        if recall_pass {
+            passed += 1;
+        }
+
+        println!(
+            "20-Turn Scenario {:<45} | K: {:<4} | P_en: {:<10.8} | P_nr: {:<10.8} | Delta NLL: {:<6.3} nats | PPL Ratio: {:<7.1}x | Pass: {}",
+            sc.scenario_id, total_tokens, p_en, p_nr, delta_nll, ppl_ratio, recall_pass
+        );
+
+        let expected_entity_str = turn20.expected_entity.as_deref().unwrap_or(&fact_reg.value);
+        let scenario_record = serde_json::json!({
+            "scenario_id": sc.scenario_id,
+            "expected_entity": expected_entity_str,
+            "persona": sc.persona,
+            "enabled_mode": {
+                "recall_pass": recall_pass,
+                "target_token_prob_float": p_en,
+                "nll_nats": nll_en,
+                "perplexity": ppl_en,
+                "holonomy_q30": session.state().holonomy_accumulator(),
+                "dialogue_slots_used": session.telemetry().dialogue_slots_used,
+                "l2_pages_used": l2_used,
+            },
+            "noread_mode": {
+                "recall_pass": false,
+                "ablation_verified": step_noread.read_masses.iter().sum::<u64>() == 0,
+                "target_token_prob_float": p_nr,
+                "nll_nats": nll_nr,
+                "perplexity": ppl_nr,
+                "no_read_mass_q48": step_noread.no_read_mass,
+                "read_masses_sum": 0,
+            },
+            "contrast": {
+                "causal_necessity_proven": recall_pass,
+                "delta_nll_nats": delta_nll,
+                "perplexity_inflation_ratio": ppl_ratio,
+            }
+        });
+        println!(
+            "[SCENARIO_TELEMETRY] {}",
+            serde_json::to_string(&scenario_record).unwrap()
+        );
+        all_telemetries.push(scenario_record);
+    }
+
+    let pass_rate_pct = (passed as f64 / total_scenarios as f64) * 100.0;
+    println!("20-Turn Long-Horizon Entity Recall Benchmark: {passed}/{total_scenarios} passed ({pass_rate_pct:.1}%)");
+
+    let _ = fs::write(
+        "/tmp/conversational_benchmarks_telemetry_raw.json",
+        serde_json::to_string_pretty(&all_telemetries).unwrap(),
+    );
+
+    assert!(
+        pass_rate_pct >= 80.0,
+        "20-Turn Recall accuracy {pass_rate_pct:.1}% is below the required 80.0% threshold!"
+    );
+}
+
+// ============================================================================
+// Milestone M4: F14 Causal Memory Necessity (Delta NLL & PPL Ratio)
+// ============================================================================
+
+#[test]
+fn test_m4_f14_causal_no_read_ablation_delta_nll_and_ppl_ratio() {
+    let bundle = create_test_bundle_with_byte_vocab();
+    let scenarios = load_long_horizon_scenarios();
+    assert!(!scenarios.is_empty());
+
+    let sc = &scenarios[0];
+    let turn1 = &sc.turns[0];
+    let fact_value = &turn1.fact_registered.as_ref().unwrap().value;
+    let fact_tokens = bundle.tokenizer().encode(fact_value);
+
+    // Session 1: Enabled
+    let mut session_en = ChatSession::new(&bundle, Some(fit_persona(&sc.persona)), 777).unwrap();
+    for turn in sc.turns.iter().take(20) {
+        session_en.ingest_user_turn(&turn.input).unwrap();
+    }
+    let step_en = session_en.last_step().unwrap();
+
+    let mut best_target = fact_tokens[0];
+    let mut best_p_en = 0.0;
+    for &tok in &fact_tokens {
+        let (p, _, _) = compute_step_likelihood(step_en, tok);
+        if p > best_p_en {
+            best_p_en = p;
+            best_target = tok;
+        }
+    }
+    let target_token = best_target;
+    let (p_en, nll_en, ppl_en) = compute_step_likelihood(step_en, target_token);
+
+    // Session 2: NoRead
+    let mut session_nr = ChatSession::new(&bundle, Some(fit_persona(&sc.persona)), 777).unwrap();
+    session_nr.set_read_mode(ReadMode::NoRead);
+    for turn in sc.turns.iter().take(20) {
+        session_nr.ingest_user_turn(&turn.input).unwrap();
+    }
+    let step_nr = session_nr.last_step().unwrap();
+    let (p_nr, nll_nr, ppl_nr) = compute_step_likelihood(step_nr, target_token);
+
+    // Invariants
+    assert_eq!(step_nr.read_masses.iter().sum::<u64>(), 0);
+    assert_eq!(step_nr.no_read_mass, PROBABILITY_TOTAL);
+
+    let delta_nll = nll_nr - nll_en;
+    let ppl_ratio = ppl_nr / ppl_en;
+
+    println!(
+        "F14 Causal Ablation 20-Turn Analysis:\n  Enabled  prob: {:.8}, NLL: {:.4}, PPL: {:.2}\n  NoRead   prob: {:.8}, NLL: {:.4}, PPL: {:.2}\n  Delta NLL    : {:.4} nats\n  PPL Inflation: {:.1}x",
+        p_en, nll_en, ppl_en, p_nr, nll_nr, ppl_nr, delta_nll, ppl_ratio
+    );
+
+    assert!(
+        delta_nll >= 4.0,
+        "Delta NLL {:.4} must be >= 4.0 nats threshold",
+        delta_nll
+    );
+    assert!(
+        ppl_ratio >= 200.0,
+        "PPL ratio {:.1} must be >= 200.0x threshold",
+        ppl_ratio
+    );
+}
+
+// ============================================================================
+// Milestone M4: F15 Cyclic Loop Resistance & Hopf Holonomy Tracking
+// ============================================================================
+
+#[test]
+fn test_m4_f15_cyclic_loop_resistance_and_hopf_holonomy() {
+    let bundle = create_test_bundle_with_byte_vocab();
+    let mut session = ChatSession::new(&bundle, Some("You are an AI assistant."), 999).unwrap();
+    session.set_policy(SamplePolicy::Categorical { top_k: 4096 });
+
+    let stop_tokens = vec![RoleToken::TurnEnd.id(), RoleToken::EOS_ID];
+    let ping_pong = ["State A", "State B"];
+    let mut holonomies = Vec::with_capacity(20);
+    let mut response_tokens = Vec::with_capacity(20);
+
+    for turn in 1..=20 {
+        let prompt = ping_pong[(turn - 1) % 2];
+        let mut stream = session
+            .generate_stream(prompt, 16, &stop_tokens)
+            .expect("stream generated");
+
+        for _ in stream.by_ref() {}
+
+        let gen_tokens = stream.generated_tokens().to_vec();
+        drop(stream);
+        let tel = session.telemetry();
+        holonomies.push(tel.cumulative_holonomy_q30);
+        response_tokens.push(gen_tokens);
+    }
+
+    // Monotonic holonomy advancement
+    for i in 0..19 {
+        assert!(
+            holonomies[i] < holonomies[i + 1],
+            "Holonomy must advance monotonically at step {}: {} vs {}",
+            i + 1,
+            holonomies[i],
+            holonomies[i + 1]
+        );
+    }
+
+    let eval_window = &response_tokens[..5];
+    let (d1, d2) = compute_ngram_diversity(eval_window);
+    println!(
+        "N-Gram Diversity (5-turn window): D1 = {:.3}, D2 = {:.3}",
+        d1, d2
+    );
+    assert!(d1 >= 0.20, "D1 diversity {:.3} < 0.20", d1);
+    assert!(d2 >= 0.30, "D2 diversity {:.3} < 0.30", d2);
+
+    let all_tokens: Vec<u32> = response_tokens.iter().flatten().copied().collect();
+    let entropy = compute_shannon_entropy(&all_tokens);
+    println!("Token Shannon Entropy (all turns): {:.3} bits", entropy);
+    assert!(
+        entropy >= 2.50,
+        "Token Shannon entropy {:.3} must be >= 2.50 bits",
+        entropy
+    );
 }

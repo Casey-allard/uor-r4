@@ -22,9 +22,13 @@ pub mod tables;
 pub use bundle::{create_test_bundle_with_byte_vocab, Bundle};
 pub use config::{JointConfig, ReadGeometry, ReadMode, Transport};
 pub use model::{
-    atan2_q30, HopfFiberPointQ30, IntegerModel, IntegerSession, IntegerStep, SessionState,
-    SlotTarget, T8ZetaState, UnitS3Q30, AGE_HORIZON_CLAMP, DIALOGUE_CAPACITY, PERSISTENT_CAPACITY,
-    PROBABILITY_TOTAL, TOTAL_MEMORY_CAPACITY, ZETA_FREQUENCIES_Q30,
+    atan2_q30, compress_barycenter_key_fibonacci, compute_turn_prime_signature,
+    extract_salient_tokens, galois_lfsr_absorb, galois_lfsr_step, score_token_salience,
+    HopfFiberPointQ30, IntegerModel, IntegerSession, IntegerStep, L2PrimePage, SessionState,
+    SlotTarget, T8ZetaState, UnitS3Q30, AGE_HORIZON_CLAMP, DIALOGUE_CAPACITY, FIBONACCI_WEIGHTS,
+    GALOIS_POLY_64, GOLDEN_RATIO_IV_64, KEY_DIM, L2_PAGE_CAPACITY, MAX_SCORES_CAPACITY,
+    PERSISTENT_CAPACITY, PROBABILITY_TOTAL, SLOT_PRIMES_224, TOTAL_MEMORY_CANDIDATES,
+    TOTAL_MEMORY_CAPACITY, VAL_DIM, ZETA_FREQUENCIES_Q30,
 };
 pub use sampling::{SamplePolicy, Sampler, SamplingError, PROBABILITY_ONE};
 pub use session::{

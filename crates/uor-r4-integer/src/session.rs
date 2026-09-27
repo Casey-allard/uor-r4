@@ -3,7 +3,8 @@
 use crate::bundle::Bundle;
 use crate::math::{HopfFiberPointQ30, T8ZetaState};
 use crate::model::{
-    SessionState, SlotTarget, DIALOGUE_CAPACITY, KEY_DIM, PERSISTENT_CAPACITY, VAL_DIM,
+    L2PrimePage, SessionState, SlotTarget, DIALOGUE_CAPACITY, KEY_DIM, L2_PAGE_CAPACITY,
+    PERSISTENT_CAPACITY, TOTAL_MEMORY_CANDIDATES, VAL_DIM,
 };
 use crate::sampling::{SamplePolicy, Sampler};
 use crate::{invalid, IntegerError, IntegerStep, ReadMode, Result};
@@ -90,20 +91,46 @@ pub struct RoleTokens {
 
 impl RoleTokens {
     pub fn from_tokenizer(tokenizer: &ByteBpeTokenizer) -> Result<Self> {
+        let eos_id = tokenizer.token_id("<|eos|>").unwrap_or(RoleToken::EOS_ID);
+        let turn_end_id = tokenizer
+            .token_id(RoleToken::TURN_END_STR)
+            .or_else(|| tokenizer.token_id("<|eos|>"))
+            .unwrap_or(RoleToken::EOS_ID);
+        let system_id = tokenizer
+            .token_id(RoleToken::SYSTEM_STR)
+            .or_else(|| tokenizer.token_id("<|bos|>"))
+            .unwrap_or(RoleToken::BOS_ID);
+        let user_id = tokenizer
+            .token_id(RoleToken::USER_STR)
+            .or_else(|| tokenizer.token_id("<|unk|>"))
+            .unwrap_or(RoleToken::UNK_ID);
+        let assistant_id = tokenizer
+            .token_id(RoleToken::ASSISTANT_STR)
+            .or_else(|| tokenizer.token_id("<|bos|>"))
+            .unwrap_or(RoleToken::BOS_ID);
+
+        // Verify that none of the resolved role tokens collide with ASCII punctuation tokens (!, ", #, $)
+        let punctuation = ["!", "\"", "#", "$"];
+        for punct in &punctuation {
+            if let Some(punct_id) = tokenizer.token_id(punct) {
+                if system_id == punct_id
+                    || user_id == punct_id
+                    || assistant_id == punct_id
+                    || turn_end_id == punct_id
+                {
+                    return Err(invalid(format!(
+                        "role token collision detected: token id {punct_id} is assigned to ASCII punctuation '{punct}'"
+                    )));
+                }
+            }
+        }
+
         Ok(Self {
-            system_id: tokenizer
-                .token_id(RoleToken::SYSTEM_STR)
-                .ok_or_else(|| invalid("missing <|system|> token in tokenizer"))?,
-            user_id: tokenizer
-                .token_id(RoleToken::USER_STR)
-                .ok_or_else(|| invalid("missing <|user|> token in tokenizer"))?,
-            assistant_id: tokenizer
-                .token_id(RoleToken::ASSISTANT_STR)
-                .ok_or_else(|| invalid("missing <|assistant|> token in tokenizer"))?,
-            turn_end_id: tokenizer
-                .token_id(RoleToken::TURN_END_STR)
-                .ok_or_else(|| invalid("missing <|turn_end|> token in tokenizer"))?,
-            eos_id: tokenizer.token_id("<|eos|>").unwrap_or(RoleToken::EOS_ID),
+            system_id,
+            user_id,
+            assistant_id,
+            turn_end_id,
+            eos_id,
         })
     }
 }
@@ -121,6 +148,10 @@ pub struct ChatMemoryTelemetry {
     pub current_turn_id: u32,
     pub cumulative_holonomy_q30: i64,
     pub zeta_phases: [i32; 8],
+    #[serde(default)]
+    pub l2_pages_used: usize,
+    #[serde(default)]
+    pub l2_capacity: usize,
 }
 
 /// Incremental UTF-8 byte decode buffer for streaming token generation.
@@ -299,21 +330,18 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
         }
 
         while self.tokens_generated < self.max_tokens {
-            let step = match self.session.last_step.as_ref() {
-                Some(s) => s,
-                None => {
-                    self.stopped = true;
-                    self.stop_reason = Some(StreamStopReason::ModelError);
-                    self.error = Some(invalid("missing model prediction in chat session"));
-                    return self.decoder.flush();
-                }
-            };
+            if !self.session.state.has_step && self.session.last_step.is_none() {
+                self.stopped = true;
+                self.stop_reason = Some(StreamStopReason::ModelError);
+                self.error = Some(invalid("missing model prediction in chat session"));
+                return self.decoder.flush();
+            }
 
-            let selected_idx = match self
-                .session
-                .sampler
-                .select(&step.probabilities, self.policy)
-            {
+            let vocab_size = self.session.bundle.model().config().vocab_size;
+            let mut selected_idx = match self.session.sampler.select(
+                &self.session.state.last_probabilities[..vocab_size],
+                self.policy,
+            ) {
                 Ok(idx) => idx,
                 Err(err) => {
                     self.stopped = true;
@@ -322,13 +350,31 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
                     return self.decoder.flush();
                 }
             };
-            let selected_token = selected_idx as u32;
+            let mut selected_token = selected_idx as u32;
 
-            let is_turn_end = selected_token == self.session.roles.turn_end_id
-                || selected_token == 4099
-                || selected_token == RoleToken::TURN_END_ID;
-            let is_eos =
-                selected_token == self.session.roles.eos_id || selected_token == RoleToken::EOS_ID;
+            // Empty response mitigation: if turn_end_id is selected on token 0,
+            // allow a one-step retry if categorical sampling is active.
+            if self.tokens_generated == 0
+                && selected_token == self.session.roles.turn_end_id
+                && matches!(self.policy, SamplePolicy::Categorical { .. })
+            {
+                let turn_end_idx = selected_token as usize;
+                if turn_end_idx < self.session.state.last_probabilities.len() {
+                    let saved_prob = self.session.state.last_probabilities[turn_end_idx];
+                    self.session.state.last_probabilities[turn_end_idx] = 0;
+                    if let Ok(retry_idx) = self.session.sampler.select(
+                        &self.session.state.last_probabilities[..vocab_size],
+                        self.policy,
+                    ) {
+                        selected_idx = retry_idx;
+                        selected_token = selected_idx as u32;
+                    }
+                    self.session.state.last_probabilities[turn_end_idx] = saved_prob;
+                }
+            }
+
+            let is_turn_end = selected_token == self.session.roles.turn_end_id;
+            let is_eos = selected_token == self.session.roles.eos_id;
             let is_custom_stop = self.stop_tokens.contains(&selected_token);
 
             if is_turn_end || is_eos || is_custom_stop {
@@ -348,12 +394,13 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
                 }
 
                 // Step the stop token into dialogue memory to conclude the turn cleanly
-                let _ = self.session.bundle.model().step_conversational(
+                let _ = self.session.bundle.model().step_conversational_into(
                     &mut self.session.state,
                     selected_token,
                     SlotTarget::Dialogue,
                     self.session.read_mode,
                 );
+                self.session.sync_last_step();
 
                 // Stop token is NOT emitted to user stream; flush any pending bytes
                 return self.decoder.flush();
@@ -363,15 +410,13 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
             self.generated_tokens.push(selected_token);
 
             // Step token into conversational dialogue memory
-            match self.session.bundle.model().step_conversational(
+            match self.session.bundle.model().step_conversational_into(
                 &mut self.session.state,
                 selected_token,
                 SlotTarget::Dialogue,
                 self.session.read_mode,
             ) {
-                Ok(next_step) => {
-                    self.session.last_step = Some(next_step);
-                }
+                Ok(()) => {}
                 Err(err) => {
                     self.stopped = true;
                     self.stop_reason = Some(StreamStopReason::ExhaustedContext);
@@ -383,13 +428,22 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
             if let Some(period) = short_cycle_check(&self.generated_tokens) {
                 self.stopped = true;
                 self.stop_reason = Some(StreamStopReason::CycleDetected { period });
-                let _ = self.session.bundle.model().step_conversational(
+                let _ = self.session.bundle.model().step_conversational_into(
                     &mut self.session.state,
                     self.session.roles.turn_end_id,
                     SlotTarget::Dialogue,
                     self.session.read_mode,
                 );
+                self.session.sync_last_step();
                 return self.decoder.flush();
+            }
+
+            // Suppress literal `<|bos|>` (token 0) and `<|unk|>` (token 2) string tags
+            // from being emitted to user stream if generated by model.
+            let is_control_suppressed =
+                selected_token == RoleToken::BOS_ID || selected_token == RoleToken::UNK_ID;
+            if is_control_suppressed {
+                continue;
             }
 
             let raw_bytes = self
@@ -406,12 +460,13 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
         self.stop_reason = Some(StreamStopReason::MaxTokens {
             count: self.tokens_generated,
         });
-        let _ = self.session.bundle.model().step_conversational(
+        let _ = self.session.bundle.model().step_conversational_into(
             &mut self.session.state,
             self.session.roles.turn_end_id,
             SlotTarget::Dialogue,
             self.session.read_mode,
         );
+        self.session.sync_last_step();
         self.decoder.flush()
     }
 }
@@ -455,6 +510,20 @@ pub struct SerializedSessionState {
     pub hopf_state: HopfFiberPointQ30,
     pub cumulative_holonomy_q30: i64,
     pub age_horizon_clamp: usize,
+    #[serde(default)]
+    pub l2_pages: Vec<L2PrimePage>,
+    #[serde(default)]
+    pub l2_cursor: usize,
+    #[serde(default)]
+    pub l2_len: usize,
+    #[serde(default)]
+    pub l2_seen: u64,
+    #[serde(default = "default_last_compressed_turn_id")]
+    pub last_compressed_turn_id: u32,
+}
+
+fn default_last_compressed_turn_id() -> u32 {
+    u32::MAX
 }
 
 /// Serialized sampler state and active policy.
@@ -491,10 +560,34 @@ impl<'a> ChatSession<'a> {
         };
         if let Some(prompt) = system_prompt {
             session.ingest_system_prompt(prompt)?;
-        } else {
-            session.state.seal_persistent();
         }
         Ok(session)
+    }
+
+    /// Synchronize the optional cached `IntegerStep` in-place without heap reallocations.
+    pub fn sync_last_step(&mut self) {
+        let vocab_size = self.bundle.model().config().vocab_size;
+        let width = self.bundle.model().config().width;
+        if let Some(ref mut step) = self.last_step {
+            step.probabilities.clear();
+            step.probabilities
+                .extend_from_slice(&self.state.last_probabilities[..vocab_size]);
+            step.state.clear();
+            step.state.extend_from_slice(&self.state.state[..width]);
+            step.read_masses.clear();
+            step.read_masses
+                .extend_from_slice(&self.state.last_read_masses);
+            step.no_read_mass = self.state.last_no_read_mass;
+            step.copy_gate = self.state.last_copy_gate;
+        } else {
+            self.last_step = Some(IntegerStep {
+                probabilities: self.state.last_probabilities[..vocab_size].to_vec(),
+                state: self.state.state[..width].to_vec(),
+                no_read_mass: self.state.last_no_read_mass,
+                read_masses: self.state.last_read_masses.clone(),
+                copy_gate: self.state.last_copy_gate,
+            });
+        }
     }
 
     /// Ingest a system prompt into the persistent session slots (0..32) and seal the partition.
@@ -502,16 +595,15 @@ impl<'a> ChatSession<'a> {
         if self.state.is_persistent_sealed() {
             return Err(invalid("persistent persona partition is already sealed"));
         }
-        let formatted = format!(
-            "{}{}{}",
-            RoleToken::SYSTEM_STR,
-            system_text,
-            RoleToken::TURN_END_STR
-        );
-        let tokens = self.bundle.tokenizer().encode(&formatted);
-        if tokens.is_empty() {
+        if system_text.trim().is_empty() {
             return Err(invalid("empty system prompt"));
         }
+        let text_tokens = self.bundle.tokenizer().encode(system_text);
+        let mut tokens = Vec::with_capacity(text_tokens.len() + 2);
+        tokens.push(self.roles.system_id);
+        tokens.extend(text_tokens);
+        tokens.push(self.roles.turn_end_id);
+
         if tokens.len() > PERSISTENT_CAPACITY {
             return Err(invalid(format!(
                 "system prompt token count {} exceeds persistent slot capacity of {}",
@@ -520,14 +612,14 @@ impl<'a> ChatSession<'a> {
             )));
         }
         for &token in &tokens {
-            let step = self.bundle.model().step_conversational(
+            self.bundle.model().step_conversational_into(
                 &mut self.state,
                 token,
                 SlotTarget::Persistent,
                 ReadMode::Enabled,
             )?;
-            self.last_step = Some(step);
         }
+        self.sync_last_step();
         self.state.seal_persistent();
         Ok(tokens.len())
     }
@@ -535,38 +627,37 @@ impl<'a> ChatSession<'a> {
     /// Ingest a user turn into the dialogue ring buffer, advancing the turn counter.
     pub fn ingest_user_turn(&mut self, user_text: &str) -> Result<usize> {
         self.state.start_turn();
-        let formatted = format!(
-            "{}{}{}{}",
-            RoleToken::USER_STR,
-            user_text,
-            RoleToken::TURN_END_STR,
-            RoleToken::ASSISTANT_STR
-        );
-        let tokens = self.bundle.tokenizer().encode(&formatted);
-        if tokens.is_empty() {
+        if user_text.trim().is_empty() {
             return Err(invalid("empty user turn prompt"));
         }
+        let user_tokens = self.bundle.tokenizer().encode(user_text);
+        let mut tokens = Vec::with_capacity(user_tokens.len() + 3);
+        tokens.push(self.roles.user_id);
+        tokens.extend(user_tokens);
+        tokens.push(self.roles.turn_end_id);
+        tokens.push(self.roles.assistant_id);
+
         for &token in &tokens {
-            let step = self.bundle.model().step_conversational(
+            self.bundle.model().step_conversational_into(
                 &mut self.state,
                 token,
                 SlotTarget::Dialogue,
                 self.read_mode,
             )?;
-            self.last_step = Some(step);
         }
+        self.sync_last_step();
         Ok(tokens.len())
     }
 
     /// Step an individual token into the conversational session.
     pub fn step_token(&mut self, token: u32, target: SlotTarget) -> Result<IntegerStep> {
-        let step = self.bundle.model().step_conversational(
+        self.bundle.model().step_conversational_into(
             &mut self.state,
             token,
             target,
             self.read_mode,
         )?;
-        self.last_step = Some(step);
+        self.sync_last_step();
         Ok(self.last_step.as_ref().unwrap().clone())
     }
 
@@ -576,6 +667,10 @@ impl<'a> ChatSession<'a> {
         self.state.dialogue_len = 0;
         self.state.dialogue_seen = 0;
         self.state.current_turn_id = 0;
+        self.state.l2_cursor = 0;
+        self.state.l2_len = 0;
+        self.state.l2_seen = 0;
+        self.state.last_compressed_turn_id = u32::MAX;
     }
 
     /// Report current memory telemetry.
@@ -591,6 +686,8 @@ impl<'a> ChatSession<'a> {
             current_turn_id: self.state.current_turn(),
             cumulative_holonomy_q30: self.state.holonomy_accumulator(),
             zeta_phases: self.state.zeta_phases(),
+            l2_pages_used: self.state.l2_len,
+            l2_capacity: L2_PAGE_CAPACITY,
         }
     }
 
@@ -600,6 +697,10 @@ impl<'a> ChatSession<'a> {
 
     pub fn state_mut(&mut self) -> &mut SessionState {
         &mut self.state
+    }
+
+    pub fn active_slots_count(&self) -> usize {
+        self.state.active_slots_count()
     }
 
     pub fn last_step(&self) -> Option<&IntegerStep> {
@@ -656,22 +757,27 @@ impl<'a> ChatSession<'a> {
         Ok(ChatTokenStream::new(self, max_tokens, stop_tokens).with_policy(policy))
     }
 
-    /// Step a single token in the conversational stream and decode incremental UTF-8.
     pub fn step_stream(&mut self, token: u32, pending: &mut Vec<u8>) -> Result<Option<String>> {
-        self.step_token(token, SlotTarget::Dialogue)?;
+        self.bundle.model().step_conversational_into(
+            &mut self.state,
+            token,
+            SlotTarget::Dialogue,
+            self.read_mode,
+        )?;
+
         let raw_bytes = self.bundle.tokenizer().decode_bytes(&[token]);
         pending.extend_from_slice(&raw_bytes);
         if pending.is_empty() {
             return Ok(None);
         }
         match core::str::from_utf8(pending) {
-            Ok(_) => {
-                let bytes = std::mem::take(pending);
-                let text =
-                    String::from_utf8(bytes).map_err(|e| invalid(format!("utf-8 error: {e}")))?;
-                if text.is_empty() {
+            Ok(s) => {
+                if s.is_empty() {
+                    pending.clear();
                     Ok(None)
                 } else {
+                    let text = s.to_owned();
+                    pending.clear();
                     Ok(Some(text))
                 }
             }
@@ -745,6 +851,11 @@ impl<'a> ChatSession<'a> {
                 hopf_state: self.state.hopf_state,
                 cumulative_holonomy_q30: self.state.cumulative_holonomy_q30,
                 age_horizon_clamp: self.state.age_horizon_clamp,
+                l2_pages: self.state.l2_pages[..self.state.l2_len].to_vec(),
+                l2_cursor: self.state.l2_cursor,
+                l2_len: self.state.l2_len,
+                l2_seen: self.state.l2_seen,
+                last_compressed_turn_id: self.state.last_compressed_turn_id,
             },
             sampler_state: SerializedSamplerState {
                 state: self.sampler.state(),
@@ -910,6 +1021,17 @@ impl<'a> ChatSession<'a> {
             persistent_values.push(arr);
         }
 
+        let mut l2_pages: Box<[L2PrimePage; L2_PAGE_CAPACITY]> =
+            vec![L2PrimePage::default(); L2_PAGE_CAPACITY]
+                .into_boxed_slice()
+                .try_into()
+                .unwrap_or_else(|_| panic!("l2_pages size mismatch"));
+        for (i, page) in s_state.l2_pages.into_iter().enumerate() {
+            if i < L2_PAGE_CAPACITY {
+                l2_pages[i] = page;
+            }
+        }
+
         let state = SessionState {
             identity: s_state.identity,
             state: s_state.state,
@@ -928,10 +1050,25 @@ impl<'a> ChatSession<'a> {
             dialogue_len: s_state.dialogue_len,
             dialogue_seen: s_state.dialogue_seen,
             current_turn_id: s_state.current_turn_id,
+            l2_pages,
+            l2_cursor: s_state.l2_cursor % L2_PAGE_CAPACITY,
+            l2_len: s_state.l2_len.min(L2_PAGE_CAPACITY),
+            l2_seen: s_state.l2_seen,
+            last_compressed_turn_id: s_state.last_compressed_turn_id,
             zeta_state: s_state.zeta_state,
             hopf_state: s_state.hopf_state,
             cumulative_holonomy_q30: s_state.cumulative_holonomy_q30,
             age_horizon_clamp: s_state.age_horizon_clamp,
+            scratch_products: vec![[0i64; 16]; 512],
+            copy_scratch: vec![0u64; 4096],
+            last_probabilities: vec![0u64; 4096]
+                .into_boxed_slice()
+                .try_into()
+                .unwrap_or_else(|_| panic!("probabilities size mismatch")),
+            last_read_masses: Vec::with_capacity(TOTAL_MEMORY_CANDIDATES),
+            last_no_read_mass: 0,
+            last_copy_gate: 0,
+            has_step: false,
         };
 
         let roles = RoleTokens::from_tokenizer(bundle.tokenizer())?;

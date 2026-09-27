@@ -192,6 +192,24 @@ RLIB_MANDATORY_SYMBOLS = [
         "mangled": re.compile(r"__RNv.*math.*11sum_squares\b"),
         "description": "Shift-and-add exact vector squared norm",
     },
+    {
+        "name": "model::compress_barycenter_key_fibonacci",
+        "pattern": re.compile(r"(?:model.*)?compress_barycenter_key_fibonacci\b"),
+        "mangled": re.compile(r"__RNv.*(?:model.*)?(?:33)?compress_barycenter_key_fibonacci\b"),
+        "description": "Fibonacci integer barycenter key compression in Z[phi]",
+    },
+    {
+        "name": "model::compute_turn_prime_signature",
+        "pattern": re.compile(r"(?:model.*)?compute_turn_prime_signature\b"),
+        "mangled": re.compile(r"__RNv.*(?:model.*)?(?:28)?compute_turn_prime_signature\b"),
+        "description": "Galois LFSR 64-bit prime signature computation",
+    },
+    {
+        "name": "model::extract_salient_tokens",
+        "pattern": re.compile(r"(?:model.*)?extract_salient_tokens\b"),
+        "mangled": re.compile(r"__RNv.*(?:model.*)?(?:22)?extract_salient_tokens\b"),
+        "description": "Top-4 salient entity token extraction via zero-matmul scoring",
+    },
 ]
 
 # Mandatory serving symbols for compiled executable binary (e.g. uor-r4-integer, uor-chat)
@@ -223,6 +241,24 @@ BIN_MANDATORY_SYMBOLS = [
         "pattern": re.compile(r"IntegerModel.*project_vocab\b"),
         "mangled": re.compile(r"__RNv.*IntegerModel.*13project_vocab\b"),
         "description": "Vocab projection via shift-and-add rows",
+    },
+    {
+        "name": "model::compress_barycenter_key_fibonacci",
+        "pattern": re.compile(r"(?:model.*)?compress_barycenter_key_fibonacci\b"),
+        "mangled": re.compile(r"__RNv.*(?:model.*)?(?:33)?compress_barycenter_key_fibonacci\b"),
+        "description": "Fibonacci integer barycenter key compression in Z[phi]",
+    },
+    {
+        "name": "model::compute_turn_prime_signature",
+        "pattern": re.compile(r"(?:model.*)?compute_turn_prime_signature\b"),
+        "mangled": re.compile(r"__RNv.*(?:model.*)?(?:28)?compute_turn_prime_signature\b"),
+        "description": "Galois LFSR 64-bit prime signature computation",
+    },
+    {
+        "name": "model::extract_salient_tokens",
+        "pattern": re.compile(r"(?:model.*)?extract_salient_tokens\b"),
+        "mangled": re.compile(r"__RNv.*(?:model.*)?(?:22)?extract_salient_tokens\b"),
+        "description": "Top-4 salient entity token extraction via zero-matmul scoring",
     },
 ]
 

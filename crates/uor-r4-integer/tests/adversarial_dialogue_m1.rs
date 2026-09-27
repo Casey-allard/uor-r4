@@ -434,29 +434,6 @@ fn test_adversarial_cyclic_loop_resistance_100_turns() {
     assert!(session.holonomy_accumulator().abs() > 0);
 }
 
-/// Helper to clone SessionState for comparative stepping
 fn clone_session(s: &SessionState) -> SessionState {
-    SessionState {
-        identity: s.identity.clone(),
-        state: s.state.clone(),
-        persistent_keys: s.persistent_keys.clone(),
-        persistent_values: s.persistent_values.clone(),
-        persistent_tokens: s.persistent_tokens.clone(),
-        persistent_capacity: s.persistent_capacity,
-        persistent_sealed: s.persistent_sealed,
-        dialogue_keys: s.dialogue_keys.clone(),
-        dialogue_values: s.dialogue_values.clone(),
-        dialogue_tokens: s.dialogue_tokens.clone(),
-        dialogue_sequences: s.dialogue_sequences.clone(),
-        dialogue_turn_ids: s.dialogue_turn_ids.clone(),
-        dialogue_capacity: s.dialogue_capacity,
-        dialogue_cursor: s.dialogue_cursor,
-        dialogue_len: s.dialogue_len,
-        dialogue_seen: s.dialogue_seen,
-        current_turn_id: s.current_turn_id,
-        zeta_state: s.zeta_state,
-        hopf_state: s.hopf_state,
-        cumulative_holonomy_q30: s.cumulative_holonomy_q30,
-        age_horizon_clamp: s.age_horizon_clamp,
-    }
+    s.clone()
 }

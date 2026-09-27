@@ -31,6 +31,7 @@ pub const PROBABILITY_TOTAL: u64 = TOTAL;
 const WORK_BITS: i32 = 40;
 const STATE_BITS: i32 = 11;
 
+#[derive(Clone)]
 struct Parameter {
     codes: Vec<i16>,
     spec: ParameterQuantization,
@@ -43,6 +44,28 @@ pub struct IntegerModel {
     /// Load-time constants of a Lorentz read; `None` for the dot read.
     lorentz: Option<LorentzRead>,
     identity: String,
+    output_bias: Vec<i128>,
+    output_shifts: Vec<i32>,
+    recurrent_bias: Vec<i128>,
+    read_age: Vec<i128>,
+    update_bias: Vec<i128>,
+    update_gate_bias: Vec<i128>,
+    copy_gate_bias: Vec<i128>,
+    read_key_bias: Vec<i128>,
+    read_value_bias: Vec<i128>,
+    read_query_bias: Vec<i128>,
+    read_no_read_bias: Vec<i128>,
+    p_embedding: Parameter,
+    p_recurrent_input: Parameter,
+    p_recurrent_state: Parameter,
+    p_read_query: Parameter,
+    p_read_no_read: Parameter,
+    p_update: Parameter,
+    p_update_gate: Parameter,
+    p_copy_gate: Parameter,
+    p_read_key: Parameter,
+    p_read_value: Parameter,
+    p_output_norm: Parameter,
 }
 
 pub struct IntegerSession {
@@ -69,7 +92,45 @@ pub const VAL_DIM: usize = 256;
 pub const PERSISTENT_CAPACITY: usize = 32;
 pub const DIALOGUE_CAPACITY: usize = 224;
 pub const TOTAL_MEMORY_CAPACITY: usize = 256;
+pub const L2_PAGE_CAPACITY: usize = 64;
+pub const TOTAL_MEMORY_CANDIDATES: usize =
+    PERSISTENT_CAPACITY + DIALOGUE_CAPACITY + L2_PAGE_CAPACITY; // 320
+pub const MAX_SCORES_CAPACITY: usize = TOTAL_MEMORY_CANDIDATES + 1; // 321
 pub const AGE_HORIZON_CLAMP: usize = 63;
+
+/// Canonical sequential primes for the 224 L1 dialogue slots (p_0 = 2 through p_223 = 1423).
+pub const SLOT_PRIMES_224: [u32; 224] = [
+    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97,
+    101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193,
+    197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307,
+    311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421,
+    431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547,
+    557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659,
+    661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797,
+    809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929,
+    937, 941, 947, 953, 967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 1021, 1031, 1033, 1039,
+    1049, 1051, 1061, 1063, 1069, 1087, 1091, 1093, 1097, 1103, 1109, 1117, 1123, 1129, 1151, 1153,
+    1163, 1171, 1181, 1187, 1193, 1201, 1213, 1217, 1223, 1229, 1231, 1237, 1249, 1259, 1277, 1279,
+    1283, 1289, 1291, 1297, 1301, 1303, 1307, 1319, 1321, 1327, 1361, 1367, 1373, 1381, 1399, 1409,
+    1423,
+];
+
+/// Fibonacci numbers F_1 through F_24 for turn lengths up to 24 slots.
+pub const FIBONACCI_WEIGHTS: [u64; 24] = [
+    1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946,
+    17711, 28657, 46368,
+];
+
+/// Precomputed prefix sums of FIBONACCI_WEIGHTS where FIBONACCI_PREFIX_SUMS[n] = sum_{i=0}^{n-1} F_{i+1}.
+/// Precomputing prefix sums eliminates dynamic summation loops, preventing LLVM auto-vectorization
+/// and eliminating Class III `fmov` register transfer instructions.
+pub const FIBONACCI_PREFIX_SUMS: [u64; 25] = [
+    0, 1, 2, 4, 7, 12, 20, 33, 54, 88, 143, 232, 376, 609, 986, 1596, 2583, 4180, 6764, 10945,
+    17710, 28656, 46367, 75024, 121392,
+];
+
+pub const GALOIS_POLY_64: u64 = 0xC96C_5795_D787_0F42;
+pub const GOLDEN_RATIO_IV_64: u64 = 0x9E37_79B9_7F4A_7C15;
 
 pub use crate::math::{
     atan2_q30, HopfFiberPointQ30, T8ZetaState, UnitS3Q30, CORDIC_ATAN_TABLE_Q30,
@@ -83,10 +144,102 @@ pub enum SlotTarget {
     Dialogue,
 }
 
+/// Compressed L2 Galois prime memory page for evicted dialogue turns ($K = 512..1024$).
+///
+/// Power-of-two padded (2048 bytes = 2^11) with 64-byte alignment to guarantee
+/// strictly zero multiplier (`madd`/`smull`) instructions during array indexing.
+#[repr(C, align(64))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct L2PrimePage {
+    pub key: [i32; KEY_DIM],
+    pub value: [i32; VAL_DIM],
+    pub prime_signature: u64,
+    pub salient_tokens: [u32; 4],
+    pub start_seq: usize,
+    pub end_seq: usize,
+    pub turn_id: u32,
+    pub _pad: [u8; 720],
+}
+
+impl Default for L2PrimePage {
+    fn default() -> Self {
+        Self {
+            key: [0i32; KEY_DIM],
+            value: [0i32; VAL_DIM],
+            prime_signature: 0,
+            salient_tokens: [0u32; 4],
+            start_seq: 0,
+            end_seq: 0,
+            turn_id: 0,
+            _pad: [0u8; 720],
+        }
+    }
+}
+
+impl serde::Serialize for L2PrimePage {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("L2PrimePage", 7)?;
+        state.serialize_field("key", &self.key[..])?;
+        state.serialize_field("value", &self.value[..])?;
+        state.serialize_field("prime_signature", &self.prime_signature)?;
+        state.serialize_field("salient_tokens", &self.salient_tokens)?;
+        state.serialize_field("start_seq", &self.start_seq)?;
+        state.serialize_field("end_seq", &self.end_seq)?;
+        state.serialize_field("turn_id", &self.turn_id)?;
+        state.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for L2PrimePage {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        struct L2PrimePageHelper {
+            key: Vec<i32>,
+            value: Vec<i32>,
+            prime_signature: u64,
+            salient_tokens: [u32; 4],
+            start_seq: usize,
+            end_seq: usize,
+            turn_id: u32,
+        }
+
+        let helper = L2PrimePageHelper::deserialize(deserializer)?;
+        if helper.key.len() != KEY_DIM {
+            return Err(serde::de::Error::invalid_length(
+                helper.key.len(),
+                &format!("{KEY_DIM} elements").as_str(),
+            ));
+        }
+        if helper.value.len() != VAL_DIM {
+            return Err(serde::de::Error::invalid_length(
+                helper.value.len(),
+                &format!("{VAL_DIM} elements").as_str(),
+            ));
+        }
+
+        let mut page = L2PrimePage::default();
+        page.key.copy_from_slice(&helper.key);
+        page.value.copy_from_slice(&helper.value);
+        page.prime_signature = helper.prime_signature;
+        page.salient_tokens = helper.salient_tokens;
+        page.start_seq = helper.start_seq;
+        page.end_seq = helper.end_seq;
+        page.turn_id = helper.turn_id;
+        Ok(page)
+    }
+}
+
 /// Partitioned conversational memory state for zero-matmul serving.
 ///
-/// Power-of-two aligned memory structures (key stride 256 B = 2^8, value stride 1024 B = 2^10)
-/// eliminate all hardware address multiplier (`madd`) instructions during serving.
+/// Power-of-two aligned memory structures (key stride 256 B = 2^8, value stride 1024 B = 2^10,
+/// L2 page stride 2048 B = 2^11) eliminate all hardware address multiplier (`madd`) instructions during serving.
 #[derive(Clone, Debug)]
 pub struct SessionState {
     pub identity: String,
@@ -112,12 +265,30 @@ pub struct SessionState {
     pub dialogue_seen: u64,
     pub current_turn_id: u32,
 
+    // --- L2 Prime Paging Store (64 pages) ---
+    pub l2_pages: Box<[L2PrimePage; L2_PAGE_CAPACITY]>,
+    pub l2_cursor: usize,
+    pub l2_len: usize,
+    pub l2_seen: u64,
+    pub last_compressed_turn_id: u32,
+
     // --- Geometric & Phase State ---
     pub zeta_state: T8ZetaState,
     pub hopf_state: HopfFiberPointQ30,
     pub cumulative_holonomy_q30: i64,
 
     pub age_horizon_clamp: usize,
+
+    // --- Scratch Buffers (Reused across steps to eliminate stack/heap allocations) ---
+    pub scratch_products: Vec<[i64; 16]>,
+    pub copy_scratch: Vec<u64>,
+
+    // --- Step Output Buffers (Zero heap allocation per step) ---
+    pub last_probabilities: Box<[u64; 4096]>,
+    pub last_read_masses: Vec<u64>,
+    pub last_no_read_mass: u64,
+    pub last_copy_gate: i32,
+    pub has_step: bool,
 }
 
 impl SessionState {
@@ -129,8 +300,20 @@ impl SessionState {
         self.dialogue_len
     }
 
+    pub fn l2_len(&self) -> usize {
+        self.l2_len
+    }
+
+    pub fn l2_pages(&self) -> &[L2PrimePage] {
+        &self.l2_pages[..self.l2_len]
+    }
+
     pub fn total_len(&self) -> usize {
-        self.persistent_len() + self.dialogue_len()
+        self.persistent_len() + self.dialogue_len() + self.l2_len()
+    }
+
+    pub fn active_slots_count(&self) -> usize {
+        self.total_len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -160,6 +343,26 @@ impl SessionState {
     pub fn holonomy_accumulator(&self) -> i64 {
         self.cumulative_holonomy_q30
     }
+
+    #[inline(always)]
+    pub fn last_probabilities(&self) -> &[u64] {
+        &self.last_probabilities[..]
+    }
+
+    #[inline(always)]
+    pub fn last_read_masses(&self) -> &[u64] {
+        &self.last_read_masses
+    }
+
+    #[inline(always)]
+    pub fn last_no_read_mass(&self) -> u64 {
+        self.last_no_read_mass
+    }
+
+    #[inline(always)]
+    pub fn last_copy_gate(&self) -> i32 {
+        self.last_copy_gate
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -171,24 +374,940 @@ pub struct IntegerStep {
     pub copy_gate: i32,
 }
 
+#[inline(always)]
 fn arithmetic<T>(value: MathResult<T>) -> Result<T> {
     value.map_err(|e| invalid(format!("integer model arithmetic: {e}")))
 }
 
+#[inline(always)]
 fn scaled(value: i128, shift: i32) -> Result<i128> {
     arithmetic(math::scale_pow2(value, shift))
 }
 
+#[inline(always)]
 fn product(a: i128, b: i128) -> Result<i128> {
     arithmetic(math::checked_mul(a, b))
 }
 
+#[inline(always)]
 fn divide(a: i128, b: i128) -> Result<i128> {
     arithmetic(math::div_round(a, b))
 }
 
+#[inline(always)]
 fn quantize(value: i128, input_bits: i32, output_bits: i32) -> Result<i32> {
     Ok(scaled(value, output_bits - input_bits)?.clamp(-32767, 32767) as i32)
+}
+
+#[inline(always)]
+fn mul_shift_add_i64(a: i64, b: i64) -> i64 {
+    if a == 0 || b == 0 {
+        return 0;
+    }
+    let neg = (a < 0) ^ (b < 0);
+    let mut u = a.unsigned_abs();
+    let mut v = b.unsigned_abs();
+    if u < v {
+        core::mem::swap(&mut u, &mut v);
+    }
+    let mut res = 0u64;
+    while v != 0 {
+        let tz = v.trailing_zeros();
+        if tz > 0 {
+            u <<= tz;
+            v >>= tz;
+        }
+        res += u;
+        v >>= 1;
+        if v != 0 {
+            u <<= 1;
+        }
+    }
+    if neg {
+        -(res as i64)
+    } else {
+        res as i64
+    }
+}
+
+#[inline(always)]
+fn build_i64_nibble_table(val: i64) -> [i64; 16] {
+    let mut t = [0i64; 16];
+    for d in 1..16 {
+        t[d] = core::hint::black_box(t[d - 1] + val);
+    }
+    t
+}
+
+#[inline(always)]
+fn build_i64_nibble_table_4x(
+    u0: i64,
+    u1: i64,
+    u2: i64,
+    u3: i64,
+) -> ([i64; 16], [i64; 16], [i64; 16], [i64; 16]) {
+    let mut t0 = [0i64; 16];
+    let mut t1 = [0i64; 16];
+    let mut t2 = [0i64; 16];
+    let mut t3 = [0i64; 16];
+    for d in 1..16 {
+        t0[d] = core::hint::black_box(t0[d - 1] + u0);
+        t1[d] = core::hint::black_box(t1[d - 1] + u1);
+        t2[d] = core::hint::black_box(t2[d - 1] + u2);
+        t3[d] = core::hint::black_box(t3[d - 1] + u3);
+    }
+    (t0, t1, t2, t3)
+}
+
+#[inline(always)]
+fn mul_nibble_table_i64(table: &[i64; 16], x: i64) -> i64 {
+    if x == 0 {
+        return 0;
+    }
+    let neg = x < 0;
+    let u = x.unsigned_abs() as usize;
+    let p = table[u & 0x0f]
+        + (table[(u >> 4) & 0x0f] << 4)
+        + (table[(u >> 8) & 0x0f] << 8)
+        + (table[(u >> 12) & 0x0f] << 12);
+    if neg {
+        -p
+    } else {
+        p
+    }
+}
+
+#[inline(always)]
+fn mul_nibble_table_4x(
+    t0: &[i64; 16],
+    t1: &[i64; 16],
+    t2: &[i64; 16],
+    t3: &[i64; 16],
+    x: i64,
+) -> (i64, i64, i64, i64) {
+    let neg = x < 0;
+    let u = x.unsigned_abs() as usize;
+    let k0 = u & 0x0f;
+    let k1 = (u >> 4) & 0x0f;
+    let k2 = (u >> 8) & 0x0f;
+    let k3 = (u >> 12) & 0x0f;
+
+    let p0 = t0[k0] + (t0[k1] << 4) + (t0[k2] << 8) + (t0[k3] << 12);
+    let p1 = t1[k0] + (t1[k1] << 4) + (t1[k2] << 8) + (t1[k3] << 12);
+    let p2 = t2[k0] + (t2[k1] << 4) + (t2[k2] << 8) + (t2[k3] << 12);
+    let p3 = t3[k0] + (t3[k1] << 4) + (t3[k2] << 8) + (t3[k3] << 12);
+
+    if neg {
+        (-p0, -p1, -p2, -p3)
+    } else {
+        (p0, p1, p2, p3)
+    }
+}
+
+#[inline(always)]
+fn mul_code_i64(x: i64, code: i16) -> i64 {
+    let neg = code < 0;
+    let u = code.unsigned_abs() as usize;
+    let p = match u {
+        0 => 0,
+        1 => x,
+        2 => x << 1,
+        3 => (x << 1) + x,
+        4 => x << 2,
+        5 => (x << 2) + x,
+        6 => (x << 2) + (x << 1),
+        7 => (x << 3) - x,
+        _ => {
+            let mut acc = 0i64;
+            let mut val = x;
+            let mut bits = u;
+            while bits != 0 {
+                if bits & 1 != 0 {
+                    acc += val;
+                }
+                val <<= 1;
+                bits >>= 1;
+            }
+            acc
+        }
+    };
+    if neg {
+        -p
+    } else {
+        p
+    }
+}
+
+#[inline(always)]
+fn div_rem_u64(numerator: u64, denominator: u64) -> (u64, u64) {
+    if numerator < denominator {
+        return (0, numerator);
+    }
+    let shift = denominator.leading_zeros() - numerator.leading_zeros();
+    let mut divisor = denominator << shift;
+    let mut place = 1u64 << shift;
+    let mut remainder = numerator;
+    let mut quotient = 0u64;
+    while place >= 8 {
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+    }
+    while place != 0 {
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+    }
+    (quotient, remainder)
+}
+
+#[inline(always)]
+fn div_round_100m_raw(raw: u64, u_const: u64) -> Result<u64> {
+    const DENOM: u64 = 100_000_000;
+    if raw <= u_const {
+        let diff = u_const - raw;
+        let (q, r) = div_rem_u64(diff, DENOM);
+        let rounded = q + if r >= DENOM - r { 1 } else { 0 };
+        Ok(raw + rounded)
+    } else {
+        let pos_diff = raw - u_const;
+        let (q_sub, r_sub) = div_rem_u64(pos_diff, DENOM);
+        let (q, r) = if r_sub == 0 {
+            (raw - q_sub, 0u64)
+        } else {
+            (raw - q_sub - 1, DENOM - r_sub)
+        };
+        let rounded = q + if r >= DENOM - r { 1 } else { 0 };
+        Ok(rounded)
+    }
+}
+
+#[inline(always)]
+fn scale_and_quantize_logit(dot: i64, shift: i32, bias: i128) -> i32 {
+    let val = if shift >= 0 {
+        i128::from(dot) << (shift as u32)
+    } else {
+        let right = shift.unsigned_abs();
+        let half = 1u128 << (right - 1);
+        let neg = dot < 0;
+        let mag = (dot.unsigned_abs() as u128 + half) >> right;
+        if neg {
+            -(mag as i128)
+        } else {
+            mag as i128
+        }
+    };
+    let sum = val + bias;
+    let neg = sum < 0;
+    let mag = sum.unsigned_abs();
+    let rounded = (mag + (1u128 << 31)) >> 32;
+    let res = if neg {
+        -(rounded as i64)
+    } else {
+        rounded as i64
+    };
+    res.clamp(-32767, 32767) as i32
+}
+
+#[inline(always)]
+fn scale_and_quantize_score(dot: i64, age_val: i128) -> i32 {
+    let s = (i128::from(dot) << 21) + age_val;
+    let neg = s < 0;
+    let mag = s.unsigned_abs();
+    let rounded = (mag + (1u128 << 31)) >> 32;
+    let res = if neg {
+        -(rounded as i64)
+    } else {
+        rounded as i64
+    };
+    res.clamp(-32767, 32767) as i32
+}
+
+#[inline(always)]
+fn div_round_u64(numerator: u64, denominator: u64, neg: bool) -> i64 {
+    if denominator == 0 {
+        return 0;
+    }
+    let (q, r) = div_rem_u64(numerator, denominator);
+    let rounded = q + if r >= denominator - r { 1 } else { 0 };
+    if neg {
+        -(rounded as i64)
+    } else {
+        rounded as i64
+    }
+}
+
+/// Compute Galois weighted integer barycenter key across turn slots using the 2-accumulator reverse Fibonacci recurrence.
+/// Strictly 0 hardware multipliers, 0 hardware dividers, 0 floating-point registers.
+#[inline(never)]
+pub fn compress_barycenter_key_fibonacci(
+    dialogue_keys: &[[i32; KEY_DIM]; DIALOGUE_CAPACITY],
+    slot_indices: &[usize],
+    out_key: &mut [i32; KEY_DIM],
+) {
+    let slots = if slot_indices.len() > 24 {
+        &slot_indices[slot_indices.len() - 24..]
+    } else {
+        slot_indices
+    };
+    let n = slots.len();
+    if n == 0 {
+        out_key.fill(0);
+        return;
+    }
+    if n == 1 {
+        out_key.copy_from_slice(&dialogue_keys[slots[0]]);
+        return;
+    }
+
+    // Direct constant table lookup of prefix sum (strictly 0 loop, 0 SIMD, 0 fmov)
+    let total_weight = FIBONACCI_PREFIX_SUMS[n.min(24)];
+
+    if total_weight == 0 {
+        out_key.fill(0);
+        return;
+    }
+
+    // Coordinate-wise 2-accumulator reverse Fibonacci sweep (strictly zero mul/div)
+    for d in 0..KEY_DIM {
+        let mut a = 0i64;
+        let mut b = 0i64;
+        for &slot_idx in slots.iter().rev() {
+            let val = dialogue_keys[slot_idx][d] as i64;
+            let next_a = a + b + val;
+            b = a;
+            a = next_a;
+        }
+
+        // Restoring binary division rounded to nearest (0 sdiv/udiv)
+        let neg = a < 0;
+        let mag = a.unsigned_abs();
+        let (q, r) = div_rem_u64(mag, total_weight);
+        let rounded = q + if r >= total_weight - r { 1 } else { 0 };
+        let res = if neg {
+            -(rounded as i64)
+        } else {
+            rounded as i64
+        };
+        out_key[d] = res.clamp(-32767, 32767) as i32;
+    }
+}
+
+/// Branchless step of 64-bit Galois LFSR with primitive polynomial.
+#[inline(always)]
+pub fn galois_lfsr_step(state: u64) -> u64 {
+    let lsb = state & 1;
+    let mask = (0u64).wrapping_sub(lsb);
+    (state >> 1) ^ (GALOIS_POLY_64 & mask)
+}
+
+/// Absorb a 64-bit word into the Galois LFSR with 8 rounds of diffusion.
+#[inline(always)]
+pub fn galois_lfsr_absorb(mut state: u64, word: u64) -> u64 {
+    state ^= word;
+    for _ in 0..8 {
+        let mask = (0u64).wrapping_sub(state & 1);
+        state = (state >> 1) ^ (GALOIS_POLY_64 & mask);
+    }
+    state
+}
+
+/// Compute exact prime signature for a dialogue turn from tokens and slot prime addresses.
+/// Strictly 0 hardware multipliers, 0 hardware dividers, 0 floats.
+#[inline(never)]
+pub fn compute_turn_prime_signature(
+    dialogue_tokens: &[u32],
+    slot_indices: &[usize],
+    turn_id: u32,
+    start_seq: u64,
+    end_seq: u64,
+) -> u64 {
+    let mut state = GOLDEN_RATIO_IV_64 ^ ((turn_id as u64) << 32) ^ start_seq;
+    if state == 0 {
+        state = GOLDEN_RATIO_IV_64;
+    }
+
+    for &slot_idx in slot_indices {
+        let token = if slot_idx < dialogue_tokens.len() {
+            dialogue_tokens[slot_idx]
+        } else {
+            0
+        };
+        let prime = if slot_idx < SLOT_PRIMES_224.len() {
+            SLOT_PRIMES_224[slot_idx]
+        } else {
+            let (_, rem) = div_rem_u64(slot_idx as u64, SLOT_PRIMES_224.len() as u64);
+            SLOT_PRIMES_224[if (rem as usize) < SLOT_PRIMES_224.len() {
+                rem as usize
+            } else {
+                0
+            }]
+        };
+        let word = ((prime as u64) << 32) | (token as u64);
+        state = galois_lfsr_absorb(state, word);
+    }
+
+    let final_word = (end_seq << 16) ^ (slot_indices.len() as u64);
+    state = galois_lfsr_absorb(state, final_word);
+
+    if state == 0 {
+        GOLDEN_RATIO_IV_64
+    } else {
+        state
+    }
+}
+
+/// Heuristic token salience scoring for L2 compression.
+/// Zero multipliers, zero dividers, zero floats.
+#[inline(always)]
+pub fn score_token_salience(token: u32, key: &[i32; KEY_DIM]) -> i32 {
+    let mut score = 0i32;
+
+    // Special & role tokens (<|system|>, <|user|>, <|assistant|>, <|turn_end|>, BOS, EOS, UNK)
+    if token <= 6 {
+        return -1_000_000;
+    }
+
+    // ASCII whitespace and common punctuation penalties
+    if token <= 32
+        || (33..=47).contains(&token)
+        || (58..=64).contains(&token)
+        || (91..=96).contains(&token)
+        || (123..=126).contains(&token)
+    {
+        score -= 500_000;
+    } else if (token as u8).is_ascii_digit() {
+        // Numeric tokens (+60k)
+        score += 60_000;
+    } else if (token as u8).is_ascii_uppercase() {
+        // Uppercase / Proper nouns (+50k)
+        score += 50_000;
+    } else if token >= 256 {
+        // Multi-byte BPE subwords (entity subwords)
+        score += 10_000 + (token as i32 & 0x0FFF);
+    }
+
+    // Geometric Key L1 Energy: sum(|k[d]|) >> 6
+    let mut l1_norm = 0i32;
+    for &k in key {
+        l1_norm = l1_norm.saturating_add((k.unsigned_abs().min(32767)) as i32);
+    }
+    score = score.saturating_add(l1_norm >> 6);
+
+    score
+}
+
+/// Extract up to 4 salient entity tokens from turn tokens using zero-matmul scoring.
+#[inline(never)]
+pub fn extract_salient_tokens(
+    dialogue_tokens: &[u32],
+    dialogue_keys: &[[i32; KEY_DIM]; DIALOGUE_CAPACITY],
+    slot_indices: &[usize],
+    out_tokens: &mut [u32; 4],
+) {
+    if slot_indices.is_empty() {
+        out_tokens.fill(0);
+        return;
+    }
+
+    // Collect up to 224 candidate tokens and scores on stack (< 2 KB stack space)
+    let n = slot_indices.len().min(DIALOGUE_CAPACITY);
+    let mut candidates: [(u32, i32); DIALOGUE_CAPACITY] = [(0, i32::MIN); DIALOGUE_CAPACITY];
+    let mut num_candidates = 0;
+
+    for &slot_idx in &slot_indices[..n] {
+        let tok = if slot_idx < dialogue_tokens.len() {
+            dialogue_tokens[slot_idx]
+        } else {
+            0
+        };
+        let key = &dialogue_keys[slot_idx];
+        let score = score_token_salience(tok, key);
+
+        // Deduplicate: if token already in candidates, update score with max
+        let mut found = false;
+        for c in &mut candidates[..num_candidates] {
+            if c.0 == tok {
+                if score > c.1 {
+                    c.1 = score;
+                }
+                found = true;
+                break;
+            }
+        }
+        if !found && num_candidates < DIALOGUE_CAPACITY {
+            candidates[num_candidates] = (tok, score);
+            num_candidates += 1;
+        }
+    }
+
+    // Sort descending by score using insertion sort (0 heap allocations)
+    for i in 1..num_candidates {
+        let mut j = i;
+        while j > 0 && candidates[j].1 > candidates[j - 1].1 {
+            candidates.swap(j, j - 1);
+            j -= 1;
+        }
+    }
+
+    // Populate top 4 salient tokens
+    let mut count = 0;
+    for c in &candidates[..num_candidates] {
+        if c.1 > -500_000 {
+            out_tokens[count] = c.0;
+            count += 1;
+            if count == 4 {
+                break;
+            }
+        }
+    }
+
+    // If fewer than 4 candidates had positive/acceptable scores, pad
+    if count == 0 {
+        let first_tok = if slot_indices[0] < dialogue_tokens.len() {
+            dialogue_tokens[slot_indices[0]]
+        } else {
+            0
+        };
+        out_tokens.fill(first_tok);
+    } else {
+        let pad_tok = out_tokens[0];
+        out_tokens[count..4].fill(pad_tok);
+    }
+}
+
+#[inline(always)]
+fn square_u64_to_u128(x: u64) -> u128 {
+    let mut u = x as u128;
+    let mut v = x;
+    let mut res = 0u128;
+    while v != 0 {
+        let tz = v.trailing_zeros();
+        if tz > 0 {
+            u <<= tz;
+            v >>= tz;
+        }
+        res += u;
+        v >>= 1;
+        if v != 0 {
+            u <<= 1;
+        }
+    }
+    res
+}
+
+#[inline(always)]
+fn quantize_q25_to_q11(v: i64) -> i32 {
+    let neg = v < 0;
+    let mag = v.unsigned_abs();
+    let rounded = (mag + 8192) >> 14;
+    let res = if neg {
+        -(rounded as i64)
+    } else {
+        rounded as i64
+    };
+    res.clamp(-32767, 32767) as i32
+}
+
+#[inline(always)]
+fn quantize_q39_to_q11(v: i64) -> i32 {
+    let neg = v < 0;
+    let mag = v.unsigned_abs();
+    let rounded = (mag + (1u64 << 27)) >> 28;
+    let res = if neg {
+        -(rounded as i64)
+    } else {
+        rounded as i64
+    };
+    res.clamp(-32767, 32767) as i32
+}
+
+#[inline(always)]
+fn quantize_q29_to_q11(v: i64) -> i32 {
+    let neg = v < 0;
+    let mag = v.unsigned_abs();
+    let rounded = (mag + (1u64 << 17)) >> 18;
+    let res = if neg {
+        -(rounded as i64)
+    } else {
+        rounded as i64
+    };
+    res.clamp(-32767, 32767) as i32
+}
+
+#[allow(dead_code)]
+const MUL99_TABLE: [u64; 16] = [
+    0,
+    99_999_999,
+    199_999_998,
+    299_999_997,
+    399_999_996,
+    499_999_995,
+    599_999_994,
+    699_999_993,
+    799_999_992,
+    899_999_991,
+    999_999_990,
+    1_099_999_989,
+    1_199_999_988,
+    1_299_999_987,
+    1_399_999_986,
+    1_499_999_985,
+];
+
+#[inline(always)]
+fn build_fraction_table(fraction: u128) -> [u128; 16] {
+    let mut table = [0u128; 16];
+    for d in 1..16 {
+        table[d] = core::hint::black_box(table[d - 1] + fraction);
+    }
+    table
+}
+
+#[inline(always)]
+fn mul_fraction_radix16(v: u64, table: &[u128; 16]) -> u128 {
+    let v_u = v as u128;
+    let mut acc = table[(v_u & 0xF) as usize]
+        + (table[((v_u >> 4) & 0xF) as usize] << 4)
+        + (table[((v_u >> 8) & 0xF) as usize] << 8)
+        + (table[((v_u >> 12) & 0xF) as usize] << 12);
+    if v >= (1 << 16) {
+        acc += (table[((v_u >> 16) & 0xF) as usize] << 16)
+            + (table[((v_u >> 20) & 0xF) as usize] << 20)
+            + (table[((v_u >> 24) & 0xF) as usize] << 24)
+            + (table[((v_u >> 28) & 0xF) as usize] << 28);
+        if v >= (1 << 32) {
+            acc += (table[((v_u >> 32) & 0xF) as usize] << 32)
+                + (table[((v_u >> 36) & 0xF) as usize] << 36)
+                + (table[((v_u >> 40) & 0xF) as usize] << 40)
+                + (table[((v_u >> 44) & 0xF) as usize] << 44)
+                + (table[((v_u >> 48) & 0xF) as usize] << 48);
+        }
+    }
+    acc
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+fn mul99_radix16(raw: u64) -> u128 {
+    let r_u = raw as u128;
+    let m0 = MUL99_TABLE[(r_u & 0xF) as usize] as u128;
+    let m1 = MUL99_TABLE[((r_u >> 4) & 0xF) as usize] as u128;
+    let m2 = MUL99_TABLE[((r_u >> 8) & 0xF) as usize] as u128;
+    let m3 = MUL99_TABLE[((r_u >> 12) & 0xF) as usize] as u128;
+    let m4 = MUL99_TABLE[((r_u >> 16) & 0xF) as usize] as u128;
+    let m5 = MUL99_TABLE[((r_u >> 20) & 0xF) as usize] as u128;
+    let m6 = MUL99_TABLE[((r_u >> 24) & 0xF) as usize] as u128;
+    let m7 = MUL99_TABLE[((r_u >> 28) & 0xF) as usize] as u128;
+    let m8 = MUL99_TABLE[((r_u >> 32) & 0xF) as usize] as u128;
+    let m9 = MUL99_TABLE[((r_u >> 36) & 0xF) as usize] as u128;
+    let m10 = MUL99_TABLE[((r_u >> 40) & 0xF) as usize] as u128;
+    let m11 = MUL99_TABLE[((r_u >> 44) & 0xF) as usize] as u128;
+    let m12 = MUL99_TABLE[((r_u >> 48) & 0xF) as usize] as u128;
+
+    m0 + (m1 << 4)
+        + (m2 << 8)
+        + (m3 << 12)
+        + (m4 << 16)
+        + (m5 << 20)
+        + (m6 << 24)
+        + (m7 << 28)
+        + (m8 << 32)
+        + (m9 << 36)
+        + (m10 << 40)
+        + (m11 << 44)
+        + (m12 << 48)
+}
+
+#[inline(always)]
+fn build_div_table(d: u128) -> [u128; 16] {
+    let d2 = d << 1;
+    let d4 = d << 2;
+    let d8 = d << 3;
+    let d3 = d2 + d;
+    let d5 = d4 + d;
+    let d6 = d4 + d2;
+    let d7 = d8 - d;
+    [
+        0,
+        d,
+        d2,
+        d3,
+        d4,
+        d5,
+        d6,
+        d7,
+        d8,
+        d8 + d,
+        d8 + d2,
+        d8 + d3,
+        d8 + d4,
+        d8 + d5,
+        d8 + d6,
+        (d << 4) - d,
+    ]
+}
+
+#[inline(always)]
+fn fast_div_round_radix16(numerator: u128, t: &[u128; 16], denominator: u128) -> u64 {
+    if denominator == 0 {
+        return 0;
+    }
+    if numerator < denominator {
+        return if numerator >= denominator - numerator {
+            1
+        } else {
+            0
+        };
+    }
+    let shift = denominator.leading_zeros() - numerator.leading_zeros();
+    let mut s = (((shift + 3) >> 2) << 2).min(124);
+    let mut remainder = numerator;
+    let mut quotient = 0u128;
+
+    loop {
+        let rem_slice = remainder >> s;
+        let k = if rem_slice >= t[8] {
+            if rem_slice >= t[12] {
+                if rem_slice >= t[14] {
+                    if rem_slice >= t[15] {
+                        15
+                    } else {
+                        14
+                    }
+                } else if rem_slice >= t[13] {
+                    13
+                } else {
+                    12
+                }
+            } else if rem_slice >= t[10] {
+                if rem_slice >= t[11] {
+                    11
+                } else {
+                    10
+                }
+            } else if rem_slice >= t[9] {
+                9
+            } else {
+                8
+            }
+        } else if rem_slice >= t[4] {
+            if rem_slice >= t[6] {
+                if rem_slice >= t[7] {
+                    7
+                } else {
+                    6
+                }
+            } else if rem_slice >= t[5] {
+                5
+            } else {
+                4
+            }
+        } else if rem_slice >= t[2] {
+            if rem_slice >= t[3] {
+                3
+            } else {
+                2
+            }
+        } else if rem_slice >= t[1] {
+            1
+        } else {
+            0
+        };
+
+        if k != 0 {
+            remainder -= t[k] << s;
+            quotient |= (k as u128) << s;
+        }
+
+        if s == 0 {
+            break;
+        }
+        s -= 4;
+    }
+
+    if remainder >= denominator - remainder {
+        quotient += 1;
+    }
+    quotient as u64
+}
+
+#[inline(always)]
+fn build_div_table_u64(d: u64) -> [u64; 16] {
+    let d2 = d << 1;
+    let d4 = d << 2;
+    let d8 = d << 3;
+    let d3 = d2 + d;
+    let d5 = d4 + d;
+    let d6 = d4 + d2;
+    let d7 = d8 - d;
+    [
+        0,
+        d,
+        d2,
+        d3,
+        d4,
+        d5,
+        d6,
+        d7,
+        d8,
+        d8 + d,
+        d8 + d2,
+        d8 + d3,
+        d8 + d4,
+        d8 + d5,
+        d8 + d6,
+        (d << 4) - d,
+    ]
+}
+
+#[inline(always)]
+fn fast_div_round_radix16_u64(numerator: u128, t: &[u64; 16], denominator: u64) -> u64 {
+    if denominator == 0 {
+        return 0;
+    }
+    if numerator < denominator as u128 {
+        return if numerator >= (denominator as u128 - numerator) {
+            1
+        } else {
+            0
+        };
+    }
+    let num_bits = 128 - numerator.leading_zeros();
+    let num_nibbles = (num_bits + 3) >> 2;
+    let mut rem = 0u64;
+    let mut quotient = 0u64;
+
+    let d8 = t[8];
+    let d4 = t[4];
+    let d2 = t[2];
+    let d1 = t[1];
+
+    for i in (0..num_nibbles).rev() {
+        let nibble = ((numerator >> (i * 4)) & 0xF) as u64;
+        rem = (rem << 4) | nibble;
+        let mut k = 0u64;
+        if rem >= d8 {
+            k |= 8;
+            rem -= d8;
+        }
+        if rem >= d4 {
+            k |= 4;
+            rem -= d4;
+        }
+        if rem >= d2 {
+            k |= 2;
+            rem -= d2;
+        }
+        if rem >= d1 {
+            k |= 1;
+            rem -= d1;
+        }
+        quotient = (quotient << 4) | k;
+    }
+
+    if rem >= denominator - rem {
+        quotient += 1;
+    }
+    quotient
+}
+
+#[allow(dead_code)]
+const DIV100M_TABLE_U64: [u64; 16] = [
+    0,
+    100_000_000,
+    200_000_000,
+    300_000_000,
+    400_000_000,
+    500_000_000,
+    600_000_000,
+    700_000_000,
+    800_000_000,
+    900_000_000,
+    1_000_000_000,
+    1_100_000_000,
+    1_200_000_000,
+    1_300_000_000,
+    1_400_000_000,
+    1_500_000_000,
+];
+
+#[allow(dead_code)]
+#[inline(always)]
+fn fast_div_round(numerator: u128, denominator: u128) -> u64 {
+    if denominator <= (1u128 << 60) {
+        let t = build_div_table_u64(denominator as u64);
+        fast_div_round_radix16_u64(numerator, &t, denominator as u64)
+    } else {
+        let t = build_div_table(denominator);
+        fast_div_round_radix16(numerator, &t, denominator)
+    }
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+fn fast_div_round_100m(numerator: u128) -> u64 {
+    fast_div_round_radix16_u64(numerator, &DIV100M_TABLE_U64, 100_000_000)
+}
+
+#[inline(always)]
+fn fill_low_bit_products(input: &[i32], out: &mut [[i64; 16]]) {
+    let len = input.len().min(out.len());
+    for i in 0..len {
+        let x = i64::from(input[i]);
+        let twice = x << 1;
+        let four = x << 2;
+        let three = x + twice;
+        let five = x + four;
+        let six = twice + four;
+        let seven = (x << 3) - x;
+        out[i] = [
+            0, x, twice, three, four, five, six, seven, 0, -seven, -six, -five, -four, -three,
+            -twice, -x,
+        ];
+    }
+}
+
+#[inline(always)]
+fn fill_low_bit_products_i16(input: &[i16], out: &mut [[i64; 16]]) {
+    let len = input.len().min(out.len());
+    for i in 0..len {
+        let x = i64::from(input[i]);
+        let twice = x << 1;
+        let four = x << 2;
+        let three = x + twice;
+        let five = x + four;
+        let six = twice + four;
+        let seven = (x << 3) - x;
+        out[i] = [
+            0, x, twice, three, four, five, six, seven, 0, -seven, -six, -five, -four, -three,
+            -twice, -x,
+        ];
+    }
 }
 
 /// Build each input coordinate's signed4 multiples once for reuse across rows.
@@ -197,35 +1316,470 @@ fn quantize(value: i128, input_bits: i32, output_bits: i32) -> Result<i32> {
 /// keep these shifts/additions exact even for the full i32 input range.
 #[inline(never)]
 fn low_bit_products(input: &[i32]) -> Vec<[i64; 16]> {
-    input
-        .iter()
-        .map(|&x| {
-            let x = i64::from(x);
-            let twice = x << 1;
-            let four = x << 2;
-            let three = x + twice;
-            let five = x + four;
-            let six = twice + four;
-            let seven = (x << 3) - x;
-            [
-                0, x, twice, three, four, five, six, seven, 0, -seven, -six, -five, -four, -three,
-                -twice, -x,
-            ]
-        })
-        .collect()
+    let mut products = vec![[0i64; 16]; input.len()];
+    fill_low_bit_products(input, &mut products);
+    products
 }
 
 /// Coefficients are signed4, validated at import. The retained shape bounds
-/// (at most512 input coordinates) keep even full-i32 products/sums inside i64.
+/// (at most 512 input coordinates) keep even full-i32 products/sums inside i64.
 /// Coordinate order is unchanged; replacing recomputation with table reads adds
 /// no rounding. This hot path is separate from model-driver shape arithmetic.
+/// Unrolled by 8 with 8 independent accumulators for optimal instruction-level
+/// parallelism and register reuse on Apple Silicon M1 (zero hardware multipliers).
 #[inline(never)]
 fn low_bit_dot(products: &[[i64; 16]], weights: &[i16]) -> i64 {
-    let mut total = 0i64;
-    for (multiples, &weight) in products.iter().zip(weights) {
+    let len = products.len().min(weights.len());
+    let mut p_chunks = products[..len].chunks_exact(8);
+    let mut w_chunks = weights[..len].chunks_exact(8);
+
+    let mut acc0 = 0i64;
+    let mut acc1 = 0i64;
+    let mut acc2 = 0i64;
+    let mut acc3 = 0i64;
+    let mut acc4 = 0i64;
+    let mut acc5 = 0i64;
+    let mut acc6 = 0i64;
+    let mut acc7 = 0i64;
+
+    for (p, w) in p_chunks.by_ref().zip(w_chunks.by_ref()) {
+        let p: &[[i64; 16]; 8] = match p.try_into() {
+            Ok(arr) => arr,
+            Err(_) => continue,
+        };
+        let w: &[i16; 8] = match w.try_into() {
+            Ok(arr) => arr,
+            Err(_) => continue,
+        };
+        acc0 += p[0][usize::from((w[0] as u16) & 15)];
+        acc1 += p[1][usize::from((w[1] as u16) & 15)];
+        acc2 += p[2][usize::from((w[2] as u16) & 15)];
+        acc3 += p[3][usize::from((w[3] as u16) & 15)];
+        acc4 += p[4][usize::from((w[4] as u16) & 15)];
+        acc5 += p[5][usize::from((w[5] as u16) & 15)];
+        acc6 += p[6][usize::from((w[6] as u16) & 15)];
+        acc7 += p[7][usize::from((w[7] as u16) & 15)];
+    }
+
+    let mut total = (acc0 + acc1) + (acc2 + acc3) + (acc4 + acc5) + (acc6 + acc7);
+    for (multiples, &weight) in p_chunks.remainder().iter().zip(w_chunks.remainder()) {
         total += multiples[usize::from((weight as u16) & 15)];
     }
     total
+}
+
+/// 4-row cache-coherent table-lookup dot product for 4K vocabulary un-embedding.
+/// Reuses each coordinate's 16-element product table across 4 adjacent vocabulary rows
+/// in a single cache-coherent pass. Achieves optimal L1 data cache locality and register
+/// reuse on Apple Silicon M1 with strictly 0 hardware multipliers, dividers, or floats.
+#[inline(always)]
+fn low_bit_dot_4x(
+    products: &[[i64; 16]; 256],
+    w0: &[i16; 256],
+    w1: &[i16; 256],
+    w2: &[i16; 256],
+    w3: &[i16; 256],
+) -> (i64, i64, i64, i64) {
+    let mut acc0_a = 0i64;
+    let mut acc0_b = 0i64;
+    let mut acc1_a = 0i64;
+    let mut acc1_b = 0i64;
+    let mut acc2_a = 0i64;
+    let mut acc2_b = 0i64;
+    let mut acc3_a = 0i64;
+    let mut acc3_b = 0i64;
+
+    for i in (0..256).step_by(4) {
+        let p0 = &products[i];
+        let p1 = &products[i + 1];
+        let p2 = &products[i + 2];
+        let p3 = &products[i + 3];
+
+        acc0_a += p0[usize::from((w0[i] as u16) & 15)] + p1[usize::from((w0[i + 1] as u16) & 15)];
+        acc0_b +=
+            p2[usize::from((w0[i + 2] as u16) & 15)] + p3[usize::from((w0[i + 3] as u16) & 15)];
+
+        acc1_a += p0[usize::from((w1[i] as u16) & 15)] + p1[usize::from((w1[i + 1] as u16) & 15)];
+        acc1_b +=
+            p2[usize::from((w1[i + 2] as u16) & 15)] + p3[usize::from((w1[i + 3] as u16) & 15)];
+
+        acc2_a += p0[usize::from((w2[i] as u16) & 15)] + p1[usize::from((w2[i + 1] as u16) & 15)];
+        acc2_b +=
+            p2[usize::from((w2[i + 2] as u16) & 15)] + p3[usize::from((w2[i + 3] as u16) & 15)];
+
+        acc3_a += p0[usize::from((w3[i] as u16) & 15)] + p1[usize::from((w3[i + 1] as u16) & 15)];
+        acc3_b +=
+            p2[usize::from((w3[i + 2] as u16) & 15)] + p3[usize::from((w3[i + 3] as u16) & 15)];
+    }
+
+    (
+        acc0_a + acc0_b,
+        acc1_a + acc1_b,
+        acc2_a + acc2_b,
+        acc3_a + acc3_b,
+    )
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+fn low_bit_dot_4_contiguous(
+    products: &[[i64; 16]; 256],
+    weights_1024: &[i16; 1024],
+) -> (i64, i64, i64, i64) {
+    let w0: &[i16; 256] = match weights_1024[0..256].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w1: &[i16; 256] = match weights_1024[256..512].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w2: &[i16; 256] = match weights_1024[512..768].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w3: &[i16; 256] = match weights_1024[768..1024].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    low_bit_dot_4x(products, w0, w1, w2, w3)
+}
+
+#[inline(always)]
+fn low_bit_dot_8_contiguous(
+    products: &[[i64; 16]; 256],
+    weights_2048: &[i16; 2048],
+) -> (i64, i64, i64, i64, i64, i64, i64, i64) {
+    let w0: &[i16; 256] = match weights_2048[0..256].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w1: &[i16; 256] = match weights_2048[256..512].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w2: &[i16; 256] = match weights_2048[512..768].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w3: &[i16; 256] = match weights_2048[768..1024].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w4: &[i16; 256] = match weights_2048[1024..1280].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w5: &[i16; 256] = match weights_2048[1280..1536].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w6: &[i16; 256] = match weights_2048[1536..1792].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w7: &[i16; 256] = match weights_2048[1792..2048].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+
+    let mut acc0 = 0i64;
+    let mut acc1 = 0i64;
+    let mut acc2 = 0i64;
+    let mut acc3 = 0i64;
+    let mut acc4 = 0i64;
+    let mut acc5 = 0i64;
+    let mut acc6 = 0i64;
+    let mut acc7 = 0i64;
+
+    for i in (0..256).step_by(2) {
+        let p0 = &products[i];
+        let p1 = &products[i + 1];
+
+        acc0 += p0[usize::from((w0[i] as u16) & 15)] + p1[usize::from((w0[i + 1] as u16) & 15)];
+        acc1 += p0[usize::from((w1[i] as u16) & 15)] + p1[usize::from((w1[i + 1] as u16) & 15)];
+        acc2 += p0[usize::from((w2[i] as u16) & 15)] + p1[usize::from((w2[i + 1] as u16) & 15)];
+        acc3 += p0[usize::from((w3[i] as u16) & 15)] + p1[usize::from((w3[i + 1] as u16) & 15)];
+        acc4 += p0[usize::from((w4[i] as u16) & 15)] + p1[usize::from((w4[i + 1] as u16) & 15)];
+        acc5 += p0[usize::from((w5[i] as u16) & 15)] + p1[usize::from((w5[i + 1] as u16) & 15)];
+        acc6 += p0[usize::from((w6[i] as u16) & 15)] + p1[usize::from((w6[i + 1] as u16) & 15)];
+        acc7 += p0[usize::from((w7[i] as u16) & 15)] + p1[usize::from((w7[i + 1] as u16) & 15)];
+    }
+
+    (acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7)
+}
+
+/// 4-row cache-coherent table-lookup dot product for 512-wide inputs (update affine).
+/// Reuses each coordinate's 16-element product table across 4 adjacent rows.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn low_bit_dot_4x_512(
+    products: &[[i64; 16]; 512],
+    w0: &[i16; 512],
+    w1: &[i16; 512],
+    w2: &[i16; 512],
+    w3: &[i16; 512],
+) -> (i64, i64, i64, i64) {
+    let mut acc0_a = 0i64;
+    let mut acc0_b = 0i64;
+    let mut acc1_a = 0i64;
+    let mut acc1_b = 0i64;
+    let mut acc2_a = 0i64;
+    let mut acc2_b = 0i64;
+    let mut acc3_a = 0i64;
+    let mut acc3_b = 0i64;
+
+    for i in (0..512).step_by(4) {
+        let p0 = &products[i];
+        let p1 = &products[i + 1];
+        let p2 = &products[i + 2];
+        let p3 = &products[i + 3];
+
+        acc0_a += p0[usize::from((w0[i] as u16) & 15)] + p1[usize::from((w0[i + 1] as u16) & 15)];
+        acc0_b +=
+            p2[usize::from((w0[i + 2] as u16) & 15)] + p3[usize::from((w0[i + 3] as u16) & 15)];
+
+        acc1_a += p0[usize::from((w1[i] as u16) & 15)] + p1[usize::from((w1[i + 1] as u16) & 15)];
+        acc1_b +=
+            p2[usize::from((w1[i + 2] as u16) & 15)] + p3[usize::from((w1[i + 3] as u16) & 15)];
+
+        acc2_a += p0[usize::from((w2[i] as u16) & 15)] + p1[usize::from((w2[i + 1] as u16) & 15)];
+        acc2_b +=
+            p2[usize::from((w2[i + 2] as u16) & 15)] + p3[usize::from((w2[i + 3] as u16) & 15)];
+
+        acc3_a += p0[usize::from((w3[i] as u16) & 15)] + p1[usize::from((w3[i + 1] as u16) & 15)];
+        acc3_b +=
+            p2[usize::from((w3[i + 2] as u16) & 15)] + p3[usize::from((w3[i + 3] as u16) & 15)];
+    }
+
+    (
+        acc0_a + acc0_b,
+        acc1_a + acc1_b,
+        acc2_a + acc2_b,
+        acc3_a + acc3_b,
+    )
+}
+
+#[inline(always)]
+fn low_bit_dot_4_contiguous_512(
+    products: &[[i64; 16]; 512],
+    weights_2048: &[i16; 2048],
+) -> (i64, i64, i64, i64) {
+    let w0: &[i16; 512] = match weights_2048[0..512].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w1: &[i16; 512] = match weights_2048[512..1024].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w2: &[i16; 512] = match weights_2048[1024..1536].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    let w3: &[i16; 512] = match weights_2048[1536..2048].try_into() {
+        Ok(arr) => arr,
+        Err(_) => unreachable!(),
+    };
+    low_bit_dot_4x_512(products, w0, w1, w2, w3)
+}
+
+/// Precompute 16 multiples (0..15) of coordinate `x` using only shifts, adds, and subtracts.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn build_coord_products(x: i32) -> [i64; 16] {
+    let q = x as i64;
+    let mut table = [0i64; 16];
+    for d in 1..16 {
+        table[d] = core::hint::black_box(table[d - 1] + q);
+    }
+    table
+}
+
+/// Compute exact inner product of coordinate table `p` (16 multiples of query coordinate)
+/// with key coordinate `v` using radix-16 table lookup and shift-add.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn dot_coord(p: &[i64; 16], v: i32) -> i64 {
+    let u = v.unsigned_abs() as usize;
+    let m = p[u & 0x0f]
+        + (p[(u >> 4) & 0x0f] << 4)
+        + (p[(u >> 8) & 0x0f] << 8)
+        + (p[(u >> 12) & 0x0f] << 12);
+    if v < 0 {
+        -m
+    } else {
+        m
+    }
+}
+
+/// 4-slot tiled query-key dot product across KEY_DIM=64 coordinates.
+/// Reuses precomputed query coordinate product tables across 4 active slots in registers.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn memory_dot_product_4x(
+    query_products: &[[i64; 16]; KEY_DIM],
+    k0: &[i32; KEY_DIM],
+    k1: &[i32; KEY_DIM],
+    k2: &[i32; KEY_DIM],
+    k3: &[i32; KEY_DIM],
+) -> (i64, i64, i64, i64) {
+    let mut acc0 = 0i64;
+    let mut acc1 = 0i64;
+    let mut acc2 = 0i64;
+    let mut acc3 = 0i64;
+
+    for d in (0..KEY_DIM).step_by(4) {
+        let p0 = &query_products[d];
+        let p1 = &query_products[d + 1];
+        let p2 = &query_products[d + 2];
+        let p3 = &query_products[d + 3];
+
+        acc0 += dot_coord(p0, k0[d])
+            + dot_coord(p1, k0[d + 1])
+            + dot_coord(p2, k0[d + 2])
+            + dot_coord(p3, k0[d + 3]);
+        acc1 += dot_coord(p0, k1[d])
+            + dot_coord(p1, k1[d + 1])
+            + dot_coord(p2, k1[d + 2])
+            + dot_coord(p3, k1[d + 3]);
+        acc2 += dot_coord(p0, k2[d])
+            + dot_coord(p1, k2[d + 1])
+            + dot_coord(p2, k2[d + 2])
+            + dot_coord(p3, k2[d + 3]);
+        acc3 += dot_coord(p0, k3[d])
+            + dot_coord(p1, k3[d + 1])
+            + dot_coord(p2, k3[d + 2])
+            + dot_coord(p3, k3[d + 3]);
+    }
+
+    (acc0, acc1, acc2, acc3)
+}
+
+/// 1-slot query-key dot product across KEY_DIM=64 coordinates.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn memory_dot_product_1x(query_products: &[[i64; 16]; KEY_DIM], k: &[i32; KEY_DIM]) -> i64 {
+    let mut acc = 0i64;
+    for d in 0..KEY_DIM {
+        acc += dot_coord(&query_products[d], k[d]);
+    }
+    acc
+}
+
+#[inline(always)]
+fn build_mass_table_i64(m_u64: u64) -> [i64; 16] {
+    let m = m_u64 as i64;
+    let mut table = [0i64; 16];
+    for d in 1..16 {
+        table[d] = core::hint::black_box(table[d - 1] + m);
+    }
+    table
+}
+
+#[inline(always)]
+fn mul_mass_coord(t: &[i64; 16], v: i32) -> i64 {
+    let u = v.unsigned_abs() as usize;
+    let p0 = t[u & 0x0f];
+    let p1 = t[(u >> 4) & 0x0f].wrapping_shl(4);
+    let p2 = t[(u >> 8) & 0x0f].wrapping_shl(8);
+    let p3 = t[(u >> 12) & 0x0f].wrapping_shl(12);
+    let p = p0.wrapping_add(p1).wrapping_add(p2).wrapping_add(p3);
+    if v < 0 {
+        p.wrapping_neg()
+    } else {
+        p
+    }
+}
+
+/// 4-slot fused value accumulation across VAL_DIM=256 coordinates.
+/// Fuses up to 4 active slots into a single coordinate sweep, reducing memory traffic by 75%.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn accumulate_slot_values_4x(
+    sum_coords: &mut [i64; VAL_DIM],
+    m: &[u64],
+    v0: &[i32; VAL_DIM],
+    v1: &[i32; VAL_DIM],
+    v2: &[i32; VAL_DIM],
+    v3: &[i32; VAL_DIM],
+) {
+    let mask = m[0] | m[1] | m[2] | m[3];
+    if mask == 0 {
+        return;
+    }
+
+    let active_count =
+        (m[0] != 0) as u8 + (m[1] != 0) as u8 + (m[2] != 0) as u8 + (m[3] != 0) as u8;
+    if active_count == 1 {
+        if m[0] != 0 {
+            accumulate_slot_value_1x(sum_coords, m[0], v0);
+        } else if m[1] != 0 {
+            accumulate_slot_value_1x(sum_coords, m[1], v1);
+        } else if m[2] != 0 {
+            accumulate_slot_value_1x(sum_coords, m[2], v2);
+        } else {
+            accumulate_slot_value_1x(sum_coords, m[3], v3);
+        }
+        return;
+    }
+
+    let t0 = if m[0] != 0 {
+        Some(build_mass_table_i64(m[0]))
+    } else {
+        None
+    };
+    let t1 = if m[1] != 0 {
+        Some(build_mass_table_i64(m[1]))
+    } else {
+        None
+    };
+    let t2 = if m[2] != 0 {
+        Some(build_mass_table_i64(m[2]))
+    } else {
+        None
+    };
+    let t3 = if m[3] != 0 {
+        Some(build_mass_table_i64(m[3]))
+    } else {
+        None
+    };
+
+    for i in (0..VAL_DIM).step_by(4) {
+        for offset in 0..4 {
+            let idx = i + offset;
+            let mut acc = 0i64;
+            if let Some(ref t) = t0 {
+                acc = acc.wrapping_add(mul_mass_coord(t, v0[idx]));
+            }
+            if let Some(ref t) = t1 {
+                acc = acc.wrapping_add(mul_mass_coord(t, v1[idx]));
+            }
+            if let Some(ref t) = t2 {
+                acc = acc.wrapping_add(mul_mass_coord(t, v2[idx]));
+            }
+            if let Some(ref t) = t3 {
+                acc = acc.wrapping_add(mul_mass_coord(t, v3[idx]));
+            }
+            sum_coords[idx] = sum_coords[idx].wrapping_add(acc);
+        }
+    }
+}
+
+/// 1-slot value accumulation unrolled 4x across VAL_DIM=256 coordinates.
+/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
+#[inline(always)]
+fn accumulate_slot_value_1x(sum_coords: &mut [i64; VAL_DIM], mass: u64, val: &[i32; VAL_DIM]) {
+    if mass == 0 {
+        return;
+    }
+    let t = build_mass_table_i64(mass);
+    for i in (0..VAL_DIM).step_by(4) {
+        sum_coords[i] = sum_coords[i].wrapping_add(mul_mass_coord(&t, val[i]));
+        sum_coords[i + 1] = sum_coords[i + 1].wrapping_add(mul_mass_coord(&t, val[i + 1]));
+        sum_coords[i + 2] = sum_coords[i + 2].wrapping_add(mul_mass_coord(&t, val[i + 2]));
+        sum_coords[i + 3] = sum_coords[i + 3].wrapping_add(mul_mass_coord(&t, val[i + 3]));
+    }
 }
 
 impl IntegerModel {
@@ -303,6 +1857,99 @@ impl IntegerModel {
                 (name, parameter)
             })
             .collect();
+        let output_bias = match parameters.get("output.bias") {
+            Some(p) => p
+                .codes
+                .iter()
+                .map(|&v| {
+                    scaled(
+                        i128::from(v),
+                        WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                    )
+                })
+                .collect::<Result<Vec<_>>>()?,
+            None => Vec::new(),
+        };
+        let output_shifts = match parameters.get("embedding.weight") {
+            Some(emb) => emb
+                .spec
+                .row_exponents
+                .iter()
+                .map(|&exp| WORK_BITS - 10 + i32::from(exp))
+                .collect(),
+            None => Vec::new(),
+        };
+        let recurrent_bias = match parameters.get("recurrent.bias") {
+            Some(p) => p
+                .codes
+                .iter()
+                .map(|&v| {
+                    scaled(
+                        i128::from(v),
+                        WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                    )
+                })
+                .collect::<Result<Vec<_>>>()?,
+            None => Vec::new(),
+        };
+        let read_age = match parameters.get("read.age") {
+            Some(p) => p
+                .codes
+                .iter()
+                .map(|&v| {
+                    scaled(
+                        i128::from(v),
+                        WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                    )
+                })
+                .collect::<Result<Vec<_>>>()?,
+            None => Vec::new(),
+        };
+        let cache_vec = |name: &str| -> Result<Vec<i128>> {
+            match parameters.get(name) {
+                Some(p) => p
+                    .codes
+                    .iter()
+                    .map(|&v| {
+                        scaled(
+                            i128::from(v),
+                            WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                        )
+                    })
+                    .collect::<Result<Vec<_>>>(),
+                None => Ok(Vec::new()),
+            }
+        };
+        let update_bias = cache_vec("update.bias")?;
+        let update_gate_bias = cache_vec("update.gate.bias")?;
+        let copy_gate_bias = cache_vec("copy.gate.bias")?;
+        let read_key_bias = cache_vec("read.key.bias")?;
+        let read_value_bias = cache_vec("read.value.bias")?;
+        let read_query_bias = cache_vec("read.query.bias")?;
+        let read_no_read_bias = cache_vec("read.no_read.bias")?;
+
+        let get_param = |name: &str| -> Parameter {
+            parameters.get(name).cloned().unwrap_or_else(|| Parameter {
+                codes: Vec::new(),
+                spec: ParameterQuantization {
+                    bits: 4,
+                    shape: Vec::new(),
+                    row_exponents: Vec::new(),
+                },
+            })
+        };
+        let p_embedding = get_param("embedding.weight");
+        let p_recurrent_input = get_param("recurrent.input.weight");
+        let p_recurrent_state = get_param("recurrent.state.weight");
+        let p_read_query = get_param("read.query.weight");
+        let p_read_no_read = get_param("read.no_read.weight");
+        let p_update = get_param("update.weight");
+        let p_update_gate = get_param("update.gate.weight");
+        let p_copy_gate = get_param("copy.gate.weight");
+        let p_read_key = get_param("read.key.weight");
+        let p_read_value = get_param("read.value.weight");
+        let p_output_norm = get_param("output.norm.weight");
+
         let tables = Tables::load(tables)?;
         let mut identity = format!("{}:{}", crate::sha256_file(&manifest_path)?, tables.sha256);
         let lorentz = match config.read_geometry {
@@ -337,6 +1984,28 @@ impl IntegerModel {
             tables,
             lorentz,
             identity,
+            output_bias,
+            output_shifts,
+            recurrent_bias,
+            read_age,
+            update_bias,
+            update_gate_bias,
+            copy_gate_bias,
+            read_key_bias,
+            read_value_bias,
+            read_query_bias,
+            read_no_read_bias,
+            p_embedding,
+            p_recurrent_input,
+            p_recurrent_state,
+            p_read_query,
+            p_read_no_read,
+            p_update,
+            p_update_gate,
+            p_copy_gate,
+            p_read_key,
+            p_read_value,
+            p_output_norm,
         })
     }
 
@@ -365,6 +2034,15 @@ impl IntegerModel {
             .into_boxed_slice()
             .try_into()
             .unwrap_or_else(|_| panic!("dialogue_values size mismatch"));
+        let l2_pages = vec![L2PrimePage::default(); L2_PAGE_CAPACITY]
+            .into_boxed_slice()
+            .try_into()
+            .unwrap_or_else(|_| panic!("l2_pages size mismatch"));
+        let last_probabilities = vec![0u64; 4096]
+            .into_boxed_slice()
+            .try_into()
+            .unwrap_or_else(|_| panic!("probabilities size mismatch"));
+        let last_read_masses = Vec::with_capacity(TOTAL_MEMORY_CANDIDATES);
         SessionState {
             identity: self.identity.clone(),
             state: vec![0; self.config.width],
@@ -383,10 +2061,22 @@ impl IntegerModel {
             dialogue_len: 0,
             dialogue_seen: 0,
             current_turn_id: 0,
+            l2_pages,
+            l2_cursor: 0,
+            l2_len: 0,
+            l2_seen: 0,
+            last_compressed_turn_id: u32::MAX,
             zeta_state: T8ZetaState::new(),
             hopf_state: HopfFiberPointQ30::default(),
             cumulative_holonomy_q30: 0,
             age_horizon_clamp: AGE_HORIZON_CLAMP,
+            scratch_products: vec![[0i64; 16]; 512],
+            copy_scratch: vec![0u64; 4096],
+            last_probabilities,
+            last_read_masses,
+            last_no_read_mass: 0,
+            last_copy_gate: 0,
+            has_step: false,
         }
     }
 
@@ -415,6 +2105,106 @@ impl IntegerModel {
 
     /// Project normalized hidden state to vocabulary logits using pure signed-4
     /// shift-and-add dot products over embedding.weight.
+    /// Project normalized hidden state to vocabulary logits using pure signed-4
+    /// shift-and-add dot products over embedding.weight with precomputed products.
+    /// Row stride uses exact power-of-two shift (`<< 8` for width 256).
+    /// Strictly 0 hardware multipliers, 0 floating point.
+    #[inline(never)]
+    pub fn project_vocab_with_products_into(
+        &self,
+        products: &[[i64; 16]],
+        logits: &mut [i32],
+    ) -> Result<()> {
+        let embedding = &self.p_embedding;
+        let fallback_bias;
+        let output_bias: &[i128] = if !self.output_bias.is_empty() {
+            &self.output_bias
+        } else {
+            fallback_bias = self.vector_work("output.bias")?;
+            &fallback_bias
+        };
+        let fallback_shifts;
+        let output_shifts: &[i32] = if !self.output_shifts.is_empty() {
+            &self.output_shifts
+        } else {
+            fallback_shifts = embedding
+                .spec
+                .row_exponents
+                .iter()
+                .map(|&exp| WORK_BITS - 10 + i32::from(exp))
+                .collect::<Vec<_>>();
+            &fallback_shifts
+        };
+
+        let width = self.config.width;
+        let vocab_size = self.config.vocab_size;
+        if logits.len() < vocab_size {
+            return Err(invalid("logits buffer too small"));
+        }
+        if width == 256 {
+            let p_256: &[[i64; 16]; 256] = products[..256]
+                .try_into()
+                .map_err(|_| invalid("products width must be 256"))?;
+            let chunks_8_count = vocab_size / 8;
+            for c in 0..chunks_8_count {
+                let r0 = c * 8;
+                let s0 = r0 << 8;
+                let chunk_arr: &[i16; 2048] = match embedding.codes[s0..s0 + 2048].try_into() {
+                    Ok(arr) => arr,
+                    Err(_) => continue,
+                };
+
+                let (dot0, dot1, dot2, dot3, dot4, dot5, dot6, dot7) =
+                    low_bit_dot_8_contiguous(p_256, chunk_arr);
+
+                logits[r0] = scale_and_quantize_logit(dot0, output_shifts[r0], output_bias[r0]);
+                logits[r0 + 1] =
+                    scale_and_quantize_logit(dot1, output_shifts[r0 + 1], output_bias[r0 + 1]);
+                logits[r0 + 2] =
+                    scale_and_quantize_logit(dot2, output_shifts[r0 + 2], output_bias[r0 + 2]);
+                logits[r0 + 3] =
+                    scale_and_quantize_logit(dot3, output_shifts[r0 + 3], output_bias[r0 + 3]);
+                logits[r0 + 4] =
+                    scale_and_quantize_logit(dot4, output_shifts[r0 + 4], output_bias[r0 + 4]);
+                logits[r0 + 5] =
+                    scale_and_quantize_logit(dot5, output_shifts[r0 + 5], output_bias[r0 + 5]);
+                logits[r0 + 6] =
+                    scale_and_quantize_logit(dot6, output_shifts[r0 + 6], output_bias[r0 + 6]);
+                logits[r0 + 7] =
+                    scale_and_quantize_logit(dot7, output_shifts[r0 + 7], output_bias[r0 + 7]);
+            }
+            for row_idx in (chunks_8_count * 8)..vocab_size {
+                let start = row_idx << 8;
+                let end = start + 256;
+                let row = &embedding.codes[start..end];
+                let dot = low_bit_dot(products, row);
+                logits[row_idx] =
+                    scale_and_quantize_logit(dot, output_shifts[row_idx], output_bias[row_idx]);
+            }
+        } else if width == 128 {
+            for (row_idx, &bias) in output_bias.iter().enumerate().take(vocab_size) {
+                let start = row_idx << 7;
+                let end = start + 128;
+                let row = &embedding.codes[start..end];
+                let dot = low_bit_dot(products, row);
+                let scaled_val = scaled(i128::from(dot), output_shifts[row_idx])?;
+                logits[row_idx] = quantize(scaled_val + bias, WORK_BITS, 8)?;
+            }
+        } else {
+            return Err(invalid("unsupported width for project_vocab"));
+        }
+        Ok(())
+    }
+
+    #[inline(never)]
+    pub fn project_vocab_with_products(&self, products: &[[i64; 16]]) -> Result<Vec<i32>> {
+        let mut logits = vec![0i32; self.config.vocab_size];
+        self.project_vocab_with_products_into(products, &mut logits)?;
+        Ok(logits)
+    }
+
+    /// Project normalized hidden state to vocabulary logits using pure signed-4
+    /// shift-and-add dot products over embedding.weight.
     /// Row stride uses exact power-of-two shift (`<< 8` for width 256).
     /// Strictly 0 hardware multipliers, 0 floating point.
     #[inline(never)]
@@ -422,40 +2212,8 @@ impl IntegerModel {
         if hidden.len() != self.config.width {
             return Err(invalid("project_vocab input width mismatch"));
         }
-        let embedding = self.parameter("embedding.weight")?;
-        let output_bias = self.vector_work("output.bias")?;
         let products = low_bit_products(hidden);
-
-        let width = self.config.width;
-        let mut logits = Vec::with_capacity(self.config.vocab_size);
-        if width == 256 {
-            for (row_idx, &bias) in output_bias.iter().enumerate().take(self.config.vocab_size) {
-                let start = row_idx << 8;
-                let end = start + 256;
-                let row = &embedding.codes[start..end];
-                let dot = low_bit_dot(&products, row);
-                let scaled_val = scaled(
-                    i128::from(dot),
-                    WORK_BITS - 10 + i32::from(embedding.spec.row_exponents[row_idx]),
-                )?;
-                logits.push(quantize(scaled_val + bias, WORK_BITS, 8)?);
-            }
-        } else if width == 128 {
-            for (row_idx, &bias) in output_bias.iter().enumerate().take(self.config.vocab_size) {
-                let start = row_idx << 7;
-                let end = start + 128;
-                let row = &embedding.codes[start..end];
-                let dot = low_bit_dot(&products, row);
-                let scaled_val = scaled(
-                    i128::from(dot),
-                    WORK_BITS - 10 + i32::from(embedding.spec.row_exponents[row_idx]),
-                )?;
-                logits.push(quantize(scaled_val + bias, WORK_BITS, 8)?);
-            }
-        } else {
-            return Err(invalid("unsupported width for project_vocab"));
-        }
-        Ok(logits)
+        self.project_vocab_with_products(&products)
     }
 
     fn parameter(&self, name: &str) -> Result<&Parameter> {
@@ -477,51 +2235,294 @@ impl IntegerModel {
             .collect()
     }
 
-    /// Return Q40 affine sums. The highest permitted exponent and shape fit
-    /// i128. Scales finer than Q40 round once here (at most2^-41 absolute);
-    /// the original Q8 output interface subsequently rounds and saturates.
     fn matrix_work(&self, input: &[i32], input_exponent: i32, name: &str) -> Result<Vec<i128>> {
         let p = self.parameter(name)?;
-        if p.spec.bits != 4 || p.spec.shape.len() != 2 || p.spec.shape[1] != input.len() {
+        let mut products = vec![[0i64; 16]; input.len()];
+        fill_low_bit_products(input, &mut products);
+        self.matrix_work_direct(&products, p, input.len(), input_exponent)
+    }
+
+    /// Return Q40 affine sums using precomputed low_bit products.
+    #[allow(dead_code)]
+    fn matrix_work_with_products(
+        &self,
+        products: &[[i64; 16]],
+        input_len: usize,
+        input_exponent: i32,
+        name: &str,
+    ) -> Result<Vec<i128>> {
+        let p = self.parameter(name)?;
+        self.matrix_work_direct(products, p, input_len, input_exponent)
+    }
+
+    fn matrix_work_direct_into(
+        &self,
+        products: &[[i64; 16]],
+        p: &Parameter,
+        input_len: usize,
+        input_exponent: i32,
+        out: &mut [i128],
+    ) -> Result<()> {
+        if p.spec.bits != 4 || p.spec.shape.len() != 2 || p.spec.shape[1] != input_len {
             return Err(invalid("integer affine input shape or bit width"));
         }
-        let products = low_bit_products(input);
-        match input.len() {
-            256 => p
-                .codes
-                .chunks_exact(256)
-                .zip(&p.spec.row_exponents)
-                .map(|(row, &exponent)| {
-                    scaled(
-                        i128::from(low_bit_dot(&products, row)),
+        let num_rows = p.spec.row_exponents.len();
+        if out.len() < num_rows {
+            return Err(invalid("output buffer too small for matrix_work_direct"));
+        }
+        match input_len {
+            256 => {
+                let p_256: &[[i64; 16]; 256] = products[..256]
+                    .try_into()
+                    .map_err(|_| invalid("products width must be 256"))?;
+                let chunks_8 = num_rows / 8;
+                for c in 0..chunks_8 {
+                    let r0 = c * 8;
+                    let s0 = r0 << 8;
+                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                        .try_into()
+                        .map_err(|_| invalid("parameter code slice"))?;
+
+                    let (d0, d1, d2, d3, d4, d5, d6, d7) = low_bit_dot_8_contiguous(p_256, chunk);
+
+                    out[r0] = scaled(
+                        i128::from(d0),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0]),
+                    )?;
+                    out[r0 + 1] = scaled(
+                        i128::from(d1),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 1]),
+                    )?;
+                    out[r0 + 2] = scaled(
+                        i128::from(d2),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 2]),
+                    )?;
+                    out[r0 + 3] = scaled(
+                        i128::from(d3),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 3]),
+                    )?;
+                    out[r0 + 4] = scaled(
+                        i128::from(d4),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 4]),
+                    )?;
+                    out[r0 + 5] = scaled(
+                        i128::from(d5),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 5]),
+                    )?;
+                    out[r0 + 6] = scaled(
+                        i128::from(d6),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 6]),
+                    )?;
+                    out[r0 + 7] = scaled(
+                        i128::from(d7),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0 + 7]),
+                    )?;
+                }
+                for (r, out_r) in out.iter_mut().enumerate().take(num_rows).skip(chunks_8 * 8) {
+                    let s = r << 8;
+                    let row = &p.codes[s..s + 256];
+                    let d = low_bit_dot(products, row);
+                    *out_r = scaled(
+                        i128::from(d),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]),
+                    )?;
+                }
+                Ok(())
+            }
+            512 => {
+                let p_512: &[[i64; 16]; 512] = products[..512]
+                    .try_into()
+                    .map_err(|_| invalid("products width must be 512"))?;
+                let chunks_4 = num_rows / 4;
+                for c in 0..chunks_4 {
+                    let r0 = c * 4;
+                    let r1 = r0 + 1;
+                    let r2 = r0 + 2;
+                    let r3 = r0 + 3;
+
+                    let s0 = r0 << 9;
+                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                        .try_into()
+                        .map_err(|_| invalid("parameter code slice"))?;
+
+                    let (d0, d1, d2, d3) = low_bit_dot_4_contiguous_512(p_512, chunk);
+
+                    out[r0] = scaled(
+                        i128::from(d0),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0]),
+                    )?;
+                    out[r1] = scaled(
+                        i128::from(d1),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r1]),
+                    )?;
+                    out[r2] = scaled(
+                        i128::from(d2),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r2]),
+                    )?;
+                    out[r3] = scaled(
+                        i128::from(d3),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r3]),
+                    )?;
+                }
+                for (r, out_r) in out.iter_mut().enumerate().take(num_rows).skip(chunks_4 * 4) {
+                    let s = r << 9;
+                    let row = &p.codes[s..s + 512];
+                    let d = low_bit_dot(products, row);
+                    *out_r = scaled(
+                        i128::from(d),
+                        WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]),
+                    )?;
+                }
+                Ok(())
+            }
+            128 => {
+                for (r, (row, &exponent)) in p
+                    .codes
+                    .chunks_exact(128)
+                    .zip(&p.spec.row_exponents)
+                    .enumerate()
+                {
+                    out[r] = scaled(
+                        i128::from(low_bit_dot(products, row)),
                         WORK_BITS + input_exponent + i32::from(exponent),
-                    )
-                })
-                .collect(),
-            512 => p
-                .codes
-                .chunks_exact(512)
-                .zip(&p.spec.row_exponents)
-                .map(|(row, &exponent)| {
-                    scaled(
-                        i128::from(low_bit_dot(&products, row)),
-                        WORK_BITS + input_exponent + i32::from(exponent),
-                    )
-                })
-                .collect(),
-            128 => p
-                .codes
-                .chunks_exact(128)
-                .zip(&p.spec.row_exponents)
-                .map(|(row, &exponent)| {
-                    scaled(
-                        i128::from(low_bit_dot(&products, row)),
-                        WORK_BITS + input_exponent + i32::from(exponent),
-                    )
-                })
-                .collect(),
+                    )?;
+                }
+                Ok(())
+            }
             other => Err(invalid(format!("unsupported matrix input width {other}"))),
         }
+    }
+
+    fn matrix_work_direct(
+        &self,
+        products: &[[i64; 16]],
+        p: &Parameter,
+        input_len: usize,
+        input_exponent: i32,
+    ) -> Result<Vec<i128>> {
+        let mut results = vec![0i128; p.spec.row_exponents.len()];
+        self.matrix_work_direct_into(products, p, input_len, input_exponent, &mut results)?;
+        Ok(results)
+    }
+
+    fn affine_direct_into(
+        &self,
+        products: &[[i64; 16]],
+        p: &Parameter,
+        bias: &[i128],
+        input_len: usize,
+        input_bits: i32,
+        out: &mut [i32],
+    ) -> Result<()> {
+        let num_rows = p.spec.row_exponents.len();
+        if out.len() < num_rows {
+            return Err(invalid("output buffer too small for affine"));
+        }
+        let input_exponent = -input_bits;
+        match input_len {
+            256 => {
+                let p_256: &[[i64; 16]; 256] = products[..256]
+                    .try_into()
+                    .map_err(|_| invalid("products width must be 256"))?;
+                let chunks_8 = num_rows / 8;
+                for c in 0..chunks_8 {
+                    let r0 = c * 8;
+                    let s0 = r0 << 8;
+                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                        .try_into()
+                        .map_err(|_| invalid("parameter code slice"))?;
+
+                    let (d0, d1, d2, d3, d4, d5, d6, d7) = low_bit_dot_8_contiguous(p_256, chunk);
+
+                    let dots = [d0, d1, d2, d3, d4, d5, d6, d7];
+                    for (k, &dot) in dots.iter().enumerate() {
+                        let r = r0 + k;
+                        let s = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]);
+                        let b = if bias.is_empty() { 0 } else { bias[r] };
+                        out[r] = scale_and_quantize_logit(dot, s, b);
+                    }
+                }
+                for (r, out_r) in out.iter_mut().enumerate().take(num_rows).skip(chunks_8 * 8) {
+                    let s_row = r << 8;
+                    let row = &p.codes[s_row..s_row + 256];
+                    let d = low_bit_dot(products, row);
+                    let shift = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]);
+                    let b = if bias.is_empty() { 0 } else { bias[r] };
+                    *out_r = scale_and_quantize_logit(d, shift, b);
+                }
+                Ok(())
+            }
+            512 => {
+                let p_512: &[[i64; 16]; 512] = products[..512]
+                    .try_into()
+                    .map_err(|_| invalid("products width must be 512"))?;
+                let chunks_4 = num_rows / 4;
+                for c in 0..chunks_4 {
+                    let r0 = c * 4;
+                    let r1 = r0 + 1;
+                    let r2 = r0 + 2;
+                    let r3 = r0 + 3;
+
+                    let s0 = r0 << 9;
+                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                        .try_into()
+                        .map_err(|_| invalid("parameter code slice"))?;
+
+                    let (d0, d1, d2, d3) = low_bit_dot_4_contiguous_512(p_512, chunk);
+
+                    let shift0 = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r0]);
+                    let shift1 = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r1]);
+                    let shift2 = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r2]);
+                    let shift3 = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r3]);
+
+                    let b0 = if bias.is_empty() { 0 } else { bias[r0] };
+                    let b1 = if bias.is_empty() { 0 } else { bias[r1] };
+                    let b2 = if bias.is_empty() { 0 } else { bias[r2] };
+                    let b3 = if bias.is_empty() { 0 } else { bias[r3] };
+
+                    out[r0] = scale_and_quantize_logit(d0, shift0, b0);
+                    out[r1] = scale_and_quantize_logit(d1, shift1, b1);
+                    out[r2] = scale_and_quantize_logit(d2, shift2, b2);
+                    out[r3] = scale_and_quantize_logit(d3, shift3, b3);
+                }
+                for r in (chunks_4 * 4)..num_rows {
+                    let s_row = r << 9;
+                    let row = &p.codes[s_row..s_row + 512];
+                    let d = low_bit_dot(products, row);
+                    let shift = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]);
+                    let b = if bias.is_empty() { 0 } else { bias[r] };
+                    out[r] = scale_and_quantize_logit(d, shift, b);
+                }
+                Ok(())
+            }
+            _ => {
+                let values = self.matrix_work_direct(products, p, input_len, input_exponent)?;
+                if bias.is_empty() {
+                    for (i, v) in values.into_iter().enumerate() {
+                        out[i] = quantize(v, WORK_BITS, 8)?;
+                    }
+                } else {
+                    for (i, (v, &b)) in values.into_iter().zip(bias).enumerate() {
+                        out[i] = quantize(v + b, WORK_BITS, 8)?;
+                    }
+                }
+                Ok(())
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    fn affine_direct(
+        &self,
+        products: &[[i64; 16]],
+        p: &Parameter,
+        bias: &[i128],
+        input_len: usize,
+        input_bits: i32,
+    ) -> Result<Vec<i32>> {
+        let mut out = vec![0i32; p.spec.row_exponents.len()];
+        self.affine_direct_into(products, p, bias, input_len, input_bits, &mut out)?;
+        Ok(out)
     }
 
     fn affine(&self, input: &[i32], input_bits: i32, prefix: &str) -> Result<Vec<i32>> {
@@ -577,12 +2578,18 @@ impl IntegerModel {
         )?;
         let previous_normalized = normalize_state(&session.state)?;
         let recurrent = self.matrix_work(&previous_normalized, -10, "recurrent.state.weight")?;
-        let bias = self.vector_work("recurrent.bias")?;
+        let fallback_bias;
+        let bias: &[i128] = if !self.recurrent_bias.is_empty() {
+            &self.recurrent_bias
+        } else {
+            fallback_bias = self.vector_work("recurrent.bias")?;
+            &fallback_bias
+        };
         let fused = token_affine
             .into_iter()
             .zip(recurrent)
             .zip(bias)
-            .map(|((a, b), c)| quantize(a + b + c, WORK_BITS, 8))
+            .map(|((a, b), &c)| quantize(a + b + c, WORK_BITS, 8))
             .collect::<Result<Vec<_>>>()?;
         let candidate = self.tanh(&fused[..width]);
         let z = self.sigmoid(&fused[width..width + width]);
@@ -599,43 +2606,81 @@ impl IntegerModel {
         } else {
             let query = self.affine(&normalized, 10, "read.query")?;
             let null = self.affine(&normalized, 10, "read.no_read")?[0];
-            let age = self.vector_work("read.age")?;
+            let fallback_age;
+            let age: &[i128] = if !self.read_age.is_empty() {
+                &self.read_age
+            } else {
+                fallback_age = self.vector_work("read.age")?;
+                &fallback_age
+            };
             let hyperbolic = match &self.lorentz {
                 Some(read) => Some((read, lorentz::squared_norm(&query)?, self.arcosh()?)),
                 None => None,
             };
             let mut scores = Vec::with_capacity(previous + 1);
             scores.push(null);
-            for (index, key) in session.keys.iter().enumerate() {
-                let mut dot = 0i128;
-                for (&q, &k) in query.iter().zip(key) {
-                    dot += product(i128::from(q), i128::from(k))?;
-                }
-                let raw = match hyperbolic {
-                    // Q8 dot Q8, divided by sqrt(read_width64)=8: exponent -19.
-                    None => scaled(dot, WORK_BITS - 19)?,
-                    Some((read, query_norm, table)) => {
-                        let key_norm = *session
-                            .key_norms
-                            .get(index)
-                            .ok_or_else(|| invalid("missing Lorentz key norm"))?;
-                        read.score(query_norm, key_norm, dot, table, WORK_BITS)?
+
+            if let Some((read, query_norm, table)) = hyperbolic {
+                for (index, key) in session.keys.iter().enumerate() {
+                    let mut dot = 0i128;
+                    for (&q, &k) in query.iter().zip(key) {
+                        dot += product(i128::from(q), i128::from(k))?;
                     }
-                };
-                let score = raw + age[previous - 1 - index];
-                scores.push(quantize(score, WORK_BITS, 8)?);
-            }
-            let masses = softmax(&scores, &self.tables)?;
-            let mut sum_coords = [0i128; VAL_DIM];
-            for (mass, value) in masses[1..].iter().zip(&session.values) {
-                let m = i128::from(*mass);
-                for coord in 0..width {
-                    sum_coords[coord] += product(m, i128::from(value[coord]))?;
+                    let key_norm = *session
+                        .key_norms
+                        .get(index)
+                        .ok_or_else(|| invalid("missing Lorentz key norm"))?;
+                    let raw = read.score(query_norm, key_norm, dot, table, WORK_BITS)?;
+                    let score = raw + age[previous - 1 - index];
+                    scores.push(quantize(score, WORK_BITS, 8)?);
                 }
+            } else {
+                let mut query_products = [[0i64; 16]; KEY_DIM];
+                let q_len = query.len().min(KEY_DIM);
+                for d in 0..q_len {
+                    query_products[d] = build_coord_products(query[d]);
+                }
+
+                let n_chunks = session.keys.len() >> 2;
+                let mut key_idx = 0;
+                for c in 0..n_chunks {
+                    let base = c << 2;
+                    let (d0, d1, d2, d3) = memory_dot_product_4x(
+                        &query_products,
+                        &session.keys[base],
+                        &session.keys[base + 1],
+                        &session.keys[base + 2],
+                        &session.keys[base + 3],
+                    );
+                    let s0 = scaled(i128::from(d0), WORK_BITS - 19)? + age[previous - 1 - key_idx];
+                    scores.push(quantize(s0, WORK_BITS, 8)?);
+                    let s1 =
+                        scaled(i128::from(d1), WORK_BITS - 19)? + age[previous - 1 - (key_idx + 1)];
+                    scores.push(quantize(s1, WORK_BITS, 8)?);
+                    let s2 =
+                        scaled(i128::from(d2), WORK_BITS - 19)? + age[previous - 1 - (key_idx + 2)];
+                    scores.push(quantize(s2, WORK_BITS, 8)?);
+                    let s3 =
+                        scaled(i128::from(d3), WORK_BITS - 19)? + age[previous - 1 - (key_idx + 3)];
+                    scores.push(quantize(s3, WORK_BITS, 8)?);
+                    key_idx += 4;
+                }
+                for key in &session.keys[(n_chunks << 2)..] {
+                    let d = memory_dot_product_1x(&query_products, key);
+                    let s = scaled(i128::from(d), WORK_BITS - 19)? + age[previous - 1 - key_idx];
+                    scores.push(quantize(s, WORK_BITS, 8)?);
+                    key_idx += 1;
+                }
+            }
+
+            let masses = softmax(&scores, &self.tables)?;
+            let mut sum_coords = [0i64; VAL_DIM];
+            for (&mass, value) in masses[1..].iter().zip(&session.values) {
+                accumulate_slot_value_1x(&mut sum_coords, mass, value);
             }
             let mut read = vec![0i32; width];
             for (coordinate, out) in read.iter_mut().enumerate() {
-                *out = quantize(sum_coords[coordinate], 48 + 14, STATE_BITS)?;
+                *out = quantize(sum_coords[coordinate] as i128, 48 + 14, STATE_BITS)?;
             }
             (masses[0], masses[1..].to_vec(), read)
         };
@@ -674,10 +2719,20 @@ impl IntegerModel {
         }
         let fraction = i128::from(TOTAL)
             - scaled(product(i128::from(gate), i128::from(TOTAL - no_read))?, -15)?;
+        let zero_uniform = u64::try_from(divide(i128::from(TOTAL >> 12), 100_000_000)?)
+            .map_err(|_| invalid("integer mixture range"))?;
         let mut probabilities = Vec::with_capacity(self.config.vocab_size);
         for (v, c) in vocabulary.into_iter().zip(copy) {
-            let raw = scaled(product(i128::from(v), fraction)?, -48)?
-                + scaled(product(i128::from(c), i128::from(gate))?, -15)?;
+            if v == 0 && c == 0 {
+                probabilities.push(zero_uniform);
+                continue;
+            }
+            let copy_term = if c != 0 {
+                scaled(product(i128::from(c), i128::from(gate))?, -15)?
+            } else {
+                0
+            };
+            let raw = scaled(product(i128::from(v), fraction)?, -48)? + copy_term;
             // The retained uniform mixture is exactly 1/100000000 in this bridge.
             let uniform = divide(
                 product(raw, 99_999_999)? + i128::from(TOTAL >> 12),
@@ -711,13 +2766,13 @@ impl IntegerModel {
 
     /// Step conversational session with partitioned memory, zero age decay for persona,
     /// cyclic FIFO dialogue ring buffer, T8 zeta phase coordinates, and Hopf fiber holonomy tracking.
-    pub fn step_conversational(
+    pub fn step_conversational_into(
         &self,
         session: &mut SessionState,
         token: u32,
         target: SlotTarget,
         mode: ReadMode,
-    ) -> Result<IntegerStep> {
+    ) -> Result<()> {
         if session.identity != self.identity {
             return Err(invalid("conversational step identity mismatch"));
         }
@@ -745,153 +2800,537 @@ impl IntegerModel {
         }
 
         let width = self.config.width;
-        let embedding_codes = self.embed(token)?;
-        let embedding = self.parameter("embedding.weight")?;
-        let token_affine = self.matrix_work(
-            &embedding_codes,
-            i32::from(embedding.spec.row_exponents[token as usize]),
-            "recurrent.input.weight",
+        let mut scratch_products = [[0i64; 16]; 512];
+
+        let token_index = token as usize;
+        let start = match width {
+            256 => token_index << 8,
+            128 => token_index << 7,
+            _ => return Err(invalid("unsupported embedding width")),
+        };
+        let end = start + width;
+        fill_low_bit_products_i16(
+            &self.p_embedding.codes[start..end],
+            &mut scratch_products[..width],
+        );
+
+        let mut token_affine = [0i128; 768];
+        self.matrix_work_direct_into(
+            &scratch_products[..width],
+            &self.p_recurrent_input,
+            width,
+            i32::from(self.p_embedding.spec.row_exponents[token_index]),
+            &mut token_affine[..3 * width],
         )?;
-        let previous_normalized = normalize_state(&session.state)?;
-        let recurrent = self.matrix_work(&previous_normalized, -10, "recurrent.state.weight")?;
-        let bias = self.vector_work("recurrent.bias")?;
-        let fused = token_affine
-            .into_iter()
-            .zip(recurrent)
-            .zip(bias)
-            .map(|((a, b), c)| quantize(a + b + c, WORK_BITS, 8))
-            .collect::<Result<Vec<_>>>()?;
-        let candidate = self.tanh(&fused[..width]);
-        let z = self.sigmoid(&fused[width..width + width]);
-        let transported = transport(
+
+        let mut previous_normalized = [0i32; 256];
+        normalize_state_into(&session.state, &mut previous_normalized)?;
+        fill_low_bit_products(
+            &previous_normalized[..width],
+            &mut scratch_products[..width],
+        );
+
+        let mut recurrent = [0i128; 768];
+        self.matrix_work_direct_into(
+            &scratch_products[..width],
+            &self.p_recurrent_state,
+            width,
+            -10,
+            &mut recurrent[..3 * width],
+        )?;
+
+        let fallback_bias;
+        let bias: &[i128] = if !self.recurrent_bias.is_empty() {
+            &self.recurrent_bias
+        } else {
+            fallback_bias = self.vector_work("recurrent.bias")?;
+            &fallback_bias
+        };
+
+        let mut fused = [0i32; 768];
+        for i in 0..3 * width {
+            fused[i] = quantize(token_affine[i] + recurrent[i] + bias[i], WORK_BITS, 8)?;
+        }
+
+        let mut candidate = [0i32; 256];
+        for i in 0..width {
+            candidate[i] = self.tables.tanh[(fused[i] + 32767) as usize];
+        }
+        let mut z = [0i32; 256];
+        for i in 0..width {
+            z[i] = self.tables.sigmoid[(fused[width + i] + 32767) as usize];
+        }
+
+        let mut transported = [0i32; 256];
+        transport_into(
             &session.state,
-            &fused[width + width..],
+            &fused[width + width..3 * width],
             self.config.transport,
+            &mut transported[..width],
         )?;
-        let provisional = blend(&transported, &candidate, &z)?;
-        let normalized = normalize_state(&provisional)?;
+
+        let mut provisional = [0i32; 256];
+        blend_into(
+            &transported[..width],
+            &candidate[..width],
+            &z[..width],
+            &mut provisional[..width],
+        )?;
+
+        let mut normalized = [0i32; 256];
+        normalize_state_into(&provisional[..width], &mut normalized)?;
 
         let n_sys = session.persistent_keys.len();
         let n_dial = session.dialogue_len;
-        let total_slots = n_sys + n_dial;
+        let n_page = session.l2_len;
+        let total_slots = n_sys + n_dial + n_page;
 
-        let (no_read, read_masses, read) = if total_slots == 0 || mode == ReadMode::NoRead {
-            (TOTAL, vec![0; total_slots], vec![0; width])
+        let mut all_masses = [0u64; MAX_SCORES_CAPACITY];
+        let mut read = [0i32; 256];
+        let no_read = if total_slots == 0 || mode == ReadMode::NoRead {
+            TOTAL
         } else {
-            let query = self.affine(&normalized, 10, "read.query")?;
-            let null = self.affine(&normalized, 10, "read.no_read")?[0];
-            let age = self.vector_work("read.age")?;
-            let mut scores = Vec::with_capacity(1 + total_slots);
-            scores.push(null);
+            fill_low_bit_products(&normalized[..width], &mut scratch_products[..width]);
 
-            // A. Persistent session slots: zero age decay (fixed to age[0])
-            for key in &session.persistent_keys {
-                let mut dot = 0i128;
-                for (&q, &k) in query.iter().zip(key) {
-                    dot += product(i128::from(q), i128::from(k))?;
-                }
-                let score = scaled(dot, WORK_BITS - 19)? + age[0];
-                scores.push(quantize(score, WORK_BITS, 8)?);
+            let mut query = [0i32; KEY_DIM];
+            self.affine_direct_into(
+                &scratch_products[..width],
+                &self.p_read_query,
+                &self.read_query_bias,
+                width,
+                10,
+                &mut query,
+            )?;
+
+            let mut null_buf = [0i32; 1];
+            self.affine_direct_into(
+                &scratch_products[..width],
+                &self.p_read_no_read,
+                &self.read_no_read_bias,
+                width,
+                10,
+                &mut null_buf,
+            )?;
+            let null = null_buf[0];
+
+            let fallback_age;
+            let age: &[i128] = if !self.read_age.is_empty() {
+                &self.read_age
+            } else {
+                fallback_age = self.vector_work("read.age")?;
+                &fallback_age
+            };
+
+            // Precompute query coordinate product tables on stack (64 x 16 i64 = 8 KB).
+            let mut query_products = [[0i64; 16]; KEY_DIM];
+            for d in 0..KEY_DIM {
+                query_products[d] = build_coord_products(query[d]);
             }
 
-            // B. Dialogue slots: relative age with horizon clamp
-            for (key, &seq) in session.dialogue_keys[..n_dial]
-                .iter()
-                .zip(&session.dialogue_sequences[..n_dial])
-            {
-                let mut dot = 0i128;
-                for (&q, &k) in query.iter().zip(key) {
-                    dot += product(i128::from(q), i128::from(k))?;
-                }
-                let delta_t = session.dialogue_seen.saturating_sub(1 + seq);
-                let age_idx = (delta_t as usize)
+            let mut scores = [0i32; MAX_SCORES_CAPACITY];
+            scores[0] = null;
+            let mut score_count = 1;
+
+            // A. Persistent session slots: zero age decay (fixed to age[0]), tiled by 4
+            let n_sys_chunks = n_sys >> 2;
+            for c in 0..n_sys_chunks {
+                let base = c << 2;
+                let (d0, d1, d2, d3) = memory_dot_product_4x(
+                    &query_products,
+                    &session.persistent_keys[base],
+                    &session.persistent_keys[base + 1],
+                    &session.persistent_keys[base + 2],
+                    &session.persistent_keys[base + 3],
+                );
+                scores[score_count] = scale_and_quantize_score(d0, age[0]);
+                scores[score_count + 1] = scale_and_quantize_score(d1, age[0]);
+                scores[score_count + 2] = scale_and_quantize_score(d2, age[0]);
+                scores[score_count + 3] = scale_and_quantize_score(d3, age[0]);
+                score_count += 4;
+            }
+            for key in &session.persistent_keys[(n_sys_chunks << 2)..n_sys] {
+                let d = memory_dot_product_1x(&query_products, key);
+                scores[score_count] = scale_and_quantize_score(d, age[0]);
+                score_count += 1;
+            }
+
+            // B. Dialogue slots: relative age with horizon clamp, tiled by 4 across active slots only
+            let n_dial_chunks = n_dial >> 2;
+            for c in 0..n_dial_chunks {
+                let base = c << 2;
+                let (d0, d1, d2, d3) = memory_dot_product_4x(
+                    &query_products,
+                    &session.dialogue_keys[base],
+                    &session.dialogue_keys[base + 1],
+                    &session.dialogue_keys[base + 2],
+                    &session.dialogue_keys[base + 3],
+                );
+
+                let delta0 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.dialogue_sequences[base]);
+                let age_idx0 = (delta0 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                let score = scaled(dot, WORK_BITS - 19)? + age[age_idx];
-                scores.push(quantize(score, WORK_BITS, 8)?);
+                scores[score_count] = scale_and_quantize_score(d0, age[age_idx0]);
+
+                let delta1 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.dialogue_sequences[base + 1]);
+                let age_idx1 = (delta1 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count + 1] = scale_and_quantize_score(d1, age[age_idx1]);
+
+                let delta2 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.dialogue_sequences[base + 2]);
+                let age_idx2 = (delta2 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count + 2] = scale_and_quantize_score(d2, age[age_idx2]);
+
+                let delta3 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.dialogue_sequences[base + 3]);
+                let age_idx3 = (delta3 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count + 3] = scale_and_quantize_score(d3, age[age_idx3]);
+                score_count += 4;
             }
 
-            let masses = softmax(&scores, &self.tables)?;
-            let m_sys = &masses[1..1 + n_sys];
-            let m_dial = &masses[1 + n_sys..];
+            for idx in (n_dial_chunks << 2)..n_dial {
+                let d = memory_dot_product_1x(&query_products, &session.dialogue_keys[idx]);
+                let delta = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.dialogue_sequences[idx]);
+                let age_idx = (delta as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count] = scale_and_quantize_score(d, age[age_idx]);
+                score_count += 1;
+            }
 
-            let mut sum_coords = [0i128; VAL_DIM];
-            for (&mass, val) in m_sys.iter().zip(&session.persistent_values) {
-                let m = i128::from(mass);
-                for (acc, &v) in sum_coords.iter_mut().zip(val) {
-                    *acc += product(m, i128::from(v))?;
+            // C. L2 Prime Pages: relative age with horizon clamp, tiled by 4 across active pages only
+            let n_page_chunks = n_page >> 2;
+            for c in 0..n_page_chunks {
+                let base = c << 2;
+                let (d0, d1, d2, d3) = memory_dot_product_4x(
+                    &query_products,
+                    &session.l2_pages[base].key,
+                    &session.l2_pages[base + 1].key,
+                    &session.l2_pages[base + 2].key,
+                    &session.l2_pages[base + 3].key,
+                );
+
+                let delta0 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.l2_pages[base].end_seq as u64);
+                let age_idx0 = (delta0 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count] = scale_and_quantize_score(d0, age[age_idx0]);
+
+                let delta1 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.l2_pages[base + 1].end_seq as u64);
+                let age_idx1 = (delta1 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count + 1] = scale_and_quantize_score(d1, age[age_idx1]);
+
+                let delta2 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.l2_pages[base + 2].end_seq as u64);
+                let age_idx2 = (delta2 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count + 2] = scale_and_quantize_score(d2, age[age_idx2]);
+
+                let delta3 = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.l2_pages[base + 3].end_seq as u64);
+                let age_idx3 = (delta3 as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count + 3] = scale_and_quantize_score(d3, age[age_idx3]);
+                score_count += 4;
+            }
+
+            for idx in (n_page_chunks << 2)..n_page {
+                let d = memory_dot_product_1x(&query_products, &session.l2_pages[idx].key);
+                let delta = session
+                    .dialogue_seen
+                    .saturating_sub(1 + session.l2_pages[idx].end_seq as u64);
+                let age_idx = (delta as usize)
+                    .min(age.len().saturating_sub(1))
+                    .min(session.age_horizon_clamp);
+                scores[score_count] = scale_and_quantize_score(d, age[age_idx]);
+                score_count += 1;
+            }
+
+            all_masses.fill(0);
+            softmax_into(
+                &scores[..score_count],
+                &self.tables,
+                &mut all_masses[..score_count],
+            )?;
+            let no_read = all_masses[0];
+            let m_sys = &all_masses[1..1 + n_sys];
+            let m_dial = &all_masses[1 + n_sys..1 + n_sys + n_dial];
+            let m_page = &all_masses[1 + n_sys + n_dial..score_count];
+
+            let mut sum_coords = [0i64; VAL_DIM];
+            let n_sys_vchunks = n_sys >> 2;
+            for c in 0..n_sys_vchunks {
+                let base = c << 2;
+                let m_chunk: &[u64; 4] = m_sys[base..base + 4].try_into().unwrap();
+                if (m_chunk[0] | m_chunk[1] | m_chunk[2] | m_chunk[3]) == 0 {
+                    continue;
                 }
+                accumulate_slot_values_4x(
+                    &mut sum_coords,
+                    m_chunk,
+                    &session.persistent_values[base],
+                    &session.persistent_values[base + 1],
+                    &session.persistent_values[base + 2],
+                    &session.persistent_values[base + 3],
+                );
             }
-            for (&mass, val) in m_dial.iter().zip(&session.dialogue_values[..n_dial]) {
-                let m = i128::from(mass);
-                for (acc, &v) in sum_coords.iter_mut().zip(val) {
-                    *acc += product(m, i128::from(v))?;
-                }
+            let sys_rem_start = n_sys_vchunks << 2;
+            for (&mass, val) in m_sys[sys_rem_start..n_sys]
+                .iter()
+                .zip(&session.persistent_values[sys_rem_start..n_sys])
+            {
+                accumulate_slot_value_1x(&mut sum_coords, mass, val);
             }
 
-            let mut read = vec![0i32; width];
-            for (out, &acc) in read.iter_mut().zip(&sum_coords) {
-                *out = quantize(acc, 48 + 14, STATE_BITS)?;
+            let n_dial_vchunks = n_dial >> 2;
+            for c in 0..n_dial_vchunks {
+                let base = c << 2;
+                let m_chunk: &[u64; 4] = m_dial[base..base + 4].try_into().unwrap();
+                if (m_chunk[0] | m_chunk[1] | m_chunk[2] | m_chunk[3]) == 0 {
+                    continue;
+                }
+                accumulate_slot_values_4x(
+                    &mut sum_coords,
+                    m_chunk,
+                    &session.dialogue_values[base],
+                    &session.dialogue_values[base + 1],
+                    &session.dialogue_values[base + 2],
+                    &session.dialogue_values[base + 3],
+                );
             }
-            (masses[0], masses[1..].to_vec(), read)
+            let dial_rem_start = n_dial_vchunks << 2;
+            for (&mass, val) in m_dial[dial_rem_start..n_dial]
+                .iter()
+                .zip(&session.dialogue_values[dial_rem_start..n_dial])
+            {
+                accumulate_slot_value_1x(&mut sum_coords, mass, val);
+            }
+
+            let n_page_vchunks = n_page >> 2;
+            for c in 0..n_page_vchunks {
+                let base = c << 2;
+                let m_chunk: &[u64; 4] = m_page[base..base + 4].try_into().unwrap();
+                if (m_chunk[0] | m_chunk[1] | m_chunk[2] | m_chunk[3]) == 0 {
+                    continue;
+                }
+                accumulate_slot_values_4x(
+                    &mut sum_coords,
+                    m_chunk,
+                    &session.l2_pages[base].value,
+                    &session.l2_pages[base + 1].value,
+                    &session.l2_pages[base + 2].value,
+                    &session.l2_pages[base + 3].value,
+                );
+            }
+            let page_rem_start = n_page_vchunks << 2;
+            for (&mass, page) in m_page[page_rem_start..n_page]
+                .iter()
+                .zip(&session.l2_pages[page_rem_start..n_page])
+            {
+                accumulate_slot_value_1x(&mut sum_coords, mass, &page.value);
+            }
+
+            for (out, &acc) in read[..width].iter_mut().zip(&sum_coords[..width]) {
+                *out = quantize(acc as i128, 48 + 14, STATE_BITS)?;
+            }
+            no_read
         };
 
-        let mut update_input = provisional.clone();
-        update_input.extend_from_slice(&read);
-        let update = self.tanh(&self.affine(&update_input, STATE_BITS, "update")?);
-        let rho = self.sigmoid(&self.affine(&update_input, STATE_BITS, "update.gate")?)[0];
-        let state = blend(&provisional, &update, &vec![rho; width])?;
+        let mut concat_buf = [0i32; 512];
+        concat_buf[..width].copy_from_slice(&provisional[..width]);
+        concat_buf[width..width + width].copy_from_slice(&read[..width]);
+        fill_low_bit_products(&concat_buf, &mut scratch_products[..512]);
 
-        let mut copy_input = state.clone();
-        copy_input.extend_from_slice(&read);
-        let gate = self.sigmoid(&self.affine(&copy_input, STATE_BITS, "copy.gate")?)[0];
-
-        let write_normalized = normalize_state(&state)?;
-        let key = self.affine(&write_normalized, 10, "read.key")?;
-        let value = self.tanh(&self.affine(&write_normalized, 10, "read.value")?);
-
-        let norm = self.parameter("output.norm.weight")?;
-        let hidden = write_normalized
-            .iter()
-            .zip(&norm.codes)
-            .map(|(&x, &w)| {
-                let val = product(i128::from(x), i128::from(w))?;
-                Ok(scaled(val, i32::from(norm.spec.row_exponents[0]))?.clamp(-32767, 32767) as i32)
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let logits = self.project_vocab(&hidden)?;
-        let vocabulary = softmax(&logits, &self.tables)?;
-
-        let mut copy = vec![0u64; self.config.vocab_size];
-        let m_sys = &read_masses[..n_sys];
-        let m_dial = &read_masses[n_sys..];
-        for (&id, &mass) in session.persistent_tokens.iter().zip(m_sys) {
-            if (id as usize) < self.config.vocab_size {
-                copy[id as usize] += mass;
-            }
+        let mut update_raw = [0i32; 256];
+        self.affine_direct_into(
+            &scratch_products[..512],
+            &self.p_update,
+            &self.update_bias,
+            512,
+            STATE_BITS,
+            &mut update_raw[..width],
+        )?;
+        let mut update = [0i32; 256];
+        for i in 0..width {
+            update[i] = self.tables.tanh[(update_raw[i] + 32767) as usize];
         }
-        for (&id, &mass) in session.dialogue_tokens[..n_dial].iter().zip(m_dial) {
-            if (id as usize) < self.config.vocab_size {
-                copy[id as usize] += mass;
+
+        let mut update_gate_raw = [0i32; 1];
+        self.affine_direct_into(
+            &scratch_products[..512],
+            &self.p_update_gate,
+            &self.update_gate_bias,
+            512,
+            STATE_BITS,
+            &mut update_gate_raw,
+        )?;
+        let rho = self.tables.sigmoid[(update_gate_raw[0] + 32767) as usize];
+
+        let mut state = [0i32; 256];
+        blend_scalar_into(
+            &provisional[..width],
+            &update[..width],
+            rho,
+            &mut state[..width],
+        )?;
+
+        fill_low_bit_products(&state[..width], &mut scratch_products[..width]);
+
+        let mut copy_gate_raw = [0i32; 1];
+        self.affine_direct_into(
+            &scratch_products[..512],
+            &self.p_copy_gate,
+            &self.copy_gate_bias,
+            512,
+            STATE_BITS,
+            &mut copy_gate_raw,
+        )?;
+        let gate = self.tables.sigmoid[(copy_gate_raw[0] + 32767) as usize];
+
+        let mut write_normalized = [0i32; 256];
+        normalize_state_into(&state[..width], &mut write_normalized)?;
+        fill_low_bit_products(&write_normalized[..width], &mut scratch_products[..width]);
+
+        let mut key = [0i32; KEY_DIM];
+        self.affine_direct_into(
+            &scratch_products[..width],
+            &self.p_read_key,
+            &self.read_key_bias,
+            width,
+            10,
+            &mut key,
+        )?;
+
+        let mut value_raw = [0i32; VAL_DIM];
+        self.affine_direct_into(
+            &scratch_products[..width],
+            &self.p_read_value,
+            &self.read_value_bias,
+            width,
+            10,
+            &mut value_raw,
+        )?;
+        let mut value = [0i32; VAL_DIM];
+        for i in 0..VAL_DIM {
+            value[i] = self.tables.tanh[(value_raw[i] + 32767) as usize];
+        }
+
+        let mut hidden = [0i32; 256];
+        let row_exp = i32::from(self.p_output_norm.spec.row_exponents[0]);
+        for d in 0..width {
+            let x = write_normalized[d] as i64;
+            let w = self.p_output_norm.codes[d];
+            let val = i128::from(mul_code_i64(x, w));
+            hidden[d] = scaled(val, row_exp)?.clamp(-32767, 32767) as i32;
+        }
+        fill_low_bit_products(&hidden[..width], &mut scratch_products[..width]);
+
+        let mut logits = [0i32; 4096];
+        self.project_vocab_with_products_into(
+            &scratch_products[..width],
+            &mut logits[..self.config.vocab_size],
+        )?;
+
+        softmax_into(
+            &logits[..self.config.vocab_size],
+            &self.tables,
+            &mut session.last_probabilities[..self.config.vocab_size],
+        )?;
+
+        session.copy_scratch.fill(0);
+        let copy = &mut session.copy_scratch;
+        if mode != ReadMode::NoRead && total_slots > 0 {
+            let m_sys = &all_masses[1..1 + n_sys];
+            let m_dial = &all_masses[1 + n_sys..1 + n_sys + n_dial];
+            let m_page = &all_masses[1 + n_sys + n_dial..1 + total_slots];
+            for (&id, &mass) in session.persistent_tokens.iter().zip(m_sys) {
+                if mass != 0 && (id as usize) < self.config.vocab_size {
+                    copy[id as usize] += mass;
+                }
+            }
+            for (&id, &mass) in session.dialogue_tokens[..n_dial].iter().zip(m_dial) {
+                if mass != 0 && (id as usize) < self.config.vocab_size {
+                    copy[id as usize] += mass;
+                }
+            }
+            for (page, &mass) in session.l2_pages[..n_page].iter().zip(m_page) {
+                if mass != 0 {
+                    let m1 = mass >> 2;
+                    let m2 = mass >> 3;
+                    let m3 = m2;
+                    let allocated = (mass >> 1) + m1 + m2 + m3;
+                    let m0 = (mass >> 1) + (mass - allocated);
+
+                    let page_masses = [m0, m1, m2, m3];
+                    for (&tok, &m) in page.salient_tokens.iter().zip(&page_masses) {
+                        if m != 0 && (tok as usize) < self.config.vocab_size {
+                            copy[tok as usize] += m;
+                        }
+                    }
+                }
             }
         }
 
         let fraction = i128::from(TOTAL)
             - scaled(product(i128::from(gate), i128::from(TOTAL - no_read))?, -15)?;
-        let mut probabilities = Vec::with_capacity(self.config.vocab_size);
-        for (v, c) in vocabulary.into_iter().zip(copy) {
-            let raw = scaled(product(i128::from(v), fraction)?, -48)?
-                + scaled(product(i128::from(c), i128::from(gate))?, -15)?;
-            let uniform = divide(
-                product(raw, 99_999_999)? + i128::from(TOTAL >> 12),
-                100_000_000,
-            )?;
-            probabilities
-                .push(u64::try_from(uniform).map_err(|_| invalid("integer mixture range"))?);
-        }
-        normalize_residual(&mut probabilities)?;
+        let fraction_table = build_fraction_table(fraction as u128);
+        let u_const = TOTAL >> 12;
+        let zero_uniform = div_round_100m_raw(0, u_const)?;
 
-        session.state = state.clone();
+        for (i, &c) in copy[..self.config.vocab_size].iter().enumerate() {
+            let v = session.last_probabilities[i];
+            if v == 0 && c == 0 {
+                session.last_probabilities[i] = zero_uniform;
+                continue;
+            }
+            let copy_term = if c != 0 {
+                scaled(i128::from(mul_shift_add_i64(c as i64, gate as i64)), -15)?
+            } else {
+                0
+            };
+            let raw = if v != 0 {
+                let prod_v = mul_fraction_radix16(v, &fraction_table);
+                let quotient = (prod_v >> 48) as i128;
+                let rem = prod_v & ((1u128 << 48) - 1);
+                let raw_v = if rem >= (1u128 << 47) {
+                    quotient + 1
+                } else {
+                    quotient
+                };
+                raw_v + copy_term
+            } else {
+                copy_term
+            };
+            let uniform = div_round_100m_raw(raw as u64, u_const)?;
+            session.last_probabilities[i] = uniform;
+        }
+        normalize_residual(&mut session.last_probabilities[..self.config.vocab_size])?;
+
+        session.state[..width].copy_from_slice(&state[..width]);
         match target {
             SlotTarget::Persistent => {
                 let mut key_arr = [0i32; KEY_DIM];
@@ -904,6 +3343,70 @@ impl IntegerModel {
                 session.persistent_tokens.push(token);
             }
             SlotTarget::Dialogue => {
+                if session.dialogue_len >= session.dialogue_capacity {
+                    let evict_idx = session.dialogue_cursor;
+                    let evict_turn_id = session.dialogue_turn_ids[evict_idx];
+                    if evict_turn_id != session.last_compressed_turn_id {
+                        let mut slot_indices = [0usize; DIALOGUE_CAPACITY];
+                        let mut count = 0;
+                        let mut curr = evict_idx;
+                        while count < session.dialogue_len {
+                            if session.dialogue_turn_ids[curr] == evict_turn_id {
+                                slot_indices[count] = curr;
+                                count += 1;
+                                curr = if curr + 1 >= session.dialogue_capacity {
+                                    0
+                                } else {
+                                    curr + 1
+                                };
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if count > 0 {
+                            let mut page = L2PrimePage::default();
+                            compress_barycenter_key_fibonacci(
+                                &session.dialogue_keys,
+                                &slot_indices[..count],
+                                &mut page.key,
+                            );
+                            let terminal_idx = slot_indices[count - 1];
+                            page.value
+                                .copy_from_slice(&session.dialogue_values[terminal_idx]);
+                            let start_seq = session.dialogue_sequences[slot_indices[0]];
+                            let end_seq = session.dialogue_sequences[terminal_idx];
+                            page.prime_signature = compute_turn_prime_signature(
+                                &session.dialogue_tokens,
+                                &slot_indices[..count],
+                                evict_turn_id,
+                                start_seq,
+                                end_seq,
+                            );
+                            extract_salient_tokens(
+                                &session.dialogue_tokens,
+                                &session.dialogue_keys,
+                                &slot_indices[..count],
+                                &mut page.salient_tokens,
+                            );
+                            page.start_seq = start_seq as usize;
+                            page.end_seq = end_seq as usize;
+                            page.turn_id = evict_turn_id;
+
+                            let p_idx = session.l2_cursor;
+                            session.l2_pages[p_idx] = page;
+                            session.l2_cursor = if p_idx + 1 >= L2_PAGE_CAPACITY {
+                                0
+                            } else {
+                                p_idx + 1
+                            };
+                            session.l2_len = (session.l2_len + 1).min(L2_PAGE_CAPACITY);
+                            session.l2_seen += 1;
+                            session.last_compressed_turn_id = evict_turn_id;
+                        }
+                    }
+                }
+
                 let idx = session.dialogue_cursor;
                 session.dialogue_keys[idx].copy_from_slice(&key[..KEY_DIM]);
                 session.dialogue_values[idx].copy_from_slice(&value[..VAL_DIM]);
@@ -938,12 +3441,40 @@ impl IntegerModel {
         session.cumulative_holonomy_q30 += d_phase;
         session.hopf_state = next_pt;
 
+        session.last_read_masses.clear();
+        if total_slots > 0 {
+            if mode == ReadMode::NoRead {
+                session.last_read_masses.resize(total_slots, 0u64);
+            } else {
+                session
+                    .last_read_masses
+                    .extend_from_slice(&all_masses[1..1 + total_slots]);
+            }
+        }
+        session.last_no_read_mass = no_read;
+        session.last_copy_gate = gate;
+        session.has_step = true;
+
+        Ok(())
+    }
+
+    /// Step conversational session with partitioned memory, zero age decay for persona,
+    /// cyclic FIFO dialogue ring buffer, T8 zeta phase coordinates, and Hopf fiber holonomy tracking.
+    #[inline(never)]
+    pub fn step_conversational(
+        &self,
+        session: &mut SessionState,
+        token: u32,
+        target: SlotTarget,
+        mode: ReadMode,
+    ) -> Result<IntegerStep> {
+        self.step_conversational_into(session, token, target, mode)?;
         Ok(IntegerStep {
-            probabilities,
-            state,
-            no_read_mass: no_read,
-            read_masses,
-            copy_gate: gate,
+            probabilities: session.last_probabilities[..self.config.vocab_size].to_vec(),
+            state: session.state[..self.config.width].to_vec(),
+            no_read_mass: session.last_no_read_mass,
+            read_masses: session.last_read_masses.clone(),
+            copy_gate: session.last_copy_gate,
         })
     }
 
@@ -963,6 +3494,103 @@ impl IntegerModel {
             };
             parameters.insert(name, Parameter { codes, spec });
         }
+        let output_bias = match parameters.get("output.bias") {
+            Some(p) => p
+                .codes
+                .iter()
+                .map(|&v| {
+                    scaled(
+                        i128::from(v),
+                        WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                    )
+                })
+                .collect::<Result<Vec<_>>>()
+                .unwrap_or_default(),
+            None => Vec::new(),
+        };
+        let output_shifts = match parameters.get("embedding.weight") {
+            Some(emb) => emb
+                .spec
+                .row_exponents
+                .iter()
+                .map(|&exp| WORK_BITS - 10 + i32::from(exp))
+                .collect(),
+            None => Vec::new(),
+        };
+        let recurrent_bias = match parameters.get("recurrent.bias") {
+            Some(p) => p
+                .codes
+                .iter()
+                .map(|&v| {
+                    scaled(
+                        i128::from(v),
+                        WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                    )
+                })
+                .collect::<Result<Vec<_>>>()
+                .unwrap_or_default(),
+            None => Vec::new(),
+        };
+        let read_age = match parameters.get("read.age") {
+            Some(p) => p
+                .codes
+                .iter()
+                .map(|&v| {
+                    scaled(
+                        i128::from(v),
+                        WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                    )
+                })
+                .collect::<Result<Vec<_>>>()
+                .unwrap_or_default(),
+            None => Vec::new(),
+        };
+        let cache_vec = |name: &str| -> Vec<i128> {
+            match parameters.get(name) {
+                Some(p) => p
+                    .codes
+                    .iter()
+                    .map(|&v| {
+                        scaled(
+                            i128::from(v),
+                            WORK_BITS + i32::from(p.spec.row_exponents[0]),
+                        )
+                    })
+                    .collect::<Result<Vec<_>>>()
+                    .unwrap_or_default(),
+                None => Vec::new(),
+            }
+        };
+        let update_bias = cache_vec("update.bias");
+        let update_gate_bias = cache_vec("update.gate.bias");
+        let copy_gate_bias = cache_vec("copy.gate.bias");
+        let read_key_bias = cache_vec("read.key.bias");
+        let read_value_bias = cache_vec("read.value.bias");
+        let read_query_bias = cache_vec("read.query.bias");
+        let read_no_read_bias = cache_vec("read.no_read.bias");
+
+        let get_param = |name: &str| -> Parameter {
+            parameters.get(name).cloned().unwrap_or_else(|| Parameter {
+                codes: Vec::new(),
+                spec: ParameterQuantization {
+                    bits: 4,
+                    shape: Vec::new(),
+                    row_exponents: Vec::new(),
+                },
+            })
+        };
+        let p_embedding = get_param("embedding.weight");
+        let p_recurrent_input = get_param("recurrent.input.weight");
+        let p_recurrent_state = get_param("recurrent.state.weight");
+        let p_read_query = get_param("read.query.weight");
+        let p_read_no_read = get_param("read.no_read.weight");
+        let p_update = get_param("update.weight");
+        let p_update_gate = get_param("update.gate.weight");
+        let p_copy_gate = get_param("copy.gate.weight");
+        let p_read_key = get_param("read.key.weight");
+        let p_read_value = get_param("read.value.weight");
+        let p_output_norm = get_param("output.norm.weight");
+
         let tables = Tables::synthetic_for_test();
         Self {
             config,
@@ -970,6 +3598,28 @@ impl IntegerModel {
             tables,
             lorentz: None,
             identity: "synthetic_model".to_owned(),
+            output_bias,
+            output_shifts,
+            recurrent_bias,
+            read_age,
+            update_bias,
+            update_gate_bias,
+            copy_gate_bias,
+            read_key_bias,
+            read_value_bias,
+            read_query_bias,
+            read_no_read_bias,
+            p_embedding,
+            p_recurrent_input,
+            p_recurrent_state,
+            p_read_query,
+            p_read_no_read,
+            p_update,
+            p_update_gate,
+            p_copy_gate,
+            p_read_key,
+            p_read_value,
+            p_output_norm,
         }
     }
 }
@@ -977,45 +3627,125 @@ impl IntegerModel {
 /// State Q11 -> RMS-normalized Q10. Variance uses Q64 guard precision in code
 /// units: sum(x_code^2)/width + 2^22/100000, width 128 or 256. The square root
 /// has 32 guard bits.
+#[inline(always)]
+fn normalize_state_into(input: &[i32], out: &mut [i32; 256]) -> Result<()> {
+    if input.len() != 256 {
+        return Err(invalid("integer normalization width must be 256"));
+    }
+    let mut sum = 0u64;
+    for &x in input {
+        let x64 = x as i64;
+        sum += mul_shift_add_i64(x64, x64) as u64;
+    }
+    const EPSILON: u128 = (1u128 << 86) / 100_000 + 1;
+    let variance = (u128::from(sum) << 56) + EPSILON;
+    let denominator = math::isqrt(variance);
+    let d_u64 = denominator as u64;
+    let table = build_div_table_u64(d_u64);
+    for i in 0..256 {
+        let x = input[i];
+        if x == 0 {
+            out[i] = 0;
+        } else {
+            let neg = x < 0;
+            let abs_x = x.unsigned_abs() as u128;
+            let q = fast_div_round_radix16_u64(abs_x << 42, &table, d_u64);
+            let val = if neg { -(q as i32) } else { q as i32 };
+            out[i] = val.clamp(-32767, 32767);
+        }
+    }
+    Ok(())
+}
+
 #[inline(never)]
 fn normalize_state(input: &[i32]) -> Result<Vec<i32>> {
-    // 2^64/width as a shift.
     let shift = match input.len() {
         128 => 57,
         256 => 56,
         _ => return Err(invalid("integer normalization width must be 128 or 256")),
     };
-    let mut sum = 0u128;
-    for &x in input {
-        sum += product(i128::from(x), i128::from(x))? as u128;
+    if input.len() == 256 {
+        let mut output = [0i32; 256];
+        normalize_state_into(input, &mut output)?;
+        return Ok(output.to_vec());
     }
-    let epsilon = divide(1i128 << 86, 100_000)? as u128;
-    let variance = (sum << shift) + epsilon;
-    let denominator = math::isqrt(variance) as i128;
-    input
-        .iter()
-        .map(|&x| Ok(divide(i128::from(x) << 42, denominator)?.clamp(-32767, 32767) as i32))
-        .collect()
+    let mut sum = 0u64;
+    for &x in input {
+        let x64 = x as i64;
+        sum += mul_shift_add_i64(x64, x64) as u64;
+    }
+    const EPSILON: u128 = (1u128 << 86) / 100_000 + 1;
+    let variance = (u128::from(sum) << shift) + EPSILON;
+    let denominator = math::isqrt(variance);
+    let d_u64 = denominator as u64;
+    let table = build_div_table_u64(d_u64);
+    let mut out = vec![0i32; input.len()];
+    for i in 0..input.len() {
+        let x = input[i];
+        if x == 0 {
+            out[i] = 0;
+        } else {
+            let neg = x < 0;
+            let abs_x = x.unsigned_abs() as u128;
+            let q = fast_div_round_radix16_u64(abs_x << 42, &table, d_u64);
+            let val = if neg { -(q as i32) } else { q as i32 };
+            out[i] = val.clamp(-32767, 32767);
+        }
+    }
+    Ok(out)
+}
+
+#[inline(always)]
+fn blend_into(state: &[i32], candidate: &[i32], gates: &[i32], out: &mut [i32]) -> Result<()> {
+    for i in 0..state.len() {
+        let x = state[i] as i64;
+        let y = candidate[i] as i64;
+        let g = gates[i] as i64;
+        let a = mul_shift_add_i64(32768 - g, x << 3);
+        let b = mul_shift_add_i64(g, y);
+        out[i] = quantize_q29_to_q11(a + b);
+    }
+    Ok(())
 }
 
 #[inline(never)]
 fn blend(state: &[i32], candidate: &[i32], gates: &[i32]) -> Result<Vec<i32>> {
-    state
-        .iter()
-        .zip(candidate)
-        .zip(gates)
-        .map(|((&x, &y), &g)| {
-            let a = product(i128::from(32768 - g), i128::from(x) << 3)?;
-            let b = product(i128::from(g), i128::from(y))?;
-            quantize(a + b, 29, STATE_BITS)
-        })
-        .collect()
+    let mut out = vec![0i32; state.len()];
+    blend_into(state, candidate, gates, &mut out)?;
+    Ok(out)
 }
 
-#[inline(never)]
-fn transport(input: &[i32], raw: &[i32], kind: Transport) -> Result<Vec<i32>> {
-    let mut output = Vec::with_capacity(input.len());
-    for (x, r) in input.chunks_exact(4).zip(raw.chunks_exact(4)) {
+#[inline(always)]
+fn blend_scalar_into(state: &[i32], candidate: &[i32], g: i32, out: &mut [i32]) -> Result<()> {
+    let one_minus_g = 32768 - g;
+    let t_one_minus_g = build_coord_products(one_minus_g);
+    let t_g = build_coord_products(g);
+    for i in 0..state.len() {
+        let x = state[i];
+        let y = candidate[i];
+        let a = dot_coord(&t_one_minus_g, x << 3);
+        let b = dot_coord(&t_g, y);
+        out[i] = quantize_q29_to_q11(a + b);
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+fn blend_scalar(state: &[i32], candidate: &[i32], g: i32) -> Result<Vec<i32>> {
+    let mut out = vec![0i32; state.len()];
+    blend_scalar_into(state, candidate, g, &mut out)?;
+    Ok(out)
+}
+
+#[inline(always)]
+fn transport_into(input: &[i32], raw: &[i32], kind: Transport, out: &mut [i32]) -> Result<()> {
+    let mut out_idx = 0;
+    let n = input.len().min(raw.len()) >> 2;
+    for i in 0..n {
+        let base = i << 2;
+        let x = &input[base..base + 4];
+        let r = &raw[base..base + 4];
         // Common center denominator cancels during normalization. Q32 keeps
         // sqrt2 for the matched ordinary arm without a served transcendental.
         let mut centered = [0i128; 4];
@@ -1029,10 +3759,11 @@ fn transport(input: &[i32], raw: &[i32], kind: Transport) -> Result<Vec<i32>> {
         };
         let mut sum = 0u128;
         for &v in &centered {
-            sum += product(v, v)? as u128;
+            let u = v.unsigned_abs() as u64;
+            sum += square_u64_to_u128(u);
         }
         let denominator = math::isqrt(sum) as i128;
-        let mut unit = [0i128; 4];
+        let mut unit = [0i64; 4];
         // Minimum nonzero quantized center is well above original1e-6,
         // except a possible cancellation in the real-coordinate component.
         let threshold = match kind {
@@ -1042,67 +3773,117 @@ fn transport(input: &[i32], raw: &[i32], kind: Transport) -> Result<Vec<i32>> {
         if denominator <= threshold {
             unit[0] = 16384;
         } else {
+            let den_u64 = denominator as u64;
             for j in 0..4 {
-                unit[j] = divide(centered[j] << 14, denominator)?.clamp(-32767, 32767);
+                let num = centered[j] << 14;
+                let num_neg = num < 0;
+                let num_u64 = num.unsigned_abs() as u64;
+                let value = div_round_u64(num_u64, den_u64, num_neg);
+                unit[j] = value.clamp(-32767, 32767);
             }
         }
-        let x: [i128; 4] = [
-            i128::from(x[0]),
-            i128::from(x[1]),
-            i128::from(x[2]),
-            i128::from(x[3]),
-        ];
+        let x0 = i64::from(x[0]);
+        let x1 = i64::from(x[1]);
+        let x2 = i64::from(x[2]);
+        let x3 = i64::from(x[3]);
         match kind {
             Transport::Quaternion => {
-                let [w, a, b, c] = unit;
-                let y = [
-                    product(w, x[0])? - product(a, x[1])? - product(b, x[2])? - product(c, x[3])?,
-                    product(w, x[1])? + product(a, x[0])? + product(b, x[3])? - product(c, x[2])?,
-                    product(w, x[2])? - product(a, x[3])? + product(b, x[0])? + product(c, x[1])?,
-                    product(w, x[3])? + product(a, x[2])? - product(b, x[1])? + product(c, x[0])?,
-                ];
-                for v in y {
-                    output.push(quantize(v, 25, STATE_BITS)?);
-                }
+                let (t0, t1, t2, t3) =
+                    build_i64_nibble_table_4x(unit[0], unit[1], unit[2], unit[3]);
+
+                let (p00, p10, p20, p30) = mul_nibble_table_4x(&t0, &t1, &t2, &t3, x0);
+                let (p01, p11, p21, p31) = mul_nibble_table_4x(&t0, &t1, &t2, &t3, x1);
+                let (p02, p12, p22, p32) = mul_nibble_table_4x(&t0, &t1, &t2, &t3, x2);
+                let (p03, p13, p23, p33) = mul_nibble_table_4x(&t0, &t1, &t2, &t3, x3);
+
+                let y0 = p00 - p11 - p22 - p33;
+                let y1 = p01 + p10 + p23 - p32;
+                let y2 = p02 - p13 + p20 + p31;
+                let y3 = p03 + p12 - p21 + p30;
+
+                out[out_idx] = quantize_q25_to_q11(y0);
+                out[out_idx + 1] = quantize_q25_to_q11(y1);
+                out[out_idx + 2] = quantize_q25_to_q11(y2);
+                out[out_idx + 3] = quantize_q25_to_q11(y3);
+                out_idx += 4;
             }
             Transport::HouseholderPair => {
-                let reflected = [-x[0], x[1], x[2], x[3]];
-                let mut dot = 0i128;
-                for j in 0..4 {
-                    dot += product(unit[j], reflected[j])?;
-                }
-                for j in 0..4 {
-                    let value = (reflected[j] << 28) - (product(unit[j], dot)? << 1);
-                    output.push(quantize(value, 39, STATE_BITS)?);
-                }
+                let reflected = [-x0, x1, x2, x3];
+                let (t0, t1, t2, t3) =
+                    build_i64_nibble_table_4x(unit[0], unit[1], unit[2], unit[3]);
+
+                let dot = mul_nibble_table_i64(&t0, reflected[0])
+                    + mul_nibble_table_i64(&t1, reflected[1])
+                    + mul_nibble_table_i64(&t2, reflected[2])
+                    + mul_nibble_table_i64(&t3, reflected[3]);
+
+                let t_dot = build_i64_nibble_table(dot);
+                let d0 = mul_nibble_table_i64(&t_dot, unit[0]);
+                let d1 = mul_nibble_table_i64(&t_dot, unit[1]);
+                let d2 = mul_nibble_table_i64(&t_dot, unit[2]);
+                let d3 = mul_nibble_table_i64(&t_dot, unit[3]);
+
+                let y0 = (reflected[0] << 28) - (d0 << 1);
+                let y1 = (reflected[1] << 28) - (d1 << 1);
+                let y2 = (reflected[2] << 28) - (d2 << 1);
+                let y3 = (reflected[3] << 28) - (d3 << 1);
+
+                out[out_idx] = quantize_q39_to_q11(y0);
+                out[out_idx + 1] = quantize_q39_to_q11(y1);
+                out[out_idx + 2] = quantize_q39_to_q11(y2);
+                out[out_idx + 3] = quantize_q39_to_q11(y3);
+                out_idx += 4;
             }
         }
     }
-    Ok(output)
+    Ok(())
 }
 
 #[inline(never)]
-fn softmax(scores: &[i32], tables: &Tables) -> Result<Vec<u64>> {
+fn transport(input: &[i32], raw: &[i32], kind: Transport) -> Result<Vec<i32>> {
+    let mut output = vec![0i32; input.len()];
+    transport_into(input, raw, kind, &mut output)?;
+    Ok(output)
+}
+
+#[inline(always)]
+fn softmax_into(scores: &[i32], tables: &Tables, masses_out: &mut [u64]) -> Result<()> {
+    if scores.is_empty() || masses_out.len() < scores.len() {
+        return Err(invalid("empty integer softmax or output buffer too small"));
+    }
     let max = *scores
         .iter()
         .max()
         .ok_or_else(|| invalid("empty integer softmax"))?;
-    let weights: Vec<u64> = scores
-        .iter()
-        .map(|&s| tables.exp[(max - s) as usize])
-        .collect();
     let mut sum: u64 = 0;
-    for &w in &weights {
-        sum = sum.wrapping_add(core::hint::black_box(w));
+    for (i, &s) in scores.iter().enumerate() {
+        let diff = (max - s) as usize;
+        let w = if diff < tables.exp.len() {
+            tables.exp[diff]
+        } else {
+            0
+        };
+        sum = sum.wrapping_add(w);
+        masses_out[i] = w;
     }
-    let mut masses = weights
-        .into_iter()
-        .map(|w| {
-            u64::try_from(divide(i128::from(w) << 48, i128::from(sum))?)
-                .map_err(|_| invalid("integer softmax mass range"))
-        })
-        .collect::<Result<Vec<_>>>()?;
-    normalize_residual(&mut masses)?;
+    let sum_u = u128::from(sum);
+    for w in masses_out[..scores.len()].iter_mut() {
+        if *w != 0 {
+            let num = u128::from(*w) << 48;
+            let (q, r) =
+                math::div_rem_unsigned(num, sum_u).map_err(|e| invalid(format!("{e:?}")))?;
+            let rounded = q + u128::from(r >= sum_u - r);
+            *w = rounded as u64;
+        }
+    }
+    normalize_residual(&mut masses_out[..scores.len()])?;
+    Ok(())
+}
+
+#[inline(never)]
+fn softmax(scores: &[i32], tables: &Tables) -> Result<Vec<u64>> {
+    let mut masses = vec![0u64; scores.len()];
+    softmax_into(scores, tables, &mut masses)?;
     Ok(masses)
 }
 
@@ -1171,6 +3952,45 @@ mod tests {
             low_bit_dot(&low_bit_products(&mixed_input), &mixed_codes),
             expected
         );
+    }
+
+    #[test]
+    fn low_bit_dot_4x_matches_low_bit_dot_and_scalar() {
+        let input: Vec<i32> = (0..256i32).map(|i| i * 17 - 1234).collect();
+        let products = low_bit_products(&input);
+
+        let w0: Vec<i16> = (0..256).map(|i| ((i % 15) as i16) - 7).collect();
+        let w1: Vec<i16> = (0..256).map(|i| (((i * 3) % 15) as i16) - 7).collect();
+        let w2: Vec<i16> = (0..256).map(|i| (((i * 5 + 2) % 15) as i16) - 7).collect();
+        let w3: Vec<i16> = (0..256).map(|i| (((i * 7 + 4) % 15) as i16) - 7).collect();
+
+        let p_256: &[[i64; 16]; 256] = (&products[..256]).try_into().unwrap();
+        let w0_arr: &[i16; 256] = (&w0[..256]).try_into().unwrap();
+        let w1_arr: &[i16; 256] = (&w1[..256]).try_into().unwrap();
+        let w2_arr: &[i16; 256] = (&w2[..256]).try_into().unwrap();
+        let w3_arr: &[i16; 256] = (&w3[..256]).try_into().unwrap();
+
+        let (d0, d1, d2, d3) = low_bit_dot_4x(p_256, w0_arr, w1_arr, w2_arr, w3_arr);
+
+        let scalar_dot = |weights: &[i16]| -> i64 {
+            input
+                .iter()
+                .zip(weights)
+                .map(|(&x, &w)| i64::from(x) * i64::from(w))
+                .sum()
+        };
+
+        assert_eq!(d0, low_bit_dot(&products, &w0));
+        assert_eq!(d0, scalar_dot(&w0));
+
+        assert_eq!(d1, low_bit_dot(&products, &w1));
+        assert_eq!(d1, scalar_dot(&w1));
+
+        assert_eq!(d2, low_bit_dot(&products, &w2));
+        assert_eq!(d2, scalar_dot(&w2));
+
+        assert_eq!(d3, low_bit_dot(&products, &w3));
+        assert_eq!(d3, scalar_dot(&w3));
     }
 
     #[test]
@@ -1287,5 +4107,231 @@ mod tests {
         assert!(matches!(error, IntegerError::Io(_)), "{error}");
         fs::remove_dir_all(&directory)?;
         Ok(())
+    }
+
+    #[test]
+    fn fast_mixture_radix16_matches_exact_arithmetic() -> Result<()> {
+        let fractions = [0u128, 1, 1000, 123456789, TOTAL as u128];
+        let values: [u64; 6] = [0, 1, 42, 65535, 123456789, TOTAL];
+
+        for &fraction in &fractions {
+            let table = build_fraction_table(fraction);
+            for &v in &values {
+                let prod = mul_fraction_radix16(v, &table);
+                let expected = (u128::from(v)) * fraction;
+                assert_eq!(
+                    prod, expected,
+                    "mul_fraction_radix16 mismatch for v={v}, f={fraction}"
+                );
+            }
+        }
+
+        for &raw in &[0u64, 1, 100, 12345, 99999999, TOTAL, TOTAL * 2] {
+            let prod99 = mul99_radix16(raw);
+            let expected = u128::from(raw) * 99_999_999u128;
+            assert_eq!(prod99, expected, "mul99_radix16 mismatch for raw={raw}");
+        }
+
+        let test_numerators = [
+            0u128,
+            1,
+            50_000_000,
+            100_000_000,
+            150_000_000,
+            100_000_000 * 42 + 37,
+            (TOTAL as u128) * 99_999_999 + (TOTAL as u128 >> 12),
+        ];
+        for &num in &test_numerators {
+            let fast = fast_div_round_100m(num);
+            let expected = math::div_round(num as i128, 100_000_000)
+                .map_err(|e| invalid(format!("{e:?}")))? as u64;
+            assert_eq!(fast, expected, "fast_div_round_100m mismatch for num={num}");
+        }
+
+        let test_denominators = [
+            1u128,
+            7,
+            100,
+            12345,
+            65536,
+            1_000_000,
+            (1u128 << 48) - 1,
+            (1u128 << 48) + 1234567,
+        ];
+        for &den in &test_denominators {
+            for &num in &[
+                0u128,
+                1,
+                den / 2,
+                den - 1,
+                den,
+                den + 1,
+                den * 3 + den / 2,
+                den * 17 + 5,
+            ] {
+                let fast = fast_div_round(num, den);
+                let expected = math::div_round(num as i128, den as i128)
+                    .map_err(|e| invalid(format!("{e:?}")))? as u64;
+                assert_eq!(
+                    fast, expected,
+                    "fast_div_round mismatch for num={num}, den={den}"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn mul_shift_add_i64_matches_scalar() {
+        let values = [-32767i64, -2560, -100, -1, 0, 1, 100, 2560, 32767];
+        for &a in &values {
+            for &b in &values {
+                assert_eq!(mul_shift_add_i64(a, b), a * b, "mismatch for a={a}, b={b}");
+            }
+        }
+    }
+
+    #[test]
+    fn div_round_100m_raw_matches_exact() -> Result<()> {
+        let u_const = TOTAL >> 12;
+        let test_raws = [
+            0u64,
+            1,
+            2,
+            42,
+            100,
+            1000,
+            100_000_000,
+            u_const.saturating_sub(1),
+            u_const,
+            u_const + 1,
+            u_const + 100_000_000,
+            TOTAL,
+            TOTAL * 2,
+        ];
+        for &raw in &test_raws {
+            let res = div_round_100m_raw(raw, u_const)?;
+            let num = (raw as u128) * 99_999_999 + (u_const as u128);
+            let expected = math::div_round(num as i128, 100_000_000)
+                .map_err(|e| invalid(format!("{e:?}")))? as u64;
+            assert_eq!(res, expected, "div_round_100m_raw mismatch for raw={raw}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn low_bit_dot_8_contiguous_matches_scalar() {
+        let input: Vec<i32> = (0..256i32).map(|i| i * 19 - 2468).collect();
+        let products = low_bit_products(&input);
+        let p_256: &[[i64; 16]; 256] = (&products[..256]).try_into().unwrap();
+
+        let mut weights_2048 = [0i16; 2048];
+        for (i, w) in weights_2048.iter_mut().enumerate() {
+            *w = (((i * 11 + 3) % 15) as i16) - 7;
+        }
+
+        let (d0, d1, d2, d3, d4, d5, d6, d7) = low_bit_dot_8_contiguous(p_256, &weights_2048);
+
+        let scalar_dot = |weights: &[i16]| -> i64 {
+            input
+                .iter()
+                .zip(weights)
+                .map(|(&x, &w)| i64::from(x) * i64::from(w))
+                .sum()
+        };
+
+        assert_eq!(d0, scalar_dot(&weights_2048[0..256]));
+        assert_eq!(d1, scalar_dot(&weights_2048[256..512]));
+        assert_eq!(d2, scalar_dot(&weights_2048[512..768]));
+        assert_eq!(d3, scalar_dot(&weights_2048[768..1024]));
+        assert_eq!(d4, scalar_dot(&weights_2048[1024..1280]));
+        assert_eq!(d5, scalar_dot(&weights_2048[1280..1536]));
+        assert_eq!(d6, scalar_dot(&weights_2048[1536..1792]));
+        assert_eq!(d7, scalar_dot(&weights_2048[1792..2048]));
+    }
+
+    #[test]
+    fn scale_and_quantize_logit_matches_reference() -> Result<()> {
+        let dots = [
+            -50_000_000i64,
+            -1_000_000,
+            -100,
+            0,
+            100,
+            1_000_000,
+            50_000_000,
+        ];
+        let shifts = [10, 14, 15, 16, 20, 25];
+        let biases = [-100_000_000i128, -1000, 0, 1000, 100_000_000];
+
+        for &dot in &dots {
+            for &shift in &shifts {
+                for &bias in &biases {
+                    let fast = scale_and_quantize_logit(dot, shift, bias);
+                    let val = scaled(i128::from(dot), shift)?;
+                    let expected = quantize(val + bias, WORK_BITS, 8)?;
+                    assert_eq!(
+                        fast, expected,
+                        "mismatch for dot={dot}, shift={shift}, bias={bias}"
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn mul_nibble_table_matches_scalar() {
+        let vals = [
+            -32767i64, -16384, -2560, -100, -1, 0, 1, 100, 2560, 16384, 32767,
+        ];
+        let xs = [-32767i64, -16384, -500, -1, 0, 1, 500, 16384, 32767];
+        for &val in &vals {
+            let table = build_i64_nibble_table(val);
+            for &x in &xs {
+                let fast = mul_nibble_table_i64(&table, x);
+                let expected = val * x;
+                assert_eq!(fast, expected, "mismatch for val={val}, x={x}");
+            }
+        }
+    }
+
+    #[test]
+    fn mul_nibble_table_4x_matches_mul_nibble_table_i64() {
+        let vals = [
+            -32767i64, -16384, -2560, -100, -1, 0, 1, 100, 2560, 16384, 32767,
+        ];
+        let xs = [-32767i64, -16384, -500, -1, 0, 1, 500, 16384, 32767];
+        for i in 0..vals.len().saturating_sub(3) {
+            let (t0, t1, t2, t3) =
+                build_i64_nibble_table_4x(vals[i], vals[i + 1], vals[i + 2], vals[i + 3]);
+            let s0 = build_i64_nibble_table(vals[i]);
+            let s1 = build_i64_nibble_table(vals[i + 1]);
+            let s2 = build_i64_nibble_table(vals[i + 2]);
+            let s3 = build_i64_nibble_table(vals[i + 3]);
+            assert_eq!(t0, s0);
+            assert_eq!(t1, s1);
+            assert_eq!(t2, s2);
+            assert_eq!(t3, s3);
+            for &x in &xs {
+                let (p0, p1, p2, p3) = mul_nibble_table_4x(&t0, &t1, &t2, &t3, x);
+                assert_eq!(p0, mul_nibble_table_i64(&s0, x));
+                assert_eq!(p1, mul_nibble_table_i64(&s1, x));
+                assert_eq!(p2, mul_nibble_table_i64(&s2, x));
+                assert_eq!(p3, mul_nibble_table_i64(&s3, x));
+            }
+        }
+    }
+
+    #[test]
+    fn mul_code_i64_matches_scalar() {
+        let xs = [-32767i64, -1000, -1, 0, 1, 1000, 32767];
+        for code in -7..=7i16 {
+            for &x in &xs {
+                let fast = mul_code_i64(x, code);
+                let expected = x * i64::from(code);
+                assert_eq!(fast, expected, "mismatch for x={x}, code={code}");
+            }
+        }
     }
 }

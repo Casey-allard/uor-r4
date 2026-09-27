@@ -36,6 +36,7 @@ impl std::error::Error for IntegerMathError {}
 
 pub type MathResult<T> = std::result::Result<T, IntegerMathError>;
 
+#[inline(always)]
 fn signed_magnitude(magnitude: u128, negative: bool) -> MathResult<i128> {
     if negative && magnitude == (1u128 << 127) {
         return Ok(i128::MIN);
@@ -46,11 +47,12 @@ fn signed_magnitude(magnitude: u128, negative: bool) -> MathResult<i128> {
 
 /// Shift left exactly, rejecting lost high bits. Rust's `checked_shl` alone
 /// checks only the shift count, so is insufficient for this contract.
+#[inline(always)]
 pub fn shift_left_unsigned(value: u128, shift: u32) -> MathResult<u128> {
     if shift >= 128 {
         return Err(IntegerMathError::InvalidShift);
     }
-    if value > (u128::MAX >> shift) {
+    if value.leading_zeros() < shift {
         return Err(IntegerMathError::Overflow);
     }
     Ok(value << shift)
@@ -58,15 +60,22 @@ pub fn shift_left_unsigned(value: u128, shift: u32) -> MathResult<u128> {
 
 /// Exact unsigned product, using at most 128 shift/add iterations. Choosing the
 /// smaller operand as multiplier shortens the usual small-code weight path.
+#[inline(always)]
 pub fn checked_mul_unsigned(mut left: u128, mut right: u128) -> MathResult<u128> {
+    if left == 0 || right == 0 {
+        return Ok(0);
+    }
     if left < right {
         std::mem::swap(&mut left, &mut right);
     }
     let mut result = 0u128;
     while right != 0 {
-        if right & 1 != 0 {
-            result = result.checked_add(left).ok_or(IntegerMathError::Overflow)?;
+        let tz = right.trailing_zeros();
+        if tz > 0 {
+            left = shift_left_unsigned(left, tz)?;
+            right >>= tz;
         }
+        result = result.checked_add(left).ok_or(IntegerMathError::Overflow)?;
         right >>= 1;
         if right != 0 {
             left = shift_left_unsigned(left, 1)?;
@@ -77,6 +86,7 @@ pub fn checked_mul_unsigned(mut left: u128, mut right: u128) -> MathResult<u128>
 
 /// Exact signed product, including the representable `MIN` result. The unsigned
 /// accumulator preserves its magnitude without applying `abs` to a signed MIN.
+#[inline(never)]
 pub fn checked_mul(left: i128, right: i128) -> MathResult<i128> {
     let magnitude = checked_mul_unsigned(left.unsigned_abs(), right.unsigned_abs())?;
     signed_magnitude(magnitude, (left < 0) != (right < 0))
@@ -85,6 +95,7 @@ pub fn checked_mul(left: i128, right: i128) -> MathResult<i128> {
 /// Scale by a power of two. Positive shifts are exact; negative shifts round to
 /// nearest, with ties away from zero. Supported shifts are -128 through 127.
 /// In particular, `scale_pow2(MIN, -128)` is -1, an exact halfway case.
+#[inline(never)]
 pub fn scale_pow2(value: i128, shift: i32) -> MathResult<i128> {
     if !(-128..=127).contains(&shift) {
         return Err(IntegerMathError::InvalidShift);
@@ -122,6 +133,32 @@ pub fn div_rem_unsigned(numerator: u128, denominator: u128) -> MathResult<(u128,
     let mut place = 1u128 << shift;
     let mut remainder = numerator;
     let mut quotient = 0u128;
+    while place >= 8 {
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+        if remainder >= divisor {
+            remainder -= divisor;
+            quotient |= place;
+        }
+        divisor >>= 1;
+        place >>= 1;
+    }
     while place != 0 {
         if remainder >= divisor {
             remainder -= divisor;
