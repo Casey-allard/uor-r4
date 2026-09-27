@@ -74,6 +74,20 @@ floors do not establish capacity as the cause. No training extension or integer
 loader widening follows. The frozen reader study and other labs' mechanisms
 remain independent.
 
+The [R1d training-context audit](dialogue-context-audit-2026-09-27.md) now
+reconstructs all 2,237 update denominators exactly. Of 6,280,627 response-target
+visits, 74.6033% start their input window inside the same response, with all
+pre-response context outside the window. This does not establish the cause of
+weak generated replies. Only 14,826/129,486 complete response prefixes fit
+within 256 total IDs; 89.4847% of that eligible response-run population comes
+from Everyday Conversations and Smol Constraints. A prefix-preserving option
+therefore requires explicit population/weighting choices and a matched control,
+coordinated with the separate dialogue trainer owner. No fit or filtering of
+retained artifacts follows. Three focused Rust checks pass; the data-only pass
+took 3.210 seconds with no model execution. The
+[receipt](../evidence/dialogue-context-audit-2026-09-27.json) binds source,
+inputs, rowwise reconstruction, result and cost.
+
 **Concurrent discovery:** the [fourth-lab native-read review](fourth-lab-native-read-review-2026-09-26.md)
 inspects Claude PR#1401's full-context Lorentz implementation and reported
 development results. Claude fixed the two reported implementation defects and

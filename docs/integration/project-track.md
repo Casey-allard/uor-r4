@@ -91,6 +91,15 @@ capacity floor or eliminate data/objective explanations. Select the next native
 learning change from this output evidence together with the pending matched
 reader, termination and stack results. Integer width adoption remains separate.
 
+The [training-context diagnostic](dialogue-context-audit-2026-09-27.md) makes
+request-preserving sampling a concrete candidate: most actual response-target
+exposure lacked its original pre-response prefix. A full-prefix length filter
+also excludes most responses and changes source composition sharply. Choose
+and report that data population explicitly with the dialogue branch owner;
+retain a comparable historical-sampler control. This data-only finding neither
+diagnoses generation failure nor starts another fit. It complements the pending
+reader, termination and stack outcomes in selecting the next learning change.
+
 
 **Parallel architecture exploration:** Claude's [Cycle 4 stack experiment](https://github.com/UOR-Foundation/uor-r4/pull/1414)
 investigates deeper quaternion recurrence and multi-head Lorentz reads against
