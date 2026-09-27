@@ -39,6 +39,12 @@ Broader source/evidence findings are in the [integration review](fourth-lab-inte
 Current status remains in [current state](current-state.md), and #820/#973 retain
 their programme/model responsibilities.
 
+**Adaptive next action:** [review of concurrent Claude PR#1401](fourth-lab-native-read-review-2026-09-26.md)
+identified an existing native Lorentz read/configuration/export interface.
+Review and reuse that seam before adding a competing finite-group reader;
+retain radius/initialization controls and the reported numerical limitations.
+Its separate proposed D10 backbone/arithmetic policy is not implicitly adopted.
+
 ## Active programme — learn the model, then harden its execution
 
 [D8](DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) applies the owner's September 24 request to assess and act on the [stuck-point review](stuck-point-review-response-2026-09-24.md). It corrects D7's implementation sequence while preserving its integrated model goal, exact tape, separated admission/ranking, shared operators and ordinary control. D0-b and D4–D6 remain authority. The terminal target is a useful native transformerless geometric model with integer/table serving and per-token parameter sparsity.

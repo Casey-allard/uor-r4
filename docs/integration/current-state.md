@@ -23,6 +23,15 @@ record the executed scope. No model fit or capability promotion
 follows from the lab setup. Accepted models and the continuation negative below
 remain unchanged. Other labs' active source and model jobs are preserved.
 
+**Concurrent discovery:** the [fourth-lab native-read review](fourth-lab-native-read-review-2026-09-26.md)
+inspects Claude PR#1401's full-context Lorentz implementation and reported
+development results. Reuse its reader interface before a competing 2I
+integration; obtain its retained source/artifact packet and resolve the two
+reported bounded implementation defects. Independent replay and general
+language/M1 qualification remain unavailable or unmeasured at this review.
+That branch's D10 converted-backbone/arithmetic policy awaits owner
+clarification in this lab; native review does not adopt it implicitly.
+
 ## Decision and active work
 
 The owner supplied a whole-project stuck-point review and directed warranted

@@ -3,6 +3,16 @@
 September 26, 2026. References #973 under #820. **Source/literature research and
 implementation design; no new model, test, benchmark or capability result.**
 
+**Subsequent cross-lab update:** newly published Claude PR#1401 already provides
+a native Dot/Lorentz read/configuration/integer seam. The
+[independent native-read review](fourth-lab-native-read-review-2026-09-26.md)
+therefore prioritizes reviewing and reusing that seam before implementing a
+competing interface. The signed-2I operator below remains an optional later
+hypothesis, with radius retention/control strengthened by that work. The
+baseline source reconstruction and mathematical distinctions below remain
+valid at their stated revisions; this proposal is not a mandate to duplicate
+the other lab's attention work.
+
 The fourth lab should own a missing connection: **jointly learned finite
 geometric attention inside the language graph**, carried to the existing integer
 session. Preserve the full causal 256-token reader while establishing that
