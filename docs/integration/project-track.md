@@ -88,18 +88,24 @@ remain weak and repetitive, with some topic/fact reuse; practical chat remains
 open. Preserve it as a diagnostic baseline and retain the bounded decision
 against another automatic fit. Its curve extrapolation does not identify a
 capacity floor or eliminate data/objective explanations. Select the next native
-learning change from this output evidence together with the pending matched
-reader, termination and stack results. Integer width adoption remains separate.
+learning change from this output evidence together with the completed matched
+reader and termination results and the separately scoped stack evidence.
+Integer width adoption remains separate.
 
 The [training-context diagnostic](dialogue-context-audit-2026-09-27.md) makes
 request-preserving sampling a concrete candidate: most actual response-target
 exposure lacked its original pre-response prefix. A full-prefix length filter
 also excludes most responses and changes source composition sharply. Choose
-and report that data population explicitly with the dialogue branch owner;
-retain a comparable historical-sampler control. This data-only finding neither
-diagnoses generation failure nor starts another fit. It complements the reader
-comparison and independently owned stack results in selecting the next learning
-change.
+and report that data population explicitly with the dialogue branch owner.
+The [selected complete-prefix plan](dialogue-prefix-learning-plan-2026-09-27.md)
+uses the same complete responses and genuine EOS in both arms, with original
+versus role-only prefixes and a shared global response-token objective. This
+refines the earlier historical-suffix-control proposal: removing arbitrary answer
+prefixes would also change which early reply tokens receive training. The new
+control directly compares conditional with role-only response learning; it does
+not reconstruct the historical sampler or identify that sampler as the cause of
+failure. Build the integrated parameter-start → learning → save/reload → actual
+reply path before the new fit, preserving foreign trainer and CLI ownership.
 
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
@@ -107,11 +113,14 @@ the original 20 failed source rows fall below the declared four, and actual
 sampled prose supplies no additional acceptable story. Preserve the modest
 source-completion gains, controls and remaining source errors; do not extend the
 dose automatically or rerun merely because a known normalization defect exists.
-Complete the frozen reader comparison next. Its measured likelihood, complete
-outputs and cost will decide the declared integration path or a change of
-learning mechanism. Explicit dialogue-prefix sampling and deeper geometric
-state/read structure remain subsequent candidates, with their distinct
-population and serving contracts stated before another fit.
+The [completed fixed reader comparison](radial-adaptation-result-2026-09-27.md)
+now parks the transferred radial configurations: both lose to matched Dot on
+likelihood and complete source responses. Lorentz's isolated greedy story gain
+is preserved alongside concrete source regressions. Keep the native Dot path;
+no new serving operator, extra dose or seed sweep is selected. Advance the
+complete-prefix dialogue implementation next. Deeper geometric state/read
+structure remains a complementary Claude-owned candidate; its distinct
+population and serving contracts remain explicit.
 
 
 **Parallel architecture exploration:** Claude's [Cycle 4 stack experiment](https://github.com/UOR-Foundation/uor-r4/pull/1414)

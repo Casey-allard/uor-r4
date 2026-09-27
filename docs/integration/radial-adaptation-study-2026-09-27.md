@@ -2,6 +2,10 @@
 
 September 27, 2026. Fourth lab; References #973 under #820.
 
+**Execution update:** the [fixed study is complete](radial-adaptation-result-2026-09-27.md).
+The prospective specification below is preserved unchanged; its original
+NOT_RUN status describes the proposal, not the current result.
+
 **Status: proposed fixed adaptation screen; fitting NOT_RUN.** The proposed dose
 is 1,024 updates per arm, with one descriptive checkpoint at 512. This document
 does not supply the complete resource envelope or authorize a fit launch. Before

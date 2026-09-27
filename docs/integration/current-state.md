@@ -81,8 +81,9 @@ pre-response context outside the window. This does not establish the cause of
 weak generated replies. Only 14,826/129,486 complete response prefixes fit
 within 256 total IDs; 89.4847% of that eligible response-run population comes
 from Everyday Conversations and Smol Constraints. A prefix-preserving option
-therefore requires explicit population/weighting choices and a matched control,
-coordinated with the separate dialogue trainer owner. No fit or filtering of
+therefore requires explicit population/weighting choices and a matched control.
+The selected next implementation below supplies that design while preserving
+the separate dialogue trainer owner's files. No fit or filtering of
 retained artifacts follows. Three focused Rust checks pass; the data-only pass
 took 3.210 seconds with no model execution. The
 [receipt](../evidence/dialogue-context-audit-2026-09-27.json) binds source,
@@ -139,18 +140,31 @@ the final endpoint as the sole comparison. The complete twelve-hour local
 process/evaluation projection is recorded. Source `488e3976` supplies the scoped
 seven-root comparison and opt-in greedy prose supplement; three focused release
 checks and three CLI rejection cases pass. The existing `joint-compare` contract
-is unchanged. The source-bound optimized CPU-Accelerate executable has now
-completed both the Dot reset and Lorentz fits: each reached 1,024 updates /
-4,194,304 new visits, exit0 and a sealed final root. Affine started at 07:06 UTC
-with the same executable and fixed conditions.
-Full evaluation, successful greedy supplementation, comparative output review
-and the adaptation result remain pending. The
-[implementation, launch and resource receipt](../evidence/reader-study-tools-validation-2026-09-27.json)
-records the exact scope and live process pointer. The mainline termination-objective
-study remains independently owned and cannot supply that matched control.
-General language/M1 qualification remains unmeasured here. The owner has now
-confirmed this lab's native, multiplier-free serving target; the control
-introduces no serving exception or converted backbone.
+is unchanged. The fixed comparison is now complete: all three fits reached
+1,024 updates /
+4,194,304 new visits, followed by six full evaluations and successful greedy
+supplementation. Full development NLL is 1.999366810 Dot, 2.045765725 Lorentz and
+2.012669715 Affine. Both radial arms are worse than Dot on all three partitions.
+Complete source answers are 21/32, 14/32 and 19/32 respectively. Principal and
+independent review agree on sampled 0/5 each and greedy 1/5, 2/5, 1/5, preserving
+individual borderline readings. Lorentz's isolated greedy gain does not offset
+its likelihood/source regressions. Dot itself retains source turnover and weak
+prose; no new model is promoted.
+
+The [completed result](radial-adaptation-result-2026-09-27.md) parks these radial
+transfer configurations at the fixed dose, preserving all artifacts and useful
+partial findings. Its [source-bound packet](../evidence/radial-adaptation-result-2026-09-27.json)
+records actual outputs, paired population/source differences, independent review,
+source/binary/weight identities and complete cost components. No extra fit,
+initializer, seed or decoder sweep follows. This does not reject geometric
+readers or establish integer/energy advantage. The selected next fourth-lab
+implementation is the [complete-prefix dialogue learner](dialogue-prefix-learning-plan-2026-09-27.md):
+exact same complete responses and real EOS under full original versus role-only
+prefixes, explicitly restricted population, global response-token normalization,
+parameter-only initialization and actual saved offline reload/replies. Fit remains
+NOT_RUN pending its implementation and prospectively accounted work card. Other
+labs retain their CLI, trainer and deeper-stack ownership. The owner-confirmed
+native, multiplier-free serving target is unchanged.
 
 The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
 identifies useful serving optimization alongside unresolved integration and
