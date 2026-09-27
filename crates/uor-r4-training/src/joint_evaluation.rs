@@ -416,6 +416,88 @@ fn generate_inner(
     let mut inputs = Vec::with_capacity(content.len() + 1 + max_new_tokens);
     inputs.push(0);
     inputs.extend(content);
+    generate_from_tokens(
+        model,
+        tokenizer,
+        prompt,
+        inputs,
+        mode,
+        seed,
+        max_new_tokens,
+        first_sentence,
+        "prepend checkpoint BOS0 exactly once; EOS1 ends output",
+        started,
+    )
+}
+
+/// Generate from exact caller-supplied IDs, including the one automatic BOS.
+/// The decoded prompt is display only; it is never encoded or used as input.
+/// Literal BOS/EOS occurring later in the supplied history remain input tokens.
+pub fn generate_tokens(
+    model: &JointModel,
+    tokenizer: &HfBpeTokenizer,
+    prompt_token_ids: &[u32],
+    mode: ReadMode,
+    seed: Option<u64>,
+    max_new_tokens: usize,
+) -> Result<JointGeneration> {
+    let started = Instant::now();
+    validate_generation_tokens(
+        &model.config,
+        tokenizer.vocab_size(),
+        prompt_token_ids,
+        max_new_tokens,
+    )?;
+    let prompt = tokenizer.decode(&prompt_token_ids[1..]);
+    generate_from_tokens(
+        model,
+        tokenizer,
+        &prompt,
+        prompt_token_ids.to_vec(),
+        mode,
+        seed,
+        max_new_tokens,
+        false,
+        "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+        started,
+    )
+}
+
+pub(crate) fn validate_generation_tokens(
+    config: &crate::joint_model::JointConfig,
+    tokenizer_vocabulary: usize,
+    tokens: &[u32],
+    max_new_tokens: usize,
+) -> Result<()> {
+    if !(1..=MAX_NEW_TOKENS).contains(&max_new_tokens)
+        || tokenizer_vocabulary != config.vocab_size
+        || tokens.first() != Some(&0)
+        || tokens.iter().any(|&id| id as usize >= config.vocab_size)
+        || tokens
+            .len()
+            .checked_add(max_new_tokens)
+            .is_none_or(|n| n > config.context)
+    {
+        return Err(invalid(
+            "joint exact-token prompt/BOS/vocabulary/generation capacity",
+        ));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn generate_from_tokens(
+    model: &JointModel,
+    tokenizer: &HfBpeTokenizer,
+    prompt: &str,
+    mut inputs: Vec<u32>,
+    mode: ReadMode,
+    seed: Option<u64>,
+    max_new_tokens: usize,
+    first_sentence: bool,
+    bos_policy: &'static str,
+    started: Instant,
+) -> Result<JointGeneration> {
     let prompt_token_ids = inputs.clone();
     let mut session = model.new_session(1)?;
     let mut current = None;
@@ -499,7 +581,7 @@ fn generate_inner(
         } else {
             GREEDY_POLICY
         },
-        bos_policy: "prepend checkpoint BOS0 exactly once; EOS1 ends output",
+        bos_policy,
         prompt_token_ids,
         generated_token_ids: generated,
         raw_decoded: String::from_utf8_lossy(&raw_bytes).into_owned(),

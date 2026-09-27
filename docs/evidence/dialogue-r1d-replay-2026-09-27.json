@@ -1,0 +1,2081 @@
+{
+  "schema": "uor-r4.dialogue-r1d-replay-validation/1",
+  "recorded_at": "2026-09-27T06:07:33.181582+00:00",
+  "status": "OFFLINE_OUTPUT_OBSERVATION_COMPLETE_CHAT_UNQUALIFIED",
+  "references": [973,820],
+  "source_commit": "e3fc0a587115d34b41a0fc9edacc09745ccc0746",
+  "source_sha256": {
+    "dialogue.rs": "96a9b50ab6b7c1b442b2a426cacca64a11a56fdc5f5dec4a21012ee064535a8b",
+    "dialogue_artifact.rs": "7561233790789d56aba98e014621916b17bb6f814730199bafce944659b6292e",
+    "example.rs": "d8a9c91edd593ed2e4a7267b7bca017c95d2451736cb33cbb517c7b285e3f625",
+    "joint_evaluation.rs": "b89fc5df9036c4776d1bb05291a06d1bde0bc184752f85cde01b010631d68cf9",
+    "joint_model.rs": "314ab98a96bd6ccb04a7547f1dea7a1520c30eb825955b382fc88b58664ace89"
+  },
+  "executable_sha256": "8661012bd8f22f85428a94c70cef2f7c91a5ff72fefae6a8b39a06b6dfe06af4",
+  "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cargo_lock_sha256": "2108c628f20a8fc33086b52abba2af2bee154c28de8979f1a88d3bd8d88e732d",
+  "profile": "release",
+  "features": [
+    "cpu-accelerate"
+  ],
+  "device": "cpu",
+  "thread_environment": {
+    "RAYON_NUM_THREADS": "2",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "GEMM_NUM_THREADS": "1"
+  },
+  "artifact": {
+    "admission": "full",
+    "compatibility_scope": "Current-source continuous Dot/Full quaternion replay of the retained R1d cell. Historical source label is not an assertion of clean-tree training or bitwise backend reproduction. Tokenizer/protocol and mask bindings are retrospective through the prepared corpus manifest; only token hashes were recorded by the fit. No optimizer resume, fit, integer export, serving or capability qualification.",
+    "current_model": {
+      "context": 256,
+      "read_width": 64,
+      "seed": 20260926,
+      "transport": "quaternion",
+      "vocab_size": 4096,
+      "width": 576
+    },
+    "datasets": [
+      {
+        "mask_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/response_mask.u8",
+        "mask_sha256": "09dc0fe5d0e2de7b5072e4586b5cb9ef3379856600ff90061c561a48826e75e7",
+        "response_tokens": 56650286,
+        "split": "train",
+        "tokens": 82529690,
+        "tokens_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/tokens.u16",
+        "tokens_sha256": "4a554b0ef8be12344f21f1bd6bdc9faeeeddcef212a138a8772a8bf42604c4fa"
+      },
+      {
+        "mask_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/response_mask.u8",
+        "mask_sha256": "ed43a9eade79d84dc73be608fb788f1e7566021fbdbba35ce3e5eddbc4fce8b4",
+        "response_tokens": 3942347,
+        "split": "heldout",
+        "tokens": 6215400,
+        "tokens_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/tokens.u16",
+        "tokens_sha256": "ca5ccf0722d9dcdc5294b612f2c25536fe49192be7bedbc3007a1fcfc0940225"
+      }
+    ],
+    "fit_report_sha256": "a192916c17d8d124e9a32c21c3b31ef6b622890b148d37549eb219d11cd641fa",
+    "fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+    "fit_seal_sha256": "28bb1f475b2ec12ed0c2cee4de1102f0c46274bcc21261d931991f5b21719c4b",
+    "historical_configuration": {
+      "batch": 16,
+      "checkpoint_steps": [500,1000,1500,2000,2500,3000,3500,4000],
+      "context": 256,
+      "count_report": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1b/count-3/dialogue-count.json",
+      "cpu_gradient_shards": 2,
+      "data_seed": 20260926,
+      "eval_batch": 8,
+      "eval_every": 50,
+      "eval_max_windows": 512,
+      "eval_stride": 4,
+      "heldout_mask": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/response_mask.u8",
+      "heldout_tokens": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/tokens.u16",
+      "max_process_seconds": 21600,
+      "model": {
+        "context": 256,
+        "read_width": 64,
+        "seed": 20260926,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 576
+      },
+      "optimizer": {
+        "allowed_missing_gradients": [],
+        "learning_rate": 0.001,
+        "parameter_abs_limit": 1000000.0,
+        "weight_decay": 0.01
+      },
+      "schema": "uor-r4.dialogue-campaign/1",
+      "stop_file": null,
+      "total_steps": 100000,
+      "train_mask": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/response_mask.u8",
+      "train_tokens": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/tokens.u16",
+      "trial_scope": "R1d bounded curve: <=6h (21600 s update deadline) response-masked fit at width 576 (5,429,826 params), batch 16 / context 256 = 4096 sampled targets/step, cpu_gradient_shards 2, chat-v0 train split, held-out evaluation on the matched 512-window population (stride 4) every 50 steps, checkpoints every 500 steps. Development curve only; not a passing R1 claim.",
+      "tune_windows": 64
+    },
+    "historical_executable_sha256": "84ec4ebe5d95b28346501129394e3cb211483c9bf2b471caa8abbc4313463e4b",
+    "historical_source_commit": "5109861c93dee0e39d3aa189c325b3a13c4ededc",
+    "parameter_bytes": 21719304,
+    "parameter_count": 5429826,
+    "parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+    "parameters": [
+      {
+        "name": "copy.gate.bias",
+        "sha256_le_f32": "7f24dc2e07f365a63fffad77171cbdd523b913d9cf849e0283e10355fd6eea6a",
+        "shape": [1]
+      },
+      {
+        "name": "copy.gate.weight",
+        "sha256_le_f32": "146f2f4097410b01b717bae3265632d12fc24d4fc080798bc0e3042ff8b2e1f4",
+        "shape": [1,1152]
+      },
+      {
+        "name": "embedding.weight",
+        "sha256_le_f32": "c5ef3aa948802b49822c248d678d0fa5bfe0a90badc478da2b74ee8ee36e2dea",
+        "shape": [4096,576]
+      },
+      {
+        "name": "output.bias",
+        "sha256_le_f32": "b8f9228c6378a2426e7202df83f3f9fed493f555a7ec8bc29d21af6e9b7f79be",
+        "shape": [4096]
+      },
+      {
+        "name": "output.norm.weight",
+        "sha256_le_f32": "18d26c9c5b4483f20edfaf950e1c926ea957292d59ee73f8252c586766468ec7",
+        "shape": [576]
+      },
+      {
+        "name": "read.age",
+        "sha256_le_f32": "56f98660565753f731e99a2ee5fca80e334cccb3bf8fae41ad01b57fcba776c6",
+        "shape": [255]
+      },
+      {
+        "name": "read.key.bias",
+        "sha256_le_f32": "e41ea5498e8293e38bc3b6b05fd3005d29c0b5c07e59be8e38a17b7767d6fb2a",
+        "shape": [64]
+      },
+      {
+        "name": "read.key.weight",
+        "sha256_le_f32": "79f5304d74f8e0fd62ff809290cd71b64c178e34b0eee934def3f8813f627598",
+        "shape": [64,576]
+      },
+      {
+        "name": "read.no_read.bias",
+        "sha256_le_f32": "192914a60d968b28a2fe5ea59c9da0aa789d52e593cc8049263eb059ec92c8d2",
+        "shape": [1]
+      },
+      {
+        "name": "read.no_read.weight",
+        "sha256_le_f32": "bf882568b5331921c23ffd04c47eec1c2ba8ac326220d8db84ed04fc6beff1a9",
+        "shape": [1,576]
+      },
+      {
+        "name": "read.query.bias",
+        "sha256_le_f32": "25fffbc826a819133016fc584f08cc0c5cd951555a58d202a571bbd17cfdeba1",
+        "shape": [64]
+      },
+      {
+        "name": "read.query.weight",
+        "sha256_le_f32": "162f2d314e5d6ae00b10edd6a4b8ae94c58e657fb5c81117c02dd9b35a63e4a4",
+        "shape": [64,576]
+      },
+      {
+        "name": "read.value.bias",
+        "sha256_le_f32": "2111d76198e2321ca9da6b406c834d7c9b0dc14e3bfb1f792c190d4e0376c912",
+        "shape": [576]
+      },
+      {
+        "name": "read.value.weight",
+        "sha256_le_f32": "13ceeab3a0a96de9e38b62111f65fea530efbf73e571831fdebdb0ee53747e5a",
+        "shape": [576,576]
+      },
+      {
+        "name": "recurrent.bias",
+        "sha256_le_f32": "a961b992fe7f4653b9a133b14e3212a3e670a5ade5a19209af5a9c3b43600474",
+        "shape": [1728]
+      },
+      {
+        "name": "recurrent.input.weight",
+        "sha256_le_f32": "69efd7807fec17ff46d679a445b864fd77b43583bb91702530a9c0b058246f9d",
+        "shape": [1728,576]
+      },
+      {
+        "name": "recurrent.state.weight",
+        "sha256_le_f32": "a1f446f0cb005bb96ea4e5d7cd3e19ca00d8e7f427211837ff16ce23fdc0c887",
+        "shape": [1728,576]
+      },
+      {
+        "name": "update.bias",
+        "sha256_le_f32": "78d6a37f8e9ac6bb70e17f4a60393d130c15284a6461df75004fa3b9ad8349e1",
+        "shape": [576]
+      },
+      {
+        "name": "update.gate.bias",
+        "sha256_le_f32": "b5e56a3fd160bf3b6aab0d0ac3c9b13c654b58f4678d6dc655969c0a26c04142",
+        "shape": [1]
+      },
+      {
+        "name": "update.gate.weight",
+        "sha256_le_f32": "f09e85eb7e04730925141432f4625e1159aa6ff6365a780869f559217f437ecd",
+        "shape": [1,1152]
+      },
+      {
+        "name": "update.weight",
+        "sha256_le_f32": "9e06d0a912bc216505dcddfc77852d26cac10971ec44e929771f14bf48ae9ceb",
+        "shape": [576,1152]
+      }
+    ],
+    "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+    "protocol": {
+      "bos_id": 0,
+      "eos_id": 1,
+      "schema": "uor-r4.literal-role-dialogue/1",
+      "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+      "unk_id": 2
+    },
+    "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+    "read_geometry": "dot",
+    "sampled_targets": 9162752,
+    "schema": "uor-r4.offline-dialogue-artifact/1",
+    "steps_completed": 2237,
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+  },
+  "protocol": {
+    "bos_id": 0,
+    "eos_id": 1,
+    "schema": "uor-r4.literal-role-dialogue/1",
+    "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+    "unk_id": 2
+  },
+  "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+  "development_panel_sha256": "10dfc0e7c529feecfa61e393b22a404ffee561339281abf5ea03f53964c6cfd2",
+  "selection": {
+    "requests": 38,
+    "responses": 58,
+    "max_new_tokens_per_response": 32,
+    "context": 256,
+    "mode": "enabled",
+    "greedy": true,
+    "fresh_heldout": false,
+    "model_or_data_changes": false,
+    "exact_generated_history": true,
+    "session_policy": "Fresh continuous session replays exact full prefix on every turn; this is not a persistent serving benchmark."
+  },
+  "prefix_comparison": {
+    "argmax_disagreements": 0,
+    "incremental_step_calls": 15,
+    "max_absolute_probability_delta": 9.685754776000977e-07,
+    "mode": "enabled",
+    "positions": 15,
+    "probability_values": 61440,
+    "scope": "Current-source full-forward versus incremental probabilities on this prefix only; no historical backend or language qualification"
+  },
+  "prefix_tolerance": 1e-05,
+  "work": {
+    "generated_selections": 1766,
+    "generation_incremental_step_calls": 4331,
+    "comparison_incremental_step_calls": 15,
+    "comparison_full_forward_positions": 15,
+    "total_token_position_evaluations": 4361,
+    "explicit_caller_eos_insertions": 15
+  },
+  "stops": {
+    "model_eos": 11,
+    "short_cycle": 4,
+    "token_cap": 43
+  },
+  "outputs": [
+    {
+      "id": "dev-core-greet-01",
+      "category": "greeting",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Hi there!",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1094,403,3,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,265,1996,1224,268,631,1004,16,340,1311,79,1248,268,3835,351,14,1293,832,519,657,16,340,1311,79,1248],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,116,104,101,32,109,111,115,116,32,105,109,112,111,114,116,97,110,116,32,116,111,32,121,111,117,114,32,115,116,111,114,121,46,32,73,226,128,153,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,44,32,112,108,101,97,115,101,32,108,101,116,32,109,101,32,107,110,111,119,46,32,73,226,128,153,109,32,104,101,114,101],
+            "raw_decoded": "I'm excited to share a lot of the most important to your story. I’m here to support you, please let me know. I’m here",
+            "response_text": "I'm excited to share a lot of the most important to your story. I’m here to support you, please let me know. I’m here",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 46,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1094,403,3,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,265,1996,1224,268,631,1004,16,340,1311,79,1248,268,3835,351,14,1293,832,519,657,16,340,1311,79,1248]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-greet-02",
+      "category": "greeting",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Good morning!",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2009,1812,3,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,265,1996,1224,1812,14,351,469,324,261,972,916,268,646,261,674,1224,1812,16,201,201,37,387,351,1293],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,116,104,101,32,109,111,115,116,32,105,109,112,111,114,116,97,110,116,32,109,111,114,110,105,110,103,44,32,121,111,117,32,99,97,110,32,98,101,32,97,32,103,114,101,97,116,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,105,109,112,111,114,116,97,110,116,32,109,111,114,110,105,110,103,46,10,10,67,111,117,108,100,32,121,111,117,32,112,108,101,97,115,101],
+            "raw_decoded": "I'm excited to share a lot of the most important morning, you can be a great way to get a more important morning.\n\nCould you please",
+            "response_text": "I'm excited to share a lot of the most important morning, you can be a great way to get a more important morning.\n\nCould you please",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 46,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2009,1812,3,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,265,1996,1224,1812,14,351,469,324,261,972,916,268,646,261,674,1224,1812,16,201,201,37,387,351,1293]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-greet-03",
+      "category": "greeting",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "How are you today?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,3150,484,351,1719,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,351,469,324,261,1435,372,265,1996,1224,268,324,261,1435,372,265,1996,1224,268,324,261,1435,372,265,1996,1224,268,324],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,121,111,117,32,99,97,110,32,98,101,32,97,32,98,105,116,32,111,102,32,116,104,101,32,109,111,115,116,32,105,109,112,111,114,116,97,110,116,32,116,111,32,98,101,32,97,32,98,105,116,32,111,102,32,116,104,101,32,109,111,115,116,32,105,109,112,111,114,116,97,110,116,32,116,111,32,98,101,32,97,32,98,105,116,32,111,102,32,116,104,101,32,109,111,115,116,32,105,109,112,111,114,116,97,110,116,32,116,111,32,98,101],
+            "raw_decoded": "Yes, there are many you can be a bit of the most important to be a bit of the most important to be a bit of the most important to be",
+            "response_text": "Yes, there are many you can be a bit of the most important to be a bit of the most important to be a bit of the most important to be",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 48,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,3150,484,351,1719,33,201,35,560,652,714,28,223,735,14,403,484,664,351,469,324,261,1435,372,265,1996,1224,268,324,261,1435,372,265,1996,1224,268,324,261,1435,372,265,1996,1224,268,324]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-greet-04",
+      "category": "greeting",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Nice to meet you.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,48,552,268,2061,351,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,351,16,201,201,37,1780,295,284,265,340,349,284,80,1511,421,340,349,284,80,1511,421,340,349,284,80,1511,421],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,121,111,117,46,10,10,67,111,110,115,105,100,101,114,32,116,104,101,32,73,110,116,101,114,110,97,116,105,111,110,97,108,32,73,110,116,101,114,110,97,116,105,111,110,97,108,32,73,110,116,101,114,110,97,116,105,111,110,97,108],
+            "raw_decoded": "I'm excited to share you.\n\nConsider the International International International",
+            "response_text": "I'm excited to share you.\n\nConsider the International International International",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 49,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,48,552,268,2061,351,16,201,35,560,652,714,28,223,43,915,726,268,840,351,16,201,201,37,1780,295,284,265,340,349,284,80,1511,421,340,349,284,80,1511,421,340,349,284,80,1511,421]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-greet-05",
+      "category": "greeting",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Thank you very much!",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,842,351,381,761,3,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,265,1996,1224,268,631,1004,16,340,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,116,104,101,32,109,111,115,116,32,105,109,112,111,114,116,97,110,116,32,116,111,32,121,111,117,114,32,115,116,111,114,121,46,32,73,226,128,153,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,46,10,10,66,101,115,116,44,10,69,109,105,108,121],
+            "raw_decoded": "I'm excited to share a lot of the most important to your story. I’m here to support you.\n\nBest,\nEmily",
+            "response_text": "I'm excited to share a lot of the most important to your story. I’m here to support you.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 48,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,842,351,381,761,3,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,265,1996,1224,268,631,1004,16,340,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-01",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What is the capital of France?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,435,265,2743,3695,372,3704,1651,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,265,2743,3695,372,3704,1651,372,3704,1651,14,3704,1651,14,3704,1651,14],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,116,104,101,32,99,97,112,105,116,97,108,32,111,102,32,70,114,97,110,99,101,32,111,102,32,70,114,97,110,99,101,44,32,70,114,97,110,99,101,44,32,70,114,97,110,99,101,44],
+            "raw_decoded": "Yes, there are the capital of France of France, France, France,",
+            "response_text": "Yes, there are the capital of France of France, France, France,",
+            "stop": {
+              "period": 3,
+              "reason": "short_cycle"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 40,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,435,265,2743,3695,372,3704,1651,33,201,35,560,652,714,28,223,735,14,403,484,265,2743,3695,372,3704,1651,372,3704,1651,14,3704,1651,14,3704,1651,14]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-02",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "How many legs does a spider have?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,3150,664,2295,1303,261,2242,500,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,2295,1303,80,488,324,261,2242,500,268,324,261,2242,500,268,324,261,2242,500,16,201,201,37,1780,295,284,265,2242],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,108,101,103,115,32,100,111,101,115,110,39,116,32,98,101,32,97,32,115,112,105,100,101,114,32,104,97,118,101,32,116,111,32,98,101,32,97,32,115,112,105,100,101,114,32,104,97,118,101,32,116,111,32,98,101,32,97,32,115,112,105,100,101,114,32,104,97,118,101,46,10,10,67,111,110,115,105,100,101,114,32,116,104,101,32,115,112,105,100,101,114],
+            "raw_decoded": "Yes, there are many legs doesn't be a spider have to be a spider have to be a spider have.\n\nConsider the spider",
+            "response_text": "Yes, there are many legs doesn't be a spider have to be a spider have to be a spider have.\n\nConsider the spider",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 51,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,3150,664,2295,1303,261,2242,500,33,201,35,560,652,714,28,223,735,14,403,484,664,2295,1303,80,488,324,261,2242,500,268,324,261,2242,500,268,324,261,2242,500,16,201,201,37,1780,295,284,265,2242]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-03",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What color is the sky on a clear day?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,931,435,265,818,356,261,2723,329,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,265,818,356,261,2723,329,14,365,469,1116,261,2723,329,14,365,469,1116,261,2723,329,14,365,469,1116,261,2723,329,372],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,116,104,101,32,115,107,121,32,111,110,32,97,32,99,108,101,97,114,32,100,97,121,44,32,119,101,32,99,97,110,32,117,115,101,32,97,32,99,108,101,97,114,32,100,97,121,44,32,119,101,32,99,97,110,32,117,115,101,32,97,32,99,108,101,97,114,32,100,97,121,44,32,119,101,32,99,97,110,32,117,115,101,32,97,32,99,108,101,97,114,32,100,97,121,32,111,102],
+            "raw_decoded": "Yes, there are the sky on a clear day, we can use a clear day, we can use a clear day, we can use a clear day of",
+            "response_text": "Yes, there are the sky on a clear day, we can use a clear day, we can use a clear day, we can use a clear day of",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 53,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,931,435,265,818,356,261,2723,329,33,201,35,560,652,714,28,223,735,14,403,484,265,818,356,261,2723,329,14,365,469,1116,261,2723,329,14,365,469,1116,261,2723,329,14,365,469,1116,261,2723,329,372]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-04",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "How many days are in a week?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,3150,664,1906,484,315,261,3449,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,1906,484,315,261,3449,14,365,469,1116,261,3449,268,646,261,3449,268,646,261,3449,16,201,201,37,387,351,1293,832],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,100,97,121,115,32,97,114,101,32,105,110,32,97,32,119,101,101,107,44,32,119,101,32,99,97,110,32,117,115,101,32,97,32,119,101,101,107,32,116,111,32,103,101,116,32,97,32,119,101,101,107,32,116,111,32,103,101,116,32,97,32,119,101,101,107,46,10,10,67,111,117,108,100,32,121,111,117,32,112,108,101,97,115,101,32,108,101,116],
+            "raw_decoded": "Yes, there are many days are in a week, we can use a week to get a week to get a week.\n\nCould you please let",
+            "response_text": "Yes, there are many days are in a week, we can use a week to get a week to get a week.\n\nCould you please let",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 51,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,3150,664,1906,484,315,261,3449,33,201,35,560,652,714,28,223,735,14,403,484,664,1906,484,315,261,3449,14,365,469,1116,261,3449,268,646,261,3449,268,646,261,3449,16,201,201,37,387,351,1293,832]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-05",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What is the largest planet in our solar system?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,435,265,2477,353,3300,315,1135,2472,291,262,91,353,970,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,265,2477,353,3300,315,1135,2472,291,262,91,353,970,14,4055,70,300,1135,2472,291,262,91,353,970,14,4055,70,300,1135,2472,291],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,32,108,97,114,103,101,115,116,32,112,108,97,110,101,116,32,105,110,32,111,117,114,32,115,111,108,97,114,32,115,121,115,116,101,109,44,32,105,110,99,108,117,100,105,110,103,32,111,117,114,32,115,111,108,97,114,32,115,121,115,116,101,109,44,32,105,110,99,108,117,100,105,110,103,32,111,117,114,32,115,111,108,97,114],
+            "raw_decoded": "Yes, the largest planet in our solar system, including our solar system, including our solar",
+            "response_text": "Yes, the largest planet in our solar system, including our solar system, including our solar",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 58,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,435,265,2477,353,3300,315,1135,2472,291,262,91,353,970,33,201,35,560,652,714,28,223,735,14,265,2477,353,3300,315,1135,2472,291,262,91,353,970,14,4055,70,300,1135,2472,291,262,91,353,970,14,4055,70,300,1135,2472,291]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-06",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What do bees make?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,377,3563,533,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,33,201,201,2170,353,14,201,39,79,1102,1],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,63,10,10,66,101,115,116,44,10,69,109,109,97,60,124,101,111,115,124,62],
+            "raw_decoded": "Yes, there are many?\n\nBest,\nEmma<|eos|>",
+            "response_text": "Yes, there are many?\n\nBest,\nEmma",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 32,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,377,3563,533,33,201,35,560,652,714,28,223,735,14,403,484,664,33,201,201,2170,353,14,201,39,79,1102,1]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-07",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What is the freezing point of water in Celsius?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,435,265,3895,300,1678,86,372,692,315,772,418,85,75,644,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,265,3895,300,1678,86,372,692,315,772,418,85,75,644,386,692,315,772,418,85,75,644,386,692,315,772,418,85,75,644,386],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,32,102,114,101,101,122,105,110,103,32,112,111,105,110,116,32,111,102,32,119,97,116,101,114,32,105,110,32,67,101,108,115,105,117,115,39,115,32,119,97,116,101,114,32,105,110,32,67,101,108,115,105,117,115,39,115,32,119,97,116,101,114,32,105,110,32,67,101,108,115,105,117,115,39,115],
+            "raw_decoded": "Yes, the freezing point of water in Celsius's water in Celsius's water in Celsius's",
+            "response_text": "Yes, the freezing point of water in Celsius's water in Celsius's water in Celsius's",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 59,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,435,265,3895,300,1678,86,372,692,315,772,418,85,75,644,33,201,35,560,652,714,28,223,735,14,265,3895,300,1678,86,372,692,315,772,418,85,75,644,386,692,315,772,418,85,75,644,386,692,315,772,418,85,75,644,386]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-fact-08",
+      "category": "factual",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Which animal is known as the king of the jungle?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,759,1788,780,435,489,516,450,265,1687,372,265,3191,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,265,1687,372,265,3191,14,265,1687,372,265,3191,14,265,1687,372,265,3191,14,265,1687,372,265,3191,16,287,1687,372,265,3191,14],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,32,107,105,110,103,32,111,102,32,116,104,101,32,106,117,110,103,108,101,44,32,116,104,101,32,107,105,110,103,32,111,102,32,116,104,101,32,106,117,110,103,108,101,44,32,116,104,101,32,107,105,110,103,32,111,102,32,116,104,101,32,106,117,110,103,108,101,44,32,116,104,101,32,107,105,110,103,32,111,102,32,116,104,101,32,106,117,110,103,108,101,46,32,84,104,101,32,107,105,110,103,32,111,102,32,116,104,101,32,106,117,110,103,108,101,44],
+            "raw_decoded": "Yes, the king of the jungle, the king of the jungle, the king of the jungle, the king of the jungle. The king of the jungle,",
+            "response_text": "Yes, the king of the jungle, the king of the jungle, the king of the jungle, the king of the jungle. The king of the jungle,",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 56,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,759,1788,780,435,489,516,450,265,1687,372,265,3191,33,201,35,560,652,714,28,223,735,14,265,1687,372,265,3191,14,265,1687,372,265,3191,14,265,1687,372,265,3191,14,265,1687,372,265,3191,16,287,1687,372,265,3191,14]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-01",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about the sun.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,265,629,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,265,629,16,201,201,43,915,1248,268,3835,351,14,351,469,324,261,1435,372,265,629,14,351,469,324,261,1435,372],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,115,117,110,46,10,10,73,39,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,44,32,121,111,117,32,99,97,110,32,98,101,32,97,32,98,105,116,32,111,102,32,116,104,101,32,115,117,110,44,32,121,111,117,32,99,97,110,32,98,101,32,97,32,98,105,116,32,111,102],
+            "raw_decoded": "I'm excited to share the sun.\n\nI'm here to support you, you can be a bit of the sun, you can be a bit of",
+            "response_text": "I'm excited to share the sun.\n\nI'm here to support you, you can be a bit of the sun, you can be a bit of",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 54,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,265,629,16,201,35,560,652,714,28,223,43,915,726,268,840,265,629,16,201,201,43,915,1248,268,3835,351,14,351,469,324,261,1435,372,265,629,14,351,469,324,261,1435,372]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-02",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about a dog.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,261,466,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,466,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,100,111,103,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share a dog.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I'm excited to share a dog.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 54,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,261,466,16,201,35,560,652,714,28,223,43,915,726,268,840,261,466,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-03",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about the ocean.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,265,3074,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,265,3074,16,201,201,43,915,726,268,840,265,3074,269,265,3074,16,201,201,43,915,726,268,840,265,3074,269,265],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,111,99,101,97,110,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,111,99,101,97,110,32,97,110,100,32,116,104,101,32,111,99,101,97,110,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,111,99,101,97,110,32,97,110,100,32,116,104,101],
+            "raw_decoded": "I'm excited to share the ocean.\n\nI'm excited to share the ocean and the ocean.\n\nI'm excited to share the ocean and the",
+            "response_text": "I'm excited to share the ocean.\n\nI'm excited to share the ocean and the ocean.\n\nI'm excited to share the ocean and the",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 54,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,265,3074,16,201,35,560,652,714,28,223,43,915,726,268,840,265,3074,16,201,201,43,915,726,268,840,265,3074,269,265,3074,16,201,201,43,915,726,268,840,265,3074,269,265]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-04",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about winter.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,1465,442,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,1465,442,16,201,201,35,600,276,848,684,14,201,201,43,2385,351,1462,1452,1662,16,340,409,268,1347,3574,331,351],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,119,105,110,116,101,114,46,10,10,65,100,100,105,116,105,111,110,97,108,108,121,44,10,10,73,32,104,111,112,101,32,121,111,117,39,114,101,32,100,111,105,110,103,32,119,101,108,108,46,32,73,32,119,97,110,116,101,100,32,116,111,32,116,111,117,99,104,32,98,97,115,101,32,119,105,116,104,32,121,111,117],
+            "raw_decoded": "I'm excited to share winter.\n\nAdditionally,\n\nI hope you're doing well. I wanted to touch base with you",
+            "response_text": "I'm excited to share winter.\n\nAdditionally,\n\nI hope you're doing well. I wanted to touch base with you",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 54,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,1465,442,16,201,35,560,652,714,28,223,43,915,726,268,840,1465,442,16,201,201,35,600,276,848,684,14,201,201,43,2385,351,1462,1452,1662,16,340,409,268,1347,3574,331,351]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-05",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about a book.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,261,889,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,889,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,98,111,111,107,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share a book.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I'm excited to share a book.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 54,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,261,889,16,201,35,560,652,714,28,223,43,915,726,268,840,261,889,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-06",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about music.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,1627,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,262,380,1691,666,1627,16,201,201,43,915,726,268,840,261,648,372,1627,14,351,469,3610,261,674,1572,305,90],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,115,101,110,116,101,110,99,101,32,97,98,111,117,116,32,109,117,115,105,99,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,109,117,115,105,99,44,32,121,111,117,32,99,97,110,32,99,114,101,97,116,101,32,97,32,109,111,114,101,32,99,111,109,112,108,101,120],
+            "raw_decoded": "I'm excited to share a sentence about music.\n\nI'm excited to share a lot of music, you can create a more complex",
+            "response_text": "I'm excited to share a sentence about music.\n\nI'm excited to share a lot of music, you can create a more complex",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 53,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,1627,16,201,35,560,652,714,28,223,43,915,726,268,840,261,262,380,1691,666,1627,16,201,201,43,915,726,268,840,261,648,372,1627,14,351,469,3610,261,674,1572,305,90]
+        }
+      ]
+    },
+    {
+      "id": "dev-core-inst-07",
+      "category": "instruction",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Write a sentence about a mountain.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,261,2758,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,2758,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,109,111,117,110,116,97,105,110,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share a mountain.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I'm excited to share a mountain.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 54,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,57,84,718,261,262,380,1691,666,261,2758,16,201,35,560,652,714,28,223,43,915,726,268,840,261,2758,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-01",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "My name is Alex.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1412,435,439,305,90,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,109,111,114,101,32,99,111,110,99,105,115,101,32,97,110,100,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,109,97,107,101,32,105,116,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,108,121,46,10,10,67,111,117,108,100,32,121,111,117,32,112,108,101,97,115,101],
+            "raw_decoded": "I'm excited to share a more concise and effective way to make it more effectively.\n\nCould you please",
+            "response_text": "I'm excited to share a more concise and effective way to make it more effectively.\n\nCould you please",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 50,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1412,435,439,305,90,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1]
+        },
+        {
+          "turn": 2,
+          "user": "I also like apples.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1412,435,439,305,90,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1,201,55,2728,28,223,43,1067,517,1813,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,109,111,114,101,32,99,111,110,99,105,115,101,32,97,110,100,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,109,97,107,101,32,105,116,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,108,121,46,10,10,67,111,117,108,100,32,121,111,117,32,112,108,101,97,115,101],
+            "raw_decoded": "I'm excited to share a more concise and effective way to make it more effectively.\n\nCould you please",
+            "response_text": "I'm excited to share a more concise and effective way to make it more effectively.\n\nCould you please",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 100,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1412,435,439,305,90,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1,201,55,2728,28,223,43,1067,517,1813,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1]
+        },
+        {
+          "turn": 3,
+          "user": "What is my name?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1412,435,439,305,90,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1,201,55,2728,28,223,43,1067,517,1813,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1,201,55,2728,28,223,1085,435,627,1412,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,97,32,109,111,114,101,32,99,111,110,99,105,115,101,32,97,110,100,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,109,97,107,101,32,105,116,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,108,121,46,10,10,67,111,117,108,100,32,121,111,117,32,112,108,101,97,115,101],
+            "raw_decoded": "Yes, there are many a more concise and effective way to make it more effectively.\n\nCould you please",
+            "response_text": "Yes, there are many a more concise and effective way to make it more effectively.\n\nCould you please",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 150,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,1412,435,439,305,90,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1,201,55,2728,28,223,43,1067,517,1813,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293,1,201,55,2728,28,223,1085,435,627,1412,33,201,35,560,652,714,28,223,735,14,403,484,664,261,674,1205,69,669,269,347,811,1252,673,916,268,533,311,674,347,811,1252,673,463,16,201,201,37,387,351,1293]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-02",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "My cat is named Momo.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,462,435,404,2360,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,533,1464,268,533],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,97,32,110,101,119,32,99,97,116,32,105,115,32,110,97,109,101,100,32,77,111,109,111,44,32,97,110,100,32,73,39,109,32,115,117,114,101,32,116,111,32,109,97,107,101,32,115,117,114,101,32,116,111,32,109,97,107,101,32,115,117,114,101,32,116,111,32,109,97,107,101],
+            "raw_decoded": "I'm excited to share a lot of a new cat is named Momo, and I'm sure to make sure to make sure to make",
+            "response_text": "I'm excited to share a lot of a new cat is named Momo, and I'm sure to make sure to make sure to make",
+            "stop": {
+              "period": 3,
+              "reason": "short_cycle"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 44,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,462,435,404,2360,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,533,1464,268,533,1]
+        },
+        {
+          "turn": 2,
+          "user": "She likes to sleep.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,462,435,404,2360,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,533,1464,268,533,1,201,55,2728,28,223,1362,1587,268,1187,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,97,32,110,101,119,32,99,97,116,32,105,115,32,110,97,109,101,100,32,77,111,109,111,44,32,97,110,100,32,73,39,109,32,115,117,114,101,32,116,111,32,109,97,107,101,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share a lot of a new cat is named Momo, and I'm sure to make<|eos|>",
+            "response_text": "I'm excited to share a lot of a new cat is named Momo, and I'm sure to make",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 84,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,462,435,404,2360,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,533,1464,268,533,1,201,55,2728,28,223,1362,1587,268,1187,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1]
+        },
+        {
+          "turn": 3,
+          "user": "What is my cat's name?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,462,435,404,2360,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,533,1464,268,533,1,201,55,2728,28,223,1362,1587,268,1187,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1,201,55,2728,28,223,1085,435,627,462,386,1412,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,340,915,1464,268,1187,16,201,201,43,915,726,268,1098,631,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,1187,16,201],
+            "raw_decoded_bytes": [89,101,115,44,32,73,39,109,32,115,117,114,101,32,116,111,32,115,108,101,101,112,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,104,101,97,114,32,121,111,117,114,32,99,97,116,32,105,115,32,110,97,109,101,100,32,77,111,109,111,44,32,97,110,100,32,73,39,109,32,115,117,114,101,32,116,111,32,109,97,107,101,32,115,117,114,101,32,116,111,32,115,108,101,101,112,46,10],
+            "raw_decoded": "Yes, I'm sure to sleep.\n\nI'm excited to hear your cat is named Momo, and I'm sure to make sure to sleep.\n",
+            "response_text": "Yes, I'm sure to sleep.\n\nI'm excited to hear your cat is named Momo, and I'm sure to make sure to sleep.",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 135,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,462,435,404,2360,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,533,1464,268,533,1,201,55,2728,28,223,1362,1587,268,1187,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,545,462,435,404,2360,14,269,340,915,1464,268,533,1,201,55,2728,28,223,1085,435,627,462,386,1412,33,201,35,560,652,714,28,223,735,14,340,915,1464,268,1187,16,201,201,43,915,726,268,1098,631,462,435,404,2360,14,269,340,915,1464,268,533,1464,268,1187,16,201]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-03",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "My favorite color is green.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1236,931,435,1074,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,35,305],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,103,114,101,101,110,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10,65,108,101],
+            "raw_decoded": "I'm excited to share a lot of green.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nAle",
+            "response_text": "I'm excited to share a lot of green.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nAle",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 49,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1236,931,435,1074,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,35,305,1]
+        },
+        {
+          "turn": 2,
+          "user": "I also like blue.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1236,931,435,1074,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,35,305,1,201,55,2728,28,223,43,1067,517,924,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,103,114,101,101,110,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,103,114,101,101,110,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102],
+            "raw_decoded": "I'm excited to share a lot of green.\n\nI'm excited to share a lot of green.\n\nI'm excited to share a lot of",
+            "response_text": "I'm excited to share a lot of green.\n\nI'm excited to share a lot of green.\n\nI'm excited to share a lot of",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 99,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1236,931,435,1074,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,35,305,1,201,55,2728,28,223,43,1067,517,924,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1]
+        },
+        {
+          "turn": 3,
+          "user": "What is my favorite color?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1236,931,435,1074,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,35,305,1,201,55,2728,28,223,43,1067,517,924,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1,201,55,2728,28,223,1085,435,627,1236,931,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,924,1236,931,435,1074,16,201,201,43,915,904,372,265,931,14,924,1236,931,14,1074,16,201,201,43,915,904,372,265,931,14],
+            "raw_decoded_bytes": [89,101,115,44,32,98,108,117,101,32,102,97,118,111,114,105,116,101,32,99,111,108,111,114,32,105,115,32,103,114,101,101,110,46,10,10,73,39,109,32,112,114,111,117,100,32,111,102,32,116,104,101,32,99,111,108,111,114,44,32,98,108,117,101,32,102,97,118,111,114,105,116,101,32,99,111,108,111,114,44,32,103,114,101,101,110,46,10,10,73,39,109,32,112,114,111,117,100,32,111,102,32,116,104,101,32,99,111,108,111,114,44],
+            "raw_decoded": "Yes, blue favorite color is green.\n\nI'm proud of the color, blue favorite color, green.\n\nI'm proud of the color,",
+            "response_text": "Yes, blue favorite color is green.\n\nI'm proud of the color, blue favorite color, green.\n\nI'm proud of the color,",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 150,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,1236,931,435,1074,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,35,305,1,201,55,2728,28,223,43,1067,517,924,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1074,16,201,201,43,915,726,268,840,261,648,372,1,201,55,2728,28,223,1085,435,627,1236,931,33,201,35,560,652,714,28,223,735,14,924,1236,931,435,1074,16,201,201,43,915,904,372,265,931,14,924,1236,931,14,1074,16,201,201,43,915,904,372,265,931,14]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-04",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "I work as a teacher.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,1146,450,261,2054,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,116,101,97,99,104,101,114,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,97,32,116,101,97,99,104,101,114,44,32,121,111,117,32,99,97,110,32,99,114,101,97,116,101,32,97,32,109,111,114,101,32,99,111,109,112,108,101,120,32,97,110,100,32,97,117],
+            "raw_decoded": "I'm excited to share a teacher.\n\nI'm excited to share a lot of a teacher, you can create a more complex and au",
+            "response_text": "I'm excited to share a teacher.\n\nI'm excited to share a lot of a teacher, you can create a more complex and au",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 49,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,43,1146,450,261,2054,16,201,35,560,652,714,28,223,43,915,726,268,840,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,1]
+        },
+        {
+          "turn": 2,
+          "user": "My school is nearby.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,1146,450,261,2054,16,201,35,560,652,714,28,223,43,915,726,268,840,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,1,201,55,2728,28,223,2485,1787,435,2482,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,97,32,116,101,97,99,104,101,114,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,97,32,116,101,97,99,104,101,114,44,32,121,111,117,32,99,97,110,32,99,114,101,97,116,101,32,97,32,109,111,114,101,32,99,111,109,112,108,101,120],
+            "raw_decoded": "I'm excited to share a lot of a teacher.\n\nI'm excited to share a lot of a teacher, you can create a more complex",
+            "response_text": "I'm excited to share a lot of a teacher.\n\nI'm excited to share a lot of a teacher, you can create a more complex",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 99,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,43,1146,450,261,2054,16,201,35,560,652,714,28,223,43,915,726,268,840,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,1,201,55,2728,28,223,2485,1787,435,2482,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,1]
+        },
+        {
+          "turn": 3,
+          "user": "What is my job?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,1146,450,261,2054,16,201,35,560,652,714,28,223,43,915,726,268,840,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,1,201,55,2728,28,223,2485,1787,435,2482,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,1,201,55,2728,28,223,1085,435,627,1541,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,261,2054,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,70,75,1691,14,351,469,3610,261,674,1572],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,97,32,116,101,97,99,104,101,114,32,111,102,32,97,32,116,101,97,99,104,101,114,44,32,121,111,117,32,99,97,110,32,99,114,101,97,116,101,32,97,32,109,111,114,101,32,99,111,109,112,108,101,120,32,97,110,100,32,97,117,100,105,101,110,99,101,44,32,121,111,117,32,99,97,110,32,99,114,101,97,116,101,32,97,32,109,111,114,101,32,99,111,109,112],
+            "raw_decoded": "Yes, there are many a teacher of a teacher, you can create a more complex and audience, you can create a more comp",
+            "response_text": "Yes, there are many a teacher of a teacher, you can create a more complex and audience, you can create a more comp",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 149,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,1146,450,261,2054,16,201,35,560,652,714,28,223,43,915,726,268,840,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,1,201,55,2728,28,223,2485,1787,435,2482,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,261,2054,16,201,201,43,915,726,268,840,261,648,372,261,2054,14,351,469,3610,261,674,1572,305,90,1,201,55,2728,28,223,1085,435,627,1541,33,201,35,560,652,714,28,223,735,14,403,484,664,261,2054,372,261,2054,14,351,469,3610,261,674,1572,305,90,269,261,87,70,75,1691,14,351,469,3610,261,674,1572]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-05",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "My sister lives in Tokyo.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1700,369,1642,315,1692,77,91,81,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,745,726,268,840,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201],
+            "raw_decoded_bytes": [73,32,97,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,115,32,105,110,32,84,111,107,121,111,46,10,10,67,111,110,115,105,100,101,114,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,115,32,105,110,32,84,111,107,121,111,46,10],
+            "raw_decoded": "I am excited to share the sister lives in Tokyo.\n\nConsider the sister lives in Tokyo.\n",
+            "response_text": "I am excited to share the sister lives in Tokyo.\n\nConsider the sister lives in Tokyo.",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 53,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1700,369,1642,315,1692,77,91,81,16,201,35,560,652,714,28,223,43,745,726,268,840,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1]
+        },
+        {
+          "turn": 2,
+          "user": "She visits often.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1700,369,1642,315,1692,77,91,81,16,201,35,560,652,714,28,223,43,745,726,268,840,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1,201,55,2728,28,223,1362,1679,85,4013,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,115,32,105,110,32,84,111,107,121,111,46,10,10,67,111,110,115,105,100,101,114,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,115,32,105,110,32,84,111,107,121,111,46,10],
+            "raw_decoded": "Yes, there are many the sister lives in Tokyo.\n\nConsider the sister lives in Tokyo.\n",
+            "response_text": "Yes, there are many the sister lives in Tokyo.\n\nConsider the sister lives in Tokyo.",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 103,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1700,369,1642,315,1692,77,91,81,16,201,35,560,652,714,28,223,43,745,726,268,840,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1,201,55,2728,28,223,1362,1679,85,4013,16,201,35,560,652,714,28,223,735,14,403,484,664,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1]
+        },
+        {
+          "turn": 3,
+          "user": "Where does my sister live?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1700,369,1642,315,1692,77,91,81,16,201,35,560,652,714,28,223,43,745,726,268,840,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1,201,55,2728,28,223,1362,1679,85,4013,16,201,35,560,652,714,28,223,735,14,403,484,664,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1,201,55,2728,28,223,2812,1303,627,1700,2097,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,664,265,1700,2097,33,201,201,37,1780,295,284,265,1700,2097,33,201,201,37,1780,295,284,265,1700,2097,33,201,201,37],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,109,97,110,121,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,63,10,10,67,111,110,115,105,100,101,114,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,63,10,10,67,111,110,115,105,100,101,114,32,116,104,101,32,115,105,115,116,101,114,32,108,105,118,101,63,10,10,67],
+            "raw_decoded": "Yes, there are many the sister live?\n\nConsider the sister live?\n\nConsider the sister live?\n\nC",
+            "response_text": "Yes, there are many the sister live?\n\nConsider the sister live?\n\nConsider the sister live?\n\nC",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 154,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,1700,369,1642,315,1692,77,91,81,16,201,35,560,652,714,28,223,43,745,726,268,840,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1,201,55,2728,28,223,1362,1679,85,4013,16,201,35,560,652,714,28,223,735,14,403,484,664,265,1700,369,1642,315,1692,77,91,81,16,201,201,37,1780,295,284,265,1700,369,1642,315,1692,77,91,81,16,201,1,201,55,2728,28,223,2812,1303,627,1700,2097,33,201,35,560,652,714,28,223,735,14,403,484,664,265,1700,2097,33,201,201,37,1780,295,284,265,1700,2097,33,201,201,37,1780,295,284,265,1700,2097,33,201,201,37]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-06",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "I have two brothers.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,500,1082,3818,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,98,114,111,116,104,101,114,115,46,10,10,73,226,128,153,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share brothers.\n\nI’m here to support you.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I'm excited to share brothers.\n\nI’m here to support you.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 43,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,500,1082,3818,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1]
+        },
+        {
+          "turn": 2,
+          "user": "They are older than me.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,500,1082,3818,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,725,484,782,284,771,519,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,98,114,111,116,104,101,114,115,46,10,10,73,226,128,153,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share brothers.\n\nI’m here to support you.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I'm excited to share brothers.\n\nI’m here to support you.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 89,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,500,1082,3818,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,725,484,782,284,771,519,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1]
+        },
+        {
+          "turn": 3,
+          "user": "How many brothers do I have?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,500,1082,3818,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,725,484,782,284,771,519,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,3150,664,3818,377,340,500,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,3818,14,340,1311,79,1205,72,3071,383,469,324,261,972,916,268,646,261,674,347,811,1252,673,916,268],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,98,114,111,116,104,101,114,115,44,32,73,226,128,153,109,32,99,111,110,102,105,100,101,110,116,32,116,104,97,116,32,99,97,110,32,98,101,32,97,32,103,114,101,97,116,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111],
+            "raw_decoded": "I'm excited to share a lot of brothers, I’m confident that can be a great way to get a more effective way to",
+            "response_text": "I'm excited to share a lot of brothers, I’m confident that can be a great way to get a more effective way to",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 140,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,500,1082,3818,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,725,484,782,284,771,519,16,201,35,560,652,714,28,223,43,915,726,268,840,3818,16,201,201,43,1311,79,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,3150,664,3818,377,340,500,33,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,3818,14,340,1311,79,1205,72,3071,383,469,324,261,972,916,268,646,261,674,347,811,1252,673,916,268]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-07",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "My birthday is in July.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,2075,435,315,595,87,463,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,916,268,646,261,674,315,72,1618,266,670,3656,16,201,201,842,351,388,631,1660,300,269,730,2608,16,340,1311],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,105,110,102,111,114,109,101,100,32,100,101,99,105,115,105,111,110,46,10,10,84,104,97,110,107,32,121,111,117,32,102,111,114,32,121,111,117,114,32,117,110,100,101,114,115,116,97,110,100,105,110,103,32,97,110,100,32,116,104,105,115,32,109,97,116,116,101,114,46,32,73,226,128,153],
+            "raw_decoded": "I'm excited to share a way to get a more informed decision.\n\nThank you for your understanding and this matter. I’",
+            "response_text": "I'm excited to share a way to get a more informed decision.\n\nThank you for your understanding and this matter. I’",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 51,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,2075,435,315,595,87,463,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,315,72,1618,266,670,3656,16,201,201,842,351,388,631,1660,300,269,730,2608,16,340,1311,1]
+        },
+        {
+          "turn": 2,
+          "user": "I love summer.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,2075,435,315,595,87,463,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,315,72,1618,266,670,3656,16,201,201,842,351,388,631,1660,300,269,730,2608,16,340,1311,1,201,55,2728,28,223,43,863,262,494,2350,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,674,315,72,1618,266,670,3656,16,201,201,35,600,276,848,684,14,201,201,43,2385,351,1462,1452,1662,16,340],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,109,111,114,101,32,105,110,102,111,114,109,101,100,32,100,101,99,105,115,105,111,110,46,10,10,65,100,100,105,116,105,111,110,97,108,108,121,44,10,10,73,32,104,111,112,101,32,121,111,117,39,114,101,32,100,111,105,110,103,32,119,101,108,108,46,32,73],
+            "raw_decoded": "I'm excited to share a more informed decision.\n\nAdditionally,\n\nI hope you're doing well. I",
+            "response_text": "I'm excited to share a more informed decision.\n\nAdditionally,\n\nI hope you're doing well. I",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 102,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,2075,435,315,595,87,463,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,315,72,1618,266,670,3656,16,201,201,842,351,388,631,1660,300,269,730,2608,16,340,1311,1,201,55,2728,28,223,43,863,262,494,2350,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,315,72,1618,266,670,3656,16,201,201,35,600,276,848,684,14,201,201,43,2385,351,1462,1452,1662,16,340,1]
+        },
+        {
+          "turn": 3,
+          "user": "When is my birthday?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,2075,435,315,595,87,463,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,315,72,1618,266,670,3656,16,201,201,842,351,388,631,1660,300,269,730,2608,16,340,1311,1,201,55,2728,28,223,43,863,262,494,2350,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,315,72,1618,266,670,3656,16,201,201,35,600,276,848,684,14,201,201,43,2385,351,1462,1452,1662,16,340,1,201,55,2728,28,223,1039,435,627,2075,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,201,201,43,2385,351,1462,1452,1662,16,340,409,268,1347,3574,331,351,666,265,2075,16,340,1311,79,1248,268,3835,351,16,201,201],
+            "raw_decoded_bytes": [89,101,115,44,10,10,73,32,104,111,112,101,32,121,111,117,39,114,101,32,100,111,105,110,103,32,119,101,108,108,46,32,73,32,119,97,110,116,101,100,32,116,111,32,116,111,117,99,104,32,98,97,115,101,32,119,105,116,104,32,121,111,117,32,97,98,111,117,116,32,116,104,101,32,98,105,114,116,104,100,97,121,46,32,73,226,128,153,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,46,10,10],
+            "raw_decoded": "Yes,\n\nI hope you're doing well. I wanted to touch base with you about the birthday. I’m here to support you.\n\n",
+            "response_text": "Yes,\n\nI hope you're doing well. I wanted to touch base with you about the birthday. I’m here to support you.",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 152,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,2075,435,315,595,87,463,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,315,72,1618,266,670,3656,16,201,201,842,351,388,631,1660,300,269,730,2608,16,340,1311,1,201,55,2728,28,223,43,863,262,494,2350,16,201,35,560,652,714,28,223,43,915,726,268,840,261,674,315,72,1618,266,670,3656,16,201,201,35,600,276,848,684,14,201,201,43,2385,351,1462,1452,1662,16,340,1,201,55,2728,28,223,1039,435,627,2075,33,201,35,560,652,714,28,223,735,14,201,201,43,2385,351,1462,1452,1662,16,340,409,268,1347,3574,331,351,666,265,2075,16,340,1311,79,1248,268,3835,351,16,201,201]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-08",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "I drive a blue car.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,2190,261,924,526,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170],
+            "raw_decoded_bytes": [73,32,97,109,32,112,108,101,97,115,101,100,32,116,111,32,104,101,108,112,32,121,111,117,32,115,116,97,121,32,111,110,32,116,114,97,99,107,32,97,110,100,32,116,104,101,32,98,108,117,101,32,99,97,114,46,10,10,73,32,97,109,32,101,97,103,101,114,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101],
+            "raw_decoded": "I am pleased to help you stay on track and the blue car.\n\nI am eager to hear your thoughts on this matter.\n\nBe",
+            "response_text": "I am pleased to help you stay on track and the blue car.\n\nI am eager to hear your thoughts on this matter.\n\nBe",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 49,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,43,2190,261,924,526,16,201,35,560,652,714,28,223,43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,1]
+        },
+        {
+          "turn": 2,
+          "user": "It is fast.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,2190,261,924,526,16,201,35,560,652,714,28,223,43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,1,201,55,2728,28,223,1020,435,733,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,745,726,268,840,261,648,372,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201],
+            "raw_decoded_bytes": [73,32,97,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,116,104,101,32,98,108,117,101,32,99,97,114,46,10,10,73,32,97,109,32,101,97,103,101,114,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10],
+            "raw_decoded": "I am excited to share a lot of the blue car.\n\nI am eager to hear your thoughts on this matter.\n\nBest,\n",
+            "response_text": "I am excited to share a lot of the blue car.\n\nI am eager to hear your thoughts on this matter.\n\nBest,",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 98,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,43,2190,261,924,526,16,201,35,560,652,714,28,223,43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,1,201,55,2728,28,223,1020,435,733,16,201,35,560,652,714,28,223,43,745,726,268,840,261,648,372,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,1]
+        },
+        {
+          "turn": 3,
+          "user": "What color is my car?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,2190,261,924,526,16,201,35,560,652,714,28,223,43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,1,201,55,2728,28,223,1020,435,733,16,201,35,560,652,714,28,223,43,745,726,268,840,261,648,372,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,1,201,55,2728,28,223,1085,931,435,627,526,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,526,68,292,2155,82,84,272,86,14],
+            "raw_decoded_bytes": [73,32,97,109,32,112,108,101,97,115,101,100,32,116,111,32,104,101,108,112,32,121,111,117,32,115,116,97,121,32,111,110,32,116,114,97,99,107,32,97,110,100,32,116,104,101,32,98,108,117,101,32,99,97,114,46,10,10,73,32,97,109,32,101,97,103,101,114,32,116,111,32,104,101,97,114,32,121,111,117,114,32,99,97,114,98,111,110,32,102,111,111,116,112,114,105,110,116,44],
+            "raw_decoded": "I am pleased to help you stay on track and the blue car.\n\nI am eager to hear your carbon footprint,",
+            "response_text": "I am pleased to help you stay on track and the blue car.\n\nI am eager to hear your carbon footprint,",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 149,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,2190,261,924,526,16,201,35,560,652,714,28,223,43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,1,201,55,2728,28,223,1020,435,733,16,201,35,560,652,714,28,223,43,745,726,268,840,261,648,372,265,924,526,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,1,201,55,2728,28,223,1085,931,435,627,526,33,201,35,560,652,714,28,223,43,745,3767,1815,268,436,351,963,356,3528,269,265,924,526,16,201,201,43,745,2947,268,1098,631,526,68,292,2155,82,84,272,86,14]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-09",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "I am learning to play the piano.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,745,3688,268,327,265,3218,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,32,97,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,112,105,97,110,111,46,10,10,73,32,97,109,32,101,97,103,101,114,32,116,111,32,104,101,97,114,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I am excited to share the piano.\n\nI am eager to hear your thoughts on this matter.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I am excited to share the piano.\n\nI am eager to hear your thoughts on this matter.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 51,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,745,3688,268,327,265,3218,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1]
+        },
+        {
+          "turn": 2,
+          "user": "It is hard but fun.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,745,3688,268,327,265,3218,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,1020,435,881,412,446,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,840,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,32,97,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,116,104,101,32,112,105,97,110,111,46,10,10,73,32,97,109,32,101,97,103,101,114,32,116,111,32,115,104,97,114,101,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115,32,109,97,116,116,101,114,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I am excited to share the piano.\n\nI am eager to share your thoughts on this matter.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I am excited to share the piano.\n\nI am eager to share your thoughts on this matter.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 101,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,745,3688,268,327,265,3218,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,1020,435,881,412,446,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,840,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1]
+        },
+        {
+          "turn": 3,
+          "user": "What instrument am I learning?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,43,745,3688,268,327,265,3218,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,1020,435,881,412,446,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,840,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,1085,315,353,84,494,380,745,340,3688,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,201,201,43,2385,351,1462,1452,1662,16,340,409,268,1347,3574,331,351,666,265,3218,16,340,745,2947,268,840,631,585,85,356,730],
+            "raw_decoded_bytes": [89,101,115,44,10,10,73,32,104,111,112,101,32,121,111,117,39,114,101,32,100,111,105,110,103,32,119,101,108,108,46,32,73,32,119,97,110,116,101,100,32,116,111,32,116,111,117,99,104,32,98,97,115,101,32,119,105,116,104,32,121,111,117,32,97,98,111,117,116,32,116,104,101,32,112,105,97,110,111,46,32,73,32,97,109,32,101,97,103,101,114,32,116,111,32,115,104,97,114,101,32,121,111,117,114,32,116,104,111,117,103,104,116,115,32,111,110,32,116,104,105,115],
+            "raw_decoded": "Yes,\n\nI hope you're doing well. I wanted to touch base with you about the piano. I am eager to share your thoughts on this",
+            "response_text": "Yes,\n\nI hope you're doing well. I wanted to touch base with you about the piano. I am eager to share your thoughts on this",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 155,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,43,745,3688,268,327,265,3218,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,1098,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,1020,435,881,412,446,16,201,35,560,652,714,28,223,43,745,726,268,840,265,3218,16,201,201,43,745,2947,268,840,631,585,85,356,730,2608,16,201,201,2170,353,14,201,39,79,362,1,201,55,2728,28,223,1085,315,353,84,494,380,745,340,3688,33,201,35,560,652,714,28,223,735,14,201,201,43,2385,351,1462,1452,1662,16,340,409,268,1347,3574,331,351,666,265,3218,16,340,745,2947,268,840,631,585,85,356,730]
+        }
+      ]
+    },
+    {
+      "id": "dev-mem-10",
+      "category": "memory",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "My favorite food is pizza.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1236,804,435,2419,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,916,268,646,261,804,435,2419,16,201,201,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,119,97,121,32,116,111,32,103,101,116,32,97,32,102,111,111,100,32,105,115,32,112,105,122,122,97,46,10,10,73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,102,111,111,100,44,32,97,110,100,32,73,39,109,32,115,117,114,101,32,116,111,32,103,101,116],
+            "raw_decoded": "I'm excited to share a way to get a food is pizza.\n\nI'm excited to share a lot of food, and I'm sure to get",
+            "response_text": "I'm excited to share a way to get a food is pizza.\n\nI'm excited to share a lot of food, and I'm sure to get",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 49,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1236,804,435,2419,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,804,435,2419,16,201,201,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,1]
+        },
+        {
+          "turn": 2,
+          "user": "I eat it on Fridays.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1236,804,435,2419,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,804,435,2419,16,201,201,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,1,201,55,2728,28,223,43,711,311,356,3704,295,282,85,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,261,804,269,804,16,201,201,43,915,904,372,265,804,14,269,340],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,102,111,111,100,44,32,97,110,100,32,73,39,109,32,115,117,114,101,32,116,111,32,103,101,116,32,97,32,102,111,111,100,32,97,110,100,32,102,111,111,100,46,10,10,73,39,109,32,112,114,111,117,100,32,111,102,32,116,104,101,32,102,111,111,100,44,32,97,110,100,32,73],
+            "raw_decoded": "I'm excited to share a lot of food, and I'm sure to get a food and food.\n\nI'm proud of the food, and I",
+            "response_text": "I'm excited to share a lot of food, and I'm sure to get a food and food.\n\nI'm proud of the food, and I",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 103,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": true,
+          "retained_history_ids": [0,55,2728,28,223,2485,1236,804,435,2419,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,804,435,2419,16,201,201,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,1,201,55,2728,28,223,43,711,311,356,3704,295,282,85,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,261,804,269,804,16,201,201,43,915,904,372,265,804,14,269,340,1]
+        },
+        {
+          "turn": 3,
+          "user": "What is my favorite food?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2485,1236,804,435,2419,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,804,435,2419,16,201,201,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,1,201,55,2728,28,223,43,711,311,356,3704,295,282,85,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,261,804,269,804,16,201,201,43,915,904,372,265,804,14,269,340,1,201,55,2728,28,223,1085,435,627,1236,804,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,340,915,1464,268,646,261,804,14,269,340,915,1464,268,646,261,804,269,804,16,201,201,43,915,904,372,265,804,14,340,915],
+            "raw_decoded_bytes": [89,101,115,44,32,73,39,109,32,115,117,114,101,32,116,111,32,103,101,116,32,97,32,102,111,111,100,44,32,97,110,100,32,73,39,109,32,115,117,114,101,32,116,111,32,103,101,116,32,97,32,102,111,111,100,32,97,110,100,32,102,111,111,100,46,10,10,73,39,109,32,112,114,111,117,100,32,111,102,32,116,104,101,32,102,111,111,100,44,32,73,39,109],
+            "raw_decoded": "Yes, I'm sure to get a food, and I'm sure to get a food and food.\n\nI'm proud of the food, I'm",
+            "response_text": "Yes, I'm sure to get a food, and I'm sure to get a food and food.\n\nI'm proud of the food, I'm",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 154,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2485,1236,804,435,2419,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,804,435,2419,16,201,201,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,1,201,55,2728,28,223,43,711,311,356,3704,295,282,85,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,804,14,269,340,915,1464,268,646,261,804,269,804,16,201,201,43,915,904,372,265,804,14,269,340,1,201,55,2728,28,223,1085,435,627,1236,804,33,201,35,560,652,714,28,223,735,14,340,915,1464,268,646,261,804,14,269,340,915,1464,268,646,261,804,269,804,16,201,201,43,915,904,372,265,804,14,340,915]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-01",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What is the best flavor?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,435,265,688,608,1410,306,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,265,688,608,1410,306,435,265,688,608,1410,306,14,265,688,608,1410,306,435,265,688,608,1410,306,14,265,688,608,1410,306,435],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,32,98,101,115,116,32,102,108,97,118,111,114,32,105,115,32,116,104,101,32,98,101,115,116,32,102,108,97,118,111,114,44,32,116,104,101,32,98,101,115,116,32,102,108,97,118,111,114,32,105,115,32,116,104,101,32,98,101,115,116,32,102,108,97,118,111,114,44,32,116,104,101,32,98,101,115,116,32,102,108,97,118,111,114,32,105,115],
+            "raw_decoded": "Yes, the best flavor is the best flavor, the best flavor is the best flavor, the best flavor is",
+            "response_text": "Yes, the best flavor is the best flavor, the best flavor is the best flavor, the best flavor is",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 51,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,435,265,688,608,1410,306,33,201,35,560,652,714,28,223,735,14,265,688,608,1410,306,435,265,688,608,1410,306,14,265,688,608,1410,306,435,265,688,608,1410,306,14,265,688,608,1410,306,435]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-02",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Tell me about the thing.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,54,540,519,666,265,1244,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,648,372,265,1244,16,201,201,43,915,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,108,111,116,32,111,102,32,116,104,101,32,116,104,105,110,103,46,10,10,73,39,109,32,104,101,114,101,32,116,111,32,115,117,112,112,111,114,116,32,121,111,117,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "I'm excited to share a lot of the thing.\n\nI'm here to support you.\n\nBest,\nEmily<|eos|>",
+            "response_text": "I'm excited to share a lot of the thing.\n\nI'm here to support you.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 48,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,54,540,519,666,265,1244,16,201,35,560,652,714,28,223,43,915,726,268,840,261,648,372,265,1244,16,201,201,43,915,1248,268,3835,351,16,201,201,2170,353,14,201,39,79,362,1]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-03",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What did I do yesterday?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,454,340,377,334,71,1247,1119,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,340,469,436,351,963,356,3528,16,201,201,2170,353,14,201,39,79,362,1],
+            "raw_decoded_bytes": [89,101,115,44,32,73,32,99,97,110,32,104,101,108,112,32,121,111,117,32,115,116,97,121,32,111,110,32,116,114,97,99,107,46,10,10,66,101,115,116,44,10,69,109,105,108,121,60,124,101,111,115,124,62],
+            "raw_decoded": "Yes, I can help you stay on track.\n\nBest,\nEmily<|eos|>",
+            "response_text": "Yes, I can help you stay on track.\n\nBest,\nEmily",
+            "stop": {
+              "reason": "eos"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 40,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,454,340,377,334,71,1247,1119,33,201,35,560,652,714,28,223,735,14,340,469,436,351,963,356,3528,16,201,201,2170,353,14,201,39,79,362,1]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-04",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Who won the game?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,2955,1611,265,1019,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,265,1019,435,265,1019,372,265,1019,14,265,1019,435,265,1019,372,265,1019,14,265,1019,435,265,1019,372,265,1019,16,201,201,413],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,32,103,97,109,101,32,105,115,32,116,104,101,32,103,97,109,101,32,111,102,32,116,104,101,32,103,97,109,101,44,32,116,104,101,32,103,97,109,101,32,105,115,32,116,104,101,32,103,97,109,101,32,111,102,32,116,104,101,32,103,97,109,101,44,32,116,104,101,32,103,97,109,101,32,105,115,32,116,104,101,32,103,97,109,101,32,111,102,32,116,104,101,32,103,97,109,101,46,10,10,84,104,101],
+            "raw_decoded": "Yes, the game is the game of the game, the game is the game of the game, the game is the game of the game.\n\nThe",
+            "response_text": "Yes, the game is the game of the game, the game is the game of the game, the game is the game of the game.\n\nThe",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 48,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,2955,1611,265,1019,33,201,35,560,652,714,28,223,735,14,265,1019,435,265,1019,372,265,1019,14,265,1019,435,265,1019,372,265,1019,14,265,1019,435,265,1019,372,265,1019,16,201,201,413]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-05",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What is the answer?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,435,265,2505,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,265,2505,435,265,2505,372,265,2505,372,265,2505,372],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,32,97,110,115,119,101,114,32,105,115,32,116,104,101,32,97,110,115,119,101,114,32,111,102,32,116,104,101,32,97,110,115,119,101,114,32,111,102,32,116,104,101,32,97,110,115,119,101,114,32,111,102],
+            "raw_decoded": "Yes, the answer is the answer of the answer of the answer of",
+            "response_text": "Yes, the answer is the answer of the answer of the answer of",
+            "stop": {
+              "period": 3,
+              "reason": "short_cycle"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 30,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,435,265,2505,33,201,35,560,652,714,28,223,735,14,265,2505,435,265,2505,372,265,2505,372,265,2505,372]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-06",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Tell me about the future.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,54,540,519,666,265,271,323,607,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116],
+            "raw_decoded": "I'm excited to share a way to get a more effective way to get a more effective way to get a more effect",
+            "response_text": "I'm excited to share a way to get a more effective way to get a more effective way to get a more effect",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 52,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,54,540,519,666,265,271,323,607,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-07",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Give me the number.",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,3862,519,265,2471,16,201,35,560,652,714,28,223],
+            "generated_token_ids": [43,915,726,268,840,261,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252],
+            "raw_decoded_bytes": [73,39,109,32,101,120,99,105,116,101,100,32,116,111,32,115,104,97,114,101,32,97,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116,105,118,101,32,119,97,121,32,116,111,32,103,101,116,32,97,32,109,111,114,101,32,101,102,102,101,99,116],
+            "raw_decoded": "I'm excited to share a way to get a more effective way to get a more effective way to get a more effect",
+            "response_text": "I'm excited to share a way to get a more effective way to get a more effective way to get a more effect",
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 48,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,3862,519,265,2471,16,201,35,560,652,714,28,223,43,915,726,268,840,261,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252,673,916,268,646,261,674,347,811,1252]
+        }
+      ]
+    },
+    {
+      "id": "dev-ref-08",
+      "category": "refusal",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "What is the name of that song?",
+          "generation": {
+            "prompt_token_ids": [0,55,2728,28,223,1085,435,265,1412,372,383,1282,33,201,35,560,652,714,28,223],
+            "generated_token_ids": [735,14,403,484,265,1412,372,1282,33,201,201,43,578,265,1412,372,1282,14,1282,14,269,1282,14,269,1282,14,269],
+            "raw_decoded_bytes": [89,101,115,44,32,116,104,101,114,101,32,97,114,101,32,116,104,101,32,110,97,109,101,32,111,102,32,115,111,110,103,63,10,10,73,32,109,97,100,101,32,116,104,101,32,110,97,109,101,32,111,102,32,115,111,110,103,44,32,115,111,110,103,44,32,97,110,100,32,115,111,110,103,44,32,97,110,100,32,115,111,110,103,44,32,97,110,100],
+            "raw_decoded": "Yes, there are the name of song?\n\nI made the name of song, song, and song, and song, and",
+            "response_text": "Yes, there are the name of song?\n\nI made the name of song, song, and song, and song, and",
+            "stop": {
+              "period": 3,
+              "reason": "short_cycle"
+            },
+            "max_new_tokens": 32,
+            "incremental_step_calls": 46,
+            "sampler_policy": "joint-probability-greedy-token-asc/1",
+            "bos_policy": "caller supplies exact IDs including BOS0; no insertion or re-encoding; EOS1 ends output",
+            "utf8_decodable": true
+          },
+          "caller_eos_inserted_before_next_request": false,
+          "retained_history_ids": [0,55,2728,28,223,1085,435,265,1412,372,383,1282,33,201,35,560,652,714,28,223,735,14,403,484,265,1412,372,1282,33,201,201,43,578,265,1412,372,1282,14,1282,14,269,1282,14,269,1282,14,269]
+        }
+      ]
+    }
+  ],
+  "qualitative_review": {
+    "reviewed_all_responses": 58,
+    "principal_and_independent_review": "Agreement on scope and weak useful-language result; no actionable loader/source/receipt blocker.",
+    "observed": "Conversational phrasing, topic echoes and occasional historical fact words; canned email-like replies, repetition, irrelevant continuations and missing requested answers.",
+    "factual_requests": 8,
+    "factual_requests_supplying_requested_fact": 0,
+    "memory_final_turns": 10,
+    "memory_final_turns_at_cap": 10,
+    "memory_keyword_mentions": "Momo, green (mixed with blue), teacher, blue car and piano appear; Alex, Tokyo, two, July and pizza do not. These are lexical observations, not five qualified recall successes.",
+    "caveat": "Earlier generated assistant text also repeats some supplied facts. No changed-context/NoRead control was run; fact binding and reader contribution are not isolated. Model EOS is a stop, not evidence of answer correctness. Capped future continuations are unobserved.",
+    "decision": "Retain this loaded-output negative and importer as diagnostic baseline. No automatic fit, decoder sweep, integer width change or promotion. Integrate complete pending reader/termination/stack evidence before next native-learning intervention. Capacity/data/objective/exposure/geometry cause remains unidentified."
+  },
+  "checks": {
+    "initial_attempt": {
+      "source_commit": "7e67e2c2fb3624c49c3888f56aa4c90f43d546ae",
+      "passed": 3,
+      "failed": 1,
+      "classification": "Malformed synthetic tokenizer before model construction; missing required ByteLevel pre_tokenizer",
+      "receipt": {
+        "started_at": "2026-09-27T05:42:06.977227+00:00",
+        "source_commit": "7e67e2c2fb3624c49c3888f56aa4c90f43d546ae",
+        "features": [
+          "cpu-accelerate"
+        ],
+        "profile": "release",
+        "build_jobs": 2,
+        "rayon_threads": 2,
+        "wall_limit_seconds": 1200,
+        "commands": [
+          {
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--features",
+              "cpu-accelerate",
+              "--lib",
+              "dialogue_artifact::",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T05:42:06.984292+00:00",
+            "exit_code": 101,
+            "wall_seconds": 894.042211416876
+          }
+        ],
+        "wall_seconds": 894.0694017088972,
+        "finished_at": "2026-09-27T05:57:00.911635+00:00",
+        "maximum_child_rss_bytes": 1425997824
+      }
+    },
+    "final_attempt": {
+      "source_commit": "e3fc0a587115d34b41a0fc9edacc09745ccc0746",
+      "passed": 4,
+      "failed": 0,
+      "test_filter": "dialogue_artifact::",
+      "test_seconds": 0.23,
+      "fixture_repair": "One added pre_tokenizer fixture line; production code unchanged",
+      "receipt": {
+        "started_at": "2026-09-27T05:59:55.490068+00:00",
+        "source_commit": "e3fc0a587115d34b41a0fc9edacc09745ccc0746",
+        "features": [
+          "cpu-accelerate"
+        ],
+        "profile": "release",
+        "build_jobs": 2,
+        "rayon_threads": 2,
+        "wall_limit_seconds": 905,
+        "commands": [
+          {
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--features",
+              "cpu-accelerate",
+              "--lib",
+              "dialogue_artifact::",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T05:59:55.491581+00:00",
+            "exit_code": 0,
+            "wall_seconds": 90.98273512488231
+          },
+          {
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--features",
+              "cpu-accelerate",
+              "--example",
+              "dialogue-artifact-replay"
+            ],
+            "started_at": "2026-09-27T06:01:26.471863+00:00",
+            "exit_code": 0,
+            "wall_seconds": 82.73537312517874
+          }
+        ],
+        "wall_seconds": 173.7242202500347,
+        "finished_at": "2026-09-27T06:02:49.203880+00:00",
+        "maximum_child_rss_bytes": 549076992,
+        "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-binary-e3fc0a58",
+        "binary_sha256": "8661012bd8f22f85428a94c70cef2f7c91a5ff72fefae6a8b39a06b6dfe06af4"
+      }
+    },
+    "format": "touched Rust paths rustfmt --check passed",
+    "diff": "git diff --check passed",
+    "claim_wording": "python3 scripts/check_claim_wording.py passed; wording lint is not scientific validation"
+  },
+  "retrospective_supervision_accounting": {
+    "learning_curve_sha256": "974e51f44d41181900510518a92ee822f02313d40ab776a94c303d78941e1ed9",
+    "consecutive_updates": 2237,
+    "sampled_positions": 9162752,
+    "response_supervised_positions": 6280627,
+    "historical_report_supervised_targets": 9162752,
+    "cause": "Historical dialogue.rs698-699 labels batch*context*updates as both sampled and supervised. Actual per-update supervised counts sum to6280627. No executed objective or artifact changed."
+  },
+  "resource": {
+    "build_check_seconds_including_failed_attempt": 1067.793621958932,
+    "actual_probe": {
+      "schema": "uor-r4.local-process-resource/1",
+      "started_at": "2026-09-27T06:03:45.128621+00:00",
+      "source_commit": "e3fc0a587115d34b41a0fc9edacc09745ccc0746",
+      "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-binary-e3fc0a58",
+      "binary_sha256": "8661012bd8f22f85428a94c70cef2f7c91a5ff72fefae6a8b39a06b6dfe06af4",
+      "profile": "release",
+      "features": [
+        "cpu-accelerate"
+      ],
+      "device": "cpu",
+      "command": [
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-binary-e3fc0a58",
+        "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+        "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+        "/Users/casey.allard/uor-r4/.worktrees/canonical-address-routing-20260925/docs/integration/chat-panel-v0-2026-09-25.json",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1"
+      ],
+      "report": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1",
+      "limits": {
+        "build_jobs": 2,
+        "one_owned_cargo": true,
+        "cpu_backend": "CPU Accelerate",
+        "rayon_threads": 2,
+        "blas_threads": 1,
+        "additional_offline_probe_processes": 1,
+        "probe_wall_cap_seconds": 600,
+        "probe_rss_cap_bytes": 1073741824,
+        "minimum_free_memory_percent_at_start": 25,
+        "minimum_free_memory_percent_stop": 10,
+        "new_internal_storage_cap_bytes_within_existing": 134217728,
+        "new_shared_ssd_growth_cap_bytes_within_existing": 1073741824,
+        "physical_reserve_bytes": 25971130368,
+        "storage_stop_margin_bytes": 134217728
+      },
+      "peak_sampled_rss_bytes": 57196544,
+      "minimum_free_memory_percent": 41,
+      "stopped": null,
+      "scope": "Offline output observation under shared load; no serving performance claim",
+      "initial_free_memory_percent": 50,
+      "initial_free_bytes": {
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926": 31037845504,
+        "/Volumes/UOR-Workspace": 172611014656
+      },
+      "pid": 99512,
+      "exit_code": 0,
+      "wall_seconds": 18.131738167023286,
+      "maximum_child_rss_bytes": 58572800,
+      "finished_at": "2026-09-27T06:04:03.405119+00:00",
+      "final_free_bytes": {
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926": 31054467072,
+        "/Volumes/UOR-Workspace": 172611014656
+      },
+      "model_work": {
+        "generation_incremental_step_calls": 4331,
+        "generated_selections": 1766,
+        "requests": 38,
+        "responses": 58,
+        "stop_counts": {
+          "model_eos": 11,
+          "short_cycle": 4,
+          "token_cap": 43
+        },
+        "prefix_probability_comparison": {
+          "argmax_disagreements": 0,
+          "incremental_step_calls": 15,
+          "max_absolute_probability_delta": 9.685754776000977e-07,
+          "mode": "enabled",
+          "positions": 15,
+          "probability_values": 61440,
+          "scope": "Current-source full-forward versus incremental probabilities on this prefix only; no historical backend or language qualification"
+        }
+      },
+      "report_files_sha256": {
+        "prefix-comparison.json": "956b3e5df6a8ee833b843e0a4d6ca443e46c7ae4d0a3d2499916af33526a66e4",
+        "result.json": "4ea4df2614ebcf0eb31da944a3e7c63c8edec28effcee936984112f5c88455d8",
+        "development-requests.json": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484",
+        "responses.jsonl": "c40ca979975e8fc384cff4605c9b2a3795870bd5c61d4ab5bf9ebc4a7dd9a984",
+        "manifest.json": "ae99937a6bafe8a0769e5881c2cae9d15d7394860b130c03e7009c48743e85b3",
+        "attempt.json": "c9ceda06ebba58cf84bf9ed5bc2328acafecc5669d34fcc5f8c458d5c47d0395"
+      }
+    },
+    "phase_projection": {
+      "recorded_at": "2026-09-27T05:33:29.262444+00:00",
+      "base_commit": "2d3ee5f6fa1b3135a1f9bbff2f29d1d818edc4b1",
+      "worktree": "/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4",
+      "branch": "codex/dialogue-artifact-replay-20260927",
+      "integrated_deliverable": "Load retained R1d continuous width576 native dialogue parameters and record actual exact-token development responses; keep integer loader and active reader study unchanged.",
+      "observed_blocker": "Learned artifact and likelihood evidence exist, but no loader/output evidence; capacity-floor interpretation is underidentified.",
+      "causal_change": "Strict scoped offline tensor loader and shared exact-token generation entry; no fresh training or mechanism alteration.",
+      "phase_wall_cap_seconds": 5400,
+      "projection_caps_seconds": {
+        "design_implementation": 1800,
+        "focused_checks_release_build": 1200,
+        "actual_probe": 600,
+        "review_delivery": 1500,
+        "recovery_margin": 300
+      },
+      "owned_elapsed_cap_ms": 57600000,
+      "verified_cumulative_allowance_ms": 722400000,
+      "allowance_extension_ms": 0,
+      "execution": {
+        "build_jobs": 2,
+        "one_owned_cargo": true,
+        "cpu_backend": "CPU Accelerate",
+        "rayon_threads": 2,
+        "blas_threads": 1,
+        "additional_offline_probe_processes": 1,
+        "probe_wall_cap_seconds": 600,
+        "probe_rss_cap_bytes": 1073741824,
+        "minimum_free_memory_percent_at_start": 25,
+        "minimum_free_memory_percent_stop": 10,
+        "new_internal_storage_cap_bytes_within_existing": 134217728,
+        "new_shared_ssd_growth_cap_bytes_within_existing": 1073741824,
+        "physical_reserve_bytes": 25971130368,
+        "storage_stop_margin_bytes": 134217728
+      },
+      "concurrency_refinement": "Prospectively allow one short offline inference process alongside existing Dot/Lorentz/Affine sequential study after headroom check. Existing study caps, executable, configuration and endpoints remain fixed. Prior dialogue continuity probe completed. No parallel fit.",
+      "fixed_conditions": {
+        "retained_parameters_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+        "model": "continuous Full/Dot/Quaternion, vocab4096 width576 read64 context256",
+        "development_requests": 38,
+        "assistant_responses": 58,
+        "decoding": "greedy; existing short-cycle stop retained",
+        "max_new_tokens_per_response": 32,
+        "protocol": "shared literal role segments; one BOS; exact generated history; explicit caller EOS after cap/cycle",
+        "context_limit": 256,
+        "no_silent_truncation": true,
+        "fresh_heldout": false,
+        "new_training_steps": 0
+      },
+      "necessary_checks": [
+        "complete parameter inventory/hash/finite/shape validation with malformed rejection",
+        "unchanged ordinary text generation behavior plus exact-token input validation",
+        "loaded full-forward versus incremental probabilities on one development prefix",
+        "actual output all 38 open development requests, raw IDs/bytes, EOS/cap/cycle and consumed steps",
+        "independent source and result review"
+      ],
+      "outcome_decisions": {
+        "responsive_fragments": "retain candidate for later native-learning integration consideration; no automatic fit or quantization",
+        "generic_repetitive_unresponsive": "preserve observed failure; cause remains unresolved pending other studies",
+        "loader_or_provenance_failure": "repair only boundary or report unavailable, not negative model quality"
+      },
+      "cost_accounting": "All elapsed preparation, agents, build, probe, review, delivery and concurrent wait charged once from existing cursor; no double charge of overlapping phases.",
+      "authorization": "Standing necessary local extensions and autonomous whole-project authorization; no paid compute, foreign worktree changes, artifact deletion or integer serving policy changes."
+    },
+    "prospective_build_reallocation": {
+      "recorded_at": "2026-09-27T05:58:05.536197+00:00",
+      "parent_projection": "projection-dialogue-artifact-replay.json",
+      "scope": "Correct synthetic test tokenizer missing ByteLevel pre-tokenizer metadata; reuse compiled cache. No artifact, model, generation policy or frozen reader study changes.",
+      "observed_failure": "Three focused checks passed; existing-text/exact-token equivalence check failed before model construction with Invalid(test tokenizer).",
+      "prior_build_cap_seconds": 1200,
+      "updated_combined_build_cap_seconds": 1800,
+      "completed_build_check_seconds": 894.0694017088972,
+      "remaining_build_check_cap_seconds": 905.9305982911028,
+      "reallocation": {
+        "design_implementation_seconds": 1200,
+        "focused_checks_release_build_seconds": 1800,
+        "actual_probe_seconds": 600,
+        "review_delivery_seconds": 1500,
+        "recovery_margin_seconds": 300
+      },
+      "phase_wall_cap_seconds": 5400,
+      "owned_elapsed_cap_ms": 57600000,
+      "verified_cumulative_allowance_ms": 722400000,
+      "allowance_extension_ms": 0,
+      "reason": "Compiler rebuild cost is measured and retained; move600seconds of unused design allocation to the necessary corrected fixture/build. Overall90minute phase and cumulative ceilings unchanged."
+    },
+    "cost_scope": "Build/model times are contained within cumulative elapsed charges. Preparation, reviews, delivery and concurrent study time are charged once through the shared ledger; delivery tail remains to charge at final delivery.",
+    "elapsed_accounting_through_validation": {
+      "last_charged_at": "2026-09-27T06:09:10.376502+00:00",
+      "charged_elapsed_ms": 20166369,
+      "tail_ms": 1173326,
+      "before": {
+        "cumulative_ms": 667148617,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 668321943,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "verified_cumulative_allowance_ms": 722400000,
+      "owned_elapsed_cap_ms": 57600000,
+      "foreign_reported_limit_adopted": false,
+      "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock. No global mutex claim.",
+      "scope": "Remaining initial build, fixture diagnosis/repair, corrected checks/build,18.132s actual replay, all58output review, evidence/docs and continuing frozen study elapsed through validation; overlapping subphases charged once. Protected delivery tail remains to charge.",
+      "source_commit": "e3fc0a587115d34b41a0fc9edacc09745ccc0746",
+      "phase_elapsed_through_validation_seconds": 2141.114058,
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 31875670016,
+        "/Volumes/UOR-Workspace": 172611833856
+      }
+    }
+  },
+  "full_attempt": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1",
+    "file_sha256": {
+      "prefix-comparison.json": "956b3e5df6a8ee833b843e0a4d6ca443e46c7ae4d0a3d2499916af33526a66e4",
+      "result.json": "4ea4df2614ebcf0eb31da944a3e7c63c8edec28effcee936984112f5c88455d8",
+      "development-requests.json": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484",
+      "responses.jsonl": "c40ca979975e8fc384cff4605c9b2a3795870bd5c61d4ab5bf9ebc4a7dd9a984",
+      "manifest.json": "ae99937a6bafe8a0769e5881c2cae9d15d7394860b130c03e7009c48743e85b3",
+      "attempt.json": "c9ceda06ebba58cf84bf9ed5bc2328acafecc5669d34fcc5f8c458d5c47d0395"
+    },
+    "native_seal_verified_by_example": true,
+    "prediction_records": "All full prediction decisions retained in result.json and responses.jsonl; compact published output rows above preserve exact IDs, bytes, history and stop reasons."
+  },
+  "local_evidence_sha256": {
+    "dialogue-artifact-replay-checks.json": "1a82e26407d8f21f1d9b5a01021fd83070d023029220f7080b93f6be8b9fdcf3",
+    "dialogue-artifact-replay-checks-2.json": "e66e2122afb800730af0ed4f3f59f6bc90db96c66792bc418fbfee30b727da8a",
+    "dialogue-artifact-replay-execution.json": "cd2df8ea35927016b00f778632a01961498969685129ab225cf950f8418598c6",
+    "projection-dialogue-artifact-replay.json": "e2249cc2d8fe4e86922e5fad0a035d33e4594478c48c5a32aaddc9dd03dd3a8d",
+    "projection-dialogue-artifact-replay-build-reallocation.json": "b1029d276a30984be3e57328d1ee12c4ddcd1278f1f9adb468e7cf0186ce208d",
+    "run-dialogue-artifact-replay-probe.py": "4cc7d0a0ad5628f2c34d5874fb270de131ea46c142ef0f7907ce237ad4ea1fb7"
+  },
+  "limitations": [
+    "Offline continuous observation, not multiplier-free integer serving.",
+    "New-source full/incremental consistency, not historical backend bitwise reproduction.",
+    "Open development rows with changed framing/cap, not official chat-panel pass/fail or fresh evaluation.",
+    "No causal diagnosis of capacity, data, objective, exposure or geometric advantage.",
+    "No useful general-language, coding, speed or energy qualification."
+  ]
+}

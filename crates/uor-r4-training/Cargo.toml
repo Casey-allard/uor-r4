@@ -23,4 +23,5 @@ hex = "0.4.3"
 uor-r4-model-source = { path = "../uor-r4-model-source" }
 uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-lut = { path = "../uor-r4-lut" }
+uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
 rayon = "1.10"

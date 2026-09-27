@@ -37,8 +37,8 @@ remain incoherent for chat. The
 [adapter receipt](../evidence/dialogue-token-session-validation-2026-09-27.json)
 records actual text, source/artifact identity and cost. This is verified input
 and prediction transport, not trained chat. Existing chatbot CLI, corpus builder
-and panel adoption, and the separate width-576 dialogue checkpoint loader, remain
-open. No accepted bundle was changed.
+and panel adoption remain open. The separate width-576 dialogue artifact recovery
+is recorded below. No accepted bundle was changed.
 
 The [persistent conversation adapter](dialogue-continuity-2026-09-27.md) now
 retains generated IDs, pending tokens and categorical state across turns. It
@@ -54,6 +54,25 @@ record 112.04 seconds of build/check work and 2.576 seconds of actual inference.
 Google retains CLI wiring ownership; this resolves its follow-up's
 [display-history reconstruction seam](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852795123)
 at the reusable library boundary, with adoption still pending.
+
+The [retained R1d dialogue artifact](dialogue-artifact-replay-2026-09-27.md) now
+reloads through a strict offline continuous Full/Dot/Quaternion importer. All
+four focused checks pass; an initial malformed tokenizer fixture and its repair
+remain in the cost record. A loaded 15-position full/incremental comparison has
+maximum probability delta 9.69e-7 and zero argmax disagreements. The fixed 38
+open development requests produced 58 actual responses with exact generated
+multi-turn history: 11 model EOS, 4 cycle and 43 token-cap stops. They contain
+conversational phrasing and some topic/fact reuse, but are repetitive, often
+irrelevant, and none of the eight factual replies supplies the requested fact.
+This is a preserved weak-output baseline, not useful chat. The
+[complete outputs and source/artifact/resource bindings](../evidence/dialogue-r1d-replay-2026-09-27.json)
+record 18.132 seconds of actual inference and 58,572,800 bytes peak child RSS.
+The historical fit remains 9,162,752 sampled positions; summing its per-update
+records gives 6,280,627 response-supervised positions, correcting a duplicated
+report field. Its bounded no-longer-fit decision remains; unstable extrapolated
+floors do not establish capacity as the cause. No training extension or integer
+loader widening follows. The frozen reader study and other labs' mechanisms
+remain independent.
 
 **Concurrent discovery:** the [fourth-lab native-read review](fourth-lab-native-read-review-2026-09-26.md)
 inspects Claude PR#1401's full-context Lorentz implementation and reported

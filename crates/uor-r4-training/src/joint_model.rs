@@ -290,6 +290,38 @@ impl JointModel {
         Self::from_variables(config, variables, device)
     }
 
+    /// Import only the retained R1d continuous dialogue cell. This does not
+    /// relax canonical checkpoint, training-campaign or integer loader widths.
+    pub(crate) fn from_offline_dialogue_parameters(
+        config: JointConfig,
+        parameters: BTreeMap<String, Vec<f32>>,
+        device: &Device,
+    ) -> Result<Self> {
+        crate::dialogue_artifact::validate_model_config(&config)?;
+        let shapes = config.shapes();
+        if parameters.keys().ne(shapes.keys()) {
+            return Err(invalid("dialogue parameter inventory mismatch"));
+        }
+        for (name, shape) in &shapes {
+            let values = parameters
+                .get(name)
+                .ok_or_else(|| invalid("missing dialogue parameter"))?;
+            if values.len() != shape.iter().product::<usize>()
+                || values.iter().any(|value| !value.is_finite())
+            {
+                return Err(invalid(format!("dialogue parameter shape/value: {name}")));
+            }
+        }
+        let mut variables = BTreeMap::new();
+        for (name, values) in parameters {
+            let shape = shapes
+                .get(&name)
+                .ok_or_else(|| invalid("unknown dialogue parameter"))?;
+            variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
+        }
+        Self::from_variables(config, variables, device)
+    }
+
     fn from_variables(
         config: JointConfig,
         variables: BTreeMap<String, Var>,

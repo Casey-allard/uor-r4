@@ -2981,6 +2981,7 @@ dependencies = [
  "uor-r4-integer",
  "uor-r4-lut",
  "uor-r4-model-source",
+ "uor-r4-tokenizer",
 ]
 
 [[package]]

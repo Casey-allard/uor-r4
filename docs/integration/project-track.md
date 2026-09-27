@@ -82,6 +82,15 @@ sampler state; focused checks and a short actual two-turn transport witness pass
 Google retains CLI adoption. This is an integration result, not learned-chat
 qualification or a reason to change the frozen reader study.
 
+The separate [R1d artifact replay](dialogue-artifact-replay-2026-09-27.md) now
+closes its retained response learner's fit→reload→output gap. Actual replies
+remain weak and repetitive, with some topic/fact reuse; practical chat remains
+open. Preserve it as a diagnostic baseline and retain the bounded decision
+against another automatic fit. Its curve extrapolation does not identify a
+capacity floor or eliminate data/objective explanations. Select the next native
+learning change from this output evidence together with the pending matched
+reader, termination and stack results. Integer width adoption remains separate.
+
 
 **Parallel architecture exploration:** Claude's [Cycle 4 stack experiment](https://github.com/UOR-Foundation/uor-r4/pull/1414)
 investigates deeper quaternion recurrence and multi-head Lorentz reads against
