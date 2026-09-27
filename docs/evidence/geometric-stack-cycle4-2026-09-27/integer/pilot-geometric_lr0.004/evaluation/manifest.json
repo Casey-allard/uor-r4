@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "3cb2b841a8f865d0e88854348a2d99ea336a62d085d0c359d08388d628bd7880",
+      "bytes": 996,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "a3b4f70a2692f7aa8e640b9115dc38ec128892876b505c08ca04e92d87754ad9",
+      "bytes": 59663,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/eval512-pilot-geometric_lr0.004",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790501536"
+}

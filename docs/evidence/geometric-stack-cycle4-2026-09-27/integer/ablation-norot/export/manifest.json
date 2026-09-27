@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "blake3": "77bb9b091f96548c35d1ad1ba6817f3ce7d6576f19e81011a1acff1e2414da4c",
+      "bytes": 558,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "851c3e272773cb8974f8ff8855afcb86f0cb075b2d08c7f172f113873cd230fe",
+      "bytes": 3424,
+      "path": "export.json"
+    },
+    {
+      "blake3": "aaa5e77d06bb59e56eb8d211d114368411f23955b49f4833ecad23d0346a22dc",
+      "bytes": 4965252,
+      "path": "model.lut"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-norot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790501956"
+}

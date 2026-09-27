@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "043be00bbb0d3301856d9c99bcedee9eed7a6215e0c212263126f2f90846b033",
+      "bytes": 969,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "ae7840334ab10cbd8d9d06aad39230632c433e44c6d6ab23dc6d8b82654178fe",
+      "bytes": 59613,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/eval512-ablation-norot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790502179"
+}

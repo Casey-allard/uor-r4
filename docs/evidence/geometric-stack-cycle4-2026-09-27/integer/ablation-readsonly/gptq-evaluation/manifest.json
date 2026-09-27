@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "c550e80e5bed7d84073b4c5578e8bad1e12f9fb02e2f7d2175c61057cb457020",
+      "bytes": 1011,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "69a32e13df5a530a4cc97173704e99371185103951b313af1de8e238f61b3369",
+      "bytes": 82092,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-eval512-ablation-readsonly",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790514099"
+}

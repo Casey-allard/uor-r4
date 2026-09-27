@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "f497bf29d0d5beef92cac8dad42cb3a9367bfe3ead2d695aa8c3e8d8599a15d9",
+      "bytes": 1028,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "c6561df09e533e8314a9ad0e79679b1e2b2b0bcc89f7923335c9fede2619d6ac",
+      "bytes": 82092,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-eval512-pilot-geometric_lr0.004",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790512598"
+}

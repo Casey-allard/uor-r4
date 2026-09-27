@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "56c3a03ef0ac7eafd716b5c8b5943cabcc2c0bbb26331f639150845d557e5654",
+      "bytes": 1034,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "a4dc0f0eaba674ceccd271c21e7e3f86cc8858ced39309a8f0e8757ba9157483",
+      "bytes": 82073,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-eval512-pilot-transformer_lr0.002",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790512926"
+}

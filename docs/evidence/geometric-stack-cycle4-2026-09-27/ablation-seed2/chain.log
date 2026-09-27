@@ -1,0 +1,19 @@
+chosen lr transformer 0.002 geometric 0.004 2026-09-27T05:58:16Z
+chain.sh replaced by chain2.sh at 2026-09-27T07:21:45Z: seed-2 Lorentz/Dot pair inserted before the main comparison
+chain2.sh replaced by chain3.sh at 2026-09-27T07:45:31Z: reads-only Dot (s1) and Lorentz (s2) pair inserted before the main comparison, after the reads-only Lorentz ablation (2.5531) led all arms
+container reboot at ~08:22Z killed the seed-2 pair (no checkpoint yet) and chain3; replaced by the idempotent pipeline.sh 2026-09-27T08:24:34Z
+pipeline start 2026-09-27T08:24:34Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/lorentz_r1 fresh 2026-09-27T08:24:34Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/dot_r1 fresh 2026-09-27T08:24:34Z
+second container reboot ~08:40Z killed the seed-2 pair (no checkpoint); pipeline.sh relaunched with checkpoint_every=50 at 2026-09-27T08:44:55Z
+pipeline start 2026-09-27T08:44:55Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/dot_r2 fresh 2026-09-27T08:44:55Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/lorentz_r2 fresh 2026-09-27T08:44:55Z
+exit 0 /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/dot_r2 2026-09-27T09:54:29Z
+exit 0 /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/lorentz_r2 2026-09-27T09:59:22Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-readsonly/dot_s1 fresh 2026-09-27T09:59:22Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-readsonly/lorentz_s2 fresh 2026-09-27T09:59:22Z
+exit 0 /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-readsonly/dot_s1 2026-09-27T11:11:58Z
+exit 0 /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-readsonly/lorentz_s2 2026-09-27T11:23:15Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/main/geometric_s1 fresh 2026-09-27T11:23:15Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/main/transformer_s1 fresh 2026-09-27T11:23:15Z

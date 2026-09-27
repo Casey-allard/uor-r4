@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "94b927f3065ce2e3a72f91f1259454ba502aa5fb80d86e0af8f198f8303aaf47",
+      "bytes": 970,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "4b1d143f8001f30957356470035960c89c43c6e8c9bd524643305e769f14f65a",
+      "bytes": 14567,
+      "path": "samples.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/samples-pilot-transformer_lr0.002",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790508597"
+}

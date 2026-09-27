@@ -15,6 +15,7 @@ pub mod dialogue_child_artifact;
 pub mod dialogue_development;
 pub mod dialogue_episodes;
 pub mod dialogue_learning;
+pub mod geometric_stack;
 pub mod joint_admission;
 pub mod joint_bounded_campaign;
 pub mod joint_campaign;
@@ -37,6 +38,8 @@ pub mod lut_export;
 pub mod ngram;
 pub mod reference_campaign;
 pub mod reference_eval;
+pub mod stack_dialogue;
+pub mod stack_export;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;

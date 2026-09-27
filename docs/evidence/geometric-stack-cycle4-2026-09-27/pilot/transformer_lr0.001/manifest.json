@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "089deff0af671a13fe09447912d0f942bb1f3640cf5e47772f8868ec7319aa5c",
+      "bytes": 1129,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "fd40740e5bb83d5ce3deb5ec7d1377654945ffebeb9a1c18be97bebf8cf623c9",
+      "bytes": 192,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "7c53f38f2eac36a38c61061df6b62b75e73a6deb5bb72ee74f6943b037c93c29",
+      "bytes": 28626728,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "16e792a7b5ce38afb5cbc7546767d364b4de34b9e2e93dc934eb0b78ce5cf63d",
+      "bytes": 16224,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/pilot/transformer_lr0.001",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790484221"
+}

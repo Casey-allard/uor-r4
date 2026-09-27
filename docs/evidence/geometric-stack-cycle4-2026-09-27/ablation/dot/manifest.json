@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "065de4972aac644d74b6e026964c5c28531240c31cc4fc4b4ddd926864d557e9",
+      "bytes": 1173,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "0dae2c0e178f29a3c3a430ceda20ac746504df90f4fa192404332c5269f9ed3e",
+      "bytes": 189,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "71f981e1d3c117d1d4bbd08c9730ef4b6587c14df4e314969b533d47dacb8c94",
+      "bytes": 28622280,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "8225568cafb81f9248b9a2c5f9c9ff65ebe3ee039b343e8cd32b58d3fea88c70",
+      "bytes": 16654,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/dot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790492094"
+}

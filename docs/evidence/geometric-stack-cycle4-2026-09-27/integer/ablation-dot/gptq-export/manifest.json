@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "blake3": "4b0973629d2824895bdf38487356b0429738c499f3d7dc4aa410a733eed77848",
+      "bytes": 728,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "5f47163be1f19018c3bb0a88d8e53e03e738400870c3879f00c918b423fe316a",
+      "bytes": 8560,
+      "path": "export.json"
+    },
+    {
+      "blake3": "67c1bbcda35f711a9d5080b6ed6caa80518046be3b734f369f28dfd99caf58c4",
+      "bytes": 4612996,
+      "path": "model.lut"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-export-ablation-dot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790512945"
+}

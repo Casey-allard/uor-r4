@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "36c170ddd3c2dce58cef36b3ab8656915dbce76e3938c20e845c6f0eeb47be04",
+      "bytes": 1187,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "9214f643eee0615fbe9c8753dc30f14a5f37c5d4d572ea9b2c3a86df3143ddb5",
+      "bytes": 193,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "6001e4352ffc6970dfe6108a66bf80233b6f8b98797849fad107cb79ea8a21cd",
+      "bytes": 28622728,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "45aba48222c6dbb4e8ecdc989c1ee59c375a659b5bccacfa8340e2acd40d4cf8",
+      "bytes": 16705,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/lorentz_r2",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790503161"
+}

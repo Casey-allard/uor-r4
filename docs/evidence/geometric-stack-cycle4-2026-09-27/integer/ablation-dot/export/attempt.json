@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-2a681bb7",
+    "export",
+    "model=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/dot/model",
+    "out=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-dot"
+  ],
+  "claimed_at": "1790501739",
+  "pid": 11958,
+  "rule": "exclusively created before model work; never reused for a retry",
+  "schema": "uor-r4.report-attempt/1"
+}

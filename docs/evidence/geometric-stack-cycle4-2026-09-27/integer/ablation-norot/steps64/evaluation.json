@@ -1,0 +1,360 @@
+{
+  "all": {
+    "float": null,
+    "integer": {
+      "bits_per_byte": null,
+      "nll": 2.7452932944078112
+    },
+    "integer_minus_float_nll": null,
+    "targets": 16384,
+    "windows": 64
+  },
+  "artifact": {
+    "bytes": 4965252,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-norot/model.lut",
+    "sha256": "099290c121aeed88304b97da25dfe9f8a6586d5231ef355f2e6d1d4f951addff"
+  },
+  "artifact_sha256": "099290c121aeed88304b97da25dfe9f8a6586d5231ef355f2e6d1d4f951addff",
+  "engine": {
+    "backend": "avx2",
+    "loop_seconds": 19.440379988999993,
+    "loop_tokens_per_second": 842.7818802549439,
+    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
+    "step_seconds": 18.997855105000003,
+    "threads": 1,
+    "tokens_per_second": 862.4131466129527
+  },
+  "float_model": null,
+  "per_window": [
+    {
+      "float_nll": null,
+      "integer_nll": 2.368213879437954,
+      "start": 0
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.8933955574152503,
+      "start": 3227
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.640572705114332,
+      "start": 6454
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.778364704745721,
+      "start": 9681
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.981604853337576,
+      "start": 12908
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.080377908675227,
+      "start": 16135
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.657791376567427,
+      "start": 19362
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.4131429487093086,
+      "start": 22589
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.9243695146241446,
+      "start": 25816
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7150257992466904,
+      "start": 29043
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.310787140360711,
+      "start": 32270
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0190638299513797,
+      "start": 35497
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0020905842697228,
+      "start": 38724
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.664569752322018,
+      "start": 41951
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6411669532777364,
+      "start": 45178
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0931922763814814,
+      "start": 48405
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.283199556673905,
+      "start": 51632
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.1780332043438717,
+      "start": 54859
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.496289655146283,
+      "start": 58086
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.8704092802858328,
+      "start": 61313
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6740659472786676,
+      "start": 64540
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.1972708476803287,
+      "start": 67767
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0807006000826385,
+      "start": 70994
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.8311899426575005,
+      "start": 74221
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.455324739382627,
+      "start": 77448
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.5139414653967997,
+      "start": 80675
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6048899703068544,
+      "start": 83902
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.9316021715767044,
+      "start": 87129
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.1754220269180884,
+      "start": 90356
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0953833206093337,
+      "start": 93583
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7085989633932095,
+      "start": 96810
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.731531552876703,
+      "start": 100037
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.1606856740396956,
+      "start": 103264
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.62504886046715,
+      "start": 106491
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.541360603779815,
+      "start": 109718
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.222111319740672,
+      "start": 112945
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.722423249465229,
+      "start": 116172
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.766290467273453,
+      "start": 119399
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.8570311600801728,
+      "start": 122626
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.408483467697287,
+      "start": 125853
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.111998917341943,
+      "start": 129080
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.3742509620135137,
+      "start": 132307
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.5501654267977827,
+      "start": 135534
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.1821792446553747,
+      "start": 138761
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0744499623712054,
+      "start": 141988
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.704735189490718,
+      "start": 145215
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.8266606977562496,
+      "start": 148442
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7891443594191876,
+      "start": 151669
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.629017020242516,
+      "start": 154896
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.388029827657586,
+      "start": 158123
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.217557545662496,
+      "start": 161350
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.3044489604529343,
+      "start": 164577
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.356905093561529,
+      "start": 167804
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.8669169298674975,
+      "start": 171031
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.30384661025698,
+      "start": 174258
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.654578655836059,
+      "start": 177485
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.512055631902983,
+      "start": 180712
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0845758683627227,
+      "start": 183939
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.167229922230966,
+      "start": 187166
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.037941197130161,
+      "start": 190393
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.3088554891051247,
+      "start": 193620
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6160715264316403,
+      "start": 196847
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.095102883141565,
+      "start": 200074
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.227035088821684,
+      "start": 203301
+    }
+  ],
+  "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh integer session per window, position by position",
+  "schema": "uor-r4.geometric-stack-lut-evaluation/3",
+  "targets": 16384,
+  "top1_agreement": null,
+  "valid": {
+    "bytes": 413688,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+  },
+  "windows": 64
+}

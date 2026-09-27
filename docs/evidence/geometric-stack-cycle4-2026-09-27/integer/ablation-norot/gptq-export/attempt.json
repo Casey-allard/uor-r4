@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-6bc7dd6d",
+    "export",
+    "model=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/norot/model",
+    "calibration=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+    "calibration_windows=64",
+    "damp=0.01",
+    "out=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-export-ablation-norot"
+  ],
+  "claimed_at": "1790513296",
+  "pid": 31929,
+  "rule": "exclusively created before model work; never reused for a retry",
+  "schema": "uor-r4.report-attempt/1"
+}

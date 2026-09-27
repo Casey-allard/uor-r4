@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-cb60c8bd",
+    "lut-sample",
+    "artifact=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-pilot-geometric_lr0.004/model.lut",
+    "valid=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+    "merges=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+    "prompts=3",
+    "prompt_tokens=64",
+    "sample_tokens=96",
+    "temperature=0.8",
+    "top_k=40",
+    "seed=1",
+    "threads=1",
+    "out=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/samples-pilot-geometric_lr0.004"
+  ],
+  "claimed_at": "1790508594",
+  "pid": 24078,
+  "rule": "exclusively created before model work; never reused for a retry",
+  "schema": "uor-r4.report-attempt/1"
+}

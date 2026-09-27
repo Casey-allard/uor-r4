@@ -7,7 +7,8 @@ use uor_r4_simd::{dot_rows_i16_i8, mix_rows, Backend, Tables};
 use crate::format::{Artifact, CacheSpec, Header, MatrixSpec, Numerics, Shape};
 use crate::kernels::{
     arcosh1p_q24, dequant_row, exp_neg, gemv, isqrt, quantize16, quantize8, rms_norm, rope,
-    scale_16_plus, shift, silu, to_exp_i32, Act16, MatrixView, Packed, ARCOSH_TABLE_LEN,
+    scale_16_plus, shift, sigmoid_q31, silu, to_exp_i32, Act16, MatrixView, Packed,
+    ARCOSH_TABLE_LEN,
 };
 use crate::{format_error, invalid, Result, RESIDUAL_EXP};
 
@@ -124,17 +125,6 @@ fn lorentz_distance_sq(
     let code = (z_minus_one.max(0) >> 32) as u128;
     let d = u64::from(arcosh1p_q24(code, arcosh));
     d * d
-}
-
-/// `sigmoid(x)` for `x` at exponent -16, times `2^31`, from the exp table.
-fn sigmoid_q31(x: i64, table: &[u32], step_log2: i32) -> u64 {
-    let e = exp_neg(x.abs(), RESIDUAL_EXP, table, step_log2);
-    let one = 1u64 << 31;
-    if x >= 0 {
-        (one << 31) / (one + e)
-    } else {
-        (e << 31) / (one + e)
-    }
 }
 
 /// One layer's key/value cache, read by attention.

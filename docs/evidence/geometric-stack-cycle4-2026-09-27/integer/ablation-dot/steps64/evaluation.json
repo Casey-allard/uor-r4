@@ -1,0 +1,360 @@
+{
+  "all": {
+    "float": null,
+    "integer": {
+      "bits_per_byte": null,
+      "nll": 2.6758984550106453
+    },
+    "integer_minus_float_nll": null,
+    "targets": 16384,
+    "windows": 64
+  },
+  "artifact": {
+    "bytes": 4612676,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-dot/model.lut",
+    "sha256": "da005784d831a8ac7aa636ff15e04aed6bd08f3bdcc80416c728dc1a7cc4edfd"
+  },
+  "artifact_sha256": "da005784d831a8ac7aa636ff15e04aed6bd08f3bdcc80416c728dc1a7cc4edfd",
+  "engine": {
+    "backend": "avx2",
+    "loop_seconds": 20.389168180999995,
+    "loop_tokens_per_second": 803.5639244600336,
+    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
+    "step_seconds": 19.931694866999997,
+    "threads": 1,
+    "tokens_per_second": 822.0073661235024
+  },
+  "float_model": null,
+  "per_window": [
+    {
+      "float_nll": null,
+      "integer_nll": 2.4175006888317148,
+      "start": 0
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.9889176319213244,
+      "start": 3227
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.711554305825005,
+      "start": 6454
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.5756970647915334,
+      "start": 9681
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.9879196525248433,
+      "start": 12908
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.9633438371930865,
+      "start": 16135
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.772460328392662,
+      "start": 19362
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.316462790221796,
+      "start": 22589
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.7507624592056574,
+      "start": 25816
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6703432219394,
+      "start": 29043
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.234409086215656,
+      "start": 32270
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.9610205597824537,
+      "start": 35497
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0644723239565628,
+      "start": 38724
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.48210386566962,
+      "start": 41951
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.599698223046328,
+      "start": 45178
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.93261309075267,
+      "start": 48405
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.173561882006673,
+      "start": 51632
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.8841793872574621,
+      "start": 54859
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.4991900838127619,
+      "start": 58086
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.646350927790093,
+      "start": 61313
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.4850776384141446,
+      "start": 64540
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0056037842356,
+      "start": 67767
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.12076707811677,
+      "start": 70994
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.7659538709677467,
+      "start": 74221
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.3274474878806393,
+      "start": 77448
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.5832559706955536,
+      "start": 80675
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.646207576749185,
+      "start": 83902
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.9445216526112161,
+      "start": 87129
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.138478709940708,
+      "start": 90356
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0277460110636394,
+      "start": 93583
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.640946336800192,
+      "start": 96810
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.4641308762661684,
+      "start": 100037
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.25750704984295,
+      "start": 103264
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.5428472846111387,
+      "start": 106491
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.4561906491991596,
+      "start": 109718
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.089813719604848,
+      "start": 112945
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6760977548304483,
+      "start": 116172
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.734368275936206,
+      "start": 119399
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7681166994121473,
+      "start": 122626
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0675701689807595,
+      "start": 125853
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.850465769557582,
+      "start": 129080
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.286645250429321,
+      "start": 132307
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.580600481206322,
+      "start": 135534
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.1646288773056663,
+      "start": 138761
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.012139660810681,
+      "start": 141988
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.5417204276127334,
+      "start": 145215
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.859249490612395,
+      "start": 148442
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7209124647930043,
+      "start": 151669
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6024085471371525,
+      "start": 154896
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.2490687787573127,
+      "start": 158123
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.017281348007246,
+      "start": 161350
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.285098203744019,
+      "start": 164577
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.222974103197512,
+      "start": 167804
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.943956657132212,
+      "start": 171031
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.200706987709993,
+      "start": 174258
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.6450041556371353,
+      "start": 177485
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.333396742638473,
+      "start": 180712
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0534339967535806,
+      "start": 183939
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0925260952995175,
+      "start": 187166
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0520191770539857,
+      "start": 190393
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.141167586573473,
+      "start": 193620
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6692672840873395,
+      "start": 196847
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.08149716825184,
+      "start": 200074
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.2761218590762144,
+      "start": 203301
+    }
+  ],
+  "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh integer session per window, position by position",
+  "schema": "uor-r4.geometric-stack-lut-evaluation/3",
+  "targets": 16384,
+  "top1_agreement": null,
+  "valid": {
+    "bytes": 413688,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+  },
+  "windows": 64
+}

@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "17a24536df3fb2f8f228b14eba7b7952990bdf964672266761238a89b4f94470",
+      "bytes": 1125,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "9e48dea07a6da60efddcab2220c3b56031934eff7704befe46da4cbb79df207e",
+      "bytes": 193,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "ab121c426d1d0adebcb5ff8003d272c9378e883046fb50a902e915f260f95ed5",
+      "bytes": 28622728,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "bc5b1487b7f16d0de0f4c3e04ae0e46bc2bf756e125fd1d6c2c6efc1d6b70cc1",
+      "bytes": 16100,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/pilot/geometric_lr0.001",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790484110"
+}

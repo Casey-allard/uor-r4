@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-b87acd63",
+    "train",
+    "train=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+    "valid=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+    "lens=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+    "merges=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+    "arch=geometric",
+    "seed=1",
+    "steps=1000",
+    "batch=16",
+    "lr=0.004",
+    "warmup=100",
+    "eval_every=250",
+    "eval_windows=64",
+    "final_windows=512",
+    "checkpoint_every=250",
+    "sample_tokens=96",
+    "out=/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/norot",
+    "pattern=rrarra",
+    "read=lorentz",
+    "rotation=false"
+  ],
+  "claimed_at": "1790488696",
+  "pid": 19450,
+  "rule": "exclusively created before model work; never reused for a retry",
+  "schema": "uor-r4.report-attempt/1"
+}

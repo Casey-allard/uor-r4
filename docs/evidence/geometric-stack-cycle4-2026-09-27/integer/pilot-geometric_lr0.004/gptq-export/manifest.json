@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "blake3": "04b90df709a33d6adf631d44f168df2d70140b35ba58b931d96967935c75b2a1",
+      "bytes": 750,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "8f026ca02cfb9f3a4191a0d29f512f9aa957a272897fc392086de4e0b8bba586",
+      "bytes": 8666,
+      "path": "export.json"
+    },
+    {
+      "blake3": "038b69713a69ca916211380d843b991b920ab4ac70302b5033210abd5325f91b",
+      "bytes": 4970116,
+      "path": "model.lut"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-export-pilot-geometric_lr0.004",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790512261"
+}

@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "25bcb04137ec670929d5dfdd1e78e355e02adc8c1e1047498a4d96d330ea4f6f",
+      "bytes": 966,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "35253c0e37ba4513dfe5fab33a3a752c18a97281e843506a0658bf115602171b",
+      "bytes": 14502,
+      "path": "samples.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/samples-pilot-geometric_lr0.004",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790508596"
+}

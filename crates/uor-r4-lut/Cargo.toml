@@ -3,7 +3,7 @@ name = "uor-r4-lut"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "Integer-only serving of converted Llama checkpoints: 4-bit table-driven weight maps without a multiplier (owner decision D10)"
+description = "Integer-only serving of converted Llama checkpoints and the lab's geometric stack: 4-bit table-driven weight maps without a multiplier (owner decision D10)"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

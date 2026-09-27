@@ -1,0 +1,360 @@
+{
+  "all": {
+    "float": null,
+    "integer": {
+      "bits_per_byte": null,
+      "nll": 2.8325693694154426
+    },
+    "integer_minus_float_nll": null,
+    "targets": 16384,
+    "windows": 64
+  },
+  "artifact": {
+    "bytes": 4524480,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-pilot-transformer_lr0.002/model.lut",
+    "sha256": "900d6b533ea94448876c04207d0e1f9882e4890637e5ebb791ae4f767c696351"
+  },
+  "artifact_sha256": "900d6b533ea94448876c04207d0e1f9882e4890637e5ebb791ae4f767c696351",
+  "engine": {
+    "backend": "avx2",
+    "loop_seconds": 17.582250176,
+    "loop_tokens_per_second": 931.8488723567575,
+    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
+    "step_seconds": 17.098500330999997,
+    "threads": 1,
+    "tokens_per_second": 958.2126901676523
+  },
+  "float_model": null,
+  "per_window": [
+    {
+      "float_nll": null,
+      "integer_nll": 2.4947123196391523,
+      "start": 0
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 4.044675897957356,
+      "start": 3227
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.6701914544312784,
+      "start": 6454
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.791924495312309,
+      "start": 9681
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.01453616724027,
+      "start": 12908
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.1514793060274977,
+      "start": 16135
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6718198546856002,
+      "start": 19362
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.453493412758268,
+      "start": 22589
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.9704917479718511,
+      "start": 25816
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.669837321776946,
+      "start": 29043
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.308168263903909,
+      "start": 32270
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0488863966926267,
+      "start": 35497
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.133592833090683,
+      "start": 38724
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7839801079145357,
+      "start": 41951
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.7142039074452313,
+      "start": 45178
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.060486463325473,
+      "start": 48405
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.385674692244871,
+      "start": 51632
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.215694386782491,
+      "start": 54859
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.6184581785784349,
+      "start": 58086
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.93771245637817,
+      "start": 61313
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.78431105227959,
+      "start": 64540
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.1013480978873944,
+      "start": 67767
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.235449362542058,
+      "start": 70994
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 1.9581782556274585,
+      "start": 74221
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.682589305278133,
+      "start": 77448
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.625583615016658,
+      "start": 80675
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6553319939298103,
+      "start": 83902
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.0964174635016684,
+      "start": 87129
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.3363443231729977,
+      "start": 90356
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.2064735740625525,
+      "start": 93583
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.83900405499901,
+      "start": 96810
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6279684751137347,
+      "start": 100037
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.2689343792061774,
+      "start": 103264
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.6468507041910887,
+      "start": 106491
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.602747268894379,
+      "start": 109718
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.2423615681039,
+      "start": 112945
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.924770637685995,
+      "start": 116172
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0320440395826407,
+      "start": 119399
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.8811572900528204,
+      "start": 122626
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.2108853029718754,
+      "start": 125853
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.102734365130297,
+      "start": 129080
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.4767319002402877,
+      "start": 132307
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.744335417544212,
+      "start": 135534
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.2903995974942104,
+      "start": 138761
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.2635888106593565,
+      "start": 141988
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.7734636793211904,
+      "start": 145215
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.948081209978559,
+      "start": 148442
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.8057367086062293,
+      "start": 151669
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.802905377091899,
+      "start": 154896
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.3247691517093236,
+      "start": 158123
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.2828517905760277,
+      "start": 161350
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.462213697120399,
+      "start": 164577
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.3450189096952947,
+      "start": 167804
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.0704873450884875,
+      "start": 171031
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.317739559151094,
+      "start": 174258
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.8224744894270075,
+      "start": 177485
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.5323164388036337,
+      "start": 180712
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.136342936355823,
+      "start": 183939
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.4361855095008687,
+      "start": 187166
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.076790709659558,
+      "start": 190393
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.4565854424827664,
+      "start": 193620
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.9285784564682507,
+      "start": 196847
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 3.2956960628486685,
+      "start": 200074
+    },
+    {
+      "float_nll": null,
+      "integer_nll": 2.489641649378022,
+      "start": 203301
+    }
+  ],
+  "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh integer session per window, position by position",
+  "schema": "uor-r4.geometric-stack-lut-evaluation/3",
+  "targets": 16384,
+  "top1_agreement": null,
+  "valid": {
+    "bytes": 413688,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+  },
+  "windows": 64
+}

@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "567ab738e90b80261bbc257ebfaa6ef96adfaa5eefe3384becc5741ec1342415",
+      "bytes": 732,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "6eb6a51a3abf464829ae90f8c140126c0aa5e8a0f89340a3937f18713d2107d8",
+      "bytes": 7832,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/steps64-ablation-norot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790502742"
+}

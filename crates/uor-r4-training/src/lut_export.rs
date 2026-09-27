@@ -215,7 +215,16 @@ impl Calibration {
         })
     }
 
-    fn moment(&self, site: Site, cols: usize) -> Result<&[f64]> {
+    /// Moments collected elsewhere: per site, the input width and the
+    /// row-major moment.
+    pub(crate) fn from_moments(
+        moments: BTreeMap<Site, (usize, Vec<f64>)>,
+        positions: usize,
+    ) -> Self {
+        Self { moments, positions }
+    }
+
+    pub(crate) fn moment(&self, site: Site, cols: usize) -> Result<&[f64]> {
         match self.moments.get(&site) {
             Some((width, moment)) if *width == cols => Ok(moment),
             _ => Err(invalid(format!(
@@ -499,7 +508,7 @@ impl CacheWeights {
 }
 
 /// `(m, e)` with `(16 + m) 2^(e - 4)` nearest to `value > 0`.
-fn grid_nearest(value: f64) -> (u8, i32) {
+pub(crate) fn grid_nearest(value: f64) -> (u8, i32) {
     let e = value.log2().floor() as i32;
     let m = (value / 2f64.powi(e - 4)).round() as i32 - 16;
     if m >= 16 {

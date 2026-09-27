@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "e91f5a81e838446b60fae5ca0876d96aa4389edb907844fc58bd0f5a46e2ff40",
+      "bytes": 740,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "4b6eadeb29814218f05d619e8b984646f37d5fb97c995a4882f04d350097b721",
+      "bytes": 7845,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/steps64-ablation-readsonly",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790502767"
+}

@@ -46,6 +46,34 @@ Use the prospective whole-process supervisor/resource projection as well as the
 driver's soft update deadline. This is the offline F32 width-576 path, without
 widening canonical or integer loaders.
 
+## Geometric stack (Claude lab track)
+
+`geometric_stack` is a multi-layer native model trained a whole window at a
+time: quaternion-transport recurrences and Lorentz or Dot reads with NoRead and
+age terms, each followed by a SwiGLU MLP, beside a transformer control with
+#1017's shape. Its recurrence core, read, RMSNorm, SwiGLU and cross-entropy are
+fused ops with exact backward passes; `StackAdamW` resumes exactly.
+`stack_export` writes D10 integer artifacts (4-bit table weight maps, optionally
+GPTQ-calibrated) for `uor_r4_lut::stack`, and renames the control for the Llama
+exporter. `stack_dialogue` reads the prepared literal-role dialogue corpus into
+the retained study's episodes and development panel for response learning.
+
+The `geometric-stack` example trains (`train`), scores (`evaluate`,
+`lut-evaluate`), samples (`sample`, `lut-sample`), exports (`export`), learns
+dialogue responses (`dialogue-train`) and talks through the integer engine
+(`lut-chat`); its header lists every option. Owner M1 runs:
+
+```sh
+scripts/geometric-stack-m1.sh TRAIN.u16 DEV.u16 TOKENIZER.json    # stack vs control on TinyStories
+TRAIN_TOKENS=... DEV_TOKENS=... TOKENIZER=... scripts/geometric-stack-chat-m1.sh  # chat-v0 responses, integer chat
+```
+
+Results are development measurements on code, in the
+[cycle-4 note](../../docs/integration/geometric-stack-cycle4-2026-09-27.md) with
+its [packet](../../docs/evidence/geometric-stack-cycle4-2026-09-27/README.md).
+The dialogue path is checked on synthetic data only. The stack engine uses the
+hardware multiplier on runtime values (D10), not D0-b's multiplier-free kernel.
+
 ## Integer numerical execution bridge
 
 `joint_integer.rs` re-exports the shared standalone implementation that loads validated signed codes and runs learned full-context

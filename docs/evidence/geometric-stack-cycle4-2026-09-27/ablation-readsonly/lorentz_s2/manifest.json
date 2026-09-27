@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "71b38d8869f40d8e4e1a96da32853bfe1b7f7bf8e51dd6a4f0973597c78b21d3",
+      "bytes": 1194,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "be90b82873c68fe637b146ec852e0503781f52c478396c89f3797ff8bc63bc95",
+      "bytes": 194,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "6d6587733b12140514541ffa14a1b5e43b656da886f7075dfe449ece5f72993f",
+      "bytes": 28625320,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "17d267f26fb9823799725ae87ea0382cf311e972a209cde42df811f8f8400c6e",
+      "bytes": 16366,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-readsonly/lorentz_s2",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790508195"
+}

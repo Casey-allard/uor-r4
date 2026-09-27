@@ -18,6 +18,12 @@
 //!
 //! The dense backbone reads every weight per token, so it is the interim chat
 //! vehicle of D10 and remains non-compliant with D5's end-state sparsity.
+//!
+//! [`stack`] serves the lab's geometric stack (quaternion transport
+//! recurrences and Dot or Lorentz reads between SwiGLU MLPs, exported by
+//! `uor-r4-training`'s `stack_export`) under the same rules; its learned
+//! scalars (convolution taps, decay rates, Lorentz scales) are applied by
+//! shifts and adds. It is dense too: every weight is read per token.
 
 #![forbid(unsafe_code)]
 
@@ -25,6 +31,7 @@ pub mod engine;
 pub mod format;
 pub mod kernels;
 pub mod sampling;
+pub mod stack;
 
 pub use uor_r4_simd::Backend;
 

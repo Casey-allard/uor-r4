@@ -1,0 +1,100 @@
+{
+  "artifact": {
+    "bytes": 4935684,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-readsonly/model.lut",
+    "sha256": "adb03ffe543c32861254cbc1f8b8c26277e059167105a538c33abe1c660b6160"
+  },
+  "quantization": {
+    "grid_code_worst_relative_error": {
+      "l0.beta": 0.022406598000362418,
+      "l1.beta": 0.02325972228377545,
+      "l2.beta": 0.02409833898431904,
+      "l3.beta": 0.01954303528486215,
+      "l4.beta": 0.013391164681990869,
+      "l5.beta": 0.026037471839078934
+    },
+    "method": {
+      "mlp_padded_from": 764,
+      "mlp_padded_to": 768,
+      "quantizer": "round_to_nearest"
+    },
+    "relative_rms_error": {
+      "embed": 0.08822545852456977,
+      "head": 0.08866147609501074,
+      "l0.down": 0.08820392423258457,
+      "l0.gate": 0.08785291683185585,
+      "l0.key": 0.08508270276593781,
+      "l0.null": 0.0933844029821436,
+      "l0.out": 0.08392579343277339,
+      "l0.query": 0.0828653229352192,
+      "l0.up": 0.08819632309903774,
+      "l0.value": 0.08868293524938557,
+      "l1.down": 0.09092222282999118,
+      "l1.gate": 0.09455770077346302,
+      "l1.key": 0.0916423927080495,
+      "l1.null": 0.09145351734321061,
+      "l1.out": 0.08159753565314362,
+      "l1.query": 0.08615294351839316,
+      "l1.up": 0.0918533303073775,
+      "l1.value": 0.08997685522200354,
+      "l2.down": 0.0897554973003483,
+      "l2.gate": 0.09428717510213175,
+      "l2.key": 0.09119751735857004,
+      "l2.null": 0.0871983567522212,
+      "l2.out": 0.08296574826738658,
+      "l2.query": 0.08632986526066444,
+      "l2.up": 0.09218019325687993,
+      "l2.value": 0.09080294273061332,
+      "l3.down": 0.08894801487636984,
+      "l3.gate": 0.09317223392871891,
+      "l3.key": 0.09067761278873276,
+      "l3.null": 0.0881550895920174,
+      "l3.out": 0.0838391491271815,
+      "l3.query": 0.08673884138003653,
+      "l3.up": 0.09177078198492898,
+      "l3.value": 0.09064703673172407,
+      "l4.down": 0.08877813512034402,
+      "l4.gate": 0.09198654321249712,
+      "l4.key": 0.09198745923115524,
+      "l4.null": 0.08750780881937009,
+      "l4.out": 0.08202907144417523,
+      "l4.query": 0.08685655307459009,
+      "l4.up": 0.09041408060126316,
+      "l4.value": 0.09101225454536989,
+      "l5.down": 0.08878342846660393,
+      "l5.gate": 0.09185121828659862,
+      "l5.key": 0.08818914135127796,
+      "l5.null": 0.085465270107705,
+      "l5.out": 0.08224742249581131,
+      "l5.query": 0.0881310863095124,
+      "l5.up": 0.08966093096311555,
+      "l5.value": 0.09245938043289527
+    }
+  },
+  "schema": "uor-r4.geometric-stack-export/1",
+  "source": {
+    "config": {
+      "arch": "geometric",
+      "context": 256,
+      "heads": 6,
+      "mlp_hidden": 764,
+      "pattern": "aaaaaa",
+      "read": "lorentz",
+      "rotation": false,
+      "seed": 1,
+      "vocab_size": 4096,
+      "width": 288
+    },
+    "executable": {
+      "bytes": 8910056,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-2a681bb7",
+      "sha256": "cb0bb647f47b90fc65a9a7bfbb4e522bb7837db5c2f608e9ef18f87076977177"
+    },
+    "exporter": "geometric-stack export",
+    "model": {
+      "bytes": 28625320,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/readsonly/model/model.safetensors",
+      "sha256": "1bfb0fbde0968287120404fbbc95348552f45fd7a534446e991d8e621aed649d"
+    }
+  }
+}

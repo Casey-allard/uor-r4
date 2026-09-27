@@ -1,0 +1,96 @@
+{
+  "artifact": {
+    "bytes": 4969796,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-pilot-geometric_lr0.004/model.lut",
+    "sha256": "d02c445df07dca2a83a546a6a8b66aa7914e606419e642d6e8ede738fe350ecf"
+  },
+  "quantization": {
+    "grid_code_worst_relative_error": {
+      "l0.conv_taps": 0.03019013604262746,
+      "l0.decay_rate": 0.028280323460079672,
+      "l1.conv_taps": 0.030207628965926894,
+      "l1.decay_rate": 0.027553288217087423,
+      "l2.beta": 0.02441689913122492,
+      "l3.conv_taps": 0.030100658496346435,
+      "l3.decay_rate": 0.027490960002944795,
+      "l4.conv_taps": 0.029793178190498364,
+      "l4.decay_rate": 0.025985842521146312,
+      "l5.beta": 0.016715519210881248
+    },
+    "method": {
+      "mlp_padded_from": 749,
+      "mlp_padded_to": 768,
+      "quantizer": "round_to_nearest"
+    },
+    "relative_rms_error": {
+      "embed": 0.08697306190381592,
+      "head": 0.08803198483493915,
+      "l0.down": 0.08752690916593966,
+      "l0.gate": 0.08707329174793094,
+      "l0.rec_gate": 0.09207358427279351,
+      "l0.rec_in": 0.0909307226497446,
+      "l0.rec_out": 0.08687957979727517,
+      "l0.up": 0.08740783312124427,
+      "l1.down": 0.09050324840705705,
+      "l1.gate": 0.09033955441332388,
+      "l1.rec_gate": 0.08878147340708589,
+      "l1.rec_in": 0.08822272864463931,
+      "l1.rec_out": 0.08683545307541075,
+      "l1.up": 0.08883861324672637,
+      "l2.down": 0.08823221659190732,
+      "l2.gate": 0.09164069602654819,
+      "l2.key": 0.0898016723281106,
+      "l2.null": 0.09021053012070056,
+      "l2.out": 0.08201717031867803,
+      "l2.query": 0.08660250906381438,
+      "l2.up": 0.09166250890397692,
+      "l2.value": 0.08932384816746432,
+      "l3.down": 0.08918692644287125,
+      "l3.gate": 0.09202316461067003,
+      "l3.rec_gate": 0.08887755531180382,
+      "l3.rec_in": 0.08811172169366968,
+      "l3.rec_out": 0.08618544550127406,
+      "l3.up": 0.0913344739534859,
+      "l4.down": 0.0885038933659844,
+      "l4.gate": 0.0911895188486066,
+      "l4.rec_gate": 0.08954235621660085,
+      "l4.rec_in": 0.08832959927039127,
+      "l4.rec_out": 0.0872815400367639,
+      "l4.up": 0.09016166208340648,
+      "l5.down": 0.08967380135905646,
+      "l5.gate": 0.0898980661191653,
+      "l5.key": 0.08917933233909145,
+      "l5.null": 0.08707870486210455,
+      "l5.out": 0.08326587120618328,
+      "l5.query": 0.08682284812402308,
+      "l5.up": 0.08878989827280412,
+      "l5.value": 0.09170843086102969
+    }
+  },
+  "schema": "uor-r4.geometric-stack-export/1",
+  "source": {
+    "config": {
+      "arch": "geometric",
+      "context": 256,
+      "heads": 6,
+      "mlp_hidden": 749,
+      "pattern": "rrarra",
+      "read": "lorentz",
+      "rotation": true,
+      "seed": 1,
+      "vocab_size": 4096,
+      "width": 288
+    },
+    "executable": {
+      "bytes": 8910056,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-2a681bb7",
+      "sha256": "cb0bb647f47b90fc65a9a7bfbb4e522bb7837db5c2f608e9ef18f87076977177"
+    },
+    "exporter": "geometric-stack export",
+    "model": {
+      "bytes": 28622728,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/pilot/geometric_lr0.004/model/model.safetensors",
+      "sha256": "bd4c1aba018a3e4814ef82d98450782ff54f7b80aa94382424015d5e71e14c7b"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "83bb0cf55c91301aa5c8d09256b745aee2e4044fca35d3f15e69a664ee2b07f0",
+      "bytes": 1180,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "4ac69fadd1a66be006f117fc2e5f111a6e11b5c0fe02b70316768b936a112aa6",
+      "bytes": 194,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "b2c14f7ad1e84c0f5b5119e1ed075675d1bc32decc74c6b14396bdb1530c61c4",
+      "bytes": 28638848,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "374866f9ef6c92ef91f74135ac4b396a9834d19ae7517f4e664cdebcd727b1b9",
+      "bytes": 16342,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/norot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790492144"
+}

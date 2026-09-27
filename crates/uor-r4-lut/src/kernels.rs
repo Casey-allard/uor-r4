@@ -86,6 +86,55 @@ pub fn scale_16_plus(a: i64, m: u8) -> i64 {
     t
 }
 
+/// Bias of a grid code's exponent field.
+const GRID_EXP_BIAS: i32 = 64;
+
+/// Whether `code` is a grid code: a learned scalar `±(16 + m) 2^(e - 4)`, or
+/// zero, applied by shifts and adds ([`grid_apply`]). Code 0 is zero;
+/// otherwise `|code| = (e + 64) << 4 | m` with `1 <= e + 64 <= 127`, and the
+/// code's sign is the scalar's.
+pub fn grid_valid(code: i16) -> bool {
+    let field = code.unsigned_abs() >> 4;
+    code == 0 || (1..=127).contains(&field)
+}
+
+/// The grid code of `±(16 + m) 2^(e - 4)`, if `m < 16` and `-63 <= e <= 63`.
+pub fn grid_encode(m: u8, e: i32, negative: bool) -> Option<i16> {
+    if m >= 16 || !(1 - GRID_EXP_BIAS..=127 - GRID_EXP_BIAS).contains(&e) {
+        return None;
+    }
+    let magnitude = (((e + GRID_EXP_BIAS) as i16) << 4) | i16::from(m);
+    Some(if negative { -magnitude } else { magnitude })
+}
+
+/// `scalar(code) * value` by shifts and adds, rounded half up (`|value| <
+/// 2^58`; a valid code, see [`grid_valid`]).
+#[inline]
+pub fn grid_apply(value: i64, code: i16) -> i64 {
+    if code == 0 {
+        return 0;
+    }
+    let c = code.unsigned_abs();
+    let e = i32::from(c >> 4) - GRID_EXP_BIAS;
+    let scaled = shift(scale_16_plus(value, (c & 15) as u8), 4 - e);
+    if code < 0 {
+        scaled.saturating_neg()
+    } else {
+        scaled
+    }
+}
+
+/// `sigmoid(x)` for `x` at exponent -16, times `2^31`, from the exp table.
+pub fn sigmoid_q31(x: i64, table: &[u32], step_log2: i32) -> u64 {
+    let e = exp_neg(x.abs(), crate::RESIDUAL_EXP, table, step_log2);
+    let one = 1u64 << 31;
+    if x >= 0 {
+        (one << 31) / (one + e)
+    } else {
+        (e << 31) / (one + e)
+    }
+}
+
 /// One row-major packed matrix (the embedding, read one row at a time).
 pub struct MatrixView<'a> {
     pub rows: usize,
@@ -303,6 +352,8 @@ pub fn arcosh1p_q24(code: u128, table: &[u32]) -> u32 {
 }
 
 /// SiLU of `x * 2^-16`, returned at exponent -16, from the sealed table.
+/// Any activation table with this layout that tends to 0 below its range and
+/// to `x` above it (GELU in [`crate::stack`]) is read the same way.
 pub fn silu(x: i32, table: &[i32], step_log2: i32, range_log2: i32) -> i32 {
     // x is in units of 2^-16 and the table step is 2^step_log2 (-16 <= step_log2 < 0).
     let frac_bits = step_log2 + 16;

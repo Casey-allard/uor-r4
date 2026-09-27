@@ -1,0 +1,277 @@
+{
+  "artifact": {
+    "bytes": 4965572,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/gptq-export-ablation-norot/model.lut",
+    "sha256": "735bd04491692239cb30384f1dd7fd08cadf10e468d8f2620db12321c92402d8"
+  },
+  "calibration_seconds": 13.592219456,
+  "quantization": {
+    "grid_code_worst_relative_error": {
+      "l0.conv_taps": 0.028923323263252563,
+      "l0.decay_rate": 0.022937939230703943,
+      "l1.conv_taps": 0.03019085048546562,
+      "l1.decay_rate": 0.0282229654492782,
+      "l2.beta": 0.019429476123415234,
+      "l3.conv_taps": 0.030089556435724158,
+      "l3.decay_rate": 0.029230225524155704,
+      "l4.conv_taps": 0.029650541039348475,
+      "l4.decay_rate": 0.029842263102116434,
+      "l5.beta": 0.009055659209035016
+    },
+    "method": {
+      "calibration_positions": 16384,
+      "damp": 0.01,
+      "mlp_padded_from": 814,
+      "mlp_padded_to": 832,
+      "quantizer": "gptq"
+    },
+    "relative_output_error": {
+      "head": {
+        "gptq": 0.028388197603865517,
+        "round_to_nearest": 0.045376095316507686
+      },
+      "l0.down": {
+        "gptq": 0.03830308193206217,
+        "round_to_nearest": 0.05361528833938777
+      },
+      "l0.gate": {
+        "gptq": 0.04345910319306718,
+        "round_to_nearest": 0.05878551677399922
+      },
+      "l0.rec_gate": {
+        "gptq": 0.04120127343664479,
+        "round_to_nearest": 0.05925353039685882
+      },
+      "l0.rec_in": {
+        "gptq": 0.049166051813697154,
+        "round_to_nearest": 0.06796528821452812
+      },
+      "l0.rec_out": {
+        "gptq": 0.07083103161745133,
+        "round_to_nearest": 0.08125350423298977
+      },
+      "l0.up": {
+        "gptq": 0.050133435317879026,
+        "round_to_nearest": 0.06737418612942828
+      },
+      "l1.down": {
+        "gptq": 0.03132457879908823,
+        "round_to_nearest": 0.04942206838444046
+      },
+      "l1.gate": {
+        "gptq": 0.03610623975127334,
+        "round_to_nearest": 0.061025677768854085
+      },
+      "l1.rec_gate": {
+        "gptq": 0.022655369364226602,
+        "round_to_nearest": 0.042096147028920866
+      },
+      "l1.rec_in": {
+        "gptq": 0.02666245855200871,
+        "round_to_nearest": 0.04847139400649108
+      },
+      "l1.rec_out": {
+        "gptq": 0.0672300343626787,
+        "round_to_nearest": 0.07695104374994559
+      },
+      "l1.up": {
+        "gptq": 0.03674540618171521,
+        "round_to_nearest": 0.06179070966268382
+      },
+      "l2.down": {
+        "gptq": 0.03422617310851952,
+        "round_to_nearest": 0.04921186009509812
+      },
+      "l2.gate": {
+        "gptq": 0.034642717256607676,
+        "round_to_nearest": 0.05803334540012847
+      },
+      "l2.key": {
+        "gptq": 0.020195774586203245,
+        "round_to_nearest": 0.036106481802622416
+      },
+      "l2.null": {
+        "gptq": 0.017029390293248268,
+        "round_to_nearest": 0.033284093030318075
+      },
+      "l2.out": {
+        "gptq": 0.01035757815747796,
+        "round_to_nearest": 0.03222845695508122
+      },
+      "l2.query": {
+        "gptq": 0.020400711516454857,
+        "round_to_nearest": 0.036063086392676726
+      },
+      "l2.up": {
+        "gptq": 0.03573518832943933,
+        "round_to_nearest": 0.05992812725899105
+      },
+      "l2.value": {
+        "gptq": 0.026631078100245193,
+        "round_to_nearest": 0.045306903126949
+      },
+      "l3.down": {
+        "gptq": 0.03650388250262844,
+        "round_to_nearest": 0.05204154744423574
+      },
+      "l3.gate": {
+        "gptq": 0.03941614960031881,
+        "round_to_nearest": 0.06161686790658928
+      },
+      "l3.rec_gate": {
+        "gptq": 0.021875994917245515,
+        "round_to_nearest": 0.03617634772486881
+      },
+      "l3.rec_in": {
+        "gptq": 0.029567753694315864,
+        "round_to_nearest": 0.04919539199048869
+      },
+      "l3.rec_out": {
+        "gptq": 0.06697351987443417,
+        "round_to_nearest": 0.0801125404028555
+      },
+      "l3.up": {
+        "gptq": 0.040401051331333294,
+        "round_to_nearest": 0.06344299185121875
+      },
+      "l4.down": {
+        "gptq": 0.032057984652894715,
+        "round_to_nearest": 0.04519083523878079
+      },
+      "l4.gate": {
+        "gptq": 0.03785249219843216,
+        "round_to_nearest": 0.05624079227634939
+      },
+      "l4.rec_gate": {
+        "gptq": 0.024482317109870262,
+        "round_to_nearest": 0.03729303307465022
+      },
+      "l4.rec_in": {
+        "gptq": 0.03251534134338029,
+        "round_to_nearest": 0.05083168303618338
+      },
+      "l4.rec_out": {
+        "gptq": 0.06223938496023755,
+        "round_to_nearest": 0.07532046368661473
+      },
+      "l4.up": {
+        "gptq": 0.03955567883982193,
+        "round_to_nearest": 0.058914815089732175
+      },
+      "l5.down": {
+        "gptq": 0.032291898842003744,
+        "round_to_nearest": 0.047544103281256425
+      },
+      "l5.gate": {
+        "gptq": 0.030941551334610264,
+        "round_to_nearest": 0.04797161899400037
+      },
+      "l5.key": {
+        "gptq": 0.0273629805348915,
+        "round_to_nearest": 0.04183334094351295
+      },
+      "l5.null": {
+        "gptq": 0.025160547302758973,
+        "round_to_nearest": 0.037480054178093726
+      },
+      "l5.out": {
+        "gptq": 0.010261640027357488,
+        "round_to_nearest": 0.027953048834255107
+      },
+      "l5.query": {
+        "gptq": 0.027980514337503138,
+        "round_to_nearest": 0.04264737207771036
+      },
+      "l5.up": {
+        "gptq": 0.033069637731733256,
+        "round_to_nearest": 0.051176364817179035
+      },
+      "l5.value": {
+        "gptq": 0.03739891397606236,
+        "round_to_nearest": 0.05588745790164913
+      }
+    },
+    "relative_rms_error": {
+      "embed": 0.08986964445448288,
+      "head": 0.12186458875724145,
+      "l0.down": 0.11735824790803186,
+      "l0.gate": 0.10560814992355251,
+      "l0.rec_gate": 0.11855475507224196,
+      "l0.rec_in": 0.11132918493356427,
+      "l0.rec_out": 0.14433896195233398,
+      "l0.up": 0.10521918619699804,
+      "l1.down": 0.16381146279667058,
+      "l1.gate": 0.13038635742908386,
+      "l1.rec_gate": 0.1294585265074107,
+      "l1.rec_in": 0.1293804970021689,
+      "l1.rec_out": 0.131114221185425,
+      "l1.up": 0.12797972666156004,
+      "l2.down": 0.12795703026765917,
+      "l2.gate": 0.1313552211426223,
+      "l2.key": 0.12676839563814454,
+      "l2.null": 0.12817740278460307,
+      "l2.out": 0.13445166829175798,
+      "l2.query": 0.12204707268654608,
+      "l2.up": 0.13154155169396392,
+      "l2.value": 0.12689778579034267,
+      "l3.down": 0.11831528581645145,
+      "l3.gate": 0.12924712078539588,
+      "l3.rec_gate": 0.12355484575304714,
+      "l3.rec_in": 0.12428047441806207,
+      "l3.rec_out": 0.1304405848160353,
+      "l3.up": 0.12840357954213216,
+      "l4.down": 0.11121138457311193,
+      "l4.gate": 0.12224719993987879,
+      "l4.rec_gate": 0.12278732790260743,
+      "l4.rec_in": 0.12064424349777801,
+      "l4.rec_out": 0.11596998803832219,
+      "l4.up": 0.12167925349798715,
+      "l5.down": 0.11252859920592909,
+      "l5.gate": 0.12148057498760377,
+      "l5.key": 0.1186672589764245,
+      "l5.null": 0.1245637867176547,
+      "l5.out": 0.13186917601144346,
+      "l5.query": 0.11612626565927806,
+      "l5.up": 0.11959343307448515,
+      "l5.value": 0.1224013517620577
+    }
+  },
+  "schema": "uor-r4.geometric-stack-export/1",
+  "seconds": 25.381849097,
+  "source": {
+    "config": {
+      "arch": "geometric",
+      "context": 256,
+      "heads": 6,
+      "mlp_hidden": 814,
+      "pattern": "rrarra",
+      "read": "lorentz",
+      "rotation": false,
+      "seed": 1,
+      "vocab_size": 4096,
+      "width": 288
+    },
+    "executable": {
+      "bytes": 8854336,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-6bc7dd6d",
+      "sha256": "6c1f4721a3167411ec27582702e2575f8564e80cfb24c69a5c97d32cdd9a62ba"
+    },
+    "exporter": "geometric-stack export",
+    "model": {
+      "bytes": 28638848,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/norot/model/model.safetensors",
+      "sha256": "681588f74c819a201bb057bd77a1c52438c2ec5ff6669282c29fef427d1cacac"
+    },
+    "quantizer": {
+      "calibration": {
+        "bytes": 14001984,
+        "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+        "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+      },
+      "calibration_time": 256,
+      "calibration_windows": 64,
+      "damp": 0.01,
+      "method": "gptq"
+    }
+  }
+}

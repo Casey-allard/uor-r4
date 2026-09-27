@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "blake3": "277f7b618a85ceba967125567ebd8ce881d2b867527b05b6c48c34bbbc9076b1",
+      "bytes": 554,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "02bdfb980f529dac2a1e55aeb5c773155561966a2b4b7b12888c5321f9763cfa",
+      "bytes": 3338,
+      "path": "export.json"
+    },
+    {
+      "blake3": "a7e7f9d9f6eb50900d971b3683606a626c5c8c6dd4c028b8fae7bef8fafbbb1a",
+      "bytes": 4612676,
+      "path": "model.lut"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-dot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790501739"
+}

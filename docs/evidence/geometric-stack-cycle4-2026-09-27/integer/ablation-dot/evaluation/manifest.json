@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "5f8232faa572cdc571b7db1d5f94ef8d3a005808486cfea4dd6e864142bea8cb",
+      "bytes": 963,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "071daf017f172e8f539dcea44875c012db69041110aeb608636b5ecd1e78db62",
+      "bytes": 59624,
+      "path": "evaluation.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/eval512-ablation-dot",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790501956"
+}

@@ -1,0 +1,94 @@
+{
+  "artifact": {
+    "bytes": 4612676,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/lut/v1/export-ablation-dot/model.lut",
+    "sha256": "da005784d831a8ac7aa636ff15e04aed6bd08f3bdcc80416c728dc1a7cc4edfd"
+  },
+  "quantization": {
+    "grid_code_worst_relative_error": {
+      "l0.conv_taps": 0.030146746151564083,
+      "l0.decay_rate": 0.028928438338425896,
+      "l1.conv_taps": 0.030034054041997636,
+      "l1.decay_rate": 0.02768578819544691,
+      "l3.conv_taps": 0.02991479213169659,
+      "l3.decay_rate": 0.028892104496599444,
+      "l4.conv_taps": 0.03020537770476857,
+      "l4.decay_rate": 0.028442372790976646
+    },
+    "method": {
+      "mlp_padded_from": 749,
+      "mlp_padded_to": 768,
+      "quantizer": "round_to_nearest"
+    },
+    "relative_rms_error": {
+      "embed": 0.08829056369328245,
+      "head": 0.089206656201435,
+      "l0.down": 0.08723184362123822,
+      "l0.gate": 0.08669718875883456,
+      "l0.rec_gate": 0.09199847402769697,
+      "l0.rec_in": 0.09017862029858764,
+      "l0.rec_out": 0.08698617269631159,
+      "l0.up": 0.08751279866404671,
+      "l1.down": 0.0900050235639933,
+      "l1.gate": 0.09132309321929542,
+      "l1.rec_gate": 0.08769616250568314,
+      "l1.rec_in": 0.08794043226201578,
+      "l1.rec_out": 0.08635932558746483,
+      "l1.up": 0.08987359874229124,
+      "l2.down": 0.08870581144711055,
+      "l2.gate": 0.09139457931205189,
+      "l2.key": 0.08845849483466393,
+      "l2.null": 0.08400779719904883,
+      "l2.out": 0.08296855628907394,
+      "l2.query": 0.08888665713156892,
+      "l2.up": 0.09119483068272931,
+      "l2.value": 0.09089463154257235,
+      "l3.down": 0.08928087512563351,
+      "l3.gate": 0.09190477813481716,
+      "l3.rec_gate": 0.08847972352991156,
+      "l3.rec_in": 0.08828275801539562,
+      "l3.rec_out": 0.0865958334581253,
+      "l3.up": 0.09119766608539806,
+      "l4.down": 0.08890846095548051,
+      "l4.gate": 0.09152372065391111,
+      "l4.rec_gate": 0.08966286204011312,
+      "l4.rec_in": 0.0886813710011899,
+      "l4.rec_out": 0.08694708094941823,
+      "l4.up": 0.09041059075101338,
+      "l5.down": 0.08950425396900528,
+      "l5.gate": 0.08921150272597392,
+      "l5.key": 0.08832684418941278,
+      "l5.null": 0.08015263841927033,
+      "l5.out": 0.08408417876616492,
+      "l5.query": 0.08893633248445756,
+      "l5.up": 0.08793689361956249,
+      "l5.value": 0.09106684779477375
+    }
+  },
+  "schema": "uor-r4.geometric-stack-export/1",
+  "source": {
+    "config": {
+      "arch": "geometric",
+      "context": 256,
+      "heads": 6,
+      "mlp_hidden": 749,
+      "pattern": "rrarra",
+      "read": "dot",
+      "rotation": true,
+      "seed": 1,
+      "vocab_size": 4096,
+      "width": 288
+    },
+    "executable": {
+      "bytes": 8910056,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/bin/geometric-stack-2a681bb7",
+      "sha256": "cb0bb647f47b90fc65a9a7bfbb4e522bb7837db5c2f608e9ef18f87076977177"
+    },
+    "exporter": "geometric-stack export",
+    "model": {
+      "bytes": 28622280,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation/dot/model/model.safetensors",
+      "sha256": "edf6306470d7e0a231c8bb5f6896d18546588937d905cf9b14b6af771b942df2"
+    }
+  }
+}
