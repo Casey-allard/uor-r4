@@ -254,7 +254,12 @@ scalars. Reset Adam identically and declare a new common sampler seed/local
 step zero, recording prior exposure separately. Actual startup with the learned
 query/key scale must be observed before selecting its dose. The step15,672
 continuous candidate remains a retained negative, not an accepted replacement.
-This design is not implemented or launched by the initializer increment.
+This design was not implemented by the initializer increment. The later
+[explicit transfer implementation and learned-parent observation](radial-parameter-transfer-2026-09-27.md)
+now preserve the shared arrays and establish connected finite gradients on the
+fixed prefixes, with no adaptation updates. Next prepare the matched Dot-reset
+control and one three-arm adaptation study; no additional calibration sweep is
+indicated by that startup result.
 
 The [mainline termination-objective work card](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5851930160)
 already owns its loss change and paired dose. Do not duplicate it or confound

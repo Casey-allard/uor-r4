@@ -56,11 +56,23 @@ language-gradient families and nonzero causal read mass on all four fixed
 full256 windows; no calibration correction is indicated. Supplementary
 untrained continuations remain incoherent and include a disclosed duplicate-BOS
 prompt condition. [Startup evidence and exact scope](../evidence/radial-unit-start-validation-2026-09-27.json).
-The next attention design is an explicit shared-parameter transfer from a
-retained Dot checkpoint into both radial arms, with new lineage and identical
-optimizer resets, before selecting a meaningful adaptation dose. This transfer
-is not implemented or launched here; the mainline termination-objective study
-remains independently owned.
+The [explicit shared-parameter transfer](radial-parameter-transfer-2026-09-27.md)
+is now implemented for both radial arms. It copies the retained negative
+step15,672 Dot candidate's21 shared arrays, records its64,192,512 historical
+target visits, and starts a new lineage with identical Adam resets and sampling
+seed240927. Saved children retain their own evolved weights, optimizer and
+historical transfer receipt. Ten source-bound focused checks pass. A single
+183.70-second zero-update observation at the learned query/key scale completed:
+both readers have finite nonzero measured gradient arrays and no zero causal
+read positions across four fixed full256 windows. Initial NLL is2.389537 versus
+2.400457; both eight-token outputs are `toys. One day, he found a`. These are
+startup observations, not fitted advantage or prose qualification. The
+[source, output and resource receipt](../evidence/radial-parameter-transfer-validation-2026-09-27.json)
+binds the actual copied arrays and sealed report. No calibration sweep is
+indicated. Next add an explicit same-geometry Dot parameter-only reset and select
+a matched three-arm adaptation dose with a complete resource projection. No
+adaptation fit has run. The mainline termination-objective study remains
+independently owned and cannot supply that matched control.
 General language/M1 qualification remains unmeasured here. D10's policy
 clarification remains pending in this lab; the new control introduces no
 additional serving exception or converted backbone.

@@ -1,0 +1,1236 @@
+{
+  "schema": "uor-r4.radial-parameter-transfer-validation/1",
+  "recorded_at": "2026-09-27T03:21:57.402560+00:00",
+  "source_commit": "50c4e3a4a19c743d80f1e087c8d4272ab0c4791d",
+  "source_sha256": {
+    "crates/uor-r4-training/src/joint_transfer.rs": "55bed4ef4581c17fbd48b1992bae98901f4680985f17583a683fd275bb7e0f3a",
+    "crates/uor-r4-training/src/joint_campaign.rs": "ed9ea198fb7f6ab85857c970084bcdfa6a2b48869560b4c9806dc973ce1bbd03",
+    "crates/uor-r4-training/src/joint_comparison.rs": "d64dc0d3baf8778a2bb0b9410f6f9e2abfa5b5602c9b15e06b71ea4868a42962",
+    "crates/uor-r4-training/src/lib.rs": "79906ccdee003a2cc5fac4a3137768581ab646865d4d076bceaf8e0390491bae",
+    "crates/uor-r4-training/examples/radial-startup.rs": "2b211a7ad82ee4767c300daa5dfe7a733cb93d4ada39dd467309be658f441160"
+  },
+  "scope": "Explicit learned parameter-only adaptation lineage and one zero-update observation; no fitted adaptation, language qualification or serving advantage",
+  "checks": [
+    {
+      "filter": "radial_transfer_",
+      "passed": 4,
+      "failed": 0,
+      "test_seconds": 32.9,
+      "command_seconds": 766.572709333,
+      "maximum_command_rss_bytes": 1734459392,
+      "log_sha256": "be392fa6ffad52338cac35e98c6cb99bc42745069cf19b785156891515a3a48a"
+    },
+    {
+      "filter": "radial_initialization_",
+      "passed": 4,
+      "failed": 0,
+      "test_seconds": 16.05,
+      "command_seconds": 16.078895,
+      "maximum_command_rss_bytes": 83722240,
+      "log_sha256": "a1a7677c4ea0b96fcbd5c1ef234e5bb8835511e881a555cad04e1563b1d57077"
+    },
+    {
+      "filter": "calibrated_shadow_",
+      "passed": 2,
+      "failed": 0,
+      "test_seconds": 11.27,
+      "command_seconds": 11.343100208,
+      "maximum_command_rss_bytes": 248512512,
+      "log_sha256": "d798784b3a2b4c142444df7cfd75e2d773ea6a64da876bb07c413c8c29232c82"
+    }
+  ],
+  "test_binary": {
+    "source_commit": "50c4e3a4a19c743d80f1e087c8d4272ab0c4791d",
+    "test_binary": "/Users/casey.allard/uor-r4/target/debug/deps/uor_r4_training-8a35cdf4d038fd04",
+    "binary_sha256": "45659783548a9019fbc4010f239a9997e9474716b6fb0579f46430e6c02c9f94",
+    "same_binary_after": true,
+    "checks": [
+      {
+        "filter": "radial_initialization_",
+        "returncode": 0,
+        "elapsed_seconds": 16.078895,
+        "log": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/transfer-retained-radial_initialization.log"
+      },
+      {
+        "filter": "calibrated_shadow_",
+        "returncode": 0,
+        "elapsed_seconds": 11.343100208,
+        "log": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/transfer-retained-calibrated_shadow.log"
+      }
+    ]
+  },
+  "startup_build": {
+    "source_commit": "50c4e3a4a19c743d80f1e087c8d4272ab0c4791d",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/casey.allard/.cargo/bin/cargo",
+      "build",
+      "-p",
+      "uor-r4-training",
+      "--offline",
+      "--profile",
+      "test",
+      "--example",
+      "radial-startup"
+    ],
+    "elapsed_seconds": 28.46201225,
+    "returncode": 0,
+    "binary": "/Users/casey.allard/uor-r4/target/debug/examples/radial-startup",
+    "binary_sha256": "d2d7f12633814f8ce9c16545e9d2042648bae64255a79f641c46833f97a84ac5"
+  },
+  "execution": {
+    "started_at": "2026-09-27T03:16:57.337665+00:00",
+    "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/radial-startup-transfer-50c4e3a4",
+    "binary_sha256": "d2d7f12633814f8ce9c16545e9d2042648bae64255a79f641c46833f97a84ac5",
+    "evaluator": "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+    "report": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/learned-startup-1",
+    "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/learned-startup-lorentz-campaign.json",
+    "campaign_sha256": "e078ab08b23db05a8839d44456eeb7046a7579331fb55fde5b99297478bfdb17",
+    "limits": {
+      "wall_seconds": 600,
+      "rss_bytes": 4294967296,
+      "threads": 2,
+      "minimum_free_bytes": 26105348096
+    },
+    "peak_sampled_rss_bytes": 846495744,
+    "stopped": null,
+    "scope": "Zero candidate updates; CPU observation under shared machine load, no performance claim",
+    "pid": 65358,
+    "exit_code": 0,
+    "wall_seconds": 184.730903625,
+    "maximum_child_rss_bytes": 846594048,
+    "finished_at": "2026-09-27T03:20:02.073183+00:00"
+  },
+  "startup": {
+    "status": "DESCRIPTIVE_STARTUP_COMPLETE",
+    "schema": "uor-r4.radial-startup/1",
+    "source_commit": "50c4e3a4a19c743d80f1e087c8d4272ab0c4791d",
+    "executable_sha256": "d2d7f12633814f8ce9c16545e9d2042648bae64255a79f641c46833f97a84ac5",
+    "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+    "elapsed_seconds": 183.703911709,
+    "initialization_source": "learned_shared_parameter_transfer",
+    "fixed_conditions": {
+      "batch": 4,
+      "development_blocks": [
+        0,
+        21,
+        42,
+        63
+      ],
+      "device": "cpu",
+      "initializer": "unit_scale",
+      "memory_access": "all causal occurrences within each full256 window; no selected-event policy",
+      "observation_context": 256,
+      "optimizer_updates": 0,
+      "parameter_seed": 240924,
+      "read_vector_width": 64,
+      "state_width": 256,
+      "transport": "quaternion"
+    },
+    "batch_scope": {
+      "declared_training_batch": 16,
+      "declared_training_gradient_shards": 2,
+      "note": "One unsharded four-window observation per arm. Campaign training batch, shards, dose and sampler are provenance only; no fit or optimizer is constructed.",
+      "observation_batch": 4
+    },
+    "shared_all_parameter_arrays_identical_before_observation": true,
+    "parameters_unchanged_after_generation": true,
+    "decision_boundary": "Completion requires finite observations, connected finite required gradients and unchanged shared parameters. Measured zero gradients or causal read masses remain descriptive activation findings, not unverified data and not automatic retry triggers. Their explicit booleans and counts inform whether the useful-gradient premise holds. No preferred read mass, entropy, loss threshold or language acceptance gate is imposed."
+  },
+  "first_common_read": {
+    "interpretation": "At position0 neither arm has a causal key. Identical parameters and post-token0 states imply common query/key/null/age at position1. Its single-key read log-odds difference observes the score-law difference, up to F32 normalization. Later trajectories differ; no later aggregate NoRead ordering is asserted. No private core formula is duplicated.",
+    "observations": [
+      {
+        "affine_no_read": 0.9995470643043518,
+        "affine_read": 0.0004528987337835133,
+        "affine_read_log_odds": -7.699388964901066,
+        "block": 0,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.06778383372584429,
+        "lorentz_no_read": 0.9995154142379761,
+        "lorentz_read": 0.0004846469673793763,
+        "lorentz_read_log_odds": -7.631605131175221,
+        "position": 1,
+        "window": 0
+      },
+      {
+        "affine_no_read": 0.9995675683021545,
+        "affine_read": 0.0004324624314904213,
+        "affine_read_log_odds": -7.745582573747769,
+        "block": 21,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.0024604781298860345,
+        "lorentz_no_read": 0.9995664954185486,
+        "lorentz_read": 0.0004335273406468332,
+        "lorentz_read_log_odds": -7.743122095617883,
+        "position": 1,
+        "window": 1
+      },
+      {
+        "affine_no_read": 0.9997079968452454,
+        "affine_read": 0.000292030832497403,
+        "affine_read_log_odds": -8.138359124729794,
+        "block": 42,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.0002032059636398742,
+        "lorentz_no_read": 0.9997078776359558,
+        "lorentz_read": 0.00029209014610387385,
+        "lorentz_read_log_odds": -8.138155918766154,
+        "position": 1,
+        "window": 2
+      },
+      {
+        "affine_no_read": 0.999946117401123,
+        "affine_read": 5.3832551202503964e-05,
+        "affine_read_log_odds": -9.829578348770676,
+        "block": 63,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 4.8588505611846244e-05,
+        "lorentz_no_read": 0.999946117401123,
+        "lorentz_read": 5.383516690926626e-05,
+        "lorentz_read_log_odds": -9.829529760265064,
+        "position": 1,
+        "window": 3
+      }
+    ],
+    "post_token0_states_bit_identical": true
+  },
+  "observations": {
+    "lorentz": {
+      "actual_initialization": {
+        "beta": 1.0,
+        "campaign_override": "unit_scale",
+        "log_beta": 0.0,
+        "note": "The pinned numerical contract documents constructor defaults. Campaign::fresh_model applies the explicit override before this observation.",
+        "offset": 5.331728935241699
+      },
+      "all_required_gradient_arrays_have_nonzero_coordinates": true,
+      "geometry": "lorentz",
+      "gradient_loss": "population mean next-token NLL over four full256 windows, read enabled",
+      "gradients": {
+        "read.key.weight": {
+          "coordinates": 16384,
+          "finite": true,
+          "l2_norm": 0.03860471140717824,
+          "maximum_absolute": 0.005380867049098015,
+          "nonzero_coordinates": 16384
+        },
+        "read.lorentz_log_beta": {
+          "coordinates": 1,
+          "finite": true,
+          "l2_norm": 0.03987276181578636,
+          "maximum_absolute": 0.03987276181578636,
+          "nonzero_coordinates": 1
+        },
+        "read.lorentz_offset": {
+          "coordinates": 1,
+          "finite": true,
+          "l2_norm": 0.020886778831481934,
+          "maximum_absolute": 0.020886778831481934,
+          "nonzero_coordinates": 1
+        },
+        "read.no_read.weight": {
+          "coordinates": 256,
+          "finite": true,
+          "l2_norm": 0.20288107731036337,
+          "maximum_absolute": 0.06360211968421936,
+          "nonzero_coordinates": 256
+        },
+        "read.query.weight": {
+          "coordinates": 16384,
+          "finite": true,
+          "l2_norm": 0.03879159514673919,
+          "maximum_absolute": 0.0033221382182091475,
+          "nonzero_coordinates": 16384
+        },
+        "read.value.weight": {
+          "coordinates": 65536,
+          "finite": true,
+          "l2_norm": 0.1398520624050231,
+          "maximum_absolute": 0.01054219901561737,
+          "nonzero_coordinates": 65536
+        }
+      },
+      "model": {
+        "context": 256,
+        "read_geometry": "lorentz",
+        "read_width": 64,
+        "seed": 240924,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 256
+      },
+      "observed_initial_next_token_nll": 2.3895373344421387,
+      "parameters_unchanged": true,
+      "seconds": 87.877958167,
+      "summary_excludes_empty_history_position0": {
+        "all_causal_read_positions_nonzero": true,
+        "defined_entropy_positions": 1020,
+        "maximum_mass_normalization_error": 5.168567440705374e-07,
+        "mean_conditional_read_entropy_nats": 4.203200695081334,
+        "mean_no_read_mass": 0.8791579690560991,
+        "mean_read_mass": 0.12084201996478457,
+        "positions": 1020,
+        "zero_read_positions": 0
+      }
+    },
+    "lorentz_affine": {
+      "actual_initialization": {
+        "beta": 1.0,
+        "campaign_override": "unit_scale",
+        "log_beta": 0.0,
+        "note": "The pinned numerical contract documents constructor defaults. Campaign::fresh_model applies the explicit override before this observation.",
+        "offset": 5.331728935241699
+      },
+      "all_required_gradient_arrays_have_nonzero_coordinates": true,
+      "geometry": "lorentz_affine",
+      "gradient_loss": "population mean next-token NLL over four full256 windows, read enabled",
+      "gradients": {
+        "read.key.weight": {
+          "coordinates": 16384,
+          "finite": true,
+          "l2_norm": 0.023521143586973752,
+          "maximum_absolute": 0.003353414824232459,
+          "nonzero_coordinates": 16384
+        },
+        "read.lorentz_log_beta": {
+          "coordinates": 1,
+          "finite": true,
+          "l2_norm": 0.025942383334040642,
+          "maximum_absolute": 0.025942383334040642,
+          "nonzero_coordinates": 1
+        },
+        "read.lorentz_offset": {
+          "coordinates": 1,
+          "finite": true,
+          "l2_norm": 0.020711462944746017,
+          "maximum_absolute": 0.020711462944746017,
+          "nonzero_coordinates": 1
+        },
+        "read.no_read.weight": {
+          "coordinates": 256,
+          "finite": true,
+          "l2_norm": 0.19965218516273944,
+          "maximum_absolute": 0.06402453780174255,
+          "nonzero_coordinates": 256
+        },
+        "read.query.weight": {
+          "coordinates": 16384,
+          "finite": true,
+          "l2_norm": 0.023416513961271233,
+          "maximum_absolute": 0.002763728378340602,
+          "nonzero_coordinates": 16384
+        },
+        "read.value.weight": {
+          "coordinates": 65536,
+          "finite": true,
+          "l2_norm": 0.14360291927733243,
+          "maximum_absolute": 0.010951235890388489,
+          "nonzero_coordinates": 65536
+        }
+      },
+      "model": {
+        "context": 256,
+        "read_geometry": "lorentz_affine",
+        "read_width": 64,
+        "seed": 240924,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 256
+      },
+      "observed_initial_next_token_nll": 2.4004573822021484,
+      "parameters_unchanged": true,
+      "seconds": 84.171686542,
+      "summary_excludes_empty_history_position0": {
+        "all_causal_read_positions_nonzero": true,
+        "defined_entropy_positions": 1020,
+        "maximum_mass_normalization_error": 4.819303285330534e-07,
+        "mean_conditional_read_entropy_nats": 4.206361728297641,
+        "mean_no_read_mass": 0.8825160343492148,
+        "mean_read_mass": 0.117483965325545,
+        "positions": 1020,
+        "zero_read_positions": 0
+      }
+    }
+  },
+  "transfer_receipts": {
+    "lorentz": {
+      "copied_parameters": [
+        {
+          "name": "copy.gate.bias",
+          "sha256": "76bd2c24a717196e35d2808139dc3c5d9ab8bdfcc5f330b7c3d776493f2ab83d",
+          "shape": [
+            1
+          ]
+        },
+        {
+          "name": "copy.gate.weight",
+          "sha256": "7f37fcbbeea07ba8b960482f3a0510250fb2be8cd5bc9532b9effb990817eb6c",
+          "shape": [
+            1,
+            512
+          ]
+        },
+        {
+          "name": "embedding.weight",
+          "sha256": "98821b71aacd758ea17922b4faca8881cffc5c5c3f8d9f3e94eb8025eb6840d0",
+          "shape": [
+            4096,
+            256
+          ]
+        },
+        {
+          "name": "output.bias",
+          "sha256": "3c6f83ec0f49bf70eb5999c31574f8db6632a75982ad0098bb6ea9a2b0e5e2a5",
+          "shape": [
+            4096
+          ]
+        },
+        {
+          "name": "output.norm.weight",
+          "sha256": "5cb80ceaa39afc1f35e19beec360a37a8bde554f5552c5c16db23dbfdbe154d6",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "read.age",
+          "sha256": "50d3f00d9a538418716a590d91a8c721f06542d3c883c500e81812b82b65f61d",
+          "shape": [
+            255
+          ]
+        },
+        {
+          "name": "read.key.bias",
+          "sha256": "86e29dd640d956971b3404e2e28a86e704acf70cdc5d309e89aee443ee4724ec",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "read.key.weight",
+          "sha256": "634c14b3fc197155c6156a9725ba57c17fc19476eff55becd6ed19fa6fe0a7ee",
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "name": "read.no_read.bias",
+          "sha256": "89c25502db20de7b892d79a4ccf16622211c66fe0dcf41d5b3fa1266a923e449",
+          "shape": [
+            1
+          ]
+        },
+        {
+          "name": "read.no_read.weight",
+          "sha256": "6e08edb380a347628a8ea539a9a67c5a05489ea5101d8610721fee0e95a869f5",
+          "shape": [
+            1,
+            256
+          ]
+        },
+        {
+          "name": "read.query.bias",
+          "sha256": "b1279c1da70925c28e7ae1ff67fe30f41d1321324d833554bfedf37e72c3ec09",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "read.query.weight",
+          "sha256": "c6cd04a29cf652496773e5a58c805ceabda96b8f5fc71ef62642225730aaef57",
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "name": "read.value.bias",
+          "sha256": "5f52ec24567e20a7f8211fd51f04384220726e615a450731402a5f86381cc8c4",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "read.value.weight",
+          "sha256": "00fb671417eea7de39a107b3faed5ab52897ab102ba0fb97f890cabf90037f21",
+          "shape": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "recurrent.bias",
+          "sha256": "7c225b3b7ba425f8aefa5e09d741699c57ed4e12ac161f8df573c4a0475e6e9b",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "recurrent.input.weight",
+          "sha256": "42ffa0cdf1f5cdb73b7f135c2b290a2e0f74a090598ff02aba91ca9d21a22cf3",
+          "shape": [
+            768,
+            256
+          ]
+        },
+        {
+          "name": "recurrent.state.weight",
+          "sha256": "b8ae9c6aef67bdf368e7bf6b6381518fd75d22c5c4915f8882c83253879124b4",
+          "shape": [
+            768,
+            256
+          ]
+        },
+        {
+          "name": "update.bias",
+          "sha256": "ecdf50233ea5dbabb2cd6be1621a1d7fb7c34b488e379f430fcec2cb65d8bb5d",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "update.gate.bias",
+          "sha256": "e62014b74b35f148f1ddd93e3c7bb739e4db6fe438172235682be0bc2ec60cde",
+          "shape": [
+            1
+          ]
+        },
+        {
+          "name": "update.gate.weight",
+          "sha256": "3e8fabe118dca5ec9f755d9e79ab6b9510ffb87ba82e2f42fb39e67c19f1da4d",
+          "shape": [
+            1,
+            512
+          ]
+        },
+        {
+          "name": "update.weight",
+          "sha256": "2f2164638613742eda9b23ce34d2183bf79348399380375aab2807e208ee2123",
+          "shape": [
+            256,
+            512
+          ]
+        }
+      ],
+      "copied_scalar_count": 1678466,
+      "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+      "initial_radial_scalars": {
+        "log_beta": 0.0,
+        "offset": 5.331728935241699
+      },
+      "next_data_step": 0,
+      "optimizer_start_step": 0,
+      "parent_data_seed": 240924,
+      "parent_model": {
+        "context": 256,
+        "read_width": 64,
+        "seed": 240924,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 256
+      },
+      "parent_model_config_sha256": "895fb0c7962166d1ea260f0d57a6dd411ff07ce0d44022ef5e8958a28a59142d",
+      "parent_model_sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79",
+      "parent_optimizer": {
+        "allowed_missing_gradients": [],
+        "learning_rate": 0.001,
+        "parameter_abs_limit": 1000000.0,
+        "weight_decay": 0.01
+      },
+      "parent_source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+      "parent_training_batch": 16,
+      "parent_training_context": 256,
+      "schema": "uor-r4.shared-parameter-transfer/1",
+      "shared_parameters_sha256": "dd13ad77bd54b3117d90e5e85814a2b9f3c5cb0392e2834c14fae7f5eef5f3a5",
+      "specification": {
+        "optimizer": "reset_all_moments_and_clocks",
+        "parent_campaign_sha256": "6b34a04d49fa965dc20335002a1948a8253ef74e70890ba1e9484f63d2677f14",
+        "parent_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final",
+        "parent_checkpoint_sha256": "490922decefee3e6036331dd0bc112746f24662d4bddfbe540b59c1d00820571",
+        "parent_optimizer_step": 15672,
+        "parent_sampled_target_visits": 64192512,
+        "sampler": {
+          "data_seed": 240927,
+          "policy": "fresh_counter"
+        }
+      },
+      "target_read_geometry": "lorentz",
+      "tokenizer": {
+        "bytes": 109457,
+        "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/tokenizer.json",
+        "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      }
+    },
+    "lorentz_affine": {
+      "copied_parameters": [
+        {
+          "name": "copy.gate.bias",
+          "sha256": "76bd2c24a717196e35d2808139dc3c5d9ab8bdfcc5f330b7c3d776493f2ab83d",
+          "shape": [
+            1
+          ]
+        },
+        {
+          "name": "copy.gate.weight",
+          "sha256": "7f37fcbbeea07ba8b960482f3a0510250fb2be8cd5bc9532b9effb990817eb6c",
+          "shape": [
+            1,
+            512
+          ]
+        },
+        {
+          "name": "embedding.weight",
+          "sha256": "98821b71aacd758ea17922b4faca8881cffc5c5c3f8d9f3e94eb8025eb6840d0",
+          "shape": [
+            4096,
+            256
+          ]
+        },
+        {
+          "name": "output.bias",
+          "sha256": "3c6f83ec0f49bf70eb5999c31574f8db6632a75982ad0098bb6ea9a2b0e5e2a5",
+          "shape": [
+            4096
+          ]
+        },
+        {
+          "name": "output.norm.weight",
+          "sha256": "5cb80ceaa39afc1f35e19beec360a37a8bde554f5552c5c16db23dbfdbe154d6",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "read.age",
+          "sha256": "50d3f00d9a538418716a590d91a8c721f06542d3c883c500e81812b82b65f61d",
+          "shape": [
+            255
+          ]
+        },
+        {
+          "name": "read.key.bias",
+          "sha256": "86e29dd640d956971b3404e2e28a86e704acf70cdc5d309e89aee443ee4724ec",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "read.key.weight",
+          "sha256": "634c14b3fc197155c6156a9725ba57c17fc19476eff55becd6ed19fa6fe0a7ee",
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "name": "read.no_read.bias",
+          "sha256": "89c25502db20de7b892d79a4ccf16622211c66fe0dcf41d5b3fa1266a923e449",
+          "shape": [
+            1
+          ]
+        },
+        {
+          "name": "read.no_read.weight",
+          "sha256": "6e08edb380a347628a8ea539a9a67c5a05489ea5101d8610721fee0e95a869f5",
+          "shape": [
+            1,
+            256
+          ]
+        },
+        {
+          "name": "read.query.bias",
+          "sha256": "b1279c1da70925c28e7ae1ff67fe30f41d1321324d833554bfedf37e72c3ec09",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "read.query.weight",
+          "sha256": "c6cd04a29cf652496773e5a58c805ceabda96b8f5fc71ef62642225730aaef57",
+          "shape": [
+            64,
+            256
+          ]
+        },
+        {
+          "name": "read.value.bias",
+          "sha256": "5f52ec24567e20a7f8211fd51f04384220726e615a450731402a5f86381cc8c4",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "read.value.weight",
+          "sha256": "00fb671417eea7de39a107b3faed5ab52897ab102ba0fb97f890cabf90037f21",
+          "shape": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "recurrent.bias",
+          "sha256": "7c225b3b7ba425f8aefa5e09d741699c57ed4e12ac161f8df573c4a0475e6e9b",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "recurrent.input.weight",
+          "sha256": "42ffa0cdf1f5cdb73b7f135c2b290a2e0f74a090598ff02aba91ca9d21a22cf3",
+          "shape": [
+            768,
+            256
+          ]
+        },
+        {
+          "name": "recurrent.state.weight",
+          "sha256": "b8ae9c6aef67bdf368e7bf6b6381518fd75d22c5c4915f8882c83253879124b4",
+          "shape": [
+            768,
+            256
+          ]
+        },
+        {
+          "name": "update.bias",
+          "sha256": "ecdf50233ea5dbabb2cd6be1621a1d7fb7c34b488e379f430fcec2cb65d8bb5d",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "update.gate.bias",
+          "sha256": "e62014b74b35f148f1ddd93e3c7bb739e4db6fe438172235682be0bc2ec60cde",
+          "shape": [
+            1
+          ]
+        },
+        {
+          "name": "update.gate.weight",
+          "sha256": "3e8fabe118dca5ec9f755d9e79ab6b9510ffb87ba82e2f42fb39e67c19f1da4d",
+          "shape": [
+            1,
+            512
+          ]
+        },
+        {
+          "name": "update.weight",
+          "sha256": "2f2164638613742eda9b23ce34d2183bf79348399380375aab2807e208ee2123",
+          "shape": [
+            256,
+            512
+          ]
+        }
+      ],
+      "copied_scalar_count": 1678466,
+      "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+      "initial_radial_scalars": {
+        "log_beta": 0.0,
+        "offset": 5.331728935241699
+      },
+      "next_data_step": 0,
+      "optimizer_start_step": 0,
+      "parent_data_seed": 240924,
+      "parent_model": {
+        "context": 256,
+        "read_width": 64,
+        "seed": 240924,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 256
+      },
+      "parent_model_config_sha256": "895fb0c7962166d1ea260f0d57a6dd411ff07ce0d44022ef5e8958a28a59142d",
+      "parent_model_sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79",
+      "parent_optimizer": {
+        "allowed_missing_gradients": [],
+        "learning_rate": 0.001,
+        "parameter_abs_limit": 1000000.0,
+        "weight_decay": 0.01
+      },
+      "parent_source_commit": "b5b5fe757b9513877911719f014e73165f704b13",
+      "parent_training_batch": 16,
+      "parent_training_context": 256,
+      "schema": "uor-r4.shared-parameter-transfer/1",
+      "shared_parameters_sha256": "dd13ad77bd54b3117d90e5e85814a2b9f3c5cb0392e2834c14fae7f5eef5f3a5",
+      "specification": {
+        "optimizer": "reset_all_moments_and_clocks",
+        "parent_campaign_sha256": "6b34a04d49fa965dc20335002a1948a8253ef74e70890ba1e9484f63d2677f14",
+        "parent_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final",
+        "parent_checkpoint_sha256": "490922decefee3e6036331dd0bc112746f24662d4bddfbe540b59c1d00820571",
+        "parent_optimizer_step": 15672,
+        "parent_sampled_target_visits": 64192512,
+        "sampler": {
+          "data_seed": 240927,
+          "policy": "fresh_counter"
+        }
+      },
+      "target_read_geometry": "lorentz_affine",
+      "tokenizer": {
+        "bytes": 109457,
+        "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/export/tokenizer.json",
+        "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      }
+    }
+  },
+  "independent_parent_array_audit": {
+    "recorded_at": "2026-09-27T03:20:18.448151+00:00",
+    "reviewer": "runtime_research independent artifact audit",
+    "source_commit": "50c4e3a4a19c743d80f1e087c8d4272ab0c4791d",
+    "status": "PASS_RECORDED_TRANSFER_IDENTITIES",
+    "checks": [
+      "Both receipts match actual selected parent checkpoint, campaign, config and model identities",
+      "Canonical evaluator and109457-byte tokenizer independently rehashed",
+      "Safetensors stdlib header/offset inspection: all21 F32 tensor ranges cover data section exactly; per-array hashes match actual raw parent bytes",
+      "Both receipts have1678466 scalars/6713864bytes; identical all fields except target_read_geometry",
+      "Saved child campaigns match receipt specifications/config/optimizer/initializer"
+    ],
+    "shared_parameters_sha256": "dd13ad77bd54b3117d90e5e85814a2b9f3c5cb0392e2834c14fae7f5eef5f3a5",
+    "transfer_receipts_sha256": "a901b03a4ea6d1e46a843177577ad7f7573511f1ba25cd67ca761e783cfbd8bd",
+    "scope_limit": "Read-only raw artifact audit, no model implementation/inference/build. Does not independently inspect running process memory or establish capability. Attempt was in flight at audit snapshot; whole seal not claimed."
+  },
+  "generation": {
+    "arms": [
+      "lorentz",
+      "lorentz_affine"
+    ],
+    "decoded_source_token_ids": [
+      431,
+      440,
+      261,
+      400,
+      14,
+      403,
+      285,
+      261,
+      1634,
+      393,
+      1033,
+      404,
+      344,
+      16,
+      344,
+      630,
+      315,
+      261,
+      563,
+      603,
+      578,
+      372,
+      1334,
+      16,
+      318,
+      504,
+      268,
+      327,
+      331,
+      343,
+      1236
+    ],
+    "decoder_sweep": false,
+    "optimizer_updates": 0,
+    "prompt_construction": "Take the first32 stored dev IDs, remove their leading BOS0 if present, and decode the remainder. The unchanged generation API re-encodes this text and prepends one BOS. Actual re-encoded content and each generation's complete prompt IDs are recorded; general token-boundary equivalence is not assumed.",
+    "reencoded_content_token_ids": [
+      431,
+      440,
+      261,
+      400,
+      14,
+      403,
+      285,
+      261,
+      1634,
+      393,
+      1033,
+      404,
+      344,
+      16,
+      344,
+      630,
+      315,
+      261,
+      563,
+      603,
+      578,
+      372,
+      1334,
+      16,
+      318,
+      504,
+      268,
+      327,
+      331,
+      343,
+      1236
+    ],
+    "roundtrip_matches_decoded_source_ids": true,
+    "scope": "No-update learned-transfer startup outputs only; no adaptation or quality gate.",
+    "selection_policy_changed": false,
+    "source_block": 0,
+    "source_leading_bos_removed": true,
+    "source_prefix_token_ids": [
+      0,
+      431,
+      440,
+      261,
+      400,
+      14,
+      403,
+      285,
+      261,
+      1634,
+      393,
+      1033,
+      404,
+      344,
+      16,
+      344,
+      630,
+      315,
+      261,
+      563,
+      603,
+      578,
+      372,
+      1334,
+      16,
+      318,
+      504,
+      268,
+      327,
+      331,
+      343,
+      1236
+    ]
+  },
+  "generated_outputs": [
+    {
+      "bos_policy": "prepend checkpoint BOS0 exactly once; EOS1 ends output",
+      "context_capacity": 256,
+      "elapsed_seconds": 0.630478042,
+      "fresh_session": true,
+      "generated_token_ids": [
+        624,
+        16,
+        530,
+        329,
+        14,
+        288,
+        505,
+        261
+      ],
+      "gradients_tracked": false,
+      "incremental_step_calls": 39,
+      "max_new_tokens": 8,
+      "mode": "enabled",
+      "prompt": "Once upon a time, there was a quiet little mouse named Tim. Tim lived in a small house made of wood. He loved to play with his favorite",
+      "prompt_token_ids": [
+        0,
+        431,
+        440,
+        261,
+        400,
+        14,
+        403,
+        285,
+        261,
+        1634,
+        393,
+        1033,
+        404,
+        344,
+        16,
+        344,
+        630,
+        315,
+        261,
+        563,
+        603,
+        578,
+        372,
+        1334,
+        16,
+        318,
+        504,
+        268,
+        327,
+        331,
+        343,
+        1236
+      ],
+      "raw_decoded": " toys. One day, he found a",
+      "raw_decoded_bytes": [
+        32,
+        116,
+        111,
+        121,
+        115,
+        46,
+        32,
+        79,
+        110,
+        101,
+        32,
+        100,
+        97,
+        121,
+        44,
+        32,
+        104,
+        101,
+        32,
+        102,
+        111,
+        117,
+        110,
+        100,
+        32,
+        97
+      ],
+      "response_text": "toys. One day, he found a",
+      "sampler_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc",
+      "schema": "uor-r4.joint-incremental-generation/1",
+      "seed": 2014,
+      "stop": {
+        "reason": "maximum_new_tokens"
+      },
+      "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+      "utf8_decodable": true,
+      "whole_prompt_read_mode": true
+    },
+    {
+      "bos_policy": "prepend checkpoint BOS0 exactly once; EOS1 ends output",
+      "context_capacity": 256,
+      "elapsed_seconds": 0.548719,
+      "fresh_session": true,
+      "generated_token_ids": [
+        624,
+        16,
+        530,
+        329,
+        14,
+        288,
+        505,
+        261
+      ],
+      "gradients_tracked": false,
+      "incremental_step_calls": 39,
+      "max_new_tokens": 8,
+      "mode": "enabled",
+      "prompt": "Once upon a time, there was a quiet little mouse named Tim. Tim lived in a small house made of wood. He loved to play with his favorite",
+      "prompt_token_ids": [
+        0,
+        431,
+        440,
+        261,
+        400,
+        14,
+        403,
+        285,
+        261,
+        1634,
+        393,
+        1033,
+        404,
+        344,
+        16,
+        344,
+        630,
+        315,
+        261,
+        563,
+        603,
+        578,
+        372,
+        1334,
+        16,
+        318,
+        504,
+        268,
+        327,
+        331,
+        343,
+        1236
+      ],
+      "raw_decoded": " toys. One day, he found a",
+      "raw_decoded_bytes": [
+        32,
+        116,
+        111,
+        121,
+        115,
+        46,
+        32,
+        79,
+        110,
+        101,
+        32,
+        100,
+        97,
+        121,
+        44,
+        32,
+        104,
+        101,
+        32,
+        102,
+        111,
+        117,
+        110,
+        100,
+        32,
+        97
+      ],
+      "response_text": "toys. One day, he found a",
+      "sampler_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc",
+      "schema": "uor-r4.joint-incremental-generation/1",
+      "seed": 2014,
+      "stop": {
+        "reason": "maximum_new_tokens"
+      },
+      "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+      "utf8_decodable": true,
+      "whole_prompt_read_mode": true
+    }
+  ],
+  "sealed_report": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/learned-startup-1",
+    "manifest_sha256": "95a74bfe6b6a2d638d79ade93003f275a3ce8c62092755b00df3fbd6ea5ad126",
+    "manifest": {
+      "files": [
+        {
+          "blake3": "16eb3599c15411340eb9a959e2ceccc75a30b7d37382528a69b3ebddd49cd71d",
+          "bytes": 618,
+          "path": "attempt.json"
+        },
+        {
+          "blake3": "09e483cc45d67a28e930745445d881f0fe63dddc4b9ffb79a6bc1a1f7a3b9cc1",
+          "bytes": 6757,
+          "path": "evaluator.json"
+        },
+        {
+          "blake3": "9fba02c9eda3f64b0afeab4dfc1ef9e5100e5512003c78e8aee1ae612e565731",
+          "bytes": 18234,
+          "path": "generations.json"
+        },
+        {
+          "blake3": "217add55bb8d87bd8ead34b1eda33b140013622a98779fe00f473943bbb35952",
+          "bytes": 18733,
+          "path": "inputs.json"
+        },
+        {
+          "blake3": "c543656ae7c6f68e3a6f88b732eece32c8cc7392325f4699cb347ce1b4c0d014",
+          "bytes": 1650,
+          "path": "lorentz-campaign.json"
+        },
+        {
+          "blake3": "7ea850eece40bc6c78a018dee4ae14535771e319f5a5269f71fb245f0c6615ab",
+          "bytes": 443575,
+          "path": "lorentz.json"
+        },
+        {
+          "blake3": "518dbb13a6362cb5e393cf51b9a83546625ac7b98744b4a1b66106d894b0d0a6",
+          "bytes": 1657,
+          "path": "lorentz_affine-campaign.json"
+        },
+        {
+          "blake3": "1241ef379e2487c26a1c1f01628088b762bdbcbc6e4e6b5454035b7a19144cb2",
+          "bytes": 443652,
+          "path": "lorentz_affine.json"
+        },
+        {
+          "blake3": "e2f9bab9226c7b966d56c43cb3801f461f82cdfbf1e345ca27233792f551aac6",
+          "bytes": 66861,
+          "path": "startup.json"
+        },
+        {
+          "blake3": "26ed32615631642d7ff31c4508b0977de6dec88f132f337f996d1d5ee60f3068",
+          "bytes": 12065,
+          "path": "transfer-receipts.json"
+        }
+      ],
+      "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/learned-startup-1",
+      "schema": "uor-r4.report-manifest/1",
+      "sealed_at": "1790479201"
+    },
+    "sha256": {
+      "attempt.json": "744b9a93a463aa68eee84f317e99944c4ecc5431686a8164b43430318366e491",
+      "evaluator.json": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+      "generations.json": "b648131f2b14229f32deb9b59c34bf20f47b8038d59b0044d78e4a4126daaa68",
+      "inputs.json": "65523efebfb9891efe7ca8905c187bdef4c871a75423d86c412a47ec345cfb63",
+      "lorentz-campaign.json": "f9e1f4f24f76dd2e79c9fa1cf3e39b84f0e8a83ed4dc1bcdf09b3c52e7bdd8b0",
+      "lorentz.json": "1f0cb77298c4a23698cf87bdac7f850eb465d25753a1d8de0ad94fcf666cdb40",
+      "lorentz_affine-campaign.json": "1390b385bd27c5a843ad63496cf5cd08da50604ef89a0848ea0e9b40aae0824a",
+      "lorentz_affine.json": "7ec3fb9bb85996b3aa483ca9e5c093fce6eec33b9af9ccbb9bdad158820c58aa",
+      "manifest.json": "95a74bfe6b6a2d638d79ade93003f275a3ce8c62092755b00df3fbd6ea5ad126",
+      "startup.json": "5b34287a33dd3b9bb6a434f8edf70f073fe21a8f7d9fa9896a015b955132de71",
+      "transfer-receipts.json": "a901b03a4ea6d1e46a843177577ad7f7573511f1ba25cd67ca761e783cfbd8bd"
+    },
+    "native_seal_and_verify": "PASS: same Rust binary seals/verifies before successful exit; independent complete-file-set/BLAKE3 audit also passes"
+  },
+  "decision": "Both transferred readers have finite nonzero connected gradients on four fixed exposed development prefixes and unchanged shared parameters. No calibration repair/sweep indicated. Next implement a matching Dot parameter-only reset control and predeclare a three-arm adaptation study; dose/resource projection remains separate. Nonzero gradients are not proof of useful learnability, prose or advantage.",
+  "cost": {
+    "compile_check_command_seconds": 822.4567167910001,
+    "functional_test_seconds_included": 60.22,
+    "candidate_optimizer_updates": 0,
+    "startup_observation_seconds": 183.703911709,
+    "startup_supervised_wall_seconds": 184.730903625,
+    "fitted_adaptation_study_ms": 0,
+    "capability_evaluation_ms": 0,
+    "accelerator_ms": 0,
+    "shared_load_performance_claim": false
+  },
+  "isolation": {
+    "original_worktree_preserved": "/Users/casey.allard/.codex/worktrees/fourth-research-lab/uor-r4",
+    "validation_worktree": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4",
+    "duplicate_pr": 1412,
+    "duplicate_head": "a36944a0889cb31440aa119ee4b34724a060285f",
+    "duplicate_difference": "Only a cfg(test) all-zero source hash fallback; excluded from actual validated source and reported as blocker. Duplicate marked draft; branch/artifacts preserved.",
+    "review": "https://github.com/UOR-Foundation/uor-r4/pull/1412#issuecomment-5852216350",
+    "canonical_pr": 1413
+  },
+  "independent_completed_report_audit": {
+    "reviewer": "adversarial_lab",
+    "status": "SCOPED_CLEARANCE",
+    "checks": [
+      "Complete11-file set; all10 manifest entries match BLAKE3 and size",
+      "Actual frozen executableSHA matches report/execution at source50c4e3a4",
+      "All four257-ID windows match actual canonical dev offsets0/21/42/63",
+      "Both23-array dictionaries match before/after/acrossarms;21 shared arrayhashes match transfer receipts",
+      "Both scalar hashes match recorded beta1/offset",
+      "Six finite nonzero gradient families and zero exactly-zero causal read positions in eacharm",
+      "Prompt32stored IDs minusoneBOS =>31roundtrippingcontent IDs plusoneAPI BOS; identical actual prompts and8-token outputs"
+    ],
+    "scope": "Read-only hashing/inspection, no extra build/model or artifact mutation; not language/adaptation/geometry/performance qualification"
+  },
+  "elapsed_accounting_through_validation": {
+    "last_charged_at": "2026-09-27T03:23:48.525127+00:00",
+    "charged_elapsed_ms": 10244521,
+    "tail_ms": 2584241,
+    "before": {
+      "cumulative_ms": 655815854,
+      "limit_ms": 744000000
+    },
+    "after": {
+      "cumulative_ms": 658400095,
+      "limit_ms": 744000000
+    },
+    "foreign_increment_since_last_cursor_ms": 0,
+    "verified_cumulative_allowance_ms": 672000000,
+    "foreign_reported_limit_adopted": false,
+    "limitations": "Local advisory lock and compare-before atomic replacement; foreign writers do not share this lock. No global mutual exclusion claim.",
+    "scope": "Transfer implementation, independent source review, isolated checkout recovery, source-bound10focusedchecks/example build and completed single actual learned-parent observation through validation documentation; final delivery tail remains.",
+    "executed": {
+      "compile_check_command_seconds": 822.4567167910001,
+      "functional_test_seconds_included": 60.22,
+      "candidate_optimizer_updates": 0,
+      "startup_observation_seconds": 183.703911709,
+      "startup_supervised_wall_seconds": 184.730903625,
+      "fitted_adaptation_study_ms": 0,
+      "capability_evaluation_ms": 0,
+      "accelerator_ms": 0,
+      "shared_load_performance_claim": false
+    }
+  }
+}

@@ -21,6 +21,7 @@ use crate::joint_model::{
 };
 use crate::joint_optimizer::{AdamConfig, NamedAdamW};
 use crate::joint_quantization::QuantizationSpec;
+use crate::joint_transfer::{SharedParameterTransfer, TransferReceipt};
 use crate::{invalid, sha256_file, Result};
 
 /// A new window schedule starting from one exact, sealed parent checkpoint.
@@ -84,6 +85,8 @@ pub struct Campaign {
     pub model: JointConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub read_initialization: Option<ReadInitialization>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shared_parameter_transfer: Option<SharedParameterTransfer>,
     pub optimizer: AdamConfig,
     pub data_seed: u64,
     pub batch: usize,
@@ -136,6 +139,9 @@ impl Campaign {
         }
         cfg.model.validate()?;
         cfg.validate_read_initialization()?;
+        if let Some(transfer) = &cfg.shared_parameter_transfer {
+            transfer.validate_declaration(&cfg)?;
+        }
         cfg.optimizer.validate()?;
         if let Some(transition) = &cfg.training_window_transition {
             if !is_hex_digest(&transition.parent_checkpoint_sha256, 64)
@@ -193,8 +199,18 @@ impl Campaign {
     /// The override consumes no random draws and changes only log(beta). Loading
     /// a checkpoint must never call this method: its beta has already evolved.
     pub fn fresh_model(&self, device: &candle_core::Device) -> Result<JointModel> {
+        self.fresh_model_with_provenance(device)
+            .map(|(model, _)| model)
+    }
+
+    /// Initialize shared parameters once and retain the resulting immutable
+    /// lineage. Resume loads its own checkpoint and never calls this method.
+    pub fn fresh_model_with_provenance(
+        &self,
+        device: &candle_core::Device,
+    ) -> Result<(JointModel, Option<TransferReceipt>)> {
         self.validate_read_initialization()?;
-        let model = JointModel::new(self.model.clone(), device)?;
+        let mut model = JointModel::new(self.model.clone(), device)?;
         if self.read_initialization == Some(ReadInitialization::UnitScale) {
             model
                 .variables()
@@ -202,7 +218,13 @@ impl Campaign {
                 .ok_or_else(|| invalid("radial model has no learned log(beta)"))?
                 .set(&candle_core::Tensor::new(&[0.0f32], device)?)?;
         }
-        Ok(model)
+        let receipt = if let Some(transfer) = &self.shared_parameter_transfer {
+            let evaluator = load_evaluator(&self.evaluator_path)?;
+            Some(transfer.apply(self, &evaluator.sha256, &mut model)?)
+        } else {
+            None
+        };
+        Ok((model, receipt))
     }
 }
 
@@ -221,6 +243,11 @@ fn same_read_initialization(a: &Campaign, b: &Campaign) -> Result<()> {
     if a.read_initialization != b.read_initialization {
         return Err(invalid(
             "learning configuration changes read initialization",
+        ));
+    }
+    if a.shared_parameter_transfer != b.shared_parameter_transfer {
+        return Err(invalid(
+            "learning configuration changes shared-parameter transfer",
         ));
     }
     Ok(())
@@ -354,6 +381,7 @@ fn validate_quantization_binding(
     step: usize,
 ) -> Result<()> {
     validate_read_initialization_binding(cfg, checkpoint)?;
+    crate::joint_transfer::validate_binding(cfg, checkpoint)?;
     if checkpoint["quantization_transition"] != json!(cfg.quantization_transition)
         || checkpoint["quantization"] != *state
     {
@@ -451,7 +479,11 @@ pub(crate) fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<
         "scope":"Offline recurrent-memory learner or quantized numerical emulator; no transformer backbone, compliant integer serving kernel, geometry promotion or energy claim"});
     if let Some(initialization) = cfg.read_initialization {
         report["read_initialization"] = json!(initialization);
-        report["read_initialization_scope"] = json!("Fresh campaign construction sets read.lorentz_log_beta=0 (beta=1); offset and all other variables retain constructor values. Resume/evaluation retain loaded learned scalars. Model numerical-contract initialization text describes the unchanged constructor default, overridden only by this campaign field.");
+        report["read_initialization_scope"] = json!("Fresh construction sets read.lorentz_log_beta=0 (beta=1) and retains the constructor offset. Other variables retain constructor values unless the separately declared shared-parameter transfer replaces them with the bound parent arrays. Resume/evaluation retain loaded learned scalars. Model numerical-contract initialization text describes the constructor default before this campaign override.");
+    }
+    if let Some(transfer) = &cfg.shared_parameter_transfer {
+        report["shared_parameter_transfer"] = json!(transfer);
+        report["transfer_scope"] = json!("Explicit shared-parameter adaptation from the bound Dot parent; fresh optimizer and counter-sampler clocks. Parent exposure remains historical and is not included in local adaptation step counts. Resume retains the saved transfer receipt and evolved parameters without reopening the original parent.");
     }
     Ok(report)
 }
@@ -772,6 +804,7 @@ fn witness_entry_projection(
     Ok(report)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn save_checkpoint(
     model: &JointModel,
     optimizer: &NamedAdamW,
@@ -780,6 +813,7 @@ fn save_checkpoint(
     step: usize,
     status: &str,
     evaluator_sha: &str,
+    transfer_receipt: Option<&TransferReceipt>,
 ) -> Result<()> {
     save_checkpoint_with_calibration(
         model,
@@ -790,6 +824,7 @@ fn save_checkpoint(
         status,
         evaluator_sha,
         None,
+        transfer_receipt,
     )
 }
 
@@ -803,8 +838,17 @@ fn save_checkpoint_with_calibration(
     status: &str,
     evaluator_sha: &str,
     calibration: Option<&Value>,
+    transfer_receipt: Option<&TransferReceipt>,
 ) -> Result<()> {
     cfg.validate_read_initialization()?;
+    crate::joint_transfer::validate_binding(
+        cfg,
+        &json!({
+            "shared_parameter_transfer": cfg.shared_parameter_transfer,
+            "transfer_receipt": transfer_receipt,
+            "evaluator_sha256": evaluator_sha,
+        }),
+    )?;
     let quantization = serde_json::to_value(model.quantization())?;
     quantization_state_matches(cfg, &quantization, step)?;
     projection_state_matches(cfg, &quantization, step)?;
@@ -835,6 +879,10 @@ fn save_checkpoint_with_calibration(
     }
     if let Some(initialization) = cfg.read_initialization {
         binding["read_initialization"] = json!(initialization);
+    }
+    if let Some(transfer) = &cfg.shared_parameter_transfer {
+        binding["shared_parameter_transfer"] = json!(transfer);
+        binding["transfer_receipt"] = json!(transfer_receipt);
     }
     if let Some(calibration) = calibration {
         binding["shadow_calibration"] = calibration.clone();
@@ -895,11 +943,12 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         .collect::<Result<Vec<_>>>()?;
     let dev = read_tokens(&evaluator.document["dev_source"])?;
     let selected = device(device_name)?;
-    let (mut model, mut optimizer, begin) = if let Some(path) = resume {
+    let (mut model, mut optimizer, begin, transfer_receipt) = if let Some(path) = resume {
         report_output::verify(path)?;
         let old = Campaign::load(&path.join("campaign.json"))?;
         same_read_initialization(cfg, &old)?;
         let checkpoint: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
+        let transfer_receipt = crate::joint_transfer::validate_binding(cfg, &checkpoint)?;
         let checkpoint_sha = sha256_file(&path.join("checkpoint.json"))?;
         let campaign_sha = sha256_file(&path.join("campaign.json"))?;
         let begin = usize::try_from(
@@ -1029,11 +1078,11 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         report["window_sampler_continuation"] = json!(
             "Same counter algorithm and global step; a declared batch/context transition changes sampled windows and lane count, with no data-cursor or optimizer reset."
         );
-        (model, optimizer, begin)
+        (model, optimizer, begin, transfer_receipt)
     } else {
-        let model = cfg.fresh_model(&selected)?;
+        let (model, transfer_receipt) = cfg.fresh_model_with_provenance(&selected)?;
         let optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
-        (model, optimizer, 0)
+        (model, optimizer, 0, transfer_receipt)
     };
     report["evaluator_sha256"] = json!(evaluator.sha256);
     report["training_sources"] = evaluator.document["train_sources"].clone();
@@ -1044,6 +1093,10 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         .map(|v| v.elem_count())
         .sum::<usize>());
     report["starting_step"] = json!(begin);
+    if let Some(receipt) = &transfer_receipt {
+        report["transfer_receipt"] = json!(receipt);
+        report["shared_parameter_transfer_applied_this_process"] = json!(resume.is_none());
+    }
     if cfg.read_initialization.is_some() {
         report["read_initialization_applied_this_process"] = json!(resume.is_none());
         report["starting_radial_scalars"] = json!({
@@ -1177,6 +1230,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
                 complete,
                 "INTERMEDIATE",
                 &evaluator.sha256,
+                transfer_receipt.as_ref(),
             )?;
         }
     }
@@ -1212,6 +1266,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         complete,
         status,
         &evaluator.sha256,
+        transfer_receipt.as_ref(),
     )?;
     // Actual artifact reload; generation/evaluation consume this same checkpoint.
     let restored = JointModel::load(&final_path, &selected)?;
@@ -2389,6 +2444,11 @@ fn calibrate_shadow_cli(args: &[String]) -> Result<()> {
         cfg.trial_scope = "CALIBRATED_SHADOW_NO_MODEL_UPDATES: original continuous parent retained; only alpha code learning may consume this checkpoint; total_steps retains unused schema headroom, not completed exposure".into();
         let mut report = metadata(&cfg, "joint-calibrate-shadow", "cpu")?;
         report["calibration"] = calibration.clone();
+        let transfer_receipt =
+            crate::joint_transfer::validate_binding(&parent.campaign, &parent.binding)?;
+        if let Some(receipt) = &transfer_receipt {
+            report["transfer_receipt"] = json!(receipt);
+        }
         save_checkpoint_with_calibration(
             &parent.model,
             &optimizer,
@@ -2398,6 +2458,7 @@ fn calibrate_shadow_cli(args: &[String]) -> Result<()> {
             "CALIBRATED_SHADOW_NO_MODEL_UPDATES",
             &evaluator.sha256,
             Some(&calibration),
+            transfer_receipt.as_ref(),
         )?;
         let restored =
             load_bound_checkpoint(&target, &candle_core::Device::Cpu, &evaluator.sha256)?;
@@ -2490,6 +2551,11 @@ pub(crate) fn write_hard_export(
     out: &Path,
 ) -> Result<BoundModel> {
     let mut report = metadata(&parent.campaign, "joint-export-hard", "cpu")?;
+    if let Some(receipt) =
+        crate::joint_transfer::validate_binding(&parent.campaign, &parent.binding)?
+    {
+        report["transfer_receipt"] = json!(receipt);
+    }
     let state = serde_json::to_value(parent.model.quantization())?;
     let step = state["completed_step"]
         .as_u64()
@@ -2671,6 +2737,10 @@ pub(crate) fn evaluate_loaded(
 ) -> Result<()> {
     let model = &input.model;
     let mut report = metadata(&input.campaign, operation, device_name)?;
+    if let Some(receipt) = crate::joint_transfer::validate_binding(&input.campaign, &input.binding)?
+    {
+        report["transfer_receipt"] = json!(receipt);
+    }
     report["artifact"] = input.artifact.clone();
     report["training_projection_transition"] = json!(input.campaign.projection_transition);
     report["parameter_projection_during_evaluation"] = json!(false);
@@ -2779,8 +2849,10 @@ mod tests {
         let legacy = serde_json::to_vec(&cfg)?;
         let mut value = serde_json::to_value(&cfg)?;
         assert!(value.get("read_initialization").is_none());
+        assert!(value.get("shared_parameter_transfer").is_none());
         let decoded: Campaign = serde_json::from_slice(&legacy)?;
         assert_eq!(decoded.read_initialization, None);
+        assert_eq!(decoded.shared_parameter_transfer, None);
         assert_eq!(serde_json::to_vec(&decoded)?, legacy);
         value["read_initialization"] = Value::Null;
         let explicit_default: Campaign = serde_json::from_value(value.clone())?;
@@ -2792,6 +2864,10 @@ mod tests {
             Some(ReadInitialization::UnitScale)
         );
         assert!(unit.fresh_model(&candle_core::Device::Cpu).is_err());
+        assert!(matches!(
+            unit.validate_read_initialization(),
+            Err(crate::TrainingError::Invalid(_))
+        ));
         for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
             unit.model.read_geometry = geometry;
             unit.validate_read_initialization()?;
@@ -2961,6 +3037,7 @@ mod tests {
                 1,
                 "TEST_ONLY",
                 &evaluator_sha,
+                None,
             )?;
             let restored =
                 load_bound_checkpoint(&checkpoint, &candle_core::Device::Cpu, &evaluator_sha)?;
@@ -3010,6 +3087,109 @@ mod tests {
         }
         report_output::seal(&root)?;
         fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn radial_transfer_checkpoint_resume_preserves_receipt_and_next_update() -> Result<()> {
+        let stores = vec![(0..64).collect::<Vec<u16>>()];
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            let (root, mut cfg) = crate::joint_transfer::transfer_test_fixture()?;
+            cfg.model.read_geometry = geometry;
+            let evaluator_sha = sha256_file(&cfg.evaluator_path)?;
+            let (model, receipt) = cfg.fresh_model_with_provenance(&candle_core::Device::Cpu)?;
+            let receipt = receipt.ok_or_else(|| invalid("test transfer receipt missing"))?;
+            let initial_bits = parameter_bits(&model)?;
+            let mut optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
+            assert_eq!(optimizer.step_count(), 0);
+            let (inputs, targets) = training_batch(&stores, &cfg, 0)?;
+            let gradients = crate::joint_parallel::batch_gradients(
+                &model,
+                &inputs,
+                &targets,
+                cfg.batch,
+                cfg.context,
+                1,
+            )?;
+            optimizer.step(model.variables(), &gradients.gradients)?;
+            assert_ne!(parameter_bits(&model)?, initial_bits);
+            let checkpoint = root.join("adapted-checkpoint");
+            report_output::claim(&checkpoint)?;
+            save_checkpoint(
+                &model,
+                &optimizer,
+                &cfg,
+                &checkpoint,
+                1,
+                "SYNTHETIC_FIXTURE",
+                &evaluator_sha,
+                Some(&receipt),
+            )?;
+            // Remove only this test's synthetic original parent. A saved child
+            // resumes from its own weights/Adam, with historical hashes intact.
+            fs::remove_dir_all(&receipt.specification.parent_checkpoint)?;
+            let restored =
+                load_bound_checkpoint(&checkpoint, &candle_core::Device::Cpu, &evaluator_sha)?;
+            same_learning_configuration(&cfg, &restored.campaign)?;
+            assert_eq!(
+                crate::joint_transfer::validate_binding(&restored.campaign, &restored.binding)?,
+                Some(receipt.clone()),
+            );
+            assert_eq!(restored.binding["optimizer_step"], 1);
+            assert_eq!(restored.binding["next_data_step"], 1);
+            assert_eq!(
+                restored.binding["sampled_target_visits"],
+                cfg.batch * cfg.context
+            );
+            assert_eq!(parameter_bits(&model)?, parameter_bits(&restored.model)?);
+            let mut resumed =
+                NamedAdamW::load(&checkpoint, restored.model.variables(), &cfg.optimizer)?;
+            assert_eq!(
+                optimizer.continuity_fingerprint()?,
+                resumed.continuity_fingerprint()?
+            );
+            let next_step = resumed.step_count() as usize;
+            let (inputs, targets) = training_batch(&stores, &cfg, next_step)?;
+            assert_eq!(
+                (inputs.clone(), targets.clone()),
+                training_batch(&stores, &restored.campaign, next_step)?,
+            );
+            let next = crate::joint_parallel::batch_gradients(
+                &model,
+                &inputs,
+                &targets,
+                cfg.batch,
+                cfg.context,
+                1,
+            )?;
+            let continued = crate::joint_parallel::batch_gradients(
+                &restored.model,
+                &inputs,
+                &targets,
+                cfg.batch,
+                cfg.context,
+                1,
+            )?;
+            assert_eq!(next.mean_nll.to_bits(), continued.mean_nll.to_bits());
+            optimizer.step(model.variables(), &next.gradients)?;
+            resumed.step(restored.model.variables(), &continued.gradients)?;
+            assert_eq!(parameter_bits(&model)?, parameter_bits(&restored.model)?);
+            assert_eq!(
+                optimizer.continuity_fingerprint()?,
+                resumed.continuity_fingerprint()?
+            );
+            let mut missing = restored.binding.clone();
+            missing
+                .as_object_mut()
+                .ok_or_else(|| invalid("test binding"))?
+                .remove("transfer_receipt");
+            assert!(crate::joint_transfer::validate_binding(&cfg, &missing).is_err());
+            let mut changed = restored.campaign.clone();
+            changed.shared_parameter_transfer = None;
+            assert!(same_learning_configuration(&cfg, &changed).is_err());
+            report_output::seal(&root)?;
+            fs::remove_dir_all(root)?;
+        }
         Ok(())
     }
 
@@ -3135,6 +3315,7 @@ mod tests {
             "CALIBRATED_SHADOW_NO_MODEL_UPDATES",
             &"c".repeat(64),
             Some(&witness),
+            None,
         )?;
         let restored = load_bound_checkpoint(&checkpoint, &Device::Cpu, &"c".repeat(64))?;
         let restored_optimizer =
@@ -3219,6 +3400,7 @@ mod tests {
             evaluator_path: PathBuf::new(),
             model: JointConfig::default(),
             read_initialization: None,
+            shared_parameter_transfer: None,
             optimizer: AdamConfig::default(),
             data_seed: 42,
             batch: 16,
@@ -3587,6 +3769,7 @@ mod tests {
             evaluator_path: PathBuf::new(),
             model: JointConfig::default(),
             read_initialization: None,
+            shared_parameter_transfer: None,
             optimizer: AdamConfig::default(),
             data_seed: 42,
             batch: 4,

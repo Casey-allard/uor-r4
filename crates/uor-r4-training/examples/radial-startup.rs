@@ -1,5 +1,5 @@
 //! One no-update startup observation on four fixed canonical development windows.
-//! Uses the same Campaign::fresh_model initializer as actual fitting. No
+//! Uses the same campaign initialization/transfer path as actual fitting. No
 //! optimizer, calibration search, checkpoint selection or language verdict.
 #![forbid(unsafe_code)]
 
@@ -70,6 +70,7 @@ fn campaign(evaluator: &Path, geometry: ReadGeometry) -> Campaign {
         quantization_transition: None,
         projection_transition: None,
         read_initialization: Some(ReadInitialization::UnitScale),
+        shared_parameter_transfer: None,
         trial_scope: "No-update startup witness only; total_steps is unused; four fixed development windows, no training or model-quality decision".into(),
     }
 }
@@ -243,7 +244,12 @@ fn observe(model: &JointModel, inputs: &[u32], targets: &[u32]) -> Result<Observ
     })
 }
 
-fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<String> {
+fn run(
+    evaluator_path: &Path,
+    out: &Path,
+    transfer_campaign_path: Option<&Path>,
+    phase: &mut &'static str,
+) -> Result<String> {
     let started = Instant::now();
     let evaluator = load_evaluator(evaluator_path)?;
     if evaluator.sha256 != EVALUATOR_SHA256 {
@@ -260,6 +266,36 @@ fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<St
         "observation_context":CONTEXT,"batch":BLOCKS.len(),"development_blocks":BLOCKS,
         "memory_access":"all causal occurrences within each full256 window; no selected-event policy",
         "transport":"quaternion","optimizer_updates":0});
+    let lorentz_campaign = match transfer_campaign_path {
+        Some(path) => {
+            let cfg = Campaign::load(path)?;
+            if cfg.shared_parameter_transfer.is_none()
+                || cfg.read_initialization != Some(ReadInitialization::UnitScale)
+                || cfg.model != campaign(evaluator_path, ReadGeometry::Lorentz).model
+                || cfg.context != CONTEXT
+                || cfg.training_window_transition.is_some()
+                || cfg.quantization_transition.is_some()
+                || cfg.projection_transition.is_some()
+                || sha256_file(&cfg.evaluator_path)? != evaluator.sha256
+            {
+                return Err(invalid("transfer startup requires the fixed Lorentz model, unit_scale, shared transfer, canonical evaluator and no window/quantization/projection transition"));
+            }
+            report["supplied_transfer_campaign"] = json!({"path":path,"sha256":sha256_file(path)?});
+            cfg
+        }
+        None => campaign(evaluator_path, ReadGeometry::Lorentz),
+    };
+    let mut affine_campaign = lorentz_campaign.clone();
+    affine_campaign.model.read_geometry = ReadGeometry::LorentzAffine;
+    report["initialization_source"] = json!(if transfer_campaign_path.is_some() {
+        "learned_shared_parameter_transfer"
+    } else {
+        "fresh_unit_scale"
+    });
+    report["batch_scope"] = json!({"observation_batch":BLOCKS.len(),
+        "declared_training_batch":lorentz_campaign.batch,
+        "declared_training_gradient_shards":lorentz_campaign.cpu_gradient_shards,
+        "note":"One unsharded four-window observation per arm. Campaign training batch, shards, dose and sampler are provenance only; no fit or optimizer is constructed."});
     let tokens = read_tokens(&evaluator.document["dev_source"])?;
     let tokenizer_identity = evaluator.document["reference_inputs"]
         .as_array()
@@ -302,8 +338,6 @@ fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<St
         "selection":"Blocks0,21,42,63 fixed prospectively in the existing64-block tune region; fresh state per window; no injected BOS or EOS reset; targets shifted once.",
         "training_stores":"Not read or used; this witness has no optimizer updates."}),
     )?;
-    let lorentz_campaign = campaign(evaluator_path, ReadGeometry::Lorentz);
-    let affine_campaign = campaign(evaluator_path, ReadGeometry::LorentzAffine);
     let mut campaign_identities = Vec::new();
     for (name, cfg) in [
         ("lorentz", &lorentz_campaign),
@@ -311,13 +345,28 @@ fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<St
     ] {
         let path = out.join(format!("{name}-campaign.json"));
         save_json(&path, cfg)?;
-        Campaign::load(&path)?;
+        if transfer_campaign_path.is_none() {
+            Campaign::load(&path)?;
+        }
         campaign_identities.push(json!({"path":path,"sha256":sha256_file(&path)?,
             "initializer":cfg.read_initialization,"scope":"initializer-only configuration; no fit"}));
     }
     *phase = "model_initialization";
-    let lorentz = lorentz_campaign.fresh_model(&Device::Cpu)?;
-    let affine = affine_campaign.fresh_model(&Device::Cpu)?;
+    let (lorentz, lorentz_receipt) = lorentz_campaign.fresh_model_with_provenance(&Device::Cpu)?;
+    let (affine, affine_receipt) = affine_campaign.fresh_model_with_provenance(&Device::Cpu)?;
+    if lorentz_receipt.is_some() != transfer_campaign_path.is_some()
+        || affine_receipt.is_some() != transfer_campaign_path.is_some()
+    {
+        return Err(invalid("startup transfer receipt presence differs"));
+    }
+    if transfer_campaign_path.is_some() {
+        let path = out.join("transfer-receipts.json");
+        save_json(
+            &path,
+            &json!({"lorentz":lorentz_receipt,"lorentz_affine":affine_receipt}),
+        )?;
+        report["transfer_receipts"] = json!({"path":path,"sha256":sha256_file(&path)?});
+    }
     let parameters_identical = parameter_hashes(&lorentz)? == parameter_hashes(&affine)?;
     if !parameters_identical
         || scalar(&lorentz, LORENTZ_LOG_BETA)? != 0.0
@@ -330,8 +379,16 @@ fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<St
     save_json(&out.join("lorentz.json"), &left.report)?;
     let right = observe(&affine, &inputs, &targets)?;
     save_json(&out.join("lorentz_affine.json"), &right.report)?;
-    *phase = "untrained_startup_generation";
-    let prompt = tokenizer.decode(&inputs[..32]);
+    *phase = "startup_generation";
+    let source_prefix = &inputs[..32];
+    let source_leading_bos_removed = source_prefix.first().copied() == Some(0);
+    let natural_slice = if source_leading_bos_removed {
+        &source_prefix[1..]
+    } else {
+        source_prefix
+    };
+    let prompt = tokenizer.decode(natural_slice);
+    let reencoded_content_ids = tokenizer.encode(&prompt);
     let generated = [
         joint_evaluation::generate(
             &lorentz,
@@ -353,9 +410,18 @@ fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<St
     save_json(
         &out.join("generations.json"),
         &json!({
-            "scope":"Untrained startup outputs only; no quality gate, optimizer update, selection-policy change or decoder sweep.",
-            "source_block":0,"source_prefix_token_ids":&inputs[..32],
-            "prompt_construction":"Decode the first32 natural dev IDs, then use the unchanged generation API's tokenizer and BOS policy. Actual prompt IDs, policy and seed are retained below; no token-boundary equivalence is assumed.",
+            "scope":if transfer_campaign_path.is_some() {
+                "No-update learned-transfer startup outputs only; no adaptation or quality gate."
+            } else {
+                "Untrained startup outputs only; no quality gate."
+            },
+            "optimizer_updates":0,"selection_policy_changed":false,"decoder_sweep":false,
+            "source_block":0,"source_prefix_token_ids":source_prefix,
+            "source_leading_bos_removed":source_leading_bos_removed,
+            "decoded_source_token_ids":natural_slice,
+            "reencoded_content_token_ids":reencoded_content_ids,
+            "roundtrip_matches_decoded_source_ids":reencoded_content_ids.as_slice()==natural_slice,
+            "prompt_construction":"Take the first32 stored dev IDs, remove their leading BOS0 if present, and decode the remainder. The unchanged generation API re-encodes this text and prepends one BOS. Actual re-encoded content and each generation's complete prompt IDs are recorded; general token-boundary equivalence is not assumed.",
             "arms":["lorentz","lorentz_affine"],"generations":generated,
         }),
     )?;
@@ -416,15 +482,15 @@ fn run(evaluator_path: &Path, out: &Path, phase: &mut &'static str) -> Result<St
 
 fn main() -> Result<()> {
     let args: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
-    if args.len() != 2 {
+    if !(2..=3).contains(&args.len()) {
         return Err(invalid(
-            "usage: radial-startup EVALUATOR_JSON NEW_REPORT_ROOT",
+            "usage: radial-startup EVALUATOR_JSON NEW_REPORT_ROOT [LORENTZ_TRANSFER_CAMPAIGN_JSON]",
         ));
     }
     let out = &args[1];
     report_output::claim(out)?;
     let mut phase = "input_validation";
-    let result = run(&args[0], out, &mut phase);
+    let result = run(&args[0], out, args.get(2).map(PathBuf::as_path), &mut phase);
     if let Err(error) = &result {
         save_json(
             &out.join("failed-attempt.json"),

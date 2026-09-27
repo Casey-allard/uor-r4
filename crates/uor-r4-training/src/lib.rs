@@ -25,6 +25,7 @@ pub mod joint_parallel;
 pub mod joint_quantization;
 pub mod joint_rounding;
 pub mod joint_rounding_campaign;
+pub mod joint_transfer;
 pub mod kappa_llama;
 pub mod lut_export;
 pub mod ngram;

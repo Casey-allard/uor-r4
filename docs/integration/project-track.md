@@ -50,12 +50,17 @@ lifted radial information and learned scalar count. This distinguishes nonlinear
 distance weighting from the lift itself. Its explicit shared unit-scale
 initializer and fixed-prefix startup observation now establish active language
 credit in both untrained readers at that scope. The old default is preserved and
-new campaign/checkpoint provenance binds the override. Next prepare explicit
-shared-parameter transfer from a retained Dot checkpoint, identical optimizer
-resets and a new adaptation lineage; inspect startup at the learned query/key
-scale before selecting a meaningful dose. This preserves learned language
-history without silently resuming under a changed operator. The future language
-comparison must report calibration differences and useful generated behavior;
+new campaign/checkpoint provenance binds the override. The
+[shared-parameter transfer](radial-parameter-transfer-2026-09-27.md) now preserves
+all shared learned Dot arrays in a new adaptation lineage with identical Adam
+resets and a new common sampling stream. The single learned-parent startup
+observation completed with connected finite gradients and unchanged parameters;
+no calibration correction is indicated. Next add the explicit same-geometry Dot
+reset control and select one prospectively bounded three-arm adaptation study.
+Lorentz versus affine isolates the nonlinear score within this representation;
+a fitted practical improvement claim also needs that Dot control with the same
+reset, objective, stream and exposure.
+The future language comparison must report calibration differences and useful generated behavior;
 implementation checks do not trigger a training sweep or serving promotion.
 Keep the independently owned termination objective separate. Exact-token
 dialogue adoption can advance through the retained integer session while these

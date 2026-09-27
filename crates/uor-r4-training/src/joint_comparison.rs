@@ -580,6 +580,12 @@ fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Resul
     digest_field(binding, "source_commit", 40)?;
     let declared: crate::joint_campaign::Campaign = serde_json::from_value(campaign.clone())?;
     crate::joint_campaign::validate_read_initialization_binding(&declared, binding)?;
+    crate::joint_transfer::validate_binding(&declared, binding)?;
+    if report["shared_parameter_transfer"] != campaign["shared_parameter_transfer"]
+        || report["transfer_receipt"] != binding["transfer_receipt"]
+    {
+        return Err(invalid("evaluation/campaign transfer provenance differs"));
+    }
     if report["read_initialization"] != campaign["read_initialization"] {
         return Err(invalid("evaluation/campaign read initialization differs"));
     }
@@ -780,6 +786,12 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
     }
     let q = &reports[0]["campaign"];
     let ordinary = &reports[2]["campaign"];
+    if !q["shared_parameter_transfer"].is_null() || !ordinary["shared_parameter_transfer"].is_null()
+    {
+        return Err(invalid(
+            "joint-compare does not define transferred-parent matching; radial score-law studies require their declared comparison",
+        ));
+    }
     if q["read_initialization"] != ordinary["read_initialization"] {
         return Err(invalid("transport arms differ in read initialization"));
     }
