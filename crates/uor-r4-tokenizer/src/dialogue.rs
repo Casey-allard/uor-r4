@@ -174,11 +174,18 @@ pub struct DialogueEncoder<'a> {
     protocol: DialogueProtocol,
 }
 
+#[derive(Clone, Copy)]
+enum Ending {
+    Document,
+    AssistantPrefix,
+    OpenHistory,
+}
+
 impl DialogueEncoder<'_> {
     /// Complete corpus document. An all-skipped row contains BOS only and has
     /// `emitted_turns == 0`; the corpus owner retains its row-admission policy.
     pub fn encode_document(&self, messages: &[Message<'_>]) -> EncodedDialogue {
-        self.encode(messages, false)
+        self.encode(messages, Ending::Document, true, false)
     }
 
     /// Prompt for the next assistant response. Preserve all completed assistant
@@ -187,7 +194,31 @@ impl DialogueEncoder<'_> {
     /// previously rendered prompt as message content. The response mask covers
     /// known history only; every added prompt-marker token has mask 0.
     pub fn encode_assistant_prefix(&self, messages: &[Message<'_>]) -> EncodedDialogue {
-        self.encode(messages, true)
+        self.encode(messages, Ending::AssistantPrefix, true, false)
+    }
+
+    /// Initial completed history for a persistent conversation. Include BOS
+    /// and completed assistant EOS, but no corpus-only terminal EOS after a
+    /// non-assistant message and no next assistant marker. Empty/all-skipped
+    /// history contains BOS alone; emitted_turns determines the next separator.
+    pub fn encode_open_history(&self, messages: &[Message<'_>]) -> EncodedDialogue {
+        self.encode(messages, Ending::OpenHistory, true, false)
+    }
+
+    /// Append a user message and next assistant marker after already closed
+    /// history. No BOS, assistant closure or document-terminal EOS is inserted.
+    /// Each separator, marker and normalized content is encoded independently.
+    /// The caller must reject emitted_turns == 0 for a required user request.
+    pub fn encode_user_prefix(&self, content: &str, has_history: bool) -> EncodedDialogue {
+        self.encode(
+            &[Message {
+                role: "user",
+                content,
+            }],
+            Ending::AssistantPrefix,
+            false,
+            has_history,
+        )
     }
 
     fn append(&self, out: &mut EncodedDialogue, text: &str, mask: u8) {
@@ -206,10 +237,20 @@ impl DialogueEncoder<'_> {
         }
     }
 
-    fn encode(&self, messages: &[Message<'_>], assistant_prefix: bool) -> EncodedDialogue {
+    fn encode(
+        &self,
+        messages: &[Message<'_>],
+        ending: Ending,
+        include_bos: bool,
+        leading_separator: bool,
+    ) -> EncodedDialogue {
         let mut out = EncodedDialogue {
-            tokens: vec![self.protocol.bos_id],
-            response_mask: vec![0],
+            tokens: if include_bos {
+                vec![self.protocol.bos_id]
+            } else {
+                Vec::new()
+            },
+            response_mask: if include_bos { vec![0] } else { Vec::new() },
             emitted_turns: 0,
             skipped_empty: 0,
             skipped_unknown_role: 0,
@@ -232,7 +273,7 @@ impl DialogueEncoder<'_> {
                     continue;
                 }
             };
-            if out.emitted_turns != 0 {
+            if out.emitted_turns != 0 || leading_separator {
                 self.append(&mut out, "\n", 0);
             }
             self.append(&mut out, marker, 0);
@@ -244,12 +285,12 @@ impl DialogueEncoder<'_> {
             out.emitted_turns += 1;
             last_assistant = assistant;
         }
-        if assistant_prefix {
+        if matches!(ending, Ending::AssistantPrefix) {
             if out.emitted_turns != 0 {
                 self.append(&mut out, "\n", 0);
             }
             self.append(&mut out, "Assistant: ", 0);
-        } else if out.emitted_turns != 0 && !last_assistant {
+        } else if matches!(ending, Ending::Document) && out.emitted_turns != 0 && !last_assistant {
             out.tokens.push(self.protocol.eos_id);
             out.response_mask.push(0);
         }
@@ -294,6 +335,66 @@ mod tests {
 
     fn bytes(text: &str) -> Vec<u32> {
         text.bytes().map(|b| u32::from(b) + 3).collect()
+    }
+
+    #[test]
+    fn incremental_prefix_retains_segment_boundaries_and_history_eos() -> Result<()> {
+        let tokenizer = fixture(true, true);
+        let encoder = DialogueProtocol::literal_roles_v1(&tokenizer)?.bind(&tokenizer)?;
+        let history = [
+            Message {
+                role: "system",
+                content: " S\r! ",
+            },
+            Message {
+                role: "assistant",
+                content: "A<|bos|>",
+            },
+        ];
+        let open = encoder.encode_open_history(&history);
+        let mut expected = vec![0];
+        expected.extend(bytes("System: S\n!\nAssistant: A"));
+        expected.extend([0, 1]);
+        assert_eq!(open.tokens, expected);
+        let user = encoder.encode_user_prefix(" \r\nHi\r世界 \t", true);
+        assert_eq!(user.tokens, bytes("\nUser: Hi\n世界\nAssistant: "));
+        assert!(user.response_mask.iter().all(|&mask| mask == 0));
+        let mut combined = open.tokens;
+        combined.extend(user.tokens);
+        assert_eq!(
+            combined,
+            encoder
+                .encode_assistant_prefix(&[
+                    history[0],
+                    history[1],
+                    Message {
+                        role: "user",
+                        content: " \r\nHi\r世界 \t"
+                    },
+                ])
+                .tokens
+        );
+        // No newline before the first emitted turn; no document EOS after a
+        // system/user-ending open history. Consecutive users remain supported.
+        let skipped = encoder.encode_open_history(&[Message {
+            role: "tool",
+            content: "skip",
+        }]);
+        assert_eq!(skipped.tokens, [0]);
+        assert_eq!(skipped.emitted_turns, 0);
+        assert_eq!(
+            encoder.encode_user_prefix("Hi", false).tokens,
+            bytes("User: Hi\nAssistant: ")
+        );
+        for role in ["system", "user"] {
+            let open = encoder.encode_open_history(&[Message {
+                role,
+                content: "old",
+            }]);
+            assert!(!open.tokens.contains(&1));
+        }
+        assert_eq!(encoder.encode_user_prefix("\r\n\t", true).emitted_turns, 0);
+        Ok(())
     }
 
     #[test]

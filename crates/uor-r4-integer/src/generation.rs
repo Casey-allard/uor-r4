@@ -1,9 +1,14 @@
 //! Stateful text sessions using integer predictions and integer token selection.
 //! Supports `generate_stream` and incremental UTF-8 decoding with `pending_bytes`.
+pub mod conversation;
 pub use crate::session::{ChatTokenStream, IncrementalUtf8Decoder};
 use crate::{
     bundle::Bundle, invalid, IntegerError, IntegerSession, IntegerStep, ReadMode, Result,
     SamplePolicy, Sampler, PROBABILITY_TOTAL,
+};
+pub use conversation::{
+    ConversationError, ConversationRequest, ConversationTurn, DialogueConversation, TurnBoundary,
+    TurnClosure,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

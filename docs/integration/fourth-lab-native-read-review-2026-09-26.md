@@ -21,10 +21,11 @@ that information before discarding it.
 The native reader is separable from the PR's converted Llama/SmolLM2 engine.
 The proposed D10 changes the backbone, numerical-multiplier and unsafe-SIMD
 policies. It is recorded as owner direction in that lab's session, but has not
-been confirmed in this fourth-lab conversation. Owner clarification is pending.
-Do not adopt that policy merely because it appears in a branch document. Native
-source/evidence review can proceed independently, without importing the new
-backbone or changing the current shared contract.
+been confirmed when this review was written. **September 27 owner clarification:**
+“Keep the native, multiplier-free serving target.” D10's converted-backbone and
+hardware serving-multiplier exceptions are therefore not adopted by this lab.
+The other lab's historical record and source remain preserved. Native
+source/evidence review proceeds independently under the clarified target.
 
 ## Mechanism and what the comparisons identify
 
@@ -85,7 +86,8 @@ The exact integer cancellation-avoiding distance identity is sound for valid
 Q8 inputs. Dot arithmetic appears preserved in the inspected branches. Learned
 Lorentz log-beta/offset use signed 16-bit codes and a derived wide scale alongside
 low-bit affine weights; report that exception explicitly. Its policy adoption
-belongs to the D10 clarification, not to a hidden all-parameters-four-bit claim.
+requires its exact precision/arithmetic contract to be stated; the owner's native/
+multiplier-free clarification does not make these all-four-bit parameters.
 
 ## Next integrated action
 

@@ -9,6 +9,12 @@ defines specialist coverage, recursive source review and cross-lab ownership.
 This section extends the programme; the retained artifacts, historical results
 and D8 learning ladder below keep their exact scope.
 
+The owner's September 27 answer for this lab is **native, multiplier-free
+serving**. This fourth lab does not adopt D10's converted-backbone or hardware
+serving-multiplier exceptions. Offline Rust learning remains permitted under
+D0-b; other labs' historical records and comparator implementations are retained.
+[Owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279).
+
 The working order is **geometric attention → efficient inference → general
 prose → chat → reasoning/coding**. Research may proceed in parallel when
 dependencies and file/resource ownership permit. Useful generated behavior and
@@ -43,7 +49,8 @@ their programme/model responsibilities.
 identified an existing native Lorentz read/configuration/export interface.
 Review and reuse that seam before adding a competing finite-group reader;
 retain radius/initialization controls and the reported numerical limitations.
-Its separate proposed D10 backbone/arithmetic policy is not implicitly adopted.
+Its separate D10 backbone/arithmetic exceptions are not adopted by this lab under
+the owner clarification above.
 The [offline radial comparison](radial-read-control-2026-09-26.md) is implemented:
 it adds an affine tangent score to the continuous Lorentz reader with the same
 lifted radial information and learned scalar count. This distinguishes nonlinear
@@ -69,16 +76,23 @@ The future language comparison must report calibration differences and useful ge
 implementation checks do not trigger a training sweep or serving promotion.
 Keep the independently owned termination objective separate. Exact-token
 dialogue adoption can advance through the retained integer session while these
-learning conditions are resolved.
+learning conditions are resolved. The [persistent conversation adapter](dialogue-continuity-2026-09-27.md)
+now preserves exact generated history, explicit turn closure and continued
+sampler state; focused checks and a short actual two-turn transport witness pass.
+Google retains CLI adoption. This is an integration result, not learned-chat
+qualification or a reason to change the frozen reader study.
 
 
 **Parallel architecture exploration:** Claude's [Cycle 4 stack experiment](https://github.com/UOR-Foundation/uor-r4/pull/1414)
 investigates deeper quaternion recurrence and multi-head Lorentz reads against
-its own transformer control at similar parameter counts. At reviewed head
-`58f93117`, language results remain pending. Its current implementation batches
+its own transformer control at similar parameter counts. Through reviewed head
+`5e2e3407`, input-content resume and scan/stability claims are corrected; the
+pilot remains author-reported pending its complete evidence packet. Its current implementation batches
 windows while scanning recurrence time sequentially; it has no integrated
 integer/session path. The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
-records the concrete lineage and claim corrections. Keep this Claude-owned
+records the concrete lineage and claim corrections, with the
+[delta review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852801270)
+confirming their resolution in new source. Keep this Claude-owned
 experiment complementary to the retained-reader comparison. Completed results
 may change the next architecture investment; an offline package comparison
 does not by itself isolate curvature, qualify efficient serving, or adopt D10.

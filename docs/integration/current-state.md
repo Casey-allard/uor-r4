@@ -7,7 +7,13 @@ frontier, geometric-advantage or full-path energy qualification.**
 
 The owner has authorized the [fourth Codex research lab](../../.codex-lab/README.md)
 and shared GitHub/worktree coordination with Google, OpenCode/DeepSeek/Kimi and
-Claude. The [canonical roadmap](project-track.md#four-lab-research-programme--owner-direction-september-26)
+Claude. **Owner clarification, September 27:** “Keep the native,
+multiplier-free serving target.” This lab does not adopt D10's converted
+transformer backbone or hardware serving-multiplier exceptions. Offline Rust
+learning remains permitted under D0-b. Preserve the other session's historical
+record and source as research/comparators.
+[Shared clarification](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279).
+The [canonical roadmap](project-track.md#four-lab-research-programme--owner-direction-september-26)
 orders geometric attention, inference, prose, chat and reasoning, with discovery
 branches allowed to revise the mechanism from evidence. The initial independent
 source review identifies a concrete training/chat role-token mismatch and
@@ -33,6 +39,21 @@ records actual text, source/artifact identity and cost. This is verified input
 and prediction transport, not trained chat. Existing chatbot CLI, corpus builder
 and panel adoption, and the separate width-576 dialogue checkpoint loader, remain
 open. No accepted bundle was changed.
+
+The [persistent conversation adapter](dialogue-continuity-2026-09-27.md) now
+retains generated IDs, pending tokens and categorical state across turns. It
+preflights each complete request and records model EOS separately from explicit
+caller closure; execution failure poisons the session. Five tokenizer and ten
+integer-generation checks pass. On the unchanged accepted bundle, a two-turn
+witness matches all eight prediction records and exact input history against
+direct integer stepping, with 36 total conversation steps and no prefix replay.
+The actual capped outputs are `“Is there the` and `1 asked the people`; this is
+verified token/state transport, not useful chat. The
+[source-bound result and complete cost](../evidence/dialogue-continuity-validation-2026-09-27.json)
+record 112.04 seconds of build/check work and 2.576 seconds of actual inference.
+Google retains CLI wiring ownership; this resolves its follow-up's
+[display-history reconstruction seam](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852795123)
+at the reusable library boundary, with adoption still pending.
 
 **Concurrent discovery:** the [fourth-lab native-read review](fourth-lab-native-read-review-2026-09-26.md)
 inspects Claude PR#1401's full-context Lorentz implementation and reported
@@ -93,9 +114,9 @@ and the adaptation result remain pending. The
 [implementation, launch and resource receipt](../evidence/reader-study-tools-validation-2026-09-27.json)
 records the exact scope and live process pointer. The mainline termination-objective
 study remains independently owned and cannot supply that matched control.
-General language/M1 qualification remains unmeasured here. D10's policy
-clarification remains pending in this lab; the new control introduces no
-additional serving exception or converted backbone.
+General language/M1 qualification remains unmeasured here. The owner has now
+confirmed this lab's native, multiplier-free serving target; the control
+introduces no serving exception or converted backbone.
 
 The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
 identifies useful serving optimization alongside unresolved integration and
@@ -112,14 +133,25 @@ path measured in the Dot witness. Future integer measurements must bind this
 changed source separately.
 
 
-Claude's [draft stack experiment, PR #1414](https://github.com/UOR-Foundation/uor-r4/pull/1414),
-reviewed at `58f93117`, supplies a deeper offline architecture with similar
-parameter count to its own transformer control; its language results are pending.
-The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
-asks for input-bound resume lineage and precise parallelism/stability claims.
-It remains a complementary Claude-owned discovery track. It neither supplies the
-matched Dot control nor changes the retained reader study's dose; completed
+Claude's [draft stack experiment, PR #1414](https://github.com/UOR-Foundation/uor-r4/pull/1414)
+supplies a deeper offline architecture with similar parameter count to its own
+transformer control. Delta review through `5e2e3407` confirms source fixes for
+input-content-bound resume and precise sequential-scan/drive-bound claims.
+[Review and author response](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852801270).
+The reported pilot NLL 2.679 versus 2.768 remains an author-reported development
+observation awaiting its source/artifact/data/cost/output packet. Already-running
+older binaries do not inherit the resume fix. This complementary Claude-owned
+track neither supplies the matched Dot control nor changes its dose; completed
 artifact-bound results may redirect the next architecture investment.
+
+The separately owned termination-objective study has a
+[source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)
+at `c54d7801`: shard-normalized weighted losses are combined by equal batch mass,
+so unequal boundary counts differ from a global weighted mean; its training
+curve also records weighted loss as `batch_mean_nll`. Standard development
+metrics remain unweighted. Preserve the executed objective/results and correct
+future adoption deliberately. No model-quality conclusion or automatic retry
+follows. The frozen unweighted reader study is unaffected.
 
 ## Decision and active work
 
@@ -197,7 +229,9 @@ track does not change the work card below.
     arithmetic are unchanged.
   - The Lorentz read adds two learned signed 16-bit scalars (log β and δ) beside
     the ≤4-bit weight maps, plus a Q32 scale derived at load. They are not 4-bit
-    parameters; whether D10 admits them awaits the owner's clarification.
+    parameters. This lab's native/multiplier-free clarification does not silently
+    qualify their precision under D0-b; any serving adoption must state the
+    exact parameter and arithmetic contract.
   - After 300 quantization-aware updates, 4-bit integer serving is within 0.035
     nats of equal float fine-tunes and keeps the Lorentz advantage (−0.062 and
     −0.059 nats)

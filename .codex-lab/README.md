@@ -7,6 +7,16 @@ with efficient geometric attention, integer inference, prose, chat and reasoning
 The owner authorizes autonomous technical decisions and successive necessary
 work within that objective. The owner can redirect the programme at any time.
 
+**Owner clarification, September 27:** “Keep the native, multiplier-free serving
+target.” This lab retains the native geometric model and D0-b additive serving
+contract. Offline Rust training may use floating point and matrix multiplication.
+D10's converted-transformer backbone and hardware serving-multiplier exceptions
+are not adopted by this fourth lab. Preserve that other session's historical
+record and source as research/comparators; this clarification does not claim to
+rewrite instructions in a separate lab. Existing prototype exceptions and costs
+remain explicit, and no prototype is promoted by this policy statement.
+[Shared owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279).
+
 ## Start and recover context
 
 Read the root [AGENTS.md](../AGENTS.md), [README](../README.md),

@@ -1,0 +1,679 @@
+{
+  "schema": "uor-r4.dialogue-continuity-validation/1",
+  "recorded_at": "2026-09-27T05:11:25.874998+00:00",
+  "source_commit": "b4c2baa15796acf794b73a0867712cdb00b5fa6a",
+  "base_main": "9cba8a1f40e0fd563f9f84ebc42d28f9c60648f8",
+  "source_sha256": {
+    "crates/uor-r4-integer/src/generation.rs": "9393cbee703d9e3c157e5a5baa9b133b0d472e256b7d151e33d31f02593e7aa3",
+    "crates/uor-r4-integer/src/generation/conversation.rs": "f27d2ee124ebf3743758c92e03fad3188cef64bde00f18176c0164bb241358a7",
+    "crates/uor-r4-integer/examples/dialogue-continuity-witness.rs": "79004fd1e90a9c6c234a30f2430346fd6475f16ab00797e6a700d735644b5a46",
+    "crates/uor-r4-tokenizer/src/dialogue.rs": "96a9b50ab6b7c1b442b2a426cacca64a11a56fdc5f5dec4a21012ee064535a8b"
+  },
+  "checks": {
+    "tokenizer_dialogue": {
+      "passed": 5,
+      "failed": 0,
+      "new": 1,
+      "retained": 4,
+      "test_seconds": 0.01
+    },
+    "integer_generation": {
+      "passed": 10,
+      "failed": 0,
+      "new": 4,
+      "retained": 6,
+      "test_seconds": 1.97
+    },
+    "source_bound_build": {
+      "started_at": "2026-09-27T05:07:57.081151+00:00",
+      "source_commit": "b4c2baa15796acf794b73a0867712cdb00b5fa6a",
+      "build_jobs": 2,
+      "rayon_threads": 2,
+      "wall_limit_seconds": 1200,
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "test",
+            "--offline",
+            "-p",
+            "uor-r4-tokenizer",
+            "--lib",
+            "dialogue::",
+            "--",
+            "--test-threads=1"
+          ],
+          "started_at": "2026-09-27T05:07:57.082383+00:00",
+          "exit_code": 0,
+          "wall_seconds": 12.205943000000001
+        },
+        {
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "test",
+            "--offline",
+            "-p",
+            "uor-r4-integer",
+            "--lib",
+            "generation::",
+            "--",
+            "--test-threads=1"
+          ],
+          "started_at": "2026-09-27T05:08:09.291502+00:00",
+          "exit_code": 0,
+          "wall_seconds": 51.470406999999994
+        },
+        {
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "build",
+            "--offline",
+            "-p",
+            "uor-r4-integer",
+            "--example",
+            "dialogue-continuity-witness",
+            "--profile",
+            "test"
+          ],
+          "started_at": "2026-09-27T05:09:00.765740+00:00",
+          "exit_code": 0,
+          "wall_seconds": 48.354940208
+        }
+      ],
+      "wall_seconds": 112.040201583,
+      "finished_at": "2026-09-27T05:09:49.124435+00:00",
+      "maximum_child_rss_bytes": 334462976,
+      "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-continuity-binary-b4c2baa1",
+      "binary_sha256": "383fe590fc1fe35bafad44a086f044003b2af1a768f0259ed22bbf86ce2235e9"
+    },
+    "touched_rustfmt": "PASS",
+    "git_diff_check": "PASS",
+    "claim_wording": "PASS",
+    "independent_source_review": "No remaining actionable blocker after greedy continuation receipt and witness failure sealing corrections. No model/kernel modifications."
+  },
+  "witness": {
+    "execution": {
+      "started_at": "2026-09-27T05:10:01.983718+00:00",
+      "source_commit": "b4c2baa15796acf794b73a0867712cdb00b5fa6a",
+      "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-continuity-binary-b4c2baa1",
+      "binary_sha256": "383fe590fc1fe35bafad44a086f044003b2af1a768f0259ed22bbf86ce2235e9",
+      "report": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-continuity-witness-1",
+      "bundle": "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/bundle-quaternion-1",
+      "limits": {
+        "wall_seconds": 60,
+        "rss_bytes": 536870912,
+        "generated_tokens": 64,
+        "model_steps": 256,
+        "minimum_free_memory_percent": 25,
+        "minimum_free_bytes": 26105348096
+      },
+      "initial_free_memory_percent": 48,
+      "peak_sampled_rss_bytes": 14385152,
+      "stopped": null,
+      "pid": 91136,
+      "exit_code": 0,
+      "wall_seconds": 2.5759645828511566,
+      "maximum_child_rss_bytes": 15810560,
+      "finished_at": "2026-09-27T05:10:04.559813+00:00",
+      "total_model_steps": 88,
+      "total_generated_selections": 16,
+      "all_comparisons_equal": true,
+      "report_files_sha256": {
+        "result.json": "10312607983a2a603ce330dc37960ffbe5f0d92cfe21f8daf2fc02f0f755657b",
+        "manifest.json": "7cb6b6975f8aad45bd124618dc249c8e421c89393bdb69275213c095a6bf5d4b",
+        "attempt.json": "ea561975cc6ed0c3ad72c554f6052a93fac60b2019d71c370e0c946c348f51c4"
+      }
+    },
+    "result": {
+      "all_comparisons_equal": true,
+      "binding_scope": "unchanged bundle, evaluation framing only; no adopted dialogue training contract",
+      "bundle_root": "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/bundle-quaternion-1",
+      "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+      "claim": "Exact two-turn input, state and prediction transport only; no chat/prose/geometry/speed/energy qualification",
+      "comparisons": [
+        {
+          "actual_total_step_calls": 16,
+          "all_prediction_decisions_equal": true,
+          "appended_input_ids_equal": true,
+          "conversation_rng_after": 7324606621405938939,
+          "direct_integer_steps": {
+            "decisions": [
+              {
+                "exposed_causal_slots": 12,
+                "no_read_mass_q48": 172831732906398,
+                "probability_q48": 2439262398820,
+                "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 1108
+              },
+              {
+                "exposed_causal_slots": 13,
+                "no_read_mass_q48": 251277003518841,
+                "probability_q48": 5348809577586,
+                "probability_sha256_le_u64": "7294a6a0dc75aa6fa02f18a0a06c4a35f20f0dc71afdf76c2ecc024f0a809e41",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 4018
+              },
+              {
+                "exposed_causal_slots": 14,
+                "no_read_mass_q48": 274628986766695,
+                "probability_q48": 1704224141218,
+                "probability_sha256_le_u64": "bc4e34bb66a7d0a26e10266d121915e58244e5e29c94b2b61ecc4928a931f984",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 403
+              },
+              {
+                "exposed_causal_slots": 15,
+                "no_read_mass_q48": 280550487677004,
+                "probability_q48": 12253224820123,
+                "probability_sha256_le_u64": "21abbf3305c340452ea9937e8ca12735a672eb143a11a957c265f86077bb05d9",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              }
+            ],
+            "generated_token_ids": [
+              1108,
+              4018,
+              403,
+              265
+            ],
+            "incremental_step_calls": 16,
+            "model_and_sampling_nanoseconds": 451840291,
+            "raw_decoded": "“Is there the",
+            "sampler_state_after": 7324606621405938939
+          },
+          "exact_history_equal": true,
+          "expected_total_step_calls": 16,
+          "independent_suffix_ids": [
+            55,
+            2728,
+            28,
+            223,
+            1094,
+            201,
+            35,
+            560,
+            652,
+            714,
+            28,
+            223
+          ],
+          "no_prefix_replay": true,
+          "pending_counted_once": true,
+          "raw_bytes_equal": true,
+          "sampler_cursor_equal": true,
+          "turn": {
+            "appended_token_ids": [
+              0,
+              55,
+              2728,
+              28,
+              223,
+              1094,
+              201,
+              35,
+              560,
+              652,
+              714,
+              28,
+              223
+            ],
+            "boundary": {
+              "kind": "initial_history"
+            },
+            "dialogue": {
+              "generation": {
+                "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+                "context_capacity": 256,
+                "decisions": [
+                  {
+                    "exposed_causal_slots": 12,
+                    "no_read_mass_q48": 172831732906398,
+                    "probability_q48": 2439262398820,
+                    "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 1108
+                  },
+                  {
+                    "exposed_causal_slots": 13,
+                    "no_read_mass_q48": 251277003518841,
+                    "probability_q48": 5348809577586,
+                    "probability_sha256_le_u64": "7294a6a0dc75aa6fa02f18a0a06c4a35f20f0dc71afdf76c2ecc024f0a809e41",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 4018
+                  },
+                  {
+                    "exposed_causal_slots": 14,
+                    "no_read_mass_q48": 274628986766695,
+                    "probability_q48": 1704224141218,
+                    "probability_sha256_le_u64": "bc4e34bb66a7d0a26e10266d121915e58244e5e29c94b2b61ecc4928a931f984",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 403
+                  },
+                  {
+                    "exposed_causal_slots": 15,
+                    "no_read_mass_q48": 280550487677004,
+                    "probability_q48": 12253224820123,
+                    "probability_sha256_le_u64": "21abbf3305c340452ea9937e8ca12735a672eb143a11a957c265f86077bb05d9",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 265
+                  }
+                ],
+                "generated_token_ids": [
+                  1108,
+                  4018,
+                  403,
+                  265
+                ],
+                "incremental_step_calls": 16,
+                "model_step_nanoseconds": 219111334,
+                "prompt": "",
+                "prompt_token_ids": [
+                  0,
+                  55,
+                  2728,
+                  28,
+                  223,
+                  1094,
+                  201,
+                  35,
+                  560,
+                  652,
+                  714,
+                  28,
+                  223
+                ],
+                "raw_decoded": "“Is there the",
+                "read_mode": "enabled",
+                "response_text": "“Is there the",
+                "sampler_state_after": 7324606621405938939,
+                "selection": {
+                  "kind": "categorical",
+                  "seed": 20260926,
+                  "top_k": 40
+                },
+                "session_tokens_including_pending": 17,
+                "stop": {
+                  "reason": "maximum_new_tokens"
+                },
+                "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+                "utf8_decodable": true,
+                "whole_generation_nanoseconds": 252492875
+              },
+              "protocol": {
+                "bos_id": 0,
+                "eos_id": 1,
+                "schema": "uor-r4.literal-role-dialogue/1",
+                "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+                "unk_id": 2
+              },
+              "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327"
+            },
+            "raw_generated_bytes": [
+              226,
+              128,
+              156,
+              73,
+              115,
+              32,
+              116,
+              104,
+              101,
+              114,
+              101,
+              32,
+              116,
+              104,
+              101
+            ]
+          }
+        },
+        {
+          "actual_total_step_calls": 36,
+          "all_prediction_decisions_equal": true,
+          "appended_input_ids_equal": true,
+          "conversation_rng_after": 16588922658877084970,
+          "direct_integer_steps": {
+            "decisions": [
+              {
+                "exposed_causal_slots": 32,
+                "no_read_mass_q48": 174998474741487,
+                "probability_q48": 136970291553780,
+                "probability_sha256_le_u64": "59736a38d3c76dc0583160d5163ed291e359fff3e518b72371b611256967530c",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              },
+              {
+                "exposed_causal_slots": 33,
+                "no_read_mass_q48": 223061707981234,
+                "probability_q48": 688945945265,
+                "probability_sha256_le_u64": "b6f6eea6c2a014021f346091d192c9bc119712a990de7556d00da5eff8ccf614",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 548
+              },
+              {
+                "exposed_causal_slots": 34,
+                "no_read_mass_q48": 221898890306765,
+                "probability_q48": 27986457551215,
+                "probability_sha256_le_u64": "87eeedf08cd026c67a8a2d6cf02c45b3f761f629c638c408f27e4c27bb7fb50d",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 35,
+                "no_read_mass_q48": 130535446134288,
+                "probability_q48": 1620200464132,
+                "probability_sha256_le_u64": "f405f2495428107006092f98365637f7812559c6959b24e3465ad108ba3a32e4",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 919
+              }
+            ],
+            "generated_token_ids": [
+              19,
+              548,
+              265,
+              919
+            ],
+            "incremental_step_calls": 36,
+            "model_and_sampling_nanoseconds": 294025000,
+            "raw_decoded": "1 asked the people",
+            "sampler_state_after": 16588922658877084970
+          },
+          "exact_history_equal": true,
+          "expected_total_step_calls": 36,
+          "independent_suffix_ids": [
+            1,
+            201,
+            55,
+            2728,
+            28,
+            223,
+            3422,
+            356,
+            16,
+            201,
+            35,
+            560,
+            652,
+            714,
+            28,
+            223
+          ],
+          "no_prefix_replay": true,
+          "pending_counted_once": true,
+          "raw_bytes_equal": true,
+          "sampler_cursor_equal": true,
+          "turn": {
+            "appended_token_ids": [
+              1,
+              201,
+              55,
+              2728,
+              28,
+              223,
+              3422,
+              356,
+              16,
+              201,
+              35,
+              560,
+              652,
+              714,
+              28,
+              223
+            ],
+            "boundary": {
+              "interrupted_stop": {
+                "reason": "maximum_new_tokens"
+              },
+              "kind": "caller_eos",
+              "token": 1
+            },
+            "dialogue": {
+              "generation": {
+                "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+                "context_capacity": 256,
+                "decisions": [
+                  {
+                    "exposed_causal_slots": 32,
+                    "no_read_mass_q48": 174998474741487,
+                    "probability_q48": 136970291553780,
+                    "probability_sha256_le_u64": "59736a38d3c76dc0583160d5163ed291e359fff3e518b72371b611256967530c",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 19
+                  },
+                  {
+                    "exposed_causal_slots": 33,
+                    "no_read_mass_q48": 223061707981234,
+                    "probability_q48": 688945945265,
+                    "probability_sha256_le_u64": "b6f6eea6c2a014021f346091d192c9bc119712a990de7556d00da5eff8ccf614",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 548
+                  },
+                  {
+                    "exposed_causal_slots": 34,
+                    "no_read_mass_q48": 221898890306765,
+                    "probability_q48": 27986457551215,
+                    "probability_sha256_le_u64": "87eeedf08cd026c67a8a2d6cf02c45b3f761f629c638c408f27e4c27bb7fb50d",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 265
+                  },
+                  {
+                    "exposed_causal_slots": 35,
+                    "no_read_mass_q48": 130535446134288,
+                    "probability_q48": 1620200464132,
+                    "probability_sha256_le_u64": "f405f2495428107006092f98365637f7812559c6959b24e3465ad108ba3a32e4",
+                    "probability_sum_q48": 281474976710656,
+                    "selected_token": 919
+                  }
+                ],
+                "generated_token_ids": [
+                  19,
+                  548,
+                  265,
+                  919
+                ],
+                "incremental_step_calls": 20,
+                "model_step_nanoseconds": 117358750,
+                "prompt": "",
+                "prompt_token_ids": [
+                  0,
+                  55,
+                  2728,
+                  28,
+                  223,
+                  1094,
+                  201,
+                  35,
+                  560,
+                  652,
+                  714,
+                  28,
+                  223,
+                  1108,
+                  4018,
+                  403,
+                  265,
+                  1,
+                  201,
+                  55,
+                  2728,
+                  28,
+                  223,
+                  3422,
+                  356,
+                  16,
+                  201,
+                  35,
+                  560,
+                  652,
+                  714,
+                  28,
+                  223
+                ],
+                "raw_decoded": "1 asked the people",
+                "read_mode": "enabled",
+                "response_text": "1 asked the people",
+                "sampler_state_after": 16588922658877084970,
+                "selection": {
+                  "kind": "categorical",
+                  "seed": 7324606621405938939,
+                  "top_k": 40
+                },
+                "session_tokens_including_pending": 37,
+                "stop": {
+                  "reason": "maximum_new_tokens"
+                },
+                "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+                "utf8_decodable": true,
+                "whole_generation_nanoseconds": 141521417
+              },
+              "protocol": {
+                "bos_id": 0,
+                "eos_id": 1,
+                "schema": "uor-r4.literal-role-dialogue/1",
+                "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+                "unk_id": 2
+              },
+              "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327"
+            },
+            "raw_generated_bytes": [
+              49,
+              32,
+              97,
+              115,
+              107,
+              101,
+              100,
+              32,
+              116,
+              104,
+              101,
+              32,
+              112,
+              101,
+              111,
+              112,
+              108,
+              101
+            ]
+          }
+        }
+      ],
+      "executable_sha256": "383fe590fc1fe35bafad44a086f044003b2af1a768f0259ed22bbf86ce2235e9",
+      "max_new_tokens_per_turn": 4,
+      "model_config": {
+        "context": 256,
+        "read_width": 64,
+        "seed": 240924,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 256
+      },
+      "protocol": {
+        "bos_id": 0,
+        "eos_id": 1,
+        "schema": "uor-r4.literal-role-dialogue/1",
+        "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+        "unk_id": 2
+      },
+      "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+      "schema": "uor-r4.dialogue-continuity-witness/1",
+      "seed": 20260926,
+      "source_commit": "b4c2baa15796acf794b73a0867712cdb00b5fa6a",
+      "source_sha256": {
+        "conversation.rs": "f27d2ee124ebf3743758c92e03fad3188cef64bde00f18176c0164bb241358a7",
+        "dialogue.rs": "96a9b50ab6b7c1b442b2a426cacca64a11a56fdc5f5dec4a21012ee064535a8b",
+        "generation.rs": "9393cbee703d9e3c157e5a5baa9b133b0d472e256b7d151e33d31f02593e7aa3",
+        "witness.rs": "79004fd1e90a9c6c234a30f2430346fd6475f16ab00797e6a700d735644b5a46"
+      },
+      "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+      "whole_witness_nanoseconds": 2032723459
+    },
+    "complete_report_verified": true,
+    "interpretation": "All8 generated predictions match independent direct stepping across2turns, including full Q48 probability hashes. Exact prior generated IDs plus explicit caller EOS reach turn2. Total36 actual conversation steps,16 then20, no prefix replay. Output remains two capped fragments; no trained chat or prose qualification."
+  },
+  "resources": {
+    "projection": {
+      "recorded_at": "2026-09-27T04:53:33.028441+00:00",
+      "scope": "Independent native dialogue continuity and owner policy clarification while the frozen reader study continues. Exact generated IDs/pending token/EOS/sampler continuity, full-turn budget preflight, explicit user closure, no competing CLI. Google retains executable wiring.",
+      "integrated_deliverable": "Persistent integer TextSession dialogue layer, coordinated integration contract, focused meaningful checks and one short loaded-bundle two-turn trajectory against direct exact-ID stepping; source-linked owner native/multiplier-free clarification.",
+      "cause": "Google62606586 first-turn protocol adoption still reconstructs later turns from trimmed display text and mutates history before successful capacity/generation; no new training is needed to fix this identity/state defect.",
+      "phase_cap_seconds": 7200,
+      "allocation_seconds": {
+        "design_implementation_review": 3900,
+        "compile_focused_checks": 1200,
+        "short_actual_integer_probe_and_analysis": 300,
+        "protected_delivery_coordination": 1200,
+        "margin": 600
+      },
+      "existing_owned_elapsed_cap_ms": 57600000,
+      "existing_verified_cumulative_allowance_ms": 722400000,
+      "allowance_extension_ms": 0,
+      "accounting": "Concurrent work remains inside existing lab/cumulative allowance. Charge actual whole lab elapsed once, including active study; do not add overlapping agent/model/build subphases. This does not extend reader-study phase or modify its dose/configuration/executable.",
+      "resources": {
+        "new_full_checkout_bytes_expected": 493466693,
+        "new_checkout_cap_bytes": 805306368,
+        "new_receipts_and_probe_storage_cap_bytes": 134217728,
+        "additional_shared_build_growth_cap_bytes": 2147483648,
+        "physical_reserve_bytes": 25971130368,
+        "storage_stop_margin_bytes": 134217728,
+        "cargo_jobs": 2,
+        "one_owned_cargo_process": true,
+        "new_training_updates": 0,
+        "probe_count": 1,
+        "probe_wall_cap_seconds": 60,
+        "probe_rss_cap_bytes": 536870912,
+        "minimum_free_memory_percent_before_probe": 25,
+        "probe_tokens_cap": 64,
+        "prospective_concurrency_refinement": "At most one short bounded integer-session probe may coexist with the already supervised owned fit; at most one extra inference process, no new fit. Measure actual resources and preserve all study resource limits. If headroom is absent, defer probe. Pure local Rust only; no external/paid compute."
+      },
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 32398262272,
+        "/Volumes/UOR-Workspace": 172701437952
+      },
+      "stopping": "No silent history truncation or reinterpretation of display text, no trained-chat/capability/energy claim, no broad regression programme. Stop/checkpoint at configured limits; source/probe failures must affect this deliverable before any repair. Preserve all artifacts."
+    },
+    "probe_token_clarification": {
+      "recorded_at": "2026-09-27T05:09:31.766223+00:00",
+      "scope": "Prospective clarification before first probe: the 64-token probe ceiling counts generated selections, not replayed prompt ingestion. The witness has two 4-token responses and direct references: at most16 generated selections total; additional ceiling256 total model steps across conversation and references, each session still full256. Wall60s/RSS512MiB/free-memory25%/oneprobe/storage/elapsed limits unchanged. Reference stepping uses the same unchanged native bundle; no training."
+    },
+    "accounting_checkpoint": {
+      "last_charged_at": "2026-09-27T05:11:25.874998+00:00",
+      "charged_elapsed_ms": 16701870,
+      "tail_ms": 1603271,
+      "before": {
+        "cumulative_ms": 663254173,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 664857444,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "verified_cumulative_allowance_ms": 722400000,
+      "owned_elapsed_cap_ms": 57600000,
+      "foreign_reported_limit_adopted": false,
+      "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock. No global mutex claim.",
+      "scope": "All fourth-lab elapsed since previous cursor: live study, source review/coordination, owner policy clarification, dialogue design/implementation/review/build and actual witness. Concurrent model/build/agents included once. Delivery tail remains to charge.",
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 33951584256,
+        "/Volumes/UOR-Workspace": 173576671232
+      }
+    },
+    "build_and_test_seconds": 112.040201583,
+    "actual_integer_witness_seconds": 2.5759645828511566,
+    "new_training_updates": 0,
+    "accelerator_seconds": 0,
+    "paid_compute": false,
+    "storage_attribution": "Physical free-space changes include concurrent labs; no exclusive attribution of shared-cache bytes. No deletion."
+  },
+  "owner_direction": "Native, multiplier-free serving target. Fourth lab does not adopt D10 converted-backbone or hardware serving-multiplier exceptions. Offline Rust learning remains permitted under D0-b.",
+  "remaining": "Google-owned CLI adoption; dialogue training/model-quality and width576 artifact path remain separate. Frozen fixed reader study unchanged and still running."
+}
