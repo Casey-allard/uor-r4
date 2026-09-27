@@ -48,9 +48,31 @@ and retained Dot/Lorentz and checkpoint paths; the
 [source-bound receipt](../evidence/offline-radial-read-validation-2026-09-27.json)
 records executed checks, prior attempts and complete elapsed accounting.
 Its implementation and a future language comparison have distinct scope.
+The optional unit-scale campaign initializer is now implemented and all four
+initializer plus two retained checkpoint checks pass. A source-bound startup
+observation executed by Antigravity was independently verified and preserved by
+the fourth lab, avoiding a duplicate run. Both readers have six finite nonzero
+language-gradient families and nonzero causal read mass on all four fixed
+full256 windows; no calibration correction is indicated. Supplementary
+untrained continuations remain incoherent and include a disclosed duplicate-BOS
+prompt condition. [Startup evidence and exact scope](../evidence/radial-unit-start-validation-2026-09-27.json).
+The next attention design is an explicit shared-parameter transfer from a
+retained Dot checkpoint into both radial arms, with new lineage and identical
+optimizer resets, before selecting a meaningful adaptation dose. This transfer
+is not implemented or launched here; the mainline termination-objective study
+remains independently owned.
 General language/M1 qualification remains unmeasured here. D10's policy
 clarification remains pending in this lab; the new control introduces no
 additional serving exception or converted backbone.
+
+The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
+identifies useful serving optimization alongside unresolved integration and
+evidence issues: conversational Lorentz remains guarded, the CLI retains role
+fallbacks, BPE salience interprets token IDs as characters, and synthetic phase
+and selected-byte checks do not qualify generated reasoning/recall. Its claimed
+MinP prose repair and complete-path memory measurements are not established by
+the cited source. Those open-branch findings do not change accepted artifacts or
+the native model's current capability status.
 
 ## Decision and active work
 

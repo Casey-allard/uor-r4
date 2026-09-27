@@ -15,7 +15,10 @@ use crate::baseline_protocol::{
     device, load_evaluator, read_tokens, save_json, verify_identity, Evaluator,
 };
 use crate::joint_evaluation::{self, STORY_PROBE_SCOPE, STORY_STOP_POLICY};
-use crate::joint_model::{JointConfig, JointModel, PrecisionMode, ReadMode};
+use crate::joint_model::{
+    JointConfig, JointModel, PrecisionMode, ReadGeometry, ReadMode, LORENTZ_LOG_BETA,
+    LORENTZ_OFFSET,
+};
 use crate::joint_optimizer::{AdamConfig, NamedAdamW};
 use crate::joint_quantization::QuantizationSpec;
 use crate::{invalid, sha256_file, Result};
@@ -65,12 +68,22 @@ pub struct ProjectionTransition {
     pub reason: String,
 }
 
+/// Explicit fresh-start override shared by the two radial read operators.
+/// Absence retains the model constructor's historical initialization.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadInitialization {
+    UnitScale,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Campaign {
     pub schema: String,
     pub evaluator_path: PathBuf,
     pub model: JointConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_initialization: Option<ReadInitialization>,
     pub optimizer: AdamConfig,
     pub data_seed: u64,
     pub batch: usize,
@@ -122,6 +135,7 @@ impl Campaign {
             return Err(invalid("unsupported joint campaign configuration"));
         }
         cfg.model.validate()?;
+        cfg.validate_read_initialization()?;
         cfg.optimizer.validate()?;
         if let Some(transition) = &cfg.training_window_transition {
             if !is_hex_digest(&transition.parent_checkpoint_sha256, 64)
@@ -160,6 +174,56 @@ impl Campaign {
         validate_projection_declaration(&cfg)?;
         Ok(cfg)
     }
+
+    fn validate_read_initialization(&self) -> Result<()> {
+        if self.read_initialization.is_some()
+            && !matches!(
+                self.model.read_geometry,
+                ReadGeometry::Lorentz | ReadGeometry::LorentzAffine
+            )
+        {
+            return Err(invalid(
+                "unit_scale initialization requires a radial read operator",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Construct a fresh campaign model before optimizer creation or evaluation.
+    /// The override consumes no random draws and changes only log(beta). Loading
+    /// a checkpoint must never call this method: its beta has already evolved.
+    pub fn fresh_model(&self, device: &candle_core::Device) -> Result<JointModel> {
+        self.validate_read_initialization()?;
+        let model = JointModel::new(self.model.clone(), device)?;
+        if self.read_initialization == Some(ReadInitialization::UnitScale) {
+            model
+                .variables()
+                .get(LORENTZ_LOG_BETA)
+                .ok_or_else(|| invalid("radial model has no learned log(beta)"))?
+                .set(&candle_core::Tensor::new(&[0.0f32], device)?)?;
+        }
+        Ok(model)
+    }
+}
+
+pub(crate) fn validate_read_initialization_binding(cfg: &Campaign, binding: &Value) -> Result<()> {
+    cfg.validate_read_initialization()?;
+    // Missing legacy metadata and the omitted default both denote no override.
+    if binding["read_initialization"] != json!(cfg.read_initialization) {
+        return Err(invalid("checkpoint/campaign read initialization differs"));
+    }
+    Ok(())
+}
+
+fn same_read_initialization(a: &Campaign, b: &Campaign) -> Result<()> {
+    a.validate_read_initialization()?;
+    b.validate_read_initialization()?;
+    if a.read_initialization != b.read_initialization {
+        return Err(invalid(
+            "learning configuration changes read initialization",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_projection_declaration(cfg: &Campaign) -> Result<()> {
@@ -232,6 +296,7 @@ fn projection_resume_transition(
     state: &Value,
     step: usize,
 ) -> Result<bool> {
+    same_read_initialization(cfg, old)?;
     projection_state_matches(cfg, state, step)?;
     match (&old.projection_transition, &cfg.projection_transition) {
         (None, None) => Ok(false),
@@ -288,6 +353,7 @@ fn validate_quantization_binding(
     state: &Value,
     step: usize,
 ) -> Result<()> {
+    validate_read_initialization_binding(cfg, checkpoint)?;
     if checkpoint["quantization_transition"] != json!(cfg.quantization_transition)
         || checkpoint["quantization"] != *state
     {
@@ -320,6 +386,7 @@ fn quantization_resume_transition(
     campaign_sha: &str,
     step: usize,
 ) -> Result<bool> {
+    same_read_initialization(cfg, old)?;
     match (&old.quantization_transition, &cfg.quantization_transition) {
         (None, None) => Ok(false),
         (Some(previous), Some(current)) if previous == current => {
@@ -368,12 +435,12 @@ fn is_hex_digest(value: &str, length: usize) -> bool {
 }
 
 pub(crate) fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<Value> {
+    cfg.validate_read_initialization()?;
     let source = option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND");
     if source == "UNBOUND" {
         return Err(invalid("joint campaign requires source-bound build"));
     }
-    Ok(
-        json!({"schema":"uor-r4.joint-recurrent-report/1", "mode":mode,
+    let mut report = json!({"schema":"uor-r4.joint-recurrent-report/1", "mode":mode,
         "source_commit":source,"executable_sha256":sha256_file(&std::env::current_exe()?)?,
         "campaign":cfg,"requested_device":device_name,
         "cpu_gradient_shards":cfg.cpu_gradient_shards,
@@ -381,8 +448,12 @@ pub(crate) fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<
         "cpu_accelerate_compiled":cfg!(feature="cpu-accelerate"),
         "candle_source":"vendored0.9.2; four-line Accelerate operand slice correction; UPSTREAM.json",
         "deadline_scope":"max_process_seconds stops new updates; measured closeout allowance is budgeted separately",
-        "scope":"Offline recurrent-memory learner or quantized numerical emulator; no transformer backbone, compliant integer serving kernel, geometry promotion or energy claim"}),
-    )
+        "scope":"Offline recurrent-memory learner or quantized numerical emulator; no transformer backbone, compliant integer serving kernel, geometry promotion or energy claim"});
+    if let Some(initialization) = cfg.read_initialization {
+        report["read_initialization"] = json!(initialization);
+        report["read_initialization_scope"] = json!("Fresh campaign construction sets read.lorentz_log_beta=0 (beta=1); offset and all other variables retain constructor values. Resume/evaluation retain loaded learned scalars. Model numerical-contract initialization text describes the unchanged constructor default, overridden only by this campaign field.");
+    }
+    Ok(report)
 }
 
 fn splitmix(mut state: u64) -> u64 {
@@ -733,6 +804,7 @@ fn save_checkpoint_with_calibration(
     evaluator_sha: &str,
     calibration: Option<&Value>,
 ) -> Result<()> {
+    cfg.validate_read_initialization()?;
     let quantization = serde_json::to_value(model.quantization())?;
     quantization_state_matches(cfg, &quantization, step)?;
     projection_state_matches(cfg, &quantization, step)?;
@@ -760,6 +832,9 @@ fn save_checkpoint_with_calibration(
     });
     if let Some(transition) = &cfg.projection_transition {
         binding["projection_transition"] = json!(transition);
+    }
+    if let Some(initialization) = cfg.read_initialization {
+        binding["read_initialization"] = json!(initialization);
     }
     if let Some(calibration) = calibration {
         binding["shadow_calibration"] = calibration.clone();
@@ -823,6 +898,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     let (mut model, mut optimizer, begin) = if let Some(path) = resume {
         report_output::verify(path)?;
         let old = Campaign::load(&path.join("campaign.json"))?;
+        same_read_initialization(cfg, &old)?;
         let checkpoint: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
         let checkpoint_sha = sha256_file(&path.join("checkpoint.json"))?;
         let campaign_sha = sha256_file(&path.join("campaign.json"))?;
@@ -955,7 +1031,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         );
         (model, optimizer, begin)
     } else {
-        let model = JointModel::new(cfg.model.clone(), &selected)?;
+        let model = cfg.fresh_model(&selected)?;
         let optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
         (model, optimizer, 0)
     };
@@ -968,6 +1044,15 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         .map(|v| v.elem_count())
         .sum::<usize>());
     report["starting_step"] = json!(begin);
+    if cfg.read_initialization.is_some() {
+        report["read_initialization_applied_this_process"] = json!(resume.is_none());
+        report["starting_radial_scalars"] = json!({
+            "read.lorentz_log_beta": model.variables().get(LORENTZ_LOG_BETA)
+                .ok_or_else(|| invalid("radial model has no learned log(beta)"))?.to_vec1::<f32>()?,
+            "read.lorentz_offset": model.variables().get(LORENTZ_OFFSET)
+                .ok_or_else(|| invalid("radial model has no learned offset"))?.to_vec1::<f32>()?
+        });
+    }
     report["starting_sampled_target_visits"] = json!(begin * cfg.batch * cfg.context);
     report["initial_quantization"] = serde_json::to_value(model.quantization())?;
     report["initial_training_quantization_strength"] = json!(model.training_strength());
@@ -2066,6 +2151,7 @@ pub(crate) fn finish_attempt<T>(out: &Path, result: Result<T>) -> Result<T> {
 }
 
 fn same_learning_configuration(a: &Campaign, b: &Campaign) -> Result<()> {
+    same_read_initialization(a, b)?;
     if a.model != b.model
         || a.optimizer != b.optimizer
         || a.data_seed != b.data_seed
@@ -2688,6 +2774,246 @@ mod tests {
     use super::*;
 
     #[test]
+    fn radial_initialization_is_typed_and_legacy_serialization_is_unchanged() -> Result<()> {
+        let cfg = transition_campaign();
+        let legacy = serde_json::to_vec(&cfg)?;
+        let mut value = serde_json::to_value(&cfg)?;
+        assert!(value.get("read_initialization").is_none());
+        let decoded: Campaign = serde_json::from_slice(&legacy)?;
+        assert_eq!(decoded.read_initialization, None);
+        assert_eq!(serde_json::to_vec(&decoded)?, legacy);
+        value["read_initialization"] = Value::Null;
+        let explicit_default: Campaign = serde_json::from_value(value.clone())?;
+        assert_eq!(serde_json::to_vec(&explicit_default)?, legacy);
+        value["read_initialization"] = json!("unit_scale");
+        let mut unit: Campaign = serde_json::from_value(value.clone())?;
+        assert_eq!(
+            unit.read_initialization,
+            Some(ReadInitialization::UnitScale)
+        );
+        assert!(unit.fresh_model(&candle_core::Device::Cpu).is_err());
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            unit.model.read_geometry = geometry;
+            unit.validate_read_initialization()?;
+        }
+        value["read_initialization"] = json!("unit_sclae");
+        assert!(serde_json::from_value::<Campaign>(value).is_err());
+        Ok(())
+    }
+
+    fn parameter_bits(model: &JointModel) -> Result<BTreeMap<String, Vec<u32>>> {
+        model
+            .variables()
+            .iter()
+            .map(|(name, variable)| {
+                Ok((
+                    name.clone(),
+                    variable
+                        .flatten_all()?
+                        .to_vec1::<f32>()?
+                        .into_iter()
+                        .map(f32::to_bits)
+                        .collect(),
+                ))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn radial_initialization_changes_only_shared_log_scale() -> Result<()> {
+        let mut cfg = transition_campaign();
+        cfg.model.width = 128;
+        cfg.model.context = 8;
+        cfg.model.seed = 7;
+        let mut first_arm = None;
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            cfg.model.read_geometry = geometry;
+            cfg.read_initialization = None;
+            let constructor = JointModel::new(cfg.model.clone(), &candle_core::Device::Cpu)?;
+            let default = cfg.fresh_model(&candle_core::Device::Cpu)?;
+            assert_eq!(parameter_bits(&default)?, parameter_bits(&constructor)?);
+            cfg.read_initialization = Some(ReadInitialization::UnitScale);
+            let unit = cfg.fresh_model(&candle_core::Device::Cpu)?;
+            assert_eq!(unit.numerical_contract(), constructor.numerical_contract());
+            let actual = parameter_bits(&unit)?;
+            let mut expected = parameter_bits(&constructor)?;
+            assert_ne!(expected[LORENTZ_LOG_BETA], [0.0f32.to_bits()]);
+            expected.insert(LORENTZ_LOG_BETA.into(), vec![0.0f32.to_bits()]);
+            assert_eq!(actual, expected);
+            if let Some(previous) = &first_arm {
+                assert_eq!(
+                    &actual, previous,
+                    "same initial arrays and both scalars across radial operators"
+                );
+            } else {
+                first_arm = Some(actual);
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn radial_initialization_rejects_changed_or_missing_lineage() -> Result<()> {
+        let mut historical = transition_campaign();
+        historical.model.read_geometry = ReadGeometry::Lorentz;
+        let mut unit = historical.clone();
+        unit.read_initialization = Some(ReadInitialization::UnitScale);
+        let binding = json!({"read_initialization":"unit_scale"});
+        validate_read_initialization_binding(&unit, &binding)?;
+        validate_read_initialization_binding(&historical, &json!({}))?;
+        assert!(validate_read_initialization_binding(&unit, &json!({})).is_err());
+        assert!(validate_read_initialization_binding(&historical, &binding).is_err());
+        for (next, old) in [(&unit, &historical), (&historical, &unit)] {
+            assert!(same_learning_configuration(next, old).is_err());
+            assert!(quantization_resume_transition(next, old, "unused", "unused", 1).is_err());
+            assert!(
+                projection_resume_transition(next, old, "unused", "unused", &Value::Null, 1)
+                    .is_err()
+            );
+        }
+        // A legitimate first quantization or projection transition cannot also
+        // replace the original initializer declaration.
+        let (mut old, mut projected, state) = projection_fixture();
+        for cfg in [&mut old, &mut projected] {
+            cfg.model.read_geometry = ReadGeometry::Lorentz;
+            cfg.read_initialization = Some(ReadInitialization::UnitScale);
+        }
+        let checkpoint_sha = "c".repeat(64);
+        let campaign_sha = "d".repeat(64);
+        assert!(projection_resume_transition(
+            &projected,
+            &old,
+            &checkpoint_sha,
+            &campaign_sha,
+            &state,
+            7836
+        )?);
+        projected.read_initialization = None;
+        assert!(projection_resume_transition(
+            &projected,
+            &old,
+            &checkpoint_sha,
+            &campaign_sha,
+            &state,
+            7836
+        )
+        .is_err());
+        let transition = old.quantization_transition.as_ref().unwrap();
+        assert!(quantization_resume_transition(
+            &old,
+            &unit,
+            &transition.parent_checkpoint_sha256,
+            &transition.parent_campaign_sha256,
+            transition.parent_optimizer_step,
+        )?);
+        old.read_initialization = None;
+        let transition = old.quantization_transition.as_ref().unwrap();
+        assert!(quantization_resume_transition(
+            &old,
+            &unit,
+            &transition.parent_checkpoint_sha256,
+            &transition.parent_campaign_sha256,
+            transition.parent_optimizer_step,
+        )
+        .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn radial_initialization_resume_preserves_evolved_beta_and_next_update() -> Result<()> {
+        let mut cfg = transition_campaign();
+        cfg.model.width = 128;
+        cfg.model.context = 8;
+        cfg.model.seed = 7;
+        cfg.batch = 1;
+        cfg.context = 8;
+        cfg.cpu_gradient_shards = 1;
+        cfg.total_steps = 3;
+        cfg.read_initialization = Some(ReadInitialization::UnitScale);
+        let stores = vec![(0..64).collect::<Vec<u16>>()];
+        let evaluator_sha = "c".repeat(64);
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock"))?
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "uor-radial-initialization-{}-{nonce}",
+            std::process::id()
+        ));
+        report_output::claim(&root)?;
+        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+            cfg.model.read_geometry = geometry;
+            let model = cfg.fresh_model(&candle_core::Device::Cpu)?;
+            let mut optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
+            let (inputs, targets) = training_batch(&stores, &cfg, 0)?;
+            let gradients =
+                crate::joint_parallel::batch_gradients(&model, &inputs, &targets, 1, 8, 1)?;
+            optimizer.step(model.variables(), &gradients.gradients)?;
+            let evolved = model.variables()[LORENTZ_LOG_BETA].to_vec1::<f32>()?;
+            assert_ne!(evolved[0].to_bits(), 0.0f32.to_bits());
+            let checkpoint = root.join(geometry.name());
+            report_output::claim(&checkpoint)?;
+            save_checkpoint(
+                &model,
+                &optimizer,
+                &cfg,
+                &checkpoint,
+                1,
+                "TEST_ONLY",
+                &evaluator_sha,
+            )?;
+            let restored =
+                load_bound_checkpoint(&checkpoint, &candle_core::Device::Cpu, &evaluator_sha)?;
+            same_learning_configuration(&cfg, &restored.campaign)?;
+            assert_eq!(restored.binding["read_initialization"], "unit_scale");
+            assert_eq!(
+                restored.model.variables()[LORENTZ_LOG_BETA].to_vec1::<f32>()?,
+                evolved
+            );
+            assert_eq!(parameter_bits(&restored.model)?, parameter_bits(&model)?);
+            let mut resumed =
+                NamedAdamW::load(&checkpoint, restored.model.variables(), &cfg.optimizer)?;
+            assert_eq!(
+                resumed.continuity_fingerprint()?,
+                optimizer.continuity_fingerprint()?
+            );
+            let next_step = resumed.step_count() as usize;
+            let (inputs, targets) = training_batch(&stores, &cfg, next_step)?;
+            assert_eq!(
+                (inputs.clone(), targets.clone()),
+                training_batch(&stores, &restored.campaign, next_step)?
+            );
+            let uninterrupted =
+                crate::joint_parallel::batch_gradients(&model, &inputs, &targets, 1, 8, 1)?;
+            let continuation = crate::joint_parallel::batch_gradients(
+                &restored.model,
+                &inputs,
+                &targets,
+                1,
+                8,
+                1,
+            )?;
+            assert_eq!(
+                uninterrupted.mean_nll.to_bits(),
+                continuation.mean_nll.to_bits()
+            );
+            optimizer.step(model.variables(), &uninterrupted.gradients)?;
+            resumed.step(restored.model.variables(), &continuation.gradients)?;
+            assert_eq!(parameter_bits(&restored.model)?, parameter_bits(&model)?);
+            assert_eq!(
+                resumed.continuity_fingerprint()?,
+                optimizer.continuity_fingerprint()?
+            );
+            let mut changed = restored.campaign.clone();
+            changed.read_initialization = None;
+            assert!(same_learning_configuration(&cfg, &changed).is_err());
+        }
+        report_output::seal(&root)?;
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
     fn calibrated_shadow_preserves_fractional_weights_clocks_and_packed_metadata() -> Result<()> {
         use crate::joint_rounding::{LearnedRounding, RoundingConfig};
         use candle_core::{Device, Tensor};
@@ -2892,6 +3218,7 @@ mod tests {
             schema: "uor-r4.joint-recurrent-campaign/1".into(),
             evaluator_path: PathBuf::new(),
             model: JointConfig::default(),
+            read_initialization: None,
             optimizer: AdamConfig::default(),
             data_seed: 42,
             batch: 16,
@@ -3259,6 +3586,7 @@ mod tests {
             schema: "uor-r4.joint-recurrent-campaign/1".into(),
             evaluator_path: PathBuf::new(),
             model: JointConfig::default(),
+            read_initialization: None,
             optimizer: AdamConfig::default(),
             data_seed: 42,
             batch: 4,

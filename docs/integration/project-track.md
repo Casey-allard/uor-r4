@@ -47,14 +47,19 @@ Its separate proposed D10 backbone/arithmetic policy is not implicitly adopted.
 The [offline radial comparison](radial-read-control-2026-09-26.md) is implemented:
 it adds an affine tangent score to the continuous Lorentz reader with the same
 lifted radial information and learned scalar count. This distinguishes nonlinear
-distance weighting from the lift itself. The next research preparation is one
-explicit shared unit-scale initializer and a startup record of read/NoRead and
-gradient behavior, before choosing a costly paired learning dose. Preserve the
-old default and bind the override in new campaign/checkpoint provenance. The
-future language comparison must report calibration differences and useful
-generated behavior; implementation checks do not trigger a training sweep or
-serving promotion. Exact-token dialogue ingestion can advance independently
-through the retained integer session while these learning conditions are resolved.
+distance weighting from the lift itself. Its explicit shared unit-scale
+initializer and fixed-prefix startup observation now establish active language
+credit in both untrained readers at that scope. The old default is preserved and
+new campaign/checkpoint provenance binds the override. Next prepare explicit
+shared-parameter transfer from a retained Dot checkpoint, identical optimizer
+resets and a new adaptation lineage; inspect startup at the learned query/key
+scale before selecting a meaningful dose. This preserves learned language
+history without silently resuming under a changed operator. The future language
+comparison must report calibration differences and useful generated behavior;
+implementation checks do not trigger a training sweep or serving promotion.
+Keep the independently owned termination objective separate. Exact-token
+dialogue adoption can advance through the retained integer session while these
+learning conditions are resolved.
 
 ## Active programme — learn the model, then harden its execution
 

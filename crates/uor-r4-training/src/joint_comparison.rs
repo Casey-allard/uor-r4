@@ -579,6 +579,10 @@ fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Resul
     digest_field(binding, "model_sha256", 64)?;
     digest_field(binding, "source_commit", 40)?;
     let declared: crate::joint_campaign::Campaign = serde_json::from_value(campaign.clone())?;
+    crate::joint_campaign::validate_read_initialization_binding(&declared, binding)?;
+    if report["read_initialization"] != campaign["read_initialization"] {
+        return Err(invalid("evaluation/campaign read initialization differs"));
+    }
     crate::joint_campaign::validate_projection_binding(
         &declared,
         binding,
@@ -776,6 +780,9 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
     }
     let q = &reports[0]["campaign"];
     let ordinary = &reports[2]["campaign"];
+    if q["read_initialization"] != ordinary["read_initialization"] {
+        return Err(invalid("transport arms differ in read initialization"));
+    }
     let q_quantization = &q["quantization_transition"];
     let ordinary_quantization = &ordinary["quantization_transition"];
     if q_quantization.is_null() != ordinary_quantization.is_null() {

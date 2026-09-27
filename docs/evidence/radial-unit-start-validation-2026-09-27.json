@@ -1,0 +1,448 @@
+{
+  "schema": "uor-r4.radial-unit-start-validation/1",
+  "recorded_at": "2026-09-27T02:36:13.633668+00:00",
+  "library_test_source_commit": "17f0cde099251393396077ccd5ee5f79e8d23e16",
+  "startup_source_commit": "0aa932dcbb6cc9764869b9772054098ff1d2f339",
+  "source_sha256": {
+    "crates/uor-r4-training/src/joint_campaign.rs": "3d3337de9ad72b5b630ead2f204c7bc0ce9997debd99fb381aa2e366f50622dc",
+    "crates/uor-r4-training/src/joint_comparison.rs": "17d62ce3431f0f421f9082b57b42459404f43fb7cb3c24da38c326e3872144cb",
+    "crates/uor-r4-training/examples/radial-startup.rs": "df0cadb12564ec7bd27a09f30cabb157b4491a66b6b2d99d592ae3a2fde75afd"
+  },
+  "scope": "Typed campaign initializer/resume provenance and no-update natural-prefix startup observation; no fitted language or geometry promotion",
+  "checks": [
+    {
+      "filter": "radial_initialization_",
+      "passed": 4,
+      "failed": 0,
+      "test_seconds": 12.86,
+      "command_seconds": 449.12,
+      "maximum_command_rss_bytes": 1608859648
+    },
+    {
+      "filter": "calibrated_shadow_",
+      "passed": 2,
+      "failed": 0,
+      "test_seconds": 8.97,
+      "command_seconds": 8.98,
+      "maximum_command_rss_bytes": 258736128,
+      "same_test_binary": true
+    }
+  ],
+  "test_binary": {
+    "path": "/Users/casey.allard/uor-r4/target/debug/deps/uor_r4_training-8a35cdf4d038fd04",
+    "sha256": "6961ba8c410241cb51c63c78bbfeedfb8e8507dcd452fc2df4d74f72e7fd3966"
+  },
+  "own_startup_build": {
+    "source_commit": "0aa932dcbb6cc9764869b9772054098ff1d2f339",
+    "profile": "test",
+    "command_seconds": 30.88,
+    "maximum_command_rss_bytes": 695222272,
+    "binary_sha256": "3f717c064c33e57b6a6da11fbeb6df9ee33aab5a14f2ece0f114fd836af0ec54",
+    "execution": "NOT_RUN; complete exact external result reused"
+  },
+  "startup": {
+    "producer": "Antigravity, observed process56976; verification and source review by fourth lab",
+    "status": "DESCRIPTIVE_STARTUP_COMPLETE",
+    "source_commit": "0aa932dcbb6cc9764869b9772054098ff1d2f339",
+    "executable_sha256": "f296e3b740cd798bb6171cda3e029b46a2f64810b757b6ada5eb30dae272c765",
+    "preserved_executable": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/radial-startup-antigravity-0aa932dc",
+    "preserved_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/radial-startup-import-1",
+    "original_root": "/tmp/radial-startup-test-1",
+    "manifest_sha256": "29559206b393a397a5ea6b5923c92dde214d05b1e88b49344dae2971adde4f21",
+    "file_sha256": {
+      "startup.json": "66349d413ada41dbbb2595f96910cb8aecf0e64127386ebdd4117a388fff828a",
+      "evaluator.json": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+      "lorentz_affine.json": "159f2d321565909843fe636b5dc94709ff2e326b02158e7dd5b92a4db27ed2ac",
+      "lorentz.json": "616b66f344b621879aacf2f20872648381c6ef6badc52d2b86a1580b57a9acad",
+      "lorentz-campaign.json": "2503d200233f3ad7378841ebb5e31a185cc98e07b5479eecd34a84ca1c123073",
+      "inputs.json": "65523efebfb9891efe7ca8905c187bdef4c871a75423d86c412a47ec345cfb63",
+      "manifest.json": "29559206b393a397a5ea6b5923c92dde214d05b1e88b49344dae2971adde4f21",
+      "attempt.json": "9556add8768a1c1cb8fc34add95fc574edc949ae36d4b81f8a197a35873a256e",
+      "lorentz_affine-campaign.json": "dfa89af2f4c4613fe6006c70c7831c8d78df8324905d24316ac7d81fc697a87c",
+      "generations.json": "56e5e4f49ee264b1d328b1228bfc44658df1ed4d58b60d49d02bbdc8e3bb5275"
+    },
+    "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+    "fixed_conditions": {
+      "batch": 4,
+      "development_blocks": [
+        0,
+        21,
+        42,
+        63
+      ],
+      "device": "cpu",
+      "initializer": "unit_scale",
+      "memory_access": "all causal occurrences within each full256 window; no selected-event policy",
+      "observation_context": 256,
+      "optimizer_updates": 0,
+      "parameter_seed": 240924,
+      "read_vector_width": 64,
+      "state_width": 256,
+      "transport": "quaternion"
+    },
+    "parameters_identical_before": true,
+    "parameters_unchanged_after": true,
+    "first_common_read_states_bit_identical": true,
+    "first_common_read_observations": [
+      {
+        "affine_no_read": 0.4600071907043457,
+        "affine_read": 0.5399928092956543,
+        "affine_read_log_odds": 0.1603137020235694,
+        "block": 0,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.6582541764462023,
+        "lorentz_no_read": 0.30606773495674133,
+        "lorentz_read": 0.6939322352409363,
+        "lorentz_read_log_odds": 0.8185678784697717,
+        "position": 1,
+        "window": 0
+      },
+      {
+        "affine_no_read": 0.3730331063270569,
+        "affine_read": 0.6269668936729431,
+        "affine_read_log_odds": 0.5192265654651561,
+        "block": 21,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.32852834823737465,
+        "lorentz_no_read": 0.2999040186405182,
+        "lorentz_read": 0.7000959515571594,
+        "lorentz_read_log_odds": 0.8477549137025308,
+        "position": 1,
+        "window": 1
+      },
+      {
+        "affine_no_read": 0.8845534920692444,
+        "affine_read": 0.11544656753540039,
+        "affine_read_log_odds": -2.0362751847755027,
+        "block": 42,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.6821464986836694,
+        "lorentz_no_read": 0.7948037981987,
+        "lorentz_read": 0.20519620180130005,
+        "lorentz_read_log_odds": -1.3541286860918333,
+        "position": 1,
+        "window": 2
+      },
+      {
+        "affine_no_read": 0.004721744917333126,
+        "affine_read": 0.9952782392501831,
+        "affine_read_log_odds": 5.350843918348563,
+        "block": 63,
+        "causal_key_position": 0,
+        "lorentz_minus_affine_read_log_odds": 0.2814603151132644,
+        "lorentz_no_read": 0.0035675428807735443,
+        "lorentz_read": 0.9964324235916138,
+        "lorentz_read_log_odds": 5.632304233461827,
+        "position": 1,
+        "window": 3
+      }
+    ],
+    "elapsed_seconds": 202.234669083,
+    "optimizer_updates": 0,
+    "launcher_thread_limit": "UNVERIFIED external environment",
+    "peak_rss": "UNVERIFIED true peak; observed snapshots only",
+    "arms": {
+      "lorentz": {
+        "actual_initialization": {
+          "beta": 1.0,
+          "campaign_override": "unit_scale",
+          "log_beta": 0.0,
+          "note": "The pinned numerical contract documents constructor defaults. Campaign::fresh_model applies the explicit override before this observation.",
+          "offset": 5.331728935241699
+        },
+        "observed_initial_next_token_nll": 6.819336891174316,
+        "gradients": {
+          "read.key.weight": {
+            "coordinates": 16384,
+            "finite": true,
+            "l2_norm": 0.1087887997255126,
+            "maximum_absolute": 0.006639885250478983,
+            "nonzero_coordinates": 16384
+          },
+          "read.lorentz_log_beta": {
+            "coordinates": 1,
+            "finite": true,
+            "l2_norm": 0.042939379811286926,
+            "maximum_absolute": 0.042939379811286926,
+            "nonzero_coordinates": 1
+          },
+          "read.lorentz_offset": {
+            "coordinates": 1,
+            "finite": true,
+            "l2_norm": 0.02687568962574005,
+            "maximum_absolute": 0.02687568962574005,
+            "nonzero_coordinates": 1
+          },
+          "read.no_read.weight": {
+            "coordinates": 256,
+            "finite": true,
+            "l2_norm": 0.3356026613785142,
+            "maximum_absolute": 0.12250359356403351,
+            "nonzero_coordinates": 256
+          },
+          "read.query.weight": {
+            "coordinates": 16384,
+            "finite": true,
+            "l2_norm": 0.08068634001068023,
+            "maximum_absolute": 0.006153107155114412,
+            "nonzero_coordinates": 16384
+          },
+          "read.value.weight": {
+            "coordinates": 65536,
+            "finite": true,
+            "l2_norm": 3.414575370461406,
+            "maximum_absolute": 0.081645667552948,
+            "nonzero_coordinates": 65536
+          }
+        },
+        "all_required_gradient_arrays_have_nonzero_coordinates": true,
+        "summary_excludes_empty_history_position0": {
+          "all_causal_read_positions_nonzero": true,
+          "defined_entropy_positions": 1020,
+          "maximum_mass_normalization_error": 2.1327286958694458e-07,
+          "mean_conditional_read_entropy_nats": 4.3520881450413595,
+          "mean_no_read_mass": 0.029887310429430547,
+          "mean_read_mass": 0.9701126890882876,
+          "positions": 1020,
+          "zero_read_positions": 0
+        },
+        "seconds": 94.05752975
+      },
+      "lorentz_affine": {
+        "actual_initialization": {
+          "beta": 1.0,
+          "campaign_override": "unit_scale",
+          "log_beta": 0.0,
+          "note": "The pinned numerical contract documents constructor defaults. Campaign::fresh_model applies the explicit override before this observation.",
+          "offset": 5.331728935241699
+        },
+        "observed_initial_next_token_nll": 6.829710960388184,
+        "gradients": {
+          "read.key.weight": {
+            "coordinates": 16384,
+            "finite": true,
+            "l2_norm": 0.10501827429213538,
+            "maximum_absolute": 0.004660741426050663,
+            "nonzero_coordinates": 16384
+          },
+          "read.lorentz_log_beta": {
+            "coordinates": 1,
+            "finite": true,
+            "l2_norm": 0.041837457567453384,
+            "maximum_absolute": 0.041837457567453384,
+            "nonzero_coordinates": 1
+          },
+          "read.lorentz_offset": {
+            "coordinates": 1,
+            "finite": true,
+            "l2_norm": 0.020052578300237656,
+            "maximum_absolute": 0.020052578300237656,
+            "nonzero_coordinates": 1
+          },
+          "read.no_read.weight": {
+            "coordinates": 256,
+            "finite": true,
+            "l2_norm": 0.44801215420248025,
+            "maximum_absolute": 0.13086864352226257,
+            "nonzero_coordinates": 256
+          },
+          "read.query.weight": {
+            "coordinates": 16384,
+            "finite": true,
+            "l2_norm": 0.06995703666783451,
+            "maximum_absolute": 0.003427590476348996,
+            "nonzero_coordinates": 16384
+          },
+          "read.value.weight": {
+            "coordinates": 65536,
+            "finite": true,
+            "l2_norm": 4.729610986525601,
+            "maximum_absolute": 0.1357048898935318,
+            "nonzero_coordinates": 65536
+          }
+        },
+        "all_required_gradient_arrays_have_nonzero_coordinates": true,
+        "summary_excludes_empty_history_position0": {
+          "all_causal_read_positions_nonzero": true,
+          "defined_entropy_positions": 1020,
+          "maximum_mass_normalization_error": 3.2922253012657166e-07,
+          "mean_conditional_read_entropy_nats": 4.365420808690623,
+          "mean_no_read_mass": 0.029885901042086747,
+          "mean_read_mass": 0.9701140985261494,
+          "positions": 1020,
+          "zero_read_positions": 0
+        },
+        "seconds": 102.726383541
+      }
+    }
+  },
+  "generation": {
+    "scope": "Supplementary untrained outputs, no quality verdict",
+    "same_actual_prompt_ids": true,
+    "actual_prefix_begins": [
+      0,
+      0
+    ],
+    "limitation": "Decoded source prefix already contains BOS; existing generate prepends another. This disclosed supplementary-input condition does not affect the separate full256 gradient windows. No rerun solely to alter this prompt.",
+    "arms": [
+      {
+        "geometry": "lorentz",
+        "generated_token_ids": [
+          393,
+          0,
+          1334,
+          0,
+          327,
+          261,
+          1236,
+          344
+        ],
+        "response_text": "little<|bos|> wood<|bos|> play a favorite Tim",
+        "seed": 2014,
+        "sampler_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      {
+        "geometry": "lorentz_affine",
+        "generated_token_ids": [
+          1634,
+          261,
+          372,
+          261,
+          268,
+          0,
+          343,
+          1236
+        ],
+        "response_text": "quiet a of a to<|bos|> his favorite",
+        "seed": 2014,
+        "sampler_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      }
+    ]
+  },
+  "decision": "Both unit-scale reader paths have active finite language credit on fixed inputs; no calibration correction/sweep. Next prepare explicit shared-parameter transfer lineage and observe learned-scale startup before a prospectively selected adaptation dose. Mainline termination objective remains independently owned.",
+  "resource": {
+    "own_compile_check_command_seconds": 488.98,
+    "own_functional_model_checks_seconds_included": 21.83,
+    "own_startup_model_seconds": 0,
+    "external_startup_model_seconds": 202.234669083,
+    "own_training_study_seconds": 0,
+    "own_capability_evaluation_seconds": 0,
+    "accelerator_seconds": 0,
+    "paid_compute": false,
+    "projection": {
+      "recorded_at": "2026-09-27T02:11:45.515437+00:00",
+      "scope": "Typed unit-scale initialization for canonical radial campaigns, resume/provenance checks, and one no-update startup witness on fixed canonical prefixes",
+      "base_commit": "f8bee0fff17868e8f467166b3aaf4d2e46ca78ce",
+      "observed_shared_ledger": {
+        "cumulative_ms": 653824741,
+        "limit_ms": 744000000
+      },
+      "phase_elapsed_cap_ms": 2700000,
+      "prior_owned_elapsed_cap_ms": 7200000,
+      "owned_elapsed_cap_ms": 9000000,
+      "owned_elapsed_extension_ms": 1800000,
+      "prior_verified_cumulative_allowance_ms": 657600000,
+      "verified_cumulative_allowance_ms": 661200000,
+      "verified_cumulative_extension_ms": 3600000,
+      "foreign_reported_limit_adoption": false,
+      "reason": "Successive owner-authorized native attention work now adds explicit initialization and one actual startup comparison. Extend own envelope prospectively by30minutes and verified cumulative allowance by60minutes to cover this45minute phase plus shared-charge uncertainty; preserve all cumulative charges. This does not authorize a multi-hour learning study.",
+      "projection_ms": {
+        "source_research_implementation_review_delivery": 1920000,
+        "compile_focused_checks": 600000,
+        "no_update_model_witness": 180000,
+        "paired_training_study": 0,
+        "capability_evaluation": 0,
+        "accelerator": 0
+      },
+      "build_jobs": 2,
+      "rayon_threads": 2,
+      "maximum_concurrent_cargo": 1,
+      "model_witness": {
+        "device": "CPU",
+        "batch": 4,
+        "training_updates": 0,
+        "prefix_length": 256,
+        "context_access": "full causal, up to255 previous events",
+        "state_width": 256,
+        "read_width": 64,
+        "vocabulary": 4096,
+        "two_arms_sequential": true,
+        "peak_new_ram_bytes": 4294967296
+      },
+      "new_internal_storage_cap_bytes": 1073741824,
+      "prior_shared_ssd_allowance_bytes": 4294967296,
+      "shared_ssd_allowance_bytes": 5368709120,
+      "ssd_increment_bytes": 1073741824,
+      "storage_reason": "Headroom for focused training crate/example relink and source-bound startup reports; shared cache increments are not exclusively attributable across labs.",
+      "expected_new_report_bytes_below": 20971520,
+      "physical_reserve_bytes": 25971130368,
+      "minimum_stop_margin_bytes": 134217728,
+      "authorization": "Standing owner authorization for necessary local time/storage extensions; no paid compute, deletion or signals to other lab jobs.",
+      "stop": "Checkpoint at phase/owned/cumulative ceiling or physical reserve. Model witness has separate180second projection; if it cannot finish, preserve attempt and diagnose measured cost before any extension.",
+      "prospective_witness_detail": {
+        "recorded_at": "2026-09-27T02:13:35.024103+00:00",
+        "development_blocks": [
+          0,
+          21,
+          42,
+          63
+        ],
+        "gradient_batch": 4,
+        "prefix_length": 256,
+        "generation_prefix_length": 32,
+        "generation_max_new_tokens": 8,
+        "generation_arms": 2,
+        "generation_scope": "Untrained no-update startup behavior through existing canonical sampler/tokenizer; no quality gate or policy sweep",
+        "witness_projection_ms_unchanged": 180000
+      },
+      "startup_projection_update": {
+        "recorded_at": "2026-09-27T02:31:41.550098+00:00",
+        "prior_witness_ms": 180000,
+        "witness_ms": 300000,
+        "increment_ms": 120000,
+        "reason": "Before own witness launch, a separate Antigravity process executing this example recorded94.06seconds for its first arm in a default debug build under contention. Its provenance is not adopted as validation; this live timing justifies300seconds for two arms and short generation. The fixed inputs/operators are unchanged.",
+        "phase_elapsed_cap_ms_unchanged": 2700000,
+        "owned_elapsed_cap_ms_unchanged": 9000000,
+        "verified_cumulative_allowance_ms_unchanged": 661200000,
+        "allocation_change": "Reallocate120000ms from preparation/review allowance to the one model witness; no new experiment or retry."
+      }
+    },
+    "ledger_checkpoint": {
+      "last_charged_at": "2026-09-27T02:36:13.633668+00:00",
+      "charged_elapsed_ms": 7389631,
+      "tail_ms": 1720464,
+      "before": {
+        "cumulative_ms": 653824741,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 655545205,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "limitations": "Compare-before atomic replacement; foreign writers do not share this advisory lock. No global mutual exclusion claim.",
+      "scope": "Unit initializer implementation/reviews/source-bound6checks/build, cross-lab source review and verified import of exact external startup witness. No duplicate startup execution.",
+      "executed": {
+        "unit_tests": 4,
+        "retained_tests": 2,
+        "compile_check_command_seconds": 488.98,
+        "functional_test_seconds_included": 21.83,
+        "own_startup_runs": 0,
+        "external_startup_seconds_verified": 202.234669083,
+        "paired_training_study_ms": 0,
+        "capability_evaluation_ms": 0,
+        "accelerator_ms": 0
+      }
+    },
+    "foreign_worktree_build_cache_observed_bytes": 3484733440,
+    "foreign_cache_action": "Preserved; not attributed as owned artifact storage or deleted."
+  },
+  "review": "Independent initializer and startup source reviews, followed by independent full artifact/source/data verification; no duplicate numerical replay",
+  "cross_lab_review": "https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824"
+}

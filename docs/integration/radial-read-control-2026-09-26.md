@@ -159,14 +159,73 @@ the matched start. These are that packet's reported development results, not a
 new fourth-lab replay or comparable TinyStories scores.
 [Retained study](hyperbolic-cycle3-2026-09-26.md).
 
-The next research preparation is one typed optional campaign initializer that
-sets the learned log-beta to zero for either fresh radial arm, before optimizer
-construction and initial evaluation. Absent/default must preserve the existing
-constructor and old serialization. Resume must retain the evolved scalar and
-bind the initializer in campaign/checkpoint provenance. Reject applying it to
-Dot. Keep the pinned Lorentz numerical contract byte-compatible; its description
-of the constructor default must not conceal the separately recorded override.
-This initializer is a selected design, not implemented by the radial-control PR.
+The campaign now accepts the typed optional `read_initialization: "unit_scale"`
+field. `Campaign::fresh_model` sets only learned log-beta to zero for either fresh
+radial arm, before optimizer construction and initial evaluation. The absent
+default preserves the existing constructor and old serialization. Resume retains
+the evolved scalar and binds the initializer in campaign/checkpoint provenance;
+missing or changed declarations are rejected, including quantization/projection
+transitions. Dot rejects this override. The pinned Lorentz numerical contract
+remains byte-compatible and describes the constructor default; campaign/report
+metadata separately records the override and the actual starting scalars.
+
+The no-update `radial-startup` example uses that same initialization path, four
+prospectively fixed natural development blocks (0, 21, 42, 63) at full context256,
+state256/read64, shared seed240924 and all causal history. It records parameter
+identity, actual scalars, language gradients, read/NoRead mass, conditional read
+entropy and eight-token untrained continuations through the existing generation
+API. The text-generation API decodes/re-encodes its 32-token source prefix; actual
+prompt IDs are retained, with no token-boundary equivalence assumption. It
+constructs no optimizer and performs no training updates or calibration search.
+The [prospective work card](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5851873486)
+records the decision and full resource envelope.
+
+### Executed unit-scale startup result
+
+All four initializer checks and both retained calibrated-checkpoint checks pass
+on source `17f0cde0`; the only later source change (`0aa932dc`) clarifies that
+measured zeros are descriptive observations. The implementation preserves
+default serialization, changes only the shared log-scale, rejects changed
+lineage and reproduces the next update after loading an evolved scalar and
+optimizer. Compile/check commands took 488.98 seconds, including the example
+build; their maximum command RSS was 1,608,859,648 bytes. No broader test suite
+or additional calibration was needed.
+
+Antigravity independently launched the exact example from this worktree at
+`0aa932dc`. The fourth lab verified its executable hash, every sealed file,
+evaluator/data/tokenizer identity and all four actual input windows, and retained
+a byte-identical import plus the executable. The existing native report verifier
+accepts both original and import. This completed 202.23-second execution is
+reused; the planned duplicate fourth-lab run was not launched. Its launcher
+thread limit and true peak RSS were not verified, so it supplies no performance
+or memory qualification. The [complete receipt](../evidence/radial-unit-start-validation-2026-09-27.json)
+separates own checks/builds, external model execution and complete elapsed cost.
+
+| Fixed startup observation | Lorentz | LorentzAffine |
+| --- | ---: | ---: |
+| Actual beta / offset | 1 / 5.33172894 | 1 / 5.33172894 |
+| Mean next-token NLL, nats | 6.819337 | 6.829711 |
+| Mean causal read mass | 0.97011269 | 0.97011410 |
+| Mean NoRead mass | 0.02988731 | 0.02988590 |
+| Mean conditional read entropy, nats | 4.352088 | 4.365421 |
+| Exactly zero causal read positions / 1,020 | 0 | 0 |
+| Finite nonzero required gradient arrays | 6 / 6 | 6 / 6 |
+
+The shared initial arrays match and remain unchanged through backward and
+generation. At the first common read, Lorentz-minus-affine read log-odds are
+0.6583, 0.3285, 0.6821 and 0.2815 across the four windows. Their later states
+diverge, so the tiny reversed ordering of aggregate NoRead means does not
+contradict the common-input inequality. These are untrained startup observations,
+not an advantage result. Both paths have active language credit on these inputs;
+there is no numerical basis for a calibration correction or tuning sweep.
+
+Supplementary untrained outputs are `little<|bos|> wood<|bos|> play a favorite Tim`
+and `quiet a of a to<|bos|> his favorite`. Both reach the eight-token cap. Their
+actual prompt begins `[0, 0, ...]`: the decoded development prefix contains BOS
+and the unchanged text-generation API prepends another. This input condition is
+retained explicitly; it does not affect the separately recorded gradient
+windows and supplies no prose-quality evidence. Changing this supplementary
+prompt alone does not justify repeating the startup observation.
 
 The affine tangent is above the concave acosh distance, so at identical current
 query/key tensors and scalar values its read scores are no greater than the
@@ -185,3 +244,20 @@ that pair, before preparation/delivery and unmeasured radial overhead. Neither
 that dose nor its compute has been selected. Choose the complete exposure and
 resource projection after the initializer and startup evidence, preserving
 open development and actual generated behavior as the research objective.
+
+The next learning design should prefer an explicit transfer of shared learned
+Dot parameters into both radial arms over using that short fresh dose to judge
+prose. This is a new adaptation lineage, not a permitted geometry-changing
+resume. Bind the actual parent, evaluator, tokenizer and copied parameter
+hashes; retain identical shared arrays and initialize only the two new radial
+scalars. Reset Adam identically and declare a new common sampler seed/local
+step zero, recording prior exposure separately. Actual startup with the learned
+query/key scale must be observed before selecting its dose. The step15,672
+continuous candidate remains a retained negative, not an accepted replacement.
+This design is not implemented or launched by the initializer increment.
+
+The [mainline termination-objective work card](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5851930160)
+already owns its loss change and paired dose. Do not duplicate it or confound
+the first score-law comparison with a new emission channel. A direct learned
+read-to-vocabulary residual is a distinct later hypothesis for wrong-source
+emission; no causal diagnosis or implementation is established for it yet.
