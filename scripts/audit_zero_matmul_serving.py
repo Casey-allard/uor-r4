@@ -151,9 +151,9 @@ RLIB_MANDATORY_SYMBOLS = [
         "description": "Q48 integer softmax distribution",
     },
     {
-        "name": "model::low_bit_dot",
-        "pattern": re.compile(r"model.*low_bit_dot\b"),
-        "mangled": re.compile(r"__RNv.*model.*11low_bit_dot\b"),
+        "name": "low_bit_dot (model or packed_rows)",
+        "pattern": re.compile(r"(?:^|::)(?:model|packed_rows)::low_bit_dot\b"),
+        "mangled": re.compile(r"__RNv.*(?:model|packed_rows).*11low_bit_dot\b"),
         "description": "Inner product via signed-4 lookup table",
     },
     {
@@ -260,6 +260,28 @@ BIN_MANDATORY_SYMBOLS = [
         "mangled": re.compile(r"__RNv.*(?:model.*)?(?:22)?extract_salient_tokens\b"),
         "description": "Top-4 salient entity token extraction via zero-matmul scoring",
     },
+]
+
+# The packed block kernels are inline functions. Inspect their actual emitted
+# callers (and wrappers that may absorb them), without treating an absent name
+# as audited. These are additional coverage for both old and packed artifacts;
+# the historical mandatory-symbol and opcode policies remain unchanged.
+PACKED_KERNEL_CALLERS = [
+    {
+        "name": f"IntegerModel::{name}",
+        "pattern": re.compile(r"IntegerModel.*" + re.escape(name) + r"\b"),
+        "mangled": re.compile(r"__RNv.*IntegerModel.*" + str(len(name)) + re.escape(name) + r"\b"),
+        "description": "Emitted containing function for signed4 affine/vocabulary kernels",
+    }
+    for name in (
+        "project_vocab_with_products_into",
+        "project_vocab_with_products",
+        "matrix_work_direct_into",
+        "matrix_work_direct",
+        "affine_direct_into",
+        "affine_direct",
+        "step_conversational_into",
+    )
 ]
 
 
@@ -373,6 +395,7 @@ def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True):
         "total_symbols_indexed": len(per_symbol),
         "mandatory_checked": 0,
         "missing_mandatory": [],
+        "missing_optional": [],
         "class_i_violations": [],   # Multipliers
         "class_ii_violations": [],  # Dividers
         "class_iii_violations": [], # Floats / transfers
@@ -449,7 +472,7 @@ def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True):
             results["missing_mandatory"].append((disp_name, disp_desc))
 
     # Also audit optional/additional serving symbols if present
-    other_list = RLIB_MANDATORY_SYMBOLS if not is_rlib else []
+    other_list = (RLIB_MANDATORY_SYMBOLS if not is_rlib else []) + PACKED_KERNEL_CALLERS
     for entry in other_list:
         name = entry["name"]
         pat = entry["pattern"] if is_demangled else entry["mangled"]
@@ -465,6 +488,9 @@ def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True):
             and "try_process" not in s
             and "GenericShunt" not in s
         ]
+
+        if not matched:
+            results["missing_optional"].append((name, desc))
 
         for sym in matched:
             if sym in audited_syms:
@@ -488,6 +514,7 @@ def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True):
             else:
                 results["passed_symbols"].append((name, sym, len(instrs), desc))
 
+    results["symbols_checked"] = len(audited_syms)
     return results
 
 
@@ -495,6 +522,10 @@ def print_tap_output(results, tools_found):
     """Emit authentic TAP version 13 results across the 5 standard test cases."""
     print("TAP version 13")
     print("1..5")
+    print(f"# Matched symbol ranges checked: {results['symbols_checked']}")
+    print("# Scope: matched instruction ranges only; no transitive call-graph certification.")
+    for name, _ in results["missing_optional"]:
+        print(f"# NOT AUDITED: {name} (no separate symbol; may be inlined or absent)")
 
     # TC01: Disassembly tool availability
     if tools_found:
@@ -555,7 +586,7 @@ def print_tap_output(results, tools_found):
     missing = results["missing_mandatory"]
     total_failures = len(results["all_violations"]) + len(missing)
     if total_failures == 0 and tools_found:
-        print("ok 5 - [T1_F05_TC05] [Tier 1] Strict audit exit code integrity and binary compliance (0 violations)")
+        print("ok 5 - [T1_F05_TC05] [Tier 1] Strict audit exit code integrity for declared symbol coverage (0 violations)")
     else:
         print(f"not ok 5 - [T1_F05_TC05] [Tier 1] Strict audit exit code integrity ({total_failures} total failures)")
         print("  ---")
@@ -574,6 +605,7 @@ def print_standard_report(results):
 
     for name, sym, n_instrs, desc in results["passed_symbols"]:
         print(f"  [ PASS  ] {name:<38} (0 forbidden, {n_instrs} instructions) - {desc}")
+        print(f"            symbol: {sym}")
 
     for name, sym, bad, desc in results["all_violations"]:
         print(f"  [ FAIL  ] {name:<38} ({len(bad)} forbidden) - {desc}")
@@ -583,8 +615,11 @@ def print_standard_report(results):
     for name, desc in results["missing_mandatory"]:
         print(f"  [MISSING] {name:<38} - {desc}")
 
+    for name, desc in results["missing_optional"]:
+        print(f"  [NOT AUDITED] {name} (no separate symbol; may be inlined or absent) - {desc}")
+
     print("=" * 80)
-    print(f"Total symbols checked: {results['mandatory_checked']}")
+    print(f"Total matched symbol ranges checked: {results['symbols_checked']}")
     print(f"Class I (Multipliers) Violations: {len(results['class_i_violations'])}")
     print(f"Class II (Dividers) Violations:    {len(results['class_ii_violations'])}")
     print(f"Class III (Floats) Violations:    {len(results['class_iii_violations'])}")
@@ -595,8 +630,8 @@ def print_standard_report(results):
         print("FAILED: Serving kernel contains forbidden instructions or missing mandatory symbols.")
         return 1
 
-    print("SUCCESS: CLEAN FORENSIC AUDIT (0 forbidden instructions across all serving symbols).")
-    print("Zero-multiplier serving kernel invariant (D0-b) certified.")
+    print("SUCCESS: 0 forbidden instructions in the matched symbol ranges; mandatory coverage satisfied.")
+    print("Unmatched or inlined functions are not independently audited; this is not a transitive call-graph or whole-process D0-b certification.")
     return 0
 
 

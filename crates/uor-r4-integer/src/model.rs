@@ -24,6 +24,9 @@ use crate::config::{
 use crate::format::{self as joint_quantization, ParameterQuantization};
 use crate::lorentz::{self, LorentzRead};
 use crate::math::{self, MathResult};
+use crate::packed_rows::{
+    low_bit_dot, low_bit_dot_4_contiguous_512, low_bit_dot_8_contiguous, CoefficientCodes,
+};
 use crate::tables::{Tables, TOTAL};
 use crate::{invalid, Result};
 
@@ -33,8 +36,19 @@ const STATE_BITS: i32 = 11;
 
 #[derive(Clone)]
 struct Parameter {
-    codes: Vec<i16>,
+    codes: CoefficientCodes,
     spec: ParameterQuantization,
+}
+
+/// Unique shared coefficient payload retained by a loaded model. This excludes
+/// scales, caches, Arc/allocator metadata, loading temporaries and session state;
+/// it is not a process RSS or physical memory-traffic measurement.
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize)]
+pub struct CoefficientStorage {
+    pub signed4_coefficients: usize,
+    pub packed_signed4_bytes: usize,
+    pub signed16_coefficients: usize,
+    pub signed16_bytes: usize,
 }
 
 pub struct IntegerModel {
@@ -1293,20 +1307,21 @@ fn fill_low_bit_products(input: &[i32], out: &mut [[i64; 16]]) {
 }
 
 #[inline(always)]
-fn fill_low_bit_products_i16(input: &[i16], out: &mut [[i64; 16]]) {
-    let len = input.len().min(out.len());
-    for i in 0..len {
-        let x = i64::from(input[i]);
-        let twice = x << 1;
-        let four = x << 2;
-        let three = x + twice;
-        let five = x + four;
-        let six = twice + four;
-        let seven = (x << 3) - x;
-        out[i] = [
-            0, x, twice, three, four, five, six, seven, 0, -seven, -six, -five, -four, -three,
-            -twice, -x,
-        ];
+fn fill_packed_low_bit_products(input: &[u8], out: &mut [[i64; 16]]) {
+    for (&byte, pair) in input.iter().zip(out.chunks_exact_mut(2)) {
+        for (nibble, table) in [byte & 15, byte >> 4].into_iter().zip(pair) {
+            let x = i64::from((nibble as i8) << 4 >> 4);
+            let twice = x << 1;
+            let four = x << 2;
+            let three = x + twice;
+            let five = x + four;
+            let six = twice + four;
+            let seven = (x << 3) - x;
+            *table = [
+                0, x, twice, three, four, five, six, seven, 0, -seven, -six, -five, -four, -three,
+                -twice, -x,
+            ];
+        }
     }
 }
 
@@ -1319,269 +1334,6 @@ fn low_bit_products(input: &[i32]) -> Vec<[i64; 16]> {
     let mut products = vec![[0i64; 16]; input.len()];
     fill_low_bit_products(input, &mut products);
     products
-}
-
-/// Coefficients are signed4, validated at import. The retained shape bounds
-/// (at most 512 input coordinates) keep even full-i32 products/sums inside i64.
-/// Coordinate order is unchanged; replacing recomputation with table reads adds
-/// no rounding. This hot path is separate from model-driver shape arithmetic.
-/// Unrolled by 8 with 8 independent accumulators for optimal instruction-level
-/// parallelism and register reuse on Apple Silicon M1 (zero hardware multipliers).
-#[inline(never)]
-fn low_bit_dot(products: &[[i64; 16]], weights: &[i16]) -> i64 {
-    let len = products.len().min(weights.len());
-    let mut p_chunks = products[..len].chunks_exact(8);
-    let mut w_chunks = weights[..len].chunks_exact(8);
-
-    let mut acc0 = 0i64;
-    let mut acc1 = 0i64;
-    let mut acc2 = 0i64;
-    let mut acc3 = 0i64;
-    let mut acc4 = 0i64;
-    let mut acc5 = 0i64;
-    let mut acc6 = 0i64;
-    let mut acc7 = 0i64;
-
-    for (p, w) in p_chunks.by_ref().zip(w_chunks.by_ref()) {
-        let p: &[[i64; 16]; 8] = match p.try_into() {
-            Ok(arr) => arr,
-            Err(_) => continue,
-        };
-        let w: &[i16; 8] = match w.try_into() {
-            Ok(arr) => arr,
-            Err(_) => continue,
-        };
-        acc0 += p[0][usize::from((w[0] as u16) & 15)];
-        acc1 += p[1][usize::from((w[1] as u16) & 15)];
-        acc2 += p[2][usize::from((w[2] as u16) & 15)];
-        acc3 += p[3][usize::from((w[3] as u16) & 15)];
-        acc4 += p[4][usize::from((w[4] as u16) & 15)];
-        acc5 += p[5][usize::from((w[5] as u16) & 15)];
-        acc6 += p[6][usize::from((w[6] as u16) & 15)];
-        acc7 += p[7][usize::from((w[7] as u16) & 15)];
-    }
-
-    let mut total = (acc0 + acc1) + (acc2 + acc3) + (acc4 + acc5) + (acc6 + acc7);
-    for (multiples, &weight) in p_chunks.remainder().iter().zip(w_chunks.remainder()) {
-        total += multiples[usize::from((weight as u16) & 15)];
-    }
-    total
-}
-
-/// 4-row cache-coherent table-lookup dot product for 4K vocabulary un-embedding.
-/// Reuses each coordinate's 16-element product table across 4 adjacent vocabulary rows
-/// in a single cache-coherent pass. Achieves optimal L1 data cache locality and register
-/// reuse on Apple Silicon M1 with strictly 0 hardware multipliers, dividers, or floats.
-#[inline(always)]
-fn low_bit_dot_4x(
-    products: &[[i64; 16]; 256],
-    w0: &[i16; 256],
-    w1: &[i16; 256],
-    w2: &[i16; 256],
-    w3: &[i16; 256],
-) -> (i64, i64, i64, i64) {
-    let mut acc0_a = 0i64;
-    let mut acc0_b = 0i64;
-    let mut acc1_a = 0i64;
-    let mut acc1_b = 0i64;
-    let mut acc2_a = 0i64;
-    let mut acc2_b = 0i64;
-    let mut acc3_a = 0i64;
-    let mut acc3_b = 0i64;
-
-    for i in (0..256).step_by(4) {
-        let p0 = &products[i];
-        let p1 = &products[i + 1];
-        let p2 = &products[i + 2];
-        let p3 = &products[i + 3];
-
-        acc0_a += p0[usize::from((w0[i] as u16) & 15)] + p1[usize::from((w0[i + 1] as u16) & 15)];
-        acc0_b +=
-            p2[usize::from((w0[i + 2] as u16) & 15)] + p3[usize::from((w0[i + 3] as u16) & 15)];
-
-        acc1_a += p0[usize::from((w1[i] as u16) & 15)] + p1[usize::from((w1[i + 1] as u16) & 15)];
-        acc1_b +=
-            p2[usize::from((w1[i + 2] as u16) & 15)] + p3[usize::from((w1[i + 3] as u16) & 15)];
-
-        acc2_a += p0[usize::from((w2[i] as u16) & 15)] + p1[usize::from((w2[i + 1] as u16) & 15)];
-        acc2_b +=
-            p2[usize::from((w2[i + 2] as u16) & 15)] + p3[usize::from((w2[i + 3] as u16) & 15)];
-
-        acc3_a += p0[usize::from((w3[i] as u16) & 15)] + p1[usize::from((w3[i + 1] as u16) & 15)];
-        acc3_b +=
-            p2[usize::from((w3[i + 2] as u16) & 15)] + p3[usize::from((w3[i + 3] as u16) & 15)];
-    }
-
-    (
-        acc0_a + acc0_b,
-        acc1_a + acc1_b,
-        acc2_a + acc2_b,
-        acc3_a + acc3_b,
-    )
-}
-
-#[allow(dead_code)]
-#[inline(always)]
-fn low_bit_dot_4_contiguous(
-    products: &[[i64; 16]; 256],
-    weights_1024: &[i16; 1024],
-) -> (i64, i64, i64, i64) {
-    let w0: &[i16; 256] = match weights_1024[0..256].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w1: &[i16; 256] = match weights_1024[256..512].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w2: &[i16; 256] = match weights_1024[512..768].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w3: &[i16; 256] = match weights_1024[768..1024].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    low_bit_dot_4x(products, w0, w1, w2, w3)
-}
-
-#[inline(always)]
-fn low_bit_dot_8_contiguous(
-    products: &[[i64; 16]; 256],
-    weights_2048: &[i16; 2048],
-) -> (i64, i64, i64, i64, i64, i64, i64, i64) {
-    let w0: &[i16; 256] = match weights_2048[0..256].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w1: &[i16; 256] = match weights_2048[256..512].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w2: &[i16; 256] = match weights_2048[512..768].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w3: &[i16; 256] = match weights_2048[768..1024].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w4: &[i16; 256] = match weights_2048[1024..1280].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w5: &[i16; 256] = match weights_2048[1280..1536].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w6: &[i16; 256] = match weights_2048[1536..1792].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w7: &[i16; 256] = match weights_2048[1792..2048].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-
-    let mut acc0 = 0i64;
-    let mut acc1 = 0i64;
-    let mut acc2 = 0i64;
-    let mut acc3 = 0i64;
-    let mut acc4 = 0i64;
-    let mut acc5 = 0i64;
-    let mut acc6 = 0i64;
-    let mut acc7 = 0i64;
-
-    for i in (0..256).step_by(2) {
-        let p0 = &products[i];
-        let p1 = &products[i + 1];
-
-        acc0 += p0[usize::from((w0[i] as u16) & 15)] + p1[usize::from((w0[i + 1] as u16) & 15)];
-        acc1 += p0[usize::from((w1[i] as u16) & 15)] + p1[usize::from((w1[i + 1] as u16) & 15)];
-        acc2 += p0[usize::from((w2[i] as u16) & 15)] + p1[usize::from((w2[i + 1] as u16) & 15)];
-        acc3 += p0[usize::from((w3[i] as u16) & 15)] + p1[usize::from((w3[i + 1] as u16) & 15)];
-        acc4 += p0[usize::from((w4[i] as u16) & 15)] + p1[usize::from((w4[i + 1] as u16) & 15)];
-        acc5 += p0[usize::from((w5[i] as u16) & 15)] + p1[usize::from((w5[i + 1] as u16) & 15)];
-        acc6 += p0[usize::from((w6[i] as u16) & 15)] + p1[usize::from((w6[i + 1] as u16) & 15)];
-        acc7 += p0[usize::from((w7[i] as u16) & 15)] + p1[usize::from((w7[i + 1] as u16) & 15)];
-    }
-
-    (acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7)
-}
-
-/// 4-row cache-coherent table-lookup dot product for 512-wide inputs (update affine).
-/// Reuses each coordinate's 16-element product table across 4 adjacent rows.
-/// Strictly 0 hardware multipliers, dividers, or floats in ARM64 disassembly.
-#[inline(always)]
-fn low_bit_dot_4x_512(
-    products: &[[i64; 16]; 512],
-    w0: &[i16; 512],
-    w1: &[i16; 512],
-    w2: &[i16; 512],
-    w3: &[i16; 512],
-) -> (i64, i64, i64, i64) {
-    let mut acc0_a = 0i64;
-    let mut acc0_b = 0i64;
-    let mut acc1_a = 0i64;
-    let mut acc1_b = 0i64;
-    let mut acc2_a = 0i64;
-    let mut acc2_b = 0i64;
-    let mut acc3_a = 0i64;
-    let mut acc3_b = 0i64;
-
-    for i in (0..512).step_by(4) {
-        let p0 = &products[i];
-        let p1 = &products[i + 1];
-        let p2 = &products[i + 2];
-        let p3 = &products[i + 3];
-
-        acc0_a += p0[usize::from((w0[i] as u16) & 15)] + p1[usize::from((w0[i + 1] as u16) & 15)];
-        acc0_b +=
-            p2[usize::from((w0[i + 2] as u16) & 15)] + p3[usize::from((w0[i + 3] as u16) & 15)];
-
-        acc1_a += p0[usize::from((w1[i] as u16) & 15)] + p1[usize::from((w1[i + 1] as u16) & 15)];
-        acc1_b +=
-            p2[usize::from((w1[i + 2] as u16) & 15)] + p3[usize::from((w1[i + 3] as u16) & 15)];
-
-        acc2_a += p0[usize::from((w2[i] as u16) & 15)] + p1[usize::from((w2[i + 1] as u16) & 15)];
-        acc2_b +=
-            p2[usize::from((w2[i + 2] as u16) & 15)] + p3[usize::from((w2[i + 3] as u16) & 15)];
-
-        acc3_a += p0[usize::from((w3[i] as u16) & 15)] + p1[usize::from((w3[i + 1] as u16) & 15)];
-        acc3_b +=
-            p2[usize::from((w3[i + 2] as u16) & 15)] + p3[usize::from((w3[i + 3] as u16) & 15)];
-    }
-
-    (
-        acc0_a + acc0_b,
-        acc1_a + acc1_b,
-        acc2_a + acc2_b,
-        acc3_a + acc3_b,
-    )
-}
-
-#[inline(always)]
-fn low_bit_dot_4_contiguous_512(
-    products: &[[i64; 16]; 512],
-    weights_2048: &[i16; 2048],
-) -> (i64, i64, i64, i64) {
-    let w0: &[i16; 512] = match weights_2048[0..512].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w1: &[i16; 512] = match weights_2048[512..1024].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w2: &[i16; 512] = match weights_2048[1024..1536].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    let w3: &[i16; 512] = match weights_2048[1536..2048].try_into() {
-        Ok(arr) => arr,
-        Err(_) => unreachable!(),
-    };
-    low_bit_dot_4x_512(products, w0, w1, w2, w3)
 }
 
 /// Precompute 16 multiples (0..15) of coordinate `x` using only shifts, adds, and subtracts.
@@ -1850,18 +1602,19 @@ impl IntegerModel {
         let parameters: BTreeMap<String, Parameter> = codes
             .into_iter()
             .map(|(name, codes)| {
+                let parameter_spec = spec.parameters[&name].clone();
                 let parameter = Parameter {
-                    codes,
-                    spec: spec.parameters[&name].clone(),
+                    codes: CoefficientCodes::from_decoded(codes, parameter_spec.bits)?,
+                    spec: parameter_spec,
                 };
-                (name, parameter)
+                Ok((name, parameter))
             })
-            .collect();
+            .collect::<Result<_>>()?;
         let output_bias = match parameters.get("output.bias") {
             Some(p) => p
                 .codes
                 .iter()
-                .map(|&v| {
+                .map(|v| {
                     scaled(
                         i128::from(v),
                         WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -1883,7 +1636,7 @@ impl IntegerModel {
             Some(p) => p
                 .codes
                 .iter()
-                .map(|&v| {
+                .map(|v| {
                     scaled(
                         i128::from(v),
                         WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -1896,7 +1649,7 @@ impl IntegerModel {
             Some(p) => p
                 .codes
                 .iter()
-                .map(|&v| {
+                .map(|v| {
                     scaled(
                         i128::from(v),
                         WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -1910,7 +1663,7 @@ impl IntegerModel {
                 Some(p) => p
                     .codes
                     .iter()
-                    .map(|&v| {
+                    .map(|v| {
                         scaled(
                             i128::from(v),
                             WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -1930,7 +1683,7 @@ impl IntegerModel {
 
         let get_param = |name: &str| -> Parameter {
             parameters.get(name).cloned().unwrap_or_else(|| Parameter {
-                codes: Vec::new(),
+                codes: CoefficientCodes::ones(0, 4),
                 spec: ParameterQuantization {
                     bits: 4,
                     shape: Vec::new(),
@@ -1970,7 +1723,7 @@ impl IntegerModel {
                     let p = parameters
                         .get(name)
                         .ok_or_else(|| invalid(format!("missing integer parameter {name}")))?;
-                    Ok((p.codes[0], p.spec.row_exponents[0]))
+                    Ok((p.codes.code(0)?, p.spec.row_exponents[0]))
                 };
                 Some(LorentzRead::new(
                     scalar(LORENTZ_LOG_BETA)?,
@@ -2011,6 +1764,22 @@ impl IntegerModel {
 
     pub fn config(&self) -> &JointConfig {
         &self.config
+    }
+
+    /// Count each parameter's shared code allocation once, including arrays
+    /// also referenced by cached hot-parameter fields.
+    pub fn coefficient_storage(&self) -> CoefficientStorage {
+        let mut result = CoefficientStorage::default();
+        for parameter in self.parameters.values() {
+            if parameter.codes.is_signed4() {
+                result.signed4_coefficients += parameter.codes.len();
+                result.packed_signed4_bytes += parameter.codes.payload_bytes();
+            } else {
+                result.signed16_coefficients += parameter.codes.len();
+                result.signed16_bytes += parameter.codes.payload_bytes();
+            }
+        }
+        result
     }
 
     pub fn new_session(&self) -> IntegerSession {
@@ -2097,10 +1866,9 @@ impl IntegerModel {
             _ => return Err(invalid("unsupported embedding width")),
         };
         let end = start + width;
-        Ok(embedding.codes[start..end]
-            .iter()
-            .map(|&x| i32::from(x))
-            .collect())
+        (start..end)
+            .map(|index| embedding.codes.code(index).map(i32::from))
+            .collect()
     }
 
     /// Project normalized hidden state to vocabulary logits using pure signed-4
@@ -2138,8 +1906,8 @@ impl IntegerModel {
 
         let width = self.config.width;
         let vocab_size = self.config.vocab_size;
-        if logits.len() < vocab_size {
-            return Err(invalid("logits buffer too small"));
+        if logits.len() < vocab_size || products.len() < width {
+            return Err(invalid("logits or product buffer too small"));
         }
         if width == 256 {
             let p_256: &[[i64; 16]; 256] = products[..256]
@@ -2149,10 +1917,11 @@ impl IntegerModel {
             for c in 0..chunks_8_count {
                 let r0 = c * 8;
                 let s0 = r0 << 8;
-                let chunk_arr: &[i16; 2048] = match embedding.codes[s0..s0 + 2048].try_into() {
-                    Ok(arr) => arr,
-                    Err(_) => continue,
-                };
+                let chunk_arr: &[u8; 1024] =
+                    match embedding.codes.packed_range(s0, 2048)?.try_into() {
+                        Ok(arr) => arr,
+                        Err(_) => continue,
+                    };
 
                 let (dot0, dot1, dot2, dot3, dot4, dot5, dot6, dot7) =
                     low_bit_dot_8_contiguous(p_256, chunk_arr);
@@ -2176,8 +1945,8 @@ impl IntegerModel {
             for row_idx in (chunks_8_count * 8)..vocab_size {
                 let start = row_idx << 8;
                 let end = start + 256;
-                let row = &embedding.codes[start..end];
-                let dot = low_bit_dot(products, row);
+                let row = embedding.codes.packed_range(start, end - start)?;
+                let dot = low_bit_dot(&products[..width], row);
                 logits[row_idx] =
                     scale_and_quantize_logit(dot, output_shifts[row_idx], output_bias[row_idx]);
             }
@@ -2185,8 +1954,8 @@ impl IntegerModel {
             for (row_idx, &bias) in output_bias.iter().enumerate().take(vocab_size) {
                 let start = row_idx << 7;
                 let end = start + 128;
-                let row = &embedding.codes[start..end];
-                let dot = low_bit_dot(products, row);
+                let row = embedding.codes.packed_range(start, end - start)?;
+                let dot = low_bit_dot(&products[..width], row);
                 let scaled_val = scaled(i128::from(dot), output_shifts[row_idx])?;
                 logits[row_idx] = quantize(scaled_val + bias, WORK_BITS, 8)?;
             }
@@ -2226,7 +1995,7 @@ impl IntegerModel {
         let p = self.parameter(name)?;
         p.codes
             .iter()
-            .map(|&v| {
+            .map(|v| {
                 scaled(
                     i128::from(v),
                     WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -2263,7 +2032,11 @@ impl IntegerModel {
         input_exponent: i32,
         out: &mut [i128],
     ) -> Result<()> {
-        if p.spec.bits != 4 || p.spec.shape.len() != 2 || p.spec.shape[1] != input_len {
+        if p.spec.bits != 4
+            || p.spec.shape.len() != 2
+            || p.spec.shape[1] != input_len
+            || products.len() < input_len
+        {
             return Err(invalid("integer affine input shape or bit width"));
         }
         let num_rows = p.spec.row_exponents.len();
@@ -2279,7 +2052,9 @@ impl IntegerModel {
                 for c in 0..chunks_8 {
                     let r0 = c * 8;
                     let s0 = r0 << 8;
-                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                    let chunk: &[u8; 1024] = p
+                        .codes
+                        .packed_range(s0, 2048)?
                         .try_into()
                         .map_err(|_| invalid("parameter code slice"))?;
 
@@ -2320,8 +2095,8 @@ impl IntegerModel {
                 }
                 for (r, out_r) in out.iter_mut().enumerate().take(num_rows).skip(chunks_8 * 8) {
                     let s = r << 8;
-                    let row = &p.codes[s..s + 256];
-                    let d = low_bit_dot(products, row);
+                    let row = p.codes.packed_range(s, 256)?;
+                    let d = low_bit_dot(&products[..input_len], row);
                     *out_r = scaled(
                         i128::from(d),
                         WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]),
@@ -2341,7 +2116,9 @@ impl IntegerModel {
                     let r3 = r0 + 3;
 
                     let s0 = r0 << 9;
-                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                    let chunk: &[u8; 1024] = p
+                        .codes
+                        .packed_range(s0, 2048)?
                         .try_into()
                         .map_err(|_| invalid("parameter code slice"))?;
 
@@ -2366,8 +2143,8 @@ impl IntegerModel {
                 }
                 for (r, out_r) in out.iter_mut().enumerate().take(num_rows).skip(chunks_4 * 4) {
                     let s = r << 9;
-                    let row = &p.codes[s..s + 512];
-                    let d = low_bit_dot(products, row);
+                    let row = p.codes.packed_range(s, 512)?;
+                    let d = low_bit_dot(&products[..input_len], row);
                     *out_r = scaled(
                         i128::from(d),
                         WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]),
@@ -2376,14 +2153,10 @@ impl IntegerModel {
                 Ok(())
             }
             128 => {
-                for (r, (row, &exponent)) in p
-                    .codes
-                    .chunks_exact(128)
-                    .zip(&p.spec.row_exponents)
-                    .enumerate()
-                {
+                for (r, &exponent) in p.spec.row_exponents.iter().enumerate() {
+                    let row = p.codes.packed_range(r << 7, 128)?;
                     out[r] = scaled(
-                        i128::from(low_bit_dot(products, row)),
+                        i128::from(low_bit_dot(&products[..128], row)),
                         WORK_BITS + input_exponent + i32::from(exponent),
                     )?;
                 }
@@ -2414,6 +2187,13 @@ impl IntegerModel {
         input_bits: i32,
         out: &mut [i32],
     ) -> Result<()> {
+        if p.spec.bits != 4
+            || p.spec.shape.len() != 2
+            || p.spec.shape[1] != input_len
+            || products.len() < input_len
+        {
+            return Err(invalid("integer affine input shape or bit width"));
+        }
         let num_rows = p.spec.row_exponents.len();
         if out.len() < num_rows {
             return Err(invalid("output buffer too small for affine"));
@@ -2428,7 +2208,9 @@ impl IntegerModel {
                 for c in 0..chunks_8 {
                     let r0 = c * 8;
                     let s0 = r0 << 8;
-                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                    let chunk: &[u8; 1024] = p
+                        .codes
+                        .packed_range(s0, 2048)?
                         .try_into()
                         .map_err(|_| invalid("parameter code slice"))?;
 
@@ -2444,8 +2226,8 @@ impl IntegerModel {
                 }
                 for (r, out_r) in out.iter_mut().enumerate().take(num_rows).skip(chunks_8 * 8) {
                     let s_row = r << 8;
-                    let row = &p.codes[s_row..s_row + 256];
-                    let d = low_bit_dot(products, row);
+                    let row = p.codes.packed_range(s_row, 256)?;
+                    let d = low_bit_dot(&products[..input_len], row);
                     let shift = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]);
                     let b = if bias.is_empty() { 0 } else { bias[r] };
                     *out_r = scale_and_quantize_logit(d, shift, b);
@@ -2464,7 +2246,9 @@ impl IntegerModel {
                     let r3 = r0 + 3;
 
                     let s0 = r0 << 9;
-                    let chunk: &[i16; 2048] = p.codes[s0..s0 + 2048]
+                    let chunk: &[u8; 1024] = p
+                        .codes
+                        .packed_range(s0, 2048)?
                         .try_into()
                         .map_err(|_| invalid("parameter code slice"))?;
 
@@ -2487,8 +2271,8 @@ impl IntegerModel {
                 }
                 for r in (chunks_4 * 4)..num_rows {
                     let s_row = r << 9;
-                    let row = &p.codes[s_row..s_row + 512];
-                    let d = low_bit_dot(products, row);
+                    let row = p.codes.packed_range(s_row, 512)?;
+                    let d = low_bit_dot(&products[..input_len], row);
                     let shift = WORK_BITS + input_exponent + i32::from(p.spec.row_exponents[r]);
                     let b = if bias.is_empty() { 0 } else { bias[r] };
                     out[r] = scale_and_quantize_logit(d, shift, b);
@@ -2702,8 +2486,8 @@ impl IntegerModel {
         let norm = self.parameter("output.norm.weight")?;
         let hidden = write_normalized
             .iter()
-            .zip(&norm.codes)
-            .map(|(&x, &w)| {
+            .zip(norm.codes.iter())
+            .map(|(&x, w)| {
                 let value = product(i128::from(x), i128::from(w))?;
                 Ok(
                     scaled(value, i32::from(norm.spec.row_exponents[0]))?.clamp(-32767, 32767)
@@ -2809,8 +2593,8 @@ impl IntegerModel {
             _ => return Err(invalid("unsupported embedding width")),
         };
         let end = start + width;
-        fill_low_bit_products_i16(
-            &self.p_embedding.codes[start..end],
+        fill_packed_low_bit_products(
+            self.p_embedding.codes.packed_range(start, end - start)?,
             &mut scratch_products[..width],
         );
 
@@ -3243,7 +3027,7 @@ impl IntegerModel {
         let row_exp = i32::from(self.p_output_norm.spec.row_exponents[0]);
         for d in 0..width {
             let x = write_normalized[d] as i64;
-            let w = self.p_output_norm.codes[d];
+            let w = self.p_output_norm.codes.code(d)?;
             let val = i128::from(mul_code_i64(x, w));
             hidden[d] = scaled(val, row_exp)?.clamp(-32767, 32767) as i32;
         }
@@ -3485,7 +3269,7 @@ impl IntegerModel {
         for (name, shape) in shapes {
             let total_elements: usize = shape.iter().product();
             let bits = if shape.len() == 2 { 4 } else { 16 };
-            let codes = vec![1i16; total_elements];
+            let codes = CoefficientCodes::ones(total_elements, bits);
             let row_count = if shape.len() == 2 { shape[0] } else { 1 };
             let spec = ParameterQuantization {
                 bits,
@@ -3498,7 +3282,7 @@ impl IntegerModel {
             Some(p) => p
                 .codes
                 .iter()
-                .map(|&v| {
+                .map(|v| {
                     scaled(
                         i128::from(v),
                         WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -3521,7 +3305,7 @@ impl IntegerModel {
             Some(p) => p
                 .codes
                 .iter()
-                .map(|&v| {
+                .map(|v| {
                     scaled(
                         i128::from(v),
                         WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -3535,7 +3319,7 @@ impl IntegerModel {
             Some(p) => p
                 .codes
                 .iter()
-                .map(|&v| {
+                .map(|v| {
                     scaled(
                         i128::from(v),
                         WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -3550,7 +3334,7 @@ impl IntegerModel {
                 Some(p) => p
                     .codes
                     .iter()
-                    .map(|&v| {
+                    .map(|v| {
                         scaled(
                             i128::from(v),
                             WORK_BITS + i32::from(p.spec.row_exponents[0]),
@@ -3571,7 +3355,7 @@ impl IntegerModel {
 
         let get_param = |name: &str| -> Parameter {
             parameters.get(name).cloned().unwrap_or_else(|| Parameter {
-                codes: Vec::new(),
+                codes: CoefficientCodes::ones(0, 4),
                 spec: ParameterQuantization {
                     bits: 4,
                     shape: Vec::new(),
@@ -3918,7 +3702,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn signed4_affine_accumulation() {
+    fn packed_signed4_affine_accumulation() -> Result<()> {
         let input = [i32::MIN, -32767, -3, 0, 1, 16384, 32767, i32::MAX];
         let products = low_bit_products(&input);
         for code in -7i16..=7 {
@@ -3928,15 +3712,19 @@ mod tests {
                     i64::from(x) * i64::from(code)
                 );
             }
-            let weights = vec![code; input.len()];
+            let weights = CoefficientCodes::from_decoded(vec![code; input.len()], 4)?;
             let expected: i64 = input.iter().map(|&x| i64::from(x) * i64::from(code)).sum();
-            assert_eq!(low_bit_dot(&products, &weights), expected);
+            assert_eq!(
+                low_bit_dot(&products, weights.packed_range(0, input.len())?),
+                expected
+            );
         }
         for x in [i32::MIN, i32::MAX] {
             let products = low_bit_products(&[x; 512]);
             for code in [-7, 7] {
+                let weights = CoefficientCodes::from_decoded(vec![code; 512], 4)?;
                 assert_eq!(
-                    low_bit_dot(&products, &[code; 512]),
+                    low_bit_dot(&products, weights.packed_range(0, 512)?),
                     i64::from(x) * i64::from(code) * 512
                 );
             }
@@ -3948,49 +3736,122 @@ mod tests {
             .zip(&mixed_codes)
             .map(|(&x, &code)| i64::from(x) * i64::from(code))
             .sum();
+        let weights = CoefficientCodes::from_decoded(mixed_codes, 4)?;
         assert_eq!(
-            low_bit_dot(&low_bit_products(&mixed_input), &mixed_codes),
+            low_bit_dot(
+                &low_bit_products(&mixed_input),
+                weights.packed_range(0, 512)?
+            ),
             expected
         );
+        Ok(())
     }
 
     #[test]
-    fn low_bit_dot_4x_matches_low_bit_dot_and_scalar() {
-        let input: Vec<i32> = (0..256i32).map(|i| i * 17 - 1234).collect();
-        let products = low_bit_products(&input);
-
-        let w0: Vec<i16> = (0..256).map(|i| ((i % 15) as i16) - 7).collect();
-        let w1: Vec<i16> = (0..256).map(|i| (((i * 3) % 15) as i16) - 7).collect();
-        let w2: Vec<i16> = (0..256).map(|i| (((i * 5 + 2) % 15) as i16) - 7).collect();
-        let w3: Vec<i16> = (0..256).map(|i| (((i * 7 + 4) % 15) as i16) - 7).collect();
-
-        let p_256: &[[i64; 16]; 256] = (&products[..256]).try_into().unwrap();
-        let w0_arr: &[i16; 256] = (&w0[..256]).try_into().unwrap();
-        let w1_arr: &[i16; 256] = (&w1[..256]).try_into().unwrap();
-        let w2_arr: &[i16; 256] = (&w2[..256]).try_into().unwrap();
-        let w3_arr: &[i16; 256] = (&w3[..256]).try_into().unwrap();
-
-        let (d0, d1, d2, d3) = low_bit_dot_4x(p_256, w0_arr, w1_arr, w2_arr, w3_arr);
-
-        let scalar_dot = |weights: &[i16]| -> i64 {
-            input
-                .iter()
-                .zip(weights)
-                .map(|(&x, &w)| i64::from(x) * i64::from(w))
-                .sum()
-        };
-
-        assert_eq!(d0, low_bit_dot(&products, &w0));
-        assert_eq!(d0, scalar_dot(&w0));
-
-        assert_eq!(d1, low_bit_dot(&products, &w1));
-        assert_eq!(d1, scalar_dot(&w1));
-
-        assert_eq!(d2, low_bit_dot(&products, &w2));
-        assert_eq!(d2, scalar_dot(&w2));
-
-        assert_eq!(d3, low_bit_dot(&products, &w3));
-        assert_eq!(d3, scalar_dot(&w3));
+    fn packed_signed4_matrix_dispatch_rows_scales_and_embedding() -> Result<()> {
+        let mut model = IntegerModel::synthetic_for_test();
+        for width in [128, 256, 512] {
+            // Mixed signs, zero, and non-block-aligned row counts exercise all
+            // three dispatches, including the tail after a blocked group.
+            let rows = 9;
+            let input: Vec<i32> = (0..width)
+                .map(|i| [i32::MIN, -32767, -1, 0, 1, 32767, i32::MAX][i % 7])
+                .collect();
+            let products = low_bit_products(&input);
+            let decoded: Vec<i16> = (0..rows * width)
+                .map(|i| ((i * 11 + 3) % 15) as i16 - 7)
+                .collect();
+            let parameter = Parameter {
+                codes: CoefficientCodes::from_decoded(decoded.clone(), 4)?,
+                spec: ParameterQuantization {
+                    bits: 4,
+                    shape: vec![rows, width],
+                    row_exponents: (0..rows).map(|r| r as i16 - 5).collect(),
+                },
+            };
+            let mut sums = vec![i128::MIN; rows];
+            model.matrix_work_direct_into(&products, &parameter, width, -10, &mut sums)?;
+            let biases: Vec<i128> = (0..rows).map(|i| (i as i128 - 4) << 30).collect();
+            let mut affine = vec![0; rows];
+            model.affine_direct_into(&products, &parameter, &biases, width, 10, &mut affine)?;
+            for row in 0..rows {
+                let dot: i64 = input
+                    .iter()
+                    .zip(&decoded[row * width..(row + 1) * width])
+                    .map(|(&x, &w)| i64::from(x) * i64::from(w))
+                    .sum();
+                let expected = scaled(
+                    i128::from(dot),
+                    30 + i32::from(parameter.spec.row_exponents[row]),
+                )?;
+                assert_eq!(sums[row], expected);
+                assert_eq!(affine[row], quantize(expected + biases[row], WORK_BITS, 8)?);
+            }
+            let mut untouched = vec![123i128; rows];
+            assert!(model
+                .matrix_work_direct_into(
+                    &products[..width - 1],
+                    &parameter,
+                    width,
+                    -10,
+                    &mut untouched
+                )
+                .is_err());
+            assert_eq!(untouched, vec![123; rows]);
+        }
+        for width in [128, 256] {
+            let decoded: Vec<i16> = (0..4096 * width)
+                .map(|i| ((i * 7 + 2) % 15) as i16 - 7)
+                .collect();
+            let embedding = Parameter {
+                codes: CoefficientCodes::from_decoded(decoded.clone(), 4)?,
+                spec: ParameterQuantization {
+                    bits: 4,
+                    shape: vec![4096, width],
+                    row_exponents: vec![-3; 4096],
+                },
+            };
+            model.config.width = width;
+            model
+                .parameters
+                .insert("embedding.weight".into(), embedding.clone());
+            model.p_embedding = embedding;
+            model.output_shifts.fill(27);
+            for token in [0, 1, 4095] {
+                assert_eq!(
+                    model.embed(token as u32)?,
+                    decoded[token * width..(token + 1) * width]
+                        .iter()
+                        .map(|&x| i32::from(x))
+                        .collect::<Vec<_>>()
+                );
+            }
+            let input: Vec<i32> = (0..width).map(|i| i as i32 - 83).collect();
+            let products = low_bit_products(&input);
+            let actual = model.project_vocab_with_products(&products)?;
+            for row in 0..4096 {
+                let dot: i64 = input
+                    .iter()
+                    .zip(&decoded[row * width..(row + 1) * width])
+                    .map(|(&x, &w)| i64::from(x) * i64::from(w))
+                    .sum();
+                assert_eq!(
+                    actual[row],
+                    quantize(
+                        scaled(i128::from(dot), 27)? + model.output_bias[row],
+                        WORK_BITS,
+                        8
+                    )?
+                );
+            }
+            let mut from_packed = vec![[0; 16]; width];
+            fill_packed_low_bit_products(
+                model.p_embedding.codes.packed_range(width, width)?,
+                &mut from_packed,
+            );
+            assert_eq!(from_packed, low_bit_products(&model.embed(1)?));
+        }
+        Ok(())
     }
 
     #[test]
@@ -4220,7 +4081,7 @@ mod tests {
     }
 
     #[test]
-    fn low_bit_dot_8_contiguous_matches_scalar() {
+    fn packed_signed4_eight_rows_match_scalar() -> Result<()> {
         let input: Vec<i32> = (0..256i32).map(|i| i * 19 - 2468).collect();
         let products = low_bit_products(&input);
         let p_256: &[[i64; 16]; 256] = (&products[..256]).try_into().unwrap();
@@ -4230,7 +4091,12 @@ mod tests {
             *w = (((i * 11 + 3) % 15) as i16) - 7;
         }
 
-        let (d0, d1, d2, d3, d4, d5, d6, d7) = low_bit_dot_8_contiguous(p_256, &weights_2048);
+        let packed = CoefficientCodes::from_decoded(weights_2048.to_vec(), 4)?;
+        let bytes: &[u8; 1024] = packed
+            .packed_range(0, 2048)?
+            .try_into()
+            .map_err(|_| invalid("test packed tile"))?;
+        let (d0, d1, d2, d3, d4, d5, d6, d7) = low_bit_dot_8_contiguous(p_256, bytes);
 
         let scalar_dot = |weights: &[i16]| -> i64 {
             input
@@ -4248,6 +4114,7 @@ mod tests {
         assert_eq!(d5, scalar_dot(&weights_2048[1280..1536]));
         assert_eq!(d6, scalar_dot(&weights_2048[1536..1792]));
         assert_eq!(d7, scalar_dot(&weights_2048[1792..2048]));
+        Ok(())
     }
 
     #[test]

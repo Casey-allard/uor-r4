@@ -1,0 +1,1622 @@
+{
+  "schema": "uor-r4.packed-integer-preparation/1",
+  "recorded_at": "2026-09-27T09:35:31.563131+00:00",
+  "status": "DRAFT_PENDING_LOADED_OUTPUT_AND_COST",
+  "source_commit": "d0844ba0c1e7a22803c18767796336bfb8ab376e",
+  "base_commit": "0ac3df4679dd0696c4d1f56a231ac96e805ee3af",
+  "source_files": {
+    "crates/uor-r4-integer/src/model.rs": {
+      "bytes": 151290,
+      "sha256": "421b8bc3709ae22f068663ff1256678c825a59fb132fe1a321173e1214718014"
+    },
+    "crates/uor-r4-integer/src/packed_rows.rs": {
+      "bytes": 9524,
+      "sha256": "5bf947178f0d0fa9cc8fc350884091b49af4b91396d4bfded8d482937b713241"
+    },
+    "crates/uor-r4-integer/src/lib.rs": {
+      "bytes": 3555,
+      "sha256": "e134cc5094f1f81b05429a92440e5751a7f8f03c97ce2fab90b2c2979487fb83"
+    },
+    "scripts/audit_zero_matmul_serving.py": {
+      "bytes": 27933,
+      "sha256": "a5045342cfced26f78019daa12acee0de8caedef3fe66ec3cf42c62a3a49cb95"
+    }
+  },
+  "receipt_bindings": {
+    "projection-packed-integer-preparation.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-packed-integer-preparation.json",
+      "bytes": 2377,
+      "sha256": "97144cf0f1a136c1a26fc571fa5a6c3683a8d6dc309329d75e1de003f2be92ed"
+    },
+    "packed-integer-design-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-design-review.json",
+      "bytes": 12721,
+      "sha256": "e22fc12c1cd9805e4a9830c526dcbbb46835598af64f1c714e9eb8dbb1e57898"
+    },
+    "packed-integer-arithmetic-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-arithmetic-review.json",
+      "bytes": 6054,
+      "sha256": "7d3611b30d69738e90eef89f1aed77a14587b3be0dcad467522a75ae11cfc90e"
+    },
+    "packed-integer-integration-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-integration-review.json",
+      "bytes": 6677,
+      "sha256": "ac1c18d4f65ba78426f81e7d638dd366a14c7a4c8e319674e46ceffa52ac9291"
+    },
+    "packed-integer-baseline-build.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-build.json",
+      "bytes": 1455,
+      "sha256": "5b2c1ccb1706f71a5e28d14a5eb00b23032831f9d63ff71985d4a17717865ffa"
+    },
+    "packed-integer-baseline-chat-build.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-chat-build.json",
+      "bytes": 1146,
+      "sha256": "202dc572257d8d1c80b5e197ae6a6abdc89c32d52cbfdb99c499b273d420f1fa"
+    },
+    "packed-integer-candidate-checks.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-checks.json",
+      "bytes": 3195,
+      "sha256": "394c61bb7140033abe442ce5580e0cf77d546b79ff3044803e166f676e2e675f"
+    },
+    "packed-integer-static-audit.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-static-audit.json",
+      "bytes": 33268,
+      "sha256": "706e11336b2c57655f977b32b1c6b6663a3f59182afd107f34ccb10d44737231"
+    },
+    "ledger-packed-integer-preparation.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/ledger-packed-integer-preparation.json",
+      "bytes": 981,
+      "sha256": "f75221dcbc117f6fb8a0fba2df5ac683d5094cc90876c739858282f50825ee66"
+    }
+  },
+  "receipts": {
+    "projection-packed-integer-preparation.json": {
+      "schema": "uor-r4.local-phase-projection/1",
+      "recorded_at": "2026-09-27T09:11:20.832982+00:00",
+      "scope": "Prepare shared packed signed4 rows and integrate existing128/256 native integer hot kernels; independent exact storage/traffic improvement while frozen dialogue pair runs. Source/build/focused arithmetic preparation only. Learned-artifact replay and performance comparison must be separately projected after the single owned model slot is free.",
+      "base_commit": "0ac3df4679dd0696c4d1f56a231ac96e805ee3af",
+      "worktree": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4",
+      "branch": "codex/packed-integer-coefficients-20260927",
+      "wall_cap_seconds": 14400,
+      "build_check_wall_cap_seconds": 1800,
+      "owned_elapsed_cap_ms": 64800000,
+      "verified_cumulative_allowance_ms": 722400000,
+      "parent_phase": "projection-dialogue-prefix-study.json",
+      "parent_caps_still_apply": true,
+      "new_allowance_ms": 0,
+      "resources": {
+        "compile_rss_cap_bytes": 4294967296,
+        "cargo_jobs": 2,
+        "one_cargo": true,
+        "no_additional_learned_model_process": true,
+        "launch_free_memory_percent": 25,
+        "build_stop_free_memory_percent": 25,
+        "new_internal_bytes": 67108864,
+        "shared_ssd_growth_bytes": 536870912,
+        "physical_reserve_bytes": 25971130368,
+        "storage_stop_margin_bytes": 134217728
+      },
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 32384364544,
+        "/Volumes/UOR-Workspace": 172545351680
+      },
+      "accounting": "Overlap with dialogue fit and agents is charged once through the existing cursor; this work neither resets cumulative cost nor extends any frozen fit dose or process limit. Parent phase/cumulative ceilings take precedence.",
+      "decision": "Implement only supported widths and artifact-preserving numerical semantics. Do not promote based on unit nibble checks: require loaded probability/output/RNG agreement and same-workload cost comparison after the live pair completes. Preserve candidate if packing slows hot loops; choose based on actual useful workload cost. D5 sparse access and geometric advantage are not claimed.",
+      "ownership": "Private packed_rows.rs plus Parameter storage/embedding/vocabulary/matrix hunks in model.rs and lib.rs registration; preserve Google1419 session/read-score work. Existing reusable worktree is clean, prior reader pipeline terminal, no live cwd handles found."
+    },
+    "packed-integer-design-review.json": {
+      "schema": "uor-r4.packed-integer-design-review/1",
+      "status": "DESIGN_REVIEW_COMPLETE_IMPLEMENTATION_NOT_REVIEWED",
+      "recorded_at": "2026-09-27T09:20:13.684894+00:00",
+      "reviewer": "fourth-lab independent adversarial reviewer",
+      "scope": "Persisted conclusions from the completed serving-width and supported-shape packed-coefficient review. No new model execution, Cargo, tests, research or implementation changes. Relevant Git blob identity was read to bind the existing review to the named source commits.",
+      "source_equivalence": {
+        "commits": [
+          "0ac3df4679dd0696c4d1f56a231ac96e805ee3af",
+          "9d78ebadb0107ee4566c7787d1037a031bb117f7"
+        ],
+        "relevant_blobs": {
+          "crates/uor-r4-integer/src/config.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "d741f3ae7d106c71a23d76b307d8b533d075ff01",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "d741f3ae7d106c71a23d76b307d8b533d075ff01"
+          },
+          "crates/uor-r4-integer/src/format.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "1f4aabe27849e47a207c3904200644d98d1ac73d",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "1f4aabe27849e47a207c3904200644d98d1ac73d"
+          },
+          "crates/uor-r4-integer/src/model.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "d85040b9871695792284ae204a515381fb4471ac",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "d85040b9871695792284ae204a515381fb4471ac"
+          },
+          "crates/uor-r4-integer/src/generation.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "5ce32949b25f5c3e6c2279ce90fbc60829f1b4c8",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "5ce32949b25f5c3e6c2279ce90fbc60829f1b4c8"
+          },
+          "crates/uor-r4-integer/src/generation/conversation.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "20e349cb3ec7894b2b3e6bd0daba6c04746ecb97",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "20e349cb3ec7894b2b3e6bd0daba6c04746ecb97"
+          },
+          "crates/uor-r4-integer/src/session.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "fe08dae0ee0677c2176c7834acfa0baa3809bcc7",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "fe08dae0ee0677c2176c7834acfa0baa3809bcc7"
+          },
+          "crates/uor-r4-training/src/dialogue_artifact.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "5ac302239aa3a5ceaf915abb2af0879e30991b8f",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "5ac302239aa3a5ceaf915abb2af0879e30991b8f"
+          },
+          "crates/uor-r4-training/src/joint_model.rs": {
+            "0ac3df4679dd0696c4d1f56a231ac96e805ee3af": "6d95f5a82f7ec855ab38edc7f807205dcb0c65dc",
+            "9d78ebadb0107ee4566c7787d1037a031bb117f7": "6d95f5a82f7ec855ab38edc7f807205dcb0c65dc"
+          }
+        },
+        "all_listed_source_blobs_equal": true,
+        "scope": "These eight listed source files are identical at both commits. No claim of whole-tree equality or identical compiled binaries."
+      },
+      "decisions": [
+        {
+          "name": "Width576 integer-serving expansion",
+          "decision": "DEFER_PENDING_PAIRED_RESULT",
+          "reason": "The retained wide artifact has weak actual replies and the fixed complete-prefix pair is running. Its endpoint supplies the next useful-artifact decision; widening formats now would not supply low-bit fidelity or D5 efficiency. This is a research prioritization finding, not a new programme gate or automatic requirement for broad qualification."
+        },
+        {
+          "name": "Shared signed4 runtime representation for supported128/256",
+          "decision": "GO_SCOPED_EXACT_REPRESENTATION_CHANGE",
+          "reason": "Existing source expands packed four-bit weights into i16 vectors, retains them in a map, then deep-clones the eleven signed4 weight arrays into cached fields. Sharing packed storage and directly indexing the already-compatible product tables can remove this demonstrated duplication without changing learned arrays, model equations, shape support or artifacts."
+        }
+      ],
+      "serving_contract": {
+        "owner_scope": "Native learned geometric model with multiplier-free served numerical kernel; no adoption here of converted transformer serving or hardware-multiplier exceptions. Offline floating Rust learning remains permitted.",
+        "D0_b": "At most four-bit multiplicative learned weights with dyadic scales; integer/add/subtract/shift/table execution and no floating/transcendental serving computation or multiplier instructions in the declared kernel. Existing signed16 additive offsets stay additive; do not reinterpret scalar policy.",
+        "D5": "Terminal per-token learned-parameter sparsity remains live. Dense coefficient traversal remains noncompliant with that end state even when the same coefficients occupy fewer bytes.",
+        "output_projection": "The width576 tied output map visits4096*576=2359296 learned embedding coefficients/token, over43percent of5429826 total parameters, before recurrent/update maps. Recurrence-only factorization is not a solution to this dense output access.",
+        "source_pointers": [
+          "docs/integration/DECISIONS.md:D0-b",
+          "docs/integration/DECISIONS.md:D5",
+          "docs/integration/current-state.md:Fourth lab owner clarification"
+        ]
+      },
+      "width576_barriers": [
+        {
+          "source": "crates/uor-r4-integer/src/config.rs:JointConfig::validate",
+          "barrier": "Canonical configuration admits width128/256 only."
+        },
+        {
+          "source": "crates/uor-r4-training/src/dialogue_artifact.rs:validate_model_config; joint_model.rs:load_offline_dialogue_checkpoint",
+          "barrier": "Separate strict576/read64/context256 Quaternion/Dot recovery is continuous Full only; its checkpoint loader rejects quantization. It does not relax canonical/integer loading."
+        },
+        {
+          "source": "crates/uor-r4-integer/src/model.rs:embed; project_vocab_with_products_into",
+          "barrier": "Embedding/vocabulary indexing and row blocks explicitly support128/256 strides."
+        },
+        {
+          "source": "crates/uor-r4-integer/src/model.rs:matrix_work_direct_into",
+          "barrier": "Current affine input lengths are128/256/512. Width576 and concatenated update width1152 need substantive arithmetic/kernel work."
+        },
+        {
+          "source": "crates/uor-r4-integer/src/model.rs:normalize_state; normalize_state_into",
+          "barrier": "RMS variance encodes division by128/256 with fixed shifts. Width576 needs specified fixed-point division, rounding and bounds; changing a shape enum is insufficient."
+        },
+        {
+          "source": "crates/uor-r4-integer/src/model.rs:SessionState; step_conversational_into",
+          "barrier": "Partitioned conversation is explicitly256/Dot, with fixed VAL_DIM256,768-element affine buffers and512-coordinate product scratch."
+        },
+        {
+          "source": "crates/uor-r4-training/src/joint_model.rs:save_hard; load_hard",
+          "barrier": "Packed export is F32 emulation, not serving. Generic code generation or a successfully written file does not prove reload: the packed loader applies canonical shape validation."
+        }
+      ],
+      "separate_session_paths": {
+        "ordinary": "IntegerSession plus IntegerModel::step is the ordinary bounded-context numerical path. The fourth-lab exact-ID TextSession/DialogueConversation adapter preserves generated IDs, pending tokens and sampler continuity over that path.",
+        "google_partitioned": "SessionState plus step_conversational_into/ChatSession is the separate partitioned persistent/rolling/L2 conversation path with additional zeta/Hopf-related state. It is guarded to width256/Dot. Representation optimization must preserve its existing behavior; ordinary-session equivalence is not proof of its memory/reasoning claims.",
+        "review_implication": "Both paths consume the same Parameter storage in different branches, so all consumers must migrate consistently. Do not silently redirect one session type to the other or expand shape/capability claims."
+      },
+      "packed_opportunity": {
+        "source_pointers": [
+          "crates/uor-r4-integer/src/format.rs:load_hard_codes",
+          "crates/uor-r4-integer/src/model.rs:Parameter",
+          "crates/uor-r4-integer/src/model.rs:IntegerModel::load_with_tables get_param",
+          "crates/uor-r4-integer/src/model.rs:fill_low_bit_products",
+          "crates/uor-r4-integer/src/model.rs:low_bit_dot; low_bit_dot_8_contiguous; low_bit_dot_4_contiguous_512"
+        ],
+        "current_representation": "Signed4 artifact bytes are expanded to Vec<i16>. Parameter derives Clone, and get_param clones11 signed4 weight parameters into p_* caches while map originals remain.",
+        "proposed_representation": "Private immutable shared packed signed4 backing storage, referenced by map and cached fields. Hot matrix/vocabulary paths use low/high nibble directly as product-table indices. Keep signed16 additive data unchanged.",
+        "storage_arithmetic": "For duplicated signed4 code payload only: two copies*2bytes/code -> one shared0.5byte/code, eightfold smaller. One active coefficient stream2bytes/code ->0.5byte/code, fourfold fewer coefficient bytes.",
+        "limitations": "These are representation-byte calculations, not measured whole-model RSS, cache traffic, latency, energy, sparsity or quality gains. Product tables, state, metadata and dense coefficient visits remain."
+      },
+      "concrete_risks": [
+        {
+          "risk": "Aliasing versus cosmetic sharing",
+          "requirement": "Arc/shared handles must refer to the same backing data across parameter map and cached fields. No retained full signed4 i16 mirror and no per-hot-call whole-row unpacking. Tied embedding/output projection continues to use identical codes."
+        },
+        {
+          "risk": "Nibble sign",
+          "requirement": "Direct table index0..7/9..15 is correct for0..7/-7..-1. Scalar embedding input and output.norm.weight need signed decoding in place. Do not feed unsigned9..15 as positive scalar coefficients."
+        },
+        {
+          "risk": "Reserved/padding validation",
+          "requirement": "Reject nibble8 (-8), invalid lengths and nonzero unused high nibble before validated storage exists. Product-table slot8 is zero, so bypassing import validation could silently change arithmetic."
+        },
+        {
+          "risk": "Rows/strides/tails",
+          "requirement": "Preserve low-nibble-first coordinate order,128/256 row widths and512 concatenated affine width, including unrolled8-row/4-row blocks and tail rows. No row boundary interleaving."
+        },
+        {
+          "risk": "Rounding and numerical identities",
+          "requirement": "Keep row exponents, i64 dot bounds, Q40 scaling, bias addition, rounding and saturation locations unchanged. Existing supported bounds make integer dot terms exact; no approximate accumulation is introduced."
+        },
+        {
+          "risk": "Artifact/API compatibility",
+          "requirement": "No new on-disk schema, byte rewrite, hash/identity change, quantizer change or width576 admission. Preserve existing public decoded-loader callers when introducing the private runtime representation; share validation rather than weaken it."
+        },
+        {
+          "risk": "Performance regression",
+          "requirement": "Avoid per-coordinate abstraction dispatch, bounds-check overhead and row expansion that negate smaller storage. Preserve blocked product-table reuse. Smaller storage is established by representation; speed/energy await measured execution."
+        },
+        {
+          "risk": "Parallel ownership",
+          "requirement": "Runtime specialist owns the narrow integer representation/model integration in isolated radial-transfer-validation checkout. Principal coordinates shared source ownership and schedules builds/model work. Frozen dialogue source, campaigns, artifacts and running processes remain unchanged."
+        }
+      ],
+      "deferred_evidence": {
+        "implementation_status": "Not reviewed by this persisted design record; a separate coherent-source review follows when assigned.",
+        "meaningful_checks": "Focused reserved/sign/row/aliasing and existing arithmetic/format/session coverage when a build slot is allowed. No blanket suite or new model study follows from this design review.",
+        "loaded_output": "After the owned model slot is free, bind the optimized source/executable to an unchanged accepted supported-shape artifact and compare exact prediction/generation behavior; distinguish ordinary and partitioned session coverage. Then measure relevant retained storage/runtime cost before making performance claims.",
+        "width576_future_bridge": "If a paired endpoint merits preserving, its later numerical bridge must bind that exact continuous artifact through <=4bit learned-weight codes, valid wide integer kernels, actual generated behavior and optimized-kernel arithmetic/cost. Older128/256 precision evidence does not establish576 preservation; no automatic precision-factorial rerun is requested."
+      }
+    },
+    "packed-integer-arithmetic-review.json": {
+      "schema": "uor-r4.packed-integer-arithmetic-review/1",
+      "recorded_date": "2026-09-27",
+      "status": "SOURCE_REVIEW_COMPLETE_NO_CONCRETE_DEFECT_FOUND",
+      "reviewer": "Fourth-lab geometry and arithmetic research specialist",
+      "scope": "Completed read-only review of signed4 coefficient storage, packed dot kernels and their focused test expectations. Broader model integration is independently owned. This receipt records that review without new checks or experiments.",
+      "source_binding": {
+        "worktree": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4",
+        "base_commit": "0ac3df4679dd0696c4d1f56a231ac96e805ee3af",
+        "reviewed_state": "Completed first implementation as uncommitted working-tree changes against this base; hashes identify the exact reviewed file contents, not an assertion about later edits.",
+        "files": [
+          {
+            "path": "crates/uor-r4-integer/src/packed_rows.rs",
+            "sha256": "5bf947178f0d0fa9cc8fc350884091b49af4b91396d4bfded8d482937b713241"
+          },
+          {
+            "path": "crates/uor-r4-integer/src/model.rs",
+            "sha256": "421b8bc3709ae22f068663ff1256678c825a59fb132fe1a321173e1214718014"
+          }
+        ],
+        "unchanged_artifact_decoder_reference": "https://github.com/UOR-Foundation/uor-r4/blob/0ac3df4679dd0696c4d1f56a231ac96e805ee3af/crates/uor-r4-integer/src/format.rs#L331"
+      },
+      "findings": [
+        {
+          "boundary": "Signed4 encoding and scalar decoding",
+          "source": "packed_rows.rs:19-43,84-104",
+          "reasoning": "from_decoded accepts [-7,7], stores the earlier coefficient in the low nibble and sign-extends the selected nibble through i8 shifts. The unused high nibble for an odd element count is zero. Signed16 rejects its reserved minimum."
+        },
+        {
+          "boundary": "Reserved code and serialized padding",
+          "source": "format.rs:331-355 and model.rs load_hard_codes -> CoefficientCodes::from_decoded",
+          "reasoning": "The unchanged artifact decoder rejects nibble8 (-8) and nonzero unused high padding before repacking. Repacking independently rejects decoded values outside [-7,7]. The table entry at index8 is therefore unreachable for an admitted coefficient."
+        },
+        {
+          "boundary": "Row ranges",
+          "source": "packed_rows.rs:109-125; model.rs matrix_work_direct_into, affine_direct_into and vocabulary dispatch",
+          "reasoning": "packed_range checks start+length overflow, even coefficient alignment and logical element bounds before producing byte slices. Traced production callers supply exact supported128/256/512 input widths, with product length guards. All are divisible by8, so the generic kernel has no unprocessed remainder. Its raw internal slice API assumes these validated lengths rather than constituting a general checked dot-product boundary."
+        },
+        {
+          "boundary": "Accumulation and row layout",
+          "source": "packed_rows.rs:132-208",
+          "reasoning": "The generic kernel retains eight coordinate-class accumulators and the same final grouping. Eight width256 rows use128 packed bytes each and retain consecutive two-coordinate sums. Four width512 rows use256 bytes each, preserve the original four-coordinate grouping and two accumulators per row. Nibble extraction changes representation, not coefficient order."
+        },
+        {
+          "boundary": "Integer bounds and rounding",
+          "reasoning": "For validated coefficients with absolute value<=7 and product tables constructed from i32 inputs, every512-term dot has absolute-sum bound512*7*2^31=7696581394432<2^43, far inside i64. Intermediate subsets/pair sums are bounded by the same absolute sum. No rounding is introduced during nibble extraction/table accumulation; existing dyadic scaling and quantization remain downstream. This bound does not certify arbitrary caller-supplied i64 table contents."
+        }
+      ],
+      "focused_tests_source_review": {
+        "status": "EXPECTATIONS_REVIEWED_NOT_EXECUTED_BY_REVIEWER",
+        "independent_reference": "Kernel expected values multiply original decoded i16 coefficients by original i32 inputs in i64 and sum them; expected packed bytes are also literal constants. These references do not derive their expected dots through the new packed decoder.",
+        "covered_cases": [
+          "Literal byte order for every valid signed4 code and odd final padding",
+          "Reserved codes, unsupported bit width, odd/aligned/outside/overflow ranges and signed16 endpoints",
+          "Full i32 extremes and mixed signs/zero",
+          "128/256/512 matrix dispatch, nine-row blocked groups plus tails, per-row scales and bias",
+          "128/256 embedding rows at vocabulary endpoints and all vocabulary projection rows",
+          "Packed embedding product tables versus independently checked decoded values",
+          "Arc allocation sharing for cloned coefficient storage"
+        ],
+        "scope_limit": "Tests reuse existing scaling/quantization functions for those unchanged downstream operations; they are independent references for the changed packing and accumulation boundary, not a fresh independent numerical specification for the whole model."
+      },
+      "conclusion": {
+        "concrete_defects": [],
+        "readiness": "No blocking source defect found in the reviewed representation and kernels. Ready for the principal-declared functional and actual-output checks; this is not an executed parity or performance result.",
+        "claim_boundary": "Packing preserves intended dense access semantics and reduces coefficient representation size. It does not implement conditional parameter routing or establish D5 compliance, throughput or energy gains."
+      },
+      "unrun_by_this_review": {
+        "cargo_or_focused_tests": "NOT_RUN",
+        "actual_artifact_load_and_generated_output_comparison": "NOT_RUN",
+        "whole_path_numerical_parity": "NOT_RUN",
+        "compiled_machine_code_multiplier_audit": "NOT_RUN",
+        "latency_memory_traffic_or_energy_measurement": "NOT_RUN"
+      },
+      "recording_actions": "Only this new receipt file was created. No source edits, experiments, Cargo, network work or model executions were performed to persist it."
+    },
+    "packed-integer-integration-review.json": {
+      "schema": "uor-r4.packed-integer-integration-review/1",
+      "status": "SOURCE_REVIEW_COMPLETE_AUDIT_WIRING_CORRECTED_EXECUTION_PENDING",
+      "recorded_at": "2026-09-27T09:29:45.462796+00:00",
+      "reviewer": "fourth-lab independent adversarial reviewer",
+      "worktree": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4",
+      "base_commit": "0ac3df4679dd0696c4d1f56a231ac96e805ee3af",
+      "runtime_sources": {
+        "crates/uor-r4-integer/src/model.rs": {
+          "path": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4/crates/uor-r4-integer/src/model.rs",
+          "bytes": 151290,
+          "sha256": "421b8bc3709ae22f068663ff1256678c825a59fb132fe1a321173e1214718014"
+        },
+        "crates/uor-r4-integer/src/packed_rows.rs": {
+          "path": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4/crates/uor-r4-integer/src/packed_rows.rs",
+          "bytes": 9524,
+          "sha256": "5bf947178f0d0fa9cc8fc350884091b49af4b91396d4bfded8d482937b713241"
+        },
+        "crates/uor-r4-integer/src/lib.rs": {
+          "path": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4/crates/uor-r4-integer/src/lib.rs",
+          "bytes": 3555,
+          "sha256": "e134cc5094f1f81b05429a92440e5751a7f8f03c97ce2fab90b2c2979487fb83"
+        }
+      },
+      "audit_script": {
+        "path": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4/scripts/audit_zero_matmul_serving.py",
+        "bytes": 27933,
+        "sha256": "a5045342cfced26f78019daa12acee0de8caedef3fe66ec3cf42c62a3a49cb95"
+      },
+      "audit_diff": {
+        "base_git_blob": "bb8d9fa3f8eddf9b98f238b2fbae740fae837ba7",
+        "bytes": 6333,
+        "sha256": "ed4548d10da9e6784fbb91e05dbee13c061475dc5483bb0ff049b2d59e31fc43",
+        "scope": "Only scripts/audit_zero_matmul_serving.py edited by this reviewer. No runtime code, public reexport, input or artifact changed."
+      },
+      "design_review": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-design-review.json",
+        "bytes": 12721,
+        "sha256": "e22fc12c1cd9805e4a9830c526dcbbb46835598af64f1c714e9eb8dbb1e57898"
+      },
+      "source_review_findings": [
+        "No numerical or session-integration defect found in the coherent runtime diff at the recorded hashes.",
+        "All Parameter consumers migrated: ordinary embedding/output normalization signed decode; packed vocabulary and affine rows; SessionState embedding product fill and normalization; signed16 bias/age/Lorentz values remain unchanged.",
+        "Cached Parameter clones share Arc code backing with map entries. Loader temporarily expands legacy codes then repacks and releases them; retained signed4 storage is smaller, but no peak-load RSS reduction is established.",
+        "Artifact identity, public decoded format loader, metadata/exponents, supported128/256 shapes, rounding and saturation locations remain unchanged. No unsafe code or width576 admission added.",
+        "CoefficientStorage is public through the existing public model module; no crate-root reexport is necessary. Its byte count excludes scales,caches,allocator metadata,loading temporaries and session state.",
+        "The low_bit_dot move initially left the existing audit pointed at model::low_bit_dot. That wiring issue is corrected in the owned script; it was not evidence of a forbidden opcode."
+      ],
+      "audit_changes": [
+        "One low_bit_dot entry accepts both legacy model and new packed_rows locations for demangled and v0-style names; helper suffixes are not treated as that function.",
+        "Executable optional-name gaps are listed as NOT AUDITED. Required-symbol misses still fail; no mandatory requirement or forbidden-mnemonic class was removed.",
+        "Actual matched symbol names and total matched ranges are reported, including optional matches.",
+        "Success wording is limited to matched instruction ranges. Removed blanket all-serving-symbol/whole-D0-b certification; no transitive call-graph assertion.",
+        "Additional optional coverage for emitted project_vocab_with_products_into, matrix_work_direct_into, affine_direct_into, their three direct wrappers and step_conversational_into, for both legacy and packed archives/executables. Missing emitted callers are explicitly NOT AUDITED; historical mandatory sets and opcode policy remain unchanged."
+      ],
+      "cheap_validation": {
+        "python_syntax": "PASS via ast.parse",
+        "source_examples": "PASS: old/new demangled and v0-style names match; other module/helper names do not; both locations are audited and a synthetic mul instruction is detected.",
+        "coverage_examples": "PASS: absent optional low_bit_dot is disclosed; missing required rlib low_bit_dot remains missing/failure; standard and TAP output expose the respective gaps.",
+        "git_diff_check": "PASS for owned script",
+        "scope": "Only Python source/synthetic instruction examples. No disassembler invocation, Rust compilation, Rust tests, model execution or real binary audit was performed. No broad test harness added.",
+        "emitted_caller_source_examples": "PASS: all7 demangled and v0-style caller names match exact suffixes; synthetic mul inside each is reported for executable and rlib target modes; absent caller names are disclosed, and unrelated suffixes do not match."
+      },
+      "minimal_later_command": {
+        "command": "python3 scripts/audit_zero_matmul_serving.py --target <absolute-path-to-frozen-release-integer-witness> --strict-arm64",
+        "status": "NOT_RUN",
+        "why": "This audit targets the integer crate. serving_multiplier_check.py primarily watches different historical core/model symbols and is not the appropriate replacement for this changed path.",
+        "coverage_limits": "Inspect actual matched symbols. The audit now includes the three packed-kernel containing functions, their direct wrappers and step_conversational_into when separately emitted, for both archive and executable modes. Inlining may move instructions into an audited caller, but absent names remain explicitly NOT AUDITED and no transitive call-graph coverage is claimed. Missing mandatory ranges still fail; actual binary opcode findings remain pending."
+      },
+      "deferred_runtime_evidence": "Principal schedules compile/focused existing checks and unchanged accepted-artifact output/cost comparison after the live model slot is available. This review does not claim prediction parity, speed, energy or D5 parameter sparsity from source inspection alone.",
+      "process_preservation": "Running dialogue pair, its frozen source/binary/campaigns and all foreign processes were untouched.",
+      "source_freeze_status": "AUDIT_SCRIPT_FROZEN_AFTER_REQUESTED_CALLER_COVERAGE_CORRECTION; principal owns compile/real-binary inspection."
+    },
+    "packed-integer-baseline-build.json": {
+      "schema": "uor-r4.packed-integer-baseline-build/1",
+      "source_commit": "9d78ebadb0107ee4566c7787d1037a031bb117f7",
+      "worktree": "/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-integer",
+        "--bin",
+        "uor-r4-integer",
+        "--bin",
+        "verify-integer"
+      ],
+      "started_at": "2026-09-27T09:16:36.837230+00:00",
+      "scope": "Unchanged release baseline compilation only; zero model execution.",
+      "maximum_sampled_group_rss_bytes": 411009024,
+      "projection_sha256": "97144cf0f1a136c1a26fc571fa5a6c3683a8d6dc309329d75e1de003f2be92ed",
+      "pid": 45416,
+      "exit_code": 0,
+      "finished_at": "2026-09-27T09:16:53.213657+00:00",
+      "wall_seconds": 16.375834667000003,
+      "maximum_child_rss_bytes": 327434240,
+      "binaries": {
+        "uor-r4-integer": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-uor-r4-integer",
+          "bytes": 1333856,
+          "sha256": "70d165b4e056e7acd10691320afbbc9cc0e711453e3d543fce71975a0eda40a9"
+        },
+        "verify-integer": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-verify-integer",
+          "bytes": 1292112,
+          "sha256": "d359ba86d31d04cca1c7cb837e741372759c22291467f0f512b14375326805c3"
+        }
+      }
+    },
+    "packed-integer-baseline-chat-build.json": {
+      "schema": "uor-r4.packed-integer-baseline-build/1",
+      "source_commit": "9d78ebadb0107ee4566c7787d1037a031bb117f7",
+      "worktree": "/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-integer",
+        "--bin",
+        "uor-chat"
+      ],
+      "started_at": "2026-09-27T09:28:30.130406+00:00",
+      "scope": "Supplement the unchanged baseline with the actual conversational caller; zero model execution.",
+      "maximum_sampled_group_rss_bytes": 186515456,
+      "projection_sha256": "97144cf0f1a136c1a26fc571fa5a6c3683a8d6dc309329d75e1de003f2be92ed",
+      "pid": 47262,
+      "exit_code": 0,
+      "finished_at": "2026-09-27T09:28:34.228879+00:00",
+      "wall_seconds": 4.097805542,
+      "maximum_child_rss_bytes": 163299328,
+      "binaries": {
+        "uor-chat": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-uor-chat",
+          "bytes": 1553312,
+          "sha256": "486e7aa6b7b6a336d376d15f5758144fbcbbb7e8682affeada2dc8f5469b32df"
+        }
+      }
+    },
+    "packed-integer-candidate-checks.json": {
+      "schema": "uor-r4.packed-integer-candidate-checks/1",
+      "source_commit": "d0844ba0c1e7a22803c18767796336bfb8ab376e",
+      "worktree": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4",
+      "started_at": "2026-09-27T09:30:21.931134+00:00",
+      "scope": "Synthetic arithmetic tests and release compilation; zero learned-model execution.",
+      "maximum_sampled_group_rss_bytes": 365232128,
+      "jobs": [
+        {
+          "label": "focused",
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "test",
+            "--release",
+            "--offline",
+            "-p",
+            "uor-r4-integer",
+            "--lib",
+            "packed_signed4",
+            "--",
+            "--test-threads=1"
+          ],
+          "started_at": "2026-09-27T09:30:22.158512+00:00",
+          "pid": 47628,
+          "exit_code": 0,
+          "wall_seconds": 14.328346084,
+          "finished_at": "2026-09-27T09:30:36.487230+00:00"
+        },
+        {
+          "label": "build",
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "build",
+            "--release",
+            "--offline",
+            "-p",
+            "uor-r4-integer",
+            "--lib",
+            "--bin",
+            "uor-r4-integer",
+            "--bin",
+            "verify-integer",
+            "--bin",
+            "uor-chat"
+          ],
+          "started_at": "2026-09-27T09:30:36.531087+00:00",
+          "pid": 47683,
+          "exit_code": 0,
+          "wall_seconds": 16.655586416,
+          "finished_at": "2026-09-27T09:30:53.187124+00:00"
+        }
+      ],
+      "projection_sha256": "97144cf0f1a136c1a26fc571fa5a6c3683a8d6dc309329d75e1de003f2be92ed",
+      "supervisor_sha256": "9f699bf6b27aabc9408e714cd7f1813f27059013a9e61829516845986418d922",
+      "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "artifacts": {
+        "uor-r4-integer": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-uor-r4-integer",
+          "bytes": 1356336,
+          "sha256": "1df08a793ff57fe1effb79bd20ab9f713577b9e6085eb86e043d9a202da2d3f5"
+        },
+        "verify-integer": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-verify-integer",
+          "bytes": 1314256,
+          "sha256": "7bdc3394f85446f388da5c3a3ec0f23340308e7ac92af91b5693e1ca56c7d255"
+        },
+        "uor-chat": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-uor-chat",
+          "bytes": 1559248,
+          "sha256": "41c9fd620bee66b38622f8395c3159d9f6adfe479baa4766979b48a9e7144e0d"
+        },
+        "libuor_r4_integer.rlib": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-libuor_r4_integer.rlib",
+          "bytes": 4042936,
+          "sha256": "d2b287ae16c950072de2d37c39abe3b83ef5cfd6003b614b9ee615591456a057"
+        }
+      },
+      "finished_at": "2026-09-27T09:30:53.216764+00:00",
+      "wall_seconds": 31.079032916000003,
+      "maximum_child_rss_bytes": 343310336
+    },
+    "packed-integer-static-audit.json": {
+      "schema": "uor-r4.packed-integer-static-audit/1",
+      "started_at": "2026-09-27T09:31:44.998379+00:00",
+      "source_commit": "d0844ba0c1e7a22803c18767796336bfb8ab376e",
+      "script_sha256": "a5045342cfced26f78019daa12acee0de8caedef3fe66ec3cf42c62a3a49cb95",
+      "scope": "Static emitted symbol ranges only, including packed-kernel callers; zero model execution, no transitive call graph or process-wide certification.",
+      "targets": [
+        {
+          "target": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-uor-r4-integer",
+          "is_rlib": false,
+          "strict": true,
+          "total_symbols_indexed": 1382,
+          "mandatory_checked": 3,
+          "missing_mandatory": [
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ]
+          ],
+          "missing_optional": [
+            [
+              "UnitS3Q30::hopf_project",
+              "S3 -> S2 Hopf base projection coordinates"
+            ],
+            [
+              "UnitS3Q30::from_i32_coords",
+              "S3 unit quaternion normalization from 4D coordinates"
+            ],
+            [
+              "UnitS3Q30::fiber_u1_q30",
+              "U(1) fiber unit phasor extraction"
+            ],
+            [
+              "UnitS3Q30::hopf_fiber_project",
+              "Combined base S2 and fiber U(1) projection"
+            ],
+            [
+              "T8ZetaState::step",
+              "T^8 toroidal Riemann zeta phase progression"
+            ],
+            [
+              "T8ZetaState::step_raw",
+              "T^8 unmodulated zeta frequency progression"
+            ],
+            [
+              "IntegerModel::step_conversational",
+              "Conversational autoregressive step with partitioned memory"
+            ],
+            [
+              "math::atan2_q30",
+              "16-stage CORDIC fixed-point arc-tangent"
+            ],
+            [
+              "math::sum_squares",
+              "Shift-and-add exact vector squared norm"
+            ],
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ],
+            [
+              "IntegerModel::affine_direct_into",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::affine_direct",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::step_conversational_into",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "class_i_violations": [],
+          "class_ii_violations": [],
+          "class_iii_violations": [],
+          "all_violations": [],
+          "passed_symbols": [
+            [
+              "IntegerModel::step",
+              "<uor_r4_integer::model::IntegerModel>::step",
+              3748,
+              "Autoregressive state transition step"
+            ],
+            [
+              "IntegerModel::embed",
+              "<uor_r4_integer::model::IntegerModel>::embed",
+              218,
+              "Token embedding projection via shift-and-add"
+            ],
+            [
+              "IntegerModel::project_vocab",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab",
+              57,
+              "Vocab projection via shift-and-add rows"
+            ],
+            [
+              "IntegerModel::matrix_work",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work",
+              143,
+              "Zero-MatMul affine matrix-vector product"
+            ],
+            [
+              "IntegerModel::affine",
+              "<uor_r4_integer::model::IntegerModel>::affine",
+              244,
+              "Linear combination over parameter codes"
+            ],
+            [
+              "IntegerModel::vector_work",
+              "<uor_r4_integer::model::IntegerModel>::vector_work",
+              117,
+              "Parameter bias scaling and extraction"
+            ],
+            [
+              "model::softmax",
+              "uor_r4_integer::model::softmax",
+              292,
+              "Q48 integer softmax distribution"
+            ],
+            [
+              "low_bit_dot (model or packed_rows)",
+              "uor_r4_integer::model::low_bit_dot",
+              133,
+              "Inner product via signed-4 lookup table"
+            ],
+            [
+              "model::low_bit_products",
+              "uor_r4_integer::model::low_bit_products",
+              57,
+              "Shift-add 4-bit scalar multiples"
+            ],
+            [
+              "math::checked_mul",
+              "uor_r4_integer::math::checked_mul",
+              106,
+              "Shift-and-add exact signed multiplication"
+            ],
+            [
+              "math::div_round",
+              "uor_r4_integer::math::div_round",
+              183,
+              "Signed integer division rounded to nearest"
+            ],
+            [
+              "math::scale_pow2",
+              "uor_r4_integer::math::scale_pow2",
+              100,
+              "Dyadic power-of-two rescaling with rounding"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products_into",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products_into",
+              1589,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products",
+              77,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct_into",
+              965,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct",
+              84,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "symbols_checked": 16,
+          "binary_sha256": "70d165b4e056e7acd10691320afbbc9cc0e711453e3d543fce71975a0eda40a9",
+          "disassembly_sha256": "4685467ee4e8cc4cdf69545841f790b12ae62337e64aa761622f2bde9c388305",
+          "demangled": true,
+          "wall_seconds": 0.596395792,
+          "zero_instruction_ranges": []
+        },
+        {
+          "target": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-baseline-uor-chat",
+          "is_rlib": false,
+          "strict": true,
+          "total_symbols_indexed": 1521,
+          "mandatory_checked": 7,
+          "missing_mandatory": [],
+          "missing_optional": [
+            [
+              "T8ZetaState::step_raw",
+              "T^8 unmodulated zeta frequency progression"
+            ],
+            [
+              "math::sum_squares",
+              "Shift-and-add exact vector squared norm"
+            ],
+            [
+              "IntegerModel::affine_direct",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "class_i_violations": [],
+          "class_ii_violations": [],
+          "class_iii_violations": [],
+          "all_violations": [],
+          "passed_symbols": [
+            [
+              "IntegerModel::step",
+              "<uor_r4_integer::model::IntegerModel>::step",
+              3748,
+              "Autoregressive state transition step"
+            ],
+            [
+              "IntegerModel::step_conversational",
+              "<uor_r4_integer::model::IntegerModel>::step_conversational",
+              159,
+              "Conversational autoregressive step with partitioned memory"
+            ],
+            [
+              "IntegerModel::embed",
+              "<uor_r4_integer::model::IntegerModel>::embed",
+              218,
+              "Token embedding projection via shift-and-add"
+            ],
+            [
+              "IntegerModel::project_vocab",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab",
+              57,
+              "Vocab projection via shift-and-add rows"
+            ],
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "uor_r4_integer::model::compress_barycenter_key_fibonacci",
+              153,
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "uor_r4_integer::model::compute_turn_prime_signature",
+              129,
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "uor_r4_integer::model::extract_salient_tokens",
+              380,
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ],
+            [
+              "UnitS3Q30::hopf_project",
+              "<uor_r4_integer::math::UnitS3Q30>::hopf_project",
+              195,
+              "S3 -> S2 Hopf base projection coordinates"
+            ],
+            [
+              "UnitS3Q30::from_i32_coords",
+              "<uor_r4_integer::math::UnitS3Q30>::from_i32_coords",
+              262,
+              "S3 unit quaternion normalization from 4D coordinates"
+            ],
+            [
+              "UnitS3Q30::fiber_u1_q30",
+              "<uor_r4_integer::math::UnitS3Q30>::fiber_u1_q30",
+              223,
+              "U(1) fiber unit phasor extraction"
+            ],
+            [
+              "UnitS3Q30::hopf_fiber_project",
+              "<uor_r4_integer::math::UnitS3Q30>::hopf_fiber_project",
+              18,
+              "Combined base S2 and fiber U(1) projection"
+            ],
+            [
+              "T8ZetaState::step",
+              "<uor_r4_integer::math::T8ZetaState>::step",
+              214,
+              "T^8 toroidal Riemann zeta phase progression"
+            ],
+            [
+              "IntegerModel::matrix_work",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work",
+              143,
+              "Zero-MatMul affine matrix-vector product"
+            ],
+            [
+              "IntegerModel::affine",
+              "<uor_r4_integer::model::IntegerModel>::affine",
+              244,
+              "Linear combination over parameter codes"
+            ],
+            [
+              "IntegerModel::vector_work",
+              "<uor_r4_integer::model::IntegerModel>::vector_work",
+              117,
+              "Parameter bias scaling and extraction"
+            ],
+            [
+              "model::softmax",
+              "uor_r4_integer::model::softmax",
+              292,
+              "Q48 integer softmax distribution"
+            ],
+            [
+              "low_bit_dot (model or packed_rows)",
+              "uor_r4_integer::model::low_bit_dot",
+              133,
+              "Inner product via signed-4 lookup table"
+            ],
+            [
+              "model::low_bit_products",
+              "uor_r4_integer::model::low_bit_products",
+              57,
+              "Shift-add 4-bit scalar multiples"
+            ],
+            [
+              "math::atan2_q30",
+              "uor_r4_integer::math::atan2_q30",
+              194,
+              "16-stage CORDIC fixed-point arc-tangent"
+            ],
+            [
+              "math::checked_mul",
+              "uor_r4_integer::math::checked_mul",
+              106,
+              "Shift-and-add exact signed multiplication"
+            ],
+            [
+              "math::div_round",
+              "uor_r4_integer::math::div_round",
+              183,
+              "Signed integer division rounded to nearest"
+            ],
+            [
+              "math::scale_pow2",
+              "uor_r4_integer::math::scale_pow2",
+              100,
+              "Dyadic power-of-two rescaling with rounding"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products_into",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products_into",
+              1589,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products",
+              77,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct_into",
+              965,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct",
+              84,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::affine_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::affine_direct_into",
+              1971,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::step_conversational_into",
+              "<uor_r4_integer::model::IntegerModel>::step_conversational_into",
+              10885,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "symbols_checked": 28,
+          "binary_sha256": "486e7aa6b7b6a336d376d15f5758144fbcbbb7e8682affeada2dc8f5469b32df",
+          "disassembly_sha256": "dea28acbdb4b6619be1c4a96c5d426e60362397675b39c4faa4464e1644b1752",
+          "demangled": true,
+          "wall_seconds": 0.7864626669999999,
+          "zero_instruction_ranges": []
+        },
+        {
+          "target": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-uor-r4-integer",
+          "is_rlib": false,
+          "strict": true,
+          "total_symbols_indexed": 1397,
+          "mandatory_checked": 3,
+          "missing_mandatory": [
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ]
+          ],
+          "missing_optional": [
+            [
+              "UnitS3Q30::hopf_project",
+              "S3 -> S2 Hopf base projection coordinates"
+            ],
+            [
+              "UnitS3Q30::from_i32_coords",
+              "S3 unit quaternion normalization from 4D coordinates"
+            ],
+            [
+              "UnitS3Q30::fiber_u1_q30",
+              "U(1) fiber unit phasor extraction"
+            ],
+            [
+              "UnitS3Q30::hopf_fiber_project",
+              "Combined base S2 and fiber U(1) projection"
+            ],
+            [
+              "T8ZetaState::step",
+              "T^8 toroidal Riemann zeta phase progression"
+            ],
+            [
+              "T8ZetaState::step_raw",
+              "T^8 unmodulated zeta frequency progression"
+            ],
+            [
+              "IntegerModel::step_conversational",
+              "Conversational autoregressive step with partitioned memory"
+            ],
+            [
+              "math::atan2_q30",
+              "16-stage CORDIC fixed-point arc-tangent"
+            ],
+            [
+              "math::sum_squares",
+              "Shift-and-add exact vector squared norm"
+            ],
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ],
+            [
+              "IntegerModel::affine_direct_into",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::affine_direct",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::step_conversational_into",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "class_i_violations": [],
+          "class_ii_violations": [],
+          "class_iii_violations": [],
+          "all_violations": [],
+          "passed_symbols": [
+            [
+              "IntegerModel::step",
+              "<uor_r4_integer::model::IntegerModel>::step",
+              3749,
+              "Autoregressive state transition step"
+            ],
+            [
+              "IntegerModel::embed",
+              "<uor_r4_integer::model::IntegerModel>::embed",
+              174,
+              "Token embedding projection via shift-and-add"
+            ],
+            [
+              "IntegerModel::project_vocab",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab",
+              57,
+              "Vocab projection via shift-and-add rows"
+            ],
+            [
+              "IntegerModel::matrix_work",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work",
+              143,
+              "Zero-MatMul affine matrix-vector product"
+            ],
+            [
+              "IntegerModel::affine",
+              "<uor_r4_integer::model::IntegerModel>::affine",
+              245,
+              "Linear combination over parameter codes"
+            ],
+            [
+              "IntegerModel::vector_work",
+              "<uor_r4_integer::model::IntegerModel>::vector_work",
+              118,
+              "Parameter bias scaling and extraction"
+            ],
+            [
+              "model::softmax",
+              "uor_r4_integer::model::softmax",
+              292,
+              "Q48 integer softmax distribution"
+            ],
+            [
+              "low_bit_dot (model or packed_rows)",
+              "uor_r4_integer::packed_rows::low_bit_dot",
+              72,
+              "Inner product via signed-4 lookup table"
+            ],
+            [
+              "model::low_bit_products",
+              "uor_r4_integer::model::low_bit_products",
+              57,
+              "Shift-add 4-bit scalar multiples"
+            ],
+            [
+              "math::checked_mul",
+              "uor_r4_integer::math::checked_mul",
+              106,
+              "Shift-and-add exact signed multiplication"
+            ],
+            [
+              "math::div_round",
+              "uor_r4_integer::math::div_round",
+              183,
+              "Signed integer division rounded to nearest"
+            ],
+            [
+              "math::scale_pow2",
+              "uor_r4_integer::math::scale_pow2",
+              100,
+              "Dyadic power-of-two rescaling with rounding"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products_into",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products_into",
+              1484,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products",
+              77,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct_into",
+              888,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct",
+              84,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "symbols_checked": 16,
+          "binary_sha256": "1df08a793ff57fe1effb79bd20ab9f713577b9e6085eb86e043d9a202da2d3f5",
+          "disassembly_sha256": "97515e8a95cdef976ae1077291fb1bb891f59ef3a2dd9681b994f08a36855786",
+          "demangled": true,
+          "wall_seconds": 0.6092022500000001,
+          "zero_instruction_ranges": []
+        },
+        {
+          "target": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-uor-chat",
+          "is_rlib": false,
+          "strict": true,
+          "total_symbols_indexed": 1536,
+          "mandatory_checked": 7,
+          "missing_mandatory": [],
+          "missing_optional": [
+            [
+              "T8ZetaState::step_raw",
+              "T^8 unmodulated zeta frequency progression"
+            ],
+            [
+              "math::sum_squares",
+              "Shift-and-add exact vector squared norm"
+            ],
+            [
+              "IntegerModel::affine_direct",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "class_i_violations": [],
+          "class_ii_violations": [],
+          "class_iii_violations": [],
+          "all_violations": [],
+          "passed_symbols": [
+            [
+              "IntegerModel::step",
+              "<uor_r4_integer::model::IntegerModel>::step",
+              3749,
+              "Autoregressive state transition step"
+            ],
+            [
+              "IntegerModel::step_conversational",
+              "<uor_r4_integer::model::IntegerModel>::step_conversational",
+              159,
+              "Conversational autoregressive step with partitioned memory"
+            ],
+            [
+              "IntegerModel::embed",
+              "<uor_r4_integer::model::IntegerModel>::embed",
+              174,
+              "Token embedding projection via shift-and-add"
+            ],
+            [
+              "IntegerModel::project_vocab",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab",
+              57,
+              "Vocab projection via shift-and-add rows"
+            ],
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "uor_r4_integer::model::compress_barycenter_key_fibonacci",
+              153,
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "uor_r4_integer::model::compute_turn_prime_signature",
+              129,
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "uor_r4_integer::model::extract_salient_tokens",
+              380,
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ],
+            [
+              "UnitS3Q30::hopf_project",
+              "<uor_r4_integer::math::UnitS3Q30>::hopf_project",
+              195,
+              "S3 -> S2 Hopf base projection coordinates"
+            ],
+            [
+              "UnitS3Q30::from_i32_coords",
+              "<uor_r4_integer::math::UnitS3Q30>::from_i32_coords",
+              262,
+              "S3 unit quaternion normalization from 4D coordinates"
+            ],
+            [
+              "UnitS3Q30::fiber_u1_q30",
+              "<uor_r4_integer::math::UnitS3Q30>::fiber_u1_q30",
+              223,
+              "U(1) fiber unit phasor extraction"
+            ],
+            [
+              "UnitS3Q30::hopf_fiber_project",
+              "<uor_r4_integer::math::UnitS3Q30>::hopf_fiber_project",
+              18,
+              "Combined base S2 and fiber U(1) projection"
+            ],
+            [
+              "T8ZetaState::step",
+              "<uor_r4_integer::math::T8ZetaState>::step",
+              214,
+              "T^8 toroidal Riemann zeta phase progression"
+            ],
+            [
+              "IntegerModel::matrix_work",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work",
+              143,
+              "Zero-MatMul affine matrix-vector product"
+            ],
+            [
+              "IntegerModel::affine",
+              "<uor_r4_integer::model::IntegerModel>::affine",
+              245,
+              "Linear combination over parameter codes"
+            ],
+            [
+              "IntegerModel::vector_work",
+              "<uor_r4_integer::model::IntegerModel>::vector_work",
+              118,
+              "Parameter bias scaling and extraction"
+            ],
+            [
+              "model::softmax",
+              "uor_r4_integer::model::softmax",
+              292,
+              "Q48 integer softmax distribution"
+            ],
+            [
+              "low_bit_dot (model or packed_rows)",
+              "uor_r4_integer::packed_rows::low_bit_dot",
+              72,
+              "Inner product via signed-4 lookup table"
+            ],
+            [
+              "model::low_bit_products",
+              "uor_r4_integer::model::low_bit_products",
+              57,
+              "Shift-add 4-bit scalar multiples"
+            ],
+            [
+              "math::atan2_q30",
+              "uor_r4_integer::math::atan2_q30",
+              194,
+              "16-stage CORDIC fixed-point arc-tangent"
+            ],
+            [
+              "math::checked_mul",
+              "uor_r4_integer::math::checked_mul",
+              106,
+              "Shift-and-add exact signed multiplication"
+            ],
+            [
+              "math::div_round",
+              "uor_r4_integer::math::div_round",
+              183,
+              "Signed integer division rounded to nearest"
+            ],
+            [
+              "math::scale_pow2",
+              "uor_r4_integer::math::scale_pow2",
+              100,
+              "Dyadic power-of-two rescaling with rounding"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products_into",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products_into",
+              1484,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products",
+              77,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct_into",
+              888,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct",
+              84,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::affine_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::affine_direct_into",
+              2011,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::step_conversational_into",
+              "<uor_r4_integer::model::IntegerModel>::step_conversational_into",
+              10986,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "symbols_checked": 28,
+          "binary_sha256": "41c9fd620bee66b38622f8395c3159d9f6adfe479baa4766979b48a9e7144e0d",
+          "disassembly_sha256": "d724475bc95a654caed1b39f7a08010c70cfa8d4c896a03d5c23f3191e9afab4",
+          "demangled": true,
+          "wall_seconds": 0.7784980830000001,
+          "zero_instruction_ranges": []
+        },
+        {
+          "target": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/packed-integer-candidate-libuor_r4_integer.rlib",
+          "is_rlib": true,
+          "strict": true,
+          "total_symbols_indexed": 1268,
+          "mandatory_checked": 24,
+          "missing_mandatory": [],
+          "missing_optional": [
+            [
+              "IntegerModel::affine_direct",
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "class_i_violations": [],
+          "class_ii_violations": [],
+          "class_iii_violations": [],
+          "all_violations": [],
+          "passed_symbols": [
+            [
+              "UnitS3Q30::hopf_project",
+              "<uor_r4_integer::math::UnitS3Q30>::hopf_project",
+              195,
+              "S3 -> S2 Hopf base projection coordinates"
+            ],
+            [
+              "UnitS3Q30::from_i32_coords",
+              "<uor_r4_integer::math::UnitS3Q30>::from_i32_coords",
+              262,
+              "S3 unit quaternion normalization from 4D coordinates"
+            ],
+            [
+              "UnitS3Q30::fiber_u1_q30",
+              "<uor_r4_integer::math::UnitS3Q30>::fiber_u1_q30",
+              223,
+              "U(1) fiber unit phasor extraction"
+            ],
+            [
+              "UnitS3Q30::hopf_fiber_project",
+              "<uor_r4_integer::math::UnitS3Q30>::hopf_fiber_project",
+              18,
+              "Combined base S2 and fiber U(1) projection"
+            ],
+            [
+              "T8ZetaState::step",
+              "<uor_r4_integer::math::T8ZetaState>::step",
+              214,
+              "T^8 toroidal Riemann zeta phase progression"
+            ],
+            [
+              "T8ZetaState::step_raw",
+              "<uor_r4_integer::math::T8ZetaState>::step_raw",
+              87,
+              "T^8 unmodulated zeta frequency progression"
+            ],
+            [
+              "IntegerModel::step",
+              "<uor_r4_integer::model::IntegerModel>::step",
+              3749,
+              "Autoregressive state transition step"
+            ],
+            [
+              "IntegerModel::step_conversational",
+              "<uor_r4_integer::model::IntegerModel>::step_conversational",
+              159,
+              "Conversational autoregressive step with partitioned memory"
+            ],
+            [
+              "IntegerModel::matrix_work",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work",
+              143,
+              "Zero-MatMul affine matrix-vector product"
+            ],
+            [
+              "IntegerModel::affine",
+              "<uor_r4_integer::model::IntegerModel>::affine",
+              245,
+              "Linear combination over parameter codes"
+            ],
+            [
+              "IntegerModel::vector_work",
+              "<uor_r4_integer::model::IntegerModel>::vector_work",
+              118,
+              "Parameter bias scaling and extraction"
+            ],
+            [
+              "IntegerModel::embed",
+              "<uor_r4_integer::model::IntegerModel>::embed",
+              174,
+              "Token embedding projection via shift-and-add"
+            ],
+            [
+              "IntegerModel::project_vocab",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab",
+              57,
+              "Vocab projection via shift-and-add rows"
+            ],
+            [
+              "model::softmax",
+              "uor_r4_integer::model::softmax",
+              292,
+              "Q48 integer softmax distribution"
+            ],
+            [
+              "low_bit_dot (model or packed_rows)",
+              "uor_r4_integer::packed_rows::low_bit_dot",
+              72,
+              "Inner product via signed-4 lookup table"
+            ],
+            [
+              "model::low_bit_products",
+              "uor_r4_integer::model::low_bit_products",
+              57,
+              "Shift-add 4-bit scalar multiples"
+            ],
+            [
+              "math::atan2_q30",
+              "uor_r4_integer::math::atan2_q30",
+              194,
+              "16-stage CORDIC fixed-point arc-tangent"
+            ],
+            [
+              "math::checked_mul",
+              "uor_r4_integer::math::checked_mul",
+              106,
+              "Shift-and-add exact signed multiplication"
+            ],
+            [
+              "math::div_round",
+              "uor_r4_integer::math::div_round",
+              183,
+              "Signed integer division rounded to nearest"
+            ],
+            [
+              "math::scale_pow2",
+              "uor_r4_integer::math::scale_pow2",
+              100,
+              "Dyadic power-of-two rescaling with rounding"
+            ],
+            [
+              "math::sum_squares",
+              "uor_r4_integer::math::sum_squares",
+              76,
+              "Shift-and-add exact vector squared norm"
+            ],
+            [
+              "model::compress_barycenter_key_fibonacci",
+              "uor_r4_integer::model::compress_barycenter_key_fibonacci",
+              153,
+              "Fibonacci integer barycenter key compression in Z[phi]"
+            ],
+            [
+              "model::compute_turn_prime_signature",
+              "uor_r4_integer::model::compute_turn_prime_signature",
+              129,
+              "Galois LFSR 64-bit prime signature computation"
+            ],
+            [
+              "model::extract_salient_tokens",
+              "uor_r4_integer::model::extract_salient_tokens",
+              380,
+              "Top-4 salient entity token extraction via zero-matmul scoring"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products_into",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products_into",
+              1484,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::project_vocab_with_products",
+              "<uor_r4_integer::model::IntegerModel>::project_vocab_with_products",
+              77,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct_into",
+              888,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::matrix_work_direct",
+              "<uor_r4_integer::model::IntegerModel>::matrix_work_direct",
+              84,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::affine_direct_into",
+              "<uor_r4_integer::model::IntegerModel>::affine_direct_into",
+              2011,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ],
+            [
+              "IntegerModel::step_conversational_into",
+              "<uor_r4_integer::model::IntegerModel>::step_conversational_into",
+              10986,
+              "Emitted containing function for signed4 affine/vocabulary kernels"
+            ]
+          ],
+          "symbols_checked": 30,
+          "binary_sha256": "d2b287ae16c950072de2d37c39abe3b83ef5cfd6003b614b9ee615591456a057",
+          "disassembly_sha256": "e5f9edc080dbdd713002afaa5e3278278f063267d99bacad1149015d8b87817a",
+          "demangled": true,
+          "wall_seconds": 0.6024004999999999,
+          "zero_instruction_ranges": []
+        }
+      ],
+      "finished_at": "2026-09-27T09:31:48.378781+00:00",
+      "wall_seconds": 3.379364917
+    },
+    "ledger-packed-integer-preparation.json": {
+      "last_charged_at": "2026-09-27T09:32:54.276749+00:00",
+      "charged_elapsed_ms": 32390265,
+      "tail_ms": 1967872,
+      "before": {
+        "cumulative_ms": 678577973,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 680545845,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "verified_cumulative_allowance_ms": 722400000,
+      "owned_elapsed_cap_ms": 64800000,
+      "foreign_reported_limit_adopted": false,
+      "scope": "Live dialogue fit, architecture research, independent packed coefficient implementation/reviews, baseline and candidate compilation, four focused arithmetic checks and static emitted-symbol audits. Concurrent wall time charged once; no additional learned-model execution. Delivery tail remains open.",
+      "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock.",
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 32282370048,
+        "/Volumes/UOR-Workspace": 172551520256
+      }
+    }
+  },
+  "logs": {
+    "packed-integer-baseline-build.log": "   Compiling uor-r4-tokenizer v0.1.0 (/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4/crates/uor-r4-tokenizer)\n   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 15.02s\n       15.13 real        24.43 user         1.39 sys\n           327434240  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n              114675  page reclaims\n               12509  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   9  signals received\n                1875  voluntary context switches\n               25202  involuntary context switches\n          1310430187  instructions retired\n           759730878  cycles elapsed\n            39715440  peak memory footprint\n",
+    "packed-integer-baseline-chat-build.log": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 2.52s\n        2.61 real         1.19 user         0.50 sys\n           163299328  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               20501  page reclaims\n                8961  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                1140  voluntary context switches\n               10254  involuntary context switches\n          1156678670  instructions retired\n           634564941  cycles elapsed\n            39813744  peak memory footprint\n",
+    "packed-integer-candidate-focused.log": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 12.33s\n     Running unittests src/lib.rs (/Users/casey.allard/uor-r4/target/release/deps/uor_r4_integer-bea720be477d0689)\n\nrunning 4 tests\ntest model::tests::packed_signed4_affine_accumulation ... ok\ntest model::tests::packed_signed4_eight_rows_match_scalar ... ok\ntest model::tests::packed_signed4_matrix_dispatch_rows_scales_and_embedding ... ok\ntest packed_rows::tests::packed_signed4_sign_order_bounds_and_shared_storage ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s\n\n       12.43 real        17.61 user         0.87 sys\n           343310336  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               62283  page reclaims\n               10061  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                1161  voluntary context switches\n               16518  involuntary context switches\n          1141325723  instructions retired\n           619818038  cycles elapsed\n            39994016  peak memory footprint\n",
+    "packed-integer-candidate-build.log": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 14.62s\n       14.72 real        23.02 user         1.08 sys\n           336576512  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n              126646  page reclaims\n                2260  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   9  signals received\n                 696  voluntary context switches\n               29017  involuntary context switches\n          1126885236  instructions retired\n           596792068  cycles elapsed\n            39993992  peak memory footprint\n"
+  },
+  "claim_boundary": {
+    "executed": "Four focused synthetic arithmetic tests, release library/three CLI builds, static emitted-symbol inspection, independent source review. Zero additional learned-model execution.",
+    "not_run": [
+      "loaded accepted-artifact prediction/output/RNG comparison",
+      "complete-workload timing and process memory comparison",
+      "separate partitioned-session loaded-output comparison"
+    ],
+    "not_established": [
+      "D5 selected parameter access",
+      "model quality or geometric predictive advantage",
+      "speed or energy improvement",
+      "whole-process multiplier freedom"
+    ],
+    "concurrent_work": "Frozen dialogue full-prefix/role-only pair proceeds separately. This candidate is not merged or promoted."
+  }
+}

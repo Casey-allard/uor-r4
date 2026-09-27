@@ -25,6 +25,14 @@ libraries. It has no dependency on Candle, the training crate, the core crate,
 model-source, a transformer implementation, or an external model provider.
 Training evaluation re-exports the same integer computation used here.
 
+The [packed coefficient candidate](../../docs/integration/packed-integer-preparation-2026-09-27.md)
+keeps signed4 arrays in shared `Arc<[u8]>` storage after loading and consumes
+packed rows directly. Signed16 arrays are shared separately.
+`IntegerModel::coefficient_storage()` reports unique coefficient payload bytes,
+excluding metadata, loading temporaries and session state. Artifact formats and
+supported dimensions are unchanged. Focused arithmetic checks/build pass; actual
+loaded-output preservation and workload cost remain pending. Dense access remains.
+
 ## Build and package
 
 From the repository root:

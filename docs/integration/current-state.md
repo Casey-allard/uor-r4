@@ -29,6 +29,16 @@ record the executed scope. No model fit or capability promotion
 follows from the lab setup. Accepted models and the continuation negative below
 remain unchanged. Other labs' active source and model jobs are preserved.
 
+The [shared packed-coefficient candidate](packed-integer-preparation-2026-09-27.md)
+now preserves signed4 arrays in shared packed storage and reads them directly in
+the supported width-128/256 integer kernels. Four focused arithmetic checks and
+release compilation pass. Static inspection covers 30 emitted library ranges
+and 28 conversational-binary ranges with no forbidden opcode found; the ordinary
+CLI retains three missing conversational symbols in both baseline and candidate.
+This remains a draft pending actual loaded-output/state/RNG equality and workload
+cost after the single owned model slot is free. It leaves the running dialogue
+pair unchanged and establishes neither useful language nor D5 selected access.
+
 The retained integer `TextSession` now has an opt-in exact-ID dialogue adapter
 and consistent optional stop-token handling. Six focused checks pass. A loaded
 accepted-bundle witness matches exact prefix IDs and all 16 prediction records

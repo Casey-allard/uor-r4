@@ -118,6 +118,8 @@ the fixed endpoint and select the next causal action from the complete result;
 no automatic dose/seed/decoder extension. Foreign trainer and CLI ownership
 remain preserved.
 
+While the fixed pair runs, the independent [packed coefficient implementation](packed-integer-preparation-2026-09-27.md) advances the supported integer runtime without changing learning or widening the loader. Keep it as a draft until the same loaded artifacts preserve actual decisions/state and a measured workload establishes the storage/cost tradeoff. It is an interim dense-access optimization; D5 selected access and a useful native learner remain separate architectural work.
+
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
 the original 20 failed source rows fall below the declared four, and actual
