@@ -1,0 +1,819 @@
+{
+  "schema": "uor-r4.dialogue-token-session-validation/1",
+  "recorded_at": "2026-09-27T02:02:21.211586+00:00",
+  "source_commit": "79c7c9e0d9cb712af0361cf1dd9d21cfdd8cd9d0",
+  "base_main": "e3191a835fd70fb1570f7c8e5fdc59fe4610a200",
+  "source_sha256": {
+    "crates/uor-r4-integer/src/generation.rs": "6c3c2b1e3fb3ee92b58d81c8824bf9150ed26cd90e83477c17c466c035711618",
+    "crates/uor-r4-integer/examples/dialogue-token-witness.rs": "4e978e8d6276130c32d6ae4b6fecec2d0a3ff32af9a2aa981e1470f5266f2dfa",
+    "crates/uor-r4-tokenizer/src/lib.rs": "58d82052f237d40822e0be301d99d8b518eeb84f2a68e718b09518f1ab163209",
+    "crates/uor-r4-tokenizer/src/dialogue.rs": "ad2c8e6b790d3399dc67551241f81934b38b48fb9e99df473103c672797cd2a2"
+  },
+  "checks": {
+    "generation_tests": {
+      "passed": 6,
+      "failed": 0,
+      "new": 4,
+      "retained": 2,
+      "test_seconds": 0.09,
+      "cargo_build_seconds": 12.64,
+      "command_wall_seconds": 13.05,
+      "maximum_rss_bytes": 374800384
+    },
+    "witness_build": {
+      "cargo_build_seconds": 3.51,
+      "command_wall_seconds": 3.56,
+      "maximum_rss_bytes": 311623680
+    },
+    "touched_rustfmt": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS",
+    "independent_source_review": "No remaining blocking issue; exact-ID/pending/BOS/EOS and witness scope reviewed. Reviewer ran no compute."
+  },
+  "prior_compile_attempt": {
+    "recorded_at": "2026-09-27T02:00:01.822366+00:00",
+    "source_commit": "79c7c9e0d9cb712af0361cf1dd9d21cfdd8cd9d0",
+    "status": "COMPILE_FAILED_STALE_DEPENDENCY",
+    "command_wall_seconds": 1.15,
+    "maximum_rss_bytes": 227819520,
+    "error": "unresolved import uor_r4_tokenizer::dialogue",
+    "evidence": "Current source lib.rs exports pub mod dialogue, while most-recent cached tokenizer dep-info ef7d6c181d924122 lists only lib.rs; another checkout reused the shared cache. No tests/model execution occurred.",
+    "correction": "Refresh only this worktree tokenizer source mtimes, then rebuild after other cargo job exits. No source content or model change and no cache deletion."
+  },
+  "witness": {
+    "local_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-bundle-witness-1",
+    "files_sha256": {
+      "attempt.json": "b1d7e38cb662da45642dbe30ff45b30c7657071d50dd660df81cb63a5f063643",
+      "manifest.json": "23aac03fb9aae5da3dbe09638a0a6b635f785acfb3f516c2d7c29a2eb98bfe61",
+      "result.json": "13d244b1953e4a157305c2bda0dc2585a799d3a31c184e295021979c2361d7f0"
+    },
+    "complete_report_verified": true,
+    "command_wall_seconds": 4.32,
+    "maximum_rss_bytes": 13139968,
+    "result": {
+      "all_comparisons_equal": true,
+      "binding_scope": "evaluation input and EOS semantics only; unchanged bundle has no adopted dialogue training contract",
+      "bundle_root": "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/bundle-quaternion-1",
+      "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+      "claim": "Exact input and per-prediction transport witness only; no chat/prose/geometry/speed/energy qualification",
+      "comparisons": [
+        {
+          "adapter": {
+            "generation": {
+              "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+              "context_capacity": 256,
+              "decisions": [
+                {
+                  "exposed_causal_slots": 12,
+                  "no_read_mass_q48": 172831732906398,
+                  "probability_q48": 97435994694581,
+                  "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 19
+                },
+                {
+                  "exposed_causal_slots": 13,
+                  "no_read_mass_q48": 257086717397987,
+                  "probability_q48": 149703103087726,
+                  "probability_sha256_le_u64": "89a3ab4f0f287a5b0bf6e9df3854c507aa43a7b07d29558d45ce4712b50bd92b",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 18
+                },
+                {
+                  "exposed_causal_slots": 14,
+                  "no_read_mass_q48": 254738828186119,
+                  "probability_q48": 39320670273583,
+                  "probability_sha256_le_u64": "3d7c12f0564b3eabb121411737f0637d0800bf76881619dd8b626dd3223446b3",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 269
+                },
+                {
+                  "exposed_causal_slots": 15,
+                  "no_read_mass_q48": 230178180469684,
+                  "probability_q48": 15326358073905,
+                  "probability_sha256_le_u64": "1e497267e50faaaf08d9651450fe92b91a2c4ef4a141cc9da369b273bcc056a1",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 265
+                },
+                {
+                  "exposed_causal_slots": 16,
+                  "no_read_mass_q48": 216597500138571,
+                  "probability_q48": 22659190625041,
+                  "probability_sha256_le_u64": "5e98b7737b3799bf7f7a4cb5fca4f689b2632baa19db54ea8e4e5340433f8a4e",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 19
+                },
+                {
+                  "exposed_causal_slots": 17,
+                  "no_read_mass_q48": 202445671827757,
+                  "probability_q48": 50004576968244,
+                  "probability_sha256_le_u64": "864390d384a49f3b033b238351fc1ae9d7787e276eb9e9f5fe87557eed89d7c3",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 372
+                },
+                {
+                  "exposed_causal_slots": 18,
+                  "no_read_mass_q48": 233139134413597,
+                  "probability_q48": 97768538255112,
+                  "probability_sha256_le_u64": "cda9bb266b6830029f8f1a38054bda204ee971534bff70513caad56bc3226535",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 265
+                },
+                {
+                  "exposed_causal_slots": 19,
+                  "no_read_mass_q48": 174165228301968,
+                  "probability_q48": 49313661628650,
+                  "probability_sha256_le_u64": "81b30ef6fcf9f51cf56061a08247523b032afd9a168e7940de6172c5823b16d3",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 19
+                }
+              ],
+              "generated_token_ids": [
+                19,
+                18,
+                269,
+                265,
+                19,
+                372,
+                265,
+                19
+              ],
+              "incremental_step_calls": 20,
+              "model_step_nanoseconds": 547082124,
+              "prompt": "",
+              "prompt_token_ids": [
+                0,
+                55,
+                2728,
+                28,
+                223,
+                1094,
+                201,
+                35,
+                560,
+                652,
+                714,
+                28,
+                223
+              ],
+              "raw_decoded": "10 and the1 of the1",
+              "read_mode": "enabled",
+              "response_text": "10 and the1 of the1",
+              "sampler_state_after": 11400714819323198485,
+              "selection": {
+                "kind": "greedy"
+              },
+              "session_tokens_including_pending": 21,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              },
+              "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+              "utf8_decodable": true,
+              "whole_generation_nanoseconds": 562915916
+            },
+            "protocol": {
+              "bos_id": 0,
+              "eos_id": 1,
+              "schema": "uor-r4.literal-role-dialogue/1",
+              "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+              "unk_id": 2
+            },
+            "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327"
+          },
+          "append_tokens": {
+            "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+            "context_capacity": 256,
+            "decisions": [
+              {
+                "exposed_causal_slots": 12,
+                "no_read_mass_q48": 172831732906398,
+                "probability_q48": 97435994694581,
+                "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              },
+              {
+                "exposed_causal_slots": 13,
+                "no_read_mass_q48": 257086717397987,
+                "probability_q48": 149703103087726,
+                "probability_sha256_le_u64": "89a3ab4f0f287a5b0bf6e9df3854c507aa43a7b07d29558d45ce4712b50bd92b",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 18
+              },
+              {
+                "exposed_causal_slots": 14,
+                "no_read_mass_q48": 254738828186119,
+                "probability_q48": 39320670273583,
+                "probability_sha256_le_u64": "3d7c12f0564b3eabb121411737f0637d0800bf76881619dd8b626dd3223446b3",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 269
+              },
+              {
+                "exposed_causal_slots": 15,
+                "no_read_mass_q48": 230178180469684,
+                "probability_q48": 15326358073905,
+                "probability_sha256_le_u64": "1e497267e50faaaf08d9651450fe92b91a2c4ef4a141cc9da369b273bcc056a1",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 16,
+                "no_read_mass_q48": 216597500138571,
+                "probability_q48": 22659190625041,
+                "probability_sha256_le_u64": "5e98b7737b3799bf7f7a4cb5fca4f689b2632baa19db54ea8e4e5340433f8a4e",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              },
+              {
+                "exposed_causal_slots": 17,
+                "no_read_mass_q48": 202445671827757,
+                "probability_q48": 50004576968244,
+                "probability_sha256_le_u64": "864390d384a49f3b033b238351fc1ae9d7787e276eb9e9f5fe87557eed89d7c3",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 372
+              },
+              {
+                "exposed_causal_slots": 18,
+                "no_read_mass_q48": 233139134413597,
+                "probability_q48": 97768538255112,
+                "probability_sha256_le_u64": "cda9bb266b6830029f8f1a38054bda204ee971534bff70513caad56bc3226535",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 19,
+                "no_read_mass_q48": 174165228301968,
+                "probability_q48": 49313661628650,
+                "probability_sha256_le_u64": "81b30ef6fcf9f51cf56061a08247523b032afd9a168e7940de6172c5823b16d3",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              }
+            ],
+            "generated_token_ids": [
+              19,
+              18,
+              269,
+              265,
+              19,
+              372,
+              265,
+              19
+            ],
+            "incremental_step_calls": 7,
+            "model_step_nanoseconds": 190514333,
+            "prompt": "",
+            "prompt_token_ids": [
+              0,
+              55,
+              2728,
+              28,
+              223,
+              1094,
+              201,
+              35,
+              560,
+              652,
+              714,
+              28,
+              223
+            ],
+            "raw_decoded": "10 and the1 of the1",
+            "read_mode": "enabled",
+            "response_text": "10 and the1 of the1",
+            "sampler_state_after": 11400714819323198485,
+            "selection": {
+              "kind": "greedy"
+            },
+            "session_tokens_including_pending": 21,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+            "utf8_decodable": true,
+            "whole_generation_nanoseconds": 205989375
+          },
+          "append_tokens_observables_equal": true,
+          "direct_integer_steps": {
+            "decisions": [
+              {
+                "exposed_causal_slots": 12,
+                "no_read_mass_q48": 172831732906398,
+                "probability_q48": 97435994694581,
+                "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              },
+              {
+                "exposed_causal_slots": 13,
+                "no_read_mass_q48": 257086717397987,
+                "probability_q48": 149703103087726,
+                "probability_sha256_le_u64": "89a3ab4f0f287a5b0bf6e9df3854c507aa43a7b07d29558d45ce4712b50bd92b",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 18
+              },
+              {
+                "exposed_causal_slots": 14,
+                "no_read_mass_q48": 254738828186119,
+                "probability_q48": 39320670273583,
+                "probability_sha256_le_u64": "3d7c12f0564b3eabb121411737f0637d0800bf76881619dd8b626dd3223446b3",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 269
+              },
+              {
+                "exposed_causal_slots": 15,
+                "no_read_mass_q48": 230178180469684,
+                "probability_q48": 15326358073905,
+                "probability_sha256_le_u64": "1e497267e50faaaf08d9651450fe92b91a2c4ef4a141cc9da369b273bcc056a1",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 16,
+                "no_read_mass_q48": 216597500138571,
+                "probability_q48": 22659190625041,
+                "probability_sha256_le_u64": "5e98b7737b3799bf7f7a4cb5fca4f689b2632baa19db54ea8e4e5340433f8a4e",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              },
+              {
+                "exposed_causal_slots": 17,
+                "no_read_mass_q48": 202445671827757,
+                "probability_q48": 50004576968244,
+                "probability_sha256_le_u64": "864390d384a49f3b033b238351fc1ae9d7787e276eb9e9f5fe87557eed89d7c3",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 372
+              },
+              {
+                "exposed_causal_slots": 18,
+                "no_read_mass_q48": 233139134413597,
+                "probability_q48": 97768538255112,
+                "probability_sha256_le_u64": "cda9bb266b6830029f8f1a38054bda204ee971534bff70513caad56bc3226535",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 19,
+                "no_read_mass_q48": 174165228301968,
+                "probability_q48": 49313661628650,
+                "probability_sha256_le_u64": "81b30ef6fcf9f51cf56061a08247523b032afd9a168e7940de6172c5823b16d3",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 19
+              }
+            ],
+            "generated_token_ids": [
+              19,
+              18,
+              269,
+              265,
+              19,
+              372,
+              265,
+              19
+            ],
+            "incremental_step_calls": 20,
+            "model_and_sampling_nanoseconds": 650039916,
+            "raw_decoded": "10 and the1 of the1",
+            "sampler_state_after": 11400714819323198485
+          },
+          "direct_prediction_decisions_equal": true,
+          "exact_prompt_ids_equal": true,
+          "selection": {
+            "kind": "greedy"
+          }
+        },
+        {
+          "adapter": {
+            "generation": {
+              "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+              "context_capacity": 256,
+              "decisions": [
+                {
+                  "exposed_causal_slots": 12,
+                  "no_read_mass_q48": 172831732906398,
+                  "probability_q48": 2439262398820,
+                  "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 1108
+                },
+                {
+                  "exposed_causal_slots": 13,
+                  "no_read_mass_q48": 251277003518841,
+                  "probability_q48": 5348809577586,
+                  "probability_sha256_le_u64": "7294a6a0dc75aa6fa02f18a0a06c4a35f20f0dc71afdf76c2ecc024f0a809e41",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 4018
+                },
+                {
+                  "exposed_causal_slots": 14,
+                  "no_read_mass_q48": 274628986766695,
+                  "probability_q48": 1704224141218,
+                  "probability_sha256_le_u64": "bc4e34bb66a7d0a26e10266d121915e58244e5e29c94b2b61ecc4928a931f984",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 403
+                },
+                {
+                  "exposed_causal_slots": 15,
+                  "no_read_mass_q48": 280550487677004,
+                  "probability_q48": 12253224820123,
+                  "probability_sha256_le_u64": "21abbf3305c340452ea9937e8ca12735a672eb143a11a957c265f86077bb05d9",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 265
+                },
+                {
+                  "exposed_causal_slots": 16,
+                  "no_read_mass_q48": 270464593125713,
+                  "probability_q48": 1817429908564,
+                  "probability_sha256_le_u64": "4efc3091ac206e8c3d1629d257e1e6b37516b8f395827c4c2d44669b44fe6c62",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 1108
+                },
+                {
+                  "exposed_causal_slots": 17,
+                  "no_read_mass_q48": 228077854731304,
+                  "probability_q48": 36749480328589,
+                  "probability_sha256_le_u64": "eb50e7bd756f005ba770534da60ad56c8e4ffb503713f53caf4d129b2fc34aba",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 322
+                },
+                {
+                  "exposed_causal_slots": 18,
+                  "no_read_mass_q48": 268179123338591,
+                  "probability_q48": 34562448386699,
+                  "probability_sha256_le_u64": "07717f3ac05c4fc048171a9b15fa66b1616747da581d50b421d1057f707dc100",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 2379
+                },
+                {
+                  "exposed_causal_slots": 19,
+                  "no_read_mass_q48": 178592669605482,
+                  "probability_q48": 2756555202697,
+                  "probability_sha256_le_u64": "b5a58db19d862dbe16c71f8ebe903162dc26dc16afbc9d3acef8040ff8b16fd8",
+                  "probability_sum_q48": 281474976710656,
+                  "selected_token": 595
+                }
+              ],
+              "generated_token_ids": [
+                1108,
+                4018,
+                403,
+                265,
+                1108,
+                322,
+                2379,
+                595
+              ],
+              "incremental_step_calls": 20,
+              "model_step_nanoseconds": 571680745,
+              "prompt": "",
+              "prompt_token_ids": [
+                0,
+                55,
+                2728,
+                28,
+                223,
+                1094,
+                201,
+                35,
+                560,
+                652,
+                714,
+                28,
+                223
+              ],
+              "raw_decoded": "“Is there the“ver?” J",
+              "read_mode": "enabled",
+              "response_text": "“Is there the“ver?” J",
+              "sampler_state_after": 16628038585707035791,
+              "selection": {
+                "kind": "categorical",
+                "seed": 20260926,
+                "top_k": 40
+              },
+              "session_tokens_including_pending": 21,
+              "stop": {
+                "reason": "maximum_new_tokens"
+              },
+              "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+              "utf8_decodable": true,
+              "whole_generation_nanoseconds": 599796375
+            },
+            "protocol": {
+              "bos_id": 0,
+              "eos_id": 1,
+              "schema": "uor-r4.literal-role-dialogue/1",
+              "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+              "unk_id": 2
+            },
+            "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327"
+          },
+          "append_tokens": {
+            "bundle_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+            "context_capacity": 256,
+            "decisions": [
+              {
+                "exposed_causal_slots": 12,
+                "no_read_mass_q48": 172831732906398,
+                "probability_q48": 2439262398820,
+                "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 1108
+              },
+              {
+                "exposed_causal_slots": 13,
+                "no_read_mass_q48": 251277003518841,
+                "probability_q48": 5348809577586,
+                "probability_sha256_le_u64": "7294a6a0dc75aa6fa02f18a0a06c4a35f20f0dc71afdf76c2ecc024f0a809e41",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 4018
+              },
+              {
+                "exposed_causal_slots": 14,
+                "no_read_mass_q48": 274628986766695,
+                "probability_q48": 1704224141218,
+                "probability_sha256_le_u64": "bc4e34bb66a7d0a26e10266d121915e58244e5e29c94b2b61ecc4928a931f984",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 403
+              },
+              {
+                "exposed_causal_slots": 15,
+                "no_read_mass_q48": 280550487677004,
+                "probability_q48": 12253224820123,
+                "probability_sha256_le_u64": "21abbf3305c340452ea9937e8ca12735a672eb143a11a957c265f86077bb05d9",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 16,
+                "no_read_mass_q48": 270464593125713,
+                "probability_q48": 1817429908564,
+                "probability_sha256_le_u64": "4efc3091ac206e8c3d1629d257e1e6b37516b8f395827c4c2d44669b44fe6c62",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 1108
+              },
+              {
+                "exposed_causal_slots": 17,
+                "no_read_mass_q48": 228077854731304,
+                "probability_q48": 36749480328589,
+                "probability_sha256_le_u64": "eb50e7bd756f005ba770534da60ad56c8e4ffb503713f53caf4d129b2fc34aba",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 322
+              },
+              {
+                "exposed_causal_slots": 18,
+                "no_read_mass_q48": 268179123338591,
+                "probability_q48": 34562448386699,
+                "probability_sha256_le_u64": "07717f3ac05c4fc048171a9b15fa66b1616747da581d50b421d1057f707dc100",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 2379
+              },
+              {
+                "exposed_causal_slots": 19,
+                "no_read_mass_q48": 178592669605482,
+                "probability_q48": 2756555202697,
+                "probability_sha256_le_u64": "b5a58db19d862dbe16c71f8ebe903162dc26dc16afbc9d3acef8040ff8b16fd8",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 595
+              }
+            ],
+            "generated_token_ids": [
+              1108,
+              4018,
+              403,
+              265,
+              1108,
+              322,
+              2379,
+              595
+            ],
+            "incremental_step_calls": 7,
+            "model_step_nanoseconds": 204243875,
+            "prompt": "",
+            "prompt_token_ids": [
+              0,
+              55,
+              2728,
+              28,
+              223,
+              1094,
+              201,
+              35,
+              560,
+              652,
+              714,
+              28,
+              223
+            ],
+            "raw_decoded": "“Is there the“ver?” J",
+            "read_mode": "enabled",
+            "response_text": "“Is there the“ver?” J",
+            "sampler_state_after": 16628038585707035791,
+            "selection": {
+              "kind": "categorical",
+              "seed": 20260926,
+              "top_k": 40
+            },
+            "session_tokens_including_pending": 21,
+            "stop": {
+              "reason": "maximum_new_tokens"
+            },
+            "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+            "utf8_decodable": true,
+            "whole_generation_nanoseconds": 232721000
+          },
+          "append_tokens_observables_equal": true,
+          "direct_integer_steps": {
+            "decisions": [
+              {
+                "exposed_causal_slots": 12,
+                "no_read_mass_q48": 172831732906398,
+                "probability_q48": 2439262398820,
+                "probability_sha256_le_u64": "597aa2341dd178de3940cb989f5050e90795fb9be6ea499eb3ed3ccb31db26ce",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 1108
+              },
+              {
+                "exposed_causal_slots": 13,
+                "no_read_mass_q48": 251277003518841,
+                "probability_q48": 5348809577586,
+                "probability_sha256_le_u64": "7294a6a0dc75aa6fa02f18a0a06c4a35f20f0dc71afdf76c2ecc024f0a809e41",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 4018
+              },
+              {
+                "exposed_causal_slots": 14,
+                "no_read_mass_q48": 274628986766695,
+                "probability_q48": 1704224141218,
+                "probability_sha256_le_u64": "bc4e34bb66a7d0a26e10266d121915e58244e5e29c94b2b61ecc4928a931f984",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 403
+              },
+              {
+                "exposed_causal_slots": 15,
+                "no_read_mass_q48": 280550487677004,
+                "probability_q48": 12253224820123,
+                "probability_sha256_le_u64": "21abbf3305c340452ea9937e8ca12735a672eb143a11a957c265f86077bb05d9",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 265
+              },
+              {
+                "exposed_causal_slots": 16,
+                "no_read_mass_q48": 270464593125713,
+                "probability_q48": 1817429908564,
+                "probability_sha256_le_u64": "4efc3091ac206e8c3d1629d257e1e6b37516b8f395827c4c2d44669b44fe6c62",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 1108
+              },
+              {
+                "exposed_causal_slots": 17,
+                "no_read_mass_q48": 228077854731304,
+                "probability_q48": 36749480328589,
+                "probability_sha256_le_u64": "eb50e7bd756f005ba770534da60ad56c8e4ffb503713f53caf4d129b2fc34aba",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 322
+              },
+              {
+                "exposed_causal_slots": 18,
+                "no_read_mass_q48": 268179123338591,
+                "probability_q48": 34562448386699,
+                "probability_sha256_le_u64": "07717f3ac05c4fc048171a9b15fa66b1616747da581d50b421d1057f707dc100",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 2379
+              },
+              {
+                "exposed_causal_slots": 19,
+                "no_read_mass_q48": 178592669605482,
+                "probability_q48": 2756555202697,
+                "probability_sha256_le_u64": "b5a58db19d862dbe16c71f8ebe903162dc26dc16afbc9d3acef8040ff8b16fd8",
+                "probability_sum_q48": 281474976710656,
+                "selected_token": 595
+              }
+            ],
+            "generated_token_ids": [
+              1108,
+              4018,
+              403,
+              265,
+              1108,
+              322,
+              2379,
+              595
+            ],
+            "incremental_step_calls": 20,
+            "model_and_sampling_nanoseconds": 629421000,
+            "raw_decoded": "“Is there the“ver?” J",
+            "sampler_state_after": 16628038585707035791
+          },
+          "direct_prediction_decisions_equal": true,
+          "exact_prompt_ids_equal": true,
+          "selection": {
+            "kind": "categorical",
+            "seed": 20260926,
+            "top_k": 40
+          }
+        }
+      ],
+      "encoded_prefix_ids": [
+        0,
+        55,
+        2728,
+        28,
+        223,
+        1094,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28,
+        223
+      ],
+      "executable_sha256": "ee56f93bfffe2f11912ad3ebd7b0860a0f108fb6aba14b29f3fbcee17160ff68",
+      "generation_rs_sha256": "6c3c2b1e3fb3ee92b58d81c8824bf9150ed26cd90e83477c17c466c035711618",
+      "max_new_tokens": 8,
+      "messages": [
+        {
+          "content": "Hi",
+          "role": "user"
+        }
+      ],
+      "model_config": {
+        "context": 256,
+        "read_width": 64,
+        "seed": 240924,
+        "transport": "quaternion",
+        "vocab_size": 4096,
+        "width": 256
+      },
+      "protocol": {
+        "bos_id": 0,
+        "eos_id": 1,
+        "schema": "uor-r4.literal-role-dialogue/1",
+        "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+        "unk_id": 2
+      },
+      "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+      "retained_independent_prefix_equal": true,
+      "retained_independent_prefix_ids": [
+        0,
+        55,
+        2728,
+        28,
+        223,
+        1094,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28,
+        223
+      ],
+      "retained_tokenizer_reference_applies": true,
+      "schema": "uor-r4.dialogue-token-witness/1",
+      "source_commit": "79c7c9e0d9cb712af0361cf1dd9d21cfdd8cd9d0",
+      "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+      "whole_witness_nanoseconds": 4090629042
+    }
+  },
+  "resource": {
+    "accounting_checkpoint": {
+      "recorded_at": "2026-09-27T02:02:21.211586+00:00",
+      "previous_cursor": "2026-09-27T01:43:39.886917+00:00",
+      "tail_ms": 1121324,
+      "charged_elapsed_ms": 5357209,
+      "before": {
+        "cumulative_ms": 649939665,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 651060989,
+        "limit_ms": 744000000
+      },
+      "external_increment_since_prior_cursor_ms": 0,
+      "limitations": "Local advisory lock and compare-before atomic replacement; other writers do not share the lock, no global mutual-exclusion claim. Foreign charges/limit preserved.",
+      "scope": "Fourth lab elapsed through radial delivery, explicit dialogue adapter/review/build and actual retained-bundle witness; publication tail remains to charge once."
+    },
+    "phase_elapsed_limit_ms": 1800000,
+    "owned_elapsed_limit_ms": 7200000,
+    "build_jobs": 2,
+    "rayon_threads": 2,
+    "test_threads": 1,
+    "compile_check_seconds_including_failed_attempt": 17.76,
+    "retained_model_witness_wall_seconds": 4.32,
+    "training_study_ms": 0,
+    "capability_evaluation_ms": 0,
+    "accelerator_ms": 0,
+    "paid_compute": false,
+    "free_bytes_observed": {
+      "internal": 47872942080,
+      "ssd": 173631954944
+    },
+    "worktree_allocated_bytes": 531881984,
+    "local_receipts_allocated_bytes": 1843200,
+    "physical_reserve_bytes": 25971130368,
+    "minimum_stop_margin_bytes": 134217728,
+    "storage_attribution": "Global free-space changes include concurrent labs; no exclusive shared-cache consumption claim, no deletion."
+  },
+  "scope": "Opt-in library adapter on unchanged retained quaternion Dot bundle. Six unit tests and a two-policy short actual-bundle inference witness. Both outputs are incoherent for chat; no language/geometry/performance/energy qualification.",
+  "remaining": "Existing chatbot CLI, corpus builder and panel still require adoption. Width576 dialogue checkpoint loading is separate. Next attention preparation is explicit unit-scale campaign initialization, not an automatic fit."
+}

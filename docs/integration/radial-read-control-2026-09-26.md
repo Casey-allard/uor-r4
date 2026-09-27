@@ -141,3 +141,47 @@ evidence that the radial score has fixed the prose failures.
 
 The optional signed-2I design remains available for a demonstrated unmet need;
 this comparison does not demote the broader prime/zeta/R4 programme.
+
+## Initialization decision before a learning run
+
+After implementation, source/artifact review found that the canonical evaluator's
+retained TinyStories train/dev stores, tokenizer and prompts are locally available.
+A fresh matched pair is feasible without importing Claude's scratch tokenizer.
+The retained Dot checkpoint cannot simply resume as a different reader; its
+strict configuration identity correctly rejects that substitution.
+
+Do not launch a long default-scale fit merely because it is already executable.
+The canonical constructor starts at beta about 12.92 for state256/read64, whereas
+Claude's context256 result uses beta 1. Its context128 four-seed result supports
+the latter as a more consistent start, not a universally better one: flat-start
+NLLs are 3.236, 3.246, 3.222 and 3.222, versus 3.450, 3.234, 3.218 and 3.215 for
+the matched start. These are that packet's reported development results, not a
+new fourth-lab replay or comparable TinyStories scores.
+[Retained study](hyperbolic-cycle3-2026-09-26.md).
+
+The next research preparation is one typed optional campaign initializer that
+sets the learned log-beta to zero for either fresh radial arm, before optimizer
+construction and initial evaluation. Absent/default must preserve the existing
+constructor and old serialization. Resume must retain the evolved scalar and
+bind the initializer in campaign/checkpoint provenance. Reject applying it to
+Dot. Keep the pinned Lorentz numerical contract byte-compatible; its description
+of the constructor default must not conceal the separately recorded override.
+This initializer is a selected design, not implemented by the radial-control PR.
+
+The affine tangent is above the concave acosh distance, so at identical current
+query/key tensors and scalar values its read scores are no greater than the
+Lorentz scores. Its NoRead odds are consequently no smaller when null and age
+logits are fixed. Beta 1 reduces the raw score gap relative to the default; it
+does not make the read distributions or subsequent trajectories identical.
+Record one no-update startup comparison on fixed canonical prefixes: actual
+scalars, read/NoRead mass, conditional read entropy and query/key/scalar gradients.
+Only numerical loss of an active learnable read would justify a specific
+calibration correction; ordinary differences do not justify a tuning sweep.
+
+A proposed 2,048-update-per-arm study would be 8,388,608 target visits per arm at
+B16/T256. Prior Dot M1 runs took 3.295 and 4.992 seconds per update and roughly
+3.4–3.5 GB peak sampled process RSS; extrapolating gives about 3.8–5.8 hours for
+that pair, before preparation/delivery and unmeasured radial overhead. Neither
+that dose nor its compute has been selected. Choose the complete exposure and
+resource projection after the initializer and startup evidence, preserving
+open development and actual generated behavior as the research objective.

@@ -44,12 +44,17 @@ identified an existing native Lorentz read/configuration/export interface.
 Review and reuse that seam before adding a competing finite-group reader;
 retain radius/initialization controls and the reported numerical limitations.
 Its separate proposed D10 backbone/arithmetic policy is not implicitly adopted.
-The next implementation is the [offline radial comparison](radial-read-control-2026-09-26.md):
-reuse the continuous Lorentz reader and add an affine tangent score with the
-same lifted radial information and learned scalar count. This distinguishes
-nonlinear distance weighting from the lift itself. A later paired language
-study must name its calibration differences and useful generated behavior;
-implementation checks do not trigger a training sweep or serving promotion.
+The [offline radial comparison](radial-read-control-2026-09-26.md) is implemented:
+it adds an affine tangent score to the continuous Lorentz reader with the same
+lifted radial information and learned scalar count. This distinguishes nonlinear
+distance weighting from the lift itself. The next research preparation is one
+explicit shared unit-scale initializer and a startup record of read/NoRead and
+gradient behavior, before choosing a costly paired learning dose. Preserve the
+old default and bind the override in new campaign/checkpoint provenance. The
+future language comparison must report calibration differences and useful
+generated behavior; implementation checks do not trigger a training sweep or
+serving promotion. Exact-token dialogue ingestion can advance independently
+through the retained integer session while these learning conditions are resolved.
 
 ## Active programme — learn the model, then harden its execution
 

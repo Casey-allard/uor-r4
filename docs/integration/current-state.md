@@ -23,6 +23,17 @@ record the executed scope. No model fit or capability promotion
 follows from the lab setup. Accepted models and the continuation negative below
 remain unchanged. Other labs' active source and model jobs are preserved.
 
+The retained integer `TextSession` now has an opt-in exact-ID dialogue adapter
+and consistent optional stop-token handling. Six focused checks pass. A loaded
+accepted-bundle witness matches exact prefix IDs and all 16 prediction records
+across two selection policies against direct integer stepping; both short outputs
+remain incoherent for chat. The
+[adapter receipt](../evidence/dialogue-token-session-validation-2026-09-27.json)
+records actual text, source/artifact identity and cost. This is verified input
+and prediction transport, not trained chat. Existing chatbot CLI, corpus builder
+and panel adoption, and the separate width-576 dialogue checkpoint loader, remain
+open. No accepted bundle was changed.
+
 **Concurrent discovery:** the [fourth-lab native-read review](fourth-lab-native-read-review-2026-09-26.md)
 inspects Claude PR#1401's full-context Lorentz implementation and reported
 development results. Claude fixed the two reported implementation defects and
