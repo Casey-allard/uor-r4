@@ -35,23 +35,34 @@ the supported width-128/256 integer kernels. Four focused arithmetic checks and
 release compilation pass. Static inspection covers 30 emitted library ranges
 and 28 conversational-binary ranges with no forbidden opcode found; the ordinary
 CLI retains three missing conversational symbols in both baseline and candidate.
-This remains a draft pending actual loaded-output/state/RNG equality and workload
-cost after the single owned model slot is free. It leaves the running dialogue
-pair unchanged and establishes neither useful language nor D5 selected access.
+The [completed comparison](packed-integer-comparison-2026-09-27.md) now preserves
+all declared stable fields in eight paired workloads on the retained width-256
+Quaternion and Householder-pair artifacts: 4,096 paired replay positions, 138
+generation requests per version and four complete saved chat DTOs per version.
+All 16 processes exit successfully. Logical retained coefficient payload falls
+from 6,702,340 to 847,876 bytes; observed peak child RSS is 13.04–16.83% lower.
+Timing changes are small and mixed; the complete supervisor took 50.774 seconds.
+Independent review supports protected delivery without another sweep. This
+preserves the existing weak language behavior and establishes neither useful
+language, width-576 equivalence, D5 selected access nor energy savings.
 
 The [explicit width-576 integer development profile](native-dialogue576-preparation-2026-09-27.md)
-is implemented and built through source `e75acd94`. Ten distinct focused checks
-pass. Inspection finds no forbidden opcode in the declared emitted ranges;
-three historical conversational helpers remain absent from the ordinary binary,
-so this is not whole-process certification. The
-[source-bound packet](../evidence/native-dialogue576-preparation-2026-09-27.json)
-records the scope and complete build attempts. The profile provides an explicit
-historical-R1d conversion path and ordinary integer dialogue APIs while preserving
-the default retained profiles. Actual historical-parent conversion, numerical
-retention and generated output through this profile are **NOT_RUN**. They need a
-separate prospective observation after the fixed dialogue pair frees the owned
-model slot. This is a draft implementation, not artifact promotion or D5 selected
-parameter access.
+now has a [completed historical-parent observation](native-dialogue576-observation-2026-09-27.md).
+Conversion, packaging and 174 actual replies completed through frozen sources
+`e75acd94` / `b9bea957`; four new focused observer checks pass. On 4,331 identical
+saved trace positions, parameter conversion changes 746 greedy decisions,
+interface quantization another 6, and integer arithmetic another 8. QQ and integer
+produce identical tokens on 55/58 turns, with all 58 request prefixes matching.
+Both lose Momo and final blue-car recall relative to the weak continuous parent.
+Retain the converted artifact for diagnosis, without language promotion.
+The [portable packet](../evidence/native-dialogue576-observation-2026-09-27.json)
+contains every output and both independent reviews. Complete execution took
+61.469 seconds, peak child RSS 161,349,632 bytes. On the same trace, integer
+stepping took 13.983 seconds versus FF 3.173; this single instrumented run
+establishes no speed advantage and measures no energy. Dense parameter access
+remains; D5 selected access is not established. Reconcile existing precision and
+learned-rounding evidence before selecting a new discretization experiment.
+This historical-parent observation does not qualify the new full-prefix child.
 
 The retained integer `TextSession` now has an opt-in exact-ID dialogue adapter
 and consistent optional stop-token handling. Six focused checks pass. A loaded
@@ -206,39 +217,33 @@ neither answers Paris or recalls Alex in the final memory turn. All ten replies,
 source identities and the 40.528-second combined process wall cost are retained
 in its [packet](../evidence/dialogue-prefix-implementation-2026-09-27.json).
 This is integrated execution, not useful chat or conditioning advantage.
-The [substantive complete-prefix study](dialogue-prefix-study-2026-09-27.md)
-has one completed endpoint: full-prefix reached 1,024 updates and 1,165,549
-supervised response/EOS targets, reloaded its saved model and generated all 58
-fixed open-development replies. Development NLL improved from 3.022131 to
-2.773887. Principal and independent review retain selected factual/recall gains
-alongside broad instruction, relevance and multi-turn failures; no responsive
-three-turn trajectory was established. The
-[completed endpoint review](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5854996853)
-records those limitations and individual label disagreements. This endpoint alone
-does not establish a conditioning advantage.
+The [fixed complete-prefix dialogue pair](dialogue-prefix-paired-result-2026-09-27.md)
+is complete. Each arm reached 1,024 updates, 1,165,549 response/EOS targets and
+4,194,304 tensor positions, with all 1,024 retained schedule rows matched.
+Role-only resumed the preserved model/Adam at step 512 after the storage
+interruption; discarded 46 updates and 50,798 targets remain charged. Saved
+models reloaded and generated all 58 fixed replies each. The
+[portable result](../evidence/dialogue-prefix-paired-result-2026-09-27.json)
+preserves all parent/full/role outputs, six source strata, artifact identity,
+cost and reviewer disagreements.
 
-The role-only attempt stopped on a storage guard after 558 logged updates.
-Its sealed step-512 model and Adam checkpoint is now **RECOVERING** to the same
-fixed step-1,024 endpoint with unchanged source, binary, learning fields,
-optimizer, data schedule, panel and decoder. The 46 discarded updates and 50,798
-supervised targets remain charged work, not retained exposure. The
-[prospective recovery card](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5855294255)
-separates study material from shared-volume growth, preserves the original
-physical baseline and phase end, and makes owned builds and fits sequential.
-No compiler or model-quality failure is inferred from the storage interruption.
+Retain full-prefix as a narrow conditioning candidate, with retention limits.
+Development NLL is 3.022131 parent, 2.773887 full-prefix and 2.863946 role-only.
+Paris on the correct request and Alex/green/Tokyo recall improve over both
+comparators. Greeting and pizza gains are shared; Momo/blue-car payload predates
+this study. Role-only handles the morning greeting better, while full-prefix
+rewrite first-four NLL regresses from 0.583383 to 0.927748 (role 0.713295).
+Neither model handles the ten middle memory turns coherently or establishes
+general instruction-following, prose, chat or reasoning. The 161-response
+source-stratified panel is exposed development; the complete-prefix population
+excludes most long responses. No general non-regression or geometric advantage
+is claimed, and no automatic dose, seed or decoder extension follows.
 
-The source-stratified open-development panel was sealed before learning: 161
-distinct responses, with source counts 23/32/10/32/32/32. Three focused
-selection/aggregation checks pass. Each arm keeps its fixed 1,024-update endpoint,
-saved-weight reload and all 58 existing open-development replies. The original
-[launch packet](../evidence/dialogue-prefix-study-2026-09-27.json) binds the frozen
-conditions; the [new preparation packet](../evidence/native-dialogue576-preparation-2026-09-27.json)
-adds a dated recovery snapshot. The pair remains incomplete. Complete and review
-the recovered role-only endpoint before comparing request fulfillment, history
-correctness, source-specific losses and regressions against both parent and
-control. No automatic dose, seed or decoder extension follows. Other labs retain
-their CLI, trainer and deeper stack ownership. Native, multiplier-free serving
-remains the target.
+The next independent implementation is the already prepared packed-coefficient
+workload comparison; the native observation above makes parameter discretization
+the leading numerical question. Preserve the fixed studies and accepted models.
+Other labs retain their CLI, trainer and deeper stack ownership. Native,
+multiplier-free serving remains the target.
 
 The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
 identifies useful serving optimization alongside unresolved integration and

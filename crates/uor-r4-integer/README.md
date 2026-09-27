@@ -30,8 +30,12 @@ keeps signed4 arrays in shared `Arc<[u8]>` storage after loading and consumes
 packed rows directly. Signed16 arrays are shared separately.
 `IntegerModel::coefficient_storage()` reports unique coefficient payload bytes,
 excluding metadata, loading temporaries and session state. Artifact formats and
-supported dimensions are unchanged. Focused arithmetic checks/build pass; actual
-loaded-output preservation and workload cost remain pending. Dense access remains.
+supported dimensions are unchanged. The [completed comparison](../../docs/integration/packed-integer-comparison-2026-09-27.md)
+preserves every declared stable field across eight paired workloads on the two
+retained width-256 artifacts. Logical retained coefficient payload falls from
+6,702,340 to 847,876 bytes; observed peak child RSS is 13.04–16.83% lower.
+Timing changes are small and mixed in this single pass. Dense access and the
+artifacts' language limitations remain; no general speed or energy gain is established.
 
 ## Build and package
 

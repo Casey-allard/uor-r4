@@ -107,28 +107,35 @@ not reconstruct the historical sampler or identify that sampler as the cause of
 failure. The [integrated parameter-start → learning → save/reload → actual
 reply path](dialogue-prefix-implementation-2026-09-27.md) is now executed in two
 matched two-update witnesses. Eight focused checks pass, but actual replies
-remain weak. The [substantive study](dialogue-prefix-study-2026-09-27.md) now
-runs one fixed 1,024-update pair from the retained parent, using 161 sealed,
-source-stratified development responses and the same 58 existing open replies
-per saved model. Full-prefix has completed its fixed endpoint and actual-output
-review. Role-only is recovering the same endpoint from its sealed step-512 model
-and optimizer after a storage interruption; no scientific condition changes.
-Complete the matched endpoint before choosing the next learning intervention.
-Judge actual request/history correctness against both parent and control,
-preserving source-specific gains and regressions. A loss-only improvement or a
-gap caused by harming the control does not establish useful dialogue. Preserve
-the fixed endpoint and select the next causal action from the complete result;
-no automatic dose/seed/decoder extension. Foreign trainer and CLI ownership
-remain preserved.
+remain weak. The [fixed paired result](dialogue-prefix-paired-result-2026-09-27.md) is now
+complete at 1,024 matched updates and 1,165,549 response/EOS targets per arm.
+Retain full-prefix as a narrow conditioning integration candidate: selected
+Paris/Alex/green/Tokyo answers improve over parent and control, alongside shared
+adaptation gains, failed middle conversation turns, and a rewrite first-four
+regression. The result changes prefix content, length and response position
+together; it does not establish a content-only cause or general chat. Preserve
+both endpoints, the interrupted/recovered control and all costs. No automatic
+training dose, seed or decoder extension follows.
 
-While the fixed pair runs, the independent [packed coefficient implementation](packed-integer-preparation-2026-09-27.md) advances the supported integer runtime without changing learning or widening the loader. Keep it as a draft until the same loaded artifacts preserve actual decisions/state and a measured workload establishes the storage/cost tradeoff. It is an interim dense-access optimization; D5 selected access and a useful native learner remain separate architectural work.
+The independent [packed coefficient comparison](packed-integer-comparison-2026-09-27.md)
+is complete. All eight pairs preserve their declared stable loaded behavior on
+the two retained width-256 artifacts, with lower observed peak child RSS in every
+pair and small, mixed timing changes. Independent review supports scoped
+protected delivery without another sweep. This is an interim dense-access
+storage improvement; D5 selected access, width-576 preservation and useful
+language remain separate responsibilities.
 
-The separately scoped [width-576 development profile](native-dialogue576-preparation-2026-09-27.md)
-is built, but actual historical-R1d conversion and complete native dialogue
-output remain NOT_RUN. After the fixed pair completes, use a prospectively
-bounded observation to separate parameter quantization, interface quantization
-and integer arithmetic effects while preserving the existing parent, panel and
-decoder. Dense parameter access remains an unresolved architectural limit.
+The [width-576 native observation](native-dialogue576-observation-2026-09-27.md)
+has completed historical-parent conversion, packing, four-form common-input
+traces and all 174 generated replies. Parameter conversion is the largest
+observed numerical change; smaller integer differences still change three
+complete continuations. Quantized outputs lose Momo and final blue-car recall.
+Keep this artifact diagnostic. The current native path provides no speed or
+energy advantage; its dense parameter access remains an unresolved limit.
+Before a new rounding or learning run, reconcile existing precision/learned-rounding
+results with the retained parent's scales and choose a single causal change.
+Do not automatically convert or train the new full-prefix child merely because
+the historical-parent observation completed.
 
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
@@ -140,10 +147,9 @@ The [completed fixed reader comparison](radial-adaptation-result-2026-09-27.md)
 now parks the transferred radial configurations: both lose to matched Dot on
 likelihood and complete source responses. Lorentz's isolated greedy story gain
 is preserved alongside concrete source regressions. Keep the native Dot path;
-no new serving operator, extra dose or seed sweep is selected. Advance the
-fixed complete-prefix dialogue study after its implemented integration
-witness and prospective work card. Deeper geometric state/read
-structure remains a complementary Claude-owned candidate; its distinct
+no new serving operator, extra dose or seed sweep is selected. The completed
+complete-prefix result above supplies the next retained conditioning candidate.
+Deeper geometric state/read structure remains a complementary Claude-owned candidate; its distinct
 population and serving contracts remain explicit.
 
 

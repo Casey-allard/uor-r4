@@ -43,7 +43,8 @@ use uor_r4_integer::config::{
 };
 pub use uor_r4_integer::{JointConfig, ReadMode, Transport};
 
-/// Forward-only precision interventions on one fully quantized floating parent.
+/// Forward-only precision interventions on one fully quantized floating parent,
+/// or the explicit QF view of a reloaded packed child.
 /// The first letter selects parameter precision; the second selects every
 /// declared recurrent/read/output interface. `Q` uses the existing fixed grid.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -427,7 +428,7 @@ impl JointModel {
     /// New offline optimizer starts from the actual packed code values. Parent
     /// clock/scales remain immutable; campaign lineage records all new updates.
     pub(crate) fn packed_training_start(&self) -> Result<Self> {
-        if !self.hard_only || self.prepared_parameters.is_some() {
+        if !self.hard_only || self.prepared_parameters.is_some() || self.precision_mode.is_some() {
             return Err(invalid("bounded continuation requires a packed parent"));
         }
         let mut model = self.detached_view()?;
@@ -534,6 +535,42 @@ impl JointModel {
         state.spec.validate(&self.variables)?;
         let mut model = self.detached_view()?;
         model.precision_mode = Some(mode);
+        Ok(model)
+    }
+
+    /// Observe the actual reloaded packed parameters with continuous F32
+    /// interfaces (QF). This preserves the decoded hard values, frozen scales,
+    /// preparation metadata and clock; it neither recovers floating shadows
+    /// nor calibrates a new quantizer. The returned view remains hard-only and
+    /// evaluation-only. Bind the source hard artifact in the observation.
+    pub fn packed_parameter_precision_view(&self) -> Result<Self> {
+        require_quantized_read(self.config.read_geometry)?;
+        if !self.hard_only
+            || self.prepared_parameters.is_some()
+            || self.precision_mode.is_some()
+            || self.rounding_learning
+        {
+            return Err(invalid(
+                "packed parameter precision requires an unprepared loaded hard model",
+            ));
+        }
+        let state = self
+            .quantization
+            .as_ref()
+            .ok_or_else(|| invalid("packed parameter precision requires frozen quantizers"))?;
+        if !valid_quantization_clock(
+            state.start_step,
+            state.ramp_steps,
+            state.completed_step,
+            state.preparation,
+        ) {
+            return Err(invalid(
+                "packed parameter precision quantization clock differs",
+            ));
+        }
+        state.spec.validate(&self.variables)?;
+        let mut model = self.detached_view()?;
+        model.precision_mode = Some(PrecisionMode::QF);
         Ok(model)
     }
 
@@ -770,6 +807,9 @@ impl JointModel {
         let parameter_quantization = self.quantization.as_ref().filter(|_| {
             self.precision_mode
                 .is_none_or(PrecisionMode::quantizes_parameters)
+                // QF on a loaded hard child observes its decoded code values
+                // directly. Q denotes their source, not a second rounding.
+                && !(self.hard_only && self.precision_mode == Some(PrecisionMode::QF))
         });
         let parameters = self
             .variables
@@ -1754,6 +1794,16 @@ impl JointModel {
                 json!("Disabled: precision views reject training and use full-strength grids only where enabled");
             contract["quantization"]["artifact"] =
                 json!("In-memory diagnostic view of a floating checkpoint; cannot be saved as a training or packed model");
+            if self.hard_only {
+                contract["precision_evaluation"]["scope"] = json!(
+                    "Evaluation-only QF observation of actual decoded hard parameters with continuous F32 interfaces; frozen quantization and preparation clocks retained; no floating shadows, recalibration or model updates"
+                );
+                contract["precision_evaluation"]["parameter_source"] =
+                    json!("Decoded packed values used directly without another quantization");
+                contract["quantization"]["artifact"] = json!(
+                    "In-memory diagnostic view of a loaded packed child; hard-only remains set; cannot be trained, saved or exported"
+                );
+            }
         }
         admission_contract(
             read_geometry_contract(contract, self.config.read_geometry),
@@ -2877,6 +2927,97 @@ mod tests {
         ));
         fs::create_dir(&root)?;
         Ok(root)
+    }
+
+    #[test]
+    fn packed_parameter_precision_view_preserves_hard_values_and_guards() -> Result<()> {
+        let mut parent = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
+        assert!(parent.packed_parameter_precision_view().is_err());
+        parent.configure_quantization(2237, 1)?;
+        parent
+            .quantization
+            .as_mut()
+            .ok_or_else(|| invalid("test quantization"))?
+            .preparation = Some(QuantizationPreparation::CalibratedForExport);
+        // A zero-update calibrated preparation is not a completed QAT ramp.
+        assert!(parent.precision_view(PrecisionMode::QF).is_err());
+        assert!(parent.packed_parameter_precision_view().is_err());
+        let root = precision_test_root("packed-parameter-view")?;
+        parent.save_hard(&root)?;
+        let hard = JointModel::load_hard(&root, &Device::Cpu)?;
+        let mut view = hard.packed_parameter_precision_view()?;
+        assert_eq!(view.precision_mode(), Some(PrecisionMode::QF));
+        assert!(view.hard_only);
+        assert_eq!(view.config, hard.config);
+        assert_eq!(view.admission_policy(), hard.admission_policy());
+        assert_eq!(view.quantization(), hard.quantization());
+        assert_eq!(view.quantization(), parent.quantization());
+        let prepared = view.prepare(false)?;
+        assert!(prepared.hard_only);
+        assert_eq!(prepared.quantization(), hard.quantization());
+        for (name, variable) in hard.variables() {
+            assert!(same_bits(variable, &view.variables()[name])?, "{name}");
+            assert!(
+                same_bits(variable, &prepared.weight(name, false)?)?,
+                "{name}"
+            );
+        }
+        let probe = Tensor::from_vec(vec![-0.1234567f32, 0.345, 999.0], (3,), &Device::Cpu)?;
+        for kind in [
+            Interface::State,
+            Interface::Normalized,
+            Interface::Affine,
+            Interface::Unit,
+            Interface::Gate,
+        ] {
+            assert!(same_bits(
+                &probe,
+                &prepared.interface(&probe, kind, false)?
+            )?);
+            assert!(!same_bits(&probe, &hard.interface(&probe, kind, false)?)?);
+        }
+        // Independent continuous cell over these same decoded code values is
+        // a test reference only, not a floating-shadow recovery API.
+        let reference =
+            JointModel::from_variables(hard.config.clone(), hard.variables.clone(), &Device::Cpu)?;
+        let ids = [3, 17, 4];
+        let actual = view.forward(&ids, 1, ids.len(), ReadMode::Enabled, false)?;
+        let expected = reference.forward(&ids, 1, ids.len(), ReadMode::Enabled, false)?;
+        assert!(same_bits(&actual.probabilities, &expected.probabilities)?);
+        assert!(same_bits(&actual.states, &expected.states)?);
+        assert!(!actual.probabilities.track_op());
+        assert!(view
+            .forward(&ids, 1, ids.len(), ReadMode::Enabled, true)
+            .is_err());
+        assert!(prepared.prepare(true).is_err());
+        assert!(view.save(&root.join("forbidden-checkpoint")).is_err());
+        assert!(view.save_hard(&root.join("forbidden-export")).is_err());
+        assert!(!root.join("forbidden-checkpoint").exists());
+        assert!(!root.join("forbidden-export").exists());
+        assert!(view.configure_quantization(2237, 1).is_err());
+        assert!(view.set_completed_step(2238).is_err());
+        assert!(view.without_quantization().is_err());
+        assert!(view.precision_view(PrecisionMode::FF).is_err());
+        assert!(view.packed_training_start().is_err());
+        assert!(view.packed_parameter_precision_view().is_err());
+        assert!(hard
+            .prepare(false)?
+            .packed_parameter_precision_view()
+            .is_err());
+        assert_eq!(hard.precision_mode(), None);
+        assert_eq!(hard.quantization(), parent.quantization());
+        let contract = view.numerical_contract();
+        assert_eq!(contract["precision_evaluation"]["mode"], "QF");
+        assert_eq!(
+            contract["precision_evaluation"]["interface_quantization"],
+            false
+        );
+        assert_eq!(
+            contract["precision_evaluation"]["parameter_source"],
+            "Decoded packed values used directly without another quantization"
+        );
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]

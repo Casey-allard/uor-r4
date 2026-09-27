@@ -1,0 +1,2754 @@
+{
+  "schema": "uor-r4.dialogue-prefix-paired-result/1",
+  "status": "FIXED_PAIR_COMPLETE_NARROW_CONDITIONING_CANDIDATE",
+  "recorded_at": "2026-09-27T12:14:10.468613+00:00",
+  "source_history": {
+    "dialogue-context-audit-2026-09-27.md": "https://github.com/UOR-Foundation/uor-r4/blob/3c43c6aa21631c5f335f74c287ac19a7000f32a6/docs/integration/dialogue-context-audit-2026-09-27.md",
+    "dialogue-artifact-replay-2026-09-27.md": "https://github.com/UOR-Foundation/uor-r4/blob/3c43c6aa21631c5f335f74c287ac19a7000f32a6/docs/integration/dialogue-artifact-replay-2026-09-27.md",
+    "dialogue-prefix-learning-plan-2026-09-27.md": "https://github.com/UOR-Foundation/uor-r4/blob/3c43c6aa21631c5f335f74c287ac19a7000f32a6/docs/integration/dialogue-prefix-learning-plan-2026-09-27.md",
+    "dialogue-prefix-implementation-2026-09-27.md": "https://github.com/UOR-Foundation/uor-r4/blob/3c43c6aa21631c5f335f74c287ac19a7000f32a6/docs/integration/dialogue-prefix-implementation-2026-09-27.md",
+    "dialogue-prefix-study-2026-09-27.md": "https://github.com/UOR-Foundation/uor-r4/blob/0ac3df4679dd0696c4d1f56a231ac96e805ee3af/docs/integration/dialogue-prefix-study-2026-09-27.md"
+  },
+  "owning_issue_endpoint": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5855661290",
+  "decision": {
+    "retain": "Full-prefix checkpoint as a narrow conditioning integration candidate; no general-chat or final serving qualification.",
+    "causal_scope": "Complete-prefix training package changes content, length and physical response positions together. Paris/Alex/green/Tokyo rows improve over both reused parent and matched role-only; not solely a degraded-control gap.",
+    "shared_adaptation": "Greeting improvement and pizza payload exist in both arms. Momo and blue-car payload predate the study. Role-only outputs Paris off-task, so the full-prefix factual gain is compatible with better conditioning, not newly acquired world knowledge.",
+    "tradeoffs": "Role-only morning greeting is better and EOS is more frequent (46 versus 28); EOS does not establish fulfillment. Full-prefix rewrite first-four NLL worsens from0.583383 to0.927748, also worse than role0.713295. No general non-regression promotion.",
+    "next": "The separately completed historical-parent native observation localizes its largest numerical change to parameter discretization. Reconcile retained precision/learned-rounding evidence and execute the independently prepared packed workload comparison before selecting another causal learning or discretization change. The new full-prefix child is not automatically converted or trained."
+  },
+  "not_established": [
+    "General prose or coherent three-turn conversation",
+    "Broad factual, instruction, ambiguity, coding or reasoning competence",
+    "Fresh held-out generalization",
+    "Geometric advantage",
+    "Integer language preservation, full-path speed or energy advantage"
+  ],
+  "parent": {
+    "fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+    "fit_report_sha256": "a192916c17d8d124e9a32c21c3b31ef6b622890b148d37549eb219d11cd641fa",
+    "fit_seal_sha256": "28bb1f475b2ec12ed0c2cee4de1102f0c46274bcc21261d931991f5b21719c4b",
+    "historical_source_commit": "5109861c93dee0e39d3aa189c325b3a13c4ededc",
+    "historical_executable_sha256": "84ec4ebe5d95b28346501129394e3cb211483c9bf2b471caa8abbc4313463e4b",
+    "steps_completed": 2237,
+    "sampled_targets": 9162752,
+    "parameter_bytes": 21719304,
+    "parameter_count": 5429826,
+    "parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+    "current_model": {
+      "context": 256,
+      "read_width": 64,
+      "seed": 20260926,
+      "transport": "quaternion",
+      "vocab_size": 4096,
+      "width": 576
+    },
+    "admission": "full",
+    "read_geometry": "dot",
+    "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "protocol": {
+      "bos_id": 0,
+      "eos_id": 1,
+      "schema": "uor-r4.literal-role-dialogue/1",
+      "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+      "unk_id": 2
+    },
+    "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+    "historical_binding_scope": "Historical compiled source label is not clean-tree or bitwise backend reproduction. Tokenizer/protocol/mask identities are retrospective prepared-manifest joins; historical fit recorded token hashes. New fits copy all arrays independently and start fresh Adam/local clocks."
+  },
+  "source_and_execution": {
+    "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+    "binary_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+    "features": [
+      "cpu-accelerate"
+    ],
+    "profile": "release",
+    "thread_environment": {
+      "RAYON_NUM_THREADS": "2",
+      "VECLIB_MAXIMUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "GEMM_NUM_THREADS": "1"
+    },
+    "cpu_gradient_shards": 2,
+    "initial_parent_parameter_fingerprint": "4c8de083062cb84fe3450745a8c17ab0b2b07e7adcbd91ad6290e0d8daf059a2",
+    "parameter_arrays": 21,
+    "parameter_coordinates": 5429826
+  },
+  "learning_contract": {
+    "full_prefix": "Original BOS through actual Assistant marker, including real document history and separators.",
+    "role_only": "BOS0 plus the exact separately encoded Assistant marker; seven prefix IDs.",
+    "role_only_prefix_ids": [
+      0,
+      35,
+      560,
+      652,
+      714,
+      28,
+      223
+    ],
+    "targets": "Same complete selected response and genuine EOS1. Prefix and padding have zero loss mask; right padding uses UNK2.",
+    "objective": "Response-token global mean across the two complete-sequence gradient shards. Not per-response/episode mean.",
+    "population": "Response-uniform with replacement among original complete prefix plus response plus EOS fitting256 total IDs.",
+    "batch": 16,
+    "context": 256,
+    "data_seed": 20260929,
+    "development_seed": 20260930,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.01,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.999,
+    "adam_epsilon": 1e-08,
+    "clip_norm": 1.0,
+    "inference_policy": "Both arms receive real full prompts/history with greedy32, actual EOS/cycle/cap, exact generated IDs retained and explicit caller EOS for an open previous response.",
+    "intervention_scope": "Content, history length and physical response positions change together. No semantic-only or historical orphan-prefix causal identification."
+  },
+  "matched_schedule": {
+    "steps_each": 1024,
+    "schedule_sha256": "e5e0b82247c97028e25035e5956e369f11ed8c16668b642d2bfba70f0b342a5b",
+    "schedule_equal": true,
+    "rows_compared": 1024,
+    "matched_fields": [
+      "step",
+      "response_ids",
+      "selected_target_ids_sha256",
+      "supervised_targets",
+      "cumulative_supervised_targets"
+    ],
+    "mismatches": [],
+    "supervised_targets_each": 1165549,
+    "padded_tensor_positions_each": 4194304,
+    "distinct_indexed_response_ids_each": 9858,
+    "eligible_indexed_response_ids": 14826,
+    "discarded_role_updates_charged": 46,
+    "discarded_role_target_visits_charged": 50798,
+    "recovery_start_step": 512,
+    "recovery_initial_development_is_parent": false
+  },
+  "training_population": {
+    "corpus_tokens": 82529690,
+    "documents": 73632,
+    "eligible_response_tokens": 1048098,
+    "eligible_responses": 14826,
+    "excluded_over_context": 114660,
+    "identical_prefixes": 0,
+    "response_runs": 129486,
+    "response_tokens": 56650286,
+    "sources": [
+      {
+        "documents": 13780,
+        "eligible_response_tokens": 53649,
+        "eligible_responses": 404,
+        "excluded_over_context": 40936,
+        "identical_prefixes": 0,
+        "label": "smoltalk_smol-magpie-ultra.train",
+        "response_runs": 41340,
+        "response_tokens": 29920386,
+        "source_index": 0
+      },
+      {
+        "documents": 17900,
+        "eligible_response_tokens": 633758,
+        "eligible_responses": 6037,
+        "excluded_over_context": 11863,
+        "identical_prefixes": 0,
+        "label": "smoltalk_smol-constraints.train",
+        "response_runs": 17900,
+        "response_tokens": 4133184,
+        "source_index": 1
+      },
+      {
+        "documents": 17200,
+        "eligible_response_tokens": 7187,
+        "eligible_responses": 85,
+        "excluded_over_context": 17115,
+        "identical_prefixes": 0,
+        "label": "smoltalk_smol-rewrite.train",
+        "response_runs": 17200,
+        "response_tokens": 4345493,
+        "source_index": 2
+      },
+      {
+        "documents": 12300,
+        "eligible_response_tokens": 15484,
+        "eligible_responses": 401,
+        "excluded_over_context": 11899,
+        "identical_prefixes": 0,
+        "label": "smoltalk_smol-summarize.train",
+        "response_runs": 12300,
+        "response_tokens": 2021458,
+        "source_index": 3
+      },
+      {
+        "documents": 10192,
+        "eligible_response_tokens": 62846,
+        "eligible_responses": 669,
+        "excluded_over_context": 31452,
+        "identical_prefixes": 0,
+        "label": "ultrachat_200k.default.train_sft",
+        "response_runs": 32121,
+        "response_tokens": 15870954,
+        "source_index": 4
+      },
+      {
+        "documents": 2260,
+        "eligible_response_tokens": 275174,
+        "eligible_responses": 7230,
+        "excluded_over_context": 1395,
+        "identical_prefixes": 0,
+        "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+        "response_runs": 8625,
+        "response_tokens": 358811,
+        "source_index": 5
+      }
+    ]
+  },
+  "saved_curve_aggregation": {
+    "scope": "Derived from saved learning-curve rows only. Retained role schedule uses original1..512 plus recovery513..1024. Original discarded513..558 remain separately charged; they are not counted twice in endpoint learning exposure. Update timers are nested in process wall times.",
+    "full_prefix_retained": {
+      "updates": 1024,
+      "complete_update_seconds": 4879.85138624399,
+      "counts": {
+        "eos_targets": 16384,
+        "identical_prefix_visits": 0,
+        "padded_positions": 1581658,
+        "prefix_positions": 1463481,
+        "real_input_positions": 2612646,
+        "response_visits": 16384,
+        "supervised_target_count": 1165549
+      },
+      "source_visits": [
+        {
+          "label": "smoltalk_smol-magpie-ultra.train",
+          "response_visits": 474,
+          "supervised_target_visits": 63241
+        },
+        {
+          "label": "smoltalk_smol-constraints.train",
+          "response_visits": 6756,
+          "supervised_target_visits": 704428
+        },
+        {
+          "label": "smoltalk_smol-rewrite.train",
+          "response_visits": 93,
+          "supervised_target_visits": 7892
+        },
+        {
+          "label": "smoltalk_smol-summarize.train",
+          "response_visits": 428,
+          "supervised_target_visits": 16339
+        },
+        {
+          "label": "ultrachat_200k.default.train_sft",
+          "response_visits": 776,
+          "supervised_target_visits": 72795
+        },
+        {
+          "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+          "response_visits": 7857,
+          "supervised_target_visits": 300854
+        }
+      ]
+    },
+    "role_only_retained": {
+      "updates": 1024,
+      "complete_update_seconds": 4823.201358044003,
+      "counts": {
+        "eos_targets": 16384,
+        "identical_prefix_visits": 0,
+        "padded_positions": 2930451,
+        "prefix_positions": 114688,
+        "real_input_positions": 1263853,
+        "response_visits": 16384,
+        "supervised_target_count": 1165549
+      },
+      "source_visits": [
+        {
+          "label": "smoltalk_smol-magpie-ultra.train",
+          "response_visits": 474,
+          "supervised_target_visits": 63241
+        },
+        {
+          "label": "smoltalk_smol-constraints.train",
+          "response_visits": 6756,
+          "supervised_target_visits": 704428
+        },
+        {
+          "label": "smoltalk_smol-rewrite.train",
+          "response_visits": 93,
+          "supervised_target_visits": 7892
+        },
+        {
+          "label": "smoltalk_smol-summarize.train",
+          "response_visits": 428,
+          "supervised_target_visits": 16339
+        },
+        {
+          "label": "ultrachat_200k.default.train_sft",
+          "response_visits": 776,
+          "supervised_target_visits": 72795
+        },
+        {
+          "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+          "response_visits": 7857,
+          "supervised_target_visits": 300854
+        }
+      ]
+    },
+    "role_only_discarded": {
+      "updates": 46,
+      "complete_update_seconds": 220.03876037700005,
+      "counts": {
+        "eos_targets": 736,
+        "identical_prefix_visits": 0,
+        "padded_positions": 133202,
+        "prefix_positions": 5152,
+        "real_input_positions": 55214,
+        "response_visits": 736,
+        "supervised_target_count": 50798
+      },
+      "source_visits": [
+        {
+          "label": "smoltalk_smol-magpie-ultra.train",
+          "response_visits": 15,
+          "supervised_target_visits": 2184
+        },
+        {
+          "label": "smoltalk_smol-constraints.train",
+          "response_visits": 282,
+          "supervised_target_visits": 29565
+        },
+        {
+          "label": "smoltalk_smol-rewrite.train",
+          "response_visits": 3,
+          "supervised_target_visits": 223
+        },
+        {
+          "label": "smoltalk_smol-summarize.train",
+          "response_visits": 28,
+          "supervised_target_visits": 1042
+        },
+        {
+          "label": "ultrachat_200k.default.train_sft",
+          "response_visits": 36,
+          "supervised_target_visits": 3260
+        },
+        {
+          "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+          "response_visits": 372,
+          "supervised_target_visits": 14524
+        }
+      ]
+    },
+    "actual_response_visits_each": 16384,
+    "distinct_response_ids_each": 9858,
+    "eligible_response_ids": 14826,
+    "actual_constraints_plus_everyday_response_visits": 14613,
+    "actual_constraints_plus_everyday_supervised_target_visits": 1005282
+  },
+  "development": {
+    "scope": "Fixed exposed161-response source-stratified panel evaluated with full original prefixes:13353 supervised targets including161EOS,644 first-four targets. Pooled token mean belongs to this selected panel, not full corpus/equal-source mixture or independent replications.",
+    "training_population": "14826/129486 complete response runs fit256totalIDs;89.4847% eligible fromEveryday+Constraints. Response-uniform training retains this source/length skew.",
+    "parent0_response_nll": 3.0221306077819596,
+    "full1024_response_nll": 2.7738869880671126,
+    "role1024_response_nll": 2.863946212495944,
+    "full_minus_role_response_nll": -0.09005922442883119,
+    "parent0_first_four_nll": 2.3024824002514714,
+    "full1024_first_four_nll": 1.8524032449870376,
+    "role1024_first_four_nll": 2.247178323890852,
+    "per_source": [
+      {
+        "source": "smoltalk_smol-magpie-ultra.test",
+        "responses": 23,
+        "supervised_targets": 3266,
+        "first_four_targets": 92,
+        "response_nll": {
+          "parent0": 3.317055042798871,
+          "full1024": 3.2602191968556933,
+          "role1024": 3.280863571152392,
+          "full_minus_role": -0.020644374296698853
+        },
+        "first_four_nll": {
+          "parent0": 3.4853955973749575,
+          "full1024": 3.2517433995785923,
+          "role1024": 3.4222424755925718,
+          "full_minus_role": -0.1704990760139795
+        }
+      },
+      {
+        "source": "smoltalk_smol-constraints.test",
+        "responses": 32,
+        "supervised_targets": 3811,
+        "first_four_targets": 128,
+        "response_nll": {
+          "parent0": 3.206600360187199,
+          "full1024": 2.709090441176035,
+          "role1024": 2.7701318883045047,
+          "full_minus_role": -0.061041447128469706
+        },
+        "first_four_nll": {
+          "parent0": 2.5525907054543495,
+          "full1024": 1.8723822627216578,
+          "role1024": 2.3701547905802727,
+          "full_minus_role": -0.4977725278586149
+        }
+      },
+      {
+        "source": "smoltalk_smol-rewrite.test",
+        "responses": 10,
+        "supervised_targets": 769,
+        "first_four_targets": 40,
+        "response_nll": {
+          "parent0": 1.9629908550545205,
+          "full1024": 1.9392907994621287,
+          "role1024": 2.1659413726494123,
+          "full_minus_role": -0.22665057318728365
+        },
+        "first_four_nll": {
+          "parent0": 0.5833832681179046,
+          "full1024": 0.9277482628822327,
+          "role1024": 0.7132945895195008,
+          "full_minus_role": 0.2144536733627319
+        }
+      },
+      {
+        "source": "smoltalk_smol-summarize.test",
+        "responses": 32,
+        "supervised_targets": 1325,
+        "first_four_targets": 128,
+        "response_nll": {
+          "parent0": 2.052222103082909,
+          "full1024": 1.6238028739533334,
+          "role1024": 1.9763054013702104,
+          "full_minus_role": -0.35250252741687693
+        },
+        "first_four_nll": {
+          "parent0": 1.960447758436203,
+          "full1024": 0.9409887827932835,
+          "role1024": 1.9385150149464607,
+          "full_minus_role": -0.9975262321531773
+        }
+      },
+      {
+        "source": "ultrachat_200k.default.test_sft",
+        "responses": 32,
+        "supervised_targets": 3233,
+        "first_four_targets": 128,
+        "response_nll": {
+          "parent0": 3.1254303497387608,
+          "full1024": 3.0236021323429703,
+          "role1024": 3.0895181310608257,
+          "full_minus_role": -0.06591599871785547
+        },
+        "first_four_nll": {
+          "parent0": 2.902074906975031,
+          "full1024": 2.8515501841902733,
+          "role1024": 3.056944005191326,
+          "full_minus_role": -0.20539382100105286
+        }
+      },
+      {
+        "source": "everyday-conversations-llama3.1-2k.default.test_sft",
+        "responses": 32,
+        "supervised_targets": 949,
+        "first_four_targets": 128,
+        "response_nll": {
+          "parent0": 3.1268742765340214,
+          "full1024": 2.7917115455934947,
+          "role1024": 2.8423340733862776,
+          "full_minus_role": -0.05062252779278298
+        },
+        "first_four_nll": {
+          "parent0": 1.4818158484995365,
+          "full1024": 1.0278706960380077,
+          "role1024": 1.2578607928007841,
+          "full_minus_role": -0.22999009676277637
+        }
+      }
+    ],
+    "interpretation": "Full-prefix response NLL improves versus parent and control in all six sources. First-four improves in five but worsens rewrite versus both. Role-only response loss improves in five but worsens rewrite; first-four worsens rewrite and UltraChat versus parent. These open-dev differences support the scoped interpretation without qualifying output broadly."
+  },
+  "output_scope": {
+    "requests": 38,
+    "replies_each": 58,
+    "request_categories": {
+      "greeting": 5,
+      "factual": 8,
+      "instruction": 7,
+      "memory_three_turn": 10,
+      "ambiguity_or_context": 8
+    },
+    "history": "First-turn input IDs match. Later turns use each arm's own generated assistant IDs and explicit caller closure;58 turns are not independent trials.",
+    "data_scope": "Exposed development throughout; source split names containing test do not turn this into fresh held-out qualification.",
+    "raw_stops": {
+      "parent": {
+        "maximum_new_tokens": 43,
+        "short_cycle": 4,
+        "eos": 11
+      },
+      "full_prefix": {
+        "eos": 28,
+        "maximum_new_tokens": 26,
+        "short_cycle": 4
+      },
+      "role_only": {
+        "eos": 46,
+        "maximum_new_tokens": 12
+      }
+    },
+    "rows_are": "Exact saved response_text strings and stops with scoped human judgments; no per-decision dense telemetry reproduced. Authoring ran no model, scoring or seal verification."
+  },
+  "paired_assessment": {
+    "recommendation": "Retain limited useful complete-prefix conditioning evidence and the full-prefix endpoint as a scoped development candidate. Do not promote broad chat or automatically extend training. This is a mixed result, not merely loss improvement or solely damage to the control: Paris and Alex improve over both parent and role-only. Preserve retention tradeoffs.",
+    "full_prefix_gains_over_both": [
+      "Paris appears on the appropriate capital request only in full-prefix.",
+      "Alex is answered at memory turn3 by full-prefix and omitted by parent/control.",
+      "Full-prefix clearly preserves favorite green, unlike role-only omission and parent green/blue confusion.",
+      "Full-prefix recovers Tokyo at final recall unlike both comparators; preserve its existing partial/useful disagreement over malformed filler."
+    ],
+    "qualified_or_nonexclusive": [
+      "Role-only final pizza is malformed many foods are pizza but contains the correct value, unlike parent. Full-prefix improves the favorite relation; do not claim exclusive pizza acquisition.",
+      "Momo was present in parent and both endpoints. Blue car, teacher and piano are historical words; some role-only losses make those gaps partly control damage.",
+      "Full-prefix July is initial association and later lexical recovery, not a clean final temporal answer."
+    ],
+    "control_favorable_tradeoffs": [
+      "Role-only gives a clean greeting to Good morning, where full-prefix invents date requirements. Both have the same useful Hi-there reply.",
+      "Role-only has more EOS endings but often closes address/help boilerplate; termination does not qualify fulfillment.",
+      "Role-only rewrite first-four NLL is better than full-prefix; both worsen on that small source relative to parent."
+    ],
+    "continuing_failures": [
+      "Neither endpoint gives useful fulfillment for any of the seven sentence requests; unrelated true statements and on-topic category errors remain. Historical partial instruction retention is not restored.",
+      "Full-prefix misses seven of eight factual requests; role-only misses all eight on task.",
+      "All eight ambiguity/context requests remain non-answers; these are not blanket refusal-required cases.",
+      "All ten middle memory turns remain unresponsive in all arms. Correct final initial-fact repetition does not establish consistently responsive dialogue.",
+      "Role-only emits The capital of France is Paris for both sun-writing and yesterday while failing the capital question. This demonstrates actual misaligned emission, not exclusive knowledge or a causal read-weight explanation."
+    ],
+    "causal_scope": "Complete-prefix training changes prefix content, history length and response positions together. Same complete target schedule on the selected short population supports this package, not isolated semantic causality, universal blame on historical missing prefixes, excluded long-dialogue capability, geometry advantage, native integer quality or energy savings.",
+    "next_action_boundary": "Preserve both endpoints and negatives. No new threshold, endpoint selection, fresh panel, decoder/seed sweep or automatic longer fit. A future learning decision should address actual current-request responsiveness and retention under a separately bound workcard."
+  },
+  "review_disagreements": {
+    "prior_full_prefix": [
+      {
+        "request_id": "dev-mem-01",
+        "turn": 1,
+        "exact_response": "The name is Alex is Alex. It is Alex is Alex. It is Alex is Alex.",
+        "principal": {
+          "overall": "useful",
+          "reason": "Restates Alex intelligibly despite repeated words/sentences."
+        },
+        "independent": {
+          "overall": "partial",
+          "reason": "Repeats the supplied name Alex with awkward syntax. Parent did not acknowledge the name. This is acknowledgement, not an independent recall test."
+        }
+      },
+      {
+        "request_id": "dev-mem-05",
+        "turn": 1,
+        "exact_response": "The sister lives in the Tokyo.\n\nP.S. I hope this sister lives in the Tokyo, includ",
+        "principal": {
+          "overall": "useful",
+          "reason": "Clearly restates sister lives in Tokyo before unfinished filler."
+        },
+        "independent": {
+          "overall": "partial",
+          "reason": "Sister lives in Tokyo is retained; P.S. filler and truncated includ prevent a clean acknowledgment. Parent already retained Tokyo."
+        }
+      },
+      {
+        "request_id": "dev-mem-05",
+        "turn": 3,
+        "exact_response": "Yes, this sister lives in the Tokyo, including the Tokyo, and the Tokyo is a great way",
+        "principal": {
+          "overall": "useful",
+          "reason": "Says sister lives in Tokyo; later filler does not obscure location."
+        },
+        "independent": {
+          "overall": "partial",
+          "reason": "This sister lives in the Tokyo correctly identifies the city, unlike parent final turn, but the including-Tokyo/great-way tail is malformed and unfinished. Payload is complete; overall reply remains partial quality."
+        }
+      },
+      {
+        "request_id": "dev-mem-07",
+        "turn": 1,
+        "exact_response": "I'm glad you have a birthday of July. It is a great way to July, it's a great way to July.",
+        "principal": {
+          "overall": "useful",
+          "reason": "Birthday in July is intelligible in the first clause; later filler is poor."
+        },
+        "independent": {
+          "overall": "partial",
+          "reason": "Birthday of July associates the supplied month correctly, followed by great-way-to-July repetition. Parent omitted July."
+        }
+      },
+      {
+        "request_id": "dev-mem-08",
+        "turn": 3,
+        "exact_response": "The blue car is a blue car, a blue car is a blue car, a blue car, a blue car,",
+        "principal": {
+          "overall": "useful",
+          "reason": "Explicit blue-car phrase answers color despite the cycle."
+        },
+        "independent": {
+          "overall": "partial",
+          "reason": "Blue car makes the requested color recoverable, as parent also did, but the entire output is a short-cycle loop. Do not count a new recall gain."
+        }
+      }
+    ],
+    "new_role_only": [
+      {
+        "request_id": "dev-core-greet-05",
+        "turn": 1,
+        "exact_response_text": "Hello! How can I help you today?",
+        "independent": {
+          "overall": "partial",
+          "reason": "Hello and an offer to help are friendly but restart a greeting rather than acknowledge thanks. Cleaner completion than full-prefix, still not task-specific acknowledgment."
+        },
+        "principal": {
+          "overall": "non-answer",
+          "reason": "Generic greeting does not acknowledge thanks; no useful conditioning distinction."
+        }
+      }
+    ],
+    "disposition": "Keep the role greeting-thanks partial/non-answer distinction and all five prior full-prefix differences; do not harmonize through a vote or new acceptance score. The difference does not alter the programme recommendation.",
+    "principal_schedule_verification_scope": "Principal additionally joined all1024 executed schedule rows for responseIDs/targethash/count equality. This review independently checked final schedule hashes, identities, input joins, source panel comparisons and all generated outputs; it does not claim to have repeated the whole curve-row audit."
+  },
+  "recovery": {
+    "original_stop": "Resource stop at step558; last resumable checkpoint512. Original report/negative evidence retained.",
+    "checkpoint_manifest_sha256": "273248faeb1f855c819d78785676f6a0d03f56a25d8d6321ec6cdc9335a8811e",
+    "starting_step": 512,
+    "new_updates": 512,
+    "new_supervised_target_visits": 577427,
+    "new_tensor_positions": 2097152,
+    "final_step": 1024,
+    "discarded_updates_still_charged": 46,
+    "discarded_supervised_target_visits_still_charged": 50798,
+    "discarded_tensor_positions_still_charged": 188416,
+    "continuity": "Same frozen executable/source and actual saved Adam moments; no assertion of bitwise identity to uninterrupted execution. Recovery initial development is step512, not parent0.",
+    "full_reload_response_nll_delta": 0.0,
+    "role_reload_response_nll_delta": 0.0
+  },
+  "resources": {
+    "scope": "Process wall includes learning, scheduled development, checkpointing and endpoint output work. Update sums are nested, not additional charges. Build time is separately identified. Earlier implementation/witnesses and preparation/review/delivery live in principal cumulative accounting; these process receipts are not total programme cost.",
+    "processes": [
+      {
+        "policy": "full_prefix",
+        "status": "TARGET_COMPLETE",
+        "started_at": "2026-09-27T08:50:17.085961+00:00",
+        "finished_at": "2026-09-27T10:13:08.690179+00:00",
+        "wall_seconds": 4971.440720209,
+        "maximum_child_rss_bytes": 5535236096,
+        "peak_sampled_rss_bytes": 4915331072,
+        "exit_code": 0,
+        "soft_stop": null,
+        "hard_stop": null
+      },
+      {
+        "policy": "role_only",
+        "status": "INCOMPLETE_OR_FAILED",
+        "started_at": "2026-09-27T10:13:11.895925+00:00",
+        "finished_at": "2026-09-27T10:58:54.689226+00:00",
+        "wall_seconds": 2742.9389957500002,
+        "maximum_child_rss_bytes": 4894605312,
+        "peak_sampled_rss_bytes": 4879745024,
+        "exit_code": -15,
+        "soft_stop": {
+          "reason": "INTERNAL_STORAGE_MARGIN",
+          "at": "2026-09-27T10:58:54.485814+00:00"
+        },
+        "hard_stop": "INTERNAL_STORAGE_LIMIT"
+      },
+      {
+        "policy": "role_only",
+        "status": "TARGET_COMPLETE",
+        "started_at": "2026-09-27T11:16:18.727784+00:00",
+        "finished_at": "2026-09-27T11:56:31.777351+00:00",
+        "wall_seconds": 2412.994606042,
+        "maximum_child_rss_bytes": 5206999040,
+        "peak_sampled_rss_bytes": 4943790080,
+        "exit_code": 0,
+        "soft_stop": null,
+        "hard_stop": null
+      }
+    ],
+    "fit_process_wall_seconds_total": 10127.374322001,
+    "role_original_plus_recovery_wall_seconds": 5155.933601792,
+    "maximum_observed_child_rss_bytes": 5535236096,
+    "frozen_study_build_wall_seconds": 56.359656041,
+    "frozen_study_build_maximum_child_rss_bytes": 824164352,
+    "recovery_final_storage_snapshot": {
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 30335062016,
+        "/Volumes/UOR-Workspace": 172506861568
+      },
+      "study_apparent_bytes": 290733703,
+      "internal_physical_growth_bytes": 2092589056,
+      "shared_ssd_growth_bytes": 38645760
+    },
+    "accounting": "No ledger modified by this extraction; interrupted work remains charged and original limits are not reset."
+  },
+  "retained_outputs": {
+    "binding_scope": "Recorded complete-root/checkpoint bindings copied from authoritative execution receipts, not new model loading or repeated seal verification.",
+    "full_prefix": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+      "parameter_fingerprint": "1eef006a29767f06fd07d29e03f4e9cdf254a6a8a0562c5c8a019b8c0e6bb1d6",
+      "sha256": {
+        "manifest.json": "2b05b7d4a2700cbd8596abd37ce8523e4b58e03f90b3005c60c0635de0727a3f",
+        "execution-binding.json": "9925aedbd244182edf0727e86fcdf6d2814fecf55aeecc33f94ca52609e67100",
+        "result.json": "fb49d94c6d3a10e72457cfa12b81c3b3a06ff0986c3f111db04ecf01173facb6",
+        "responses.json": "bd3a6ce865ff750d66a5a2a10222ac8f3749a7c0482381cc6edd389b6080b31f",
+        "learning-curve.jsonl": "4c0cb243b3df63ef9da59047db9121f81ecef2744adf3e3d9678d82e8e58b247",
+        "development-panel.json": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+        "development-episodes.json": "a5a7327a0510ac57a7f82061956721502adb0dd575701a6be1190f3787cd24d7",
+        "checkpoint-final/manifest.json": "f83d4c3e6015f9bf8954cda6fbd69d3823936c85d5991f3d0c541b91b6d1d5a1",
+        "checkpoint-final/checkpoint.json": "5bf82bfc855e1e0dc06f0387fefa3f7bb02535220679937bc2d6298d8b48244b",
+        "checkpoint-final/config.json": "93606286d7985984f1b5863db91df5504cfccce46ca7f7effe5ace3c9443885e",
+        "checkpoint-final/model.safetensors": "98aca5ab14a9edab58dcd2d74d71e74d3904c27e1ce3c126fb66b670cc2baa1c",
+        "checkpoint-final/optimizer.json": "4c1c8400e0fb29a7a054f2e8fdd150ede5c78489a231e11f7261a7339605b123",
+        "checkpoint-final/optimizer.safetensors": "0ea74c80b388dbd9ac772ff81579762a47d7d3d8e59f9ae599c61b1283cdcc2f"
+      }
+    },
+    "role_only": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1",
+      "parameter_fingerprint": "11f6a40ec3169d93e6f0e03316e001eb731106ecf7383196ba66979bb016f51c",
+      "sha256": {
+        "manifest.json": "9a24e666d397966ca2d42f9779caaa36af14c47e1a6ed43a4ca3afde36dd0c26",
+        "execution-binding.json": "ba6d7fe144fbdb50260fe12a9f2aa67a23a07c8779304b81cb7e009434a03ead",
+        "result.json": "18a2e57952eb2e4774af50f1803ac8f88e843083231f05d304e633380ea0316c",
+        "responses.json": "ba0a1cef9f44a723f290a7f08858eb1a5f9aa15695095638fe2388b136564af4",
+        "learning-curve.jsonl": "68506bb756ebed6151cdb0c2b3547f2febcc132edd201acc1a91ee601f2b87c6",
+        "checkpoint-final/manifest.json": "c3e289b3c76deff828412d2b838b08afbe94a592ee0fbfb6b15d5dfd8a085b82",
+        "checkpoint-final/checkpoint.json": "c234dd0ad2865ffdef7c3a616bbd5978d580dacca8f4798462a421a091ce943b",
+        "checkpoint-final/config.json": "c161f77a3837df632f7587b9e5d3d84ee3de7a30d69c47b9e37d5d70ea907da0",
+        "checkpoint-final/model.safetensors": "9e215aba987f45f86ed4503b6c2190a35c79c57b07282686ae30673f6e3c2b3c",
+        "checkpoint-final/optimizer.json": "18641f25a366993733169c854b8a03d75175563a0de9a012274ac45e9ebac889",
+        "checkpoint-final/optimizer.safetensors": "276dc4043c76a1e65d70a2ff0f7de0427ac9254252c3aebcf6603cac39cde870"
+      }
+    }
+  },
+  "authoritative_local_inputs": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-paired-principal-review.json",
+      "bytes": 103020,
+      "sha256": "dc0c9db7c917b76459e2951e82f2b7dfd4671dba77381f3e12faaec7b07df42a"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-role-only-independent-review.json",
+      "bytes": 166772,
+      "sha256": "d7b8f446684956d4135f8718887de58d868944614b9c72c572fbe00a8c3642b3"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-full-prefix-principal-review.json",
+      "bytes": 63021,
+      "sha256": "af232628a0259d261a2e37543a10a224e60cfdcb61a210cd4aaad1c33dae5187"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-full-prefix-endpoint-independent-review-20260927.json",
+      "bytes": 154075,
+      "sha256": "d869bb5f0277216c994641fb67f786d9e07018ae59c48212d1939877d8343dcb"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-full-prefix-review-reconciliation.json",
+      "bytes": 4549,
+      "sha256": "1ac7274516c22d49cf8c2698df854ac49186b74b7a85dc601db6deb90e81c3d5"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-prefix-study-review-design.json",
+      "bytes": 12509,
+      "sha256": "b8644efa15bd0779b8bc401df5692bcb93ebf4bacb7ff634327adc61984950c3"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-build.json",
+      "bytes": 1799,
+      "sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1-execution.json",
+      "bytes": 6630,
+      "sha256": "ce5fba51e54e9673559a5a8cd51dadbfe46c5898db6b259f5b3c8ff32feb1089"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-1-execution.json",
+      "bytes": 5845,
+      "sha256": "112e5bed341992465c57bb79a85c6844d1cb0a35cd04a5280ce92ac83c935dec"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1-execution.json",
+      "bytes": 8654,
+      "sha256": "f28e8008471622f24592a1b84dd5b310d5bd16c8f72815f990d638713c563ed4"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/result.json",
+      "bytes": 34751,
+      "sha256": "fb49d94c6d3a10e72457cfa12b81c3b3a06ff0986c3f111db04ecf01173facb6"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/responses.json",
+      "bytes": 1637122,
+      "sha256": "bd3a6ce865ff750d66a5a2a10222ac8f3749a7c0482381cc6edd389b6080b31f"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/learning-curve.jsonl",
+      "bytes": 3173898,
+      "sha256": "4c0cb243b3df63ef9da59047db9121f81ecef2744adf3e3d9678d82e8e58b247"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/train-episodes.json",
+      "bytes": 3499626,
+      "sha256": "04bc82b627f5c2f8f046b449b49f9c27592c3b31ab882f7e6c03af69609bc395"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-1/learning-curve.jsonl",
+      "bytes": 1727305,
+      "sha256": "dc286940642c9273ee95e62a3fcbe4e23d187574a9bbaf385f2932e63cbd9b60"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1/result.json",
+      "bytes": 34932,
+      "sha256": "18a2e57952eb2e4774af50f1803ac8f88e843083231f05d304e633380ea0316c"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1/responses.json",
+      "bytes": 1386399,
+      "sha256": "ba0a1cef9f44a723f290a7f08858eb1a5f9aa15695095638fe2388b136564af4"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1/learning-curve.jsonl",
+      "bytes": 1585431,
+      "sha256": "68506bb756ebed6151cdb0c2b3547f2febcc132edd201acc1a91ee601f2b87c6"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/result.json",
+      "bytes": 1927330,
+      "sha256": "4ea4df2614ebcf0eb31da944a3e7c63c8edec28effcee936984112f5c88455d8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json",
+      "bytes": 2247,
+      "sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc"
+    }
+  ],
+  "rows": [
+    {
+      "request_id": "dev-core-greet-01",
+      "turn": 1,
+      "category": "greeting",
+      "user": "Hi there!",
+      "parent": {
+        "text": "I'm excited to share a lot of the most important to your story. I’m here to support you, please let me know. I’m here",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "Hello! How can I help you today?",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 10,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "evidence": "Direct greeting and relevant offer of help."
+      },
+      "role_only": {
+        "text": "Hello! How can I help you today?",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 10,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "request_fulfillment": "complete",
+        "evidence": "Direct relevant greeting and offer of help, identical to full-prefix."
+      }
+    },
+    {
+      "request_id": "dev-core-greet-02",
+      "turn": 1,
+      "category": "greeting",
+      "user": "Good morning!",
+      "parent": {
+        "text": "I'm excited to share a lot of the most important morning, you can be a great way to get a more important morning.\n\nCould you please",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "I'm glad I I'm here to help you with your request. Please ensure you provide the [date] and I",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Some social/help language, but invented request and date placeholder obscure the greeting."
+      },
+      "role_only": {
+        "text": "Hello! How can I help you today?",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 10,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "request_fulfillment": "complete",
+        "evidence": "Appropriate morning greeting; more useful than the unfinished full-prefix reply."
+      }
+    },
+    {
+      "request_id": "dev-core-greet-03",
+      "turn": 1,
+      "category": "greeting",
+      "user": "How are you today?",
+      "parent": {
+        "text": "Yes, there are many you can be a bit of the most important to be a bit of the most important to be a bit of the most important to be",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "These are just a few of the most popular places, you can also consider the necessary popular places to ensure that the ne",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Popular places do not answer the social question."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the [address] is the [address].",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Unrelated address template does not answer the greeting."
+      }
+    },
+    {
+      "request_id": "dev-core-greet-04",
+      "turn": 1,
+      "category": "greeting",
+      "user": "Nice to meet you.",
+      "parent": {
+        "text": "I'm excited to share you.\n\nConsider the International International International",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "I understand your request and will provide the request. Please ensure that the request is will provide the re",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Treats the social statement as an unspecified request and repeats it."
+      },
+      "role_only": {
+        "text": "I can help you with that request.\n\nP.S. If you have any questions and feel free to ask.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 28,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Readable offer of help but does not reciprocate the introduction; less broken than full-prefix."
+      }
+    },
+    {
+      "request_id": "dev-core-greet-05",
+      "turn": 1,
+      "category": "greeting",
+      "user": "Thank you very much!",
+      "parent": {
+        "text": "I'm excited to share a lot of the most important to your story. I’m here to support you.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "I'm glad you have a great way to get the most accurate and the details. Is there anything else I can help with",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Friendly offer at the end, but the opening is semantically confused and the reply is unfinished."
+      },
+      "role_only": {
+        "text": "Hello! How can I help you today?",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 10,
+        "principal_label": "non-answer",
+        "independent_label": "partial",
+        "request_fulfillment": "absent",
+        "evidence": "Generic greeting does not acknowledge thanks; no useful conditioning distinction."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-01",
+      "turn": 1,
+      "category": "factual",
+      "user": "What is the capital of France?",
+      "parent": {
+        "text": "Yes, there are the capital of France of France, France, France,",
+        "stop": {
+          "period": 3,
+          "reason": "short_cycle"
+        }
+      },
+      "full_prefix": {
+        "text": "The capital of France is Paris. It is a great way to France.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 21,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "evidence": "Correctly names Paris; trailing great-way-to-France sentence is nonsensical but does not obscure the answer."
+      },
+      "role_only": {
+        "text": "To find the capital of France is the capital of France.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 17,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats the France question without naming Paris; full-prefix gives the correct requested answer."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-02",
+      "turn": 1,
+      "category": "factual",
+      "user": "How many legs does a spider have?",
+      "parent": {
+        "text": "Yes, there are many legs doesn't be a spider have to be a spider have to be a spider have.\n\nConsider the spider",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The spider have a spider have a spider have a",
+        "stop": {
+          "period": 3,
+          "reason": "short_cycle"
+        },
+        "generated_token_count": 10,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats spider have without a leg count."
+      },
+      "role_only": {
+        "text": "Yes, there are several legs to the spider is a spider, but it's a great way to get the spider.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 27,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "No leg count and broken relation; neither arm answers eight."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-03",
+      "turn": 1,
+      "category": "factual",
+      "user": "What color is the sky on a clear day?",
+      "parent": {
+        "text": "Yes, there are the sky on a clear day, we can use a clear day, we can use a clear day, we can use a clear day of",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The sky on a clear day, and the sky on a clear day. It is a great way to get the sky on a clear day.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 30,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats clear-day sky without naming its color."
+      },
+      "role_only": {
+        "text": "Yes, the sky is a great way to get the sky on the sky.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 17,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "No sky color; neither arm answers blue."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-04",
+      "turn": 1,
+      "category": "factual",
+      "user": "How many days are in a week?",
+      "parent": {
+        "text": "Yes, there are many days are in a week, we can use a week to get a week to get a week.\n\nCould you please let",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The days are in a week, I can help with that request. Please ensure that the days are in a week, I can help with",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats the question and an offer without the number of days."
+      },
+      "role_only": {
+        "text": "Yes, there are several days to get the days to get the days.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 18,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "No day count; neither arm answers seven."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-05",
+      "turn": 1,
+      "category": "factual",
+      "user": "What is the largest planet in our solar system?",
+      "parent": {
+        "text": "Yes, the largest planet in our solar system, including our solar system, including our solar",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The largest planet in our solar system is a largest planet in our solar system.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 27,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Tautological largest-planet statement gives no planet name."
+      },
+      "role_only": {
+        "text": "To find the largest planet in our solar system, you can use the solar system.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 27,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "No planet named; neither arm answers Jupiter."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-06",
+      "turn": 1,
+      "category": "factual",
+      "user": "What do bees make?",
+      "parent": {
+        "text": "Yes, there are many?\n\nBest,\nEmma",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "These are just a few of the most popular places, you can also consider the necessary popular places to ensure that the ne",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Unrelated popular-places template gives no bee product."
+      },
+      "role_only": {
+        "text": "Yes, I can help with that request. Please ensure that the request is will provide the [address]",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic request/address template; neither arm answers honey."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-07",
+      "turn": 1,
+      "category": "factual",
+      "user": "What is the freezing point of water in Celsius?",
+      "parent": {
+        "text": "Yes, the freezing point of water in Celsius's water in Celsius's water in Celsius's",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The freezing point of water in Celsius is a freezing point of water in Celsius.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats freezing-point-of-water phrase without a temperature."
+      },
+      "role_only": {
+        "text": "The freezing point of water is the freezing point of water in Celsius.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Tautology without a temperature; neither arm answers zero Celsius."
+      }
+    },
+    {
+      "request_id": "dev-core-fact-08",
+      "turn": 1,
+      "category": "factual",
+      "user": "Which animal is known as the king of the jungle?",
+      "parent": {
+        "text": "Yes, the king of the jungle, the king of the jungle, the king of the jungle, the king of the jungle. The king of the jungle,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The king of the jungle is a king of the jungle. The king of the jungle is a king of the jungle. The king of the jungle is a king",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats king-of-jungle without naming an animal."
+      },
+      "role_only": {
+        "text": "The king of the jungle is a great way to the king of the jungle.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 17,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Tautology without naming lion; no useful answer in either arm."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-01",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about the sun.",
+      "parent": {
+        "text": "I'm excited to share the sun.\n\nI'm here to support you, you can be a bit of the sun, you can be a bit of",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The sun is a sentence that can be a great way to ensure that the sun is a sentence. It's a great way to",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "incorrect",
+        "independent_label": "incorrect",
+        "evidence": "Says the sun is a sentence; topic overlap does not make meaningful requested content."
+      },
+      "role_only": {
+        "text": "The capital of France is Paris.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 12,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Fluent Paris sentence is unrelated to the sun. Correct stored content emitted on the wrong request."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-02",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about a dog.",
+      "parent": {
+        "text": "I'm excited to share a dog.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The dog is a sentence that is a sentence of a dog. It is a sentence of a dog, and a dog to the",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "incorrect",
+        "independent_label": "incorrect",
+        "evidence": "Says the dog is a sentence; not a meaningful sentence about a dog."
+      },
+      "role_only": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence that is a sentence.\n\nP.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats sentence without providing a sentence about a dog."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-03",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about the ocean.",
+      "parent": {
+        "text": "I'm excited to share the ocean.\n\nI'm excited to share the ocean and the ocean.\n\nI'm excited to share the ocean and the",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The ocean is a sentence that can be a great way to ensure that the ocean is a sentence. It is a sentence",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "incorrect",
+        "independent_label": "incorrect",
+        "evidence": "Says the ocean is a sentence, then repeats the false category."
+      },
+      "role_only": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence that is a sentence.\n\nP.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats sentence without an ocean description."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-04",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about winter.",
+      "parent": {
+        "text": "I'm excited to share winter.\n\nAdditionally,\n\nI hope you're doing well. I wanted to touch base with you",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Tautology about sentences omits winter."
+      },
+      "role_only": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence that is a sentence.\n\nP.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats sentence without winter content."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-05",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about a book.",
+      "parent": {
+        "text": "I'm excited to share a book.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The book is a sentence that can be a great way to ensure that the book is a sentence. It is a sentence",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "incorrect",
+        "independent_label": "incorrect",
+        "evidence": "Says the book is a sentence and repeats it."
+      },
+      "role_only": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence.\n\nP.S. If you have any",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats sentence without a book description."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-06",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about music.",
+      "parent": {
+        "text": "I'm excited to share a sentence about music.\n\nI'm excited to share a lot of music, you can create a more complex",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Tautology about sentences omits music."
+      },
+      "role_only": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence that is a sentence.\n\nP.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats sentence without music content."
+      }
+    },
+    {
+      "request_id": "dev-core-inst-07",
+      "turn": 1,
+      "category": "instruction",
+      "user": "Write a sentence about a mountain.",
+      "parent": {
+        "text": "I'm excited to share a mountain.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Tautology about sentences omits the mountain."
+      },
+      "role_only": {
+        "text": "The sentence is a sentence that is a sentence that is a sentence that is a sentence.\n\nP.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeats sentence without mountain content."
+      }
+    },
+    {
+      "request_id": "dev-mem-01",
+      "turn": 1,
+      "category": "memory",
+      "user": "My name is Alex.",
+      "parent": {
+        "text": "I'm excited to share a more concise and effective way to make it more effectively.\n\nCould you please",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The name is Alex is Alex. It is Alex is Alex. It is Alex is Alex.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 32,
+        "principal_label": "useful",
+        "independent_label": "partial",
+        "evidence": "Restates Alex intelligibly despite repeated words/sentences."
+      },
+      "role_only": {
+        "text": "The name is a great way to get the name of the name.\n\nP.S. If you have any other questions, feel free to ask.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Name tautology omits Alex, unlike full-prefix."
+      }
+    },
+    {
+      "request_id": "dev-mem-01",
+      "turn": 2,
+      "category": "memory",
+      "user": "I also like apples.",
+      "parent": {
+        "text": "I'm excited to share a more concise and effective way to make it more effectively.\n\nCould you please",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The name is Alex is Alex.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 12,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats prior name but ignores the new apples statement."
+      },
+      "role_only": {
+        "text": "I can help you with that request.\n\nP.S. If you have any other questions, feel free to ask.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic offer ignores the newly stated apples preference; full-prefix also ignores it."
+      }
+    },
+    {
+      "request_id": "dev-mem-01",
+      "turn": 3,
+      "category": "memory",
+      "user": "What is my name?",
+      "parent": {
+        "text": "Yes, there are many a more concise and effective way to make it more effectively.\n\nCould you please",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The name is Alex is Alex.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 12,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "evidence": "Name Alex is recoverable unambiguously; minor grammar does not erase the answer."
+      },
+      "role_only": {
+        "text": "I can help with?",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 6,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic offer does not recall Alex; full-prefix gives Alex."
+      }
+    },
+    {
+      "request_id": "dev-mem-02",
+      "turn": 1,
+      "category": "memory",
+      "user": "My cat is named Momo.",
+      "parent": {
+        "text": "I'm excited to share a lot of a new cat is named Momo, and I'm sure to make sure to make sure to make",
+        "stop": {
+          "period": 3,
+          "reason": "short_cycle"
+        }
+      },
+      "full_prefix": {
+        "text": "The cat is named Momo, a simple pleasure of the cat is named Momo, and a simple pleasure of the cat is named Momo",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Correct cat name is retained but embedded in an unfinished loop."
+      },
+      "role_only": {
+        "text": "The cat is named Momo, and the cat is named Momo, and the cat is named Momo.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 21,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Correct Momo relation is repeated excessively."
+      }
+    },
+    {
+      "request_id": "dev-mem-02",
+      "turn": 2,
+      "category": "memory",
+      "user": "She likes to sleep.",
+      "parent": {
+        "text": "I'm excited to share a lot of a new cat is named Momo, and I'm sure to make",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The cat is named Momo, a simple pleasure of the cat is named Momo, a simple pleasure of the cat is named Momo,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Retains Momo while ignoring the new sleep statement."
+      },
+      "role_only": {
+        "text": "Yes, the cat is named Momo, the cat is named Momo, the cat is named Momo, the cat is named Momo, the cat is named Momo,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Repeated Momo ignores sleeping; both endpoints fail the added fact."
+      }
+    },
+    {
+      "request_id": "dev-mem-02",
+      "turn": 3,
+      "category": "memory",
+      "user": "What is my cat's name?",
+      "parent": {
+        "text": "Yes, I'm sure to sleep.\n\nI'm excited to hear your cat is named Momo, and I'm sure to make sure to sleep.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The cat is named Momo, a simple pleasure of the cat's name, a simple pleasure of the cat's name.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 31,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "evidence": "Directly says cat named Momo; strange pleasure filler does not change the answer."
+      },
+      "role_only": {
+        "text": "Yes, the cat is named Momo, the cat is named Momo, the cat is named Momo, the cat is named Momo, the cat is named Momo,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Correct name remains but repetition obstructs the reply; parent and full-prefix already retain Momo."
+      }
+    },
+    {
+      "request_id": "dev-mem-03",
+      "turn": 1,
+      "category": "memory",
+      "user": "My favorite color is green.",
+      "parent": {
+        "text": "I'm excited to share a lot of green.\n\nI'm excited to hear your thoughts on this matter.\n\nBest,\nAle",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The favorite color is green is green. It's a great way to greenhouse gas emissions, and greenhouse gas emissions.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Correct green color followed by irrelevant greenhouse-gas text."
+      },
+      "role_only": {
+        "text": "The color is a green.\n\nP.S. I hope this helps you find the color.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 22,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Correct green token in a malformed color acknowledgment; no favorite relation is expressed."
+      }
+    },
+    {
+      "request_id": "dev-mem-03",
+      "turn": 2,
+      "category": "memory",
+      "user": "I also like blue.",
+      "parent": {
+        "text": "I'm excited to share a lot of green.\n\nI'm excited to share a lot of green.\n\nI'm excited to share a lot of",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The favorite color is green.\n\nPlanning the favorite color is green.\n\nPlanning the favorite color is green.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Restates favorite green without engaging also-like-blue statement."
+      },
+      "role_only": {
+        "text": "I can help with the color.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 8,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic color offer does not acknowledge blue."
+      }
+    },
+    {
+      "request_id": "dev-mem-03",
+      "turn": 3,
+      "category": "memory",
+      "user": "What is my favorite color?",
+      "parent": {
+        "text": "Yes, blue favorite color is green.\n\nI'm proud of the color, blue favorite color, green.\n\nI'm proud of the color,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The favorite color is green.\n\nPlanning the favorite color is green.\n\nPlanning the favorite color is green.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "evidence": "Repeatedly and explicitly identifies favorite color as green; Planning filler is awkward."
+      },
+      "role_only": {
+        "text": "Yes, there are many color to the color.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 11,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Tautology omits green; full-prefix retains green and is less ambiguous than parent."
+      }
+    },
+    {
+      "request_id": "dev-mem-04",
+      "turn": 1,
+      "category": "memory",
+      "user": "I work as a teacher.",
+      "parent": {
+        "text": "I'm excited to share a teacher.\n\nI'm excited to share a lot of a teacher, you can create a more complex and au",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The a teacher is a teacher that is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Retains teacher word but teacher-of-teacher chains distort the relation."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the [address] is the [address].",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template ignores teacher."
+      }
+    },
+    {
+      "request_id": "dev-mem-04",
+      "turn": 2,
+      "category": "memory",
+      "user": "My school is nearby.",
+      "parent": {
+        "text": "I'm excited to share a lot of a teacher.\n\nI'm excited to share a lot of a teacher, you can create a more complex",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The a teacher is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher of a teacher,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Teacher chain ignores school proximity."
+      },
+      "role_only": {
+        "text": "You're welcome!",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 5,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Unrelated welcome ignores school."
+      }
+    },
+    {
+      "request_id": "dev-mem-04",
+      "turn": 3,
+      "category": "memory",
+      "user": "What is my job?",
+      "parent": {
+        "text": "Yes, there are many a teacher of a teacher, you can create a more complex and audience, you can create a more comp",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The a teacher is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher of a teacher,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Teacher is present but nested teacher relations fail to state the user job clearly."
+      },
+      "role_only": {
+        "text": "Yes, there are several [address] is the [address].",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template fails to recall teacher; full-prefix also lacks a clean job relation."
+      }
+    },
+    {
+      "request_id": "dev-mem-05",
+      "turn": 1,
+      "category": "memory",
+      "user": "My sister lives in Tokyo.",
+      "parent": {
+        "text": "I am excited to share the sister lives in Tokyo.\n\nConsider the sister lives in Tokyo.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The sister lives in the Tokyo.\n\nP.S. I hope this sister lives in the Tokyo, includ",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "useful",
+        "independent_label": "partial",
+        "evidence": "Clearly restates sister lives in Tokyo before unfinished filler."
+      },
+      "role_only": {
+        "text": "The sister is a great way to get a sister, it's a great way to get a sister.\n\nP.S. I hope this sister is",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Sister template omits Tokyo."
+      }
+    },
+    {
+      "request_id": "dev-mem-05",
+      "turn": 2,
+      "category": "memory",
+      "user": "She visits often.",
+      "parent": {
+        "text": "Yes, there are many the sister lives in Tokyo.\n\nConsider the sister lives in Tokyo.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The sister lives in the Tokyo, including the Tokyo, and the Tokyo is a great way to get",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Tokyo relation retained but visit frequency ignored."
+      },
+      "role_only": {
+        "text": "Yes, there are many sisters to get a sister, it's a great way to get a sister.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic sister repetition ignores the visiting fact."
+      }
+    },
+    {
+      "request_id": "dev-mem-05",
+      "turn": 3,
+      "category": "memory",
+      "user": "Where does my sister live?",
+      "parent": {
+        "text": "Yes, there are many the sister live?\n\nConsider the sister live?\n\nConsider the sister live?\n\nC",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "Yes, this sister lives in the Tokyo, including the Tokyo, and the Tokyo is a great way",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "useful",
+        "independent_label": "partial",
+        "evidence": "Says sister lives in Tokyo; later filler does not obscure location."
+      },
+      "role_only": {
+        "text": "Yes, there are many sisters to get a sister, it's a great way to get a sister.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 23,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "No city recalled; full-prefix retains Tokyo, while the parent also fails this final turn."
+      }
+    },
+    {
+      "request_id": "dev-mem-06",
+      "turn": 1,
+      "category": "memory",
+      "user": "I have two brothers.",
+      "parent": {
+        "text": "I'm excited to share brothers.\n\nI’m here to support you.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "I understand your request and will provide the brothers.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 15,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Promise to provide brothers is inappropriate and drops the count."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the [address] is the brothers.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 24,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address/brothers template omits count two."
+      }
+    },
+    {
+      "request_id": "dev-mem-06",
+      "turn": 2,
+      "category": "memory",
+      "user": "They are older than me.",
+      "parent": {
+        "text": "I'm excited to share brothers.\n\nI’m here to support you.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The request is a brothers, but I'm here to help you with your request. Please ensure you can be a great way to",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Generic request template fails to address older brothers."
+      },
+      "role_only": {
+        "text": "You're welcome!",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 5,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Unrelated welcome ignores older-than relation."
+      }
+    },
+    {
+      "request_id": "dev-mem-06",
+      "turn": 3,
+      "category": "memory",
+      "user": "How many brothers do I have?",
+      "parent": {
+        "text": "I'm excited to share a lot of brothers, I’m confident that can be a great way to get a more effective way to",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "Yes, I can help with that I have a great way to help you with your request.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 22,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Offers help without the requested brother count."
+      },
+      "role_only": {
+        "text": "Yes, there are many brothers, I can help with?",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 13,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "No count; neither arm recalls two."
+      }
+    },
+    {
+      "request_id": "dev-mem-07",
+      "turn": 1,
+      "category": "memory",
+      "user": "My birthday is in July.",
+      "parent": {
+        "text": "I'm excited to share a way to get a more informed decision.\n\nThank you for your understanding and this matter. I’",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "I'm glad you have a birthday of July. It is a great way to July, it's a great way to July.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "useful",
+        "independent_label": "partial",
+        "evidence": "Birthday in July is intelligible in the first clause; later filler is poor."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the [address] is the [address].",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template ignores July."
+      }
+    },
+    {
+      "request_id": "dev-mem-07",
+      "turn": 2,
+      "category": "memory",
+      "user": "I love summer.",
+      "parent": {
+        "text": "I'm excited to share a more informed decision.\n\nAdditionally,\n\nI hope you're doing well. I",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The birthday is a great way to July, it's a great way to July.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 22,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Malformed birthday-way-to-July statement ignores love of summer."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the [address] is the [address].",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template ignores summer."
+      }
+    },
+    {
+      "request_id": "dev-mem-07",
+      "turn": 3,
+      "category": "memory",
+      "user": "When is my birthday?",
+      "parent": {
+        "text": "Yes,\n\nI hope you're doing well. I wanted to touch base with you about the birthday. I’m here to support you.",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The birthday is a great way to July, it's a great way to July, it's a great way to July.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 32,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "July retained, but birthday is a great way to July does not express the date relation coherently."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the [address] is the [address].",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template does not recall month; full-prefix mentions July in a malformed birthday relation."
+      }
+    },
+    {
+      "request_id": "dev-mem-08",
+      "turn": 1,
+      "category": "memory",
+      "user": "I drive a blue car.",
+      "parent": {
+        "text": "I am pleased to help you stay on track and the blue car.\n\nI am eager to hear your thoughts on this matter.\n\nBe",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The blue car is a blue car. The blue car is a blue car, a blue car, a blue car,",
+        "stop": {
+          "period": 4,
+          "reason": "short_cycle"
+        },
+        "generated_token_count": 24,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Blue car remains correct but degenerates into repeated clauses."
+      },
+      "role_only": {
+        "text": "I can help you with that request.\n\nP.S. If you have any other questions, feel free to ask.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic offer ignores blue car."
+      }
+    },
+    {
+      "request_id": "dev-mem-08",
+      "turn": 2,
+      "category": "memory",
+      "user": "It is fast.",
+      "parent": {
+        "text": "I am excited to share a lot of the blue car.\n\nI am eager to hear your thoughts on this matter.\n\nBest,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The blue car is a blue car, a blue car is a blue car, a blue car, a blue car,",
+        "stop": {
+          "period": 4,
+          "reason": "short_cycle"
+        },
+        "generated_token_count": 24,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Repeats blue car and ignores speed."
+      },
+      "role_only": {
+        "text": "I can help you with that request.\n\nP.S. If you have any other questions, feel free to ask.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic offer ignores fast."
+      }
+    },
+    {
+      "request_id": "dev-mem-08",
+      "turn": 3,
+      "category": "memory",
+      "user": "What color is my car?",
+      "parent": {
+        "text": "I am pleased to help you stay on track and the blue car.\n\nI am eager to hear your carbon footprint,",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The blue car is a blue car, a blue car is a blue car, a blue car, a blue car,",
+        "stop": {
+          "period": 4,
+          "reason": "short_cycle"
+        },
+        "generated_token_count": 24,
+        "principal_label": "useful",
+        "independent_label": "partial",
+        "evidence": "Explicit blue-car phrase answers color despite the cycle."
+      },
+      "role_only": {
+        "text": "Yes, there are several tips for you to reach out.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 17,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic tips do not recall blue; parent and full-prefix retain blue."
+      }
+    },
+    {
+      "request_id": "dev-mem-09",
+      "turn": 1,
+      "category": "memory",
+      "user": "I am learning to play the piano.",
+      "parent": {
+        "text": "I am excited to share the piano.\n\nI am eager to hear your thoughts on this matter.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "I understand your piano is a great way to get the piano.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 14,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Acknowledges piano but loses learning-to-play relation in filler."
+      },
+      "role_only": {
+        "text": "I can help with the [address] where the piano is the first point.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 21,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template includes piano without acknowledging learning."
+      }
+    },
+    {
+      "request_id": "dev-mem-09",
+      "turn": 2,
+      "category": "memory",
+      "user": "It is hard but fun.",
+      "parent": {
+        "text": "I am excited to share the piano.\n\nI am eager to share your thoughts on this matter.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The piano is a great way to get the piano.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 12,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Piano-to-get-piano tautology ignores hard-but-fun statement."
+      },
+      "role_only": {
+        "text": "To find the piano, the piano is the piano, the piano is the piano.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 18,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Piano tautology ignores difficulty and enjoyment."
+      }
+    },
+    {
+      "request_id": "dev-mem-09",
+      "turn": 3,
+      "category": "memory",
+      "user": "What instrument am I learning?",
+      "parent": {
+        "text": "Yes,\n\nI hope you're doing well. I wanted to touch base with you about the piano. I am eager to share your thoughts on this",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "Yes, the piano is a great way to get the piano.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 14,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Piano is retained but the answer is a malformed claim about getting a piano rather than learning an instrument."
+      },
+      "role_only": {
+        "text": "Yes, the piano is the piano, the piano is the piano, the piano is the piano.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 21,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Piano is present but repeated tautology does not express learning; no new exclusive full-prefix payload."
+      }
+    },
+    {
+      "request_id": "dev-mem-10",
+      "turn": 1,
+      "category": "memory",
+      "user": "My favorite food is pizza.",
+      "parent": {
+        "text": "I'm excited to share a way to get a food is pizza.\n\nI'm excited to share a lot of food, and I'm sure to get",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The food is pizza, pizza, and pizza. The food is pizza, pizza, and pizza.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 21,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "evidence": "Restates food as pizza repeatedly but drops favorite relation."
+      },
+      "role_only": {
+        "text": "The food is pizza, pizza, and pizza.\n\nP.S. I hope this helps you find the foods of the food.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 30,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Pizza is identified but favorite relation omitted and repetition/distracting suffix remain."
+      }
+    },
+    {
+      "request_id": "dev-mem-10",
+      "turn": 2,
+      "category": "memory",
+      "user": "I eat it on Fridays.",
+      "parent": {
+        "text": "I'm excited to share a lot of food, and I'm sure to get a food and food.\n\nI'm proud of the food, and I",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The food is pizza, pizza, and pizza.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 11,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Pizza repeated without acknowledging Fridays."
+      },
+      "role_only": {
+        "text": "The food is pizza, pizza, and pizza.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 11,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Pizza repetition ignores Fridays; identical substantive failure in full-prefix."
+      }
+    },
+    {
+      "request_id": "dev-mem-10",
+      "turn": 3,
+      "category": "memory",
+      "user": "What is my favorite food?",
+      "parent": {
+        "text": "Yes, I'm sure to get a food, and I'm sure to get a food and food.\n\nI'm proud of the food, I'm",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The favorite food is pizza, pizza, and pizza.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 12,
+        "principal_label": "useful",
+        "independent_label": "useful",
+        "evidence": "Favorite food explicitly pizza; repeated pizza does not obscure answer."
+      },
+      "role_only": {
+        "text": "Yes, there are many foods are pizza, and pizza.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 14,
+        "principal_label": "partial",
+        "independent_label": "partial",
+        "request_fulfillment": "partial",
+        "evidence": "Pizza payload persists in malformed many-foods relation; full-prefix explicitly says favorite food. Common retention, not exclusive acquisition."
+      }
+    },
+    {
+      "request_id": "dev-ref-01",
+      "turn": 1,
+      "category": "refusal",
+      "user": "What is the best flavor?",
+      "parent": {
+        "text": "Yes, the best flavor is the best flavor, the best flavor is the best flavor, the best flavor is",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The best flavor is the best flavor, the best flavor is the best flavor.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 25,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "No preference framing or clarification, only a best-flavor tautology."
+      },
+      "role_only": {
+        "text": "Yes, the best flavor is a great way to get the best flavor.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 20,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Flavor tautology neither qualifies preference nor seeks clarification."
+      }
+    },
+    {
+      "request_id": "dev-ref-02",
+      "turn": 1,
+      "category": "refusal",
+      "user": "Tell me about the thing.",
+      "parent": {
+        "text": "I'm excited to share a lot of the thing.\n\nI'm here to support you.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "The thing is a great way to the thing. It is a great way to the thing. It is a great way to the thing.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Does not ask which thing or provide substantive information."
+      },
+      "role_only": {
+        "text": "I can help with you.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 7,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic offer does not clarify which thing."
+      }
+    },
+    {
+      "request_id": "dev-ref-03",
+      "turn": 1,
+      "category": "refusal",
+      "user": "What did I do yesterday?",
+      "parent": {
+        "text": "Yes, I can help you stay on track.\n\nBest,\nEmily",
+        "stop": {
+          "reason": "eos"
+        }
+      },
+      "full_prefix": {
+        "text": "These are just a few of the most popular places, you can also consider the necessary popular places to ensure that the ne",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Unrelated places template neither admits missing personal history nor asks for it."
+      },
+      "role_only": {
+        "text": "The capital of France is Paris.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 12,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Paris answer is unrelated to unknown yesterday activity; no uncertainty handling."
+      }
+    },
+    {
+      "request_id": "dev-ref-04",
+      "turn": 1,
+      "category": "refusal",
+      "user": "Who won the game?",
+      "parent": {
+        "text": "Yes, the game is the game of the game, the game is the game of the game, the game is the game of the game.\n\nThe",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The game is a game of the game, the game is a game of the game.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 19,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Does not identify game or request clarification."
+      },
+      "role_only": {
+        "text": "Yes, the game is a game of the game, the game is a game of the game.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 21,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Game tautology without clarifying the game."
+      }
+    },
+    {
+      "request_id": "dev-ref-05",
+      "turn": 1,
+      "category": "refusal",
+      "user": "What is the answer?",
+      "parent": {
+        "text": "Yes, the answer is the answer of the answer of the answer of",
+        "stop": {
+          "period": 3,
+          "reason": "short_cycle"
+        }
+      },
+      "full_prefix": {
+        "text": "The answer is the answer is the answer. It's a great idea to the answer.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 19,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "No question/referent clarification or substantive answer."
+      },
+      "role_only": {
+        "text": "Yes, the answer is the answer.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 9,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Answer tautology without clarifying the question."
+      }
+    },
+    {
+      "request_id": "dev-ref-06",
+      "turn": 1,
+      "category": "refusal",
+      "user": "Tell me about the future.",
+      "parent": {
+        "text": "I'm excited to share a way to get a more effective way to get a more effective way to get a more effect",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "The future is a great way to the future. It is a great way to the future. It is a great way to the",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "No meaningful discussion or uncertainty framing about the future."
+      },
+      "role_only": {
+        "text": "I can help you with that request.\n\nP.S. If you have any other questions, feel free to ask.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 29,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Generic offer provides no future discussion or clarification."
+      }
+    },
+    {
+      "request_id": "dev-ref-07",
+      "turn": 1,
+      "category": "refusal",
+      "user": "Give me the number.",
+      "parent": {
+        "text": "I'm excited to share a way to get a more effective way to get a more effective way to get a more effect",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        }
+      },
+      "full_prefix": {
+        "text": "I understand the number of the number is the number of the number.\n\nP.S. If you have any other questions, you can try the number",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "No clarification of which number; repeated number template."
+      },
+      "role_only": {
+        "text": "To find the number of [address], the number of [address], the number of [address].",
+        "stop": {
+          "reason": "maximum_new_tokens"
+        },
+        "generated_token_count": 32,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Address template supplies no number and no relevant clarification."
+      }
+    },
+    {
+      "request_id": "dev-ref-08",
+      "turn": 1,
+      "category": "refusal",
+      "user": "What is the name of that song?",
+      "parent": {
+        "text": "Yes, there are the name of song?\n\nI made the name of song, song, and song, and song, and",
+        "stop": {
+          "period": 3,
+          "reason": "short_cycle"
+        }
+      },
+      "full_prefix": {
+        "text": "The name of song is a great way to song, and the song is a great way to song.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 22,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "evidence": "Neither identifies a song nor asks for identifying information."
+      },
+      "role_only": {
+        "text": "The name is the name of the song.",
+        "stop": {
+          "reason": "eos"
+        },
+        "generated_token_count": 10,
+        "principal_label": "non-answer",
+        "independent_label": "non-answer",
+        "request_fulfillment": "absent",
+        "evidence": "Name/song tautology without identifying or clarifying the song."
+      }
+    }
+  ]
+}

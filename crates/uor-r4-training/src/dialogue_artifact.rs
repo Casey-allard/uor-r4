@@ -482,6 +482,14 @@ impl LegacyDialogueArtifact {
         &self.provenance
     }
 
+    /// Borrow the verified original F32 model for offline numerical traces.
+    /// This is the continuous parameter/interface form, not an integer model
+    /// or a claim of historical backend bitwise reproduction. Observers must
+    /// retain the import provenance and leave its parameters unchanged.
+    pub fn model(&self) -> &JointModel {
+        &self.model
+    }
+
     /// Consume this verified import for a newly declared offline training run.
     /// Load separately for each arm: moving these parts neither clones shared
     /// Vars nor changes the historical provenance into a resume assertion.
