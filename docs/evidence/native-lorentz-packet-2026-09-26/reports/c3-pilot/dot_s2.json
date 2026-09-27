@@ -1,0 +1,124 @@
+{
+  "batch": 16,
+  "config": {
+    "context": 128,
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "context": 128,
+  "curve": [
+    {
+      "eval": {
+        "bpb_no_read": 3.5057939583677395,
+        "bpb_read": 3.0405356110155943,
+        "nll_no_read": 8.34492647197091,
+        "nll_read": 7.237460732332284,
+        "no_read_mass": 0.12244016918993594,
+        "read_effect_nats": 1.1074657396386254,
+        "targets": 4096
+      },
+      "lorentz": {},
+      "step": 0
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.920734260253985,
+        "bpb_read": 2.6690082287087535,
+        "nll_no_read": 6.952294668604485,
+        "nll_read": 6.353105084370044,
+        "no_read_mass": 0.05342370550852138,
+        "read_effect_nats": 0.5991895842344412,
+        "targets": 4096
+      },
+      "grad_norm": 0.9751259088516235,
+      "lorentz": {},
+      "step": 100,
+      "train_nll": 6.366588916778564
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.878674373160638,
+        "bpb_read": 2.610478850296875,
+        "nll_no_read": 6.852178498235822,
+        "nll_read": 6.2137861839733155,
+        "no_read_mass": 0.04606971140859173,
+        "read_effect_nats": 0.6383923142625063,
+        "targets": 4096
+      },
+      "grad_norm": 0.5502199530601501,
+      "lorentz": {},
+      "step": 200,
+      "train_nll": 6.240216889381409
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.719483567470683,
+        "bpb_read": 2.334015131329027,
+        "nll_no_read": 6.473252758653856,
+        "nll_read": 5.55571288179087,
+        "no_read_mass": 0.11463564042999691,
+        "read_effect_nats": 0.9175398768629854,
+        "targets": 4096
+      },
+      "grad_norm": 1.2682180404663086,
+      "lorentz": {},
+      "step": 300,
+      "train_nll": 5.770409798622131
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.530968193846624,
+        "bpb_read": 2.1532534128969063,
+        "nll_no_read": 6.024525038083153,
+        "nll_read": 5.125441374915016,
+        "no_read_mass": 0.15246574628330278,
+        "read_effect_nats": 0.8990836631681374,
+        "targets": 4096
+      },
+      "grad_norm": 0.8753842115402222,
+      "lorentz": {},
+      "step": 400,
+      "train_nll": 5.2082054138183596
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.3725652397875354,
+        "bpb_read": 2.016478495679849,
+        "nll_no_read": 5.647474640865422,
+        "nll_read": 4.799872718872929,
+        "no_read_mass": 0.2522767430677215,
+        "read_effect_nats": 0.8476019219924931,
+        "targets": 4096
+      },
+      "grad_norm": 0.8974058628082275,
+      "lorentz": {},
+      "step": 500,
+      "train_nll": 4.7914536190032955
+    }
+  ],
+  "final": {
+    "bpb_no_read": 2.0922676017653066,
+    "bpb_read": 1.7863347902501407,
+    "nll_no_read": 5.166867513605447,
+    "nll_read": 4.411364582799658,
+    "no_read_mass": 0.29702334011221665,
+    "read_effect_nats": 0.7555029308057888,
+    "targets": 32768
+  },
+  "final_windows": 256,
+  "geometry": "dot",
+  "lorentz": {},
+  "lr": 0.001,
+  "parameters": 693890,
+  "seed": 2,
+  "shards": 1,
+  "steps_completed": 600,
+  "steps_requested": 600,
+  "train_seconds": 2024.0580358830014,
+  "train_tokens": 7000992,
+  "valid_tokens": 206844,
+  "wall_seconds": 2070.779877979
+}

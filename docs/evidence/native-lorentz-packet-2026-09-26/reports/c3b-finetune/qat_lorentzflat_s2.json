@@ -1,0 +1,229 @@
+{
+  "batch": 8,
+  "config": {
+    "context": 256,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "curve": [
+    {
+      "development": {
+        "bits_per_byte_no_read": 1.6898810604052643,
+        "bits_per_byte_read": 1.3622122971189914,
+        "nll_no_read": 4.1146189967249915,
+        "nll_read": 3.3167923628625156,
+        "no_read_mass": 0.6111007571966525,
+        "read_effect_nats": 0.797826633862476,
+        "targets": 16384
+      },
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          1.2852634191513062
+        ],
+        "read.lorentz_offset": [
+          4.9578704833984375
+        ]
+      },
+      "step": 0
+    },
+    {
+      "development": {
+        "bits_per_byte_no_read": 1.6521015755339892,
+        "bits_per_byte_read": 1.3258382672780944,
+        "nll_no_read": 4.022631347546561,
+        "nll_read": 3.2282267959255715,
+        "no_read_mass": 0.60049061254864,
+        "read_effect_nats": 0.7944045516209894,
+        "targets": 16384
+      },
+      "global_grad_norm": 0.888920783996582,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          1.30160391330719
+        ],
+        "read.lorentz_offset": [
+          4.953795433044434
+        ]
+      },
+      "step": 100,
+      "train_nll_since_previous": 3.0928688430786133
+    },
+    {
+      "development": {
+        "bits_per_byte_no_read": 1.6414527069968472,
+        "bits_per_byte_read": 1.3151015149737286,
+        "nll_no_read": 3.9967028737603387,
+        "nll_read": 3.2020843377196195,
+        "no_read_mass": 0.6072975986409617,
+        "read_effect_nats": 0.7946185360407192,
+        "targets": 16384
+      },
+      "global_grad_norm": 0.9602727890014648,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          1.3200136423110962
+        ],
+        "read.lorentz_offset": [
+          4.9515862464904785
+        ]
+      },
+      "step": 200,
+      "train_nll_since_previous": 3.094570069313049
+    }
+  ],
+  "evaluation": "Fresh state per window; evenly spaced starts; Read and NoRead on the same targets",
+  "final": {
+    "bits_per_byte_no_read": 1.5827565582118566,
+    "bits_per_byte_read": 1.2349495471506504,
+    "nll_no_read": 3.936273283150672,
+    "nll_read": 3.0712865369390903,
+    "no_read_mass": 0.6003445744613476,
+    "read_effect_nats": 0.8649867462115819,
+    "targets": 131072
+  },
+  "final_windows": 512,
+  "init": {
+    "config_sha256": "5fd0e99bbbc1f82e13916257e7d666ac1a82c87f9bf6298e4b16cc7ded7b9fde",
+    "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s2_r1/model",
+    "weights_sha256": "d81adff1a9f45b5dedc4c0dedd5d57d0272e1a6a53aacbe864a96363f7f80acc"
+  },
+  "inputs": {
+    "lens": {
+      "bytes": 8192,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+      "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "train": {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+    },
+    "train_tokens": 7000992,
+    "valid": {
+      "bytes": 413688,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    },
+    "valid_tokens": 206844
+  },
+  "lorentz": {
+    "read.lorentz_log_beta": [
+      1.3344987630844116
+    ],
+    "read.lorentz_offset": [
+      4.948954105377197
+    ]
+  },
+  "lorentz_start": "Dot-matched",
+  "numerical_contract": {
+    "age_initialization": "-(occurrence age)/64; age starts1 for the immediately previous write",
+    "arithmetic": "F32 offline continuous dense affine and softmax computation; approximate floating transport, not exact Z[phi] or target serving",
+    "copy_initial_bias": -1.0,
+    "householder_delta_scale": 0.07071067811865475,
+    "output": "(1-g*(1-a0))*P_vocabulary + g*sum_previous(a_i*onehot(observed_token_i)), then declared uniform mixture",
+    "quantization": {
+      "artifact": "Packed codes plus integer scale exponents, no floating shadow dependency; load decodes dyadic values to F32 for this emulator; training checkpoint separately retains F32 shadows and Adam moments",
+      "backward": "inclusive clipped straight-through gradient; identity inside representable range, zero outside at full strength; convex identity/hard ramp during training; hard path in every evaluation",
+      "cache": "Quantized parameter tensors prepared once per full-window shard; incremental sessions snapshot them once; graph-retaining STE tensors are not cached across optimizer updates",
+      "calibration": "4-bit row reconstruction MSE chooses among bounded ceil(log2(maxabs/7)) minus 2, minus 1, and ceiling; ties prefer larger exponent; additive16 uses ceiling. Scales never learn or recalibrate.",
+      "fused_affine_qk_null_read_scores_and_logits": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -8
+      },
+      "parameters": "All multiplicative parameters, including embedding and output norm, signed 4-bit [-7,7]; additive biases/age signed 16-bit [-32767,32767]; frozen parent-calibrated power-of-two per-output-row scales (one scale for vectors)",
+      "remaining_float": "F32 matmul/elementwise products and accumulation, RMS and unit normalization, sigmoid/tanh/softmax, probability mixture and sampling; fixed scalars are not yet integer-lowered. State-state and attention operations remain dense/full-window.",
+      "rms_normalized_and_output_hidden": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -10
+      },
+      "round": "nearest, ties away from zero; canonical positive zero; clip before round",
+      "schema": "uor-r4.joint-recurrent-quantized-interfaces/1",
+      "sigmoid_gates": {
+        "codes": [
+          0,
+          32768
+        ],
+        "exponent": -15
+      },
+      "state_transport_provisional_read_state": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -11
+      },
+      "tanh_values_candidates_updates_and_unit_transport": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -14
+      },
+      "transport": "Quantize signed unit coordinates after normalization; do not renormalize off-grid. Approximate quaternion and Householder orthogonality only; no hemisphere folding or H4 codebook."
+    },
+    "quaternion_delta_scale": 0.1,
+    "quaternion_sign": "q and -q remain distinct; no hemisphere canonicalization",
+    "read": "Query/Key from RMS-normalized provisional/written states, each lifted to the hyperboloid x0=sqrt(1+|x|^2); Value=tanh(affine(normalized written state)); score=exp(read.lorentz_log_beta)*(read.lorentz_offset-arcosh(max(q0*k0-<q,k>,1+2^-20)))+learned age at the affine score interface, competing with learned NoRead",
+    "read_geometry": {
+      "admission": "Bounded candidate admission is unchanged; this score ranks admitted candidates only. Integer serving requires full admission",
+      "distance": "arcosh(z)=ln(z+sqrt((z-1)(z+1)))",
+      "emulator": "F32 score from the dyadic scalars and the Q8 query/key codes, then the affine score interface",
+      "geometry": "lorentz",
+      "integer_kernel": "With Q=|q|^2, K=|k|^2 and D=<q,k> in Q8 code units, P=(2^16+Q)(2^16+K) and M=2^16+D: z-1=(sqrt(P)-M)/2^16, evaluated as (P-M^2)/(2^16(sqrt(P)+M)) when M>0, where P-M^2 is an exact integer; one floor square root with 24 guard bits and one division rounded to nearest give z-1 at Q32, clamped below at 2^-20. arcosh(1+u) is read from the sealed Q24 table (argument codes below 2^10 directly, then 1024 linearly interpolated points per octave up to 2^64). exp(read.lorentz_log_beta) is evaluated once at load at Q32 (ln2 range reduction and a Q60 Taylor series) and must stay below 2^31. The score product rounds to Q40, adds age, then rounds and clips to the Q8 score interface",
+      "minimum_inner_product": "1+2^-20, the F32 value of the training clamp 1+1e-6",
+      "offset": "read.lorentz_offset; learned scalar radius initialized arcosh(1+2*r*d/(r+d))",
+      "parameters": "read.lorentz_log_beta and read.lorentz_offset are signed16 [-32767,32767] with one frozen ceiling dyadic scale each, like the additive parameters",
+      "scale": "exp(read.lorentz_log_beta); learned scalar initialized ln(sinh(offset0)/sqrt(r))",
+      "schema": "uor-r4.joint-lorentz-read-quantized/1",
+      "scope": "Quantized training, packed F32 emulation and integer serving of the Lorentz read. Integer and F32 scores differ by F32 rounding and interface rounding; no bitwise agreement is claimed"
+    },
+    "retention_initialization": "Each R4 lane has one constant initial update-gate bias with log-spaced tau4..64; learned coordinate gates may subsequently differ",
+    "rho_initial_bias": -0.5,
+    "rms_epsilon": 0.00001,
+    "session": "Same core with detached parameters/state, exact token/occurrence tape, bounded context without eviction",
+    "training_credit": "Full differentiable unroll; no state or memory detach; labels only enter next-token NLL",
+    "transport": "PerR4 lane q=normalize(e0+alpha*raw), left Hamilton multiplication; ordinary control H(v)H(e0), v=normalize(e0+alpha/sqrt2*raw)",
+    "transport_min_norm": 1e-6,
+    "transport_zero_rule": "Clamp squared denominator before sqrt; at norm<=minimum select identity e0 with finite excluded-branch arithmetic",
+    "uniform_mixture_epsilon": 1e-8,
+    "write_order": "Read previous occurrences, update state, write current observed token Key/Value for next step"
+  },
+  "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.0003,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+  },
+  "parameters": 694020,
+  "quantization": {
+    "final_strength": 1.0,
+    "ramp_steps": 100,
+    "scope": "Frozen dyadic scales calibrated once on the starting weights; straight-through fake quantization; evaluations use the hard path"
+  },
+  "read_dropout": 0.0,
+  "read_dropout_windows_per_step": 0,
+  "resumed_from": null,
+  "sampled_target_visits": 614400,
+  "schema": "uor-r4.joint-read-geometry-comparison/1",
+  "scope": "Exploratory from-scratch fit; equal budget per geometry; not a frozen campaign or capability qualification",
+  "seconds": {
+    "final_evaluation": 108.882962472,
+    "training_updates": 1006.5195026120007,
+    "wall": 1181.134261377
+  },
+  "shards": 1,
+  "steps_completed": 300,
+  "steps_requested": 300,
+  "training_objective": "Population-mean next-token NLL with the read enabled",
+  "window_sampler": "SplitMix64 counter seeded with seed ^ 0x5EED0FD8 ^ 0xF1AE7C0E (fine-tune stream); uniform window starts"
+}

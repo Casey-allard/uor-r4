@@ -1,0 +1,101 @@
+{
+  "config": {
+    "context": 256,
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "evaluation": "Fresh state per window; evenly spaced starts; Read and NoRead on the same targets; float and emulator by full-window forward, integer by incremental steps",
+  "inputs": {
+    "arcosh_metadata": {
+      "bytes": 808,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/tables/arcosh.json",
+      "sha256": "eb4e49dc451341708d969028267a4b65132609f2dea65e6375804c882b34af9a"
+    },
+    "checkpoint_config": {
+      "bytes": 92208,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/ft_qat_dot_s2/model/config.json",
+      "sha256": "0aceb24c8328deba07184079b0a784259bfae179a5daeef009089e55e7c2c722"
+    },
+    "checkpoint_weights": {
+      "bytes": 2777800,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/ft_qat_dot_s2/model/model.safetensors",
+      "sha256": "691c3a54e43370bf203d9f0111e69a137f48fac82dfc4e318f543f74a04b1dba"
+    },
+    "lens": {
+      "bytes": 8192,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+      "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "packed_manifest": {
+      "bytes": 188870,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/qatparity_dot_s2/packed/hard-model.json",
+      "sha256": "735618b508c02bb646024cc8a5891d399473aff7054b71bf1f2ddc8ee67c26b3"
+    },
+    "tables_metadata": {
+      "bytes": 647,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/tables/tables.json",
+      "sha256": "2d16e17cd34c5a07681a7950a22c4b9a67df5208b28304ab8b7fbe94461c150d"
+    },
+    "tokens": {
+      "bytes": 413688,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+  },
+  "no_read": {
+    "emulator_bits_per_byte": 2.4405572486075013,
+    "emulator_minus_float_nll": 0.01452140964495019,
+    "emulator_nll": 6.069600687389814,
+    "float_bits_per_byte": 2.43471825962053,
+    "float_nll": 6.055079277744864,
+    "integer_bits_per_byte": 2.4405547975195026,
+    "integer_minus_emulator_nll": -6.095790381799304e-6,
+    "integer_nll": 6.069594591599432,
+    "integer_seconds_per_step": 0.002701333667480459,
+    "maximum_probability_delta_integer_emulator": 0.030764334837716234,
+    "maximum_state_delta_integer_emulator": 0.0341796875,
+    "mean_no_read_mass_emulator": 1.0,
+    "mean_no_read_mass_integer": 1.0,
+    "mean_total_variation_integer_emulator": 0.002652594105282274,
+    "top1_agreement_integer_emulator": 0.994873046875,
+    "top1_agreement_integer_float": 0.6731796264648438
+  },
+  "quantization": "Quantization-aware checkpoint: its own frozen dyadic scales; float scores use its F32 shadow weights; signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces",
+  "read": {
+    "emulator_bits_per_byte": 1.2588191333456702,
+    "emulator_minus_float_nll": -0.020515551422857214,
+    "emulator_nll": 3.130649560223902,
+    "float_bits_per_byte": 1.2670683379166165,
+    "float_nll": 3.151165111646759,
+    "integer_bits_per_byte": 1.2588165283068298,
+    "integer_minus_emulator_nll": -6.478662013087444e-6,
+    "integer_nll": 3.130643081561889,
+    "integer_seconds_per_step": 0.004280502712600691,
+    "maximum_probability_delta_integer_emulator": 0.01504283044605259,
+    "maximum_state_delta_integer_emulator": 0.013671875,
+    "mean_no_read_mass_emulator": 0.003999736834150674,
+    "mean_no_read_mass_integer": 0.0039997540664975075,
+    "mean_total_variation_integer_emulator": 0.001670375556933875,
+    "top1_agreement_integer_emulator": 0.9973068237304688,
+    "top1_agreement_integer_float": 0.8116989135742188
+  },
+  "read_effect_nats": {
+    "emulator": 2.938951127165912,
+    "float": 2.9039141660981045,
+    "integer": 2.938951510037543
+  },
+  "schema": "uor-r4.joint-integer-parity/1",
+  "scope": "Post-training quantization of a float checkpoint and its integer execution, scored on evenly spaced windows of the given token file. Development measurement: no fine-tuning, checkpoint selection, final holdout or language qualification.",
+  "seconds": {
+    "preparation": 0.094803579,
+    "total": 1131.569103731
+  },
+  "stride": 403,
+  "targets": 131072,
+  "timing_scope": "Integer step time is this machine's CPU in this build; it is not an optimized serving, throughput or energy measurement",
+  "window_tokens": 256,
+  "windows": 512
+}

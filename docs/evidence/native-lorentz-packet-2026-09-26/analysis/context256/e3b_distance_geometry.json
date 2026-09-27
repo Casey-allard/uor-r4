@@ -1,0 +1,110 @@
+{
+ "s1": {
+  "1-4": {
+   "frac": 0.05835294117647059,
+   "mean": -0.0549,
+   "lo": -0.0732,
+   "hi": -0.0377
+  },
+  "5-16": {
+   "frac": 0.16255392156862744,
+   "mean": -0.0385,
+   "lo": -0.0496,
+   "hi": -0.0273
+  },
+  "17-64": {
+   "frac": 0.2046078431372549,
+   "mean": -0.0784,
+   "lo": -0.0896,
+   "hi": -0.0675
+  },
+  "65-255": {
+   "frac": 0.09236274509803921,
+   "mean": -0.0864,
+   "lo": -0.1048,
+   "hi": -0.0679
+  },
+  "slope_per_doubling": {
+   "mean": -0.0119,
+   "lo": -0.0151,
+   "hi": -0.0083
+  },
+  "geometry_lorentz": {
+   "key_norm_mean": 18.1802,
+   "query_norm_mean": 22.9956,
+   "key_radius_mean": 3.5668,
+   "key_radius_std": 0.243,
+   "query_radius_mean": 3.8142,
+   "query_radius_std": 0.1725,
+   "key_radius_within_window_std": 0.2347,
+   "KL_full_vs_spherical": 0.0719,
+   "TV_full_vs_spherical": 0.0972,
+   "top1_agree": 0.7557,
+   "R2_score_vs_cos": 0.7942
+  },
+  "geometry_dot": {
+   "key_norm_mean": 13.3135,
+   "query_norm_mean": 13.8982,
+   "key_norm_std": 1.8854,
+   "key_norm_within_window_cv": 0.1348,
+   "KL_full_vs_spherical": 0.1134,
+   "TV_full_vs_spherical": 0.1575,
+   "top1_agree": 0.7724,
+   "R2_score_vs_cos": 0.9774
+  }
+ },
+ "s2": {
+  "1-4": {
+   "frac": 0.05835294117647059,
+   "mean": 0.0413,
+   "lo": 0.0229,
+   "hi": 0.06
+  },
+  "5-16": {
+   "frac": 0.16255392156862744,
+   "mean": -0.0056,
+   "lo": -0.018,
+   "hi": 0.0068
+  },
+  "17-64": {
+   "frac": 0.2046078431372549,
+   "mean": -0.0525,
+   "lo": -0.0638,
+   "hi": -0.0413
+  },
+  "65-255": {
+   "frac": 0.09236274509803921,
+   "mean": -0.0877,
+   "lo": -0.1056,
+   "hi": -0.0693
+  },
+  "slope_per_doubling": {
+   "mean": -0.0231,
+   "lo": -0.0267,
+   "hi": -0.0196
+  },
+  "geometry_lorentz": {
+   "key_norm_mean": 17.7067,
+   "query_norm_mean": 22.3484,
+   "key_radius_mean": 3.5393,
+   "key_radius_std": 0.2443,
+   "query_radius_mean": 3.785,
+   "query_radius_std": 0.1763,
+   "key_radius_within_window_std": 0.2334,
+   "KL_full_vs_spherical": 0.0574,
+   "TV_full_vs_spherical": 0.0925,
+   "top1_agree": 0.769,
+   "R2_score_vs_cos": 0.806
+  },
+  "geometry_dot": {
+   "key_norm_mean": 12.6139,
+   "query_norm_mean": 14.1599,
+   "key_norm_std": 1.2734,
+   "key_norm_within_window_cv": 0.0953,
+   "KL_full_vs_spherical": 0.1818,
+   "TV_full_vs_spherical": 0.2144,
+   "top1_agree": 0.6876,
+   "R2_score_vs_cos": 0.9876
+  }
+ }
+}

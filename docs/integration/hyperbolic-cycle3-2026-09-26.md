@@ -4,7 +4,7 @@
 
 **Status.** An evidence note, not a decision record. It continues [cycle 2](hyperbolic-cycle2-2026-09-26.md), which added an optional Lorentz (hyperbolic) read to the project's Rust D8 learner but had not trained it. This cycle trains it.
 
-Labels: **Measured** (Rust runs in the review sandbox; seeds stated), **Derived**, **Hypothesis**. Every run's settings, final metrics, curves and hashes, including the interrupted attempts, are in [the evidence file](../evidence/hyperbolic-cycle3-runs-2026-09-26.json). Every model here is the project's own `JointModel`, trained by the project's own optimizer and gradient code. Only the data preparation and the run harness are scratch.
+Labels: **Measured** (Rust runs in the review sandbox; seeds stated), **Derived**, **Hypothesis**. Every run's settings, final metrics, curves and hashes, including the interrupted attempts, are in [the evidence file](../evidence/hyperbolic-cycle3-runs-2026-09-26.json). The [run packet](../evidence/native-lorentz-packet-2026-09-26/README.md) holds the complete run reports, the harness, corpus and tokenizer sources, the scratch Euclidean and flat-Dot controls, the analysis scripts, and the packed integer models, with hashes for every binary kept outside the repository. Every model here is the project's own `JointModel`, trained by the project's own optimizer and gradient code. Only the data preparation and the run harness are scratch.
 
 ## 0. Findings
 

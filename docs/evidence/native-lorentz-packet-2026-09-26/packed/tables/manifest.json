@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "blake3": "d35ae78c9cae4a7b71133edbc3636d5fee33854809ce7297890e6dd41936bbc6",
+      "bytes": 225284,
+      "path": "arcosh.bin"
+    },
+    {
+      "blake3": "1a26d93d8263cd086d53815a0ad132484a9331e17c51152575f392d43fc97d43",
+      "bytes": 808,
+      "path": "arcosh.json"
+    },
+    {
+      "blake3": "ece619a12140e8346fcfe7b21c7a80d9ba90e7674a0501528db915c8d094cddd",
+      "bytes": 432,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "f3bee94bd5c2954a6a5516015acb4708aad99de7b90d75378917857e4dd06cf4",
+      "bytes": 1048560,
+      "path": "tables.bin"
+    },
+    {
+      "blake3": "e8275a3ce873b9621081045f591b4a24bf653559ec8dadf93b00a137fbca324c",
+      "bytes": 647,
+      "path": "tables.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/tables",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790463139"
+}

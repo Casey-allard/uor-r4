@@ -1,0 +1,187 @@
+{
+  "batch": 8,
+  "config": {
+    "context": 256,
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "curve": [
+    {
+      "development": {
+        "bits_per_byte_no_read": 2.406079084539038,
+        "bits_per_byte_read": 1.3842145448086005,
+        "nll_no_read": 5.858458882598979,
+        "nll_read": 3.370364693149834,
+        "no_read_mass": 0.003967236042386499,
+        "read_effect_nats": 2.4880941894491455,
+        "targets": 16384
+      },
+      "lorentz": {},
+      "step": 0
+    },
+    {
+      "development": {
+        "bits_per_byte_no_read": 2.4544357325555715,
+        "bits_per_byte_read": 1.3497621579327317,
+        "nll_no_read": 5.97620041317691,
+        "nll_read": 3.2864780523421233,
+        "no_read_mass": 0.003984064157723979,
+        "read_effect_nats": 2.6897223608347867,
+        "targets": 16384
+      },
+      "global_grad_norm": 0.8745093941688538,
+      "lorentz": {},
+      "step": 100,
+      "train_nll_since_previous": 3.148486626148224
+    },
+    {
+      "development": {
+        "bits_per_byte_no_read": 2.428925012386219,
+        "bits_per_byte_read": 1.338335321085514,
+        "nll_no_read": 5.9140854535573375,
+        "nll_read": 3.258655336847127,
+        "no_read_mass": 0.003973427573855604,
+        "read_effect_nats": 2.6554301167102103,
+        "targets": 16384
+      },
+      "global_grad_norm": 0.984363317489624,
+      "lorentz": {},
+      "step": 200,
+      "train_nll_since_previous": 3.152749044895172
+    }
+  ],
+  "evaluation": "Fresh state per window; evenly spaced starts; Read and NoRead on the same targets",
+  "final": {
+    "bits_per_byte_no_read": 2.4405572486075076,
+    "bits_per_byte_read": 1.2588191333456722,
+    "nll_no_read": 6.06960068738983,
+    "nll_read": 3.1306495602239064,
+    "no_read_mass": 0.003999736834150663,
+    "read_effect_nats": 2.9389511271659234,
+    "targets": 131072
+  },
+  "final_windows": 512,
+  "init": {
+    "config_sha256": "b3a1457ccb18bebfdd6ecc45ead2587739a519cdae0b2c3d4dd669c09b0f8845",
+    "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/dot_s2_r1/model",
+    "weights_sha256": "378c24bc71202eb94ce60ed33c2d474dc2a6c8ee354af93f10837bcbaa2d7dbe"
+  },
+  "inputs": {
+    "lens": {
+      "bytes": 8192,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+      "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "train": {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+    },
+    "train_tokens": 7000992,
+    "valid": {
+      "bytes": 413688,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    },
+    "valid_tokens": 206844
+  },
+  "lorentz": {},
+  "lorentz_start": null,
+  "numerical_contract": {
+    "age_initialization": "-(occurrence age)/64; age starts1 for the immediately previous write",
+    "arithmetic": "F32 offline continuous dense affine and softmax computation; approximate floating transport, not exact Z[phi] or target serving",
+    "copy_initial_bias": -1.0,
+    "householder_delta_scale": 0.07071067811865475,
+    "output": "(1-g*(1-a0))*P_vocabulary + g*sum_previous(a_i*onehot(observed_token_i)), then declared uniform mixture",
+    "quantization": {
+      "artifact": "Packed codes plus integer scale exponents, no floating shadow dependency; load decodes dyadic values to F32 for this emulator; training checkpoint separately retains F32 shadows and Adam moments",
+      "backward": "inclusive clipped straight-through gradient; identity inside representable range, zero outside at full strength; convex identity/hard ramp during training; hard path in every evaluation",
+      "cache": "Quantized parameter tensors prepared once per full-window shard; incremental sessions snapshot them once; graph-retaining STE tensors are not cached across optimizer updates",
+      "calibration": "4-bit row reconstruction MSE chooses among bounded ceil(log2(maxabs/7)) minus 2, minus 1, and ceiling; ties prefer larger exponent; additive16 uses ceiling. Scales never learn or recalibrate.",
+      "fused_affine_qk_null_read_scores_and_logits": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -8
+      },
+      "parameters": "All multiplicative parameters, including embedding and output norm, signed 4-bit [-7,7]; additive biases/age signed 16-bit [-32767,32767]; frozen parent-calibrated power-of-two per-output-row scales (one scale for vectors)",
+      "remaining_float": "F32 matmul/elementwise products and accumulation, RMS and unit normalization, sigmoid/tanh/softmax, probability mixture and sampling; fixed scalars are not yet integer-lowered. State-state and attention operations remain dense/full-window.",
+      "rms_normalized_and_output_hidden": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -10
+      },
+      "round": "nearest, ties away from zero; canonical positive zero; clip before round",
+      "schema": "uor-r4.joint-recurrent-quantized-interfaces/1",
+      "sigmoid_gates": {
+        "codes": [
+          0,
+          32768
+        ],
+        "exponent": -15
+      },
+      "state_transport_provisional_read_state": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -11
+      },
+      "tanh_values_candidates_updates_and_unit_transport": {
+        "codes": [
+          -32767,
+          32767
+        ],
+        "exponent": -14
+      },
+      "transport": "Quantize signed unit coordinates after normalization; do not renormalize off-grid. Approximate quaternion and Householder orthogonality only; no hemisphere folding or H4 codebook."
+    },
+    "quaternion_delta_scale": 0.1,
+    "quaternion_sign": "q and -q remain distinct; no hemisphere canonicalization",
+    "read": "Query/Key from RMS-normalized provisional/written states; Value=tanh(affine(normalized written state)); score=dot/sqrt(read_width)+learned age, competing with learned NoRead",
+    "retention_initialization": "Each R4 lane has one constant initial update-gate bias with log-spaced tau4..64; learned coordinate gates may subsequently differ",
+    "rho_initial_bias": -0.5,
+    "rms_epsilon": 0.00001,
+    "session": "Same core with detached parameters/state, exact token/occurrence tape, bounded context without eviction",
+    "training_credit": "Full differentiable unroll; no state or memory detach; labels only enter next-token NLL",
+    "transport": "PerR4 lane q=normalize(e0+alpha*raw), left Hamilton multiplication; ordinary control H(v)H(e0), v=normalize(e0+alpha/sqrt2*raw)",
+    "transport_min_norm": 1e-6,
+    "transport_zero_rule": "Clamp squared denominator before sqrt; at norm<=minimum select identity e0 with finite excluded-branch arithmetic",
+    "uniform_mixture_epsilon": 1e-8,
+    "write_order": "Read previous occurrences, update state, write current observed token Key/Value for next step"
+  },
+  "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.0003,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+  },
+  "parameters": 694018,
+  "quantization": {
+    "final_strength": 1.0,
+    "ramp_steps": 100,
+    "scope": "Frozen dyadic scales calibrated once on the starting weights; straight-through fake quantization; evaluations use the hard path"
+  },
+  "read_dropout": 0.0,
+  "read_dropout_windows_per_step": 0,
+  "resumed_from": null,
+  "sampled_target_visits": 614400,
+  "schema": "uor-r4.joint-read-geometry-comparison/1",
+  "scope": "Exploratory from-scratch fit; equal budget per geometry; not a frozen campaign or capability qualification",
+  "seconds": {
+    "final_evaluation": 107.586882976,
+    "training_updates": 1039.5038721340002,
+    "wall": 1210.161227364
+  },
+  "shards": 1,
+  "steps_completed": 300,
+  "steps_requested": 300,
+  "training_objective": "Population-mean next-token NLL with the read enabled",
+  "window_sampler": "SplitMix64 counter seeded with seed ^ 0x5EED0FD8 ^ 0xF1AE7C0E (fine-tune stream); uniform window starts"
+}

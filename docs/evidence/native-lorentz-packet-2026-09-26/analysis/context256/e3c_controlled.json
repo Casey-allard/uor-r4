@@ -1,0 +1,56 @@
+{
+ "s1": {
+  "intercept_same_scope": {
+   "mean": -0.0232,
+   "lo": -0.0366,
+   "hi": -0.0104
+  },
+  "per_doubling": {
+   "mean": -0.012,
+   "lo": -0.0156,
+   "hi": -0.0083
+  },
+  "enclosing_minus_same": {
+   "mean": 0.0233,
+   "lo": 0.0025,
+   "hi": 0.0425
+  },
+  "closed_child_minus_same": {
+   "mean": 0.0244,
+   "lo": 0.0027,
+   "hi": 0.0435
+  },
+  "other_minus_same": {
+   "mean": -0.0252,
+   "lo": -0.0514,
+   "hi": -0.0019
+  }
+ },
+ "s2": {
+  "intercept_same_scope": {
+   "mean": 0.0526,
+   "lo": 0.0378,
+   "hi": 0.067
+  },
+  "per_doubling": {
+   "mean": -0.0218,
+   "lo": -0.0256,
+   "hi": -0.0181
+  },
+  "enclosing_minus_same": {
+   "mean": -0.0183,
+   "lo": -0.0468,
+   "hi": 0.0099
+  },
+  "closed_child_minus_same": {
+   "mean": 0.0151,
+   "lo": -0.0082,
+   "hi": 0.0396
+  },
+  "other_minus_same": {
+   "mean": -0.0161,
+   "lo": -0.0401,
+   "hi": 0.0089
+  }
+ }
+}

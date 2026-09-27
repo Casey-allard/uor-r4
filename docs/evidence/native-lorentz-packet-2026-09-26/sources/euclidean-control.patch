@@ -1,0 +1,264 @@
+diff -ruN uor-r4-training/Cargo.toml b/crates/uor-r4-training/Cargo.toml
+--- a/crates/uor-r4-training/Cargo.toml	2026-09-26 04:36:25.000000000 +0000
++++ b/crates/uor-r4-training/Cargo.toml	2026-09-26 03:43:57.216950470 +0000
+@@ -12,7 +12,7 @@
+ reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+ 
+ [dependencies]
+-uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
++uor-r4-integer = { version = "0.1.0", path = "/home/user/uor-r4/crates/uor-r4-integer" }
+ candle-core = { version = "=0.9.2", default-features = false }
+ candle-nn = { version = "=0.9.2", default-features = false }
+ safetensors = { version = "=0.6.2", default-features = false, features = ["std"] }
+@@ -20,5 +20,5 @@
+ serde_json = "1.0"
+ sha2 = "0.10.8"
+ hex = "0.4.3"
+-uor-r4-model-source = { path = "../uor-r4-model-source" }
+-uor-r4-core = { path = "../uor-r4-core" }
++uor-r4-model-source = { path = "/home/user/uor-r4/crates/uor-r4-model-source" }
++uor-r4-core = { path = "/home/user/uor-r4/crates/uor-r4-core" }
+diff -ruN uor-r4-training/README.md b/crates/uor-r4-training/README.md
+--- a/crates/uor-r4-training/README.md	2026-09-26 04:36:25.000000000 +0000
++++ b/crates/uor-r4-training/README.md	2026-09-26 03:43:57.208582239 +0000
+@@ -183,8 +183,6 @@
+ 
+ The descriptive `joint-state-drift` example accepts `QAT_CHECKPOINT PACKED_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT`. It claims and seals an independent root, verifies bitwise packed-parameter agreement with the quantized selected shadows, and records finite coordinate/norm differences by all 256 positions on the original 64 tune windows. It uses the shared model implementation with quantizers enabled/disabled; it does not isolate transport error or add an acceptance threshold. The result receipt binds the executed source and binary.
+ 
+-The exploratory `joint-read-geometry` example trains the joint learner from scratch on u16 token files for one read geometry (`dot` or `lorentz`, in the campaign JSON `read_geometry`) and reports development likelihood with the read enabled and disabled, the mean NoRead mass, and bits per byte when a token byte-length file is given. Two runs that differ only in `geometry=` share their seed, initial arrays, sampled windows and evaluation windows. It claims and seals its report root. It is not a frozen campaign: it has no evaluator manifest, source-edit panel, generation panel, checkpoint selection or resume. The optional Lorentz read scores `exp(read.lorentz_log_beta)*(read.lorentz_offset - arcosh(z))`; both scalars are initialized so that the initial score matches the Dot read to first order. Quantization, packed export and integer serving refuse Lorentz models.
+-
+ Evaluation accepts batches1–32. `joint-compare` joins all249,856 targets against the two sealed baseline evaluations and four learner/control evaluations. It verifies identities and original means, reports paired differences and horizon slices, and preserves the original generation/probe hashes. Rung1 selected by recorded F32 `quick_loss` tune scores; rung2 reports the frozen final common step. The comparison never reselects or decides generation quality. Hard and shadow modes are explicit, with matching Read/NoRead artifact/specification and cross-arm schedule/layout checks.
+ 
+ On Apple hosts, optional `cpu-accelerate` enables the pinned, corrected Candle BLAS adapter for offline training. Its four-line source difference and all upstream identities are retained in [the vendor note](../../third_party/candle-core-0.9.2/UOR-PATCH.md). CPU/Rust-gemm and Metal remain explicit alternatives. Backend-specific numerical behavior is reported; cross-backend bitwise training identity is not claimed.
+diff -ruN uor-r4-training/examples/joint-read-geometry.rs b/crates/uor-r4-training/examples/joint-read-geometry.rs
+--- a/crates/uor-r4-training/examples/joint-read-geometry.rs	2026-09-26 04:36:25.000000000 +0000
++++ b/crates/uor-r4-training/examples/joint-read-geometry.rs	2026-09-26 05:14:07.762370504 +0000
+@@ -8,13 +8,18 @@
+ //! This is an exploratory comparison tool, not a frozen campaign: no evaluator
+ //! manifest, source edits, generation panel, checkpoint selection or resume.
+ //!
++//! `read_dropout=P` trains round(P*batch) windows of every batch with the read
++//! disabled from their first position, and the rest with it enabled, in one
++//! loss weighted by window count. It tests whether making the recurrent state
++//! predict without its read prevents read dependence. It requires one shard.
++//!
+ //! ```text
+ //! cargo run --release -p uor-r4-training --example joint-read-geometry -- \
+ //!   train=TRAIN.u16 valid=VALID.u16 out=NEW_REPORT_ROOT geometry=dot|lorentz \
+ //!   [lens=TOKEN_BYTES.u16] [seed=1] [width=256] [context=256] [batch=16] \
+ //!   [steps=1000] [lr=0.001] [shards=1] [transport=quaternion] \
+ //!   [eval_every=250] [eval_windows=64] [final_windows=256] [max_seconds=inf] \
+-//!   [save_model=false]
++//!   [save_model=false] [read_dropout=0]
+ //! ```
+ //!
+ //! `lens` holds the byte length of each token id (u16, vocabulary order); with
+@@ -26,6 +31,7 @@
+ use std::path::{Path, PathBuf};
+ use std::time::Instant;
+ 
++use candle_core::backprop::GradStore;
+ use candle_core::{Device, Tensor};
+ use serde_json::{json, Value};
+ use uor_r4_core::report_output;
+@@ -83,6 +89,8 @@
+     final_windows: usize,
+     max_seconds: f64,
+     save_model: bool,
++    read_dropout: f64,
++    dropped_windows: usize,
+ }
+ 
+ fn settings(args: &Args) -> Result<Settings> {
+@@ -105,6 +113,7 @@
+         "final_windows",
+         "max_seconds",
+         "save_model",
++        "read_dropout",
+     ];
+     if let Some(key) = args.0.keys().find(|key| !known.contains(&key.as_str())) {
+         return Err(invalid(format!("unknown argument {key}=")));
+@@ -132,19 +141,33 @@
+         seed: args.number("seed", 1)?,
+         read_geometry,
+     };
++    let batch: usize = args.number("batch", 16)?;
++    let read_dropout: f64 = args.number("read_dropout", 0.0)?;
++    let dropped_windows = (read_dropout * batch as f64).round() as usize;
++    let shards: usize = args.number("shards", 1)?;
++    if !(0.0..1.0).contains(&read_dropout)
++        || dropped_windows >= batch.max(1)
++        || (dropped_windows > 0 && shards != 1)
++    {
++        return Err(invalid(
++            "read_dropout must lie in [0,1), leave a read-enabled window and use one shard",
++        ));
++    }
+     let settings = Settings {
+         train: PathBuf::from(args.required("train")?),
+         valid: PathBuf::from(args.required("valid")?),
+         lens: args.text("lens").map(PathBuf::from),
+-        batch: args.number("batch", 16)?,
++        batch,
+         steps: args.number("steps", 1000)?,
+         learning_rate: args.number("lr", 1e-3)?,
+-        shards: args.number("shards", 1)?,
++        shards,
+         eval_every: args.number("eval_every", 250)?,
+         eval_windows: args.number("eval_windows", 64)?,
+         final_windows: args.number("final_windows", 256)?,
+         max_seconds: args.number("max_seconds", f64::INFINITY)?,
+         save_model: args.number("save_model", false)?,
++        read_dropout,
++        dropped_windows,
+         config,
+     };
+     if settings.batch == 0
+@@ -266,6 +289,34 @@
+     Ok(result)
+ }
+ 
++/// One combined loss: read-enabled windows first, then `dropped` NoRead
++/// windows, each part weighted by its share of the batch.
++fn read_dropout_gradients(
++    model: &JointModel,
++    inputs: &[u32],
++    targets: &[u32],
++    batch: usize,
++    dropped: usize,
++) -> Result<(f32, GradStore)> {
++    let time = model.config.context;
++    let enabled = batch - dropped;
++    let split = enabled * time;
++    let read = model
++        .forward(&inputs[..split], enabled, time, ReadMode::Enabled, true)?
++        .loss(&targets[..split])?;
++    let no_read = model
++        .forward(&inputs[split..], dropped, time, ReadMode::NoRead, true)?
++        .loss(&targets[split..])?;
++    let loss = read
++        .affine(enabled as f64 / batch as f64, 0.0)?
++        .add(&no_read.affine(dropped as f64 / batch as f64, 0.0)?)?;
++    let mean = loss.to_scalar::<f32>()?;
++    if !mean.is_finite() {
++        return Err(invalid("nonfinite read-dropout training loss"));
++    }
++    Ok((mean, loss.backward()?))
++}
++
+ fn scalars(model: &JointModel) -> Result<Value> {
+     let mut values = serde_json::Map::new();
+     for (name, variable) in model.variables() {
+@@ -326,17 +377,28 @@
+             inputs.extend_from_slice(&train[start..start + time]);
+             targets.extend_from_slice(&train[start + 1..start + time + 1]);
+         }
+-        let gradients = batch_gradients(
+-            &model,
+-            &inputs,
+-            &targets,
+-            settings.batch,
+-            time,
+-            settings.shards,
+-        )?;
+-        let update = optimizer.step(model.variables(), &gradients.gradients)?;
++        let (mean_nll, gradients) = if settings.dropped_windows == 0 {
++            let gradients = batch_gradients(
++                &model,
++                &inputs,
++                &targets,
++                settings.batch,
++                time,
++                settings.shards,
++            )?;
++            (gradients.mean_nll, gradients.gradients)
++        } else {
++            read_dropout_gradients(
++                &model,
++                &inputs,
++                &targets,
++                settings.batch,
++                settings.dropped_windows,
++            )?
++        };
++        let update = optimizer.step(model.variables(), &gradients)?;
+         train_seconds += step_started.elapsed().as_secs_f64();
+-        losses.push(f64::from(gradients.mean_nll));
++        losses.push(f64::from(mean_nll));
+         completed = step + 1;
+         if completed % settings.eval_every == 0 && completed != settings.steps {
+             let development = evaluate(&model, &valid, lens_slice, settings.eval_windows)?;
+@@ -373,6 +435,13 @@
+         "optimizer": optimizer.config(),
+         "batch": settings.batch,
+         "shards": settings.shards,
++        "read_dropout": settings.read_dropout,
++        "read_dropout_windows_per_step": settings.dropped_windows,
++        "training_objective": if settings.dropped_windows == 0 {
++            "Population-mean next-token NLL with the read enabled"
++        } else {
++            "Window-count-weighted mean of read-enabled and NoRead next-token NLL"
++        },
+         "steps_requested": settings.steps,
+         "steps_completed": completed,
+         "sampled_target_visits": completed * settings.batch * time,
+diff -ruN uor-r4-training/src/joint_model.rs b/crates/uor-r4-training/src/joint_model.rs
+--- a/crates/uor-r4-training/src/joint_model.rs	2026-09-26 04:36:25.000000000 +0000
++++ b/crates/uor-r4-training/src/joint_model.rs	2026-09-26 04:24:02.245190451 +0000
+@@ -276,9 +276,19 @@
+             } else if name == "copy.gate.bias" {
+                 values.fill(-1.0);
+             } else if name == LORENTZ_OFFSET {
+-                values.fill(lorentz_initial_offset(&config) as f32);
++                // SCRATCH ABLATION: UOR_ABLATE_OFFSET overrides the initial offset.
++                let initial = match std::env::var("UOR_ABLATE_OFFSET") {
++                    Ok(text) => text.parse::<f64>().map_err(|_| invalid("UOR_ABLATE_OFFSET"))?,
++                    Err(_) => lorentz_initial_offset(&config),
++                };
++                values.fill(initial as f32);
+             } else if name == LORENTZ_LOG_BETA {
+-                values.fill(lorentz_initial_log_beta(&config) as f32);
++                // SCRATCH ABLATION: UOR_ABLATE_LOG_BETA overrides the initial log scale.
++                let initial = match std::env::var("UOR_ABLATE_LOG_BETA") {
++                    Ok(text) => text.parse::<f64>().map_err(|_| invalid("UOR_ABLATE_LOG_BETA"))?,
++                    Err(_) => lorentz_initial_log_beta(&config),
++                };
++                values.fill(initial as f32);
+             }
+             variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
+         }
+@@ -1155,6 +1165,34 @@
+             ReadGeometry::Lorentz => {
+                 let beta = self.weight(LORENTZ_LOG_BETA, training)?.exp()?;
+                 let offset = self.weight(LORENTZ_OFFSET, training)?;
++                // SCRATCH ABLATION ONLY: a Dot read with a learned scale and shift.
++                if std::env::var("UOR_ABLATE_READ").as_deref() == Ok("dotflat") {
++                    let dot = query
++                        .unsqueeze(1)?
++                        .matmul(&keys.transpose(1, 2)?.contiguous()?)?
++                        .squeeze(1)?
++                        .affine(1.0 / (self.config.read_width as f64).sqrt(), 0.0)?;
++                    let shift = offset.affine(1.0, -lorentz_initial_offset(&self.config))?;
++                    return Ok(dot.broadcast_mul(&beta)?.broadcast_add(&shift)?);
++                }
++                // SCRATCH ABLATION ONLY: flat (Euclidean) metric read beta*(offset - |q-k|).
++                if std::env::var("UOR_ABLATE_READ").as_deref() == Ok("euclid") {
++                    let inner = query
++                        .unsqueeze(1)?
++                        .matmul(&keys.transpose(1, 2)?.contiguous()?)?
++                        .squeeze(1)?;
++                    let q2 = query.sqr()?.sum_keepdim(1)?;
++                    let k2 = keys.sqr()?.sum_keepdim(2)?.squeeze(2)?;
++                    let squared = k2
++                        .broadcast_add(&q2)?
++                        .sub(&inner.affine(2.0, 0.0)?)?
++                        .clamp(1e-6f32, f32::MAX)?;
++                    return Ok(squared
++                        .sqrt()?
++                        .broadcast_sub(&offset)?
++                        .broadcast_mul(&beta)?
++                        .neg()?);
++                }
+                 Ok(lorentz_distance(query, keys)?
+                     .broadcast_sub(&offset)?
+                     .broadcast_mul(&beta)?

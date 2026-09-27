@@ -1,0 +1,168 @@
+{
+  "batch": 4,
+  "config": {
+    "context": 32,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "curve": [
+    {
+      "development": {
+        "bits_per_byte_no_read": 3.7859629587387755,
+        "bits_per_byte_read": 3.8807091849017024,
+        "nll_no_read": 8.36473169239142,
+        "nll_read": 8.574064633404538,
+        "no_read_mass": 0.03126632437850452,
+        "read_effect_nats": -0.20933294101311795,
+        "targets": 64
+      },
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          2.37870717048645
+        ],
+        "read.lorentz_offset": [
+          5.151329517364502
+        ]
+      },
+      "step": 0
+    },
+    {
+      "development": {
+        "bits_per_byte_no_read": 3.7765596678643787,
+        "bits_per_byte_read": 3.6700305215694042,
+        "nll_no_read": 8.343955999114154,
+        "nll_read": 8.108589796145855,
+        "no_read_mass": 0.03131663122161221,
+        "read_effect_nats": 0.23536620296829902,
+        "targets": 64
+      },
+      "global_grad_norm": 23.49029541015625,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          2.376664876937866
+        ],
+        "read.lorentz_offset": [
+          5.149267196655273
+        ]
+      },
+      "step": 2,
+      "train_nll_since_previous": 8.389703273773193
+    },
+    {
+      "development": {
+        "bits_per_byte_no_read": 3.76489621192512,
+        "bits_per_byte_read": 3.21377126539555,
+        "nll_no_read": 8.31818668213953,
+        "nll_read": 7.10052756689051,
+        "no_read_mass": 0.03353292346417902,
+        "read_effect_nats": 1.2176591152490195,
+        "targets": 64
+      },
+      "global_grad_norm": 11.537163734436035,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          2.374690294265747
+        ],
+        "read.lorentz_offset": [
+          5.147549629211426
+        ]
+      },
+      "step": 4,
+      "train_nll_since_previous": 7.771117925643921
+    }
+  ],
+  "evaluation": "Fresh state per window; evenly spaced starts; Read and NoRead on the same targets",
+  "final": {
+    "bits_per_byte_no_read": 3.7676200664110384,
+    "bits_per_byte_read": 3.269837076397445,
+    "nll_no_read": 8.262997396201746,
+    "nll_read": 7.171279155547514,
+    "no_read_mass": 0.04798160493794512,
+    "read_effect_nats": 1.0917182406542318,
+    "targets": 128
+  },
+  "final_windows": 4,
+  "inputs": {
+    "lens": {
+      "bytes": 8192,
+      "path": "data/code/lens.u16",
+      "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "train": {
+      "bytes": 14001984,
+      "path": "data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+    },
+    "train_tokens": 7000992,
+    "valid": {
+      "bytes": 413688,
+      "path": "data/code/valid.u16",
+      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    },
+    "valid_tokens": 206844
+  },
+  "lorentz": {
+    "read.lorentz_log_beta": [
+      2.3728387355804443
+    ],
+    "read.lorentz_offset": [
+      5.146137237548828
+    ]
+  },
+  "numerical_contract": {
+    "age_initialization": "-(occurrence age)/64; age starts1 for the immediately previous write",
+    "arithmetic": "F32 offline continuous dense affine and softmax computation; approximate floating transport, not exact Z[phi] or target serving",
+    "copy_initial_bias": -1.0,
+    "householder_delta_scale": 0.07071067811865475,
+    "output": "(1-g*(1-a0))*P_vocabulary + g*sum_previous(a_i*onehot(observed_token_i)), then declared uniform mixture",
+    "quaternion_delta_scale": 0.1,
+    "quaternion_sign": "q and -q remain distinct; no hemisphere canonicalization",
+    "read": "Query/Key from RMS-normalized provisional/written states, each lifted to the hyperboloid x0=sqrt(1+|x|^2); Value=tanh(affine(normalized written state)); score=exp(read.lorentz_log_beta)*(read.lorentz_offset-arcosh(max(q0*k0-<q,k>,1+1e-6)))+learned age, competing with learned NoRead",
+    "read_geometry": {
+      "admission": "Bounded candidate admission is unchanged; this score ranks admitted candidates only",
+      "distance": "arcosh(z)=ln(z+sqrt((z-1)(z+1))) after the F32 clamp",
+      "geometry": "lorentz",
+      "minimum_inner_product": 1.000001,
+      "offset": "read.lorentz_offset; learned scalar radius initialized arcosh(1+2*r*d/(r+d)), the distance between independent initial query/key rows",
+      "scale": "exp(read.lorentz_log_beta); learned scalar initialized ln(sinh(offset0)/sqrt(r)), matching the Dot read scale to first order",
+      "scope": "F32 offline training and evaluation only; no quantized interface, packed export or integer arcosh kernel"
+    },
+    "retention_initialization": "Each R4 lane has one constant initial update-gate bias with log-spaced tau4..64; learned coordinate gates may subsequently differ",
+    "rho_initial_bias": -0.5,
+    "rms_epsilon": 0.00001,
+    "session": "Same core with detached parameters/state, exact token/occurrence tape, bounded context without eviction",
+    "training_credit": "Full differentiable unroll; no state or memory detach; labels only enter next-token NLL",
+    "transport": "PerR4 lane q=normalize(e0+alpha*raw), left Hamilton multiplication; ordinary control H(v)H(e0), v=normalize(e0+alpha/sqrt2*raw)",
+    "transport_min_norm": 1e-6,
+    "transport_zero_rule": "Clamp squared denominator before sqrt; at norm<=minimum select identity e0 with finite excluded-branch arithmetic",
+    "uniform_mixture_epsilon": 1e-8,
+    "write_order": "Read previous occurrences, update state, write current observed token Key/Value for next step"
+  },
+  "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+  },
+  "parameters": 693796,
+  "read_dropout": 0.0,
+  "read_dropout_windows_per_step": 0,
+  "resumed_from": null,
+  "sampled_target_visits": 768,
+  "schema": "uor-r4.joint-read-geometry-comparison/1",
+  "scope": "Exploratory from-scratch fit; equal budget per geometry; not a frozen campaign or capability qualification",
+  "seconds": {
+    "final_evaluation": 1.775688115,
+    "training_updates": 25.249476571,
+    "wall": 30.638205785
+  },
+  "shards": 1,
+  "steps_completed": 6,
+  "steps_requested": 6,
+  "training_objective": "Population-mean next-token NLL with the read enabled",
+  "window_sampler": "SplitMix64 counter seeded with seed ^ 0x5EED0FD8; uniform window starts"
+}

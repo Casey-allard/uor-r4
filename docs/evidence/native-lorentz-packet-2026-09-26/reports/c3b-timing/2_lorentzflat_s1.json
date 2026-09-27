@@ -1,0 +1,98 @@
+{
+  "config": {
+    "context": 256,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "evaluation": "Fresh state per window; evenly spaced starts; Read and NoRead on the same targets; float and emulator by full-window forward, integer by incremental steps",
+  "inputs": {
+    "arcosh_metadata": {
+      "bytes": 808,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/tables/arcosh.json",
+      "sha256": "eb4e49dc451341708d969028267a4b65132609f2dea65e6375804c882b34af9a"
+    },
+    "checkpoint_config": {
+      "bytes": 2852,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s1_r1/model/config.json",
+      "sha256": "f7a173a88c444281ebad29bfaef0a64547ff377cdf5f02ba90b224520ce4cf92"
+    },
+    "checkpoint_weights": {
+      "bytes": 2777976,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s1_r1/model/model.safetensors",
+      "sha256": "4267dcb985ee5e6dd22d30ead5e844b614c305ee3eb93b0cd96ed65d609aa115"
+    },
+    "lens": null,
+    "packed_manifest": {
+      "bytes": 192276,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/timing_2_lorentzflat_s1/packed/hard-model.json",
+      "sha256": "0a1e1962fc4afd65cdee0e7956102746db93feffca8442ca6a4af64b6eac1a51"
+    },
+    "tables_metadata": {
+      "bytes": 647,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/lab/exp/c3b/tables/tables.json",
+      "sha256": "2d16e17cd34c5a07681a7950a22c4b9a67df5208b28304ab8b7fbe94461c150d"
+    },
+    "tokens": {
+      "bytes": 413688,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+  },
+  "no_read": {
+    "emulator_bits_per_byte": null,
+    "emulator_minus_float_nll": 0.06305523084206532,
+    "emulator_nll": 3.8738402740933884,
+    "float_bits_per_byte": null,
+    "float_nll": 3.810785043251323,
+    "integer_bits_per_byte": null,
+    "integer_minus_emulator_nll": -0.00024689032883840056,
+    "integer_nll": 3.87359338376455,
+    "integer_seconds_per_step": 0.0026150798164062527,
+    "maximum_probability_delta_integer_emulator": 0.007843628034461148,
+    "maximum_state_delta_integer_emulator": 0.005859375,
+    "mean_no_read_mass_emulator": 1.0,
+    "mean_no_read_mass_integer": 1.0,
+    "mean_total_variation_integer_emulator": 0.002097255353632289,
+    "top1_agreement_integer_emulator": 0.9990234375,
+    "top1_agreement_integer_float": 0.7265625
+  },
+  "quantization": "Post-training: frozen dyadic scales calibrated once on the float checkpoint (configure_quantization(0, 1)); signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces; no quantization-aware training",
+  "read": {
+    "emulator_bits_per_byte": null,
+    "emulator_minus_float_nll": 0.07854130364037504,
+    "emulator_nll": 2.99076833214051,
+    "float_bits_per_byte": null,
+    "float_nll": 2.912227028500135,
+    "integer_bits_per_byte": null,
+    "integer_minus_emulator_nll": -0.0002445191457547402,
+    "integer_nll": 2.990523812994755,
+    "integer_seconds_per_step": 0.004635827733398445,
+    "maximum_probability_delta_integer_emulator": 0.00828365456626301,
+    "maximum_state_delta_integer_emulator": 0.0068359375,
+    "mean_no_read_mass_emulator": 0.49792391203891384,
+    "mean_no_read_mass_integer": 0.4978746935996894,
+    "mean_total_variation_integer_emulator": 0.0017107323099380784,
+    "top1_agreement_integer_emulator": 0.99609375,
+    "top1_agreement_integer_float": 0.826171875
+  },
+  "read_effect_nats": {
+    "emulator": 0.8830719419528785,
+    "float": 0.8985580147511882,
+    "integer": 0.8830695707697949
+  },
+  "schema": "uor-r4.joint-integer-parity/1",
+  "scope": "Post-training quantization of a float checkpoint and its integer execution, scored on evenly spaced windows of the given token file. Development measurement: no fine-tuning, checkpoint selection, final holdout or language qualification.",
+  "seconds": {
+    "preparation": 0.099357873,
+    "total": 9.235800947
+  },
+  "stride": 51646,
+  "targets": 1024,
+  "timing_scope": "Integer step time is this machine's CPU in this build; it is not an optimized serving, throughput or energy measurement",
+  "window_tokens": 256,
+  "windows": 4
+}

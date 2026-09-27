@@ -1,0 +1,13 @@
+{
+  "argument_code_bits": 64,
+  "argument_fraction_bits": 32,
+  "compiler": "offline Rust F64 sqrt/ln_1p; artifact hash binds actual table; no cross-platform bitwise claim",
+  "domain": "Lorentz read excess z-1 at Q32; the runtime interpolates linearly between grid points and rounds to nearest",
+  "entries": 56321,
+  "layout": "Little-endian u32 round(2^24 arcosh(1+u)) at u=code 2^-32: codes 0..1023 directly, then 1024 points per octave from 2^10 to 2^64, then the end point 2^64",
+  "output_fraction_bits": 24,
+  "payload_sha256": "bff136bbe633bbc5d8cdc38453b768a65a01168c92c13fb99b4f7fd72733c2d3",
+  "points_per_octave_bits": 10,
+  "runtime": "integer indexing, one crate::math product and a shift per lookup; table construction is not served computation",
+  "schema": "uor-r4.joint-integer-arcosh/1"
+}

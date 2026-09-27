@@ -1,0 +1,11 @@
+{
+  "compiler": "offline Rust F64 exp/tanh; artifact hash binds actual table; no cross-platform bitwise claim",
+  "entries": 65535,
+  "exp_domain": "negative affine differences 0..65534 at exponent -8; output Q48 nearest",
+  "layout": "Each little-endian row: sigmoid i32, tanh i32, exp u64",
+  "payload_sha256": "993e63edc97a4c988b586bc52b5e9fcf133e675caceb7ed04727e7248bb30ff2",
+  "probability_bits": 48,
+  "runtime": "integer indexing only; table construction is not served computation",
+  "schema": "uor-r4.joint-integer-tables/1",
+  "sigmoid_tanh_domain": "signed affine codes -32767..32767 at exponent -8; output Q15/Q14 nearest ties away"
+}

@@ -1,0 +1,174 @@
+{
+  "batch": 16,
+  "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+  },
+  "context": 128,
+  "curve": [
+    {
+      "eval": {
+        "bpb_no_read": 3.5057939583677395,
+        "bpb_read": 2.9968891444264445,
+        "nll_no_read": 8.34492647197091,
+        "nll_read": 7.133567988271143,
+        "no_read_mass": 0.08320733850931106,
+        "read_effect_nats": 1.2113584836997662,
+        "targets": 4096
+      },
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          -2.124000072479248
+        ],
+        "read.lorentz_offset": [
+          5.151329517364502
+        ]
+      },
+      "step": 0
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.9053641857107055,
+        "bpb_read": 2.6710703951333916,
+        "nll_no_read": 6.915708907017945,
+        "nll_read": 6.358013709175417,
+        "no_read_mass": 0.20088995520018216,
+        "read_effect_nats": 0.557695197842528,
+        "targets": 4096
+      },
+      "grad_norm": 0.49769145250320435,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          -2.125397205352783
+        ],
+        "read.lorentz_offset": [
+          5.142219066619873
+        ]
+      },
+      "step": 100,
+      "train_nll": 6.3547127199172975
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.8653545719699016,
+        "bpb_read": 2.6366906725272354,
+        "nll_no_read": 6.820473052086409,
+        "nll_read": 6.276178820792898,
+        "no_read_mass": 0.2629508165464358,
+        "read_effect_nats": 0.5442942312935104,
+        "targets": 4096
+      },
+      "grad_norm": 0.6715219616889954,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          -2.119208335876465
+        ],
+        "read.lorentz_offset": [
+          5.13593864440918
+        ]
+      },
+      "step": 200,
+      "train_nll": 6.2455119609832765
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.659663834784666,
+        "bpb_read": 2.334412709636585,
+        "nll_no_read": 6.330862396651468,
+        "nll_read": 5.556659247088667,
+        "no_read_mass": 0.2666046666451054,
+        "read_effect_nats": 0.7742031495628012,
+        "targets": 4096
+      },
+      "grad_norm": 0.7122889757156372,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          -2.001481771469116
+        ],
+        "read.lorentz_offset": [
+          5.122391700744629
+        ]
+      },
+      "step": 300,
+      "train_nll": 5.849589457511902
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.447322017361409,
+        "bpb_read": 2.12934714050224,
+        "nll_no_read": 5.825420013452551,
+        "nll_read": 5.068536694342949,
+        "no_read_mass": 0.26779709939890806,
+        "read_effect_nats": 0.756883319109602,
+        "targets": 4096
+      },
+      "grad_norm": 0.9767190217971802,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          -1.8989499807357788
+        ],
+        "read.lorentz_offset": [
+          5.104972839355469
+        ]
+      },
+      "step": 400,
+      "train_nll": 5.17524558544159
+    },
+    {
+      "eval": {
+        "bpb_no_read": 2.263362216775921,
+        "bpb_read": 1.9633133066771142,
+        "nll_no_read": 5.387536033984726,
+        "nll_read": 4.673322328757355,
+        "no_read_mass": 0.3420057620373367,
+        "read_effect_nats": 0.7142137052273707,
+        "targets": 4096
+      },
+      "grad_norm": 0.8102145195007324,
+      "lorentz": {
+        "read.lorentz_log_beta": [
+          -1.8279200792312622
+        ],
+        "read.lorentz_offset": [
+          5.085564136505127
+        ]
+      },
+      "step": 500,
+      "train_nll": 4.702142567634582
+    }
+  ],
+  "final": {
+    "bpb_no_read": 2.0073387654411756,
+    "bpb_read": 1.742207345049001,
+    "nll_no_read": 4.9571352379628735,
+    "nll_read": 4.302391589633868,
+    "no_read_mass": 0.3396115758610372,
+    "read_effect_nats": 0.6547436483290054,
+    "targets": 32768
+  },
+  "final_windows": 256,
+  "geometry": "lorentz",
+  "lorentz": {
+    "read.lorentz_log_beta": [
+      -1.7590842247009277
+    ],
+    "read.lorentz_offset": [
+      5.063933372497559
+    ]
+  },
+  "lr": 0.001,
+  "parameters": 693892,
+  "seed": 2,
+  "shards": 1,
+  "steps_completed": 600,
+  "steps_requested": 600,
+  "train_seconds": 2001.2623149810006,
+  "train_tokens": 7000992,
+  "valid_tokens": 206844,
+  "wall_seconds": 2054.215948436
+}
