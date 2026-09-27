@@ -97,17 +97,34 @@ exposure lacked its original pre-response prefix. A full-prefix length filter
 also excludes most responses and changes source composition sharply. Choose
 and report that data population explicitly with the dialogue branch owner;
 retain a comparable historical-sampler control. This data-only finding neither
-diagnoses generation failure nor starts another fit. It complements the pending
-reader, termination and stack outcomes in selecting the next learning change.
+diagnoses generation failure nor starts another fit. It complements the reader
+comparison and independently owned stack results in selecting the next learning
+change.
+
+The [completed termination-objective review](termination-objective-review-2026-09-27.md)
+parks the implemented weighting condition as INERT. Its three improvements on
+the original 20 failed source rows fall below the declared four, and actual
+sampled prose supplies no additional acceptable story. Preserve the modest
+source-completion gains, controls and remaining source errors; do not extend the
+dose automatically or rerun merely because a known normalization defect exists.
+Complete the frozen reader comparison next. Its measured likelihood, complete
+outputs and cost will decide the declared integration path or a change of
+learning mechanism. Explicit dialogue-prefix sampling and deeper geometric
+state/read structure remain subsequent candidates, with their distinct
+population and serving contracts stated before another fit.
 
 
 **Parallel architecture exploration:** Claude's [Cycle 4 stack experiment](https://github.com/UOR-Foundation/uor-r4/pull/1414)
 investigates deeper quaternion recurrence and multi-head Lorentz reads against
-its own transformer control at similar parameter counts. Through reviewed head
-`5e2e3407`, input-content resume and scan/stability claims are corrected; the
-pilot remains author-reported pending its complete evidence packet. Its current implementation batches
-windows while scanning recurrence time sequentially; it has no integrated
-integer/session path. The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
+its own transformer control at similar parameter counts. The reviewed
+[six-pilot packet](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5853505407)
+supplies a development likelihood gain for the separately selected geometric
+package, with no useful generated coding/prose result. All 31 listed file
+identities were verified; raw model preservation is being coordinated on the
+owner SSD, with transfer/verification still pending. The input-content resume
+and scan/stability source corrections do not retroactively change older runs.
+Its implementation batches windows while scanning recurrence time sequentially;
+it has no integrated integer/session path. The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
 records the concrete lineage and claim corrections, with the
 [delta review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852801270)
 confirming their resolution in new source. Keep this Claude-owned

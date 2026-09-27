@@ -140,8 +140,9 @@ process/evaluation projection is recorded. Source `488e3976` supplies the scoped
 seven-root comparison and opt-in greedy prose supplement; three focused release
 checks and three CLI rejection cases pass. The existing `joint-compare` contract
 is unchanged. The source-bound optimized CPU-Accelerate executable has now
-started the Dot reset fit; its first update completed at 04:28 UTC. Lorentz and
-Affine remain queued sequentially with the same executable and fixed conditions.
+completed both the Dot reset and Lorentz fits: each reached 1,024 updates /
+4,194,304 new visits, exit0 and a sealed final root. Affine started at 07:06 UTC
+with the same executable and fixed conditions.
 Full evaluation, successful greedy supplementation, comparative output review
 and the adaptation result remain pending. The
 [implementation, launch and resource receipt](../evidence/reader-study-tools-validation-2026-09-27.json)
@@ -167,24 +168,48 @@ changed source separately.
 
 
 Claude's [draft stack experiment, PR #1414](https://github.com/UOR-Foundation/uor-r4/pull/1414)
-supplies a deeper offline architecture with similar parameter count to its own
-transformer control. Delta review through `5e2e3407` confirms source fixes for
-input-content-bound resume and precise sequential-scan/drive-bound claims.
-[Review and author response](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852801270).
-The reported pilot NLL 2.679 versus 2.768 remains an author-reported development
-observation awaiting its source/artifact/data/cost/output packet. Already-running
-older binaries do not inherit the resume fix. This complementary Claude-owned
-track neither supplies the matched Dot control nor changes its dose; completed
-artifact-bound results may redirect the next architecture investment.
+now has a reviewed six-pilot packet at `dc721f0a`: all 31 listed file identities
+match. Each pilot used 1,000 updates / 4,096,000 visits at one seed, with final
+evaluation on 131,072 exposed development targets. The selected geometric
+lr0.004 NLL is 2.609729 versus the selected transformer lr0.002 control's 2.768041.
+This compares tuned architecture packages at similar parameter counts, not
+curvature alone. Independent review of all 36 sampled/greedy continuations finds
+repetition, malformed code and no useful coding/prose result. The packet records
+12,066 seconds elapsed over three pilot rounds; the sum of process durations is
+22,989 seconds and is not CPU time or complete preparation/build cost.
+[Packet review and limitations](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5853505407).
+Current head `35d8da2f` corrects the high-rate control wording to underperformance.
+Source fixes for resume and scan/drive-bound claims remain separate from older
+executed binaries. Six raw model weights and two executables are still external;
+the fourth lab has designated an owner-SSD intake and requested an immutable
+transfer, with payload verification pending.
+[Preservation coordination](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5853595061).
+This complementary Claude-owned track has no integrated integer/session path
+and neither supplies the matched Dot control nor changes its dose or serving
+policy. Its package-level likelihood result keeps deeper architecture as a
+candidate; useful generated behavior remains required.
 
 The separately owned termination-objective study has a
 [source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)
 at `c54d7801`: shard-normalized weighted losses are combined by equal batch mass,
 so unequal boundary counts differ from a global weighted mean; its training
 curve also records weighted loss as `batch_mean_nll`. Standard development
-metrics remain unweighted. Preserve the executed objective/results and correct
-future adoption deliberately. No model-quality conclusion or automatic retry
-follows. The frozen unweighted reader study is unaffected.
+metrics remain unweighted. The four fits and eight full evaluations are now
+complete. The [fourth-lab result review](termination-objective-review-2026-09-27.md)
+classifies this implemented dose as **INERT: no automatic extension**. Weighted
+full Read NLL is worse than plain by 0.009439 and 0.012453. All 20 sampled Read
+stories fail complete prose criteria; both plain and weighted groups select
+EOS in 2/10 outputs. The original 20 source failures yield only three weighted
+resolutions beyond plain, below the declared four; only two are closure fixes.
+All 128 new source outputs use the caller's first-period stop, not model EOS.
+The declared numerical, source-retention and terminal-cycle guardrails hold at
+this saved-packet scope. Preserve the modest source gains and remaining errors,
+without attributing this result to the known objective defect. Future adoption
+needs the correction, but no repair-fit follows automatically. The
+[derived output/identity packet](../evidence/termination-objective-review-2026-09-27.json)
+keeps the parent/control row join and recorded cost components. Owning-lab full
+resource reconciliation remains open; overlapping shared elapsed must not be
+charged again. The frozen unweighted reader study is unaffected.
 
 ## Decision and active work
 
