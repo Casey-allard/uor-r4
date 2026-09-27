@@ -15,14 +15,25 @@ retain their separate stricter contracts.
 complete-response episodes, token-counted gradient shards, fresh Adam learning,
 sealed offline checkpoint reload and actual exact-token replies. The
 [executed integration](../../docs/integration/dialogue-prefix-implementation-2026-09-27.md)
-contains the two-update campaigns and complete evidence; useful chat and the
-substantive paired study remain open.
+contains the two-update campaigns and complete evidence. The separately
+[frozen paired study](../../docs/integration/dialogue-prefix-study-2026-09-27.md)
+is running; useful chat remains open.
 
 ```sh
 UOR_BUILD_SOURCE_COMMIT="$(git rev-parse HEAD)" cargo build --release --offline \
   -p uor-r4-training --features cpu-accelerate --example dialogue-prefix-fit
 target/release/examples/dialogue-prefix-fit CAMPAIGN_JSON NEW_REPORT_ROOT
 ```
+
+For a campaign with `development_per_source`, run `dialogue-prefix-fit --prepare
+CAMPAIGN_JSON NEW_REPORT_ROOT` first. Preparation strictly imports the bound
+artifacts and seals the selected development response IDs without a model
+forward pass, update or generation. Bind its `development-panel.json` path and
+SHA256 in both fit campaigns. Each fit verifies and reconstructs that panel
+before learning. `dialogue_development` reports response-token and first-four
+losses with target counts per source; the pooled token mean describes the
+selected panel, not the original corpus mixture. Legacy campaigns without
+these optional fields retain their existing development sampling contract.
 
 The campaign binds the retained parameters, prepared manifest, tokenizer, open
 request file, expected response population, prefix policy, counter seeds,

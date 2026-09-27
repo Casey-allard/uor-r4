@@ -2,6 +2,7 @@
 //! Prefix policy changes conditioning, never selected response/EOS exposure.
 use crate::{
     dialogue_artifact::{DatasetBinding, LegacyDialogueArtifact},
+    dialogue_development,
     dialogue_episodes::{EpisodeContract, EpisodeIndex, PrefixPolicy, SourceSpan, SAMPLER_ID},
     invalid,
     joint_evaluation::{self, JointGenerationStop},
@@ -49,6 +50,12 @@ pub struct Campaign {
     pub development_seed: u64,
     pub development_episodes: usize,
     pub development_batch: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub development_per_source: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub development_panel_path: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub development_panel_sha256: Option<String>,
     pub development_every_steps: usize,
     pub checkpoint_every_steps: usize,
     /// Includes preparation and periodic evaluation before admitting an update.
@@ -93,6 +100,18 @@ impl Campaign {
             }
         }
         self.optimizer.validate()?;
+        if self
+            .development_per_source
+            .is_some_and(|n| n == 0 || n > 32)
+            || self.development_panel_path.is_some() != self.development_panel_sha256.is_some()
+            || (self.development_panel_path.is_some() && self.development_per_source.is_none())
+            || self
+                .development_panel_sha256
+                .as_ref()
+                .is_some_and(|h| h.len() != 64 || !h.bytes().all(|b| b.is_ascii_hexdigit()))
+        {
+            return Err(invalid("development panel selection/binding contract"));
+        }
         if !self.optimizer.allowed_missing_gradients.is_empty() {
             return Err(invalid("dialogue learning requires every named gradient"));
         }
@@ -269,6 +288,19 @@ fn evaluate(
     )
 }
 
+fn evaluate_selected(
+    model: &JointModel,
+    index: &EpisodeIndex<'_>,
+    ids: &[usize],
+    cfg: &Campaign,
+) -> Result<Value> {
+    if cfg.development_per_source.is_some() {
+        dialogue_development::evaluate(model, index, ids, cfg.development_batch)
+    } else {
+        evaluate(model, index, ids, cfg.development_batch)
+    }
+}
+
 fn parameter_fingerprint(model: &JointModel) -> Result<String> {
     let mut h = Sha256::new();
     for (name, variable) in model.variables() {
@@ -316,14 +348,32 @@ fn checkpoint(
 /// Claim once after argument validation, before loading any model. Failed
 /// attempts are sealed; a retry always requires a different output root.
 pub fn run(campaign_path: &Path, out: &Path, source: &str) -> Result<Value> {
+    run_mode(campaign_path, out, source, false)
+}
+
+/// Freeze exact development IDs before fitting. Validates/imports the parent,
+/// tokenizer and corpora, but executes no model forward/backward or generation.
+pub fn prepare(campaign_path: &Path, out: &Path, source: &str) -> Result<Value> {
+    run_mode(campaign_path, out, source, true)
+}
+
+fn run_mode(campaign_path: &Path, out: &Path, source: &str, prepare: bool) -> Result<Value> {
     let bytes = fs::read(campaign_path)?;
     let cfg: Campaign = serde_json::from_slice(&bytes)?;
     cfg.validate()?;
+    if prepare && (cfg.development_per_source.is_none() || cfg.development_panel_path.is_some()) {
+        return Err(invalid(
+            "prepare requires an unbound source-stratified panel",
+        ));
+    }
+    if !prepare && cfg.development_per_source.is_some() && cfg.development_panel_path.is_none() {
+        return Err(invalid("freeze and bind development panel before fitting"));
+    }
     if source.len() != 40 || !source.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err(invalid("build with full UOR_BUILD_SOURCE_COMMIT"));
     }
     report_output::claim(out)?;
-    let result = run_claimed(&cfg, &bytes, out, source);
+    let result = run_claimed(&cfg, &bytes, out, source, prepare);
     if let Err(error) = &result {
         save(
             &out.join("failed-attempt.json"),
@@ -336,7 +386,13 @@ pub fn run(campaign_path: &Path, out: &Path, source: &str) -> Result<Value> {
     result
 }
 
-fn run_claimed(cfg: &Campaign, cfg_bytes: &[u8], out: &Path, source: &str) -> Result<Value> {
+fn run_claimed(
+    cfg: &Campaign,
+    cfg_bytes: &[u8],
+    out: &Path,
+    source: &str,
+    prepare: bool,
+) -> Result<Value> {
     let clock = Instant::now();
     save(&out.join("campaign.json"), &serde_json::to_value(cfg)?)?;
     save(
@@ -448,17 +504,52 @@ fn run_claimed(cfg: &Campaign, cfg_bytes: &[u8], out: &Path, source: &str) -> Re
         "protocol_identity":parts.provenance.protocol_identity});
     let index_sha = digest(&inventory)?;
     save(&out.join("train-episodes.json"), &inventory)?;
-    let mut dev_ids = Vec::with_capacity(cfg.development_episodes);
-    for step in 0..cfg.development_episodes.div_ceil(64) {
-        let n = (cfg.development_episodes - dev_ids.len()).min(64);
-        dev_ids.extend(dev_index.sample_ids(cfg.development_seed, step as u64, n)?);
-    }
+    let dev_index_sha = digest(
+        &json!({"contract":dev_index.contract(),"episodes":dev_index.episodes(),
+        "sources":dev_index.sources(),"population":dev_index.population(),"binding":binding("heldout")?}),
+    )?;
+    let dev_ids = if let Some(per_source) = cfg.development_per_source {
+        let ids = dialogue_development::select(&dev_index, cfg.development_seed, per_source)?;
+        if ids.len() != cfg.development_episodes {
+            return Err(invalid("source-stratified panel size differs"));
+        }
+        let panel = json!({"schema":"uor-r4.dialogue-development-panel/1","selection":dialogue_development::SELECTION_ID,
+            "source_commit":source,"seed":cfg.development_seed,"per_source":per_source,"response_ids":ids,
+            "development_index_sha256":dev_index_sha,"train_index_sha256":index_sha,
+            "parent_parameter_sha256":cfg.parent_parameter_sha256,"prepared_manifest_sha256":cfg.prepared_manifest_sha256,
+            "tokenizer_sha256":cfg.tokenizer_sha256,"protocol_identity":parts.provenance.protocol_identity});
+        if let Some(path) = &cfg.development_panel_path {
+            report_output::verify(path.parent().ok_or_else(|| invalid("panel report root"))?)?;
+            if Some(sha256_file(path)?) != cfg.development_panel_sha256
+                || serde_json::from_slice::<Value>(&fs::read(path)?)? != panel
+            {
+                return Err(invalid("frozen development IDs/provenance differ"));
+            }
+        }
+        save(&out.join("development-panel.json"), &panel)?;
+        ids
+    } else {
+        let mut ids = Vec::with_capacity(cfg.development_episodes);
+        for step in 0..cfg.development_episodes.div_ceil(64) {
+            let n = (cfg.development_episodes - ids.len()).min(64);
+            ids.extend(dev_index.sample_ids(cfg.development_seed, step as u64, n)?);
+        }
+        ids
+    };
     save(
         &out.join("development-episodes.json"),
         &json!({"population":dev_index.population(),"sources":dev_index.sources(),
         "response_ids":dev_ids,"selected":dev_ids.iter().map(|&i|&dev_index.episodes()[i]).collect::<Vec<_>>(),
         "scope":"Previously exposed heldout-named corpus, used as open development; fresh request panel not opened."}),
     )?;
+    if prepare {
+        let result = json!({"status":"DEVELOPMENT_PANEL_FROZEN","source_commit":source,
+            "development_index_sha256":dev_index_sha,"train_index_sha256":index_sha,
+            "response_count":dev_ids.len(),"elapsed_seconds":clock.elapsed().as_secs_f64(),
+            "scope":"Strict parent/tokenizer/corpus import and data selection only; zero model forward, backward, updates or generation."});
+        save(&out.join("result.json"), &result)?;
+        return Ok(result);
+    }
     let mut model = parts.model;
     let mut optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
     let initial_parameters = parameter_fingerprint(&model)?;
@@ -502,7 +593,7 @@ fn run_claimed(cfg: &Campaign, cfg_bytes: &[u8], out: &Path, source: &str) -> Re
     let start_step = step;
     let start_supervised = supervised;
     let initial_optimizer = optimizer.continuity_fingerprint()?;
-    let initial_dev = evaluate(&model, &dev_index, &dev_ids, cfg.development_batch)?;
+    let initial_dev = evaluate_selected(&model, &dev_index, &dev_ids, cfg)?;
     let mut curve = fs::File::create_new(out.join("learning-curve.jsonl"))?;
     let mut last_ids = None;
     while step < cfg.total_steps {
@@ -544,7 +635,7 @@ fn run_claimed(cfg: &Campaign, cfg_bytes: &[u8], out: &Path, source: &str) -> Re
         {
             save(
                 &out.join(format!("development-{step:08}.json")),
-                &evaluate(&model, &dev_index, &dev_ids, cfg.development_batch)?,
+                &evaluate_selected(&model, &dev_index, &dev_ids, cfg)?,
             )?;
         }
         if cfg.checkpoint_every_steps != 0
@@ -617,7 +708,7 @@ fn run_claimed(cfg: &Campaign, cfg_bytes: &[u8], out: &Path, source: &str) -> Re
     if reload_delta.is_some_and(|d| !d.is_finite() || d > 1e-5) {
         return Err(invalid("saved response prediction reload differs"));
     }
-    let final_dev = evaluate(&reloaded, &dev_index, &dev_ids, cfg.development_batch)?;
+    let final_dev = evaluate_selected(&reloaded, &dev_index, &dev_ids, cfg)?;
     let mut replies = Vec::new();
     for request in &requests {
         let mut history = vec![protocol.bos_id];

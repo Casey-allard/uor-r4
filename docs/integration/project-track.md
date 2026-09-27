@@ -107,9 +107,16 @@ not reconstruct the historical sampler or identify that sampler as the cause of
 failure. The [integrated parameter-start → learning → save/reload → actual
 reply path](dialogue-prefix-implementation-2026-09-27.md) is now executed in two
 matched two-update witnesses. Eight focused checks pass, but actual replies
-remain weak. Freeze source-stratified open-development IDs/reporting and complete
-resources before one substantive 1,024-update pair from the retained parent.
-This study is NOT_RUN; foreign trainer and CLI ownership remain preserved.
+remain weak. The [substantive study](dialogue-prefix-study-2026-09-27.md) now
+runs one fixed 1,024-update pair from the retained parent, using 161 sealed,
+source-stratified development responses and the same 58 existing open replies
+per saved model. Full-prefix is running; role-only follows sequentially.
+Judge actual request/history correctness against both parent and control,
+preserving source-specific gains and regressions. A loss-only improvement or a
+gap caused by harming the control does not establish useful dialogue. Preserve
+the fixed endpoint and select the next causal action from the complete result;
+no automatic dose/seed/decoder extension. Foreign trainer and CLI ownership
+remain preserved.
 
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on

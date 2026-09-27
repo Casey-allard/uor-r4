@@ -1,0 +1,3723 @@
+{
+  "schema": "uor-r4.dialogue-prefix-study-launch/1",
+  "recorded_at": "2026-09-27T08:54:42.163192+00:00",
+  "status": "RUNNING_FULL_PREFIX_ROLE_ONLY_QUEUED",
+  "scope": "Frozen study design, executed build/data-only preparation and point-in-time live training. No completed pair, endpoint generation, useful-chat claim, integer export or promotion.",
+  "owner_contract": "Native geometric model and multiplier-free serving target; offline Rust F32/matmul permitted. D10 serving backbone/multiplier exceptions are not adopted.",
+  "build": {
+    "started_at": "2026-09-27T08:41:54.642338+00:00",
+    "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+    "features": [
+      "cpu-accelerate"
+    ],
+    "profile": "release",
+    "build_jobs": 2,
+    "rayon_threads": 2,
+    "wall_limit_seconds": 1800,
+    "worktree": "/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4",
+    "commands": [
+      {
+        "command": [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "cpu-accelerate",
+          "--lib",
+          "dialogue_development::tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "started_at": "2026-09-27T08:41:54.642800+00:00",
+        "exit_code": 0,
+        "wall_seconds": 28.165223292
+      },
+      {
+        "command": [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "cpu-accelerate",
+          "--example",
+          "dialogue-prefix-fit"
+        ],
+        "started_at": "2026-09-27T08:42:22.809983+00:00",
+        "exit_code": 0,
+        "wall_seconds": 28.189175291
+      }
+    ],
+    "initial_free_bytes": {
+      "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926": 32418451456,
+      "/Volumes/UOR-Workspace": 172545507328
+    },
+    "wall_seconds": 56.359656041,
+    "finished_at": "2026-09-27T08:42:51.000147+00:00",
+    "maximum_child_rss_bytes": 824164352,
+    "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-binary-3c43c6aa",
+    "binary_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c"
+  },
+  "projection": {
+    "schema": "uor-r4.local-phase-projection/1",
+    "recorded_at": "2026-09-27T08:35:08.539755+00:00",
+    "scope": "Complete fixed full-prefix versus role-only dialogue study: source-stratified development implementation, focused checks/build, frozen panel/campaign, two sequential 1,024-update fits with reload and 58 actual replies each, independent review and protected delivery.",
+    "base_commit": "c046cf19bd856eb9087e78ee3b5d60cd146f29ae",
+    "worktree": "/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4",
+    "branch": "codex/dialogue-prefix-study-20260927",
+    "wall_cap_seconds": 28800,
+    "build_check_wall_cap_seconds": 1800,
+    "fit_soft_update_seconds": 12600,
+    "fit_hard_seconds": 14400,
+    "time_closeout_margin_seconds": 1800,
+    "owned_elapsed_cap_ms": 64800000,
+    "previous_owned_elapsed_cap_ms": 57600000,
+    "owned_elapsed_increment_ms": 7200000,
+    "extension_authority": "Standing owner authorization of 2026-09-06 and the current autonomous whole-project objective. Recorded prospectively before use; no repeated approval is needed.",
+    "extension_reason": "The eight-hour whole-study envelope starts near the original sixteen-hour lab ceiling. Extend the owned ceiling by two hours to preserve closeout and recovery reserve while keeping the selected 1,024-update dose. Unused allowance is not an instruction to spend it.",
+    "verified_cumulative_allowance_ms": 722400000,
+    "new_shared_allowance_ms": 0,
+    "foreign_reported_limit_adopted": false,
+    "shared_ledger_before": {
+      "cumulative_ms": 676854920,
+      "limit_ms": 744000000
+    },
+    "prior_cursor": {
+      "last_charged_at": "2026-09-27T08:31:23.351290+00:00",
+      "charged_elapsed_ms": 28699340,
+      "tail_ms": 350537,
+      "before": {
+        "cumulative_ms": 676504383,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 676854920,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "verified_cumulative_allowance_ms": 722400000,
+      "owned_elapsed_cap_ms": 57600000,
+      "foreign_reported_limit_adopted": false,
+      "scope": "Publication consistency checks, source and evidence delivery, protected PR1426 merge and full-tree verification, next study handoff preparation. Own overlapping elapsed charged once; no further model work.",
+      "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock.",
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 32428941312,
+        "/Volumes/UOR-Workspace": 172545507328
+      }
+    },
+    "resources": {
+      "model": "CPU Quaternion/Dot/Full width576/read coordinate64/context256; B16/T256,2whole-sequence gradient shards; no transformer serving or integer export",
+      "updates_per_arm": 1024,
+      "arms": [
+        "full_prefix",
+        "role_only"
+      ],
+      "parent": "Retained R1d exact parameter arrays, independently copied, with fresh Adam.",
+      "model_rss_cap_bytes": 6442450944,
+      "build_rss_cap_bytes": 4294967296,
+      "launch_free_memory_percent": 25,
+      "minimum_free_memory_percent": 10,
+      "new_internal_bytes": 1073741824,
+      "shared_ssd_growth_bytes": 2147483648,
+      "physical_reserve_bytes": 25971130368,
+      "storage_stop_margin_bytes": 134217728,
+      "one_owned_model": true,
+      "one_cargo": true,
+      "cargo_jobs": 2,
+      "gradient_shards": 2,
+      "rayon_threads": 2,
+      "blas_omp_gemm_threads": 1,
+      "development": "One fixed161-response source-stratified open panel: per-source23/32/10/32/32/32; no fresh panel access; score at0/256/512/768/1024",
+      "checkpoint_steps": [
+        512,
+        1024
+      ],
+      "generation": "All38existing open requests/58turns; greedy32, exact generated history/caller closure",
+      "cost_basis": {
+        "historical_seconds_per_update": 8.9,
+        "paired_updates_seconds_at_historical_rate": 18227.2,
+        "witness_update_seconds_range": [
+          4.394749958,
+          5.702952375
+        ],
+        "witness_peak_rss_bytes": 4767744000,
+        "checkpoint_tensor_payload_estimate_bytes": 261000000
+      }
+    },
+    "physical_free_bytes": {
+      "/System/Volumes/Data": 32427651072,
+      "/Volumes/UOR-Workspace": 172545507328
+    },
+    "stop": "Preserve and checkpoint resource-limited work. No automatic dose/seed/decoder sweep, destructive deletion or paid/external compute. Charge all overlapping preparation/build/fit/evaluation/review/delivery elapsed once from prior cursor. A failed/incomplete launch is unavailable model evidence."
+  },
+  "preparation": {
+    "execution": {
+      "schema": "uor-r4.local-process-resource/1",
+      "kind": "prepare",
+      "policy": "full_prefix",
+      "started_at": "2026-09-27T08:49:12.836292+00:00",
+      "command": [
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-binary-3c43c6aa",
+        "--prepare",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-preparation-inputs-1/prepare.json",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1"
+      ],
+      "campaign_sha256": "c69e19246af91bc790b76fc244aadfe01de0e859cc9a89bdb24e1e163c91c61c",
+      "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1",
+      "build_receipt_sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda",
+      "binary_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+      "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+      "compiled_features": [
+        "cpu-accelerate"
+      ],
+      "profile": "release",
+      "thread_environment": {
+        "RAYON_NUM_THREADS": "2",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "GEMM_NUM_THREADS": "1"
+      },
+      "cpu_gradient_shards": 2,
+      "projection_sha256": "07dd17759f861d723e6e9fc5195ef182d443b6e6300043680e72063e4a31b10b",
+      "supervisor_sha256": "1827ef53d899635ebf38e63bdeb3efcf3f9d523ecaf2a37b4692300dcd725e8d",
+      "projection_physical_baseline": {
+        "/System/Volumes/Data": 32427651072,
+        "/Volumes/UOR-Workspace": 172545507328
+      },
+      "limits": {
+        "model": "CPU Quaternion/Dot/Full width576/read coordinate64/context256; B16/T256,2whole-sequence gradient shards; no transformer serving or integer export",
+        "updates_per_arm": 1024,
+        "arms": [
+          "full_prefix",
+          "role_only"
+        ],
+        "parent": "Retained R1d exact parameter arrays, independently copied, with fresh Adam.",
+        "model_rss_cap_bytes": 6442450944,
+        "build_rss_cap_bytes": 4294967296,
+        "launch_free_memory_percent": 25,
+        "minimum_free_memory_percent": 10,
+        "new_internal_bytes": 1073741824,
+        "shared_ssd_growth_bytes": 2147483648,
+        "physical_reserve_bytes": 25971130368,
+        "storage_stop_margin_bytes": 134217728,
+        "one_owned_model": true,
+        "one_cargo": true,
+        "cargo_jobs": 2,
+        "gradient_shards": 2,
+        "rayon_threads": 2,
+        "blas_omp_gemm_threads": 1,
+        "development": "One fixed161-response source-stratified open panel: per-source23/32/10/32/32/32; no fresh panel access; score at0/256/512/768/1024",
+        "checkpoint_steps": [
+          512,
+          1024
+        ],
+        "generation": "All38existing open requests/58turns; greedy32, exact generated history/caller closure",
+        "cost_basis": {
+          "historical_seconds_per_update": 8.9,
+          "paired_updates_seconds_at_historical_rate": 18227.2,
+          "witness_update_seconds_range": [
+            4.394749958,
+            5.702952375
+          ],
+          "witness_peak_rss_bytes": 4767744000,
+          "checkpoint_tensor_payload_estimate_bytes": 261000000
+        },
+        "hard_wall_seconds": 300,
+        "soft_update_seconds": null,
+        "phase_wall_seconds": 28800,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000
+      },
+      "peak_sampled_rss_bytes": 339361792,
+      "minimum_free_memory_percent": 64,
+      "soft_stop": null,
+      "hard_stop": null,
+      "status": "DEVELOPMENT_PANEL_FROZEN",
+      "scope": "Fixed study process only; completion is not useful dialogue or serving qualification. Read-only ledger observation; principal charges elapsed once.",
+      "preflight_time_budget": {
+        "cumulative_seconds_remaining": 44475.593626,
+        "owned_seconds_remaining": 35031.173626,
+        "phase_seconds_remaining": 27955.702091,
+        "shared_cumulative_ms": 676854920,
+        "uncharged_tail_ms": 1069486.374,
+        "cursor_last_charged_at": "2026-09-27T08:31:23.351290+00:00",
+        "cursor_charged_elapsed_ms": 28699340
+      },
+      "preflight_storage": {
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 32409493504,
+          "/Volumes/UOR-Workspace": 172545351680
+        },
+        "study_apparent_bytes": 6035898,
+        "internal_physical_growth_bytes": 18157568,
+        "shared_ssd_growth_bytes": 155648
+      },
+      "preflight_free_memory_percent": 65,
+      "pid": 41101,
+      "launched_at": "2026-09-27T08:49:12.862714+00:00",
+      "last_time_budget": {
+        "cumulative_seconds_remaining": 44471.520176,
+        "owned_seconds_remaining": 35027.100176,
+        "phase_seconds_remaining": 27951.628641,
+        "shared_cumulative_ms": 676854920,
+        "uncharged_tail_ms": 1073559.824,
+        "cursor_last_charged_at": "2026-09-27T08:31:23.351290+00:00",
+        "cursor_charged_elapsed_ms": 28699340
+      },
+      "last_storage": {
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 32406855680,
+          "/Volumes/UOR-Workspace": 172545351680
+        },
+        "study_apparent_bytes": 8612614,
+        "internal_physical_growth_bytes": 20795392,
+        "shared_ssd_growth_bytes": 155648
+      },
+      "last_free_memory_percent": 65,
+      "elapsed_seconds": 4.070673416999999,
+      "exit_code": 0,
+      "wall_seconds": 6.0845143749999995,
+      "finished_at": "2026-09-27T08:49:18.921993+00:00",
+      "maximum_child_rss_bytes": 340508672,
+      "output_sha256": {
+        "manifest.json": "eb49ecf4c3040d595151968b5e9036d66443d8723aa664374415f76d7687e474",
+        "execution-binding.json": "7c5f203dd0c272540531a7d2a60e3916b6d78ead0a659394ca1cb387d8594669",
+        "result.json": "5391f55167ce7888c4e2999e6102d6b080fddd2cfd886af6a935e39b2c3a35dc",
+        "development-panel.json": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+        "development-episodes.json": "a5a7327a0510ac57a7f82061956721502adb0dd575701a6be1190f3787cd24d7"
+      },
+      "zero_model_evaluation_scope": "Pinned Rust prepare returns after import/data selection, before forward, backward, optimizer or generation; no invented runtime work counters.",
+      "native_seal_scope": "The Rust driver seals and verifies its root before exit0; supervisor records hashes without rewriting or independently replaying that verification."
+    },
+    "result": {
+      "development_index_sha256": "e57dd3816cb65076506c8d7bc8dc8bbb52df72cebfdf54874cc5a2ad28047507",
+      "elapsed_seconds": 4.679330833,
+      "response_count": 161,
+      "scope": "Strict parent/tokenizer/corpus import and data selection only; zero model forward, backward, updates or generation.",
+      "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+      "status": "DEVELOPMENT_PANEL_FROZEN",
+      "train_index_sha256": "3cceb18a5e1febfd9516c3d7730a2a5498c2fbb896b5d34552526dff88f16ce5"
+    },
+    "binding": {
+      "campaign_sha256": "c69e19246af91bc790b76fc244aadfe01de0e859cc9a89bdb24e1e163c91c61c",
+      "cpu_accelerate_compiled": true,
+      "deadline_scope": "max_process_seconds limits admission of new updates, including preparation/evaluation; external supervisor separately limits complete checkpoint/output closeout.",
+      "executable_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+      "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6"
+    },
+    "manifest": {
+      "files": [
+        {
+          "blake3": "50ebfbb7d865ce9b8d1bc75f710355a94cd92c41c2cd46606df9efba2c72154e",
+          "bytes": 570,
+          "path": "attempt.json"
+        },
+        {
+          "blake3": "0b6fd9083d6d92f9d45eece5d3c26f12d57600305726031b12eb9ca108cb8b97",
+          "bytes": 1667,
+          "path": "campaign.json"
+        },
+        {
+          "blake3": "2d7b7a5987faa4fc5274310cb5dd63b87531cfe2e7db8bab48b3ff1ee720028c",
+          "bytes": 41545,
+          "path": "development-episodes.json"
+        },
+        {
+          "blake3": "10238bef11fe5daa01c7cc328ac19603795c59d0bdef09b39e9f64b7e62f4960",
+          "bytes": 2247,
+          "path": "development-panel.json"
+        },
+        {
+          "blake3": "a6da057f6dfb7655e6c3e9f516d62e7265f858d083634e591e624f0724b7e1c2",
+          "bytes": 466,
+          "path": "execution-binding.json"
+        },
+        {
+          "blake3": "7afd40c6f365948cbfb68c743269d1cd58fbb1f4af3627300f5cca506197623a",
+          "bytes": 485,
+          "path": "result.json"
+        },
+        {
+          "blake3": "476378c89162b16f0a712859128b636cb954f6e5d1b9e3a246230e902b9915a3",
+          "bytes": 3499626,
+          "path": "train-episodes.json"
+        }
+      ],
+      "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1",
+      "schema": "uor-r4.report-manifest/1",
+      "sealed_at": "1790498957"
+    },
+    "campaign": {
+      "schema": "uor-r4.dialogue-prefix-campaign/1",
+      "parent_fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+      "prepared_manifest": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+      "tokenizer_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+      "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+      "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+      "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "data_seed": 20260929,
+      "total_steps": 1024,
+      "batch": 16,
+      "cpu_gradient_shards": 2,
+      "expected_train_response_runs": 129486,
+      "expected_eligible_train_responses": 14826,
+      "optimizer": {
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "parameter_abs_limit": 1000000.0,
+        "allowed_missing_gradients": []
+      },
+      "development_seed": 20260930,
+      "development_episodes": 161,
+      "development_batch": 4,
+      "development_every_steps": 256,
+      "checkpoint_every_steps": 512,
+      "max_process_seconds": 12600.0,
+      "resume_from": null,
+      "requests_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/development-requests.json",
+      "requests_sha256": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484",
+      "max_new_tokens": 32,
+      "policy": "full_prefix",
+      "stop_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix.stop",
+      "development_per_source": 32
+    },
+    "panel": {
+      "development_index_sha256": "e57dd3816cb65076506c8d7bc8dc8bbb52df72cebfdf54874cc5a2ad28047507",
+      "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+      "per_source": 32,
+      "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+      "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+      "response_ids": [
+        10,
+        1,
+        17,
+        5,
+        3,
+        4,
+        0,
+        6,
+        18,
+        12,
+        8,
+        7,
+        13,
+        9,
+        11,
+        21,
+        2,
+        22,
+        16,
+        20,
+        15,
+        19,
+        14,
+        430,
+        198,
+        383,
+        392,
+        191,
+        504,
+        340,
+        483,
+        154,
+        546,
+        144,
+        476,
+        561,
+        410,
+        129,
+        555,
+        209,
+        59,
+        111,
+        537,
+        235,
+        23,
+        394,
+        454,
+        590,
+        192,
+        363,
+        342,
+        393,
+        203,
+        490,
+        83,
+        624,
+        628,
+        622,
+        620,
+        625,
+        626,
+        627,
+        623,
+        629,
+        621,
+        640,
+        644,
+        652,
+        642,
+        631,
+        651,
+        635,
+        634,
+        636,
+        664,
+        630,
+        667,
+        633,
+        666,
+        632,
+        643,
+        639,
+        655,
+        653,
+        646,
+        650,
+        663,
+        661,
+        668,
+        638,
+        641,
+        647,
+        665,
+        656,
+        659,
+        645,
+        657,
+        684,
+        686,
+        671,
+        698,
+        725,
+        713,
+        711,
+        690,
+        724,
+        678,
+        670,
+        716,
+        726,
+        676,
+        674,
+        679,
+        681,
+        689,
+        683,
+        727,
+        706,
+        675,
+        672,
+        719,
+        691,
+        712,
+        673,
+        703,
+        707,
+        704,
+        710,
+        731,
+        816,
+        984,
+        804,
+        866,
+        1110,
+        1013,
+        1012,
+        1057,
+        738,
+        992,
+        837,
+        891,
+        1102,
+        808,
+        896,
+        1008,
+        772,
+        993,
+        1097,
+        803,
+        872,
+        744,
+        1111,
+        823,
+        1028,
+        1000,
+        827,
+        762,
+        751,
+        1045,
+        1090,
+        995
+      ],
+      "schema": "uor-r4.dialogue-development-panel/1",
+      "seed": 20260930,
+      "selection": "uor-r4.dialogue-development/source-sha256-rank-v1",
+      "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+      "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "train_index_sha256": "3cceb18a5e1febfd9516c3d7730a2a5498c2fbb896b5d34552526dff88f16ce5"
+    },
+    "development_episodes": {
+      "population": {
+        "corpus_tokens": 6215400,
+        "documents": 6526,
+        "eligible_response_tokens": 88824,
+        "eligible_responses": 1114,
+        "excluded_over_context": 9137,
+        "identical_prefixes": 0,
+        "response_runs": 10251,
+        "response_tokens": 3942347,
+        "sources": [
+          {
+            "documents": 695,
+            "eligible_response_tokens": 3266,
+            "eligible_responses": 23,
+            "excluded_over_context": 2062,
+            "identical_prefixes": 0,
+            "label": "smoltalk_smol-magpie-ultra.test",
+            "response_runs": 2085,
+            "response_tokens": 1490840,
+            "source_index": 0
+          },
+          {
+            "documents": 1812,
+            "eligible_response_tokens": 63099,
+            "eligible_responses": 597,
+            "excluded_over_context": 1215,
+            "identical_prefixes": 0,
+            "label": "smoltalk_smol-constraints.test",
+            "response_runs": 1812,
+            "response_tokens": 418068,
+            "source_index": 1
+          },
+          {
+            "documents": 1700,
+            "eligible_response_tokens": 769,
+            "eligible_responses": 10,
+            "excluded_over_context": 1690,
+            "identical_prefixes": 0,
+            "label": "smoltalk_smol-rewrite.test",
+            "response_runs": 1700,
+            "response_tokens": 438028,
+            "source_index": 2
+          },
+          {
+            "documents": 1300,
+            "eligible_response_tokens": 1578,
+            "eligible_responses": 39,
+            "excluded_over_context": 1261,
+            "identical_prefixes": 0,
+            "label": "smoltalk_smol-summarize.test",
+            "response_runs": 1300,
+            "response_tokens": 207269,
+            "source_index": 3
+          },
+          {
+            "documents": 900,
+            "eligible_response_tokens": 5632,
+            "eligible_responses": 63,
+            "excluded_over_context": 2836,
+            "identical_prefixes": 0,
+            "label": "ultrachat_200k.default.test_sft",
+            "response_runs": 2899,
+            "response_tokens": 1369364,
+            "source_index": 4
+          },
+          {
+            "documents": 119,
+            "eligible_response_tokens": 14480,
+            "eligible_responses": 382,
+            "excluded_over_context": 73,
+            "identical_prefixes": 0,
+            "label": "everyday-conversations-llama3.1-2k.default.test_sft",
+            "response_runs": 455,
+            "response_tokens": 18778,
+            "source_index": 5
+          }
+        ]
+      },
+      "response_ids": [
+        10,
+        1,
+        17,
+        5,
+        3,
+        4,
+        0,
+        6,
+        18,
+        12,
+        8,
+        7,
+        13,
+        9,
+        11,
+        21,
+        2,
+        22,
+        16,
+        20,
+        15,
+        19,
+        14,
+        430,
+        198,
+        383,
+        392,
+        191,
+        504,
+        340,
+        483,
+        154,
+        546,
+        144,
+        476,
+        561,
+        410,
+        129,
+        555,
+        209,
+        59,
+        111,
+        537,
+        235,
+        23,
+        394,
+        454,
+        590,
+        192,
+        363,
+        342,
+        393,
+        203,
+        490,
+        83,
+        624,
+        628,
+        622,
+        620,
+        625,
+        626,
+        627,
+        623,
+        629,
+        621,
+        640,
+        644,
+        652,
+        642,
+        631,
+        651,
+        635,
+        634,
+        636,
+        664,
+        630,
+        667,
+        633,
+        666,
+        632,
+        643,
+        639,
+        655,
+        653,
+        646,
+        650,
+        663,
+        661,
+        668,
+        638,
+        641,
+        647,
+        665,
+        656,
+        659,
+        645,
+        657,
+        684,
+        686,
+        671,
+        698,
+        725,
+        713,
+        711,
+        690,
+        724,
+        678,
+        670,
+        716,
+        726,
+        676,
+        674,
+        679,
+        681,
+        689,
+        683,
+        727,
+        706,
+        675,
+        672,
+        719,
+        691,
+        712,
+        673,
+        703,
+        707,
+        704,
+        710,
+        731,
+        816,
+        984,
+        804,
+        866,
+        1110,
+        1013,
+        1012,
+        1057,
+        738,
+        992,
+        837,
+        891,
+        1102,
+        808,
+        896,
+        1008,
+        772,
+        993,
+        1097,
+        803,
+        872,
+        744,
+        1111,
+        823,
+        1028,
+        1000,
+        827,
+        762,
+        751,
+        1045,
+        1090,
+        995
+      ],
+      "scope": "Previously exposed heldout-named corpus, used as open development; fresh request panel not opened.",
+      "selected": [
+        {
+          "corpus_response_index": 681,
+          "document_start": 561713,
+          "identical_prefix": false,
+          "response_end": 561911,
+          "response_id": 10,
+          "response_start": 561750,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 132,
+          "document_start": 106656,
+          "identical_prefix": false,
+          "response_end": 106897,
+          "response_id": 1,
+          "response_start": 106720,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1626,
+          "document_start": 1335023,
+          "identical_prefix": false,
+          "response_end": 1335250,
+          "response_id": 17,
+          "response_start": 1335121,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 300,
+          "document_start": 242784,
+          "identical_prefix": false,
+          "response_end": 242975,
+          "response_id": 5,
+          "response_start": 242824,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 201,
+          "document_start": 164591,
+          "identical_prefix": false,
+          "response_end": 164832,
+          "response_id": 3,
+          "response_start": 164744,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 240,
+          "document_start": 197252,
+          "identical_prefix": false,
+          "response_end": 197445,
+          "response_id": 4,
+          "response_start": 197295,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 45,
+          "document_start": 38592,
+          "identical_prefix": false,
+          "response_end": 38840,
+          "response_id": 0,
+          "response_start": 38637,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 375,
+          "document_start": 308349,
+          "identical_prefix": false,
+          "response_end": 308563,
+          "response_id": 6,
+          "response_start": 308414,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1683,
+          "document_start": 1387020,
+          "identical_prefix": false,
+          "response_end": 1387258,
+          "response_id": 18,
+          "response_start": 1387095,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1299,
+          "document_start": 1074634,
+          "identical_prefix": false,
+          "response_end": 1074823,
+          "response_id": 12,
+          "response_start": 1074699,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 483,
+          "document_start": 399217,
+          "identical_prefix": false,
+          "response_end": 399367,
+          "response_id": 8,
+          "response_start": 399258,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 381,
+          "document_start": 312163,
+          "identical_prefix": false,
+          "response_end": 312418,
+          "response_id": 7,
+          "response_start": 312187,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1473,
+          "document_start": 1218846,
+          "identical_prefix": false,
+          "response_end": 1218987,
+          "response_id": 13,
+          "response_start": 1218885,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 651,
+          "document_start": 537475,
+          "identical_prefix": false,
+          "response_end": 537593,
+          "response_id": 9,
+          "response_start": 537504,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 810,
+          "document_start": 677144,
+          "identical_prefix": false,
+          "response_end": 677365,
+          "response_id": 11,
+          "response_start": 677171,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 2028,
+          "document_start": 1682770,
+          "identical_prefix": false,
+          "response_end": 1682903,
+          "response_id": 21,
+          "response_start": 1682815,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 156,
+          "document_start": 125813,
+          "identical_prefix": false,
+          "response_end": 125974,
+          "response_id": 2,
+          "response_start": 125850,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 2040,
+          "document_start": 1690172,
+          "identical_prefix": false,
+          "response_end": 1690340,
+          "response_id": 22,
+          "response_start": 1690221,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1614,
+          "document_start": 1324960,
+          "identical_prefix": false,
+          "response_end": 1325169,
+          "response_id": 16,
+          "response_start": 1324988,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1950,
+          "document_start": 1614706,
+          "identical_prefix": false,
+          "response_end": 1614958,
+          "response_id": 20,
+          "response_start": 1614772,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1590,
+          "document_start": 1310341,
+          "identical_prefix": false,
+          "response_end": 1310430,
+          "response_id": 15,
+          "response_start": 1310376,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1827,
+          "document_start": 1506767,
+          "identical_prefix": false,
+          "response_end": 1507012,
+          "response_id": 19,
+          "response_start": 1506897,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 1527,
+          "document_start": 1256507,
+          "identical_prefix": false,
+          "response_end": 1256722,
+          "response_id": 14,
+          "response_start": 1256543,
+          "source_index": 0
+        },
+        {
+          "corpus_response_index": 3336,
+          "document_start": 2181700,
+          "identical_prefix": false,
+          "response_end": 2181915,
+          "response_id": 430,
+          "response_start": 2181790,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2636,
+          "document_start": 1935144,
+          "identical_prefix": false,
+          "response_end": 1935317,
+          "response_id": 198,
+          "response_start": 1935215,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3202,
+          "document_start": 2134973,
+          "identical_prefix": false,
+          "response_end": 2135201,
+          "response_id": 383,
+          "response_start": 2135049,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3236,
+          "document_start": 2146741,
+          "identical_prefix": false,
+          "response_end": 2146897,
+          "response_id": 392,
+          "response_start": 2146814,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2614,
+          "document_start": 1926534,
+          "identical_prefix": false,
+          "response_end": 1926764,
+          "response_id": 191,
+          "response_start": 1926667,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3560,
+          "document_start": 2265763,
+          "identical_prefix": false,
+          "response_end": 2265942,
+          "response_id": 504,
+          "response_start": 2265844,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3069,
+          "document_start": 2090179,
+          "identical_prefix": false,
+          "response_end": 2090389,
+          "response_id": 340,
+          "response_start": 2090259,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3500,
+          "document_start": 2242187,
+          "identical_prefix": false,
+          "response_end": 2242423,
+          "response_id": 483,
+          "response_start": 2242299,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2512,
+          "document_start": 1884697,
+          "identical_prefix": false,
+          "response_end": 1884810,
+          "response_id": 154,
+          "response_start": 1884783,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3682,
+          "document_start": 2308894,
+          "identical_prefix": false,
+          "response_end": 2309137,
+          "response_id": 546,
+          "response_start": 2309019,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2478,
+          "document_start": 1870659,
+          "identical_prefix": false,
+          "response_end": 1870868,
+          "response_id": 144,
+          "response_start": 1870758,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3482,
+          "document_start": 2235199,
+          "identical_prefix": false,
+          "response_end": 2235423,
+          "response_id": 476,
+          "response_start": 2235282,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3733,
+          "document_start": 2328537,
+          "identical_prefix": false,
+          "response_end": 2328748,
+          "response_id": 561,
+          "response_start": 2328642,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3294,
+          "document_start": 2166298,
+          "identical_prefix": false,
+          "response_end": 2166497,
+          "response_id": 410,
+          "response_start": 2166375,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2421,
+          "document_start": 1849635,
+          "identical_prefix": false,
+          "response_end": 1849864,
+          "response_id": 129,
+          "response_start": 1849722,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3721,
+          "document_start": 2325030,
+          "identical_prefix": false,
+          "response_end": 2325188,
+          "response_id": 555,
+          "response_start": 2325123,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2680,
+          "document_start": 1952423,
+          "identical_prefix": false,
+          "response_end": 1952601,
+          "response_id": 209,
+          "response_start": 1952512,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2209,
+          "document_start": 1775747,
+          "identical_prefix": false,
+          "response_end": 1775965,
+          "response_id": 59,
+          "response_start": 1775895,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2353,
+          "document_start": 1825355,
+          "identical_prefix": false,
+          "response_end": 1825567,
+          "response_id": 111,
+          "response_start": 1825431,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3659,
+          "document_start": 2300176,
+          "identical_prefix": false,
+          "response_end": 2300413,
+          "response_id": 537,
+          "response_start": 2300246,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2752,
+          "document_start": 1977906,
+          "identical_prefix": false,
+          "response_end": 1978116,
+          "response_id": 235,
+          "response_start": 1977982,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2085,
+          "document_start": 1724744,
+          "identical_prefix": false,
+          "response_end": 1724995,
+          "response_id": 23,
+          "response_start": 1724875,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3245,
+          "document_start": 2149779,
+          "identical_prefix": false,
+          "response_end": 2150015,
+          "response_id": 394,
+          "response_start": 2149854,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3403,
+          "document_start": 2208244,
+          "identical_prefix": false,
+          "response_end": 2208420,
+          "response_id": 454,
+          "response_start": 2208326,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3815,
+          "document_start": 2358829,
+          "identical_prefix": false,
+          "response_end": 2359071,
+          "response_id": 590,
+          "response_start": 2358895,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2616,
+          "document_start": 1927048,
+          "identical_prefix": false,
+          "response_end": 1927296,
+          "response_id": 192,
+          "response_start": 1927132,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3141,
+          "document_start": 2113634,
+          "identical_prefix": false,
+          "response_end": 2113879,
+          "response_id": 363,
+          "response_start": 2113737,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3076,
+          "document_start": 2092645,
+          "identical_prefix": false,
+          "response_end": 2092895,
+          "response_id": 342,
+          "response_start": 2092770,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3237,
+          "document_start": 2146897,
+          "identical_prefix": false,
+          "response_end": 2147123,
+          "response_id": 393,
+          "response_start": 2146986,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2662,
+          "document_start": 1946524,
+          "identical_prefix": false,
+          "response_end": 1946689,
+          "response_id": 203,
+          "response_start": 1946632,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 3527,
+          "document_start": 2254217,
+          "identical_prefix": false,
+          "response_end": 2254409,
+          "response_id": 490,
+          "response_start": 2254263,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 2276,
+          "document_start": 1796604,
+          "identical_prefix": false,
+          "response_end": 1796827,
+          "response_id": 83,
+          "response_start": 1796676,
+          "source_index": 1
+        },
+        {
+          "corpus_response_index": 4493,
+          "document_start": 2735037,
+          "identical_prefix": false,
+          "response_end": 2735260,
+          "response_id": 624,
+          "response_start": 2735202,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 5229,
+          "document_start": 3167816,
+          "identical_prefix": false,
+          "response_end": 3168016,
+          "response_id": 628,
+          "response_start": 3167956,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 4222,
+          "document_start": 2575431,
+          "identical_prefix": false,
+          "response_end": 2575681,
+          "response_id": 622,
+          "response_start": 2575569,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 3920,
+          "document_start": 2398694,
+          "identical_prefix": false,
+          "response_end": 2398939,
+          "response_id": 620,
+          "response_start": 2398860,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 4825,
+          "document_start": 2928601,
+          "identical_prefix": false,
+          "response_end": 2928817,
+          "response_id": 625,
+          "response_start": 2928735,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 5061,
+          "document_start": 3067794,
+          "identical_prefix": false,
+          "response_end": 3068021,
+          "response_id": 626,
+          "response_start": 3067954,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 5155,
+          "document_start": 3123484,
+          "identical_prefix": false,
+          "response_end": 3123685,
+          "response_id": 627,
+          "response_start": 3123603,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 4417,
+          "document_start": 2693310,
+          "identical_prefix": false,
+          "response_end": 2693566,
+          "response_id": 623,
+          "response_start": 2693465,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 5429,
+          "document_start": 3285162,
+          "identical_prefix": false,
+          "response_end": 3285393,
+          "response_id": 629,
+          "response_start": 3285329,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 4081,
+          "document_start": 2494286,
+          "identical_prefix": false,
+          "response_end": 2494507,
+          "response_id": 621,
+          "response_start": 2494443,
+          "source_index": 2
+        },
+        {
+          "corpus_response_index": 5886,
+          "document_start": 3607842,
+          "identical_prefix": false,
+          "response_end": 3608021,
+          "response_id": 640,
+          "response_start": 3607988,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6022,
+          "document_start": 3716456,
+          "identical_prefix": false,
+          "response_end": 3716694,
+          "response_id": 644,
+          "response_start": 3716660,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6271,
+          "document_start": 3907077,
+          "identical_prefix": false,
+          "response_end": 3907281,
+          "response_id": 652,
+          "response_start": 3907253,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5904,
+          "document_start": 3617502,
+          "identical_prefix": false,
+          "response_end": 3617726,
+          "response_id": 642,
+          "response_start": 3617696,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5620,
+          "document_start": 3397030,
+          "identical_prefix": false,
+          "response_end": 3397249,
+          "response_id": 631,
+          "response_start": 3397191,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6246,
+          "document_start": 3885953,
+          "identical_prefix": false,
+          "response_end": 3886199,
+          "response_id": 651,
+          "response_start": 3886146,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5756,
+          "document_start": 3506141,
+          "identical_prefix": false,
+          "response_end": 3506373,
+          "response_id": 635,
+          "response_start": 3506333,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5746,
+          "document_start": 3498726,
+          "identical_prefix": false,
+          "response_end": 3498953,
+          "response_id": 634,
+          "response_start": 3498906,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5768,
+          "document_start": 3513896,
+          "identical_prefix": false,
+          "response_end": 3514124,
+          "response_id": 636,
+          "response_start": 3514082,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6711,
+          "document_start": 4263848,
+          "identical_prefix": false,
+          "response_end": 4264098,
+          "response_id": 664,
+          "response_start": 4264030,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5610,
+          "document_start": 3391224,
+          "identical_prefix": false,
+          "response_end": 3391468,
+          "response_id": 630,
+          "response_start": 3391412,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6868,
+          "document_start": 4380407,
+          "identical_prefix": false,
+          "response_end": 4380636,
+          "response_id": 667,
+          "response_start": 4380605,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5704,
+          "document_start": 3467364,
+          "identical_prefix": false,
+          "response_end": 3467594,
+          "response_id": 633,
+          "response_start": 3467548,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6858,
+          "document_start": 4376212,
+          "identical_prefix": false,
+          "response_end": 4376453,
+          "response_id": 666,
+          "response_start": 4376404,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5676,
+          "document_start": 3440510,
+          "identical_prefix": false,
+          "response_end": 3440735,
+          "response_id": 632,
+          "response_start": 3440705,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5938,
+          "document_start": 3642041,
+          "identical_prefix": false,
+          "response_end": 3642264,
+          "response_id": 643,
+          "response_start": 3642234,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5881,
+          "document_start": 3606206,
+          "identical_prefix": false,
+          "response_end": 3606455,
+          "response_id": 639,
+          "response_start": 3606422,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6416,
+          "document_start": 4023084,
+          "identical_prefix": false,
+          "response_end": 4023318,
+          "response_id": 655,
+          "response_start": 4023280,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6290,
+          "document_start": 3920042,
+          "identical_prefix": false,
+          "response_end": 3920276,
+          "response_id": 653,
+          "response_start": 3920213,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6057,
+          "document_start": 3743982,
+          "identical_prefix": false,
+          "response_end": 3744208,
+          "response_id": 646,
+          "response_start": 3744176,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6131,
+          "document_start": 3795578,
+          "identical_prefix": false,
+          "response_end": 3795826,
+          "response_id": 650,
+          "response_start": 3795792,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6673,
+          "document_start": 4236806,
+          "identical_prefix": false,
+          "response_end": 4237058,
+          "response_id": 663,
+          "response_start": 4237024,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6653,
+          "document_start": 4211120,
+          "identical_prefix": false,
+          "response_end": 4211372,
+          "response_id": 661,
+          "response_start": 4211333,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6883,
+          "document_start": 4391312,
+          "identical_prefix": false,
+          "response_end": 4391493,
+          "response_id": 668,
+          "response_start": 4391440,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5831,
+          "document_start": 3561404,
+          "identical_prefix": false,
+          "response_end": 3561641,
+          "response_id": 638,
+          "response_start": 3561608,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 5893,
+          "document_start": 3613136,
+          "identical_prefix": false,
+          "response_end": 3613375,
+          "response_id": 641,
+          "response_start": 3613335,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6074,
+          "document_start": 3753849,
+          "identical_prefix": false,
+          "response_end": 3754067,
+          "response_id": 647,
+          "response_start": 3754038,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6775,
+          "document_start": 4310648,
+          "identical_prefix": false,
+          "response_end": 4310880,
+          "response_id": 665,
+          "response_start": 4310838,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6484,
+          "document_start": 4073671,
+          "identical_prefix": false,
+          "response_end": 4073882,
+          "response_id": 656,
+          "response_start": 4073825,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6644,
+          "document_start": 4205509,
+          "identical_prefix": false,
+          "response_end": 4205765,
+          "response_id": 659,
+          "response_start": 4205728,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6041,
+          "document_start": 3728555,
+          "identical_prefix": false,
+          "response_end": 3728783,
+          "response_id": 645,
+          "response_start": 3728739,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 6499,
+          "document_start": 4087736,
+          "identical_prefix": false,
+          "response_end": 4087964,
+          "response_id": 657,
+          "response_start": 4087922,
+          "source_index": 3
+        },
+        {
+          "corpus_response_index": 7485,
+          "document_start": 4762489,
+          "identical_prefix": false,
+          "response_end": 4762715,
+          "response_id": 684,
+          "response_start": 4762529,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7627,
+          "document_start": 4853170,
+          "identical_prefix": false,
+          "response_end": 4853384,
+          "response_id": 686,
+          "response_start": 4853220,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 6981,
+          "document_start": 4455559,
+          "identical_prefix": false,
+          "response_end": 4455769,
+          "response_id": 671,
+          "response_start": 4455719,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8030,
+          "document_start": 5106967,
+          "identical_prefix": false,
+          "response_end": 5107136,
+          "response_id": 698,
+          "response_start": 5107091,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9445,
+          "document_start": 5971348,
+          "identical_prefix": false,
+          "response_end": 5971533,
+          "response_id": 725,
+          "response_start": 5971414,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8899,
+          "document_start": 5659464,
+          "identical_prefix": false,
+          "response_end": 5659627,
+          "response_id": 713,
+          "response_start": 5659594,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8792,
+          "document_start": 5586765,
+          "identical_prefix": false,
+          "response_end": 5586889,
+          "response_id": 711,
+          "response_start": 5586806,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7708,
+          "document_start": 4905390,
+          "identical_prefix": false,
+          "response_end": 4905610,
+          "response_id": 690,
+          "response_start": 4905485,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9444,
+          "document_start": 5971348,
+          "identical_prefix": false,
+          "response_end": 5971383,
+          "response_id": 724,
+          "response_start": 5971371,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7356,
+          "document_start": 4685964,
+          "identical_prefix": false,
+          "response_end": 4686179,
+          "response_id": 678,
+          "response_start": 4686000,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 6969,
+          "document_start": 4449974,
+          "identical_prefix": false,
+          "response_end": 4450207,
+          "response_id": 670,
+          "response_start": 4450133,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8997,
+          "document_start": 5709830,
+          "identical_prefix": false,
+          "response_end": 5709958,
+          "response_id": 716,
+          "response_start": 5709879,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9456,
+          "document_start": 5978143,
+          "identical_prefix": false,
+          "response_end": 5978268,
+          "response_id": 726,
+          "response_start": 5978248,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7332,
+          "document_start": 4674253,
+          "identical_prefix": false,
+          "response_end": 4674453,
+          "response_id": 676,
+          "response_start": 4674300,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7241,
+          "document_start": 4613957,
+          "identical_prefix": false,
+          "response_end": 4614156,
+          "response_id": 674,
+          "response_start": 4613991,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7373,
+          "document_start": 4696406,
+          "identical_prefix": false,
+          "response_end": 4696501,
+          "response_id": 679,
+          "response_start": 4696429,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7398,
+          "document_start": 4710234,
+          "identical_prefix": false,
+          "response_end": 4710395,
+          "response_id": 681,
+          "response_start": 4710326,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7672,
+          "document_start": 4884760,
+          "identical_prefix": false,
+          "response_end": 4884990,
+          "response_id": 689,
+          "response_start": 4884787,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7426,
+          "document_start": 4728354,
+          "identical_prefix": false,
+          "response_end": 4728609,
+          "response_id": 683,
+          "response_start": 4728516,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9492,
+          "document_start": 6006252,
+          "identical_prefix": false,
+          "response_end": 6006398,
+          "response_id": 727,
+          "response_start": 6006289,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8570,
+          "document_start": 5439754,
+          "identical_prefix": false,
+          "response_end": 5439949,
+          "response_id": 706,
+          "response_start": 5439788,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7269,
+          "document_start": 4635986,
+          "identical_prefix": false,
+          "response_end": 4636235,
+          "response_id": 675,
+          "response_start": 4636153,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7094,
+          "document_start": 4526838,
+          "identical_prefix": false,
+          "response_end": 4527035,
+          "response_id": 672,
+          "response_start": 4526983,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9281,
+          "document_start": 5874372,
+          "identical_prefix": false,
+          "response_end": 5874475,
+          "response_id": 719,
+          "response_start": 5874413,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7712,
+          "document_start": 4906444,
+          "identical_prefix": false,
+          "response_end": 4906619,
+          "response_id": 691,
+          "response_start": 4906584,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8869,
+          "document_start": 5638510,
+          "identical_prefix": false,
+          "response_end": 5638742,
+          "response_id": 712,
+          "response_start": 5638548,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 7096,
+          "document_start": 4527296,
+          "identical_prefix": false,
+          "response_end": 4527536,
+          "response_id": 673,
+          "response_start": 4527442,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8318,
+          "document_start": 5281915,
+          "identical_prefix": false,
+          "response_end": 5282075,
+          "response_id": 703,
+          "response_start": 5282049,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8663,
+          "document_start": 5498765,
+          "identical_prefix": false,
+          "response_end": 5498954,
+          "response_id": 707,
+          "response_start": 5498800,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8337,
+          "document_start": 5294473,
+          "identical_prefix": false,
+          "response_end": 5294534,
+          "response_id": 704,
+          "response_start": 5294501,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 8703,
+          "document_start": 5524293,
+          "identical_prefix": false,
+          "response_end": 5524486,
+          "response_id": 710,
+          "response_start": 5524325,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9768,
+          "document_start": 6171135,
+          "identical_prefix": false,
+          "response_end": 6171328,
+          "response_id": 731,
+          "response_start": 6171182,
+          "source_index": 4
+        },
+        {
+          "corpus_response_index": 9888,
+          "document_start": 6189571,
+          "identical_prefix": false,
+          "response_end": 6189789,
+          "response_id": 816,
+          "response_start": 6189725,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10094,
+          "document_start": 6204167,
+          "identical_prefix": false,
+          "response_end": 6204261,
+          "response_id": 984,
+          "response_start": 6204228,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9875,
+          "document_start": 6188917,
+          "identical_prefix": false,
+          "response_end": 6188940,
+          "response_id": 804,
+          "response_start": 6188930,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9947,
+          "document_start": 6193958,
+          "identical_prefix": false,
+          "response_end": 6193981,
+          "response_id": 866,
+          "response_start": 6193971,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10246,
+          "document_start": 6214904,
+          "identical_prefix": false,
+          "response_end": 6215080,
+          "response_id": 1110,
+          "response_start": 6215036,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10130,
+          "document_start": 6206622,
+          "identical_prefix": false,
+          "response_end": 6206691,
+          "response_id": 1013,
+          "response_start": 6206665,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10129,
+          "document_start": 6206622,
+          "identical_prefix": false,
+          "response_end": 6206645,
+          "response_id": 1012,
+          "response_start": 6206635,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10182,
+          "document_start": 6210288,
+          "identical_prefix": false,
+          "response_end": 6210311,
+          "response_id": 1057,
+          "response_start": 6210301,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9803,
+          "document_start": 6184205,
+          "identical_prefix": false,
+          "response_end": 6184452,
+          "response_id": 738,
+          "response_start": 6184433,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10104,
+          "document_start": 6204714,
+          "identical_prefix": false,
+          "response_end": 6204969,
+          "response_id": 992,
+          "response_start": 6204953,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9913,
+          "document_start": 6191536,
+          "identical_prefix": false,
+          "response_end": 6191559,
+          "response_id": 837,
+          "response_start": 6191549,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9980,
+          "document_start": 6196208,
+          "identical_prefix": false,
+          "response_end": 6196407,
+          "response_id": 891,
+          "response_start": 6196350,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10237,
+          "document_start": 6214365,
+          "identical_prefix": false,
+          "response_end": 6214388,
+          "response_id": 1102,
+          "response_start": 6214378,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9880,
+          "document_start": 6189209,
+          "identical_prefix": false,
+          "response_end": 6189279,
+          "response_id": 808,
+          "response_start": 6189253,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9987,
+          "document_start": 6196806,
+          "identical_prefix": false,
+          "response_end": 6196913,
+          "response_id": 896,
+          "response_start": 6196873,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10123,
+          "document_start": 6206087,
+          "identical_prefix": false,
+          "response_end": 6206267,
+          "response_id": 1008,
+          "response_start": 6206219,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9839,
+          "document_start": 6186544,
+          "identical_prefix": false,
+          "response_end": 6186567,
+          "response_id": 772,
+          "response_start": 6186557,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10105,
+          "document_start": 6204969,
+          "identical_prefix": false,
+          "response_end": 6204992,
+          "response_id": 993,
+          "response_start": 6204982,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10230,
+          "document_start": 6213673,
+          "identical_prefix": false,
+          "response_end": 6213797,
+          "response_id": 1097,
+          "response_start": 6213739,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9874,
+          "document_start": 6188720,
+          "identical_prefix": false,
+          "response_end": 6188901,
+          "response_id": 803,
+          "response_start": 6188867,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9955,
+          "document_start": 6194470,
+          "identical_prefix": false,
+          "response_end": 6194571,
+          "response_id": 872,
+          "response_start": 6194523,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9809,
+          "document_start": 6184682,
+          "identical_prefix": false,
+          "response_end": 6184783,
+          "response_id": 744,
+          "response_start": 6184741,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10247,
+          "document_start": 6215096,
+          "identical_prefix": false,
+          "response_end": 6215119,
+          "response_id": 1111,
+          "response_start": 6215109,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9898,
+          "document_start": 6190585,
+          "identical_prefix": false,
+          "response_end": 6190609,
+          "response_id": 823,
+          "response_start": 6190599,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10149,
+          "document_start": 6207959,
+          "identical_prefix": false,
+          "response_end": 6208053,
+          "response_id": 1028,
+          "response_start": 6208012,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10114,
+          "document_start": 6205534,
+          "identical_prefix": false,
+          "response_end": 6205652,
+          "response_id": 1000,
+          "response_start": 6205593,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9902,
+          "document_start": 6190740,
+          "identical_prefix": false,
+          "response_end": 6190842,
+          "response_id": 827,
+          "response_start": 6190796,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9827,
+          "document_start": 6185726,
+          "identical_prefix": false,
+          "response_end": 6185749,
+          "response_id": 762,
+          "response_start": 6185739,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 9816,
+          "document_start": 6185101,
+          "identical_prefix": false,
+          "response_end": 6185124,
+          "response_id": 751,
+          "response_start": 6185114,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10168,
+          "document_start": 6209195,
+          "identical_prefix": false,
+          "response_end": 6209361,
+          "response_id": 1045,
+          "response_start": 6209296,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10221,
+          "document_start": 6213114,
+          "identical_prefix": false,
+          "response_end": 6213138,
+          "response_id": 1090,
+          "response_start": 6213128,
+          "source_index": 5
+        },
+        {
+          "corpus_response_index": 10107,
+          "document_start": 6204969,
+          "identical_prefix": false,
+          "response_end": 6205170,
+          "response_id": 995,
+          "response_start": 6205117,
+          "source_index": 5
+        }
+      ],
+      "sources": [
+        {
+          "end": 1724744,
+          "label": "smoltalk_smol-magpie-ultra.test",
+          "start": 0
+        },
+        {
+          "end": 2387098,
+          "label": "smoltalk_smol-constraints.test",
+          "start": 1724744
+        },
+        {
+          "end": 3381420,
+          "label": "smoltalk_smol-rewrite.test",
+          "start": 2387098
+        },
+        {
+          "end": 4401484,
+          "label": "smoltalk_smol-summarize.test",
+          "start": 3381420
+        },
+        {
+          "end": 6183861,
+          "label": "ultrachat_200k.default.test_sft",
+          "start": 4401484
+        },
+        {
+          "end": 6215400,
+          "label": "everyday-conversations-llama3.1-2k.default.test_sft",
+          "start": 6183861
+        }
+      ]
+    },
+    "derived_source_denominators": [
+      {
+        "source_index": 0,
+        "label": "smoltalk_smol-magpie-ultra.test",
+        "eligible_responses": 23,
+        "selected_responses": 23,
+        "supervised_targets": 3266,
+        "first_four_targets": 92,
+        "eos_targets": 23
+      },
+      {
+        "source_index": 1,
+        "label": "smoltalk_smol-constraints.test",
+        "eligible_responses": 597,
+        "selected_responses": 32,
+        "supervised_targets": 3811,
+        "first_four_targets": 128,
+        "eos_targets": 32
+      },
+      {
+        "source_index": 2,
+        "label": "smoltalk_smol-rewrite.test",
+        "eligible_responses": 10,
+        "selected_responses": 10,
+        "supervised_targets": 769,
+        "first_four_targets": 40,
+        "eos_targets": 10
+      },
+      {
+        "source_index": 3,
+        "label": "smoltalk_smol-summarize.test",
+        "eligible_responses": 39,
+        "selected_responses": 32,
+        "supervised_targets": 1325,
+        "first_four_targets": 128,
+        "eos_targets": 32
+      },
+      {
+        "source_index": 4,
+        "label": "ultrachat_200k.default.test_sft",
+        "eligible_responses": 63,
+        "selected_responses": 32,
+        "supervised_targets": 3233,
+        "first_four_targets": 128,
+        "eos_targets": 32
+      },
+      {
+        "source_index": 5,
+        "label": "everyday-conversations-llama3.1-2k.default.test_sft",
+        "eligible_responses": 382,
+        "selected_responses": 32,
+        "supervised_targets": 949,
+        "first_four_targets": 128,
+        "eos_targets": 32
+      }
+    ]
+  },
+  "campaigns": {
+    "full_prefix": {
+      "schema": "uor-r4.dialogue-prefix-campaign/1",
+      "parent_fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+      "prepared_manifest": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+      "tokenizer_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+      "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+      "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+      "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "data_seed": 20260929,
+      "total_steps": 1024,
+      "batch": 16,
+      "cpu_gradient_shards": 2,
+      "expected_train_response_runs": 129486,
+      "expected_eligible_train_responses": 14826,
+      "optimizer": {
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "parameter_abs_limit": 1000000.0,
+        "allowed_missing_gradients": []
+      },
+      "development_seed": 20260930,
+      "development_episodes": 161,
+      "development_batch": 4,
+      "development_every_steps": 256,
+      "checkpoint_every_steps": 512,
+      "max_process_seconds": 12600.0,
+      "resume_from": null,
+      "requests_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/development-requests.json",
+      "requests_sha256": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484",
+      "max_new_tokens": 32,
+      "policy": "full_prefix",
+      "stop_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix.stop",
+      "development_per_source": 32,
+      "development_panel_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json",
+      "development_panel_sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc"
+    },
+    "role_only": {
+      "schema": "uor-r4.dialogue-prefix-campaign/1",
+      "parent_fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+      "prepared_manifest": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+      "tokenizer_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+      "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+      "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+      "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "data_seed": 20260929,
+      "total_steps": 1024,
+      "batch": 16,
+      "cpu_gradient_shards": 2,
+      "expected_train_response_runs": 129486,
+      "expected_eligible_train_responses": 14826,
+      "optimizer": {
+        "learning_rate": 0.0001,
+        "weight_decay": 0.01,
+        "parameter_abs_limit": 1000000.0,
+        "allowed_missing_gradients": []
+      },
+      "development_seed": 20260930,
+      "development_episodes": 161,
+      "development_batch": 4,
+      "development_every_steps": 256,
+      "checkpoint_every_steps": 512,
+      "max_process_seconds": 12600.0,
+      "resume_from": null,
+      "requests_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/development-requests.json",
+      "requests_sha256": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484",
+      "max_new_tokens": 32,
+      "policy": "role_only",
+      "stop_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only.stop",
+      "development_per_source": 32,
+      "development_panel_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json",
+      "development_panel_sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc"
+    }
+  },
+  "campaign_manifest": {
+    "files": [
+      {
+        "blake3": "16c5840386f35d84f418fc4620fb31372869f0f992e2be8bb0d6b029f32474f8",
+        "bytes": 425,
+        "path": "attempt.json"
+      },
+      {
+        "blake3": "809e68896bae96f05547a974307e2356b1dd2c74e849e6b1ba94f56cd00cde2c",
+        "bytes": 1925,
+        "path": "full_prefix.json"
+      },
+      {
+        "blake3": "8a73e2d366af456c2977c5d45971ffe5640da2a40c436db699af0759d08b5876",
+        "bytes": 1921,
+        "path": "role_only.json"
+      }
+    ],
+    "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1",
+    "schema": "uor-r4.report-manifest/1",
+    "sealed_at": "1790499003"
+  },
+  "open_requests": [
+    {
+      "category": "greeting",
+      "id": "dev-core-greet-01",
+      "user_turns": [
+        "Hi there!"
+      ]
+    },
+    {
+      "category": "greeting",
+      "id": "dev-core-greet-02",
+      "user_turns": [
+        "Good morning!"
+      ]
+    },
+    {
+      "category": "greeting",
+      "id": "dev-core-greet-03",
+      "user_turns": [
+        "How are you today?"
+      ]
+    },
+    {
+      "category": "greeting",
+      "id": "dev-core-greet-04",
+      "user_turns": [
+        "Nice to meet you."
+      ]
+    },
+    {
+      "category": "greeting",
+      "id": "dev-core-greet-05",
+      "user_turns": [
+        "Thank you very much!"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-01",
+      "user_turns": [
+        "What is the capital of France?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-02",
+      "user_turns": [
+        "How many legs does a spider have?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-03",
+      "user_turns": [
+        "What color is the sky on a clear day?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-04",
+      "user_turns": [
+        "How many days are in a week?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-05",
+      "user_turns": [
+        "What is the largest planet in our solar system?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-06",
+      "user_turns": [
+        "What do bees make?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-07",
+      "user_turns": [
+        "What is the freezing point of water in Celsius?"
+      ]
+    },
+    {
+      "category": "factual",
+      "id": "dev-core-fact-08",
+      "user_turns": [
+        "Which animal is known as the king of the jungle?"
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-01",
+      "user_turns": [
+        "Write a sentence about the sun."
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-02",
+      "user_turns": [
+        "Write a sentence about a dog."
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-03",
+      "user_turns": [
+        "Write a sentence about the ocean."
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-04",
+      "user_turns": [
+        "Write a sentence about winter."
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-05",
+      "user_turns": [
+        "Write a sentence about a book."
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-06",
+      "user_turns": [
+        "Write a sentence about music."
+      ]
+    },
+    {
+      "category": "instruction",
+      "id": "dev-core-inst-07",
+      "user_turns": [
+        "Write a sentence about a mountain."
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-01",
+      "user_turns": [
+        "My name is Alex.",
+        "I also like apples.",
+        "What is my name?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-02",
+      "user_turns": [
+        "My cat is named Momo.",
+        "She likes to sleep.",
+        "What is my cat's name?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-03",
+      "user_turns": [
+        "My favorite color is green.",
+        "I also like blue.",
+        "What is my favorite color?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-04",
+      "user_turns": [
+        "I work as a teacher.",
+        "My school is nearby.",
+        "What is my job?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-05",
+      "user_turns": [
+        "My sister lives in Tokyo.",
+        "She visits often.",
+        "Where does my sister live?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-06",
+      "user_turns": [
+        "I have two brothers.",
+        "They are older than me.",
+        "How many brothers do I have?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-07",
+      "user_turns": [
+        "My birthday is in July.",
+        "I love summer.",
+        "When is my birthday?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-08",
+      "user_turns": [
+        "I drive a blue car.",
+        "It is fast.",
+        "What color is my car?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-09",
+      "user_turns": [
+        "I am learning to play the piano.",
+        "It is hard but fun.",
+        "What instrument am I learning?"
+      ]
+    },
+    {
+      "category": "memory",
+      "id": "dev-mem-10",
+      "user_turns": [
+        "My favorite food is pizza.",
+        "I eat it on Fridays.",
+        "What is my favorite food?"
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-01",
+      "user_turns": [
+        "What is the best flavor?"
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-02",
+      "user_turns": [
+        "Tell me about the thing."
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-03",
+      "user_turns": [
+        "What did I do yesterday?"
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-04",
+      "user_turns": [
+        "Who won the game?"
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-05",
+      "user_turns": [
+        "What is the answer?"
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-06",
+      "user_turns": [
+        "Tell me about the future."
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-07",
+      "user_turns": [
+        "Give me the number."
+      ]
+    },
+    {
+      "category": "refusal",
+      "id": "dev-ref-08",
+      "user_turns": [
+        "What is the name of that song?"
+      ]
+    }
+  ],
+  "reviews": {
+    "prospective_design": {
+      "schema": "uor-r4.dialogue-prefix-study-review-design/1",
+      "status": "PROSPECTIVE_REVIEW_COMPLETE_NOT_A_LAUNCH_OR_RESULT",
+      "recorded_at": "2026-09-27T08:39:45.954745+00:00",
+      "reviewer": "fourth-lab independent adversarial reviewer",
+      "scope": "Scientific design and operational output interpretation for the fixed 1024-update pair. No dataset scan, model execution, build, tests, external message or source edits performed for this review.",
+      "source_context": {
+        "branch": "codex/dialogue-prefix-study-20260927",
+        "base_commit": "c046cf19bd856eb9087e78ee3b5d60cd146f29ae",
+        "qualification": "Driver and source-stratified helper were being implemented during review; this is not final source clearance."
+      },
+      "inputs": {
+        "draft_workcard": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-prefix-next-workcard-draft.json",
+          "bytes": 3653,
+          "sha256": "b2f2f1b869f411ca94b022aa9be785d27cf5e2da74eee837e9d032d869e2069d"
+        },
+        "merged_design_plan": {
+          "path": "/Users/casey.allard/.codex/worktrees/dialogue-continuity/uor-r4/docs/integration/dialogue-prefix-learning-plan-2026-09-27.md",
+          "bytes": 12780,
+          "sha256": "bcd4c41a7df5983a9c965633caa9c2a1e0bae29610958fb06886040819afa2cc"
+        },
+        "retained_parent_open_replay": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/result.json",
+          "bytes": 1927330,
+          "sha256": "4ea4df2614ebcf0eb31da944a3e7c63c8edec28effcee936984112f5c88455d8"
+        },
+        "prior_integration_review": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-prefix-adversarial-review.json",
+          "bytes": 39259,
+          "sha256": "c57504258abf5744d51c433d2c86bce9b01c8aea06190be8f68e081b74ead84f"
+        }
+      },
+      "recommendation": "Proceed with the fixed prospective pair once its already-declared campaign, seed, panel and resource identities are frozen. No critical scientific invalidity found in the chosen intervention. Preserve the fixed endpoint and actual output review; no new numerical qualification threshold is proposed.",
+      "fixed_comparability": {
+        "steps_per_arm": 1024,
+        "response_visits_per_arm": 16384,
+        "padded_tensor_positions_per_arm": 4194304,
+        "batch": 16,
+        "tensor_time": 256,
+        "total_id_eligibility": 256,
+        "state_width": 576,
+        "read_coordinate_width": 64,
+        "geometry": "Quaternion",
+        "read": "Dot",
+        "admission": "Full causal access",
+        "gradient_shards": 2,
+        "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+        "initialization": "Both arms independently start from the retained parent arrays with fresh Adam and local step zero. Do not start from two-update descendants.",
+        "optimizer": {
+          "learning_rate": 0.0001,
+          "weight_decay": 0.01,
+          "evidence": "Both saved integration witness campaign objects agree. Freeze the complete AdamConfig, including existing defaults, identically."
+        },
+        "schedule": "One common prospective seed and response-uniform-with-replacement step/lane schedule; compare full response IDs, target hashes, actual supervised counts and schedule chain across arms. Actual response-token exposure is not padded tensor work.",
+        "objective": "Global mean over identical complete selected response and genuine EOS target visits. Longer sampled replies contribute more tokens. No prompt-token loss or arm-dependent target normalization.",
+        "endpoint": "Only update 1024 is the selected candidate. Open dev at 0/256/512/768/1024 is descriptive; midpoint 512 is recovery, not an alternative selected endpoint. Integrity/resource stops remain applicable; incomplete dose is not the fixed-endpoint quality result.",
+        "mechanism_scope": "Prefix content, history length and physical response positions change together. The study estimates this complete-prefix training package on the short eligible population; it does not isolate semantics from position or prove the historical missing-prefix frequency caused all weak output."
+      },
+      "development_panel": {
+        "eligible_by_source": [
+          23,
+          597,
+          10,
+          39,
+          63,
+          382
+        ],
+        "selected_by_source": [
+          23,
+          32,
+          10,
+          32,
+          32,
+          32
+        ],
+        "selected_total": 161,
+        "selection": "Freeze source IDs without replacement before updates and reuse both arms. Sources with fewer than 32 contribute all eligible responses.",
+        "reporting": "Retain per-source response counts, supervised-token denominators, response mean NLL and first-four-response-target counts/loss; include the aggregate with its exact panel weighting.",
+        "scope": "The pooled token mean is a selected, nearly source-balanced open development panel score, not an original corpus-mixture estimate. The 23- and 10-response sources are small complete eligible strata. Repeated dev observations are not final held-out evidence or independent replications.",
+        "training_population": "The 14826/129486 eligible response-run filter and its strong source/length skew remain an explicit intervention. This study does not repair or evaluate excluded long conversations."
+      },
+      "open_output_review": {
+        "fixed_requests": 38,
+        "fixed_responses": 58,
+        "policy": "Greedy, 32 selected token cap, exact bound protocol and generated token history; no fresh panel access.",
+        "case_categories": {
+          "greeting": 5,
+          "factual": 8,
+          "instruction": 7,
+          "memory": 10,
+          "refusal": 8
+        },
+        "unit": "Review each of 58 turns, but summarize 38 cases and ten multi-turn memory conversations as dependent trajectories; do not call the 58 responses independent trials.",
+        "joins": [
+          "request ID",
+          "turn index",
+          "exact user request IDs/text",
+          "protocol/tokenizer identity",
+          "decoding policy",
+          "retained parent and both endpoint artifact identities"
+        ],
+        "history_scope": "Same user turns do not imply identical model prefixes after the first reply. Preserve each arm's actual generated assistant IDs; compare whole-conversation behavior. A wrong earlier assistant claim does not replace the user's stated facts as the correctness reference.",
+        "parent_reuse": "Use the existing sealed 58-response parent replay read-only. Its historical replay executable differs from the new study executable; describe reused compatible-path baseline evidence, not same-executable bitwise replay.",
+        "per_turn_fields": [
+          "request_id",
+          "category",
+          "turn",
+          "exact_response_text",
+          "raw_stop",
+          "generated_count",
+          "request_fulfillment",
+          "factual_or_history_correctness",
+          "intelligibility",
+          "repetition_or_distraction",
+          "payload_completion",
+          "overall_interpretation",
+          "short_evidence",
+          "versus_parent",
+          "versus_role_only"
+        ],
+        "dimensions": {
+          "request_fulfillment": "Complete / partial / absent / contrary: did the reply actually perform the requested task and explicit constraints? Greeting, topic-word overlap and promises to help do not answer a factual or memory question.",
+          "factual_or_history_correctness": "Correct / incorrect / mixed / not-applicable / uncertain: check factual answers and explicit user-provided history, including latest corrections. Mark applicability instead of treating every creative or greeting reply as a factual test; preserve uncertainty rather than inventing a correctness oracle.",
+          "intelligibility": "Clear / partly intelligible / incoherent: literal meaning, entity roles and referents can be understood. Minor grammar, names or stylistic preference alone do not invalidate a useful reply.",
+          "repetition_or_distraction": "None-material / limited / obstructive: judge whether repetition or unrelated text prevents fulfillment, not whether any word repeats.",
+          "payload_completion": "Complete / partial / absent: the requested payload is substantively finished. A cap is not automatically failure, EOS is not automatically success, and a short answer need not be a fully punctuated sentence. Report the actual stop separately.",
+          "category_context": "For instruction cases, explicit requested form/content matters. For memory, final recall and consistency over the entire conversation matter. For refusal cases, judge the requested boundary and useful safe alternative where applicable, rather than counting any refusal as correct."
+        },
+        "overall_interpretation": "Useful / partial / non-answer / incorrect, supported by dimensions and short exact evidence. Do not manufacture a pass from fluent generic prose or treat all partials as equivalent.",
+        "comparison": "List concrete gains, losses and unchanged failures against both parent and role-only on the same case/turn; retain material reviewer disagreement. Show category tradeoffs and illustrative exact phrases, not only a pooled count. Do not average new factual/history errors away with more fluent greetings."
+      },
+      "outcome_decisions": [
+        {
+          "outcome": "Useful conditioning signal",
+          "evidence": "Full-prefix endpoint has useful request/history-correct improvements over both retained parent and role-only, with supportive matched conditional evidence and no offsetting material retention loss. Describe the observed cases and source tradeoffs rather than impose an invented percentage threshold.",
+          "action": "Retain as next integration candidate within this population and dose. Any further fit requires a separate causal and resource decision."
+        },
+        {
+          "outcome": "Common adaptation benefit",
+          "evidence": "Both endpoints improve similarly over parent.",
+          "action": "Record the benefit of the common adaptation/selected population; do not attribute it to complete-prefix conditioning."
+        },
+        {
+          "outcome": "Loss-only or control-damage gap",
+          "evidence": "Lower development loss lacks useful generated improvement, or full-prefix only beats a degraded role-only model while failing to improve over parent.",
+          "action": "No useful-conditioning promotion; preserve both artifacts and stop at this dose."
+        },
+        {
+          "outcome": "No observed benefit",
+          "evidence": "Both remain weak or differences are not useful under the fixed requests.",
+          "action": "Preserve the scoped negative; no universal capacity verdict, automatic longer fit, seed repetition or decoder sweep."
+        },
+        {
+          "outcome": "Harm or reverse effect",
+          "evidence": "Full-prefix worsens meaningful correctness/retention versus parent or control, including source-specific tradeoffs hidden by a mean.",
+          "action": "Decline promotion or explicitly narrow any retained use; select the next action from the concrete divergence."
+        },
+        {
+          "outcome": "Unavailable fixed-endpoint evidence",
+          "evidence": "Integrity/binding failure or run stops before declared endpoint.",
+          "action": "Report incomplete evidence and the retained recovery artifact. Do not label the model ineffective from an unexecuted endpoint."
+        }
+      ],
+      "cost_and_restart_notes": [
+        "Project five 161-response open-development passes per arm, update work, midpoint/final model-plus-Adam save, reload comparison, all 58 generated replies per endpoint, build, preparation, review and delivery. Masked targets do not eliminate full padded recurrent forward work.",
+        "Reported 16384 response visits per arm may repeat response IDs; report distinct coverage only if already derived from the saved schedule. Do not equate these with distinct training examples or actual supervised-token counts.",
+        "Use one sequential owned fit with the declared thread/RAM/storage/deadline limits. Any recovery must retain current Adam, exact source/campaign and next step; do not recopy parent or choose a more favorable checkpoint.",
+        "Freeze the still-unspecified common data seed and panel identities, bind source/executable/campaign and refresh cumulative physical-resource receipts before launch. This is completion of the declared preparation, not a new scientific gate."
+      ],
+      "not_established": [
+        "Content-only conditioning causality",
+        "Generalization beyond the selected short response population",
+        "Fresh-held-out chat qualification",
+        "Geometric advantage",
+        "Integer serving or multiplier-free speed/energy benefit",
+        "Broad coding/reasoning capability"
+      ]
+    },
+    "launch": {
+      "schema": "uor-r4.dialogue-study-launch-review/1",
+      "status": "SCOPED_REVIEW_COMPLETE_NO_LAUNCH_BLOCKER",
+      "recorded_at": "2026-09-27T08:53:00.146399+00:00",
+      "reviewer": "fourth-lab independent adversarial reviewer",
+      "inspected_source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+      "scope": "Final frozen source/campaign comparability and the already completed bounded supervisor review. This review does not certify successful training, model quality or hard real-time resource enforcement between sampled probes.",
+      "review_actions": "Read source, scripts and saved JSON artifacts; compared campaign objects and recorded existing file SHA256 identities. No runtime/model execution, tests, build, dataset scan, process signal, external post or input/source/script modification by this reviewer. Only this new review JSON was written.",
+      "principal_launch_notice": {
+        "kind": "Parent-reported, not independently process-inspected",
+        "full_prefix_model_pid": 41266,
+        "launched_at_utc": "2026-09-27T08:50:17Z"
+      },
+      "scientific_review": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-prefix-study-review-design.json",
+        "bytes": 12509,
+        "sha256": "b8644efa15bd0779b8bc401df5692bcb93ebf4bacb7ff634327adc61984950c3"
+      },
+      "bindings": {
+        "process_supervisor": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study-process.py",
+          "bytes": 22543,
+          "sha256": "1827ef53d899635ebf38e63bdeb3efcf3f9d523ecaf2a37b4692300dcd725e8d"
+        },
+        "coordinator": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study.py",
+          "bytes": 18343,
+          "sha256": "e689928f9fe408695047e454879cdfe02d381be81a8a36214d1d084338b427d7"
+        },
+        "full_prefix_campaign": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/full_prefix.json",
+          "bytes": 1925,
+          "sha256": "b30eca1da3cf9f564f45ee9d2a66b88eb7c5f843b9978209b123436e737b409d"
+        },
+        "role_only_campaign": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/role_only.json",
+          "bytes": 1921,
+          "sha256": "7d206c61803929d3098a94768d3313e38d2eeae35a22ced1157388f4051f8c7d"
+        },
+        "preparation_campaign": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-preparation-inputs-1/prepare.json",
+          "bytes": 1667,
+          "sha256": "c69e19246af91bc790b76fc244aadfe01de0e859cc9a89bdb24e1e163c91c61c"
+        },
+        "build_receipt": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-build.json",
+          "bytes": 1799,
+          "sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda"
+        },
+        "projection": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-prefix-study.json",
+          "bytes": 4424,
+          "sha256": "07dd17759f861d723e6e9fc5195ef182d443b6e6300043680e72063e4a31b10b"
+        },
+        "development_panel": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json",
+          "bytes": 2247,
+          "sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc"
+        },
+        "development_inventory": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-episodes.json",
+          "bytes": 41545,
+          "sha256": "a5a7327a0510ac57a7f82061956721502adb0dd575701a6be1190f3787cd24d7"
+        },
+        "preparation_result": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/result.json",
+          "bytes": 485,
+          "sha256": "5391f55167ce7888c4e2999e6102d6b080fddd2cfd886af6a935e39b2c3a35dc"
+        },
+        "preparation_execution": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1-execution.json",
+          "bytes": 6009,
+          "sha256": "52311678395f43d31b1b333a58a7c0599beabcbc8128b25af8e2496f8d883cfd"
+        },
+        "open_requests": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/development-requests.json",
+          "bytes": 5360,
+          "sha256": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484"
+        }
+      },
+      "binary_binding": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-binary-3c43c6aa",
+        "sha256_from_frozen_build_and_preparation_receipts": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+        "profile": "release",
+        "features": [
+          "cpu-accelerate"
+        ],
+        "scope": "Build and preparation receipts agree with pinned source; this reviewer did not execute or independently rebuild the executable. The process supervisor rehashes it before launch."
+      },
+      "campaign_comparability": {
+        "differing_fields": [
+          "policy",
+          "stop_file"
+        ],
+        "allowed_difference": "Only prefix policy and owned stop-file path differ; all other values are exactly equal.",
+        "data_seed": 20260929,
+        "development_seed": 20260930,
+        "steps_per_arm": 1024,
+        "batch": 16,
+        "tensor_time": 256,
+        "state_width": 576,
+        "read_coordinate_width": 64,
+        "geometry": "Quaternion",
+        "read": "Dot",
+        "admission": "Full",
+        "optimizer": {
+          "learning_rate": 0.0001,
+          "weight_decay": 0.01,
+          "parameter_abs_limit": 1000000.0,
+          "allowed_missing_gradients": []
+        },
+        "cpu_gradient_shards": 2,
+        "resume_from": null,
+        "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+        "parent_fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+        "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+        "expected_train_response_runs": 129486,
+        "expected_eligible_train_responses": 14826,
+        "fresh_initialization": "Each source path independently consumes the same strict legacy parent import and creates new Adam before the update loop. No witness-descendant path or resume is configured.",
+        "source_contract": "Pinned loader requires width576/read64/context256 Quaternion/Dot/Full continuous model; both campaigns share that loader.",
+        "development_every_steps": 256,
+        "checkpoint_every_steps": 512,
+        "development_batch": 4,
+        "generation": {
+          "requests": 38,
+          "turns": 58,
+          "max_new_tokens": 32,
+          "policy": "Greedy with exact generated history; reused already-open requests."
+        },
+        "outcome": "Matches the fixed reviewed pair; no additional causal or optimizer intervention is present."
+      },
+      "panel_review": {
+        "status_from_preparation_receipts": "DEVELOPMENT_PANEL_FROZEN",
+        "preparation_exit_code": 0,
+        "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+        "seed": 20260930,
+        "selection": "uor-r4.dialogue-development/source-sha256-rank-v1",
+        "unique_response_ids": 161,
+        "response_ids_equal_saved_development_inventory": true,
+        "eligible_source_counts": [
+          23,
+          597,
+          10,
+          39,
+          63,
+          382
+        ],
+        "selected_source_counts": [
+          23,
+          32,
+          10,
+          32,
+          32,
+          32
+        ],
+        "both_campaigns_bind_actual_panel_file_hash": true,
+        "train_index_sha256": "3cceb18a5e1febfd9516c3d7730a2a5498c2fbb896b5d34552526dff88f16ce5",
+        "development_index_sha256": "e57dd3816cb65076506c8d7bc8dc8bbb52df72cebfdf54874cc5a2ad28047507",
+        "receipt_scope": "Completed preparation receipt has no soft/hard stop or supervisor error and declares zero model work. This reviewer read the records and identities but did not rerun native sealing/verification or regenerate selection."
+      },
+      "source_boundary_review": [
+        "CLI prepare selects a distinct entry point. The source returns after import, index construction and panel save, before Adam construction, model evaluation, backward, updates or generation.",
+        "A stratified fit requires a bound panel and verifies the complete parent report root, actual file SHA256 and exact regenerated JSON before any optimizer update. The JSON binds source, seed, IDs, train/dev inventories, retained parameters, manifest, tokenizer and protocol.",
+        "All three optional panel fields use serde default and skip_serializing_if Option::is_none at pinned source. Legacy absent-field campaigns retain their earlier sampling/evaluation and serialized contract shape."
+      ],
+      "supervisor_review": {
+        "hash_identity": "Both exact script hashes match the frozen values supplied for review.",
+        "preparation": "Process invokes --prepare and requires completed panel status/161 responses with no training outputs before coordinator adoption.",
+        "resource_limits": "Checks preflight full process plus closeout time, cumulative/owned/phase remaining time, own model RSS, system free-memory percentage, physical reserve and counted/physical storage growth. Soft stops request checkpoint closeout; hard stops end the owned process group. Sampling/probe latency is not a hard real-time guarantee.",
+        "cleanup": "SIGTERM/errors flow through owned-child cleanup, TERM then KILL if needed, followed by best-effort final receipt. Coordinator signals its owned supervisor; it does not signal foreign jobs.",
+        "saved_campaign": "Process normalizes omitted optional panel fields consistently with source and checks saved campaign equality, source, executable and original supplied campaign digest.",
+        "sequential_identity": "Coordinator freezes input/script/build/panel identities, runs full_prefix then role_only once, refuses existing roots/receipts and has no automatic retry/resume/dose extension.",
+        "complete_pair": "Requires unstopped successful1024-update endpoints, matching checkpoint/result parameter and Adam fingerprints, source/binary/campaign identities, all1024 response-ID/target/count rows and source counters,16384 response/EOS visits, and common parent/start clocks/actual supervised exposure.",
+        "final_status": "PENDING_PROSE_REVIEW denotes complete matched execution, not a language qualification.",
+        "conclusion": "No launch-blocking defect found in the reviewed frozen scripts."
+      },
+      "scientific_scope": "Retain the linked prospective rubric: complete-prefix content/position/history intervention, selected short-response population, source-panel weighting and dependent generated histories. Endpoint quality, parent/control gains and source tradeoffs remain pending actual completed outputs.",
+      "remaining_execution_status": "The pair was reported running by the principal. This review is not completion evidence and does not reopen or extend the fixed study."
+    }
+  },
+  "orchestration_sources": {
+    "run-dialogue-study-process.py": "\"\"\"Local process/resource supervision only; the frozen Rust binary owns model work.\n\nUsage: python3 run-dialogue-study-process.py {prepare|fit} POLICY CAMPAIGN NEW_REPORT_ROOT\nThis never retries, resumes, edits a sealed report, or writes resource ledgers.\n\"\"\"\nimport datetime\nimport fcntl\nimport hashlib\nimport json\nimport os\nimport pathlib\nimport re\nimport resource\nimport shutil\nimport signal\nimport subprocess\nimport sys\nimport time\n\nROOT = pathlib.Path(__file__).resolve().parent\nPROJECTION_PATH = ROOT / 'projection-dialogue-prefix-study.json'\nBUILD_PATH = ROOT / 'dialogue-study-build.json'\nLEDGER_PATH = pathlib.Path('/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json')\nVOLUMES = ('/System/Volumes/Data', '/Volumes/UOR-Workspace')\nTHREAD_ENV = {'RAYON_NUM_THREADS': '2', 'VECLIB_MAXIMUM_THREADS': '1',\n              'OMP_NUM_THREADS': '1', 'GEMM_NUM_THREADS': '1'}\nreceived_signal = None\n\n\ndef on_signal(number, _frame):\n    # Keep the Popen handle assignment intact so only our own child is stopped.\n    global received_signal\n    received_signal = number\n\n\ndef now_utc():\n    return datetime.datetime.now(datetime.timezone.utc)\n\n\ndef read_json(path):\n    return json.loads(path.read_text())\n\n\ndef sha(path):\n    digest = hashlib.sha256()\n    with path.open('rb') as stream:\n        for chunk in iter(lambda: stream.read(1024 * 1024), b''):\n            digest.update(chunk)\n    return digest.hexdigest()\n\n\ndef memory_free():\n    text = subprocess.check_output(['memory_pressure'], text=True, timeout=5)\n    match = re.search(r'System-wide memory free percentage:\\s*(\\d+)%', text)\n    if not match:\n        raise RuntimeError('system free-memory percentage unavailable')\n    return int(match.group(1))\n\n\ndef study_size():\n    # All matching files and descendant files count, including build/campaign/\n    # logs, both fit roots and the two orchestration scripts, not just the current model's output directory.\n    total = 0\n    paths = list(ROOT.glob('dialogue-study-*')) + list(ROOT.glob('run-dialogue-study*.py')) + [PROJECTION_PATH]\n    for path in paths:\n        entries = path.rglob('*') if path.is_dir() else (path,)\n        for entry in entries:\n            if entry.is_file():\n                total += entry.stat().st_size\n    return total\n\n\ndef main():\n    if len(sys.argv) != 5 or sys.argv[1] not in ('prepare', 'fit') or sys.argv[2] not in ('full_prefix', 'role_only'):\n        raise SystemExit('usage: run-dialogue-study-process.py {prepare|fit} {full_prefix|role_only} CAMPAIGN NEW_REPORT_ROOT')\n    kind, policy = sys.argv[1:3]\n    campaign = pathlib.Path(sys.argv[3]).resolve()\n    out = pathlib.Path(sys.argv[4]).resolve()\n    expected_out = ROOT / ('dialogue-study-panel-1' if kind == 'prepare' else f'dialogue-study-{policy}-1')\n    if out != expected_out or out.exists() or not campaign.is_file():\n        raise SystemExit('require existing campaign and unused exact study root: ' + str(expected_out))\n    cfg = read_json(campaign)\n    # Frozen source3c43c6aa omits absent optional panel fields when saving.\n    for field in ('development_per_source', 'development_panel_path', 'development_panel_sha256'):\n        if cfg.get(field) is None:\n            cfg.pop(field, None)\n    expected = {'schema': 'uor-r4.dialogue-prefix-campaign/1', 'policy': policy,\n                'total_steps': 1024, 'batch': 16, 'cpu_gradient_shards': 2,\n                'max_process_seconds': 12600, 'development_episodes': 161,\n                'development_batch': 4, 'development_per_source': 32,\n                'development_every_steps': 256, 'checkpoint_every_steps': 512,\n                'max_new_tokens': 32, 'resume_from': None}\n    if any(key not in cfg or cfg[key] != value for key, value in expected.items()):\n        raise SystemExit('campaign differs from the fixed fresh 1024-update study contract')\n    if kind == 'prepare':\n        if cfg.get('development_panel_path') is not None or cfg.get('development_panel_sha256') is not None:\n            raise SystemExit('prepare requires an unbound panel')\n    else:\n        panel = ROOT / 'dialogue-study-panel-1' / 'development-panel.json'\n        if (cfg.get('development_panel_path') != str(panel)\n                or not isinstance(cfg.get('development_panel_sha256'), str)\n                or not re.fullmatch(r'[0-9a-f]{64}', cfg['development_panel_sha256'])\n                or sha(panel) != cfg['development_panel_sha256']):\n            raise SystemExit('fit requires the exact frozen development-panel path and hash')\n        prepared = read_json(panel.parent / 'result.json')\n        if (prepared.get('status') != 'DEVELOPMENT_PANEL_FROZEN' or prepared.get('response_count') != 161\n                or not (panel.parent / 'manifest.json').is_file()\n                or (panel.parent / 'failed-attempt.json').exists()):\n            raise SystemExit('development panel is not a completed native preparation')\n    if not isinstance(cfg.get('stop_file'), str):\n        raise SystemExit('campaign requires an explicit owned stop-file path')\n    stop = pathlib.Path(cfg['stop_file']).resolve()\n    if stop.parent != ROOT or not stop.name.startswith('dialogue-study-') or stop.exists():\n        raise SystemExit('require an absent direct dialogue-study-* stop file; no launch')\n    projection = read_json(PROJECTION_PATH)\n    limits = projection['resources']\n    build = read_json(BUILD_PATH)\n    binary = pathlib.Path(build['binary']).resolve()\n    worktree = pathlib.Path(build['worktree']).resolve()\n    if (sha(binary) != build['binary_sha256']\n            or not re.fullmatch(r'[0-9a-f]{40}', build['source_commit'])\n            or worktree != pathlib.Path(projection['worktree']).resolve()\n            or projection['fit_hard_seconds'] != 14400\n            or projection['fit_soft_update_seconds'] != 12600\n            or limits['updates_per_arm'] != 1024\n            or policy not in limits['arms']):\n        raise SystemExit('frozen binary/build/projection binding differs; no launch')\n    hard_wall = 300 if kind == 'prepare' else projection['fit_hard_seconds']\n    closeout = projection['time_closeout_margin_seconds']\n    phase_start = datetime.datetime.fromisoformat(projection['recorded_at'])\n    baseline = projection['physical_free_bytes']\n    floor = limits['physical_reserve_bytes']\n    margin = limits['storage_stop_margin_bytes']\n    rss_cap = limits['model_rss_cap_bytes']\n    internal_cap = limits['new_internal_bytes']\n    ssd_cap = limits['shared_ssd_growth_bytes']\n    receipt = ROOT / f'{out.name}-execution.json'\n    log_path = ROOT / f'{out.name}.log'\n    if receipt.exists() or log_path.exists() or stop in (out, campaign, receipt, log_path, BUILD_PATH, PROJECTION_PATH):\n        raise SystemExit('receipt/log already exists or stop path aliases an input/output; no launch')\n    command = [str(binary)] + (['--prepare'] if kind == 'prepare' else []) + [str(campaign), str(out)]\n    env = os.environ.copy()\n    env.update(THREAD_ENV)\n    record = {'schema': 'uor-r4.local-process-resource/1', 'kind': kind,\n              'policy': policy, 'started_at': now_utc().isoformat(), 'command': command,\n              'campaign_sha256': sha(campaign), 'report_root': str(out),\n              'build_receipt_sha256': sha(BUILD_PATH), 'binary_sha256': build['binary_sha256'],\n              'source_commit': build['source_commit'], 'compiled_features': build.get('features'),\n              'profile': 'release', 'thread_environment': THREAD_ENV, 'cpu_gradient_shards': 2,\n              'projection_sha256': sha(PROJECTION_PATH), 'supervisor_sha256': sha(pathlib.Path(__file__)),\n              'projection_physical_baseline': baseline,\n              'limits': dict(limits, hard_wall_seconds=hard_wall, soft_update_seconds=None if kind == 'prepare' else 12600,\n                             phase_wall_seconds=projection['wall_cap_seconds'],\n                             owned_elapsed_cap_ms=projection['owned_elapsed_cap_ms'],\n                             verified_cumulative_allowance_ms=projection['verified_cumulative_allowance_ms']),\n              'peak_sampled_rss_bytes': 0, 'minimum_free_memory_percent': None,\n              'soft_stop': None, 'hard_stop': None, 'status': 'PREFLIGHT',\n              'scope': 'Fixed study process only; completion is not useful dialogue or serving qualification. Read-only ledger observation; principal charges elapsed once.'}\n\n    def time_budget():\n        cursor = read_json(ROOT / 'ledger-cursor.json')\n        shared = read_json(LEDGER_PATH)\n        now = now_utc()\n        tail = max(0, (now - datetime.datetime.fromisoformat(cursor['last_charged_at'])).total_seconds() * 1000)\n        allowance = min(projection['verified_cumulative_allowance_ms'], shared['limit_ms'])\n        return {'cumulative_seconds_remaining': (allowance - shared['cumulative_ms'] - tail) / 1000,\n                'owned_seconds_remaining': (projection['owned_elapsed_cap_ms'] - cursor['charged_elapsed_ms'] - tail) / 1000,\n                'phase_seconds_remaining': projection['wall_cap_seconds'] - (now - phase_start).total_seconds(),\n                'shared_cumulative_ms': shared['cumulative_ms'], 'uncharged_tail_ms': tail,\n                'cursor_last_charged_at': cursor['last_charged_at'],\n                'cursor_charged_elapsed_ms': cursor['charged_elapsed_ms']}\n\n    def remaining(budget):\n        return min(budget[name] for name in ('cumulative_seconds_remaining', 'owned_seconds_remaining', 'phase_seconds_remaining'))\n\n    def storage():\n        free = {volume: shutil.disk_usage(volume).free for volume in VOLUMES}\n        return {'physical_free_bytes': free, 'study_apparent_bytes': study_size(),\n                'internal_physical_growth_bytes': max(0, baseline[VOLUMES[0]] - free[VOLUMES[0]]),\n                'shared_ssd_growth_bytes': max(0, baseline[VOLUMES[1]] - free[VOLUMES[1]])}\n\n    def save():\n        temporary = receipt.with_suffix('.json.tmp')\n        with temporary.open('w') as stream:\n            json.dump(record, stream, indent=2)\n            stream.write('\\n')\n            stream.flush()\n            os.fsync(stream.fileno())\n        os.replace(temporary, receipt)\n\n    def best_effort_save():\n        try:\n            save()\n        except Exception as error:\n            record['receipt_write_error'] = f'{type(error).__name__}: {error}'\n            print(record['receipt_write_error'], file=sys.stderr)\n\n    def request_stop(reason):\n        if record['soft_stop'] is not None:\n            return\n        record['soft_stop'] = {'reason': reason, 'at': now_utc().isoformat()}\n        try:\n            with stop.open('x') as stream:\n                json.dump({'supervisor': str(pathlib.Path(__file__)), 'owned_child_pid': record.get('pid'),\n                           'reason': reason, 'at': now_utc().isoformat()}, stream)\n        except FileExistsError:\n            pass\n        except OSError as error:\n            record['stop_file_error'] = f'{type(error).__name__}: {error}'\n        best_effort_save()\n\n    signal.signal(signal.SIGTERM, on_signal)\n    signal.signal(signal.SIGINT, on_signal)\n    # Reuse the existing owned-model lock; this is not a global foreign-lab mutex.\n    with (ROOT / 'reader-study-owned-process.lock').open('a') as lock:\n        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)\n        with receipt.open('x') as stream:\n            json.dump(record, stream, indent=2)\n        started = time.monotonic()\n        child = None\n        supervisor_failed = False\n        try:\n            budget, disk, percent = time_budget(), storage(), memory_free()\n            record.update(preflight_time_budget=budget, preflight_storage=disk,\n                          preflight_free_memory_percent=percent, minimum_free_memory_percent=percent)\n            if subprocess.run(['pgrep', '-x', 'cargo'], capture_output=True, timeout=5).returncode == 0:\n                raise RuntimeError('Cargo is active; defer owned model work')\n            if remaining(budget) < hard_wall + closeout:\n                raise RuntimeError('full process and time closeout margin unavailable')\n            if percent < limits['launch_free_memory_percent']:\n                raise RuntimeError('free memory below launch threshold')\n            if (min(disk['physical_free_bytes'].values()) <= floor + margin\n                    or disk['study_apparent_bytes'] >= internal_cap - margin\n                    or disk['internal_physical_growth_bytes'] >= internal_cap - margin\n                    or disk['shared_ssd_growth_bytes'] >= ssd_cap - margin):\n                raise RuntimeError('projection storage reserve/growth margin unavailable')\n            if received_signal is not None:\n                raise InterruptedError('supervisor interrupted before launch')\n            with log_path.open('x') as log:\n                child = subprocess.Popen(command, cwd=worktree, env=env, stdout=log,\n                                         stderr=subprocess.STDOUT, start_new_session=True)\n                record.update(pid=child.pid, status='RUNNING', launched_at=now_utc().isoformat())\n                save()\n                while child.poll() is None:\n                    budget, disk, percent = time_budget(), storage(), memory_free()\n                    elapsed = time.monotonic() - started\n                    probe = subprocess.run(['ps', '-o', 'rss=', '-p', str(child.pid)],\n                                           capture_output=True, text=True, timeout=5)\n                    if child.poll() is not None:\n                        break  # Normal exit can race ps; the Rust receipt is now final.\n                    raw_rss = probe.stdout.strip()\n                    if probe.returncode != 0 or not raw_rss:\n                        raise RuntimeError('live child RSS unavailable')\n                    rss = int(raw_rss) * 1024\n                    record['peak_sampled_rss_bytes'] = max(record['peak_sampled_rss_bytes'], rss)\n                    record['minimum_free_memory_percent'] = min(record['minimum_free_memory_percent'], percent)\n                    record.update(last_time_budget=budget, last_storage=disk,\n                                  last_free_memory_percent=percent, elapsed_seconds=elapsed)\n                    reason = None\n                    if kind == 'fit' and elapsed >= 12600: reason = 'SOFT_UPDATE_DEADLINE'\n                    if rss >= rss_cap * 0.9: reason = 'RSS_SOFT_MARGIN'\n                    if min(disk['physical_free_bytes'].values()) <= floor + margin: reason = 'PHYSICAL_RESERVE_MARGIN'\n                    if max(disk['study_apparent_bytes'], disk['internal_physical_growth_bytes']) >= internal_cap - margin: reason = 'INTERNAL_STORAGE_MARGIN'\n                    if disk['shared_ssd_growth_bytes'] >= ssd_cap - margin: reason = 'SHARED_SSD_GROWTH_MARGIN'\n                    if remaining(budget) <= closeout: reason = 'TIME_CLOSEOUT_MARGIN'\n                    if percent <= limits['minimum_free_memory_percent']: reason = 'SYSTEM_MEMORY_LIMIT'\n                    if stop.exists() and record['soft_stop'] is None: reason = 'EXTERNAL_OWNED_STOP_FILE'\n                    if reason: request_stop(reason)\n                    # Refresh allowance after probes so their wall time is never free.\n                    budget = time_budget()\n                    elapsed = time.monotonic() - started\n                    hard = None\n                    if received_signal is not None: hard = f'SUPERVISOR_SIGNAL_{received_signal}'\n                    elif elapsed >= hard_wall: hard = 'WALL_LIMIT'\n                    elif kind == 'prepare' and reason is not None: hard = reason\n                    elif remaining(budget) <= 0: hard = 'CUMULATIVE_OWNED_OR_PHASE_LIMIT'\n                    elif rss >= rss_cap: hard = 'RSS_LIMIT'\n                    elif percent <= limits['minimum_free_memory_percent']: hard = 'SYSTEM_MEMORY_LIMIT'\n                    elif min(disk['physical_free_bytes'].values()) <= floor: hard = 'PHYSICAL_RESERVE'\n                    elif max(disk['study_apparent_bytes'], disk['internal_physical_growth_bytes']) >= internal_cap: hard = 'INTERNAL_STORAGE_LIMIT'\n                    elif disk['shared_ssd_growth_bytes'] >= ssd_cap: hard = 'SHARED_SSD_GROWTH_LIMIT'\n                    record['last_time_budget'] = budget\n                    if hard:\n                        record['hard_stop'] = hard\n                        break\n                    save()\n                    time.sleep(2)\n        except BaseException as error:\n            supervisor_failed = True\n            record['supervisor_error'] = f'{type(error).__name__}: {error}'\n            record['hard_stop'] = record['hard_stop'] or 'SUPERVISOR_ERROR'\n        finally:\n            try:\n                if child is not None and child.poll() is None:\n                    try:\n                        request_stop('SUPERVISOR_EXIT')\n                    except BaseException as error:\n                        record['cleanup_stop_request_error'] = f'{type(error).__name__}: {error}'\n                    try:\n                        os.killpg(child.pid, signal.SIGTERM)\n                    except ProcessLookupError:\n                        pass\n                    try:\n                        child.wait(timeout=5)\n                    except subprocess.TimeoutExpired:\n                        try:\n                            os.killpg(child.pid, signal.SIGKILL)\n                        except ProcessLookupError:\n                            pass\n                        child.wait()\n            except BaseException as error:\n                supervisor_failed = True\n                record['cleanup_error'] = f'{type(error).__name__}: {error}'\n            finally:\n                if received_signal is not None:\n                    record['hard_stop'] = record['hard_stop'] or f'SUPERVISOR_SIGNAL_{received_signal}'\n                record.update(exit_code=None if child is None else child.returncode,\n                              wall_seconds=time.monotonic()-started, finished_at=now_utc().isoformat(),\n                              maximum_child_rss_bytes=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)\n                for relative in ('manifest.json', 'execution-binding.json', 'result.json', 'responses.json',\n                                 'learning-curve.jsonl', 'development-panel.json', 'development-episodes.json',\n                                 'checkpoint-final/manifest.json', 'checkpoint-final/checkpoint.json',\n                                 'checkpoint-final/config.json', 'checkpoint-final/model.safetensors',\n                                 'checkpoint-final/optimizer.json', 'checkpoint-final/optimizer.safetensors'):\n                    try:\n                        path = out / relative\n                        if path.is_file():\n                            record.setdefault('output_sha256', {})[relative] = sha(path)\n                    except Exception as error:\n                        record.setdefault('output_hash_errors', {})[relative] = f'{type(error).__name__}: {error}'\n                completed = False\n                if child is not None and child.returncode == 0 and record['hard_stop'] is None:\n                    try:\n                        result = read_json(out / 'result.json')\n                        binding = read_json(out / 'execution-binding.json')\n                        saved_campaign = read_json(out / 'campaign.json')\n                        common = (not record.get('output_hash_errors') and not supervisor_failed\n                                  and saved_campaign == cfg and result['source_commit'] == build['source_commit']\n                                  and binding['source_commit'] == build['source_commit']\n                                  and binding['executable_sha256'] == build['binary_sha256']\n                                  and binding['campaign_sha256'] == record['campaign_sha256']\n                                  and (out / 'manifest.json').is_file()\n                                  and not (out / 'failed-attempt.json').exists())\n                        if kind == 'prepare':\n                            completed = (common and result['status'] == 'DEVELOPMENT_PANEL_FROZEN'\n                                         and result['response_count'] == 161\n                                         and (out / 'development-panel.json').is_file()\n                                         and not any((out / name).exists() for name in\n                                                     ('learning-curve.jsonl', 'responses.json', 'checkpoint-final')))\n                            record['zero_model_evaluation_scope'] = 'Pinned Rust prepare returns after import/data selection, before forward, backward, optimizer or generation; no invented runtime work counters.'\n                        else:\n                            checkpoint = read_json(out / 'checkpoint-final' / 'checkpoint.json')\n                            completed = (common and checkpoint['next_data_step'] == 1024\n                                         and checkpoint['optimizer_step'] == 1024\n                                         and checkpoint['parameter_fingerprint'] == result['final_parameter_fingerprint']\n                                         and checkpoint['optimizer_fingerprint'] == result['restored_optimizer']\n                                         and result['status'] == 'TARGET_COMPLETE'\n                                         and result['completed_step'] == 1024 and result['starting_step'] == 0\n                                         and result['new_optimizer_updates'] == 1024\n                                         and result['new_tensor_positions'] == 4194304\n                                         and result['campaign'] == cfg\n                                         and result['executable_sha256'] == build['binary_sha256'])\n                    except Exception as error:\n                        record['endpoint_error'] = f'{type(error).__name__}: {error}'\n                record['status'] = ('DEVELOPMENT_PANEL_FROZEN' if kind == 'prepare' else 'TARGET_COMPLETE') if completed else 'INCOMPLETE_OR_FAILED'\n                record['native_seal_scope'] = 'The Rust driver seals and verifies its root before exit0; supervisor records hashes without rewriting or independently replaying that verification.'\n                best_effort_save()\n        print(json.dumps(record, indent=2))\n        return 0 if record['status'] in ('DEVELOPMENT_PANEL_FROZEN', 'TARGET_COMPLETE') else (124 if record['hard_stop'] else 1)\n\n\nif __name__ == '__main__':\n    sys.exit(main())\n",
+    "run-dialogue-study.py": "\"\"\"Sequential fixed-study orchestration only; no model implementation or retries.\n\nRun without arguments after the principal has frozen the build, development\npanel and both campaigns. This script never launches preparation automatically.\n\"\"\"\nimport datetime\nimport fcntl\nimport json\nimport os\nimport pathlib\nimport runpy\nimport shutil\nimport signal\nimport subprocess\nimport sys\nimport time\n\nROOT = pathlib.Path(__file__).resolve().parent\nSUPERVISOR = ROOT / 'run-dialogue-study-process.py'\nBUILD_PATH = ROOT / 'dialogue-study-build.json'\nPROJECTION_PATH = ROOT / 'projection-dialogue-prefix-study.json'\nSTATUS_PATH = ROOT / 'dialogue-study-pipeline.json'\nPANEL_ROOT = ROOT / 'dialogue-study-panel-1'\nARMS = ('full_prefix', 'role_only')\nreceived_signal = None\n# Load pure helper definitions, not main(); no bytecode or process is created.\nhelpers = runpy.run_path(str(SUPERVISOR))\nread, sha, study_size = helpers['read_json'], helpers['sha'], helpers['study_size']\nTHREAD_ENV, LEDGER_PATH = helpers['THREAD_ENV'], helpers['LEDGER_PATH']\n\n\ndef now():\n    return datetime.datetime.now(datetime.timezone.utc)\n\n\ndef on_signal(number, _frame):\n    global received_signal\n    received_signal = number\n\n\ndef main():\n    if len(sys.argv) != 1:\n        raise SystemExit('usage: python3 run-dialogue-study.py (fixed study; no resume/retry)')\n    build, projection = read(BUILD_PATH), read(PROJECTION_PATH)\n    binary = pathlib.Path(build['binary']).resolve()\n    limits = projection['resources']\n    phase_start = datetime.datetime.fromisoformat(projection['recorded_at'])\n    baseline = projection['physical_free_bytes']\n    campaigns = {arm: ROOT / 'dialogue-study-inputs-1' / f'{arm}.json' for arm in ARMS}\n    configs = {arm: read(path) for arm, path in campaigns.items()}\n    panel = PANEL_ROOT / 'development-panel.json'\n    stops = [pathlib.Path(configs[arm]['stop_file']).resolve() for arm in ARMS]\n    common = [{k: v for k, v in configs[arm].items() if k not in ('policy', 'stop_file')} for arm in ARMS]\n    if common[0] != common[1]:\n        raise SystemExit('arm campaigns differ beyond prefix policy and stop path')\n    for arm in ARMS:\n        if (configs[arm]['policy'] != arm or configs[arm]['resume_from'] is not None\n                or configs[arm].get('development_panel_path') != str(panel)\n                or configs[arm].get('development_panel_sha256') != sha(panel)):\n            raise SystemExit('fresh arm or frozen panel binding differs')\n    for arm in ARMS:\n        for path in (ROOT / f'dialogue-study-{arm}-1',\n                     ROOT / f'dialogue-study-{arm}-1-execution.json',\n                     ROOT / f'dialogue-study-{arm}-1.log',\n                     ROOT / f'dialogue-study-pipeline-{arm}.log'):\n            if path.exists():\n                raise SystemExit('existing arm/root/receipt/log: no retry or inherited process: ' + str(path))\n    frozen_paths = [BUILD_PATH, PROJECTION_PATH, SUPERVISOR, pathlib.Path(__file__), panel,\n                    PANEL_ROOT / 'manifest.json', PANEL_ROOT / 'result.json',\n                    ROOT / 'dialogue-study-panel-1-execution.json'] + list(campaigns.values())\n    frozen_hashes = {str(path): sha(path) for path in frozen_paths}\n    build_sha = frozen_hashes[str(BUILD_PATH)]\n    record = {'schema': 'uor-r4.dialogue-study-pipeline/1', 'started_at': now().isoformat(),\n              'status': 'PREFLIGHT', 'source_commit': build['source_commit'],\n              'binary_sha256': build['binary_sha256'], 'thread_environment': THREAD_ENV,\n              'frozen_files_sha256': frozen_hashes, 'children': [], 'completed': {},\n              'scope': 'Two fixed sequential arms; no automatic retry/resume/dose extension or quality gate. Parent charges overlapping elapsed once; ledgers remain read-only.'}\n    env = os.environ.copy()\n    env.update(THREAD_ENV)\n\n    def save():\n        record['updated_at'] = now().isoformat()\n        temporary = STATUS_PATH.with_suffix('.json.tmp')\n        with temporary.open('w') as stream:\n            json.dump(record, stream, indent=2)\n            stream.write('\\n')\n            stream.flush()\n            os.fsync(stream.fileno())\n        os.replace(temporary, STATUS_PATH)\n\n    def frozen():\n        if sha(binary) != build['binary_sha256']:\n            raise RuntimeError('frozen executable changed')\n        for name, expected in frozen_hashes.items():\n            if sha(pathlib.Path(name)) != expected:\n                raise RuntimeError('frozen input/orchestration file changed: ' + name)\n\n    def guard(closeout=False):\n        if received_signal is not None:\n            raise InterruptedError(f'coordinator signal {received_signal}')\n        if any(path.exists() for path in stops):\n            raise RuntimeError('declared study stop file present')\n        cursor, shared = read(ROOT / 'ledger-cursor.json'), read(LEDGER_PATH)\n        stamp = now()\n        tail = max(0, (stamp - datetime.datetime.fromisoformat(cursor['last_charged_at'])).total_seconds() * 1000)\n        allowance = min(projection['verified_cumulative_allowance_ms'], shared['limit_ms'])\n        remaining = {'phase': projection['wall_cap_seconds'] - (stamp - phase_start).total_seconds(),\n                     'owned': (projection['owned_elapsed_cap_ms'] - cursor['charged_elapsed_ms'] - tail) / 1000,\n                     'cumulative': (allowance - shared['cumulative_ms'] - tail) / 1000}\n        record['remaining_seconds'] = remaining\n        if min(remaining.values()) <= (projection['time_closeout_margin_seconds'] if closeout else 0):\n            raise RuntimeError('phase, owned or cumulative time limit')\n        free = {volume: shutil.disk_usage(volume).free for volume in baseline}\n        size = study_size()\n        margin = limits['storage_stop_margin_bytes'] if closeout else 0\n        if (min(free.values()) <= limits['physical_reserve_bytes'] + margin\n                or size >= limits['new_internal_bytes'] - margin\n                or baseline['/System/Volumes/Data'] - free['/System/Volumes/Data'] >= limits['new_internal_bytes'] - margin\n                or baseline['/Volumes/UOR-Workspace'] - free['/Volumes/UOR-Workspace'] >= limits['shared_ssd_growth_bytes'] - margin):\n            raise RuntimeError('physical reserve or study/shared storage limit')\n        record['last_storage'] = {'physical_free_bytes': free, 'study_apparent_bytes': size}\n\n    def prepared_panel():\n        receipt = read(ROOT / 'dialogue-study-panel-1-execution.json')\n        result = read(PANEL_ROOT / 'result.json')\n        if (receipt.get('status') != 'DEVELOPMENT_PANEL_FROZEN' or receipt.get('exit_code') != 0\n                or receipt.get('finished_at') is None or receipt.get('hard_stop') is not None\n                or receipt.get('soft_stop') is not None or receipt.get('supervisor_error') is not None\n                or receipt.get('build_receipt_sha256') != build_sha\n                or receipt.get('binary_sha256') != build['binary_sha256']\n                or receipt.get('source_commit') != build['source_commit']\n                or result.get('status') != 'DEVELOPMENT_PANEL_FROZEN' or result.get('response_count') != 161\n                or result.get('source_commit') != build['source_commit']\n                or (PANEL_ROOT / 'failed-attempt.json').exists()):\n            raise RuntimeError('panel preparation is incomplete, stopped or differently bound')\n        for name in ('manifest.json', 'result.json', 'development-panel.json'):\n            if receipt.get('output_sha256', {}).get(name) != sha(PANEL_ROOT / name):\n                raise RuntimeError('panel differs from its completed process receipt')\n\n    def run_arm(arm):\n        guard(closeout=True)\n        frozen()\n        output = ROOT / f'dialogue-study-{arm}-1'\n        receipt_path = ROOT / f'dialogue-study-{arm}-1-execution.json'\n        command = [sys.executable, str(SUPERVISOR), 'fit', arm, str(campaigns[arm]), str(output)]\n        row = {'policy': arm, 'command': command, 'execution_receipt': str(receipt_path),\n               'report_root': str(output), 'started_at': now().isoformat()}\n        record['children'].append(row)\n        record.update(status='RUNNING', phase=arm)\n        save()\n        child = None\n        started = time.monotonic()\n        try:\n            with (ROOT / f'dialogue-study-pipeline-{arm}.log').open('x') as log:\n                child = subprocess.Popen(command, cwd=build['worktree'], env=env, stdout=log,\n                                         stderr=subprocess.STDOUT, start_new_session=True)\n                row['supervisor_pid'] = child.pid\n                save()\n                while child.poll() is None:\n                    # The process supervisor owns soft closeout; do not turn its\n                    # checkpoint request into an immediate coordinator kill.\n                    if received_signal is not None:\n                        raise InterruptedError(f'coordinator signal {received_signal}')\n                    guard_running = not any(path.exists() for path in stops)\n                    if guard_running:\n                        guard()\n                    elif any(path.exists() for path in stops if path != pathlib.Path(configs[arm]['stop_file']).resolve()):\n                        raise RuntimeError('other arm/global study stop requested')\n                    if time.monotonic() - started > projection['fit_hard_seconds'] + 30:\n                        raise RuntimeError('owned supervisor exceeded bounded cleanup time')\n                    if receipt_path.is_file():\n                        try:\n                            observed = read(receipt_path)\n                        except json.JSONDecodeError:\n                            observed = {}  # Initial exclusive receipt write may be in flight.\n                        if observed:\n                            row['model_pid'] = observed.get('pid')\n                            row['model_command'] = observed.get('command')\n                            row['process_status'] = observed.get('status')\n                    save()\n                    time.sleep(5)\n                if child.returncode != 0:\n                    raise RuntimeError(f'{arm}: supervisor exit {child.returncode}; no retry')\n        finally:\n            if child is not None and child.poll() is None:\n                child.send_signal(signal.SIGTERM)\n                try:\n                    child.wait(timeout=30)\n                except subprocess.TimeoutExpired:\n                    # Killing a stuck supervisor could orphan its separate model\n                    # group. Preserve its identity and stop the pipeline instead.\n                    row['cleanup_unfinished_supervisor_pid'] = child.pid\n            row.update(exit_code=None if child is None else child.returncode,\n                       finished_at=now().isoformat(), wall_seconds=time.monotonic()-started)\n            save()\n        frozen()\n        execution = read(receipt_path)\n        expected_command = [str(binary), str(campaigns[arm]), str(output)]\n        expected_receipt = {'kind': 'fit', 'policy': arm, 'status': 'TARGET_COMPLETE', 'exit_code': 0,\n                            'command': expected_command, 'report_root': str(output),\n                            'source_commit': build['source_commit'], 'binary_sha256': build['binary_sha256'],\n                            'build_receipt_sha256': build_sha, 'thread_environment': THREAD_ENV,\n                            'campaign_sha256': frozen_hashes[str(campaigns[arm])]}\n        if (any(execution.get(key) != value for key, value in expected_receipt.items())\n                or not execution.get('finished_at') or execution.get('soft_stop') is not None\n                or execution.get('hard_stop') is not None or execution.get('supervisor_error') is not None\n                or execution.get('output_hash_errors') or (output / 'failed-attempt.json').exists()):\n            raise RuntimeError(f'{arm}: incomplete or mismatched execution receipt')\n        required = ('manifest.json', 'result.json', 'learning-curve.jsonl', 'responses.json',\n                    'development-panel.json', 'checkpoint-final/manifest.json',\n                    'checkpoint-final/checkpoint.json', 'checkpoint-final/config.json',\n                    'checkpoint-final/model.safetensors', 'checkpoint-final/optimizer.json',\n                    'checkpoint-final/optimizer.safetensors')\n        for name in required:\n            if execution.get('output_sha256', {}).get(name) != sha(output / name):\n                raise RuntimeError(f'{arm}: final output differs from execution receipt: {name}')\n        result = read(output / 'result.json')\n        checkpoint = read(output / 'checkpoint-final' / 'checkpoint.json')\n        if (result.get('status') != 'TARGET_COMPLETE' or result.get('campaign') != configs[arm]\n                or result.get('starting_step') != 0 or result.get('completed_step') != 1024\n                or result.get('new_optimizer_updates') != 1024 or result.get('new_tensor_positions') != 4194304\n                or checkpoint.get('next_data_step') != 1024 or checkpoint.get('optimizer_step') != 1024\n                or checkpoint.get('parameter_fingerprint') != result.get('final_parameter_fingerprint')\n                or checkpoint.get('optimizer_fingerprint') != result.get('restored_optimizer')):\n            raise RuntimeError(f'{arm}: final clocks/parameters/optimizer differ')\n        row.update(model_pid=execution.get('pid'), model_command=execution.get('command'),\n                   execution_receipt_sha256=sha(receipt_path))\n        record['completed'][arm] = {'root': str(output), 'result_sha256': sha(output / 'result.json'),\n                                   'manifest_sha256': sha(output / 'manifest.json')}\n        save()\n        return result\n\n    def compare(results):\n        for key in ('parent', 'sampler', 'schedule_chain', 'executed_schedule_sha256',\n                    'train_index_sha256', 'selected_train_responses', 'starting_step', 'completed_step',\n                    'new_optimizer_updates', 'new_supervised_target_visits', 'cumulative_supervised_target_visits',\n                    'new_tensor_positions', 'initial_parent_parameter_fingerprint', 'starting_optimizer'):\n            if results[0].get(key) != results[1].get(key) or key not in results[0]:\n                raise RuntimeError('matched fit binding/counter differs: ' + key)\n        target_keys = ('response_visits', 'supervised_target_count', 'eos_targets')\n        def counts(value):\n            return {key: value[key] for key in target_keys}\n        paths = [ROOT / f'dialogue-study-{arm}-1' / 'learning-curve.jsonl' for arm in ARMS]\n        totals = dict.fromkeys(target_keys, 0)\n        steps = 0\n        with paths[0].open() as left, paths[1].open() as right:\n            for step in range(1, 1025):\n                if step % 128 == 1: guard()\n                rows = [json.loads(left.readline()), json.loads(right.readline())]\n                if any(row['step'] != step or len(row['response_ids']) != 16 for row in rows):\n                    raise RuntimeError('missing/out-of-order response schedule row')\n                for key in ('step', 'response_ids', 'selected_target_ids_sha256', 'supervised_targets', 'cumulative_supervised_targets'):\n                    if rows[0][key] != rows[1][key]:\n                        raise RuntimeError(f'row {step} mismatched {key}')\n                if counts(rows[0]['counts']) != counts(rows[1]['counts']):\n                    raise RuntimeError(f'row {step} response/EOS counters differ')\n                a = [(s['source_index'], s['label'], counts(s['counts'])) for s in rows[0]['source_visits']]\n                b = [(s['source_index'], s['label'], counts(s['counts'])) for s in rows[1]['source_visits']]\n                if a != b: raise RuntimeError(f'row {step} source response/EOS counters differ')\n                if any(sum(item[2][key] for item in a) != rows[0]['counts'][key] for key in target_keys):\n                    raise RuntimeError(f'row {step} source counters do not sum to the batch')\n                for key in target_keys: totals[key] += rows[0]['counts'][key]\n                if (rows[0]['counts']['response_visits'] != 16 or rows[0]['counts']['eos_targets'] != 16\n                        or rows[0]['supervised_targets'] != rows[0]['counts']['supervised_target_count']\n                        or rows[0]['cumulative_supervised_targets'] != totals['supervised_target_count']):\n                    raise RuntimeError(f'row {step} internal response counter mismatch')\n                steps = step\n            if left.read().strip() or right.read().strip():\n                raise RuntimeError('extra rows beyond the fixed1024-update endpoint')\n        if (totals['response_visits'] != 16384 or totals['eos_targets'] != 16384\n                or totals['supervised_target_count'] != results[0]['new_supervised_target_visits']):\n            raise RuntimeError('rowwise counters do not reconcile to complete fit')\n        return {'matched_steps': steps, 'counters': totals,\n                'learning_curve_sha256': {arm: sha(path) for arm, path in zip(ARMS, paths)},\n                'scope': 'Exact selected-response/target/EOS exposure and immutable lineage agreement; prefix positions and padding intentionally differ. No NLL threshold or prose judgment.'}\n\n    signal.signal(signal.SIGTERM, on_signal)\n    signal.signal(signal.SIGINT, on_signal)\n    with (ROOT / 'dialogue-study-coordinator.lock').open('a') as lock:\n        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)\n        with STATUS_PATH.open('x') as stream:\n            json.dump(record, stream, indent=2)\n        try:\n            guard(closeout=True)\n            frozen()\n            prepared_panel()\n            results = [run_arm(arm) for arm in ARMS]\n            record['matched_exposure'] = compare(results)\n            record['status'] = 'PENDING_PROSE_REVIEW'\n            record['phase'] = 'COMPLETE_EXECUTION'\n        except BaseException as error:\n            record['status'] = 'STOPPED_INCOMPLETE'\n            record['error'] = f'{type(error).__name__}: {error}'\n        finally:\n            record['finished_at'] = now().isoformat()\n            save()\n        print(json.dumps(record, indent=2))\n        return 0 if record['status'] == 'PENDING_PROSE_REVIEW' else 1\n\n\nif __name__ == '__main__':\n    sys.exit(main())\n"
+  },
+  "live_snapshot": {
+    "observed_at": "2026-09-27T08:54:42.163192+00:00",
+    "pipeline": {
+      "schema": "uor-r4.dialogue-study-pipeline/1",
+      "started_at": "2026-09-27T08:50:17.036860+00:00",
+      "status": "RUNNING",
+      "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+      "binary_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+      "thread_environment": {
+        "RAYON_NUM_THREADS": "2",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "GEMM_NUM_THREADS": "1"
+      },
+      "frozen_files_sha256": {
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-build.json": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-prefix-study.json": "07dd17759f861d723e6e9fc5195ef182d443b6e6300043680e72063e4a31b10b",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study-process.py": "1827ef53d899635ebf38e63bdeb3efcf3f9d523ecaf2a37b4692300dcd725e8d",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study.py": "e689928f9fe408695047e454879cdfe02d381be81a8a36214d1d084338b427d7",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/manifest.json": "eb49ecf4c3040d595151968b5e9036d66443d8723aa664374415f76d7687e474",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/result.json": "5391f55167ce7888c4e2999e6102d6b080fddd2cfd886af6a935e39b2c3a35dc",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1-execution.json": "52311678395f43d31b1b333a58a7c0599beabcbc8128b25af8e2496f8d883cfd",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/full_prefix.json": "b30eca1da3cf9f564f45ee9d2a66b88eb7c5f843b9978209b123436e737b409d",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/role_only.json": "7d206c61803929d3098a94768d3313e38d2eeae35a22ced1157388f4051f8c7d"
+      },
+      "children": [
+        {
+          "policy": "full_prefix",
+          "command": [
+            "/Library/Developer/CommandLineTools/usr/bin/python3",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study-process.py",
+            "fit",
+            "full_prefix",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/full_prefix.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1"
+          ],
+          "execution_receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1-execution.json",
+          "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+          "started_at": "2026-09-27T08:50:17.047450+00:00",
+          "supervisor_pid": 41263,
+          "model_pid": 41266,
+          "model_command": [
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-binary-3c43c6aa",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/full_prefix.json",
+            "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1"
+          ],
+          "process_status": "RUNNING"
+        }
+      ],
+      "completed": {},
+      "scope": "Two fixed sequential arms; no automatic retry/resume/dose extension or quality gate. Parent charges overlapping elapsed once; ledgers remain read-only.",
+      "remaining_seconds": {
+        "phase": 27630.73275,
+        "owned": 34706.204636,
+        "cumulative": 44150.624636
+      },
+      "last_storage": {
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 32394190848,
+          "/Volumes/UOR-Workspace": 172545351680
+        },
+        "study_apparent_bytes": 13312978
+      },
+      "phase": "full_prefix",
+      "updated_at": "2026-09-27T08:54:37.809642+00:00"
+    },
+    "full_prefix_execution": {
+      "schema": "uor-r4.local-process-resource/1",
+      "kind": "fit",
+      "policy": "full_prefix",
+      "started_at": "2026-09-27T08:50:17.085961+00:00",
+      "command": [
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-binary-3c43c6aa",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/full_prefix.json",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1"
+      ],
+      "campaign_sha256": "b30eca1da3cf9f564f45ee9d2a66b88eb7c5f843b9978209b123436e737b409d",
+      "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+      "build_receipt_sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda",
+      "binary_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+      "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+      "compiled_features": [
+        "cpu-accelerate"
+      ],
+      "profile": "release",
+      "thread_environment": {
+        "RAYON_NUM_THREADS": "2",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "GEMM_NUM_THREADS": "1"
+      },
+      "cpu_gradient_shards": 2,
+      "projection_sha256": "07dd17759f861d723e6e9fc5195ef182d443b6e6300043680e72063e4a31b10b",
+      "supervisor_sha256": "1827ef53d899635ebf38e63bdeb3efcf3f9d523ecaf2a37b4692300dcd725e8d",
+      "projection_physical_baseline": {
+        "/System/Volumes/Data": 32427651072,
+        "/Volumes/UOR-Workspace": 172545507328
+      },
+      "limits": {
+        "model": "CPU Quaternion/Dot/Full width576/read coordinate64/context256; B16/T256,2whole-sequence gradient shards; no transformer serving or integer export",
+        "updates_per_arm": 1024,
+        "arms": [
+          "full_prefix",
+          "role_only"
+        ],
+        "parent": "Retained R1d exact parameter arrays, independently copied, with fresh Adam.",
+        "model_rss_cap_bytes": 6442450944,
+        "build_rss_cap_bytes": 4294967296,
+        "launch_free_memory_percent": 25,
+        "minimum_free_memory_percent": 10,
+        "new_internal_bytes": 1073741824,
+        "shared_ssd_growth_bytes": 2147483648,
+        "physical_reserve_bytes": 25971130368,
+        "storage_stop_margin_bytes": 134217728,
+        "one_owned_model": true,
+        "one_cargo": true,
+        "cargo_jobs": 2,
+        "gradient_shards": 2,
+        "rayon_threads": 2,
+        "blas_omp_gemm_threads": 1,
+        "development": "One fixed161-response source-stratified open panel: per-source23/32/10/32/32/32; no fresh panel access; score at0/256/512/768/1024",
+        "checkpoint_steps": [
+          512,
+          1024
+        ],
+        "generation": "All38existing open requests/58turns; greedy32, exact generated history/caller closure",
+        "cost_basis": {
+          "historical_seconds_per_update": 8.9,
+          "paired_updates_seconds_at_historical_rate": 18227.2,
+          "witness_update_seconds_range": [
+            4.394749958,
+            5.702952375
+          ],
+          "witness_peak_rss_bytes": 4767744000,
+          "checkpoint_tensor_payload_estimate_bytes": 261000000
+        },
+        "hard_wall_seconds": 14400,
+        "soft_update_seconds": 12600,
+        "phase_wall_seconds": 28800,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000
+      },
+      "peak_sampled_rss_bytes": 4811014144,
+      "minimum_free_memory_percent": 41,
+      "soft_stop": null,
+      "hard_stop": null,
+      "status": "RUNNING",
+      "scope": "Fixed study process only; completion is not useful dialogue or serving qualification. Read-only ledger observation; principal charges elapsed once.",
+      "preflight_time_budget": {
+        "cumulative_seconds_remaining": 44411.34437,
+        "owned_seconds_remaining": 34966.92437,
+        "phase_seconds_remaining": 27891.452835,
+        "shared_cumulative_ms": 676854920,
+        "uncharged_tail_ms": 1133735.63,
+        "cursor_last_charged_at": "2026-09-27T08:31:23.351290+00:00",
+        "cursor_charged_elapsed_ms": 28699340
+      },
+      "preflight_storage": {
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 32403972096,
+          "/Volumes/UOR-Workspace": 172545351680
+        },
+        "study_apparent_bytes": 9598790,
+        "internal_physical_growth_bytes": 23678976,
+        "shared_ssd_growth_bytes": 155648
+      },
+      "preflight_free_memory_percent": 66,
+      "pid": 41266,
+      "launched_at": "2026-09-27T08:50:17.108013+00:00",
+      "last_time_budget": {
+        "cumulative_seconds_remaining": 44147.761278,
+        "owned_seconds_remaining": 34703.341278,
+        "phase_seconds_remaining": 27627.869392,
+        "shared_cumulative_ms": 678158994,
+        "uncharged_tail_ms": 93244.722,
+        "cursor_last_charged_at": "2026-09-27T08:53:07.425641+00:00",
+        "cursor_charged_elapsed_ms": 30003414
+      },
+      "last_storage": {
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 32394002432,
+          "/Volumes/UOR-Workspace": 172545351680
+        },
+        "study_apparent_bytes": 13312977,
+        "internal_physical_growth_bytes": 33648640,
+        "shared_ssd_growth_bytes": 155648
+      },
+      "last_free_memory_percent": 54,
+      "elapsed_seconds": 263.576828417
+    },
+    "processes": "41263 41259 04:25 Ss     0.0   9152 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n41266 41263 04:25 Rs   147.7 3603904 /Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-binary-3c43c6aa\n41259 39556 04:26 S+     0.0   9232 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n",
+    "complete_curve_rows": 51,
+    "first_update": {
+      "complete_update_seconds": 5.756348833,
+      "counts": {
+        "eos_targets": 16,
+        "identical_prefix_visits": 0,
+        "padded_positions": 1641,
+        "prefix_positions": 1520,
+        "real_input_positions": 2455,
+        "response_visits": 16,
+        "supervised_target_count": 951
+      },
+      "cumulative_supervised_targets": 951,
+      "optimizer": {
+        "applied_clip_scale": 0.606015145778656,
+        "first_moment_max_abs": 0.00442097382619977,
+        "global_grad_norm": 1.6501238346099854,
+        "gradient_l2_by_name": {
+          "copy.gate.bias": 0.035257913172245026,
+          "copy.gate.weight": 0.8153327703475952,
+          "embedding.weight": 0.6738075613975525,
+          "output.bias": 0.02755562588572502,
+          "output.norm.weight": 0.03491978347301483,
+          "read.age": 0.011047600768506527,
+          "read.key.bias": 4.107327455926679e-08,
+          "read.key.weight": 0.3889298141002655,
+          "read.no_read.bias": 2.248325792209016e-08,
+          "read.no_read.weight": 5.522433639271185e-07,
+          "read.query.bias": 0.01640332117676735,
+          "read.query.weight": 0.3812727928161621,
+          "read.value.bias": 0.009653386659920216,
+          "read.value.weight": 0.19031742215156555,
+          "recurrent.bias": 0.05016421526670456,
+          "recurrent.input.weight": 0.05843744054436684,
+          "recurrent.state.weight": 1.031710147857666,
+          "update.bias": 0.025566089898347855,
+          "update.gate.bias": 0.0012168879620730877,
+          "update.gate.weight": 0.37749314308166504,
+          "update.weight": 0.23248353600502014
+        },
+        "missing_gradients": [],
+        "parameter_max_abs": 4.098790645599365,
+        "second_moment_max_abs": 1.9545009308785666e-06,
+        "step": 1,
+        "updated_variables": 21
+      },
+      "response_ids": [
+        4291,
+        8546,
+        5466,
+        12789,
+        5928,
+        14004,
+        12951,
+        6967,
+        10504,
+        5044,
+        3004,
+        12825,
+        1356,
+        9670,
+        7694,
+        11141
+      ],
+      "response_mean_nll": 3.364924907684326,
+      "selected_target_ids_sha256": "9355c53f661054f8dbee2ad93888c3661803b3605f3a180a4b2d04ee7834864d",
+      "source_visits": [
+        {
+          "counts": {
+            "eos_targets": 0,
+            "identical_prefix_visits": 0,
+            "padded_positions": 0,
+            "prefix_positions": 0,
+            "real_input_positions": 0,
+            "response_visits": 0,
+            "supervised_target_count": 0
+          },
+          "label": "smoltalk_smol-magpie-ultra.train",
+          "source_index": 0
+        },
+        {
+          "counts": {
+            "eos_targets": 6,
+            "identical_prefix_visits": 0,
+            "padded_positions": 302,
+            "prefix_positions": 637,
+            "real_input_positions": 1234,
+            "response_visits": 6,
+            "supervised_target_count": 603
+          },
+          "label": "smoltalk_smol-constraints.train",
+          "source_index": 1
+        },
+        {
+          "counts": {
+            "eos_targets": 0,
+            "identical_prefix_visits": 0,
+            "padded_positions": 0,
+            "prefix_positions": 0,
+            "real_input_positions": 0,
+            "response_visits": 0,
+            "supervised_target_count": 0
+          },
+          "label": "smoltalk_smol-rewrite.train",
+          "source_index": 2
+        },
+        {
+          "counts": {
+            "eos_targets": 0,
+            "identical_prefix_visits": 0,
+            "padded_positions": 0,
+            "prefix_positions": 0,
+            "real_input_positions": 0,
+            "response_visits": 0,
+            "supervised_target_count": 0
+          },
+          "label": "smoltalk_smol-summarize.train",
+          "source_index": 3
+        },
+        {
+          "counts": {
+            "eos_targets": 1,
+            "identical_prefix_visits": 0,
+            "padded_positions": 89,
+            "prefix_positions": 144,
+            "real_input_positions": 167,
+            "response_visits": 1,
+            "supervised_target_count": 24
+          },
+          "label": "ultrachat_200k.default.train_sft",
+          "source_index": 4
+        },
+        {
+          "counts": {
+            "eos_targets": 9,
+            "identical_prefix_visits": 0,
+            "padded_positions": 1250,
+            "prefix_positions": 739,
+            "real_input_positions": 1054,
+            "response_visits": 9,
+            "supervised_target_count": 324
+          },
+          "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+          "source_index": 5
+        }
+      ],
+      "step": 1,
+      "supervised_targets": 951
+    },
+    "latest_update": {
+      "complete_update_seconds": 4.451196125,
+      "counts": {
+        "eos_targets": 16,
+        "identical_prefix_visits": 0,
+        "padded_positions": 1469,
+        "prefix_positions": 1558,
+        "real_input_positions": 2627,
+        "response_visits": 16,
+        "supervised_target_count": 1085
+      },
+      "cumulative_supervised_targets": 57486,
+      "optimizer": {
+        "applied_clip_scale": 0.9424132704734802,
+        "first_moment_max_abs": 0.00807674415409565,
+        "global_grad_norm": 1.0611056089401245,
+        "gradient_l2_by_name": {
+          "copy.gate.bias": 0.011946170590817928,
+          "copy.gate.weight": 0.2857333719730377,
+          "embedding.weight": 0.5843455195426941,
+          "output.bias": 0.02363210916519165,
+          "output.norm.weight": 0.030487600713968277,
+          "read.age": 0.008088530972599983,
+          "read.key.bias": 8.767845116608441e-09,
+          "read.key.weight": 0.1856755018234253,
+          "read.no_read.bias": 5.1505990583677885e-09,
+          "read.no_read.weight": 1.204563631063138e-07,
+          "read.query.bias": 0.006761036813259125,
+          "read.query.weight": 0.17501096427440643,
+          "read.value.bias": 0.004141090903431177,
+          "read.value.weight": 0.0869760662317276,
+          "recurrent.bias": 0.02980666048824787,
+          "recurrent.input.weight": 0.04490996152162552,
+          "recurrent.state.weight": 0.6722277402877808,
+          "update.bias": 0.012758366763591766,
+          "update.gate.bias": 0.007110197562724352,
+          "update.gate.weight": 0.3934601843357086,
+          "update.weight": 0.1363602727651596
+        },
+        "missing_gradients": [],
+        "parameter_max_abs": 4.098316192626953,
+        "second_moment_max_abs": 3.838923294097185e-05,
+        "step": 51,
+        "updated_variables": 21
+      },
+      "response_ids": [
+        11288,
+        13022,
+        7695,
+        10437,
+        7987,
+        1517,
+        9307,
+        1622,
+        12080,
+        6487,
+        7581,
+        11664,
+        6587,
+        771,
+        5782,
+        12894
+      ],
+      "response_mean_nll": 2.826747179031372,
+      "selected_target_ids_sha256": "b815842110a1560275b8854126512dfa0bf451a52dd03880ff0c18ee57aaaef3",
+      "source_visits": [
+        {
+          "counts": {
+            "eos_targets": 0,
+            "identical_prefix_visits": 0,
+            "padded_positions": 0,
+            "prefix_positions": 0,
+            "real_input_positions": 0,
+            "response_visits": 0,
+            "supervised_target_count": 0
+          },
+          "label": "smoltalk_smol-magpie-ultra.train",
+          "source_index": 0
+        },
+        {
+          "counts": {
+            "eos_targets": 4,
+            "identical_prefix_visits": 0,
+            "padded_positions": 123,
+            "prefix_positions": 438,
+            "real_input_positions": 901,
+            "response_visits": 4,
+            "supervised_target_count": 467
+          },
+          "label": "smoltalk_smol-constraints.train",
+          "source_index": 1
+        },
+        {
+          "counts": {
+            "eos_targets": 1,
+            "identical_prefix_visits": 0,
+            "padded_positions": 26,
+            "prefix_positions": 139,
+            "real_input_positions": 230,
+            "response_visits": 1,
+            "supervised_target_count": 92
+          },
+          "label": "smoltalk_smol-rewrite.train",
+          "source_index": 2
+        },
+        {
+          "counts": {
+            "eos_targets": 1,
+            "identical_prefix_visits": 0,
+            "padded_positions": 7,
+            "prefix_positions": 180,
+            "real_input_positions": 249,
+            "response_visits": 1,
+            "supervised_target_count": 70
+          },
+          "label": "smoltalk_smol-summarize.train",
+          "source_index": 3
+        },
+        {
+          "counts": {
+            "eos_targets": 1,
+            "identical_prefix_visits": 0,
+            "padded_positions": 152,
+            "prefix_positions": 36,
+            "real_input_positions": 104,
+            "response_visits": 1,
+            "supervised_target_count": 69
+          },
+          "label": "ultrachat_200k.default.train_sft",
+          "source_index": 4
+        },
+        {
+          "counts": {
+            "eos_targets": 9,
+            "identical_prefix_visits": 0,
+            "padded_positions": 1161,
+            "prefix_positions": 765,
+            "real_input_positions": 1143,
+            "response_visits": 9,
+            "supervised_target_count": 387
+          },
+          "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+          "source_index": 5
+        }
+      ],
+      "step": 51,
+      "supervised_targets": 1085
+    },
+    "observed_update_seconds_sum": 247.857848374,
+    "curve_read_sha256": "8a482310e541a890ba1a09779480c5dee318a30b8168e82a079d14bd2b4a99a4",
+    "scope": "These are immutable copies of mutable live receipts at publication. PID presence and actual update records verify execution, not study completion or quality. Do not use a stale RUNNING snapshot as current process evidence."
+  },
+  "accounting_cutoff": {
+    "last_charged_at": "2026-09-27T08:53:07.425641+00:00",
+    "charged_elapsed_ms": 30003414,
+    "tail_ms": 1304074,
+    "before": {
+      "cumulative_ms": 676854920,
+      "limit_ms": 744000000
+    },
+    "after": {
+      "cumulative_ms": 678158994,
+      "limit_ms": 744000000
+    },
+    "foreign_increment_since_last_cursor_ms": 0,
+    "verified_cumulative_allowance_ms": 722400000,
+    "owned_elapsed_cap_ms": 64800000,
+    "foreign_reported_limit_adopted": false,
+    "scope": "Source-stratified evaluator implementation, independent study and supervisor review, three focused checks and release build, sealed data-only panel preparation, campaign freeze and verified first live fit updates. Overlapping elapsed charged once; ongoing fit tail remains open from this cutoff.",
+    "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock.",
+    "physical_free_bytes": {
+      "/System/Volumes/Data": 32396988416,
+      "/Volumes/UOR-Workspace": 172545351680
+    }
+  },
+  "complete_result": "PENDING",
+  "saved_model_replies": "PENDING",
+  "next_decision": "Complete fixed pair, verify matched exposure, then independently review all actual output trajectories against retained parent and control. No automatic dose, seed or decoder sweep.",
+  "file_bindings": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-build.json",
+      "bytes": 1799,
+      "sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-prefix-study.json",
+      "bytes": 4424,
+      "sha256": "07dd17759f861d723e6e9fc5195ef182d443b6e6300043680e72063e4a31b10b"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json",
+      "bytes": 2247,
+      "sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-episodes.json",
+      "bytes": 41545,
+      "sha256": "a5a7327a0510ac57a7f82061956721502adb0dd575701a6be1190f3787cd24d7"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/full_prefix.json",
+      "bytes": 1925,
+      "sha256": "b30eca1da3cf9f564f45ee9d2a66b88eb7c5f843b9978209b123436e737b409d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/role_only.json",
+      "bytes": 1921,
+      "sha256": "7d206c61803929d3098a94768d3313e38d2eeae35a22ced1157388f4051f8c7d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-pipeline.json",
+      "bytes": 4384,
+      "sha256": "27b6310174d2bf85f1c1d018cab16b8fb2b9135b5ea5dba45db201362557a264"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1-execution.json",
+      "bytes": 4971,
+      "sha256": "f0af8a9aa55e7e301f13edfe5c8700eb7e5736f47bdea98f2dff0d667f66482d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1-execution.json",
+      "bytes": 6009,
+      "sha256": "52311678395f43d31b1b333a58a7c0599beabcbc8128b25af8e2496f8d883cfd"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/result.json",
+      "bytes": 485,
+      "sha256": "5391f55167ce7888c4e2999e6102d6b080fddd2cfd886af6a935e39b2c3a35dc"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/execution-binding.json",
+      "bytes": 466,
+      "sha256": "7c5f203dd0c272540531a7d2a60e3916b6d78ead0a659394ca1cb387d8594669"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/manifest.json",
+      "bytes": 1277,
+      "sha256": "eb49ecf4c3040d595151968b5e9036d66443d8723aa664374415f76d7687e474"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-preparation-inputs-1/prepare.json",
+      "bytes": 1667,
+      "sha256": "c69e19246af91bc790b76fc244aadfe01de0e859cc9a89bdb24e1e163c91c61c"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-inputs-1/manifest.json",
+      "bytes": 654,
+      "sha256": "c75add1801023afdc76168213d630e5e7f1e3098f514cb8b16ccd25231ddaec3"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/development-requests.json",
+      "bytes": 5360,
+      "sha256": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-prefix-study-review-design.json",
+      "bytes": 12509,
+      "sha256": "b8644efa15bd0779b8bc401df5692bcb93ebf4bacb7ff634327adc61984950c3"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-launch-review.json",
+      "bytes": 11130,
+      "sha256": "e32b8f5494ac4ea8b4dfa63eed03952ce2f5487e0da4b8381a59d9b988f83cbf"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study-process.py",
+      "bytes": 22543,
+      "sha256": "1827ef53d899635ebf38e63bdeb3efcf3f9d523ecaf2a37b4692300dcd725e8d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study.py",
+      "bytes": 18343,
+      "sha256": "e689928f9fe408695047e454879cdfe02d381be81a8a36214d1d084338b427d7"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/ledger-dialogue-study-launch.json",
+      "bytes": 977,
+      "sha256": "571b2ca423f8cb2069b32292eaf17fb984c07d2d0dcde1272ad219f32b7ad62b"
+    }
+  ]
+}

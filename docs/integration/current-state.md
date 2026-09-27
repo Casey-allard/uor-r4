@@ -165,12 +165,21 @@ focused Rust checks pass. Both saved models reproduce last-batch loss exactly;
 neither answers Paris or recalls Alex in the final memory turn. All ten replies,
 source identities and the 40.528-second combined process wall cost are retained
 in its [packet](../evidence/dialogue-prefix-implementation-2026-09-27.json).
-This is integrated execution, not useful chat or conditioning advantage. The
-substantive 1,024-update pair remains NOT_RUN. Next freeze source-stratified open
-development IDs/reporting, the existing open request panel and a complete
-prospective cost before that one paired study; restart from the retained parent,
-not the two-update descendants. Other labs retain their CLI, trainer and deeper
-stack ownership. Native, multiplier-free serving remains the target.
+This is integrated execution, not useful chat or conditioning advantage.
+The [substantive complete-prefix study](dialogue-prefix-study-2026-09-27.md)
+is now **RUNNING** from the retained parent: full-prefix first, with role-only
+queued under one sequential supervisor. The source-stratified open-development
+panel is sealed before learning: 161 distinct responses, with source counts
+23/32/10/32/32/32. Three focused selection/aggregation checks pass. Each arm is
+fixed at 1,024 updates, followed by saved-weight reload and all 58 existing
+open-development replies. The [launch packet](../evidence/dialogue-prefix-study-2026-09-27.json)
+binds the source, executable, both campaigns, actual panel IDs, prospective
+resources and independently reviewed decision method. It records a live launch,
+not a completed pair or language result. Wait for the declared endpoints, then
+review actual request fulfillment and history correctness against the parent
+and control, with source-specific losses and regressions. No automatic dose,
+seed or decoder extension follows. Other labs retain their CLI, trainer and
+deeper stack ownership. Native, multiplier-free serving remains the target.
 
 The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
 identifies useful serving optimization alongside unresolved integration and
@@ -198,16 +207,26 @@ repetition, malformed code and no useful coding/prose result. The packet records
 12,066 seconds elapsed over three pilot rounds; the sum of process durations is
 22,989 seconds and is not CPU time or complete preparation/build cost.
 [Packet review and limitations](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5853505407).
-Current head `35d8da2f` corrects the high-rate control wording to underperformance.
+The subsequent `35d8da2f` correction narrows the high-rate control wording to
+underperformance. At reviewed head `5ff59ebc`, the packet adds the actual Dot,
+identity-transport and reads-only Lorentz ablations: NLL 2.588881 / 2.668833 /
+2.553095 at the same 1,000-update dose. All 13 added ablation files plus the
+revised README match their packet identities. The author has corrected the
+causal interpretation: these compare whole configurations, not the isolated
+effect of recurrence. This pass verified the added records and source
+relationships; a new complete quality assessment was not executed.
+[Updated packet review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5854404413).
 Source fixes for resume and scan/drive-bound claims remain separate from older
-executed binaries. Six raw model weights and two executables are still external;
-the fourth lab has designated an owner-SSD intake and requested an immutable
-transfer, with payload verification pending.
+executed binaries. Raw model weights and executables remain external;
+the designated owner-SSD intake is empty and no transfer branch is available.
+Payload verification remains pending.
 [Preservation coordination](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5853595061).
-This complementary Claude-owned track has no integrated integer/session path
-and neither supplies the matched Dot control nor changes its dose or serving
-policy. Its package-level likelihood result keeps deeper architecture as a
-candidate; useful generated behavior remains required.
+This complementary Claude-owned track has no integrated integer/session path.
+Its Dot ablation belongs to the deeper stack, not the fourth lab's already
+completed retained-reader comparison or running dialogue study. Its
+configuration-level likelihood results keep deeper architecture as a candidate;
+useful generated behavior remains required, and our fixed dose and native
+multiplier-free serving target stay unchanged.
 
 The separately owned termination-objective study has a
 [source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)
