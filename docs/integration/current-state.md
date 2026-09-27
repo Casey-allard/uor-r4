@@ -69,10 +69,22 @@ read positions across four fixed full256 windows. Initial NLL is2.389537 versus
 startup observations, not fitted advantage or prose qualification. The
 [source, output and resource receipt](../evidence/radial-parameter-transfer-validation-2026-09-27.json)
 binds the actual copied arrays and sealed report. No calibration sweep is
-indicated. Next add an explicit same-geometry Dot parameter-only reset and select
-a matched three-arm adaptation dose with a complete resource projection. No
-adaptation fit has run. The mainline termination-objective study remains
-independently owned and cannot supply that matched control.
+indicated. The same-geometry Dot parameter-only reset is now implemented, with
+four focused checks passing for transfer, receipt compatibility and persisted
+resume across all three geometries. One actual zero-update witness preserves
+all 21 arrays, complete predictions on the same four full256 windows, and eight
+generation decisions exactly against the independently loaded parent. Its fresh
+Adam and per-parameter clocks start at zero. Initial Dot NLL is 1.996717, so the
+radial startup losses above show an initial disturbance rather than a fitted
+advantage. The Dot continuation is `toys and read them all day.` at the eight-token
+cap; this remains a tiny observation, not prose qualification.
+[Source, actual output and cost](../evidence/dot-reset-validation-2026-09-27.json)
+are retained. The [matched adaptation plan](radial-adaptation-study-2026-09-27.md)
+selects one 1,024-update screen per arm, with a descriptive checkpoint at 512 and
+the final endpoint as the sole comparison. Its complete process/evaluation cost
+must be projected before launch. No adaptation fit has run. The mainline
+termination-objective study remains independently owned and cannot supply that
+matched control.
 General language/M1 qualification remains unmeasured here. D10's policy
 clarification remains pending in this lab; the new control introduces no
 additional serving exception or converted backbone.
@@ -83,8 +95,23 @@ evidence issues: conversational Lorentz remains guarded, the CLI retains role
 fallbacks, BPE salience interprets token IDs as characters, and synthetic phase
 and selected-byte checks do not qualify generated reasoning/recall. Its claimed
 MinP prose repair and complete-path memory measurements are not established by
-the cited source. Those open-branch findings do not change accepted artifacts or
-the native model's current capability status.
+the cited source. Those findings do not change accepted artifacts or the native model's current
+capability status. PR #1410 subsequently merged as `5d3a9932`; a merge and its
+compatibility acknowledgements alone do not resolve the evidence boundaries.
+Its merged files match the reviewed `9722200c` files, so the recorded findings
+remain. The merge changes integer execution, not the continuous transfer/model
+path measured in the Dot witness. Future integer measurements must bind this
+changed source separately.
+
+
+Claude's [draft stack experiment, PR #1414](https://github.com/UOR-Foundation/uor-r4/pull/1414),
+reviewed at `58f93117`, supplies a deeper offline architecture with similar
+parameter count to its own transformer control; its language results are pending.
+The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
+asks for input-bound resume lineage and precise parallelism/stability claims.
+It remains a complementary Claude-owned discovery track. It neither supplies the
+matched Dot control nor changes the retained reader study's dose; completed
+artifact-bound results may redirect the next architecture investment.
 
 ## Decision and active work
 

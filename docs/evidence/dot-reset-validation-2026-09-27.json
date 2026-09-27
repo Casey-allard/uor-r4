@@ -1,0 +1,297 @@
+{
+  "schema": "uor-r4.dot-reset-validation/1",
+  "recorded_at": "2026-09-27T03:45:10.170094+00:00",
+  "source_commit": "998ff0b38160c4cefe5069dc49d8545d33e6bfc6",
+  "source_sha256": {
+    "crates/uor-r4-training/src/joint_transfer.rs": "2b5831015a07ae2f34977ce52a35a401614748d9c8bbca31e761786cf775833a",
+    "crates/uor-r4-training/src/joint_campaign.rs": "fd072142ed819b7ef300c7a4e28b3673941d7fc0ebbaf3c988e59796e0fe9520",
+    "crates/uor-r4-training/examples/dot-transfer-witness.rs": "8c03a7cca9ad3b5abe38eae5d155b3d021e7328113bb6a08a462b0a9871112e5"
+  },
+  "scope": "Matched same-geometry parameter-only reset plus one zero-update actual-parent witness; no fitted adaptation, general-language qualification or efficiency claim.",
+  "review": {
+    "independent_source_reviewers": 2,
+    "resolved": "Move source binding before model work; reject nonfinite tensor values during hashing; distinguish supplied and saved campaign hashes."
+  },
+  "checks": {
+    "filter": "radial_transfer_",
+    "passed": 4,
+    "failed": 0,
+    "test_seconds": 55.75,
+    "scope": "All three geometries; copied arrays/receipt compatibility/rejection/historical bindings; persisted next-update equality after synthetic parent removal. Small synthetic optimizer updates are separate from candidate zero updates.",
+    "binary": {
+      "path": "/Users/casey.allard/uor-r4/target/debug/deps/uor_r4_training-8a35cdf4d038fd04",
+      "sha256_after_check": "17c9632ea936b549b7be61631c7043190d434e898ac83207e1dc4fb158e3ccec",
+      "log_sha256": "243da739a7f53abbbb67a77732594e4e9db76cb03bc3536080caee9aa7598c5d",
+      "source_commit": "998ff0b38160c4cefe5069dc49d8545d33e6bfc6"
+    },
+    "commands": {
+      "started_at": "2026-09-27T03:41:29.931364+00:00",
+      "source_commit": "998ff0b38160c4cefe5069dc49d8545d33e6bfc6",
+      "build_jobs": 2,
+      "rayon_threads": 2,
+      "wall_limit_seconds": 600,
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "test",
+            "--offline",
+            "-p",
+            "uor-r4-training",
+            "--lib",
+            "radial_transfer_",
+            "--",
+            "--test-threads=1"
+          ],
+          "started_at": "2026-09-27T03:41:29.933183+00:00",
+          "exit_code": 0,
+          "wall_seconds": 104.51682533300482
+        },
+        {
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "build",
+            "--offline",
+            "-p",
+            "uor-r4-training",
+            "--example",
+            "dot-transfer-witness",
+            "--profile",
+            "test"
+          ],
+          "started_at": "2026-09-27T03:43:14.458012+00:00",
+          "exit_code": 0,
+          "wall_seconds": 12.065728458110243
+        }
+      ],
+      "wall_seconds": 116.59089008392766,
+      "finished_at": "2026-09-27T03:43:26.525780+00:00",
+      "maximum_child_rss_bytes": 1172553728
+    },
+    "logs": [
+      {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dot-checks-0.log",
+        "sha256": "243da739a7f53abbbb67a77732594e4e9db76cb03bc3536080caee9aa7598c5d"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dot-checks-1.log",
+        "sha256": "229fcba216ae85c88f130c8c212083d512d513564cc7daf9f6201f7cf3aeb268"
+      }
+    ]
+  },
+  "execution": {
+    "started_at": "2026-09-27T03:43:46.870208+00:00",
+    "binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dot-transfer-witness-998ff0b3",
+    "binary_sha256": "60032b2f6776c7a88ac20f5c9a6542650a097a065748df9da01e54cb74156758",
+    "report": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dot-witness-1",
+    "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dot-reset-campaign.json",
+    "campaign_sha256": "dd5bb0e28bc00c4800fa970c93365149c29237487bbabe48181a37eb8d9fc75c",
+    "limits": {
+      "wall_seconds": 600,
+      "rss_bytes": 4294967296,
+      "threads": 2,
+      "minimum_free_bytes": 26105348096
+    },
+    "peak_sampled_rss_bytes": 185073664,
+    "stopped": null,
+    "scope": "Zero candidate updates; CPU observation under shared machine load, no performance claim",
+    "pid": 70520,
+    "exit_code": 0,
+    "wall_seconds": 35.72957441699691,
+    "maximum_child_rss_bytes": 185073664,
+    "finished_at": "2026-09-27T03:44:22.601231+00:00"
+  },
+  "report": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dot-witness-1",
+    "sealed_native_verify": "PASS",
+    "manifest_sha256": "d2c75931ac732a0497459cee7e62d25c9fcdf83c5a6a0e2ef2b75b60c07af80e",
+    "files": {
+      "attempt.json": "f881f9adf965639f087c2edeca9fb94cd65574b0e33c25f506d99b2e4af3b97d",
+      "campaign.json": "46e0617c1bccfa4b94fcdb332565f2d86e1b424f9e6d1607101874420e419bd1",
+      "evaluator.json": "63fbfb3b9be88eb14d489c47ae5b273265bd455e121171423efff1b41616cbc0",
+      "generations.json": "bb3cabacafe165bcf36c60575978271d61496991ea38d4d68a44c384ae565d1f",
+      "inputs.json": "f51725c840120bf4bd62955eb9de5b5c84bb90430d462c89f736a1269b19737b",
+      "manifest.json": "d2c75931ac732a0497459cee7e62d25c9fcdf83c5a6a0e2ef2b75b60c07af80e",
+      "transfer-receipt.json": "e432434d107400d07b35f2a0872adbe7dd235d0de69efb20810134d91d31ba18",
+      "witness.json": "0931b507bac0517b1d6a5894dd1e1a725eda517c5b41c95ec4b65206a47c5ee5"
+    }
+  },
+  "observations": {
+    "status": "UNCHANGED_DOT_OUTPUT_WITH_FRESH_OPTIMIZER",
+    "source_commit": "998ff0b38160c4cefe5069dc49d8545d33e6bfc6",
+    "executable_sha256": "60032b2f6776c7a88ac20f5c9a6542650a097a065748df9da01e54cb74156758",
+    "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+    "initial_next_token_nll": 1.9967172145843506,
+    "probabilities_sha256_le_f32": "c98df6eaa3608e521e47ac8515a18f81f7e4f39604aac522f3e77f3f9e5fe24a",
+    "parent_and_reset_predictions_identical": true,
+    "parent_and_reset_generation_identical": true,
+    "parameters_unchanged": true,
+    "optimizer_step": 0,
+    "fixed_conditions": {
+      "blocks": [
+        0,
+        21,
+        42,
+        63
+      ],
+      "candidate_updates": 0,
+      "device": "cpu",
+      "memory_access": "all causal history within each full256 window",
+      "observation_batch": 4,
+      "observation_context": 256,
+      "training_batch": 16,
+      "training_context": 256
+    }
+  },
+  "transfer": {
+    "shared_parameters_sha256": "dd13ad77bd54b3117d90e5e85814a2b9f3c5cb0392e2834c14fae7f5eef5f3a5",
+    "shared_array_count": 21,
+    "copied_scalar_count": 1678466,
+    "radial_scalars_present": false,
+    "parent_model_sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79",
+    "historical_visits": 64192512,
+    "all_optimizer_parameter_clocks_zero": true,
+    "named_moment_values_sha256": "4091023f8b11f160787ab17ebd32568464507d8a2f5cec6b18b2df9ff7882116",
+    "same_copied_parameter_manifest_as_both_prior_radial_arms": true
+  },
+  "generation": {
+    "response_text": "toys and read them all day.",
+    "generated_token_ids": [
+      624,
+      269,
+      1298,
+      495,
+      434,
+      329,
+      16,
+      201
+    ],
+    "stop": {
+      "reason": "maximum_new_tokens"
+    },
+    "source_content_roundtrip": true,
+    "prompt_bos_count_at_start": 1,
+    "parent_reset_decisions_equal": true
+  },
+  "resource_projection": {
+    "recorded_at": "2026-09-27T03:33:35.338548+00:00",
+    "scope": "Same-geometry Dot parameter-only reset control; preserve radial transfer serialization and resume; one actual unchanged-output Dot witness; finalize matched study design after reviewing concurrent Claude parallel-stack work. No long fit in this projection.",
+    "base_commit": "889266086881efe6b49a2c04b01cd37a679c69ae",
+    "phase_elapsed_cap_ms": 3600000,
+    "prior_owned_elapsed_cap_ms": 14400000,
+    "owned_elapsed_cap_ms": 18000000,
+    "owned_elapsed_extension_ms": 3600000,
+    "prior_verified_cumulative_allowance_ms": 672000000,
+    "verified_cumulative_allowance_ms": 679200000,
+    "verified_cumulative_extension_ms": 7200000,
+    "reason": "Owner-authorized successive work needs matched Dot reset to make reader comparison causally interpretable. Prospectively extend own4h to5h and verified cumulative allowance by2h to cover the1h engineering/selection phase and shared-charge uncertainty. A fitted study still requires its complete separate projection.",
+    "observed_shared_ledger": {
+      "cumulative_ms": 658748516,
+      "limit_ms": 744000000
+    },
+    "foreign_reported_limit_adoption": false,
+    "projection_ms": {
+      "design_implementation_review_delivery": 2400000,
+      "compile_focused_checks": 600000,
+      "actual_dot_zero_update_witness": 600000,
+      "fitted_study": 0,
+      "capability_evaluation": 0,
+      "accelerator": 0
+    },
+    "execution": {
+      "build_jobs": 2,
+      "rayon_threads": 2,
+      "one_owned_cargo": true,
+      "new_ram_cap_bytes": 4294967296,
+      "new_internal_storage_cap_bytes": 536870912,
+      "shared_ssd_growth_cap_bytes": 5368709120,
+      "physical_reserve_bytes": 25971130368,
+      "storage_stop_margin_bytes": 134217728,
+      "candidate_optimizer_updates": 0,
+      "synthetic_fixture_updates": "Existing transfer/resume checks extended to Dot; small actual fixture gradients only, reported separately",
+      "training_length": 256,
+      "witness_evaluation_length": 256,
+      "memory_access": "Full causal history within256; no selected-event pruning",
+      "state_width": 256,
+      "read_width": 64
+    },
+    "foreign_model_job": {
+      "pid": 66157,
+      "campaign": "quaternion-plain-16696",
+      "observed_live_via_remote_desktop_commander": true,
+      "system_free_memory_percent": 45
+    },
+    "coordination": "Reuse isolated radial-transfer-validation checkout; preserve occupied original checkout and all foreign jobs. Actual zero-update witness may coexist under declared memory/thread/storage envelope, with no performance claim.",
+    "authorization": "Standing necessary local allowance extensions authorized; no paid/external compute or destructive changes."
+  },
+  "research_decision": "Dot reset preserves actual parent predictions. Existing radial initial losses are higher on the same exposed inputs; fixed matched adaptation must earn further development through useful generated behavior. No startup repeat or calibration sweep indicated.",
+  "accelerator_ms": 0,
+  "fitted_study_ms": 0,
+  "candidate_optimizer_updates": 0,
+  "elapsed_accounting_checkpoint": {
+    "last_charged_at": "2026-09-27T03:47:19.483348+00:00",
+    "charged_elapsed_ms": 11655479,
+    "tail_ms": 1062537,
+    "before": {
+      "cumulative_ms": 658748516,
+      "limit_ms": 744000000
+    },
+    "after": {
+      "cumulative_ms": 659811053,
+      "limit_ms": 744000000
+    },
+    "foreign_increment_since_last_cursor_ms": 0,
+    "verified_cumulative_allowance_ms": 679200000,
+    "foreign_reported_limit_adopted": false,
+    "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock. No global mutex claim.",
+    "scope": "Dot reset source implementation, independent reviews,4focused tests, actual zero-update witness, study design and cross-lab review through this timestamp. Delivery tail remains to charge.",
+    "executed": {
+      "compile_check_command_seconds": 116.58255379111506,
+      "functional_test_seconds_included": 55.75,
+      "candidate_optimizer_updates": 0,
+      "actual_witness_supervised_wall_seconds": 35.72957441699691,
+      "fitted_study_ms": 0,
+      "accelerator_ms": 0
+    },
+    "physical_free_bytes": {
+      "/System/Volumes/Data": 35838500864,
+      "/Volumes/UOR-Workspace": 173795053568
+    }
+  },
+  "integration_compile": {
+    "status": "PASS",
+    "execution": {
+      "started_at": "2026-09-27T03:48:51.354573+00:00",
+      "source_commit": "c4d1837d0f9de26a3ba30a6e68e3f233c6df1c63",
+      "build_jobs": 2,
+      "rayon_threads": 2,
+      "wall_limit_seconds": 420,
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/time",
+            "-l",
+            "/Users/casey.allard/.cargo/bin/cargo",
+            "check",
+            "--offline",
+            "-p",
+            "uor-r4-training"
+          ],
+          "started_at": "2026-09-27T03:48:51.355470+00:00",
+          "exit_code": 0,
+          "wall_seconds": 82.3483830417972
+        }
+      ],
+      "wall_seconds": 82.35014895908535,
+      "finished_at": "2026-09-27T03:50:13.707204+00:00",
+      "maximum_child_rss_bytes": 1156055040
+    },
+    "log_sha256": "4ee42bd403927c24a7bdcf087839630ccf745ad6a23592654f1b51b59ab4c732",
+    "upstream_merge": "5d3a993286ed61386f7baa898404309003d8e05a",
+    "scope": "Dependency compilation after integrating changed integer implementation. Continuous training/model/tokenizer/config source unchanged by upstream. The actual Dot witness and four transfer checks retain their998ff0b3 source; they were not repeated."
+  }
+}

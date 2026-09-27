@@ -1,5 +1,6 @@
-//! Explicit parameter-only initialization of radial readers from a learned Dot
-//! checkpoint. This is a new campaign lineage, never an optimizer resume.
+//! Explicit parameter-only initialization of radial readers and their matched
+//! Dot reset control from a learned Dot checkpoint. This is a new campaign
+//! lineage, never an optimizer resume.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -27,7 +28,7 @@ pub enum TransferOptimizer {
     ResetAllMomentsAndClocks,
 }
 
-/// Both comparison arms declare the same new seed and begin at local step zero.
+/// Comparison arms declare the same new seed and begin at local step zero.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "policy", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TransferSampler {
@@ -93,7 +94,10 @@ pub struct TransferReceipt {
     /// SHA-256 of serde_json's compact serialization of copied_parameters.
     pub shared_parameters_sha256: String,
     pub copied_scalar_count: usize,
-    pub initial_radial_scalars: InitialRadialScalars,
+    /// Radial receipts retain their existing object representation. The Dot
+    /// reset control has no radial parameters and omits this field entirely.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initial_radial_scalars: Option<InitialRadialScalars>,
     pub optimizer_start_step: usize,
     pub next_data_step: usize,
 }
@@ -105,17 +109,19 @@ impl SharedParameterTransfer {
     pub fn validate_declaration(&self, cfg: &Campaign) -> Result<()> {
         cfg.model.validate()?;
         let TransferSampler::FreshCounter { data_seed } = self.sampler;
+        let initializer_matches = match cfg.model.read_geometry {
+            ReadGeometry::Dot => cfg.read_initialization.is_none(),
+            ReadGeometry::Lorentz | ReadGeometry::LorentzAffine => {
+                cfg.read_initialization == Some(ReadInitialization::UnitScale)
+            }
+        };
         if !self.parent_checkpoint.is_absolute()
             || cfg.shared_parameter_transfer.as_ref() != Some(self)
             || !hex_digest(&self.parent_checkpoint_sha256, 64)
             || !hex_digest(&self.parent_campaign_sha256, 64)
             || self.parent_optimizer_step == 0
             || self.parent_sampled_target_visits == 0
-            || !matches!(
-                cfg.model.read_geometry,
-                ReadGeometry::Lorentz | ReadGeometry::LorentzAffine
-            )
-            || cfg.read_initialization != Some(ReadInitialization::UnitScale)
+            || !initializer_matches
             || cfg.data_seed != data_seed
         {
             return Err(invalid("invalid shared-parameter transfer declaration"));
@@ -123,7 +129,7 @@ impl SharedParameterTransfer {
         Ok(())
     }
 
-    /// Apply once to an unprepared continuous radial model before any optimizer
+    /// Apply once to an unprepared continuous model before any optimizer
     /// is constructed. All logical checks precede Var::set. A device write
     /// failure is returned and the caller must discard the target/attempt.
     pub fn apply(
@@ -390,7 +396,16 @@ fn bound_string(binding: &Value, key: &str) -> Result<String> {
         .ok_or_else(|| invalid(format!("transfer parent missing {key}")))
 }
 
-fn initial_scalars(model: &JointModel) -> Result<InitialRadialScalars> {
+fn initial_scalars(model: &JointModel) -> Result<Option<InitialRadialScalars>> {
+    if model.config.read_geometry == ReadGeometry::Dot {
+        if [LORENTZ_LOG_BETA, LORENTZ_OFFSET]
+            .iter()
+            .any(|name| model.variables().contains_key(*name))
+        {
+            return Err(invalid("Dot transfer target contains radial parameters"));
+        }
+        return Ok(None);
+    }
     let scalar = |name: &str| -> Result<f32> {
         let variable = model
             .variables()
@@ -405,21 +420,29 @@ fn initial_scalars(model: &JointModel) -> Result<InitialRadialScalars> {
             .copied()
             .ok_or_else(|| invalid("empty transfer radial scalar"))
     };
-    Ok(InitialRadialScalars {
+    Ok(Some(InitialRadialScalars {
         log_beta: scalar(LORENTZ_LOG_BETA)?,
         offset: scalar(LORENTZ_OFFSET)?,
-    })
+    }))
 }
 
-fn validate_initial_scalars(config: &JointConfig, scalars: &InitialRadialScalars) -> Result<()> {
-    if scalars.log_beta.to_bits() != 0.0f32.to_bits()
-        || scalars.offset.to_bits() != (lorentz_initial_offset(config) as f32).to_bits()
-    {
-        return Err(invalid(
-            "transfer requires untouched unit_scale radial scalars",
-        ));
+fn validate_initial_scalars(
+    config: &JointConfig,
+    scalars: &Option<InitialRadialScalars>,
+) -> Result<()> {
+    match (config.read_geometry, scalars) {
+        (ReadGeometry::Dot, None) => Ok(()),
+        (ReadGeometry::Lorentz | ReadGeometry::LorentzAffine, Some(scalars))
+            if scalars.log_beta.to_bits() == 0.0f32.to_bits()
+                && scalars.offset.to_bits()
+                    == (lorentz_initial_offset(config) as f32).to_bits() =>
+        {
+            Ok(())
+        }
+        _ => Err(invalid(
+            "transfer radial scalar metadata differs from target geometry/initialization",
+        )),
     }
-    Ok(())
 }
 
 fn validate_inventory(model: &JointModel, expected: &BTreeMap<String, Vec<usize>>) -> Result<()> {
@@ -607,12 +630,24 @@ mod tests {
 
     fn raw_target(cfg: &Campaign) -> Result<JointModel> {
         let target = JointModel::new(cfg.model.clone(), &Device::Cpu)?;
-        target
-            .variables()
-            .get(LORENTZ_LOG_BETA)
-            .ok_or_else(|| invalid("test log(beta) missing"))?
-            .set(&Tensor::new(&[0.0f32], &Device::Cpu)?)?;
+        if cfg.model.read_geometry != ReadGeometry::Dot {
+            target
+                .variables()
+                .get(LORENTZ_LOG_BETA)
+                .ok_or_else(|| invalid("test log(beta) missing"))?
+                .set(&Tensor::new(&[0.0f32], &Device::Cpu)?)?;
+        }
         Ok(target)
+    }
+
+    fn select_geometry(cfg: &mut Campaign, geometry: ReadGeometry) {
+        cfg.model.read_geometry = geometry;
+        cfg.read_initialization = match geometry {
+            ReadGeometry::Dot => None,
+            ReadGeometry::Lorentz | ReadGeometry::LorentzAffine => {
+                Some(ReadInitialization::UnitScale)
+            }
+        };
     }
 
     #[test]
@@ -625,8 +660,12 @@ mod tests {
                 .join("model.safetensors"),
         )?;
         let mut previous_manifest = None;
-        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
-            fixture.campaign.model.read_geometry = geometry;
+        for geometry in [
+            ReadGeometry::Dot,
+            ReadGeometry::Lorentz,
+            ReadGeometry::LorentzAffine,
+        ] {
+            select_geometry(&mut fixture.campaign, geometry);
             let mut target = raw_target(&fixture.campaign)?;
             let initial = initial_scalars(&target)?;
             let receipt = fixture.specification.apply(
@@ -638,9 +677,40 @@ mod tests {
             assert_eq!(receipt.initial_radial_scalars, initial);
             assert_eq!(initial_scalars(&target)?, initial);
             assert_eq!(
-                receipt.copied_parameters.len() + 2,
+                receipt.copied_parameters.len() + if initial.is_some() { 2 } else { 0 },
                 target.variables().len()
             );
+            let serialized = serde_json::to_vec(&receipt)?;
+            let mut legacy_shape = serde_json::to_value(&receipt)?;
+            if geometry == ReadGeometry::Dot {
+                assert!(initial.is_none());
+                assert!(legacy_shape.get("initial_radial_scalars").is_none());
+            } else {
+                // The prior non-optional field was this same JSON object,
+                // without an Option wrapper or any schema/version change.
+                let old_object = json!({"log_beta":0.0,
+                    "offset":lorentz_initial_offset(&fixture.campaign.model) as f32});
+                assert_eq!(legacy_shape["initial_radial_scalars"], old_object);
+                legacy_shape["initial_radial_scalars"] = old_object;
+            }
+            let decoded: TransferReceipt = serde_json::from_value(legacy_shape)?;
+            assert_eq!(serde_json::to_vec(&decoded)?, serialized);
+            fixture
+                .specification
+                .validate_receipt(&fixture.campaign, &decoded)?;
+            let mut wrong_scalars = receipt.clone();
+            wrong_scalars.initial_radial_scalars = if geometry == ReadGeometry::Dot {
+                Some(InitialRadialScalars {
+                    log_beta: 0.0,
+                    offset: lorentz_initial_offset(&fixture.campaign.model) as f32,
+                })
+            } else {
+                None
+            };
+            assert!(fixture
+                .specification
+                .validate_receipt(&fixture.campaign, &wrong_scalars)
+                .is_err());
             if let Some(previous) = previous_manifest {
                 assert_eq!(receipt.shared_parameters_sha256, previous);
             }
@@ -694,6 +764,38 @@ mod tests {
             .specification
             .apply(&fixture.campaign, &"f".repeat(64), &mut target)
             .is_err());
+        let mut dot = fixture.campaign.clone();
+        select_geometry(&mut dot, ReadGeometry::Dot);
+        let mut dot_target = raw_target(&dot)?;
+        let dot_before = parameter_manifest(&dot_target, &dot.model.shapes())?;
+        dot.read_initialization = Some(ReadInitialization::UnitScale);
+        assert!(fixture
+            .specification
+            .apply(&dot, &fixture.evaluator_sha, &mut dot_target)
+            .is_err());
+        assert_eq!(
+            parameter_manifest(&dot_target, &dot.model.shapes())?,
+            dot_before
+        );
+        dot.read_initialization = None;
+        // Public config mutation cannot relabel a 23-array radial model as
+        // the 21-array Dot reset control and retain hidden radial parameters.
+        target.config.read_geometry = ReadGeometry::Dot;
+        assert!(fixture
+            .specification
+            .apply(&dot, &fixture.evaluator_sha, &mut target)
+            .is_err());
+        target.config.read_geometry = fixture.campaign.model.read_geometry;
+        let mut missing_radial_initializer = fixture.campaign.clone();
+        missing_radial_initializer.read_initialization = None;
+        assert!(fixture
+            .specification
+            .apply(
+                &missing_radial_initializer,
+                &fixture.evaluator_sha,
+                &mut target
+            )
+            .is_err());
         fs::write(fixture.root.join("tokenizer.json"), b"changed identity")?;
         assert!(fixture
             .specification
@@ -721,69 +823,82 @@ mod tests {
     #[test]
     fn radial_transfer_receipt_remains_historical_without_parent_or_initial_live_arrays(
     ) -> Result<()> {
-        let fixture = transfer_fixture(AdmissionPolicy::Full)?;
-        let mut target = raw_target(&fixture.campaign)?;
-        let receipt =
-            fixture
-                .specification
-                .apply(&fixture.campaign, &fixture.evaluator_sha, &mut target)?;
-        let binding = json!({"shared_parameter_transfer":fixture.specification,
+        for geometry in [
+            ReadGeometry::Dot,
+            ReadGeometry::Lorentz,
+            ReadGeometry::LorentzAffine,
+        ] {
+            let mut fixture = transfer_fixture(AdmissionPolicy::Full)?;
+            select_geometry(&mut fixture.campaign, geometry);
+            let mut target = raw_target(&fixture.campaign)?;
+            let receipt = fixture.specification.apply(
+                &fixture.campaign,
+                &fixture.evaluator_sha,
+                &mut target,
+            )?;
+            let binding = json!({"shared_parameter_transfer":fixture.specification,
             "transfer_receipt":receipt,"evaluator_sha256":fixture.evaluator_sha});
-        // Simulate evolved values; validation must bind history, not reset or
-        // require a learned tensor to equal its original transferred array.
-        for name in [LORENTZ_LOG_BETA, "output.bias"] {
-            let variable = target
-                .variables()
-                .get(name)
-                .ok_or_else(|| invalid("test variable"))?;
-            variable.set(&variable.affine(1.0, 0.25)?)?;
+            // Simulate evolved values; validation must bind history, not reset or
+            // require a learned tensor to equal its original transferred array.
+            let evolved_names: &[&str] = if geometry == ReadGeometry::Dot {
+                &["output.bias"]
+            } else {
+                &[LORENTZ_LOG_BETA, "output.bias"]
+            };
+            for &name in evolved_names {
+                let variable = target
+                    .variables()
+                    .get(name)
+                    .ok_or_else(|| invalid("test variable"))?;
+                variable.set(&variable.affine(1.0, 0.25)?)?;
+            }
+            fs::remove_dir_all(&fixture.root)?;
+            assert_eq!(
+                validate_binding(&fixture.campaign, &binding)?,
+                Some(receipt.clone())
+            );
+            let mut changed_windows = fixture.campaign.clone();
+            changed_windows.batch = 1;
+            changed_windows.context = 16;
+            assert!(validate_binding(&changed_windows, &binding).is_err());
+            changed_windows.training_window_transition =
+                Some(crate::joint_campaign::TrainingWindowTransition {
+                    parent_checkpoint_sha256: "e".repeat(64),
+                    parent_campaign_sha256: "f".repeat(64),
+                    reason: "Declared synthetic continuation at equal targets per update".into(),
+                    old_batch: 2,
+                    old_context: 8,
+                    new_batch: 1,
+                    new_context: 16,
+                    parent_optimizer_step: 1,
+                    parent_sampled_target_visits: 16,
+                });
+            assert_eq!(
+                validate_binding(&changed_windows, &binding)?,
+                Some(receipt.clone())
+            );
+            changed_windows.batch = 2;
+            assert!(validate_binding(&changed_windows, &binding).is_err());
+            let mut corrupt = receipt.clone();
+            corrupt.copied_parameters.pop();
+            corrupt.shared_parameters_sha256 = manifest_digest(&corrupt.copied_parameters)?;
+            assert!(fixture
+                .specification
+                .validate_receipt(&fixture.campaign, &corrupt)
+                .is_err());
+            let mut wrong = binding.clone();
+            wrong["transfer_receipt"] = Value::Null;
+            assert!(validate_binding(&fixture.campaign, &wrong).is_err());
+            wrong = binding;
+            wrong["evaluator_sha256"] = json!("d".repeat(64));
+            assert!(validate_binding(&fixture.campaign, &wrong).is_err());
+            let mut legacy = fixture.campaign;
+            legacy.shared_parameter_transfer = None;
+            assert!(validate_binding(&legacy, &json!({}))?.is_none());
+            let mut invalid_policy = serde_json::to_value(fixture.specification)?;
+            invalid_policy["optimizer"] = json!("restore_parent");
+            assert!(serde_json::from_value::<SharedParameterTransfer>(invalid_policy).is_err());
         }
-        fs::remove_dir_all(&fixture.root)?;
-        assert_eq!(
-            validate_binding(&fixture.campaign, &binding)?,
-            Some(receipt.clone())
-        );
-        let mut changed_windows = fixture.campaign.clone();
-        changed_windows.batch = 1;
-        changed_windows.context = 16;
-        assert!(validate_binding(&changed_windows, &binding).is_err());
-        changed_windows.training_window_transition =
-            Some(crate::joint_campaign::TrainingWindowTransition {
-                parent_checkpoint_sha256: "e".repeat(64),
-                parent_campaign_sha256: "f".repeat(64),
-                reason: "Declared synthetic continuation at equal targets per update".into(),
-                old_batch: 2,
-                old_context: 8,
-                new_batch: 1,
-                new_context: 16,
-                parent_optimizer_step: 1,
-                parent_sampled_target_visits: 16,
-            });
-        assert_eq!(
-            validate_binding(&changed_windows, &binding)?,
-            Some(receipt.clone())
-        );
-        changed_windows.batch = 2;
-        assert!(validate_binding(&changed_windows, &binding).is_err());
-        let mut corrupt = receipt.clone();
-        corrupt.copied_parameters.pop();
-        corrupt.shared_parameters_sha256 = manifest_digest(&corrupt.copied_parameters)?;
-        assert!(fixture
-            .specification
-            .validate_receipt(&fixture.campaign, &corrupt)
-            .is_err());
-        let mut wrong = binding.clone();
-        wrong["transfer_receipt"] = Value::Null;
-        assert!(validate_binding(&fixture.campaign, &wrong).is_err());
-        wrong = binding;
-        wrong["evaluator_sha256"] = json!("d".repeat(64));
-        assert!(validate_binding(&fixture.campaign, &wrong).is_err());
-        let mut legacy = fixture.campaign;
-        legacy.shared_parameter_transfer = None;
-        assert!(validate_binding(&legacy, &json!({}))?.is_none());
-        let mut invalid_policy = serde_json::to_value(fixture.specification)?;
-        invalid_policy["optimizer"] = json!("restore_parent");
-        assert!(serde_json::from_value::<SharedParameterTransfer>(invalid_policy).is_err());
         Ok(())
     }
 }

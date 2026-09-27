@@ -91,7 +91,9 @@ Connected finite gradients establish a signal on these inputs, not useful
 learnability or an adequate adaptation dose. No immediate numerical failure
 supports a calibration repair or sweep.
 
-No adaptation dose has been selected. A startup observation can reveal lost
+At the radial-startup record, no adaptation dose had been selected. The later
+[matched study plan](radial-adaptation-study-2026-09-27.md) selects a fixed
+adaptation screen, pending its complete resource projection. A startup can reveal lost
 activation, finite gradients and immediate disturbance of a learned model;
 it cannot establish learnability at a useful dose, final prose or efficiency.
 Both radial paths have connected finite credit here; select one matched adaptation study
@@ -107,3 +109,48 @@ not that fitted control. Mainline termination work retains its own optimizer and
 stream and changes the objective; it must remain separately owned and is not a
 matched control for this study. No broad suite, repeated startup or decoder sweep
 is required after the declared implementation risks are resolved.
+
+
+## Same-geometry Dot reset control
+
+The follow-up [work card](https://github.com/UOR-Foundation/uor-r 4/issues/973#issuecomment-5852324240)
+extends the same explicit transfer protocol to Dot. Its target has the same 21
+shared arrays and no radial scalars or initializer. Radial receipts retain their
+existing JSON scalar object; Dot omits it. Resume still loads the evolved child,
+without recopying the source or resetting Adam. Four focused checks pass on
+source `998ff0b3`, including actual tiny updates and persisted resume for all
+three reader geometries. The previous initializer and calibration results retain
+their scope; no unrelated broad suite was required.
+
+One actual zero-update Dot witness loaded the retained parent independently of
+the transferred child. All 21 copied arrays, the complete prediction tensor on
+the same four full256 windows, the NLL bits and all eight generated decisions
+match exactly. Both models' arrays remain unchanged afterward. A newly
+constructed optimizer has step 0 and all per-parameter clocks 0; parent Adam was
+not loaded. The receipt's copied-array manifest also matches both previously
+observed radial children. Source, actual executable, inputs, generation records,
+fresh-optimizer fingerprint and complete sealed file inventory are bound in the
+[Dot evidence](../evidence/dot-reset-validation-2026-09-27.json).
+
+Dot's initial next-token NLL is 1.996717 on these exposed windows, versus the
+previous Lorentz 2.389537 and Affine 2.400457 observations. The radial reader change
+therefore starts with a measurable disturbance to this learned parent. This is
+startup evidence, not an adapted ranking. The Dot continuation is
+`toys and read them all day.`; its eight-token cap and newline are retained in the
+raw record. One short continuation does not qualify prose or chat.
+
+Build/check commands took 116.58 seconds, including 55.75 seconds of focused tests;
+maximum command RSS was 1,172,553,728 bytes. The supervised actual witness took
+35.73 seconds with peak child RSS 185,073,664 bytes, two Rayon threads, test profile
+and no `cpu-accelerate` feature. It performed zero candidate updates. This cost is
+not comparable to the earlier radial forward/backward workload and is not an
+optimized throughput result. All execution occurred under shared machine load.
+The declared implementation checks are complete; the next work is the costed
+matched adaptation and useful-output comparison, not another startup gate.
+
+After integrating Google's PR #1410 (`5d3a9932`), a separate offline training-package
+compile passes on `c4d1837d` in 82.35 seconds. That upstream change leaves the
+continuous training/model/tokenizer/configuration sources untouched. The actual
+Dot witness and transfer checks retain source `998ff0b3`; their scope is not
+extended to the changed integer serving paths. Existing unrelated warnings are
+recorded in the build log, not repaired by this deliverable.

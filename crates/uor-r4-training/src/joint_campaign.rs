@@ -196,8 +196,9 @@ impl Campaign {
     }
 
     /// Construct a fresh campaign model before optimizer creation or evaluation.
-    /// The override consumes no random draws and changes only log(beta). Loading
-    /// a checkpoint must never call this method: its beta has already evolved.
+    /// The optional unit-scale override changes only log(beta); a declared
+    /// parameter transfer then replaces the shared arrays. Resume must load its
+    /// evolved checkpoint instead of repeating either initialization step.
     pub fn fresh_model(&self, device: &candle_core::Device) -> Result<JointModel> {
         self.fresh_model_with_provenance(device)
             .map(|(model, _)| model)
@@ -3093,12 +3094,22 @@ mod tests {
     #[test]
     fn radial_transfer_checkpoint_resume_preserves_receipt_and_next_update() -> Result<()> {
         let stores = vec![(0..64).collect::<Vec<u16>>()];
-        for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
+        for geometry in [
+            ReadGeometry::Dot,
+            ReadGeometry::Lorentz,
+            ReadGeometry::LorentzAffine,
+        ] {
             let (root, mut cfg) = crate::joint_transfer::transfer_test_fixture()?;
             cfg.model.read_geometry = geometry;
+            cfg.read_initialization =
+                (geometry != ReadGeometry::Dot).then_some(ReadInitialization::UnitScale);
             let evaluator_sha = sha256_file(&cfg.evaluator_path)?;
             let (model, receipt) = cfg.fresh_model_with_provenance(&candle_core::Device::Cpu)?;
             let receipt = receipt.ok_or_else(|| invalid("test transfer receipt missing"))?;
+            assert_eq!(
+                receipt.initial_radial_scalars.is_some(),
+                geometry != ReadGeometry::Dot
+            );
             let initial_bits = parameter_bits(&model)?;
             let mut optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
             assert_eq!(optimizer.step_count(), 0);

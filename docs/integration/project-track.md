@@ -55,9 +55,13 @@ new campaign/checkpoint provenance binds the override. The
 all shared learned Dot arrays in a new adaptation lineage with identical Adam
 resets and a new common sampling stream. The single learned-parent startup
 observation completed with connected finite gradients and unchanged parameters;
-no calibration correction is indicated. Next add the explicit same-geometry Dot
-reset control and select one prospectively bounded three-arm adaptation study.
-Lorentz versus affine isolates the nonlinear score within this representation;
+no calibration correction is indicated. The explicit same-geometry Dot reset
+control now preserves the actual parent's arrays, predictions and generated
+decisions while beginning a fresh optimizer lineage. The
+[fixed adaptation screen](radial-adaptation-study-2026-09-27.md) selects 1,024
+updates per arm with one descriptive midpoint; its complete local resource
+projection and matched analysis must precede execution. Lorentz versus affine
+isolates the nonlinear score within this representation;
 a fitted practical improvement claim also needs that Dot control with the same
 reset, objective, stream and exposure.
 The future language comparison must report calibration differences and useful generated behavior;
@@ -65,6 +69,18 @@ implementation checks do not trigger a training sweep or serving promotion.
 Keep the independently owned termination objective separate. Exact-token
 dialogue adoption can advance through the retained integer session while these
 learning conditions are resolved.
+
+
+**Parallel architecture exploration:** Claude's [Cycle 4 stack experiment](https://github.com/UOR-Foundation/uor-r4/pull/1414)
+investigates deeper quaternion recurrence and multi-head Lorentz reads against
+its own transformer control at similar parameter counts. At reviewed head
+`58f93117`, language results remain pending. Its current implementation batches
+windows while scanning recurrence time sequentially; it has no integrated
+integer/session path. The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
+records the concrete lineage and claim corrections. Keep this Claude-owned
+experiment complementary to the retained-reader comparison. Completed results
+may change the next architecture investment; an offline package comparison
+does not by itself isolate curvature, qualify efficient serving, or adopt D10.
 
 ## Active programme — learn the model, then harden its execution
 
