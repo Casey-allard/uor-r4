@@ -1,0 +1,41 @@
+{
+  "schema": "uor-r4.joint-recurrent-campaign/1",
+  "evaluator_path": "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+  "model": {
+    "vocab_size": 4096,
+    "width": 256,
+    "read_width": 64,
+    "context": 256,
+    "transport": "quaternion",
+    "seed": 240924
+  },
+  "optimizer": {
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "parameter_abs_limit": 1000000.0,
+    "allowed_missing_gradients": []
+  },
+  "data_seed": 240924,
+  "batch": 16,
+  "context": 256,
+  "cpu_gradient_shards": 2,
+  "total_steps": 16696,
+  "development_every_steps": 128,
+  "development_blocks": 64,
+  "checkpoint_steps": [],
+  "max_process_seconds": 7200,
+  "stop_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/stop-quaternion-2i-screen-off",
+  "training_window_transition": {
+    "parent_checkpoint_sha256": "bc4a56880d2991502ad61db1940015e82f69613f458c9274ef0145a16da30670",
+    "parent_campaign_sha256": "20729fcb12ed3ec9b186ac9575667fae4a4a10a5fedf2162430cacdc2ec6d750",
+    "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained.",
+    "old_batch": 64,
+    "old_context": 64,
+    "new_batch": 16,
+    "new_context": 256,
+    "parent_optimizer_step": 2104,
+    "parent_sampled_target_visits": 8617984
+  },
+  "quantization_transition": null,
+  "trial_scope": "Finite geometric read kernel screen (development only, no promotion): resume the accepted step-15672 quaternion parent for 1,024 further B16/T256/full-access updates (4,194,304 targets). Arm B (same binary, kernel DISABLED; dose-matched baseline). Frozen evaluator and prose criteria; predeclared EXTEND/INERT/HARM rule in docs/integration/geometric-read-plan-2026-09-27.md. No evaluator, threshold, sampling or criteria change."
+}

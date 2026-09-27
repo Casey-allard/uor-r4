@@ -14,6 +14,7 @@ use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 use crate::baseline_protocol::{
     device, load_evaluator, read_tokens, save_json, verify_identity, Evaluator,
 };
+use crate::geometric_read::GeometricReadConfig;
 use crate::joint_evaluation::{self, STORY_PROBE_SCOPE, STORY_STOP_POLICY};
 use crate::joint_model::{
     JointConfig, JointModel, PrecisionMode, ReadGeometry, ReadMode, LORENTZ_LOG_BETA,
@@ -85,6 +86,10 @@ pub struct Campaign {
     pub model: JointConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub read_initialization: Option<ReadInitialization>,
+    /// Optional finite geometric read kernel. Absent preserves every existing
+    /// campaign and checkpoint parse byte-for-byte.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub geometric_read: Option<GeometricReadConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shared_parameter_transfer: Option<SharedParameterTransfer>,
     pub optimizer: AdamConfig,
@@ -146,6 +151,7 @@ impl Campaign {
         }
         cfg.model.validate()?;
         cfg.validate_read_initialization()?;
+        cfg.validate_geometric_read()?;
         if let Some(transfer) = &cfg.shared_parameter_transfer {
             transfer.validate_declaration(&cfg)?;
         }
@@ -207,6 +213,24 @@ impl Campaign {
         Ok(())
     }
 
+    fn validate_geometric_read(&self) -> Result<()> {
+        let Some(kernel) = &self.geometric_read else {
+            return Ok(());
+        };
+        kernel.validate()?;
+        if !self.model.read_geometry.is_dot() {
+            return Err(invalid(
+                "geometric read kernel requires the Dot read geometry",
+            ));
+        }
+        if self.quantization_transition.is_some() {
+            return Err(invalid(
+                "geometric read kernel is unavailable under quantization",
+            ));
+        }
+        Ok(())
+    }
+
     /// Construct a fresh campaign model before optimizer creation or evaluation.
     /// The optional unit-scale override changes only log(beta); a declared
     /// parameter transfer then replaces the shared arrays. Resume must load its
@@ -223,7 +247,12 @@ impl Campaign {
         device: &candle_core::Device,
     ) -> Result<(JointModel, Option<TransferReceipt>)> {
         self.validate_read_initialization()?;
-        let mut model = JointModel::new(self.model.clone(), device)?;
+        self.validate_geometric_read()?;
+        let mut model = JointModel::new_with_geometric_read(
+            self.model.clone(),
+            self.geometric_read.clone(),
+            device,
+        )?;
         if self.read_initialization == Some(ReadInitialization::UnitScale) {
             model
                 .variables()
@@ -512,6 +541,15 @@ pub(crate) fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<
     if let Some(initialization) = cfg.read_initialization {
         report["read_initialization"] = json!(initialization);
         report["read_initialization_scope"] = json!("Fresh construction sets read.lorentz_log_beta=0 (beta=1) and retains the constructor offset. Other variables retain constructor values unless the separately declared shared-parameter transfer replaces them with the bound parent arrays. Resume/evaluation retain loaded learned scalars. Model numerical-contract initialization text describes the constructor default before this campaign override.");
+    }
+    if let Some(kernel) = &cfg.geometric_read {
+        let parameters: usize = crate::geometric_read::kernel_shapes(kernel)
+            .values()
+            .map(|shape| shape.iter().product::<usize>())
+            .sum();
+        report["geometric_read"] = json!(kernel);
+        report["geometric_read_parameters"] = json!(parameters);
+        report["geometric_read_scope"] = json!("Optional finite signed-2I read score over Full admission and Dot geometry; hard-forward/smooth-backward surrogate. Offline F32 training/evaluation only.");
     }
     if let Some(transfer) = &cfg.shared_parameter_transfer {
         report["shared_parameter_transfer"] = json!(transfer);
@@ -1061,12 +1099,18 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
                 "ordinary resume changes training-window transition lineage",
             ));
         }
-        let mut model = JointModel::load(path, &selected)?;
+        let mut model =
+            JointModel::load_with_geometric_read(path, &selected, cfg.geometric_read.as_ref())?;
         if model.is_rounding_calibrated() {
             return Err(invalid("calibrated shadow is reserved for alpha-only rounding; resume the continuous parent for language training"));
         }
         if model.config != cfg.model {
             return Err(invalid("loaded resume model differs from campaign"));
+        }
+        if model.geometric_read_config() != cfg.geometric_read.as_ref() {
+            return Err(invalid(
+                "loaded resume model kernel differs from the campaign",
+            ));
         }
         validate_quantization_binding(
             &old,
@@ -1099,7 +1143,17 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
             )?;
         }
         quantization_state_matches(cfg, &serde_json::to_value(model.quantization())?, begin)?;
-        let optimizer = NamedAdamW::load(path, model.variables(), &cfg.optimizer)?;
+        let fresh_kernel: BTreeSet<String> =
+            if old.geometric_read.is_none() && cfg.geometric_read.is_some() {
+                crate::geometric_read::parameter_names()
+                    .iter()
+                    .map(|name| (*name).to_owned())
+                    .collect()
+            } else {
+                BTreeSet::new()
+            };
+        let optimizer =
+            NamedAdamW::load_with_fresh(path, model.variables(), &cfg.optimizer, &fresh_kernel)?;
         if optimizer.step_count() as usize != begin
             || begin >= cfg.total_steps
             || checkpoint["optimizer_step"] != json!(begin)
@@ -1334,9 +1388,12 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     )?;
     // Actual artifact reload; generation/evaluation consume this same checkpoint.
     let restored = JointModel::load(&final_path, &selected)?;
-    if restored.config != model.config || restored.quantization() != model.quantization() {
+    if restored.config != model.config
+        || restored.quantization() != model.quantization()
+        || restored.geometric_read_config() != model.geometric_read_config()
+    {
         return Err(invalid(
-            "loaded checkpoint changed model configuration or quantization state",
+            "loaded checkpoint changed model configuration, quantization or kernel state",
         ));
     }
     let reloaded_fit = f64::from(
@@ -1384,6 +1441,7 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     report["reloaded_retained_batch_nll"] = json!(reloaded_fit);
     report["reload_absolute_delta"] = json!(reload_delta);
     report["final_quantization"] = serde_json::to_value(model.quantization())?;
+    report["geometric_read_usage"] = model.geometric_read_usage()?;
     if cfg.projection_transition.is_some() {
         report["projection_updates"] = json!({
             "complete_optimizer_updates_projected":projection_updates,
@@ -2342,6 +2400,7 @@ fn same_learning_configuration(a: &Campaign, b: &Campaign) -> Result<()> {
         || a.batch != b.batch
         || a.context != b.context
         || a.cpu_gradient_shards != b.cpu_gradient_shards
+        || a.geometric_read != b.geometric_read
         || a.training_window_transition != b.training_window_transition
         || a.quantization_transition != b.quantization_transition
         || a.projection_transition != b.projection_transition
@@ -3543,6 +3602,7 @@ mod tests {
             evaluator_path: PathBuf::new(),
             model: JointConfig::default(),
             read_initialization: None,
+            geometric_read: None,
             shared_parameter_transfer: None,
             optimizer: AdamConfig::default(),
             data_seed: 42,
@@ -4012,6 +4072,7 @@ mod tests {
             evaluator_path: PathBuf::new(),
             model: JointConfig::default(),
             read_initialization: None,
+            geometric_read: None,
             shared_parameter_transfer: None,
             optimizer: AdamConfig::default(),
             data_seed: 42,

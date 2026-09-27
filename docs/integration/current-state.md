@@ -419,8 +419,13 @@ termination-weighted objective experiment is now executed and returns INERT: at
 only 3 unique source rows beyond a dose-matched plain continuation (0 unique
 losses) and leaves sampled prose at0/5, while the plain dose already recovers12
 of20 failing rows; guardrails hold and standard development NLL is slightly
-worse for the treatment. Termination weighting is a weak lever at this dose; the
-next rung is the state/read path. Admission pruning remains deferred.
+worse for the treatment. Termination weighting is a weak lever at this dose. The
+finite geometric read kernel (signed relative-group score) screen is now executed
+and returns **HARM**: against a same-binary, dose-matched baseline it worsens the
+comparison-tail Read NLL by +0.019719 and loses 10 complete source rows with 0
+unique gains, while five-prompt sampled prose stays 0/5; guardrails and hard-path
+usage hold. The next rung remains the state/read path, but not by
+re-parameterising this score. Admission pruning remains deferred.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
 ## Latest result: completed continuation, useful-language target unmet
@@ -877,6 +882,40 @@ The full256 baseline is finite; terminal D5 parameter sparsity remains open.
 Standalone integer generation is **executed at the scoped numerical boundary**.
 General language quality, complete-path arithmetic compliance and energy remain
 separate obligations. One paired seed remains exploratory for geometry claims.
+
+### Executed: finite geometric read kernel screen (September 27)
+
+- **Executed** from the [predeclared plan](geometric-read-plan-2026-09-27.md) and
+  [result](geometric-read-result-2026-09-27.md): an optional, absent-by-default
+  learned score over the signed relative element of the 120-element binary
+  icosahedral group `2I` (16 unit-coded lanes, exact composition table,
+  straight-through hard-forward/smooth-backward surrogate, per-lane nonlinear
+  4→8→1 score) on the mainline joint learner, plus two full 1,024-update screen
+  arms and cost smokes from the accepted step-15,672 quaternion parent.
+- **Witnessed result:** `HARM`. Versus the same binary with the kernel disabled,
+  comparison-tail Read NLL is 1.984753 → 2.004471 (+0.019719) and complete source
+  answers are 27/32 → 17/32 with ten unique losses and zero unique gains;
+  five-prompt sampled prose stays **0/5** in both arms. The NoRead penalty and the
+  parent-relative bound hold, no short cycles occur, and hard-path usage is
+  non-collapsed (120/120 codes per lane; 99.25% non-identity relations; cumulative over
+  the fit). The predeclared 1.5× cost gate **failed** (1.84× paired same-session) and is
+  carried as a recorded budgeted exception; under the plan heading a guardrail failure is
+  itself a HARM condition.
+- **Instrument checks:** the kernel-off path reproduces the retained parent
+  evaluation token-for-token and replays the historical `plain-16696` learning
+  curve with zero NLL mismatches; arm B reproduces that historical evaluation
+  exactly. The predeclared cost optimization cut kernel per-step cost
+  (15.3/8.7/12.9/10.2 s → 6.1/5.4/6.6/9.8 s); the paired same-session ratio is
+  1.84× and the residual cost is the frozen smooth Hamilton composition. Conditional
+  attribution arm C is **deferred** with the ledger arithmetic recorded
+  (decision-time balance 712,153,247 ms; projected ~739M with C against the
+  predeclared 735M stop margin and the 744M ceiling).
+- **Decision:** park the mechanism at this exact scope; no repair-fit follows
+  automatically and no promotion. The harm is measured for this parameterization
+  including its 784 added per-lane parameters; the capacity/normalization
+  attribution control is unrun. The state/read path remains the next target, not a
+  re-parameterisation of this score.
+- **Stop:** this packet is closed. #973 and #820 remain open at their wider scope.
 
 ## Retained result: paired learned-code retention accepted
 

@@ -43,7 +43,8 @@
 //!   [steps=1000] [lr=0.001] [shards=1] [transport=quaternion] \
 //!   [eval_every=250] [eval_windows=64] [final_windows=256] [max_seconds=inf] \
 //!   [save_model=false] [read_dropout=0] [checkpoint_every=0] [resume=CHECKPOINT] \
-//!   [lorentz_start=matched|flat] [init=MODEL_DIR] [quantize_ramp=0]
+//!   [lorentz_start=matched|flat] [init=MODEL_DIR] [quantize_ramp=0] \
+//!   [geometric_read=false|signed_2i]
 //! ```
 //!
 //! `lens` holds the byte length of each token id (u16, vocabulary order); with
@@ -59,6 +60,7 @@ use candle_core::backprop::GradStore;
 use candle_core::{Device, Tensor};
 use serde_json::{json, Value};
 use uor_r4_core::report_output;
+use uor_r4_training::geometric_read::GeometricReadConfig;
 use uor_r4_training::joint_model::{
     JointConfig, JointModel, ReadGeometry, ReadMode, Transport, LORENTZ_LOG_BETA,
 };
@@ -122,6 +124,7 @@ struct Settings {
     flat_lorentz_start: bool,
     init: Option<PathBuf>,
     quantize_ramp: usize,
+    geometric_read: bool,
 }
 
 fn settings(args: &Args) -> Result<Settings> {
@@ -150,6 +153,7 @@ fn settings(args: &Args) -> Result<Settings> {
         "lorentz_start",
         "init",
         "quantize_ramp",
+        "geometric_read",
     ];
     if let Some(key) = args.0.keys().find(|key| !known.contains(&key.as_str())) {
         return Err(invalid(format!("unknown argument {key}=")));
@@ -198,6 +202,28 @@ fn settings(args: &Args) -> Result<Settings> {
             )))
         }
     };
+    let geometric_read = match args.text("geometric_read") {
+        None | Some("false") | Some("off") => false,
+        Some("signed_2i") => true,
+        Some(other) => {
+            return Err(invalid(format!(
+                "geometric_read must be signed_2i or false, not {other}"
+            )))
+        }
+    };
+    if geometric_read {
+        if read_geometry != ReadGeometry::Dot {
+            return Err(invalid("geometric_read=signed_2i requires geometry=dot"));
+        }
+        if args.text("init").is_some() || args.text("resume").is_some() {
+            return Err(invalid(
+                "geometric_read=signed_2i is a fresh-run option in this example; resume an existing kernel checkpoint elsewhere",
+            ));
+        }
+        if args.number::<usize>("quantize_ramp", 0)? != 0 {
+            return Err(invalid("geometric_read=signed_2i rejects quantize_ramp"));
+        }
+    }
     let settings = Settings {
         train: PathBuf::from(args.required("train")?),
         valid: PathBuf::from(args.required("valid")?),
@@ -218,6 +244,7 @@ fn settings(args: &Args) -> Result<Settings> {
         flat_lorentz_start,
         init: args.text("init").map(PathBuf::from),
         quantize_ramp: args.number("quantize_ramp", 0)?,
+        geometric_read,
         config,
     };
     // A resumed fine-tune repeats its init= and quantize_ramp=; the checkpoint
@@ -507,7 +534,11 @@ fn run(settings: &Settings, out: &Path) -> Result<()> {
                     }
                     model
                 }
-                None => JointModel::new(settings.config.clone(), &Device::Cpu)?,
+                None => JointModel::new_with_geometric_read(
+                    settings.config.clone(),
+                    settings.geometric_read.then(GeometricReadConfig::signed_2i),
+                    &Device::Cpu,
+                )?,
             };
             if settings.quantize_ramp > 0 {
                 model.configure_quantization(0, settings.quantize_ramp)?;
@@ -613,6 +644,20 @@ fn run(settings: &Settings, out: &Path) -> Result<()> {
         "config": settings.config,
         "numerical_contract": model.numerical_contract(),
         "parameters": model.parameter_count(),
+        "geometric_read": settings
+            .geometric_read
+            .then(GeometricReadConfig::signed_2i),
+        "geometric_read_parameters": if settings.geometric_read {
+            uor_r4_training::geometric_read::kernel_shapes(
+                &GeometricReadConfig::signed_2i(),
+            )
+            .values()
+            .map(|shape| shape.iter().product::<usize>())
+            .sum::<usize>()
+        } else {
+            0
+        },
+        "geometric_read_usage": model.geometric_read_usage()?,
         "inputs": {
             "train": identity(&settings.train)?,
             "valid": identity(&settings.valid)?,

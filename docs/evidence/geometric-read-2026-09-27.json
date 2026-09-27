@@ -1,0 +1,834 @@
+{
+ "schema": "uor-r4.geometric-read/1",
+ "recorded_utc": "2026-09-27T19:03:34.211117+00:00",
+ "design": "docs/integration/geometric-read-plan-2026-09-27.md",
+ "source": {
+  "commit": "b7fd254ad4d9376c51dc6ce0eeac7b336087b786",
+  "binary_sha256": "1dfea84ede55f719ddbe515e83f2f917da72effb6c5a3454187f9c09a2abf8fe",
+  "kernel_commit": "ddb36793",
+  "cost_optimization_commit": "b7fd254a"
+ },
+ "parent": {
+  "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final",
+  "step": 15672,
+  "model_sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79"
+ },
+ "arms": {
+  "A": {
+   "role": "kernel enabled (signed-2I read score)",
+   "config": {
+    "schema": "uor-r4.geometric-read/1",
+    "lanes": 16,
+    "hidden": 8,
+    "norm_eps": 1e-06,
+    "init_scale": 0.55
+   },
+   "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-2i-screen-on.json"
+  },
+  "B": {
+   "role": "same binary, kernel disabled (dose-matched baseline)",
+   "campaign": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-2i-screen-off.json"
+  },
+  "C": {
+   "status": "DEFERRED",
+   "trigger_fired": true,
+   "trigger": [
+    "|dNLL| = 0.019719 >= 0.015",
+    "|dComplete| = 10 >= 4"
+   ],
+   "reason": "The predeclared attribution arm (norm-controlled dot) was not run. Accounting at the decision point: the shared ledger read 712,153,247 / 744,000,000 ms at 19:08Z (up from 698,847,339 at the plan freeze, i.e. +13,299,908 ms of concurrent cross-lab consumption during this milestone). This milestone's uncharged accrual at delivery is about 5.0 h (18.1M ms) for two full fits, cost smokes, evaluations, builds, analysis and delivery, projecting a post-charge cumulative near 730M ms against the predeclared 735,000,000 ms stop margin. Arm C would add roughly 0.75 h implementation/build, 1.4 h fit, 0.05 h evaluations and ~0.3 h extra delivery (about 9.0M ms), projecting near 739M ms and leaving under 5M ms (<1.3 h) below the hard 744,000,000 ms ceiling while another lab charges concurrently. C is therefore deferred to a fresh budget decision rather than dropped; the plan's freeze-time projection would have fitted C, and this departure is caused by unforecast concurrent consumption of the shared margin, recorded here rather than silently."
+  }
+ },
+ "fits": {
+  "off": {
+   "role": "B/kernel-disabled",
+   "status": "TARGET_COMPLETE",
+   "completed_step": 16696,
+   "starting_step": 15672,
+   "new_optimizer_steps": 1024,
+   "elapsed_seconds": 3423.626902666,
+   "training_complete_steps_seconds": 3359.651299342,
+   "steady_complete_step_tokens_per_second": 1249.3595747721445,
+   "initial_development_nll": 2.095483273267746,
+   "final_development_nll": 2.0879410803318024,
+   "final_retained_batch_nll": 2.0945701599121094,
+   "reload_absolute_delta": 0.0,
+   "checkpoint_manifest_sha256": null,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-2i-screen-off-8a6d"
+  },
+  "on": {
+   "role": "A/kernel-enabled",
+   "status": "TARGET_COMPLETE",
+   "completed_step": 16696,
+   "starting_step": 15672,
+   "new_optimizer_steps": 1024,
+   "elapsed_seconds": 5923.349781,
+   "training_complete_steps_seconds": 5793.956055155994,
+   "steady_complete_step_tokens_per_second": 724.6974236598219,
+   "initial_development_nll": 2.4950994849205017,
+   "final_development_nll": 2.105671525001526,
+   "final_retained_batch_nll": 2.105011224746704,
+   "reload_absolute_delta": 0.0,
+   "checkpoint_manifest_sha256": null,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-2i-screen-on-8a6d",
+   "geometric_read_parameters": 784,
+   "usage": {
+    "key_distinct_codes_per_lane": [
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120
+    ],
+    "lanes": 16,
+    "non_identity_relation_share": 0.9925446051738737,
+    "non_identity_relations": 8840917812,
+    "relation_distinct_codes_per_lane": [
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120,
+     120
+    ],
+    "relation_observations": 8907325440,
+    "relation_table_occupancy": 1.0,
+    "relation_table_occupied_codes": 120,
+    "schema": "uor-r4.geometric-read-usage/1",
+    "scope": "Integer counts only, accumulated during enabled Full-admission forwards; no tensor retained. Offline training instrumentation, not a serving metric."
+   }
+  }
+ },
+ "evaluations": {
+  "evaluate-quaternion-2i-off-read-8a6d": {
+   "comparison_mean_nll": 1.9847528045645002,
+   "comparison_targets": 233472,
+   "tune_mean_nll": 2.0879409853800417,
+   "tune_targets": 16384,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-2i-off-read-8a6d"
+  },
+  "evaluate-quaternion-2i-off-no-read-8a6d": {
+   "comparison_mean_nll": 2.491002382146438,
+   "comparison_targets": 233472,
+   "tune_mean_nll": 2.5884821267465643,
+   "tune_targets": 16384,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-2i-off-no-read-8a6d"
+  },
+  "evaluate-quaternion-2i-on-read-8a6d": {
+   "comparison_mean_nll": 2.0044713954730504,
+   "comparison_targets": 233472,
+   "tune_mean_nll": 2.105671542806058,
+   "tune_targets": 16384,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-2i-on-read-8a6d"
+  },
+  "evaluate-quaternion-2i-on-no-read-8a6d": {
+   "comparison_mean_nll": 2.4804542942739487,
+   "comparison_targets": 233472,
+   "tune_mean_nll": 2.5773263425893016,
+   "tune_targets": 16384,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-2i-on-no-read-8a6d"
+  }
+ },
+ "rows": {
+  "parent": {
+   "complete": 21,
+   "first_noun": 26,
+   "rows": 32
+  },
+  "B": {
+   "complete": 27,
+   "first_noun": 29,
+   "rows": 32
+  },
+  "A": {
+   "complete": 17,
+   "first_noun": 24,
+   "rows": 32
+  },
+  "A_unique_completions": [],
+  "A_unique_losses": [
+   "story-source-edit-02|edited",
+   "story-source-edit-04|original",
+   "story-source-edit-06|original",
+   "story-source-edit-07|original",
+   "story-source-edit-07|edited",
+   "story-source-edit-08|original",
+   "story-source-edit-09|edited",
+   "story-source-edit-11|edited",
+   "story-source-edit-14|edited",
+   "story-source-edit-15|original"
+  ],
+  "per_row": {
+   "parent": {
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-04|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-12|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    }
+   },
+   "B": {
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    }
+   },
+   "A": {
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-04|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-12|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-15|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    }
+   }
+  }
+ },
+ "prose": {
+  "policy": "five frozen prompts, sampled seeds 2014-2018, cap 128",
+  "principal_verdicts": {
+   "B": "0/5",
+   "A": "0/5"
+  },
+  "generations": {
+   "off": [
+    {
+     "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+     "seed": 2014,
+     "stop": "maximum_new_tokens",
+     "text": "loved to cook with them. One day, they decided to look at the lake, but Mum asked them if they were going to go a holiday. \nThey packed their bags as they needed some money. They asked her if they did a surprise.\nThe two boys agreed to try the holiday, but they really wanted to buy all the money. They put the money in the lake, and they quickly gathered some of the lake.\nWhen the boys were ready, boys started to pack the money. They brought the money for a delicious snack. They put the money in a basket and carried them back"
+    },
+    {
+     "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+     "seed": 2015,
+     "stop": "eos",
+     "text": "noticed a group of children playing and hopping around.\nOne day, the mighty lion felt scared and angry, and he began to cry. He said he was a friendly frog, but he was also friendly. He couldn't believe he could help the bird.\nThe mighty lion and the bird became friends, and they had a great day together. From that day on, the mighty lion and the bird became good friends, and they both had lots of fun together."
+    },
+    {
+     "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+     "seed": 2016,
+     "stop": "eos",
+     "text": "day, while she was in the park, she saw a little mouse. She looked out at the sky and saw a friendly creature. The mouse replied, \"Hi, little mouse. What do you have?\" The pink goose replied, \"Hello, goose! Can I talk about you?\"\nThe little mouse replied, \"Yes, let me talk!\" So the goose talk and became good friends. They played together every day. The pink goose was very happy and thanked the goose for helping. The pink goose was happy too."
+    },
+    {
+     "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+     "seed": 2017,
+     "stop": "maximum_new_tokens",
+     "text": ". Tim saw a big red bike and wanted to go inside. He put the bike down and went to play with his friends.\nAs they rode, Tim saw a big hill. He wanted to climb the big hill. But, the big hill was too heavy for him to reach. Tim's dad saw him and said, \"Tim Tim should not climb the hill. Don't fall.\" Tim was sad but he didn't want to give up his bike.\nTim's dad saw him playing and smiled. \"Don't worry, Tim. I will give you some of the bike,\" she said. Now, Tim's dad could"
+    },
+    {
+     "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+     "seed": 2018,
+     "stop": "maximum_new_tokens",
+     "text": "all wanted to play with the other train.\nSo, Lily and the friends played together. They all the way to play.\nAt the end of the day, Lily and the friends were very happy. They wanted to play with the train too.\nMoral of how many new things to do. So, she asked Lily to join in.\nThey went to the park and found a new train. It was a cold place with lots of yummy treats. Lily and the friends were so happy together. They had a great day playing with the train.\nWhen it was time to go home, Lily and the friends were"
+    }
+   ],
+   "on": [
+    {
+     "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+     "seed": 2014,
+     "stop": "maximum_new_tokens",
+     "text": "always told them to always be there to make things for them forever.\nOne day, when Mommy was make lunch, Mommy said with a smile, she said to the mommy, \"I have gained my friends and now I can gain it up to see if it's getting close.\" Mommy agreed and they both agreed to be careful. But Mommy said, \u201cCome on, let\u2019s go.\u201d \nKiki was outwards and said, \"Let's wait! I'm ready too!\" She said, \u201cI\u2019ll go!\u201d\nThe two of them ran around the garden, chasing the children, ch"
+    },
+    {
+     "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+     "seed": 2015,
+     "stop": "maximum_new_tokens",
+     "text": "thought he would be friends forever. The mighty lion was very happy and excited. He put the big brown trunk on his back and he started to giggle.\nSuddenly, a little puppy came running around! The little puppy was scared and started to weep.\nThe little puppy saw her and smiled. She was so mighty that the mighty lion helped her find him. He said, \"Let's go and get out of this lion in the jungle\".\nThe little puppy was so happy with his new lion, he had a great day, and thanked the little puppy for his adventure. Soon, he was so happy to go home,"
+    },
+    {
+     "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+     "seed": 2016,
+     "stop": "maximum_new_tokens",
+     "text": "day, while she was eating a piece of bread, she heard a noise coming from in her house. The goose was curious and wanted to see it too. \nShe reached for the water from the goose. As she walked, she heard a strange noise from the water and it looked like a beautiful sound. The goose looked around and walked around, looking around and saw a beautiful rainbow shining in the sky. She was so excited to see what was going inside. \nThe goose and the goose became friends. They ran around the park, playing together and having fun. The goose was pink and happy to be there. She was"
+    },
+    {
+     "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+     "seed": 2017,
+     "stop": "eos",
+     "text": ". Tim thought it would be fun to ride his bike.\nAs Tim rode his bike, he saw his friend Sam. Sam was sad. Sam asked Sam, \"Why are you sad, Sam?\" Sam answered, \"I lost my bike. I wish I could find any friends to play with.\" Tim thought for a moment and said. They decided to try to ride Tim together.\nTim and Sam put the bike in the park. They learned that it is good to ask for help, not rideing it. The moral of the story is to always be kind and share with others."
+    },
+    {
+     "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+     "seed": 2018,
+     "stop": "maximum_new_tokens",
+     "text": "loved to watch the world around the town.\nAt the train, Lily said to Dave, \"That is a fun train!\"\nBut then one day, Lily and Dave were playing in the train, when they were playing in the train. Suddenly, the train stopped! He turned around and started to bark. Lily and Dave were very sad.\nAnother said, \"Let's go find a train!\" They couldn't find anything. They were all so sad.\nSuddenly, their friend, a big bird saw the train. The bird said, \"I am sorry, Lily. I was very sorry,"
+    }
+   ]
+  }
+ },
+ "guardrails": {
+  "no_read_penalty": {
+   "B": 0.5062495775819378,
+   "A": 0.4759828988008983
+  },
+  "read_nll_within_parent_plus_0_03": {
+   "A": true
+  },
+  "short_cycles": {
+   "B": false,
+   "A": false
+  },
+  "baseline_reproduces_parent_evaluation_exactly": true,
+  "baseline_reproduces_historical_plain_16696_evaluation_exactly": true,
+  "hard_path_not_collapsed": {
+   "key_distinct_codes_per_lane_min": 120,
+   "relation_distinct_codes_per_lane_min": 120,
+   "non_identity_relation_share": 0.9925446051738737
+  }
+ },
+ "usage": {
+  "key_distinct_codes_per_lane": [
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120
+  ],
+  "lanes": 16,
+  "non_identity_relation_share": 0.9925446051738737,
+  "non_identity_relations": 8840917812,
+  "relation_distinct_codes_per_lane": [
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120,
+   120
+  ],
+  "relation_observations": 8907325440,
+  "relation_table_occupancy": 1.0,
+  "relation_table_occupied_codes": 120,
+  "schema": "uor-r4.geometric-read-usage/1",
+  "scope": "Integer counts only, accumulated during enabled Full-admission forwards; no tensor retained. Offline training instrumentation, not a serving metric."
+ },
+ "decision": {
+  "outcome": "HARM",
+  "dNLL_A_minus_B": 0.019718590908550215,
+  "dComplete_A_minus_B": -10,
+  "conditions_met": [
+   "dComplete <= -4",
+   "new unique losses >= 4"
+  ],
+  "statement": "The finite signed-2I read score harms the same-dose baseline: 1.984753 -> 2.004471 comparison-tail Read NLL (+0.019719, inside the +0.02 bound), complete source answers 27/32 -> 17/32 with 10 unique losses and 0 unique gains, and sampled prose unchanged at 0/5 in both arms. Per the predeclared rule the outcome is HARM (dComplete <= -4, unique losses >= 4; and independently the missed cost gate, which shares the plan heading). Scope: this rejects the finite relation score as parameterized here, including its 784 added parameters, at this dose and representation. The attribution between finite-relation coding and added per-lane capacity/optimizer interaction is UNRESOLVED because arm C was deferred; the narrow supported statement is that this parameterization does not improve and measurably degrades the baseline.",
+  "next": "The state/read path remains the supported next target, but not by re-parameterising this score; the predeclared attribution arm C is the conditional next step only if a future milestone revisits the finite read under a fresh budget decision."
+ },
+ "attempts": [
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kerneloff-smoke-8a6d",
+   "status": "RESOURCE_CHECKPOINT (argument error: total_steps=16676 gave a 341-update run stopped by max_process_seconds=900)",
+   "note": "Its 341-step curve exactly replays the historical fit-quaternion-plain-16696 curve (0 NLL mismatches); retained as an instrument check."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kernelon-smoke-8a6d",
+   "status": "ABORTED",
+   "note": "Shell timeout killed the launching command mid-run; 92 curve lines, no report."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kerneloff-smoke4-8a6d",
+   "status": "TARGET_COMPLETE",
+   "note": "4-update cost smoke, 14.7 s wall, per-step 3.170/2.036/1.931/2.150."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kernelon-smoke4-8a6d",
+   "status": "TARGET_COMPLETE",
+   "note": "4-update cost smoke BEFORE optimization: per-step 15.300/8.742/12.879/10.247 (mean 11.79)."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kernelon-smoke5-8a6d",
+   "status": "TARGET_COMPLETE",
+   "note": "4-update cost smoke AFTER optimization: per-step 6.081/5.443/6.603/9.808 (mean 6.984); historical-idle-baseline ratio 3.01x."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kerneloff-smoke5-3f2c",
+   "status": "TARGET_COMPLETE",
+   "note": "Paired same-session kernel-off smoke: per-step 4.247/3.561/3.240/4.136 (mean 3.796); paired ratio 6.984/3.796 = 1.84x (the plan-gate comparison)."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-kernelon-smoke6-7b1e",
+   "status": "TARGET_COMPLETE",
+   "note": "Later contended kernel-on smoke: per-step 19.916/13.744/13.397/15.976 (mean 15.758), showing load sensitivity under concurrent cross-lab work."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-baseline-invariance-8a6d-read",
+   "status": "FAILED_ATTEMPT",
+   "note": "First baseline-invariance evaluation: rejected with \"joint campaign requires source-bound build\" because the binary was built without UOR_BUILD_SOURCE_COMMIT; the root exists with an attempt record and no report. Superseded by the 8a6d2 root."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-baseline-invariance-8a6d2-read",
+   "status": "joint-evaluate (successful)",
+   "note": "The actual baseline-invariance witness: kernel-off new-binary evaluation of the untouched parent; blocks.jsonl bit-identical to evaluate-quaternion-continuous-read-6 and generation/story-probe outputs identical, i.e. the kernel-off path is unchanged at evaluation scope."
+  }
+ ],
+ "cost": {
+  "model_and_build_seconds_estimate": 11829.976683666,
+  "charged_once_at_delivery_ms": null,
+  "note": "Complete elapsed wall charged once for the milestone at delivery, including the failed/aborted attempts listed above."
+ },
+ "limits": {
+  "assessment_scope": "exposed development evaluator and authored source panel; single seed and single parent; no fresh holdout; concurrent cross-lab machine load inflated wall times.",
+  "no_promotion": true,
+  "literature": null
+ },
+ "cost_gate": {
+  "predeclared_threshold": "kernel adds > 1.5x per-update wall over the kernel-off arm => stop and optimize before the full screen",
+  "pre_optimization_per_step_s": [
+   15.3,
+   8.742,
+   12.879,
+   10.247
+  ],
+  "post_optimization_per_step_s": [
+   6.081,
+   5.443,
+   6.603,
+   9.808
+  ],
+  "paired_kernel_off_per_step_s": [
+   4.247,
+   3.561,
+   3.24,
+   4.136
+  ],
+  "paired_ratio": 1.84,
+  "historical_idle_baseline_ratio": 3.01,
+  "result": "FAILED (1.84x paired same-session > 1.5x). Carried to the full screen as an explicit budgeted exception: the residual cost is the frozen straight-through smooth Hamilton composition and is inherent to the declared operator, so further reduction would change the frozen mechanism. Under the plan heading (\"Guardrails and instrument checks\") a guardrail failure is itself a HARM condition, so the HARM decision holds independently of the row criteria. The optimization itself (per-event detached key-code caching + vectorized per-lane score) reduced the kernel from ~5x to 1.84x and is retained.",
+  "attribution_note": "The claim that the smooth Hamilton composition dominates the residual cost comes from the implementer profiler sampling, not an independent measurement."
+ },
+ "usage_scope_note": "The usage histogram is cumulative over the whole fit and its evaluations; it is not the plan's zero-update-window measurement. All 16 lanes show 120 distinct key codes and 120 distinct relation codes with a 0.9925 non-identity relation share.",
+ "ledger_accounting": {
+  "freeze_utc_balance_ms": 698847339,
+  "decision_time_utc": "2026-09-27T19:08:58Z",
+  "decision_time_balance_ms": 712153247,
+  "concurrent_cross_lab_drift_ms": 13299908,
+  "milestone_uncharged_elapsed_h": 5.0,
+  "projected_post_milestone_ms": 730300000,
+  "arm_c_projected_additional_ms": 9000000,
+  "projected_with_arm_c_ms": 739300000,
+  "predeclared_stop_margin_ms": 735000000,
+  "hard_ceiling_ms": 744000000
+ },
+ "delivery": {
+  "delivered_branch": "codex/geometric-read-20260927",
+  "rebased_onto": "72538ffb",
+  "delivered_commits": {
+   "plan": "9c80d2ac",
+   "instrument": "753fe4b0",
+   "cost_optimization": "32944a1c"
+  },
+  "pre_rebase_commits": {
+   "instrument": "ddb36793",
+   "cost_optimization": "b7fd254a"
+  },
+  "note": "The executed binary was built and bound at source b7fd254a (pre-rebase); the executed identities (binary 1dfea84e, source b7fd254a) remain the measured-artifact identities. The rebase onto main 72538ffb preserved this patch byte-identically on all four non-overlapping files (verified by patch diff) and the 13 geometric_read tests re-passed."
+ }
+}

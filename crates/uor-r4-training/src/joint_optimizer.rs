@@ -567,8 +567,38 @@ impl NamedAdamW {
         variables: &BTreeMap<String, Var>,
         expected_config: &AdamConfig,
     ) -> Result<Self> {
+        Self::load_inner(directory, variables, expected_config, &BTreeSet::new())
+    }
+
+    /// Load a parent's moments while giving newly added parameters (`fresh`)
+    /// zero first/second moments and update count at the parent step. Every
+    /// non-fresh variable must still match the saved name, shape and clock.
+    pub fn load_with_fresh(
+        directory: impl AsRef<Path>,
+        variables: &BTreeMap<String, Var>,
+        expected_config: &AdamConfig,
+        fresh: &BTreeSet<String>,
+    ) -> Result<Self> {
+        Self::load_inner(directory, variables, expected_config, fresh)
+    }
+
+    fn load_inner(
+        directory: impl AsRef<Path>,
+        variables: &BTreeMap<String, Var>,
+        expected_config: &AdamConfig,
+        fresh: &BTreeSet<String>,
+    ) -> Result<Self> {
         validate_variables(variables, expected_config)?;
         validate_initial_parameters(variables, expected_config.parameter_abs_limit)?;
+        if let Some(name) = fresh.iter().find(|name| !variables.contains_key(*name)) {
+            return Err(OptimizerError::InvalidVariables(format!(
+                "fresh parameter {name} is not in the variable inventory"
+            )));
+        }
+        let saved_variables: Vec<(&String, &Var)> = variables
+            .iter()
+            .filter(|(name, _)| !fresh.contains(*name))
+            .collect();
         let directory = directory.as_ref();
         let mut json = Vec::new();
         fs::File::open(directory.join(METADATA_FILE))?
@@ -588,17 +618,17 @@ impl NamedAdamW {
             || metadata.clip_norm != CLIP_NORM
             || metadata.moment_abs_limit != MOMENT_ABS_LIMIT
             || metadata.config != *expected_config
-            || metadata.variables.len() != variables.len()
+            || metadata.variables.len() != saved_variables.len()
         {
             return Err(OptimizerError::InvalidCheckpoint(
                 "algorithm, config or variable inventory differs".into(),
             ));
         }
-        for (saved, (name, variable)) in metadata.variables.iter().zip(variables) {
-            if saved.name != *name
+        for (saved, (name, variable)) in metadata.variables.iter().zip(&saved_variables) {
+            if saved.name != **name
                 || saved.shape != variable.dims()
                 || saved.updates > metadata.step
-                || (!expected_config.allowed_missing_gradients.contains(name)
+                || (!expected_config.allowed_missing_gradients.contains(*name)
                     && saved.updates != metadata.step)
             {
                 return Err(OptimizerError::InvalidCheckpoint(format!(
@@ -636,9 +666,9 @@ impl NamedAdamW {
             ));
         }
         let tensors = SafeTensors::deserialize(&bytes)?;
-        let expected_names: BTreeSet<_> = variables
-            .keys()
-            .flat_map(|name| [format!("m/{name}"), format!("v/{name}")])
+        let expected_names: BTreeSet<_> = saved_variables
+            .iter()
+            .flat_map(|(name, _)| [format!("m/{name}"), format!("v/{name}")])
             .collect();
         let actual_names: BTreeSet<_> = tensors.names().into_iter().map(str::to_owned).collect();
         if actual_names != expected_names {
@@ -647,7 +677,7 @@ impl NamedAdamW {
             ));
         }
         let mut states = BTreeMap::new();
-        for (saved, (name, variable)) in metadata.variables.iter().zip(variables) {
+        for (saved, (name, variable)) in metadata.variables.iter().zip(&saved_variables) {
             let first = decode_moment(
                 &tensors.tensor(&format!("m/{name}"))?,
                 variable,
@@ -661,12 +691,26 @@ impl NamedAdamW {
                 saved.updates,
             )?;
             states.insert(
-                name.clone(),
+                (*name).clone(),
                 MomentState {
                     variable_id: variable.id(),
                     first,
                     second,
                     updates: saved.updates,
+                },
+            );
+        }
+        for name in fresh {
+            let variable = variables
+                .get(name)
+                .ok_or_else(|| OptimizerError::InvalidVariables(format!("missing {name}")))?;
+            states.insert(
+                name.clone(),
+                MomentState {
+                    variable_id: variable.id(),
+                    first: Tensor::zeros(variable.shape(), DType::F32, variable.device())?,
+                    second: Tensor::zeros(variable.shape(), DType::F32, variable.device())?,
+                    updates: 0,
                 },
             );
         }
