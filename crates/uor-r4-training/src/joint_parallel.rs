@@ -23,11 +23,15 @@ fn shard_gradients(
     model: &JointModel,
     inputs: &[u32],
     targets: &[u32],
+    target_weights: Option<&[f32]>,
     batch: usize,
     time: usize,
 ) -> Result<BatchGradients> {
     let output = model.forward(inputs, batch, time, ReadMode::Enabled, true)?;
-    let loss = output.loss(targets)?;
+    let loss = match target_weights {
+        None => output.loss(targets)?,
+        Some(weights) => output.weighted_loss(targets, weights)?,
+    };
     let mean_nll = loss.to_scalar::<f32>()?;
     if !mean_nll.is_finite() {
         return Err(invalid("nonfinite training shard loss"));
@@ -45,6 +49,7 @@ pub fn batch_gradients(
     model: &JointModel,
     inputs: &[u32],
     targets: &[u32],
+    target_weights: Option<&[f32]>,
     batch: usize,
     time: usize,
     shards: usize,
@@ -57,13 +62,14 @@ pub fn batch_gradients(
         || time > model.config.context
         || batch.checked_mul(time) != Some(inputs.len())
         || targets.len() != inputs.len()
+        || target_weights.is_some_and(|weights| weights.len() != inputs.len())
     {
         return Err(invalid(
             "invalid full-window CPU gradient shard configuration",
         ));
     }
     if shards == 1 {
-        return shard_gradients(model, inputs, targets, batch, time);
+        return shard_gradients(model, inputs, targets, target_weights, batch, time);
     }
     if !matches!(model.device(), Device::Cpu) {
         return Err(invalid("multiple gradient shards require a CPU model"));
@@ -77,11 +83,12 @@ pub fn batch_gradients(
             let start = shard * shard_tokens;
             let inputs = &inputs[start..start + shard_tokens];
             let targets = &targets[start..start + shard_tokens];
+            let weights = target_weights.map(|weights| &weights[start..start + shard_tokens]);
             match std::thread::Builder::new()
                 .name(format!("joint-gradient-{shard}"))
                 .stack_size(WORKER_STACK_BYTES)
                 .spawn_scoped(scope, move || {
-                    shard_gradients(model, inputs, targets, shard_batch, time)
+                    shard_gradients(model, inputs, targets, weights, shard_batch, time)
                 }) {
                 Ok(handle) => handles.push(handle),
                 Err(error) => {
@@ -182,9 +189,9 @@ mod tests {
         }
         let inputs: Vec<u32> = (0..32).map(|index| (index * 7 + 3) % 101).collect();
         let targets: Vec<u32> = (0..32).map(|index| (index * 7 + 10) % 101).collect();
-        let complete = batch_gradients(&model, &inputs, &targets, 4, 8, 1)?;
+        let complete = batch_gradients(&model, &inputs, &targets, None, 4, 8, 1)?;
         for shards in [2, 4] {
-            let split = batch_gradients(&model, &inputs, &targets, 4, 8, shards)?;
+            let split = batch_gradients(&model, &inputs, &targets, None, 4, 8, shards)?;
             assert!((complete.mean_nll - split.mean_nll).abs() < 2e-5);
             for (name, variable) in model.variables() {
                 let expected = complete
@@ -202,6 +209,39 @@ mod tests {
                     "{shards} shards, {name}: delta {delta}, scale {scale}"
                 );
             }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn end_weight_uniform_weights_match_default_gradients() -> Result<()> {
+        let model = JointModel::new(
+            JointConfig {
+                width: 128,
+                context: 8,
+                transport: Transport::Quaternion,
+                seed: 71,
+                ..JointConfig::default()
+            },
+            &Device::Cpu,
+        )?;
+        let inputs: Vec<u32> = (0..32).map(|index| (index * 5 + 1) % 101).collect();
+        let targets: Vec<u32> = (0..32).map(|index| (index * 5 + 8) % 101).collect();
+        let plain = batch_gradients(&model, &inputs, &targets, None, 4, 8, 1)?;
+        let ones = vec![1.0f32; 32];
+        let weighted = batch_gradients(&model, &inputs, &targets, Some(&ones), 4, 8, 1)?;
+        assert!((plain.mean_nll - weighted.mean_nll).abs() < 1e-5);
+        for (name, variable) in model.variables() {
+            let expected = plain
+                .gradients
+                .get(variable.as_tensor())
+                .ok_or_else(|| invalid(format!("default path missing gradient {name}")))?;
+            let actual = weighted
+                .gradients
+                .get(variable.as_tensor())
+                .ok_or_else(|| invalid(format!("weighted path missing gradient {name}")))?;
+            let delta = actual.sub(expected)?.abs()?.max_all()?.to_scalar::<f32>()?;
+            assert!(delta < 1e-5, "uniform end weights changed {name}: {delta}");
         }
         Ok(())
     }

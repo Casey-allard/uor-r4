@@ -555,6 +555,7 @@ fn run(settings: &Settings, out: &Path) -> Result<()> {
                 &model,
                 &inputs,
                 &targets,
+                None,
                 settings.batch,
                 time,
                 settings.shards,

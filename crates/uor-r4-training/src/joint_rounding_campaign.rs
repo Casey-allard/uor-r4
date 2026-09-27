@@ -327,6 +327,7 @@ fn fit(cfg: &RoundingCampaign, out: &Path, resume_path: Option<&Path>) -> Result
             &model,
             &inputs,
             &targets,
+            None,
             cfg.batch,
             cfg.context,
             cfg.cpu_gradient_shards,
@@ -530,6 +531,7 @@ fn calibrate(cfg: &RoundingCampaign, out: &Path) -> Result<()> {
             &view,
             &inputs,
             &targets,
+            None,
             cfg.batch,
             cfg.context,
             cfg.cpu_gradient_shards,
@@ -674,8 +676,8 @@ mod tests {
             assert!(view.forward(&ids, 2, 8, ReadMode::Enabled, false).is_err());
             assert!(view.without_quantization().is_err());
             assert!(view.new_session(1).is_err());
-            let one = crate::joint_parallel::batch_gradients(&view, &ids, &targets, 2, 8, 1)?;
-            let two = crate::joint_parallel::batch_gradients(&view, &ids, &targets, 2, 8, 2)?;
+            let one = crate::joint_parallel::batch_gradients(&view, &ids, &targets, None, 2, 8, 1)?;
+            let two = crate::joint_parallel::batch_gradients(&view, &ids, &targets, None, 2, 8, 2)?;
             assert!((one.mean_nll - two.mean_nll).abs() < 2e-5);
             for (name, var) in learner.variables() {
                 let a = one

@@ -1,0 +1,1134 @@
+{
+ "audit": {
+  "guardrails": "hold in every arm under both parent readings",
+  "recommendation": "INERT, with the rule-gap and borderline sensitivity disclosed",
+  "reviewer": "uor-evidence-auditor (independent)",
+  "source_rows": "endw-only 3 (< threshold 4); plain-only 0; non-termination resolved endw 10 vs plain 8; one shared regression row (householder_pair 11/original key->keys)",
+  "status": "AUDIT_COMPLETE",
+  "verdicts": "identical strict 0/5 in all four arms"
+ },
+ "campaigns": {
+  "householder_pair-endw": {
+   "home": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair-endw-16696.json",
+   "repo_copy": "docs/evidence/termination-objective-2026-09-27/campaigns/householder_pair-endw-16696.json",
+   "repo_copy_sha256": "698367cfbf02acb8fa9754787172c7ab0cb2092fa2d0cf2953b4d98c0ab983a4"
+  },
+  "householder_pair-plain": {
+   "home": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair-plain-16696.json",
+   "repo_copy": "docs/evidence/termination-objective-2026-09-27/campaigns/householder_pair-plain-16696.json",
+   "repo_copy_sha256": "03d6a6ad9dd9d8924e3db3015812f8d81146d5e5f0377d960e7fff379526763e"
+  },
+  "quaternion-endw": {
+   "home": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-endw-16696.json",
+   "repo_copy": "docs/evidence/termination-objective-2026-09-27/campaigns/quaternion-endw-16696.json",
+   "repo_copy_sha256": "872cd6daf74fb588dab1aad5765732a39a4db690080476c325ca26da8147ce88"
+  },
+  "quaternion-plain": {
+   "home": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-plain-16696.json",
+   "repo_copy": "docs/evidence/termination-objective-2026-09-27/campaigns/quaternion-plain-16696.json",
+   "repo_copy_sha256": "35eb55f80d412f707d7e97cf88690f01dd33f474587c4abd49a7b9f0790a7db8"
+  }
+ },
+ "decision": {
+  "extend_thresholds": {
+   "endw_only_rows": 3,
+   "met": false,
+   "story_gain_vs_parent_and_control": false,
+   "threshold": 4
+  },
+  "outcome": "INERT",
+  "plain_only_rows": 0,
+  "statement": "Neither predeclared EXTEND threshold is robustly met: sampled five-prompt prose is 0/5 in all four finals (principal and independent audit agree), and the treatment uniquely resolves 3 source rows (2 non-termination + 1 wrong-noun) versus a dose-matched control that uniquely resolves 0. Most of the panel recovery is a shared dose effect (plain resolves 12 of the 20 failing rows vs parent; treatment 15). Guardrails hold; standard development NLL is slightly worse for the treatment. Per the predeclared rule the outcome is INERT: stop the termination-weighting branch. The residual entity/role collapse and cap-truncation failures place the next rung in the state/read path. No promotion; parents preserved."
+ },
+ "design": "docs/integration/termination-objective-plan-2026-09-27.md",
+ "evaluations": {
+  "householder_pair-endw-no-read": {
+   "comparison_mean_nll": 2.4847594958130785,
+   "full_mean_nll": 2.490688413489189,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-endw-16696-no-read"
+  },
+  "householder_pair-endw-read": {
+   "comparison_mean_nll": 1.977859586507616,
+   "full_mean_nll": 1.9845683194607326,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-endw-16696-read"
+  },
+  "householder_pair-plain-no-read": {
+   "comparison_mean_nll": 2.475962623835401,
+   "full_mean_nll": 2.481609332932167,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-plain-16696-no-read"
+  },
+  "householder_pair-plain-read": {
+   "comparison_mean_nll": 1.9656616686185462,
+   "full_mean_nll": 1.9721152784237632,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-householder_pair-plain-16696-read"
+  },
+  "quaternion-endw-no-read": {
+   "comparison_mean_nll": 2.5009260672556324,
+   "full_mean_nll": 2.50746818424195,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-endw-16696-no-read"
+  },
+  "quaternion-endw-read": {
+   "comparison_mean_nll": 1.9941368889695295,
+   "full_mean_nll": 2.0009584580527178,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-endw-16696-read"
+  },
+  "quaternion-plain-no-read": {
+   "comparison_mean_nll": 2.491002382146438,
+   "full_mean_nll": 2.497394496546446,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-plain-16696-no-read"
+  },
+  "quaternion-plain-read": {
+   "comparison_mean_nll": 1.9847528045645002,
+   "full_mean_nll": 1.9915192426507653,
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-plain-16696-read"
+  }
+ },
+ "executed": {
+  "binary_sha256": "b0ff04aaa14479be404dd43d9be9395b9dbcf0d06ebd37299e3cb116f75706bf",
+  "delivered_binary_sha256": "9e351540fc32ae36cbc53b194297343df6954bb449087d5390613ad8857fbf81",
+  "delivered_source_commit": "195176fa40e266ea6c74721c59c1698f792aae52",
+  "parent": "f8bee0ff",
+  "post_rebase_witness": {
+   "lib_tests": "132 passed / 0 failed",
+   "result": "both treatment checkpoints reproduce the sealed generations.json and story-probes.json identically after removing per-generation timing fields",
+   "roots": [
+    "evaluate-quaternion-endw-16696-witness",
+    "evaluate-householder_pair-endw-16696-witness"
+   ]
+  },
+  "rebased_over": "bbce4cf6 (intervening absent-by-default merges: read-geometry/Lorentz initializer, dialogue artifact, reader comparison)",
+  "source_commit": "c54d78019c9ea64001f8bf03f94793831253af2c"
+ },
+ "fits": {
+  "householder_pair-endw": {
+   "boundary_token_ids": [
+    1,
+    3,
+    16,
+    33
+   ],
+   "checkpoint_manifest_sha256": "217adfbb42684f030baeba7c73ebe2c80fcbb1808ef48bd7b500060408d5ed08",
+   "completed_step": 16696,
+   "elapsed_seconds": 4768.063997,
+   "end_weight": 2.5,
+   "executable_sha256": "b0ff04aaa14479be404dd43d9be9395b9dbcf0d06ebd37299e3cb116f75706bf",
+   "final_development_nll": 2.08016774058342,
+   "final_retained_batch_nll": 2.0908286571502686,
+   "initial_development_nll": 2.076351672410965,
+   "source_commit": "c54d78019c9ea64001f8bf03f94793831253af2c",
+   "starting_step": 15672,
+   "status": "TARGET_COMPLETE"
+  },
+  "householder_pair-plain": {
+   "boundary_token_ids": [
+    1,
+    3,
+    16,
+    33
+   ],
+   "checkpoint_manifest_sha256": "0a53a9306ea8a88efa472342150ae3ae453942a63043302fc194cf9123cf6481",
+   "completed_step": 16696,
+   "elapsed_seconds": 4752.079863875,
+   "end_weight": null,
+   "executable_sha256": "b0ff04aaa14479be404dd43d9be9395b9dbcf0d06ebd37299e3cb116f75706bf",
+   "final_development_nll": 2.0640792548656464,
+   "final_retained_batch_nll": 2.081591844558716,
+   "initial_development_nll": 2.076351672410965,
+   "source_commit": "c54d78019c9ea64001f8bf03f94793831253af2c",
+   "starting_step": 15672,
+   "status": "TARGET_COMPLETE"
+  },
+  "quaternion-endw": {
+   "boundary_token_ids": [
+    1,
+    3,
+    16,
+    33
+   ],
+   "checkpoint_manifest_sha256": "ca90fa2f080506b7017a8f7bc0fb27d771cb5af14e39093a5d53ff6ec6343000",
+   "completed_step": 16696,
+   "elapsed_seconds": 2686.447504834,
+   "end_weight": 2.5,
+   "executable_sha256": "b0ff04aaa14479be404dd43d9be9395b9dbcf0d06ebd37299e3cb116f75706bf",
+   "final_development_nll": 2.0981657803058624,
+   "final_retained_batch_nll": 2.1011648178100586,
+   "initial_development_nll": 2.095483273267746,
+   "source_commit": "c54d78019c9ea64001f8bf03f94793831253af2c",
+   "starting_step": 15672,
+   "status": "TARGET_COMPLETE"
+  },
+  "quaternion-plain": {
+   "boundary_token_ids": [
+    1,
+    3,
+    16,
+    33
+   ],
+   "checkpoint_manifest_sha256": "53982fbc62bb1f37e9ee053d87a98df4b70be73202ba714361187d574d7beb5e",
+   "completed_step": 16696,
+   "elapsed_seconds": 2860.997739375,
+   "end_weight": null,
+   "executable_sha256": "b0ff04aaa14479be404dd43d9be9395b9dbcf0d06ebd37299e3cb116f75706bf",
+   "final_development_nll": 2.0879410803318024,
+   "final_retained_batch_nll": 2.0945701599121094,
+   "initial_development_nll": 2.095483273267746,
+   "source_commit": "c54d78019c9ea64001f8bf03f94793831253af2c",
+   "starting_step": 15672,
+   "status": "TARGET_COMPLETE"
+  }
+ },
+ "guardrails": {
+  "householder_pair": {
+   "comparison_tail_within_parent_plus_0.05": true,
+   "note": "computed from evaluation tables",
+   "source_complete_ge_parent_minus_2": true
+  },
+  "quaternion": {
+   "comparison_tail_within_parent_plus_0.05": true,
+   "note": "computed from evaluation tables",
+   "source_complete_ge_parent_minus_2": true
+  }
+ },
+ "limits": [
+  "One dose (1,024 updates) and one weight (2.5); no weight/dose sweep follows from a single INERT result.",
+  "The 32-row authored source panel is dose-sensitive: the plain control already recovers 12 of 20 failing rows; treat panel movement as a development observation, not a capability.",
+  "Sampled prose stops at the 128-token cap in 16 of 20 candidate stories, limiting termination measurement; the frozen criteria and cap policy are unchanged.",
+  "The predeclared INERT band (probe rows within +/-2) is satisfied only as treatment-minus-control (+2/+1); parent-relative movement is a separate dose effect. This interpretation is disclosed, not a post-hoc relaxation.",
+  "Borderline prose judgments are listed with an independent read; no disagreement changed the 0/5 count.",
+  "No integer/hard export, no fresh holdout, no promotion."
+ ],
+ "principal_prose_verdicts": {
+  "householder_pair-endw": [
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL"
+  ],
+  "householder_pair-plain": [
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL"
+  ],
+  "note": "0/5 each; independent audit identical; closest calls: quaternion-plain seed2015 and householder-pair-endw seed2016 (role/entity slips keep them below the all-four bar); cap stops unresolved.",
+  "quaternion-endw": [
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL"
+  ],
+  "quaternion-plain": [
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL",
+   "FAIL"
+  ]
+ },
+ "recorded_utc": "2026-09-27T07:00:17.880085+00:00",
+ "rows": {
+  "householder_pair": {
+   "endw": {
+    "story-source-edit-00|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": true,
+     "first_noun": true
+    }
+   },
+   "parent": {
+    "story-source-edit-00|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": false,
+     "first_noun": true
+    }
+   },
+   "plain": {
+    "story-source-edit-00|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": false,
+     "first_noun": true
+    }
+   }
+  },
+  "householder_pair|counts": {
+   "endw_complete": 29,
+   "endw_first_noun": 31,
+   "parent_complete": 23,
+   "parent_first_noun": 31,
+   "plain_complete": 28,
+   "plain_first_noun": 31
+  },
+  "householder_pair|transitions": {
+   "endw_only": [
+    "story-source-edit-15|original"
+   ],
+   "endw_regressed": [
+    "story-source-edit-11|original"
+   ],
+   "endw_resolved": [
+    "story-source-edit-00|edited",
+    "story-source-edit-03|edited",
+    "story-source-edit-06|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited",
+    "story-source-edit-15|original"
+   ],
+   "endw_resolved_non_termination": [
+    "story-source-edit-03|edited",
+    "story-source-edit-06|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited",
+    "story-source-edit-15|original"
+   ],
+   "parent_non_termination_rows": [
+    "story-source-edit-03|edited",
+    "story-source-edit-03|original",
+    "story-source-edit-06|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited",
+    "story-source-edit-15|edited",
+    "story-source-edit-15|original"
+   ],
+   "plain_only": [],
+   "plain_regressed": [
+    "story-source-edit-11|original"
+   ],
+   "plain_resolved": [
+    "story-source-edit-00|edited",
+    "story-source-edit-03|edited",
+    "story-source-edit-06|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited"
+   ],
+   "plain_resolved_non_termination": [
+    "story-source-edit-03|edited",
+    "story-source-edit-06|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited"
+   ]
+  },
+  "quaternion": {
+   "endw": {
+    "story-source-edit-00|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-04|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": true,
+     "first_noun": true
+    }
+   },
+   "parent": {
+    "story-source-edit-00|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-04|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": true,
+     "first_noun": true
+    }
+   },
+   "plain": {
+    "story-source-edit-00|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-00|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-01|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-02|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-03|original": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-04|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-04|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-05|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-06|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-07|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-08|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-09|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-10|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-11|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-12|edited": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-12|original": {
+     "complete": false,
+     "first_noun": false
+    },
+    "story-source-edit-13|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-13|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|edited": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-14|original": {
+     "complete": true,
+     "first_noun": true
+    },
+    "story-source-edit-15|edited": {
+     "complete": false,
+     "first_noun": true
+    },
+    "story-source-edit-15|original": {
+     "complete": true,
+     "first_noun": true
+    }
+   }
+  },
+  "quaternion|counts": {
+   "endw_complete": 29,
+   "endw_first_noun": 30,
+   "parent_complete": 21,
+   "parent_first_noun": 26,
+   "plain_complete": 27,
+   "plain_first_noun": 29
+  },
+  "quaternion|transitions": {
+   "endw_only": [
+    "story-source-edit-03|original",
+    "story-source-edit-04|edited"
+   ],
+   "endw_regressed": [],
+   "endw_resolved": [
+    "story-source-edit-00|edited",
+    "story-source-edit-03|original",
+    "story-source-edit-04|edited",
+    "story-source-edit-04|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-08|original",
+    "story-source-edit-11|edited"
+   ],
+   "endw_resolved_non_termination": [
+    "story-source-edit-03|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited"
+   ],
+   "parent_non_termination_rows": [
+    "story-source-edit-03|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited",
+    "story-source-edit-15|edited"
+   ],
+   "plain_only": [],
+   "plain_regressed": [],
+   "plain_resolved": [
+    "story-source-edit-00|edited",
+    "story-source-edit-04|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-08|original",
+    "story-source-edit-11|edited"
+   ],
+   "plain_resolved_non_termination": [
+    "story-source-edit-07|edited",
+    "story-source-edit-07|original",
+    "story-source-edit-11|edited"
+   ]
+  }
+ },
+ "schema": "uor-r4.termination-objective/1"
+}

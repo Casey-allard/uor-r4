@@ -177,6 +177,7 @@ fn fit(cfg: &BoundedCampaign, out: &Path, resume: Option<&Path>) -> Result<()> {
             &model,
             &inputs,
             &targets,
+            None,
             cfg.batch,
             cfg.context,
             cfg.cpu_gradient_shards,

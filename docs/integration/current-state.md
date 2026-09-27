@@ -240,7 +240,14 @@ draws from the model's own ranking. The follow-on selection-policy diagnostic is
 now executed too: with the draw removed the sampled malformed clauses do not
 recur, but greedy prose still misses the frozen acceptability bar (quaternion
 2/5, ordinary pair 0/5) and the greedy source panel still fails 11/32 and 9/32
-rows, so ranking/emission is the supported next target. Admission pruning remains deferred.
+rows, so ranking/emission was the supported next target. The bounded
+termination-weighted objective experiment is now executed and returns INERT: at
+2.5× on sentence-final targets over 1,024 updates (4.19M targets per arm) it adds
+only 3 unique source rows beyond a dose-matched plain continuation (0 unique
+losses) and leaves sampled prose at0/5, while the plain dose already recovers12
+of20 failing rows; guardrails hold and standard development NLL is slightly
+worse for the treatment. Termination weighting is a weak lever at this dose; the
+next rung is the state/read path. Admission pruning remains deferred.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
 ## Latest result: completed continuation, useful-language target unmet
@@ -654,6 +661,24 @@ listed only in the result's [delivery section](language-continuation-result-2026
   the positive branch.
 - **Correction:** the plan's `5/2`/`7/4` citation is the new hard artifact's row,
   not this continuous panel's (`9/2` and `6/5`); the plan carries a corrigendum.
+- **Stop:** this packet is closed. #973 and #820 remain open at their wider scope.
+
+### Executed: termination-weighted objective experiment (September 27)
+
+- **Executed** from the [predeclared plan](termination-objective-plan-2026-09-27.md)
+  and [result](termination-objective-result-2026-09-27.md): four sequential fits from the
+  step-15,672 parents (1,024 updates /4,194,304 targets each) comparing an additive
+  `end_weight=2.5` on sentence-final targets against a dose-matched plain continuation.
+- **Witnessed result:** `INERT`. The treatment uniquely resolves3 source rows (2
+  non-termination +1 wrong-noun) with zero unique losses, but the plain dose alone
+  recovers12 of20 failing rows, sampled five-prompt prose stays0/5 in all four finals
+  (principal and independent audit agree), and the standard development NLL is slightly
+  worse for the treatment. Guardrails hold.
+- **Decision:** stop the termination-weighting branch; the residual entity/role collapse
+  and cap-truncation failures place the next rung in the state/read path (cross-lab
+  native radial reader comparison, or a conditional depth hypothesis). No promotion; the
+  plan's INERT band is recorded as treatment-minus-control and the judgment sensitivity
+  is disclosed.
 - **Stop:** this packet is closed. #973 and #820 remain open at their wider scope.
 
 The full256 baseline is finite; terminal D5 parameter sparsity remains open.

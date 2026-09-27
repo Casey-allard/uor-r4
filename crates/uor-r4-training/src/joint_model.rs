@@ -179,6 +179,45 @@ impl JointOutput {
             .mean_all()?
             .neg()?)
     }
+
+    /// Weighted population-mean next-token NLL: `Σ(w_t · −ln p_t) / Σ(w_t)`.
+    /// Targets and weights share the `[batch × time]` order of `loss`, and the
+    /// denominator is the weight sum, so weighting a target cannot rescale the
+    /// objective by the target count. Only the optional training objective uses
+    /// this; `loss` and every reported metric remain the standard unweighted
+    /// mean.
+    pub fn weighted_loss(&self, targets: &[u32], weights: &[f32]) -> Result<Tensor> {
+        let (batch, time, vocab) = self.probabilities.dims3()?;
+        if targets.len() != batch * time
+            || weights.len() != targets.len()
+            || targets.iter().any(|&id| id as usize >= vocab)
+            || weights
+                .iter()
+                .any(|weight| !weight.is_finite() || *weight < 0.0)
+        {
+            return Err(invalid(
+                "joint weighted next-token target/weight shape, vocabulary or weight validity",
+            ));
+        }
+        let weight_sum: f32 = weights.iter().sum();
+        if !(weight_sum > 0.0) || !weight_sum.is_finite() {
+            return Err(invalid(
+                "joint weighted next-token loss requires a positive finite weight sum",
+            ));
+        }
+        let device = self.probabilities.device();
+        let targets = Tensor::from_vec(targets.to_vec(), (batch * time, 1), device)?;
+        let weights = Tensor::from_vec(weights.to_vec(), (batch * time, 1), device)?;
+        let weighted_sum = self
+            .probabilities
+            .reshape((batch * time, vocab))?
+            .gather(&targets, 1)?
+            .log()?
+            .mul(&weights)?
+            .sum_all()?
+            .neg()?;
+        Ok(weighted_sum.affine(1.0 / f64::from(weight_sum), 0.0)?)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

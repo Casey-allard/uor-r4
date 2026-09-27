@@ -1,0 +1,41 @@
+{
+  "schema": "uor-r4.joint-recurrent-campaign/1",
+  "evaluator_path": "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+  "model": {
+    "vocab_size": 4096,
+    "width": 256,
+    "read_width": 64,
+    "context": 256,
+    "transport": "householder_pair",
+    "seed": 240924
+  },
+  "optimizer": {
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "parameter_abs_limit": 1000000.0,
+    "allowed_missing_gradients": []
+  },
+  "data_seed": 240924,
+  "batch": 16,
+  "context": 256,
+  "cpu_gradient_shards": 2,
+  "total_steps": 16696,
+  "development_every_steps": 128,
+  "development_blocks": 64,
+  "checkpoint_steps": [],
+  "max_process_seconds": 7200,
+  "stop_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/stop-householder_pair-16696",
+  "training_window_transition": {
+    "parent_checkpoint_sha256": "6b82a1cd1e296bae55d6b1762f0ded123df9179d36358f9ec2f49b1550f5e7f9",
+    "parent_campaign_sha256": "5c517312879c5ac85675d6ab8433e0b9d69c96cc354f1f079ff333819eccddb2",
+    "reason": "Owner-directed correction: both arms retain the same2104-update warmup, then train full256-token windows to match evaluation and give full language-loss credit across the declared history. Sampler dimensions change explicitly; parameters, moments and global step are retained.",
+    "old_batch": 64,
+    "old_context": 64,
+    "new_batch": 16,
+    "new_context": 256,
+    "parent_optimizer_step": 2104,
+    "parent_sampled_target_visits": 8617984
+  },
+  "quantization_transition": null,
+  "trial_scope": "Owner-authorized termination-objective experiment (development only, no promotion): resume the accepted step-15672 parent for 1024 further B16/T256 full-access updates. The plain arm is the dose-matched control; the endw arm additionally upweights sentence-final/EOS training targets (end_weight=2.5). Every reported metric stays the standard unweighted mean. No evaluator, threshold, sampling or criteria change. Control arm: end_weight absent."
+}

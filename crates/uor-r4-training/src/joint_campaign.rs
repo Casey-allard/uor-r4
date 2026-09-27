@@ -1,5 +1,5 @@
 //! One persistent offline recurrent-memory learning campaign.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -110,6 +110,11 @@ pub struct Campaign {
     pub quantization_transition: Option<QuantizationTransition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub projection_transition: Option<ProjectionTransition>,
+    /// Loss multiplier for sentence-final/EOS targets in the training
+    /// objective; absent = 1.0 for every target (historical behavior). Only the
+    /// training gradient is weighted; every reported metric stays standard.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_weight: Option<f32>,
     pub trial_scope: String,
 }
 
@@ -143,6 +148,11 @@ impl Campaign {
             transfer.validate_declaration(&cfg)?;
         }
         cfg.optimizer.validate()?;
+        if let Some(weight) = cfg.end_weight {
+            if !valid_end_weight(weight) {
+                return Err(invalid("end_weight must be finite and in (0, 16]"));
+            }
+        }
         if let Some(transition) = &cfg.training_window_transition {
             if !is_hex_digest(&transition.parent_checkpoint_sha256, 64)
                 || !is_hex_digest(&transition.parent_campaign_sha256, 64)
@@ -461,6 +471,25 @@ fn default_cpu_gradient_shards() -> usize {
 
 fn is_hex_digest(value: &str, length: usize) -> bool {
     value.len() == length && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn valid_end_weight(weight: f32) -> bool {
+    weight.is_finite() && weight > 0.0 && weight <= 16.0
+}
+
+/// Sentence-final boundary ids for the optional `end_weight` objective. Rows
+/// are `(id, lossy single-token decode)`; an id is a boundary target when its
+/// trimmed decode is `.`, `!` or `?`. The shared EOS id `1` is always included.
+/// The result is unique and sorted so it can be recorded verbatim.
+pub(crate) fn boundary_token_ids(decoded: &[(u32, String)]) -> Vec<u32> {
+    let mut ids = BTreeSet::new();
+    ids.insert(1u32);
+    for (id, text) in decoded {
+        if matches!(text.trim(), "." | "!" | "?") {
+            ids.insert(*id);
+        }
+    }
+    ids.into_iter().collect()
 }
 
 pub(crate) fn metadata(cfg: &Campaign, mode: &str, device_name: &str) -> Result<Value> {
@@ -921,6 +950,25 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         "Continuous F32 model; F32-origin quick_loss reductions."
     });
     let evaluator = load_evaluator(&cfg.evaluator_path)?;
+    // One identity-checked tokenizer load serves both the optional termination
+    // boundary set before training and the reload smoke generation afterward.
+    let tokenizer = load_tokenizer(&evaluator.document)?;
+    let decoded_ids = (0..tokenizer.vocab_size() as u32)
+        .map(|id| (id, tokenizer.decode(&[id])))
+        .collect::<Vec<_>>();
+    let boundary_ids = boundary_token_ids(&decoded_ids);
+    if cfg.end_weight.is_some() && boundary_ids.len() < 2 {
+        return Err(invalid(
+            "end_weight requires at least two termination boundary token ids",
+        ));
+    }
+    let boundary_set: BTreeSet<u32> = boundary_ids.iter().copied().collect();
+    report["end_weight"] = json!(cfg.end_weight);
+    report["boundary_token_ids"] = json!(boundary_ids);
+    report["boundary_tokens"] = json!(boundary_ids
+        .iter()
+        .map(|id| tokenizer.decode(&[*id]))
+        .collect::<Vec<_>>());
     // Reserve every checkpoint leaf before loading data or model. The final leaf
     // retains a clean resource-limited stop as well as a complete run.
     let final_path = out.join("checkpoint-final");
@@ -1163,10 +1211,23 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
         let step_started = Instant::now();
         let quantization_strength = model.training_strength();
         let (inputs, targets) = training_batch(&stores, cfg, step)?;
+        let target_weights = cfg.end_weight.map(|weight| {
+            targets
+                .iter()
+                .map(|target| {
+                    if boundary_set.contains(target) {
+                        weight
+                    } else {
+                        1.0
+                    }
+                })
+                .collect::<Vec<f32>>()
+        });
         let gradients = crate::joint_parallel::batch_gradients(
             &model,
             &inputs,
             &targets,
+            target_weights.as_deref(),
             cfg.batch,
             cfg.context,
             cfg.cpu_gradient_shards,
@@ -1296,7 +1357,6 @@ pub fn fit(cfg: &Campaign, out: &Path, device_name: &str, resume: Option<&Path>)
     {
         return Err(invalid("loaded recurrent checkpoint changed retained loss"));
     }
-    let tokenizer = load_tokenizer(&evaluator.document)?;
     let smoke = joint_evaluation::generate(
         &restored,
         &tokenizer,
@@ -2270,6 +2330,10 @@ pub(crate) fn finish_attempt<T>(out: &Path, result: Result<T>) -> Result<T> {
 
 fn same_learning_configuration(a: &Campaign, b: &Campaign) -> Result<()> {
     same_read_initialization(a, b)?;
+    // `end_weight` is deliberately not compared: it is a declared
+    // objective-resume difference recorded in the campaign and fit report, so
+    // the same weights may be resumed or evaluated under a different
+    // termination weight while model, optimizer, data and evaluator still match.
     if a.model != b.model
         || a.optimizer != b.optimizer
         || a.data_seed != b.data_seed
@@ -3086,7 +3150,7 @@ mod tests {
             let mut optimizer = NamedAdamW::new(model.variables(), cfg.optimizer.clone())?;
             let (inputs, targets) = training_batch(&stores, &cfg, 0)?;
             let gradients =
-                crate::joint_parallel::batch_gradients(&model, &inputs, &targets, 1, 8, 1)?;
+                crate::joint_parallel::batch_gradients(&model, &inputs, &targets, None, 1, 8, 1)?;
             optimizer.step(model.variables(), &gradients.gradients)?;
             let evolved = model.variables()[LORENTZ_LOG_BETA].to_vec1::<f32>()?;
             assert_ne!(evolved[0].to_bits(), 0.0f32.to_bits());
@@ -3124,11 +3188,12 @@ mod tests {
                 training_batch(&stores, &restored.campaign, next_step)?
             );
             let uninterrupted =
-                crate::joint_parallel::batch_gradients(&model, &inputs, &targets, 1, 8, 1)?;
+                crate::joint_parallel::batch_gradients(&model, &inputs, &targets, None, 1, 8, 1)?;
             let continuation = crate::joint_parallel::batch_gradients(
                 &restored.model,
                 &inputs,
                 &targets,
+                None,
                 1,
                 8,
                 1,
@@ -3180,6 +3245,7 @@ mod tests {
                 &model,
                 &inputs,
                 &targets,
+                None,
                 cfg.batch,
                 cfg.context,
                 1,
@@ -3231,6 +3297,7 @@ mod tests {
                 &model,
                 &inputs,
                 &targets,
+                None,
                 cfg.batch,
                 cfg.context,
                 1,
@@ -3239,6 +3306,7 @@ mod tests {
                 &restored.model,
                 &inputs,
                 &targets,
+                None,
                 cfg.batch,
                 cfg.context,
                 1,
@@ -3488,8 +3556,108 @@ mod tests {
             training_window_transition: None,
             quantization_transition: None,
             projection_transition: None,
+            end_weight: None,
             trial_scope: "transition unit check".into(),
         }
+    }
+
+    #[test]
+    fn end_weight_loss_math() -> Result<()> {
+        use crate::joint_model::JointOutput;
+        use candle_core::{Device, Tensor};
+        let device = Device::Cpu;
+        let output = JointOutput {
+            probabilities: Tensor::from_vec(vec![0.2f32, 0.8, 0.5, 0.5], (2, 1, 2), &device)?,
+            no_read_mass: Tensor::from_vec(vec![0f32], (1,), &device)?,
+            read_masses: Tensor::from_vec(vec![0f32], (1,), &device)?,
+            copy_gate: Tensor::from_vec(vec![0f32], (1,), &device)?,
+            states: Tensor::from_vec(vec![0f32], (1,), &device)?,
+        };
+        let expected = (1.0_f64 * -(0.2_f64).ln() + 3.0 * -(0.5_f64).ln()) / 4.0;
+        let actual = output
+            .weighted_loss(&[0, 1], &[1.0, 3.0])?
+            .to_scalar::<f32>()? as f64;
+        assert!((actual - expected).abs() < 1e-5, "{actual} vs {expected}");
+        let uniform = output.weighted_loss(&[0, 1], &[1.0, 1.0])?;
+        let plain = output.loss(&[0, 1])?;
+        assert!((uniform.to_scalar::<f32>()? - plain.to_scalar::<f32>()?).abs() < 1e-6);
+        assert!(output.weighted_loss(&[0, 1], &[0.0, 0.0]).is_err());
+        assert!(output.weighted_loss(&[0, 1], &[1.0]).is_err());
+        assert!(output.weighted_loss(&[0, 3], &[1.0, 1.0]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn end_weight_default_serialization() -> Result<()> {
+        let base = transition_campaign();
+        let absent_value = serde_json::to_value(&base)?;
+        assert!(absent_value.get("end_weight").is_none());
+        let parsed: Campaign = serde_json::from_value(absent_value)?;
+        assert_eq!(parsed.end_weight, None);
+
+        let present = Campaign {
+            end_weight: Some(2.5),
+            ..base.clone()
+        };
+        let present_value = serde_json::to_value(&present)?;
+        assert_eq!(present_value["end_weight"], json!(2.5));
+        let parsed: Campaign = serde_json::from_value(present_value)?;
+        assert_eq!(parsed.end_weight, Some(2.5));
+
+        for weight in [
+            0.0_f32,
+            -1.0,
+            f32::NAN,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            16.000_1,
+        ] {
+            assert!(!valid_end_weight(weight), "{weight} must be rejected");
+        }
+        for weight in [0.000_1_f32, 1.0, 2.5, 16.0] {
+            assert!(valid_end_weight(weight), "{weight} must be accepted");
+        }
+
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock"))?
+            .as_nanos();
+        for (weight, accepted) in [
+            (0.0_f32, false),
+            (-1.0, false),
+            (16.000_1, false),
+            (2.5, true),
+        ] {
+            let cfg = Campaign {
+                end_weight: Some(weight),
+                ..base.clone()
+            };
+            let path = std::env::temp_dir().join(format!(
+                "uor-end-weight-{}-{nonce}.json",
+                std::process::id()
+            ));
+            std::fs::write(&path, serde_json::to_vec(&cfg)?)?;
+            let loaded = Campaign::load(&path);
+            let _ = std::fs::remove_file(&path);
+            assert_eq!(loaded.is_ok(), accepted, "end_weight {weight}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn end_weight_boundary_helper() {
+        let decoded = vec![
+            (1u32, "<|endoftext|>".to_string()),
+            (9, ".".to_string()),
+            (10, " ?".to_string()),
+            (11, "! ".to_string()),
+            (12, "hello".to_string()),
+            (13, ",".to_string()),
+            (14, " .".to_string()),
+        ];
+        assert_eq!(boundary_token_ids(&decoded), vec![1, 9, 10, 11, 14]);
+        assert_eq!(boundary_token_ids(&[(1, "<eos>".into())]), vec![1]);
+        assert!(boundary_token_ids(&[(3, "?".into()), (3, "!".into())]) == vec![1, 3]);
     }
 
     #[test]
@@ -3857,6 +4025,7 @@ mod tests {
             training_window_transition: None,
             quantization_transition: None,
             projection_transition: None,
+            end_weight: None,
             trial_scope: "sampler".into(),
         };
         let stores = vec![
