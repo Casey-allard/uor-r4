@@ -81,10 +81,18 @@ cap; this remains a tiny observation, not prose qualification.
 [Source, actual output and cost](../evidence/dot-reset-validation-2026-09-27.json)
 are retained. The [matched adaptation plan](radial-adaptation-study-2026-09-27.md)
 selects one 1,024-update screen per arm, with a descriptive checkpoint at 512 and
-the final endpoint as the sole comparison. Its complete process/evaluation cost
-must be projected before launch. No adaptation fit has run. The mainline
-termination-objective study remains independently owned and cannot supply that
-matched control.
+the final endpoint as the sole comparison. The complete twelve-hour local
+process/evaluation projection is recorded. Source `488e3976` supplies the scoped
+seven-root comparison and opt-in greedy prose supplement; three focused release
+checks and three CLI rejection cases pass. The existing `joint-compare` contract
+is unchanged. The source-bound optimized CPU-Accelerate executable has now
+started the Dot reset fit; its first update completed at 04:28 UTC. Lorentz and
+Affine remain queued sequentially with the same executable and fixed conditions.
+Full evaluation, successful greedy supplementation, comparative output review
+and the adaptation result remain pending. The
+[implementation, launch and resource receipt](../evidence/reader-study-tools-validation-2026-09-27.json)
+records the exact scope and live process pointer. The mainline termination-objective
+study remains independently owned and cannot supply that matched control.
 General language/M1 qualification remains unmeasured here. D10's policy
 clarification remains pending in this lab; the new control introduces no
 additional serving exception or converted backbone.

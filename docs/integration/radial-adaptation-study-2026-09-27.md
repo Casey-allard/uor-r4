@@ -155,7 +155,10 @@ Use the existing `joint-evaluate` sampled outputs. Add the five greedy
 continuations through its existing generation function while the same checkpoint
 is loaded, as an explicit opt-in supplement. This avoids repeating source panels
 or sampled outputs and leaves `joint-selection-replay` unchanged. That small
-implementation remains to be delivered. Preserve complete text, IDs and stop reasons. No policy is selected after
+implementation is now provided by `joint-evaluate ... --greedy-prose`, restricted
+to continuous Read checkpoints. It creates a separate sealed
+`greedy-generations.json` while preserving the population report. Preserve
+complete text, IDs and stop reasons. No policy is selected after
 viewing results, and no sampler, seed, prompt or cap sweep is introduced.
 
 Score each story on the frozen four binary criteria: resolvable entity/role
@@ -178,6 +181,19 @@ not restart that policy investigation.
 
 ## Distinct decisions after the fixed endpoint
 
+The Rust `joint-reader-compare PARENT_READ DOT_READ DOT_NOREAD LORENTZ_READ
+LORENTZ_NOREAD AFFINE_READ AFFINE_NOREAD NEW_ROOT` command consumes the seven
+sealed evaluations. It verifies the fixed endpoint and transfer lineage, common
+training source/configuration, matching evaluation executable/features/batch,
+and every shifted development target. Its paired loss report preserves the
+64/912-block partitions and candidate-minus-control direction. Source rows and
+greedy/sampled prose are joined by their original identities and policies, with
+complete text and individual verdicts retained. Story quality still requires
+the four-criterion review above. Per-process receipts bind the fit executable,
+features and thread environment; evaluation metadata cannot establish them.
+The older `joint-compare` retains its original study and transfer-rejection
+contract. Neither comparison promotes a model automatically.
+
 | Observed result | Programme action |
 | --- | --- |
 | Lorentz improves natural likelihood and useful generated behavior over both Affine and Dot-reset, with source losses disclosed | Retain a scoped nonlinear-score result and prioritize integration of that learned reader into the existing Lorentz export/session path. Numerical preservation and useful integer output remain later obligations; no curvature, hierarchy or efficiency claim follows. |
@@ -195,8 +211,22 @@ change, under the existing progress-control rules.
 
 ## Whole-cycle cost and launch boundary
 
-No fit is launched by this proposal. Before execution, record one complete
-projection in the existing work card and shared ledger: preparation/review,
+The [prospective execution work card](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852466614)
+records the complete twelve-hour study envelope, including implementation,
+build, three fits, six evaluations, comparison, delivery and recovery. The
+verified cumulative allowance increases from 679,200,000 to 722,400,000 ms under
+the standing local extension authorization; the larger allowance reported by
+another lab is not adopted. Each arm allows 7,200 seconds before new updates
+stop and 1,800 seconds for closeout, with a 6 GiB model RSS cap. One owned model
+process runs at a time. CPU execution uses the same frozen optimized
+`cpu-accelerate` executable, two gradient shards, Rayon limit two and BLAS/OMP/GEMM
+limits one. Evaluation batch is four. New internal storage is capped at 2 GiB,
+shared SSD growth at 8 GiB, with the retained physical reserve and 128 MiB stop
+margin. Existing parent evaluations and greedy replay are reused with their
+original source/executable identities. A prospective allowance is not a run
+result; actual progress and costs belong in current state and execution receipts.
+
+The complete projection accounts for preparation/review,
 necessary build, initial observations, all three fits, periodic development,
 checkpoint writes and reload exercise, six final full evaluations, source/prose
 generation, report verification, analysis/delivery, recovery allowance

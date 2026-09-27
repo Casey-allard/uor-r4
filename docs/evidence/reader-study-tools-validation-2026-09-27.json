@@ -1,0 +1,291 @@
+{
+  "schema": "uor-r4.reader-study-tools-validation/1",
+  "recorded_at": "2026-09-27T04:30:02.666488+00:00",
+  "scope": "Evaluation/comparison implementation and beginning of the prospectively accounted study; final adaptation comparison and quality adjudication are pending.",
+  "build": {
+    "schema": "uor-r4.reader-study-build/1",
+    "recorded_at": "2026-09-27T04:28:05.390437+00:00",
+    "frozen_binary": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-binary-488e3976",
+    "binary_sha256": "83984834ec014f5ea8070f9fb60e3f9f57f83ca70e97d377607c4a7d6044c08f",
+    "source_commit": "488e3976149a50dc65a9dba76735646f4ed6b8ef",
+    "source_tree": "d49718b1318ae948441f0e4368e428843d520baa",
+    "worktree": "/Users/casey.allard/.codex/worktrees/radial-transfer-validation/uor-r4",
+    "features": [
+      "cpu-accelerate"
+    ],
+    "profile": "release",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "cargo_lock_sha256": "03805b995fd599b2f38b163ab544f3c387714e771bebb284946e0728b27c0658",
+    "build_jobs": 2,
+    "thread_environment": {
+      "RAYON_NUM_THREADS": "2",
+      "VECLIB_MAXIMUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "GEMM_NUM_THREADS": "1"
+    },
+    "rust_flags": {
+      "RUSTFLAGS": null,
+      "CARGO_ENCODED_RUSTFLAGS": null
+    },
+    "commands": [
+      "cargo test -p uor-r4-training --release --offline --features cpu-accelerate --lib reader_comparison_",
+      "cargo build -p uor-r4-training --bin uor-r4-training --release --offline --features cpu-accelerate"
+    ],
+    "logs": {
+      "reader-study-focused-checks.log": {
+        "sha256": "8e273d7fb78ecc255e8218d662f2b50c3726c1fa2c3467a0db272be9386119d0",
+        "wall_seconds": 537.87,
+        "user_seconds": 750.98,
+        "system_seconds": 42.29,
+        "peak_rss_bytes": 1522008064
+      },
+      "reader-study-release-build.log": {
+        "sha256": "b34eb55ab025cd180dc011745421088745df6c5ee3554ba6d66dde12f23db7ef",
+        "wall_seconds": 50.19,
+        "user_seconds": 73.28,
+        "system_seconds": 2.94,
+        "peak_rss_bytes": 660946944
+      }
+    },
+    "focused_tests_passed": 3,
+    "cli_rejection_receipt_sha256": "9e74910b5e8fb743e2d346cdd98a7ea8adb5346bb2c3f807f73712976dadcf6b",
+    "supervisor_sha256": "3bce9b77742f90e1c8e57a748afc156fb973e8804b05583a2ae87a2aa2696551",
+    "projection_sha256": "5459b1ac92996941c2323f9236d1b73c0b065ccc5cccbd3168b3702a300b2b49",
+    "campaign_sha256": {
+      "dot": "ee9bcec13937a70590dfe4cebb20a8757093e112303875f0ad1602e38c33b1b0",
+      "lorentz": "5fbf9154c58474dbd458f6f3c29246745c5cfa2c3d8abfc7aca52c8e2a31fd8d",
+      "lorentz_affine": "527f9350f81715874496e2f3032b10016c98c1421b8191ee703ba6ef512bd985"
+    },
+    "scope": "Frozen study executable and software checks; no adaptation fit or successful greedy supplement/comparison execution yet."
+  },
+  "focused_validation": {
+    "passed": 3,
+    "failed": 0,
+    "checks": [
+      "training/evaluation identity separation, fixed configurations and matching valid batch shapes",
+      "44-byte record identity, shifted targets, causal and NoRead rejection, paired-delta direction",
+      "prompt token IDs, sampler policies and selected-token joins"
+    ],
+    "cli_rejections": {
+      "source_commit": "488e3976149a50dc65a9dba76735646f4ed6b8ef",
+      "binary_sha256": "83984834ec014f5ea8070f9fb60e3f9f57f83ca70e97d377607c4a7d6044c08f",
+      "cases": [
+        {
+          "case": "no-read-greedy",
+          "exit_code": 1,
+          "output_created": false,
+          "stderr": "invalid reference request: usage: joint-evaluate[-shadow] CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH; joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH; optional --greedy-prose only for continuous joint-evaluate Read"
+        },
+        {
+          "case": "shadow-greedy",
+          "exit_code": 1,
+          "output_created": false,
+          "stderr": "invalid reference request: usage: joint-evaluate[-shadow] CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH; joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH; optional --greedy-prose only for continuous joint-evaluate Read"
+        },
+        {
+          "case": "unknown-flag",
+          "exit_code": 1,
+          "output_created": false,
+          "stderr": "invalid reference request: usage: joint-evaluate[-shadow] CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH; joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH; optional --greedy-prose only for continuous joint-evaluate Read"
+        }
+      ],
+      "model_work": "NONE; rejected before model/campaign loading"
+    },
+    "format": "cargo fmt -p uor-r4-training -- --check passed",
+    "diff_check": "git diff --check passed"
+  },
+  "review": {
+    "roles": [
+      "runtime implementer",
+      "independent adversarial source reviewer",
+      "principal source reviewer"
+    ],
+    "resolved_findings": [
+      "preserve exclusive creation: greedy supplement writes a new sealed file instead of overwriting evaluation-report.json",
+      "match valid evaluation batch shape within and across the six adapted evaluations",
+      "resource supervisor enforces cumulative/owned/phase and storage hard limits and owned child cleanup on interruption/errors"
+    ],
+    "supervisor_scope": "Source review and syntax pass; normal live monitoring has begun. Forced-limit/signal failure paths have not been executed."
+  },
+  "study_snapshot": {
+    "status": "RUNNING",
+    "arm": "dot",
+    "execution_receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-dot-1-execution.json",
+    "started_at": "2026-09-27T04:28:21.756044+00:00",
+    "pid": 80211,
+    "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-dot-fit-1",
+    "last_completed_update": 19,
+    "new_target_visits": 77824,
+    "finite_last_batch_nll": 2.0493874549865723,
+    "candidate_endpoint": 1024,
+    "last_batch_nll_scope": "Changing training minibatch, not evaluation quality or geometric comparison",
+    "other_arms": "NOT_RUN",
+    "six_final_evaluations": "NOT_RUN",
+    "successful_greedy_supplement": "NOT_RUN",
+    "seven_root_comparison": "NOT_RUN",
+    "prose_adjudication": "NOT_RUN"
+  },
+  "projection": {
+    "recorded_at": "2026-09-27T04:00:14.308202+00:00",
+    "base_commit": "e7a4454209456991542d15f376762c07e09cb82e",
+    "scope": "Complete matched Dot/Lorentz/Affine fixed1024 adaptation study, including minimal comparison/greedy supplement, source review/build,3fits, midpoint/final observations/checkpoints,6full evaluations, actual generation, analysis/protected delivery and recovery reserve. Exact committed executable and campaign identities must be retained before first model launch.",
+    "phase_wall_cap_seconds": 43200,
+    "phase_expected_seconds_range": [
+      18000,
+      28800
+    ],
+    "projection_caps_seconds": {
+      "implementation_review_optimized_build_focused_checks": 3600,
+      "three_fits_including_startup_and_update_deadline": 21600,
+      "three_closeouts_reserved_after_deadline": 5400,
+      "six_full_evaluations_with_existing_generation_packets": 7200,
+      "comparison_prose_review_delivery": 3600,
+      "recovery_and_margin": 1800
+    },
+    "prior_owned_elapsed_cap_ms": 18000000,
+    "owned_elapsed_cap_ms": 57600000,
+    "owned_elapsed_extension_ms": 39600000,
+    "prior_verified_cumulative_allowance_ms": 679200000,
+    "verified_cumulative_allowance_ms": 722400000,
+    "verified_cumulative_extension_ms": 43200000,
+    "observed_shared_ledger": {
+      "cumulative_ms": 660326104,
+      "limit_ms": 744000000
+    },
+    "foreign_reported_limit_adoption": false,
+    "reason": "Complete the already justified matched reader study after actual transfer/startup evidence. Owner standing authorization covers necessary prospective local increases. Cap allocation is not a target to spend; preserve the fixed endpoint and stop/recover if resource limits prevent completion.",
+    "execution": {
+      "one_owned_model_process": true,
+      "arms_sequential": true,
+      "one_owned_cargo": true,
+      "build_jobs": 2,
+      "rayon_threads": 2,
+      "blas_threads": 1,
+      "cpu_gradient_shards": 2,
+      "backend": "CPU with cpu-accelerate feature, optimized release; no Metal/CUDA/external GPU",
+      "candidate_updates_per_arm": 1024,
+      "arm_order": [
+        "dot",
+        "lorentz",
+        "lorentz_affine"
+      ],
+      "training_batch": 16,
+      "training_length": 256,
+      "evaluation_length": 256,
+      "evaluation_batch": 4,
+      "generation_context": 256,
+      "memory_access": "Full causal history within256; no admission/window reduction",
+      "state_width": 256,
+      "read_width": 64,
+      "development_blocks": 64,
+      "development_every_steps": 512,
+      "checkpoint_steps": [
+        512
+      ],
+      "fit_update_deadline_seconds": 7200,
+      "fit_supervisor_wall_cap_seconds": 9000,
+      "evaluation_supervisor_wall_cap_seconds": 1200,
+      "owned_model_rss_cap_bytes": 6442450944,
+      "new_internal_storage_cap_bytes": 2147483648,
+      "shared_ssd_growth_cap_bytes": 8589934592,
+      "physical_reserve_bytes": 25971130368,
+      "storage_stop_margin_bytes": 134217728,
+      "minimum_free_memory_percent": 10,
+      "stop_behavior": "Write declared owned stop file at soft resource margin, preserve completed checkpoint and charge cost; final supervisor termination only at hard envelope if graceful stop fails. Do not signal foreign jobs."
+    },
+    "planned_model_work": {
+      "training_target_visits_per_arm": 4194304,
+      "training_target_visits_total": 12582912,
+      "six_full_evaluation_targets": 1499136,
+      "source_rows_per_evaluation": 32,
+      "sampled_stories_per_evaluation": 5,
+      "greedy_stories_per_read_evaluation": 5,
+      "prose_horizon": 128,
+      "source_horizon": 32,
+      "fresh_final_heldout": false,
+      "candidate_selection": "Only final1024;512descriptive, no sweeps or endpoint reranking"
+    },
+    "historical_rate_context": "Retained optimized quaternionfit6 ~3.30seconds/update; ordinary~4.99 is context only, neither measures currentradial. Early retained updates may revise remainingcost/resource stop, not dose. Testprofilestartup is not throughput.",
+    "foreign_model_job": {
+      "pid": 66157,
+      "observed_live_at": "2026-09-27T03:57:32Z",
+      "rss_kib": 2947376,
+      "system_free_memory_percent": 49,
+      "preserve": true
+    },
+    "authorization": "Necessary local time/storage extensions owner-authorized; no paid/external compute or artifact deletion."
+  },
+  "local_receipts": {
+    "reader-study-build.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-build.json",
+      "sha256": "d6d6b03884267e500bed7c6eba64709b219b5a6591cbb3f1212aea2d157950dc"
+    },
+    "reader-study-cost-refinement.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-cost-refinement.json",
+      "sha256": "23e78e622d968050d8b763bf8d139660c97851c978c499841479a536768421de"
+    },
+    "run-reader-process.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-reader-process.py",
+      "sha256": "3bce9b77742f90e1c8e57a748afc156fb973e8804b05583a2ae87a2aa2696551"
+    },
+    "reader-study-workcard.md": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-workcard.md",
+      "sha256": "003c83c6c9a1da772da8228375ccf1c5e5cecfa2cafd8b0525c16f2fc89110eb"
+    },
+    "reader-study-serving-map.md": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-study-serving-map.md",
+      "sha256": "464eaf2f851e9a37fb35293ba48ee414367d0e4fcbe623d2b6f003d29166788a"
+    }
+  },
+  "cost": {
+    "test_build_command_seconds": 537.87,
+    "release_build_command_seconds": 50.19,
+    "build_total_seconds": 588.06,
+    "accounting": "Whole lab wall time, including preparation/review/build/waits/model work/delivery, is charged once through the existing cumulative ledger and ledger cursor. Build subphase seconds are included, not added a second time. Ongoing process receipt provides its complete final cost.",
+    "launch_accounting": {
+      "last_charged_at": "2026-09-27T04:30:57.644731+00:00",
+      "charged_elapsed_ms": 14273640,
+      "tail_ms": 2103110,
+      "before": {
+        "cumulative_ms": 660326104,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 662429214,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "verified_cumulative_allowance_ms": 722400000,
+      "owned_elapsed_cap_ms": 57600000,
+      "foreign_reported_limit_adopted": false,
+      "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock. No global mutex claim.",
+      "scope": "Reader comparator/greedy supplement implementation, independent source and supervisor reviews, optimized build/focused checks, exact parent recovery and conditional serving review, prospective whole-study accounting, coordination and Dot adaptation launch through this timestamp. Study/model/delivery continue; later elapsed tail remains to charge.",
+      "executed": {
+        "compile_check_command_seconds": 588.06,
+        "focused_tests_passed": 3,
+        "cli_rejections_passed": 3,
+        "dot_optimizer_updates_observed": 29,
+        "dot_new_target_visits_observed": 118784,
+        "dot_process_elapsed_seconds_observed": 152.038529125,
+        "model_process_status": "RUNNING",
+        "lorentz_or_affine_updates": 0,
+        "full_evaluations": 0,
+        "metal_or_gpu_seconds": 0
+      },
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 34629656576,
+        "/Volumes/UOR-Workspace": 173144109056
+      }
+    },
+    "launch_receipt_sha256": "22299f8f17335103d2dbc39dc43b75ed42005ee2ed19173aac3124185f4d7fab"
+  },
+  "claims": {
+    "adaptation_result": "PENDING",
+    "geometric_advantage": "NOT_ESTABLISHED",
+    "general_language": "NOT_QUALIFIED",
+    "integer_serving_preservation": "NOT_MEASURED",
+    "m1_speed_or_energy": "NOT_MEASURED",
+    "accepted_parents_changed": false
+  }
+}

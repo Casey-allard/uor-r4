@@ -151,7 +151,7 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     result
 }
 
-fn new_output_path(path: &Path) -> Result<PathBuf> {
+pub(crate) fn new_output_path(path: &Path) -> Result<PathBuf> {
     if path
         .components()
         .any(|part| matches!(part, Component::ParentDir))
@@ -412,7 +412,7 @@ fn compare(
     Ok(())
 }
 
-fn read_json(path: &Path) -> Result<Value> {
+pub(crate) fn read_json(path: &Path) -> Result<Value> {
     if fs::metadata(path)?.len() > 2 * 1024 * 1024 {
         return Err(invalid(format!(
             "comparison metadata exceeds 2MiB: {}",
@@ -432,7 +432,7 @@ fn digest_field(value: &Value, field: &str, length: usize) -> Result<()> {
     Ok(())
 }
 
-fn read_input(
+pub(crate) fn read_input(
     root: &Path,
     name: &str,
     report_file: &str,
@@ -518,7 +518,7 @@ fn gradient_shards(value: &Value) -> Result<u64> {
     }
 }
 
-fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Result<()> {
+pub(crate) fn validate_joint(report: &Value, transport: Transport, mode: ReadMode) -> Result<()> {
     let evaluation = &report["evaluation"];
     let config: JointConfig = serde_json::from_value(report["campaign"]["model"].clone())?;
     config.validate()?;
@@ -1090,7 +1090,7 @@ fn bytes<const N: usize>(reader: &mut impl Read) -> Result<[u8; N]> {
     reader.read_exact(&mut value)?;
     Ok(value)
 }
-fn joint_row(
+pub(crate) fn joint_row(
     reader: &mut BufReader<File>,
     offset: usize,
     target: u32,

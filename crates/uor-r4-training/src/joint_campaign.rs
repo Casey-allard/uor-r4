@@ -1378,6 +1378,9 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("joint-compare") {
         return crate::joint_comparison::run_cli(args);
     }
+    if args.first().map(String::as_str) == Some("joint-reader-compare") {
+        return crate::joint_reader_comparison::run_cli(args);
+    }
     if args.first().map(String::as_str) == Some("joint-evaluate-precision") {
         return evaluate_precision_cli(args);
     }
@@ -1435,9 +1438,14 @@ fn load_tokenizer(evaluator: &Value) -> Result<HfBpeTokenizer> {
 }
 
 fn evaluate_cli(args: &[String]) -> Result<()> {
-    if args.len() != 7 || !["cpu", "metal"].contains(&args[4].as_str()) {
-        return Err(invalid("usage: joint-evaluate[-shadow] CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH; joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH"));
+    if !matches!(args.len(), 7 | 8)
+        || !["cpu", "metal"].contains(&args[4].as_str())
+        || (args.len() == 8
+            && (args[7] != "--greedy-prose" || args[0] != "joint-evaluate" || args[5] != "read"))
+    {
+        return Err(invalid("usage: joint-evaluate[-shadow] CAMPAIGN_JSON SEALED_CHECKPOINT NEW_REPORT_ROOT {cpu|metal} {read|no-read} BATCH; joint-evaluate-hard SEALED_CHECKPOINT_OR_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH; optional --greedy-prose only for continuous joint-evaluate Read"));
     }
+    let greedy_prose = args.len() == 8;
     let hard = args[0] == "joint-evaluate-hard";
     let shadow = args[0] == "joint-evaluate-shadow";
     if hard && args[4] != "cpu" {
@@ -1483,6 +1491,11 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
             let mut input = load_bound_checkpoint(source, &selected, &evaluator.sha256)?;
             same_learning_configuration(&cfg, &input.campaign)?;
             input.campaign = cfg;
+            if greedy_prose && input.model.quantization().is_some() {
+                return Err(invalid(
+                    "greedy prose supplement requires a continuous checkpoint",
+                ));
+            }
             if shadow {
                 if input.model.quantization().is_none() {
                     return Err(invalid(
@@ -1496,10 +1509,59 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
             }
             evaluate_loaded(
                 &input, &evaluator, source, out, &args[0], &args[4], mode, batch,
-            )
+            )?;
+            if greedy_prose {
+                evaluate_greedy_prose(&input, &evaluator, source, out, &args[4])?;
+            }
+            Ok(())
         }
     })();
     finish_attempt(out, result)
+}
+
+/// Supplement the already completed Read evaluation while its exact model is
+/// still loaded. No source-panel or sampled-generation work is repeated.
+fn evaluate_greedy_prose(
+    input: &BoundModel,
+    evaluator: &Evaluator,
+    checkpoint: &Path,
+    out: &Path,
+    device_name: &str,
+) -> Result<()> {
+    let mut packet = metadata(&input.campaign, "joint-greedy-prose", device_name)?;
+    let tokenizer = load_tokenizer(&evaluator.document)?;
+    let prompts_path = verify_identity(&evaluator.document["prompt_source"])?;
+    let prompts: Value = serde_json::from_slice(&fs::read(prompts_path)?)?;
+    let prompts = prompts["prompts"]
+        .as_array()
+        .filter(|prompts| prompts.len() == 5)
+        .ok_or_else(|| invalid("greedy supplement requires the five canonical prompts"))?;
+    let mut generations = Vec::with_capacity(prompts.len());
+    for prompt in prompts {
+        generations.push(joint_evaluation::generate(
+            &input.model,
+            &tokenizer,
+            prompt["text"]
+                .as_str()
+                .ok_or_else(|| invalid("prompt text"))?,
+            ReadMode::Enabled,
+            None,
+            128,
+        )?);
+    }
+    packet["schema"] = json!("uor-r4.joint-greedy-prose/1");
+    packet["operation"] = json!("joint-greedy-prose");
+    packet["mode"] = json!(ReadMode::Enabled);
+    packet["status"] = json!("COMPLETE");
+    packet["policy"] = json!("greedy");
+    packet["checkpoint"] = json!(checkpoint);
+    packet["checkpoint_binding"] = input.binding.clone();
+    packet["evaluator_sha256"] = json!(evaluator.sha256);
+    packet["prompt_source"] = evaluator.document["prompt_source"].clone();
+    packet["generations"] = json!(generations);
+    // The attempt manifest binds this additional file. Preserve the existing
+    // population report and save_json's exclusive-creation semantics.
+    save_json(&out.join("greedy-generations.json"), &packet)
 }
 
 /// Read-only same-checkpoint emission/selection localization. Replays the five

@@ -23,6 +23,7 @@ pub mod joint_model;
 pub mod joint_optimizer;
 pub mod joint_parallel;
 pub mod joint_quantization;
+pub mod joint_reader_comparison;
 pub mod joint_rounding;
 pub mod joint_rounding_campaign;
 pub mod joint_transfer;

@@ -59,8 +59,9 @@ no calibration correction is indicated. The explicit same-geometry Dot reset
 control now preserves the actual parent's arrays, predictions and generated
 decisions while beginning a fresh optimizer lineage. The
 [fixed adaptation screen](radial-adaptation-study-2026-09-27.md) selects 1,024
-updates per arm with one descriptive midpoint; its complete local resource
-projection and matched analysis must precede execution. Lorentz versus affine
+updates per arm with one descriptive midpoint. Its complete local resource
+projection is recorded and its Rust analysis preserves matched transfer,
+execution, data and output identities. Lorentz versus affine
 isolates the nonlinear score within this representation;
 a fitted practical improvement claim also needs that Dot control with the same
 reset, objective, stream and exposure.
