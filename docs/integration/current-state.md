@@ -3,6 +3,26 @@
 Updated September 26, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 
+## Fourth lab: shared research and integration
+
+The owner has authorized the [fourth Codex research lab](../../.codex-lab/README.md)
+and shared GitHub/worktree coordination with Google, OpenCode/DeepSeek/Kimi and
+Claude. The [canonical roadmap](project-track.md#four-lab-research-programme--owner-direction-september-26)
+orders geometric attention, inference, prose, chat and reasoning, with discovery
+branches allowed to revise the mechanism from evidence. The initial independent
+source review identifies a concrete training/chat role-token mismatch and
+overstated synthetic conversational evidence; see the
+[integration review](fourth-lab-integration-review-2026-09-26.md).
+The new [shared dialogue protocol](dialogue-protocol-contract-2026-09-26.md)
+is an explicit integration seam; adoption by the active training and chatbot
+branches is separate from providing it. All seven tokenizer checks pass. A
+loaded-tokenizer witness confirms both the special-role fallback mismatch and
+the subtler difference between segmented training text and concatenated panel
+text. [Source bindings, witness and resource receipt](../evidence/fourth-lab-establishment-2026-09-26.json)
+record the executed scope. No model fit or capability promotion
+follows from the lab setup. Accepted models and the continuation negative below
+remain unchanged. Other labs' active source and model jobs are preserved.
+
 ## Decision and active work
 
 The owner supplied a whole-project stuck-point review and directed warranted

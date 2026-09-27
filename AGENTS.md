@@ -127,6 +127,17 @@ Bounded inference and contextual/copy attention exist. General prose, general re
 
 ## Specialist routing and research cadence
 
+**Owner direction, September 26:** the fourth Codex lab operates alongside
+Google, OpenCode/DeepSeek/Kimi and Claude, using shared GitHub issues and isolated
+worktrees. Read [.codex-lab/README.md](.codex-lab/README.md) for its expert bench,
+complete-context task packet, recursive evidence review and cross-lab ownership
+protocol. Its whole-project authorization covers successive necessary research
+and implementation; old one-milestone stop instructions do not limit that goal.
+The canonical plan owns the adaptive attention/inference/prose/chat/reasoning
+roadmap. Preserve each lab's active files/jobs, source-bound evidence and all
+resource/delivery contracts. A new protocol helper or synthetic benchmark is
+not a useful learned conversation result.
+
 **Owner direction, September 25:** use DeepSeek as the default specialist model,
 including architecture review, where the configured route is available. Kimi/
 Moonshot is reserved for a new explicit owner request. Independent review is an

@@ -10,6 +10,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod dialogue;
+
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 

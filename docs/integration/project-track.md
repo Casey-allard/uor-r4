@@ -1,5 +1,44 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Four-lab research programme — owner direction September 26
+
+The owner authorizes a fourth, autonomous Codex lab alongside Google,
+OpenCode/DeepSeek/Kimi and Claude, coordinated through shared GitHub issues and
+isolated worktrees. The [fourth-lab operating guide](../../.codex-lab/README.md)
+defines specialist coverage, recursive source review and cross-lab ownership.
+This section extends the programme; the retained artifacts, historical results
+and D8 learning ladder below keep their exact scope.
+
+The working order is **geometric attention → efficient inference → general
+prose → chat → reasoning/coding**. Research may proceed in parallel when
+dependencies and file/resource ownership permit. Useful generated behavior and
+matched laptop cost determine progress. Tests address real risks; they do not
+replace discovery or create an endless sequence of local gates.
+
+| Priority | Integrated outcome and adaptive decision |
+|---|---|
+| Geometric attention | Learn a geometric compatibility/value-transport operation in the actual language graph. Separate it from existing quaternion state transport and test against an equally informed ordinary operation. Preserve full256 for the retained comparison; name any alternative scan/local-memory architecture explicitly. Use the [source/literature design](fourth-lab-geometric-attention-2026-09-26.md) and current failure localization to choose the first implementation. |
+| Efficient inference | Preserve the selected learned computation through export, reload and a usable integer session; measure full output cost. Share artifact, tokenizer, dialogue and context contracts across the labs before connecting their independent implementations. |
+| General prose | Improve complete coherent generated continuations through the same artifact. The September26 exposure-only negative rules out an automatic repeat dose for that candidate; choose the next objective/data/representation/emission change from causal evidence. |
+| Chat | Integrate response-conditioned learning, trained turn serialization and exact multi-turn memory. Synthetic token-mass or interface tests do not qualify complete learned replies. Reuse the active dialogue and chatbot tracks with explicit compatibility. |
+| Reasoning and coding | Extend the same retained path with shared typed operators, changed-context composition and executed generated programs. Authored arithmetic/copy successes retain their limited scope. |
+
+Revise the next mechanism when research changes a causal diagnosis, reveals an
+invalid instrument, supplies a stronger baseline or changes feasible machine
+cost. Record the evidence and distinct next decisions in the existing issue;
+retain old criteria/results. Geometry remains an architectural priority and its
+predictive/efficiency contribution remains a measured question. A failed
+parameterization does not retire a whole geometric family.
+
+The first fourth-lab implementation is the shared Rust dialogue-protocol seam:
+current training uses literal role prefixes, while the chatbot branch can fall
+back to BOS/UNK role IDs. Exact protocol identity and shared encoding remove
+this integration ambiguity without taking over the other labs' model/session
+files. [Contract and adoption status](dialogue-protocol-contract-2026-09-26.md).
+Broader source/evidence findings are in the [integration review](fourth-lab-integration-review-2026-09-26.md).
+Current status remains in [current state](current-state.md), and #820/#973 retain
+their programme/model responsibilities.
+
 ## Active programme — learn the model, then harden its execution
 
 [D8](DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) applies the owner's September 24 request to assess and act on the [stuck-point review](stuck-point-review-response-2026-09-24.md). It corrects D7's implementation sequence while preserving its integrated model goal, exact tape, separated admission/ranking, shared operators and ordinary control. D0-b and D4–D6 remain authority. The terminal target is a useful native transformerless geometric model with integer/table serving and per-token parameter sparsity.

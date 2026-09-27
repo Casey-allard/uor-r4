@@ -1,0 +1,107 @@
+{
+  "schema": "uor-r4.fourth-lab-establishment/1",
+  "observed_at": "2026-09-27T00:47:59.478766+00:00",
+  "base_commit": "4b62608702481abd3f18915dc3718e311b86b8aa",
+  "branch": "codex/fourth-research-lab-20260926",
+  "scope": "Lab establishment, independent research/source review and shared tokenizer protocol; no model change or language qualification",
+  "source_sha256": {
+    ".codex-lab/README.md": "2967ed909766e933b87b19ae033f640012c221eca1f26eb7637f81e173bfdea8",
+    "scripts/research-lab-context.sh": "c4d87f216efe76becd7f5abb37f2800f440cc1485e96b994a793ba0326000523",
+    "crates/uor-r4-tokenizer/src/dialogue.rs": "ad2c8e6b790d3399dc67551241f81934b38b48fb9e99df473103c672797cd2a2",
+    "crates/uor-r4-tokenizer/src/lib.rs": "25ea15a67b15a6b92121d94c15bc42626d18bd1d4e601ced4249567af546202d",
+    "docs/integration/dialogue-protocol-contract-2026-09-26.md": "e1c84b4a520cdd1bd1a58b49499de794d2c98f6c7a6ab2c7a91b63a44174db12",
+    "docs/integration/fourth-lab-geometric-attention-2026-09-26.md": "563b02fce579ce3ba1c213ea0c5a1df6cdf6e5683edd1bb308fb3ee3fb08bb4c",
+    "docs/integration/fourth-lab-integration-review-2026-09-26.md": "7a05038aa8a920aeb8be40d8be66f34486805cc54f2255330cb67604964b1e4c"
+  },
+  "coordination": {
+    "owner_choice": "Shared GitHub issues and isolated worktrees",
+    "issue": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5851350763",
+    "chatbot_review": "https://github.com/UOR-Foundation/uor-r4/pull/1400#issuecomment-5851358371",
+    "other_labs_acknowledged": false
+  },
+  "checks": {
+    "tokenizer_command": "CARGO_TARGET_DIR=/Users/casey.allard/uor-r4/target CARGO_BUILD_JOBS=2 cargo test -p uor-r4-tokenizer --offline",
+    "tokenizer_unit_tests": {
+      "passed": 7,
+      "failed": 0,
+      "new": 4,
+      "retained": 3
+    },
+    "cargo_reported_compile_seconds": 13.15,
+    "unit_test_seconds": 0.01,
+    "rustfmt_touched_files": "PASS",
+    "shell_syntax": "PASS",
+    "context_helper_offline_and_live_github": "PASS",
+    "git_diff_check": "PASS",
+    "claim_wording": "PASS",
+    "independent_source_review": "No remaining material blocker; replication rule corrected; geometry design remains NOT_RUN"
+  },
+  "witness": {
+    "scope": "Actual retained tokenizer; chatbot fallback reconstructed from source; no ChatSession/model execution",
+    "source_sha256": "557b7298cf1702c371acd4f75268d77db4ffa6cff76cd5fd7a0dc4d396e61d9d",
+    "executable_sha256": "4e1de23625c190a254ed7e35121835094d00167f7ffa505a1d5d2d33475dd061",
+    "output_sha256": "b93239ef1f4c11309bdc76c403574bd81acc03ea46b806eba08108b975d8443a",
+    "output": "tokenizer_path=/Users/casey.allard/uor-r4-investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json\ntokenizer_cid=blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc\nprotocol_identity=blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327\nschema=uor-r4.literal-role-dialogue/1\nbos=0 eos=1 unk=2\ncontent=\"Hi\"\ntraining_segments=[0, 55, 2728, 28, 223, 1094, 201, 35, 560, 652, 714, 28, 223]\npanel_concatenated=[0, 55, 2728, 28, 310, 75, 201, 35, 560, 652, 714, 28, 223]\nchatbot_source_fallback=[2, 1094, 1, 0]\nsegments_equal_panel=false\nsegments_equal_fallback=false\ncontent=\"Hello\"\ntraining_segments=[0, 55, 2728, 28, 223, 1178, 201, 35, 560, 652, 714, 28, 223]\npanel_concatenated=[0, 55, 2728, 28, 318, 2301, 201, 35, 560, 652, 714, 28, 223]\nchatbot_source_fallback=[2, 1178, 1, 0]\nsegments_equal_panel=false\nsegments_equal_fallback=false\ncontent=\" H\u00e9\\r\\n\u4e16\u754c \"\ntraining_segments=[0, 55, 2728, 28, 223, 42, 130, 105, 201, 163, 119, 247, 166, 246, 237, 201, 35, 560, 652, 714, 28, 223]\npanel_concatenated=[0, 55, 2728, 28, 310, 130, 105, 201, 163, 119, 247, 166, 246, 237, 201, 35, 560, 652, 714, 28, 223]\nchatbot_source_fallback=[2, 310, 130, 105, 204, 201, 163, 119, 247, 166, 246, 237, 223, 1, 0]\nsegments_equal_panel=false\nsegments_equal_fallback=false\nscope=Loaded tokenizer only; chatbot fallback computed from inspected source, no model or ChatSession executed\n"
+  },
+  "cost": {
+    "projection": {
+      "schema": "uor-r4.fourth-lab-resource-projection/1",
+      "recorded_at": "2026-09-27T00:38:20.206027+00:00",
+      "started_at": "2026-09-27T00:33:04+00:00",
+      "scope": "fourth lab setup, source/literature review, shared dialogue protocol and protected PR",
+      "observed_ledger": {
+        "cumulative_ms": 643672403,
+        "limit_ms": 744000000
+      },
+      "verified_previous_task_limit_ms": 657600000,
+      "task_elapsed_cap_ms": 7200000,
+      "effective_task_limit_ms": 650872403,
+      "external_limit_attribution": "UNRESOLVED; observed 744000000 not adopted as new authority",
+      "projection_ms": {
+        "preparation_research_implementation": 4500000,
+        "compile_focused_checks": 900000,
+        "review_delivery": 1200000,
+        "training": 0,
+        "model_evaluation": 0,
+        "accelerator": 0
+      },
+      "cpu": "read-only tools and at most one serialized cargo process; no new training",
+      "build_jobs": 2,
+      "peak_new_ram_bytes": 2147483648,
+      "new_internal_storage_cap_bytes": 1073741824,
+      "new_ssd_build_storage_cap_bytes": 1073741824,
+      "physical_reserve_bytes": 25971130368,
+      "minimum_stop_margin_bytes": 134217728,
+      "disk_before": {
+        "internal_free_bytes": 49961291776,
+        "ssd_free_bytes": 180141072384
+      },
+      "preservation": "No deletion, no signals to other labs, all unique artifacts and original checkout retained",
+      "extension": "No additional cumulative allowance needed for this 2-hour setup projection; standing owner extensions recorded before any later increment.",
+      "shared_accounting": "Charge elapsed once at closeout with observed-before/after reconciliation; report concurrent external charges separately, never overwrite other actors silently."
+    },
+    "accounting_checkpoint": {
+      "last_charged_at": "2026-09-27T00:47:59.478766+00:00",
+      "charged_elapsed_ms": 895478,
+      "before": {
+        "cumulative_ms": 643672403,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 644567881,
+        "limit_ms": 744000000
+      },
+      "limitations": "Compare-before atomic replacement; other lab writers do not share this advisory lock. No claim of global mutual exclusion."
+    },
+    "training_ms": 0,
+    "model_evaluation_ms": 0,
+    "accelerator_ms": 0,
+    "peak_build_ram": "NOT_MEASURED",
+    "new_worktree_allocated_bytes": 525475840,
+    "local_receipts_allocated_bytes": 1691648,
+    "internal_free_bytes": 49859706880,
+    "ssd_free_bytes": 179308666880,
+    "storage_limitations": "Physical free-space changes include concurrent labs. Worktree du is allocated accounting, not exclusive physical attribution; shared cache incremental bytes not measured separately."
+  },
+  "remaining": "Protected PR delivery; adapters require coordinated adoption; geometric attention implementation and whole-model goal unfinished"
+}

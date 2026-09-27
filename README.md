@@ -16,6 +16,13 @@ For the live research position, read [current state](docs/integration/current-st
 
 ## Goal and serving contract
 
+The [fourth Codex research lab](.codex-lab/README.md) coordinates with Google,
+OpenCode/DeepSeek/Kimi and Claude through shared GitHub issues and isolated
+worktrees. Its expert bench and source-review protocol serve the
+[adaptive roadmap](docs/integration/project-track.md#four-lab-research-programme--owner-direction-september-26):
+geometric attention, efficient inference, general prose, chat and reasoning.
+The lab setup and shared dialogue-protocol work add no model-quality claim.
+
 The research priority is learned geometric addressing, state and selected computation: prime identities and ordered n-lets; R4/S3/H4 transport; exact `Z[phi]` and typed paired-H4/icosian structure; fixed zeta phases; exact occurrence/version memory; and shared learned operators. Each mechanism needs an implemented role and a measurement appropriate to that role. Canonical identity is not semantic distance, and exact geometry does not by itself establish predictive advantage.
 
 The owner confirmed [DECISIONS.md D0-b](docs/integration/DECISIONS.md#d0-b--what-no-matmul-at-serving-means-adopted) during the September 19 takeover:
