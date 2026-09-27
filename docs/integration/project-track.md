@@ -132,10 +132,18 @@ observed numerical change; smaller integer differences still change three
 complete continuations. Quantized outputs lose Momo and final blue-car recall.
 Keep this artifact diagnostic. The current native path provides no speed or
 energy advantage; its dense parameter access remains an unresolved limit.
-Before a new rounding or learning run, reconcile existing precision/learned-rounding
-results with the retained parent's scales and choose a single causal change.
-Do not automatically convert or train the new full-prefix child merely because
-the historical-parent observation completed.
+The subsequent precision/history reconciliation and
+[selected-child observation](dialogue-child-native-observation-2026-09-27.md)
+now bind the actual 1,024-update complete-prefix child, without confusing it with
+R1d. All 58 saved continuous replies reproduce; nearest-hard loses Momo and
+green while retaining Paris, Tokyo and blue-car relations. Parameter conversion
+is the largest common-input numerical perturbation. Keep the converted child
+diagnostic and select one response-aware legal-code repair using the existing
+complete-prefix population and fixed exported grids. Its dose and full cost
+must be selected prospectively; no fit or sweep follows automatically. Useful
+whole-response recovery and retained relations govern the decision, with prior
+width-256 numerical improvements and source-answer losses preserved. Deeper
+geometric state/read and general prose remain independent programme obligations.
 
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
@@ -176,8 +184,15 @@ adds a second seed with reversed Lorentz/Dot ordering and no consistent reader
 advantage across the two seeds. Trained D10 integer-retention reports are now
 available, but use a different arithmetic contract; useful generated output and
 local payload validation remain open. Preserve these findings alongside the
-historical pilot results. The later `4a0463e7` delta remains unreviewed; the
-fourth lab's native study and serving target stay fixed.
+historical pilot results. The [subsequent precision review through `6bc7dd6d`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5856120502)
+verifies 41 added/changed packet identities and the five trained reference joins.
+Integer continuations remain weak; the new grid reference attributes most mean
+loss to packed parameter representation collectively, including scalar/bias/gain
+and head changes, not uniquely four-bit matrix rounding. GPTQ is implemented in
+source with no trained result packet at that reviewed head. Its codec and
+serving arithmetic differ from this native path; local payload intake remains
+unavailable. These results inform repair alternatives without changing
+the native target or the child-specific response-aware decision above.
 
 ## Active programme — learn the model, then harden its execution
 

@@ -64,6 +64,27 @@ remains; D5 selected access is not established. Reconcile existing precision and
 learned-rounding evidence before selecting a new discretization experiment.
 This historical-parent observation does not qualify the new full-prefix child.
 
+The [selected child's separate native observation](dialogue-child-native-observation-2026-09-27.md)
+is now complete at source `03bfaaf5`. Its strict typed loader and separate
+conversion schema preserve the actual 1,024-step child and its 2,237-step
+ancestor as distinct identities. Thirteen focused release checks pass. The
+current FF reproduces all 58 saved child replies; all 174 FF/QQ/integer outputs
+are retained. On 3,914 common positions per form, FF→QF changes 909 greedy
+decisions, QF→QQ another 3, and QQ→integer another 4. QQ and integer agree on
+52/58 generated replies, with all native history/pending-token accounts checked.
+Both hard forms lose Momo and green; teacher/July/piano partial answers also
+worsen. Paris is cleaner, Tokyo remains partial, and blue-car recall is retained.
+This is a materially lossy development artifact, not an accepted model. The
+[portable evidence and reviews](../evidence/dialogue-child-native-observation-2026-09-27.json)
+record 56.245 seconds of conversion/packaging/observation and 205,946,880 bytes
+peak child RSS. Same-input integer stepping takes 12.593 seconds versus FF
+2.823 in this instrumented pass; no speed or energy advantage is established.
+The next causal implementation is one response-aware choice of legal codes on
+the fixed child grids and complete-prefix population, with dose/resources still
+to be selected before fitting. Actual relation recovery and all-output retention
+govern that decision; the old width-256 rounding result warns that lower
+numerical loss alone does not preserve complete answers. No new alpha fit ran.
+
 The retained integer `TextSession` now has an opt-in exact-ID dialogue adapter
 and consistent optional stop-token handling. Six focused checks pass. A loaded
 accepted-bundle witness matches exact prefix IDs and all 16 prediction records
@@ -239,8 +260,8 @@ source-stratified panel is exposed development; the complete-prefix population
 excludes most long responses. No general non-regression or geometric advantage
 is claimed, and no automatic dose, seed or decoder extension follows.
 
-The next independent implementation is the already prepared packed-coefficient
-workload comparison; the native observation above makes parameter discretization
+The independent packed-coefficient workload comparison is now complete above;
+the selected-child native observation makes parameter discretization
 the leading numerical question. Preserve the fixed studies and accepted models.
 Other labs retain their CLI, trainer and deeper stack ownership. Native,
 multiplier-free serving remains the target.
@@ -313,9 +334,19 @@ trained D10 integer-retention reports show NLL gaps +0.007695 to +0.012756 and
 92.68–93.61% top-1 agreement on exposed development. These are AVX2 results with
 hardware multiplication/division and dense parameter reads, not this lab's
 native serving contract. The engine timer now excludes floating scoring, but
-integer continuation records and locally validated raw payloads remain absent.
-Head `4a0463e7` advanced after that pinned review and is not covered by it. These
-reports do not change the fixed dialogue pair or promote a model.
+integer continuation records and locally validated raw payloads were absent
+at that review. The [later precision review through `6bc7dd6d`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5856120502)
+verifies 41 added/changed file identities and five trained reference joins.
+Reference-minus-float NLL is +0.007543 to +0.012756; integer-minus-reference is
+-0.00000170 to +0.00015188. The reference substitutes packed matrices, scalars,
+biases, folded normalization gains and head values, so the localization is to
+the packed representation collectively, not uniquely four-bit matrix rounding.
+New integer continuations remain weak. GPTQ source and synthetic checks are
+present without a trained GPTQ result packet. Grouped scales and a separate
+embedding/head differ from the native tied-readout codec. Hardware multiply/divide
+serving and the empty designated local payload intake remain unresolved for
+this lab's target. These reports do not promote a model or change the completed
+fixed dialogue pair.
 
 The separately owned termination-objective study has a
 [source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)

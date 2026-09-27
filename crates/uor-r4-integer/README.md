@@ -37,6 +37,16 @@ retained width-256 artifacts. Logical retained coefficient payload falls from
 Timing changes are small and mixed in this single pass. Dense access and the
 artifacts' language limitations remain; no general speed or energy gain is established.
 
+The separate [width-576 dialogue development profile](../../docs/integration/dialogue-child-native-observation-2026-09-27.md)
+now accepts a verified complete-prefix child through its own conversion schema.
+Use the training example `dialogue-child-integer-bridge` to construct its packed
+model and `pack-dialogue576` to package it. This keeps the selected child's
+actual arrays and local clocks separate from its historical R1d ancestor.
+The observer's `--child` mode compares this child's saved reference and actual
+FF/QQ/integer replies. The nearest-hard child loses useful relationships and
+remains diagnostic; it is not an accepted bundle or useful chat qualification.
+The linked result supplies complete CLI arguments, artifact identity and costs.
+
 ## Build and package
 
 From the repository root:

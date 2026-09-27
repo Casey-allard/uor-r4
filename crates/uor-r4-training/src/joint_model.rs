@@ -390,6 +390,31 @@ impl JointModel {
         Ok((model, parts.provenance))
     }
 
+    /// Calibrate only the verified evolved child; local completed steps remain
+    /// its training clock and no optimizer, forward or model update is run.
+    pub fn calibrated_dialogue_child_integer_parent(
+        artifact: crate::dialogue_child_artifact::DialogueChildArtifact,
+    ) -> Result<(
+        Self,
+        crate::dialogue_child_artifact::DialogueChildProvenance,
+    )> {
+        let (mut model, provenance) = artifact.into_export_parts()?;
+        model
+            .config
+            .validate_for_profile(ServingProfile::Dialogue576)?;
+        if model.admission != AdmissionPolicy::Full {
+            return Err(invalid("dialogue child export requires Full admission"));
+        }
+        model.configure_quantization(provenance.steps_completed, 1)?;
+        model
+            .quantization
+            .as_mut()
+            .ok_or_else(|| invalid("missing calibrated child export state"))?
+            .preparation = Some(QuantizationPreparation::CalibratedForExport);
+        provenance.validate_parameters(&model)?;
+        Ok((model, provenance))
+    }
+
     fn from_variables(
         config: JointConfig,
         variables: BTreeMap<String, Var>,
@@ -1906,6 +1931,56 @@ impl JointModel {
             "new_optimizer_updates":0,"new_model_updates":0,
             "calibration":"Existing frozen-parent signed4 row reconstruction MSE and additive16 ceiling; no corpus/model evaluation or optimizer/model updates. ramp_steps=1 is compatibility metadata; start_step=completed_step records historical parent exposure, not QAT.",
             "scope":"Development conversion only. Quantized numerical retention, generated behavior, useful dialogue and complete-path efficiency have not been evaluated. Historical source/mask/tokenizer limitations remain in parent provenance."
+        });
+        self.save_hard_profile(directory, ServingProfile::Dialogue576, Some(&provenance))
+    }
+
+    /// Nearest-hard export of an unchanged, verified learned dialogue child.
+    /// Historical R1d export retains its separate schema and validation path.
+    pub fn save_dialogue_child_integer_hard(
+        &self,
+        directory: &Path,
+        parent: &crate::dialogue_child_artifact::DialogueChildProvenance,
+        source_commit: &str,
+        executable_sha256: &str,
+        source_sha256: &BTreeMap<String, String>,
+    ) -> Result<Value> {
+        parent.validate_parameters(self)?;
+        self.config
+            .validate_for_profile(ServingProfile::Dialogue576)?;
+        let valid_hex = |value: &str, length| {
+            value.len() == length && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+        };
+        if !valid_hex(source_commit, 40)
+            || !valid_hex(executable_sha256, 64)
+            || source_sha256.is_empty()
+            || source_sha256.values().any(|h| !valid_hex(h, 64))
+        {
+            return Err(invalid("dialogue child conversion source binding"));
+        }
+        let state = self
+            .quantization
+            .as_ref()
+            .ok_or_else(|| invalid("dialogue child conversion requires calibrated scales"))?;
+        if state.preparation != Some(QuantizationPreparation::CalibratedForExport)
+            || state.start_step != parent.steps_completed
+            || state.completed_step != parent.steps_completed
+            || state.ramp_steps != 1
+            || self.hard_only
+            || self.admission != AdmissionPolicy::Full
+        {
+            return Err(invalid(
+                "dialogue child conversion must have zero new model updates",
+            ));
+        }
+        let provenance = json!({
+            "schema":"uor-r4.native-dialogue576-child-conversion/1", "parent":parent,
+            "tokenizer_sha256":parent.tokenizer_sha256, "protocol_identity":parent.protocol_identity,
+            "conversion_source_commit":source_commit,"conversion_executable_sha256":executable_sha256,
+            "source_sha256":source_sha256,"serving_profile":"dialogue576","admission":"full",
+            "new_forward_calls":0,"new_generation_calls":0,"new_optimizer_updates":0,"new_model_updates":0,
+            "calibration":"Frozen immediate-child signed4 row reconstruction MSE and additive16 ceiling; no new forward, generation or optimizer/model updates. start_step=completed_step is the child's local training clock, not ancestor exposure or QAT.",
+            "scope":"Development nearest-hard child conversion. Actual numerical/output retention requires separate observation; historical ancestor limitations remain explicit."
         });
         self.save_hard_profile(directory, ServingProfile::Dialogue576, Some(&provenance))
     }

@@ -1,4 +1,5 @@
-//! Fixed historical R1d observation: FF -> packed QF -> packed QQ -> integer.
+//! Explicit historical R1d or selected-child observation:
+//! FF -> packed QF -> packed QQ -> integer.
 //! No calibration, optimization, new data selection or quality acceptance gate.
 //! Identical saved inputs localize numerical changes; actual dialogue retains
 //! each form's own generated history. Only the existing open requests are used
@@ -27,6 +28,7 @@ use uor_r4_integer::{
 use uor_r4_tokenizer::{dialogue::DialogueProtocol, ByteBpeTokenizer};
 use uor_r4_training::{
     dialogue_artifact::LegacyDialogueArtifact,
+    dialogue_child_artifact::DialogueChildArtifact,
     joint_admission::AdmissionPolicy,
     joint_evaluation::{self, JointGenerationStop, PROBABILITY_SUM_TOLERANCE},
     joint_model::{JointModel, JointStep, PrecisionMode, ReadMode},
@@ -44,9 +46,93 @@ const CORPUS_SHA: &str = "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246c
 const TOKENIZER_SHA: &str = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89";
 const REQUESTS_SHA: &str = "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484";
 const REPLAY_SHA: &str = "4ea4df2614ebcf0eb31da944a3e7c63c8edec28effcee936984112f5c88455d8";
+const CHILD_RESPONSES_SHA: &str =
+    "bd3a6ce865ff750d66a5a2a10222ac8f3749a7c0482381cc6edd389b6080b31f";
+const CHILD_RESULT_SHA: &str = "fb49d94c6d3a10e72457cfa12b81c3b3a06ff0986c3f111db04ecf01173facb6";
+const CHILD_MODEL_SHA: &str = "98aca5ab14a9edab58dcd2d74d71e74d3904c27e1ce3c126fb66b670cc2baa1c";
+const CHILD_FINGERPRINT: &str = "1eef006a29767f06fd07d29e03f4e9cdf254a6a8a0562c5c8a019b8c0e6bb1d6";
 const PROTOCOL_ID: &str = "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327";
 const FORMS: [&str; 4] = ["FF", "QF", "QQ", "integer"];
 const PAIRS: [&str; 3] = ["FF_QF", "QF_QQ", "QQ_integer"];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ObservationMode {
+    HistoricalR1d,
+    CompletePrefixChild,
+}
+impl ObservationMode {
+    fn reference_sha(self) -> &'static str {
+        match self {
+            Self::HistoricalR1d => REPLAY_SHA,
+            Self::CompletePrefixChild => CHILD_RESPONSES_SHA,
+        }
+    }
+    /// (turns, prompt occurrences, selections, consumed trace positions).
+    fn reference_counts(self) -> (usize, usize, usize, usize) {
+        match self {
+            Self::HistoricalR1d => (58, 2623, 1766, 4331),
+            Self::CompletePrefixChild => (58, 2464, 1508, 3914),
+        }
+    }
+    fn model_step(self) -> usize {
+        match self {
+            Self::HistoricalR1d => 2237,
+            Self::CompletePrefixChild => 1024,
+        }
+    }
+    fn input_scope(self) -> &'static str {
+        match self {
+            Self::HistoricalR1d => "Historical R1d only; no current-study child. Legacy import hashes train AND heldout token/mask files for provenance; no corpus or heldout scoring, panel selection, calibration or optimizer updates.",
+            Self::CompletePrefixChild => "Selected continuous complete-prefix child and its own sealed saved responses, not the historical R1d output. Typed import binds immediate child checkpoint and historical ancestry separately. Data identities are provenance only; no corpus or heldout scoring, calibration, alpha learning or optimizer/model updates.",
+        }
+    }
+}
+
+fn parse_args(mut args: Vec<PathBuf>) -> Result<(ObservationMode, Vec<PathBuf>)> {
+    let mode = if args.first().is_some_and(|p| p.as_os_str() == "--child") {
+        args.remove(0);
+        ObservationMode::CompletePrefixChild
+    } else {
+        ObservationMode::HistoricalR1d
+    };
+    ensure(
+        args.len() == 8 && !args[0].as_os_str().to_string_lossy().starts_with("--"),
+        "usage: dialogue-integer-observe [--child] PARENT_REPORT_ROOT CORPUS_MANIFEST TOKENIZER PACKED_ROOT BUNDLE_ROOT REQUESTS RECORDED_RESPONSES NEW_REPORT_ROOT; omitted mode retains historical R1d",
+    )?;
+    Ok((mode, args))
+}
+
+enum ParentArtifact {
+    Historical(LegacyDialogueArtifact),
+    Child(DialogueChildArtifact),
+}
+impl ParentArtifact {
+    fn model(&self) -> &JointModel {
+        match self {
+            Self::Historical(p) => p.model(),
+            Self::Child(p) => p.model(),
+        }
+    }
+    fn tokenizer(&self) -> &ByteBpeTokenizer {
+        match self {
+            Self::Historical(p) => p.tokenizer(),
+            Self::Child(p) => p.tokenizer(),
+        }
+    }
+    fn protocol(&self) -> &DialogueProtocol {
+        match self {
+            Self::Historical(p) => p.protocol(),
+            Self::Child(p) => p.protocol(),
+        }
+    }
+    fn provenance(&self) -> Result<Value> {
+        Ok(match self {
+            Self::Historical(p) => serde_json::to_value(p.provenance())?,
+            Self::Child(p) => serde_json::to_value(p.provenance())?,
+        })
+    }
+}
 
 fn ensure(condition: bool, message: &str) -> Result<()> {
     if condition {
@@ -75,6 +161,12 @@ struct SavedReplay {
     generated_selections: usize,
 }
 #[derive(Deserialize)]
+struct ChildResponses {
+    protocol: DialogueProtocol,
+    requests_sha256: String,
+    rows: Vec<SavedRequest>,
+}
+#[derive(Deserialize)]
 struct SavedRequest {
     id: String,
     category: String,
@@ -84,7 +176,9 @@ struct SavedRequest {
 struct SavedTurn {
     turn: usize,
     user: String,
-    appended_user_prefix_ids: Vec<u32>,
+    // Historical replay records the suffix separately. The child packet binds
+    // the complete prompt instead; that exact ID sequence is checked below.
+    appended_user_prefix_ids: Option<Vec<u32>>,
     generation: SavedGeneration,
     model_eos: bool,
     caller_eos_inserted_before_next_request: bool,
@@ -181,6 +275,7 @@ fn prepare_traces(
     saved: &SavedReplay,
     codec: &ByteBpeTokenizer,
     protocol: &DialogueProtocol,
+    mode: ObservationMode,
 ) -> Result<Vec<Trace>> {
     let unique: BTreeSet<_> = requests.iter().map(|r| &r.id).collect();
     ensure(
@@ -214,7 +309,10 @@ fn prepare_traces(
                     && suffix.special_token_occurrences == 0
                     && turn.turn == index + 1
                     && turn.user == *user
-                    && turn.appended_user_prefix_ids == suffix.tokens,
+                    && match &turn.appended_user_prefix_ids {
+                        Some(recorded) => *recorded == suffix.tokens,
+                        None => mode == ObservationMode::CompletePrefixChild,
+                    },
                 "saved user framing differs",
             )?;
             worst_history += suffix.tokens.len() + CAP;
@@ -273,7 +371,7 @@ fn prepare_traces(
         }
     }
     ensure(
-        (traces.len(), prompts, selected, calls) == (58, 2623, 1766, 4331)
+        (traces.len(), prompts, selected, calls) == mode.reference_counts()
             && saved.generation_incremental_step_calls == calls
             && saved.generated_selections == selected,
         "fixed common-trace denominators differ",
@@ -605,15 +703,19 @@ fn trace_all(
             "adjacent":PAIRS.iter().zip(&local_pairs).map(|(&n,t)|(n,t.value())).collect::<BTreeMap<_,_>>() }));
     }
     stream.sync_all()?;
+    let positions: usize = traces.iter().map(|t| t.inputs.len()).sum();
+    let assistant: usize = traces.iter().map(|t| t.generated.len()).sum();
     ensure(
-        totals
-            .iter()
-            .all(|t| t.calls == 4331 && t.assistant.count == 1766 && t.other.count == 2565),
+        totals.iter().all(|t| {
+            t.calls == positions
+                && t.assistant.count == assistant
+                && t.other.count == positions - assistant
+        }),
         "executed trace denominator differs",
     )?;
     let result = json!({"forms":FORMS.iter().zip(&totals).map(|(&n,t)|(n,t.value())).collect::<BTreeMap<_,_>>(),
         "adjacent":PAIRS.iter().zip(&pairs).map(|(&n,t)|(n,t.value())).collect::<BTreeMap<_,_>>(),
-        "turns":turns,"model_step_calls":17324,"saved_target_positions_per_form":4331,
+        "turns":turns,"model_step_calls":4*positions,"saved_target_positions_per_form":positions,
         "elapsed_seconds":started.elapsed().as_secs_f64(),
         "scope":"Identical saved inputs with a fresh state each turn. Saved parent continuations are often weak, not correct answers or corpus NLL. Ordered interventions include recurrent interactions; no quality threshold or unique causal partition.",
         "hash_encoding":{"FF_QF_QQ":"little-endian F32 probabilities/state/read masses","integer":"little-endian U64 Q48 probabilities/read masses, I32 Q11 state"},
@@ -640,13 +742,15 @@ fn generate_float(
     requests: &[Request],
     form: &str,
     out: &Path,
+    reference: Option<&SavedReplay>,
 ) -> Result<Value> {
     let clock = Instant::now();
     let encoder = protocol.bind(codec)?;
     let mut stream = File::create_new(out.join(format!("responses-{form}.jsonl")))?;
     let (mut calls, mut selected, mut replies, mut native_seconds) = (0, 0, 0, 0.0);
     let mut rows = Vec::new();
-    for request in requests {
+    let mut reference_mismatches = Vec::new();
+    for (request_index, request) in requests.iter().enumerate() {
         let mut history = vec![0];
         let mut turns = Vec::new();
         for (index, user) in request.user_turns.iter().enumerate() {
@@ -671,6 +775,23 @@ fn generate_float(
             replies += 1;
             native_seconds += generation.elapsed_seconds;
             let stop = float_stop(&generation.stop);
+            let reference_match = reference.map(|saved| {
+                saved.rows.get(request_index).is_some_and(|row| {
+                    row.id == request.id
+                        && row.category == request.category
+                        && row.turns.get(index).is_some_and(|turn| {
+                            turn.user == *user
+                                && turn.generation.prompt_token_ids == generation.prompt_token_ids
+                                && turn.generation.generated_token_ids
+                                    == generation.generated_token_ids
+                                && turn.generation.raw_decoded_bytes == generation.raw_decoded_bytes
+                                && turn.generation.stop == stop
+                        })
+                })
+            });
+            if reference_match == Some(false) {
+                reference_mismatches.push(json!({"id":request.id,"turn":index+1}));
+            }
             let caller = close_history(
                 &mut history,
                 &generation.generated_token_ids,
@@ -680,6 +801,7 @@ fn generate_float(
             let turn = json!({"turn":index+1,"user":user,"appended_user_prefix_ids":suffix.tokens,
                 "model_eos":stop==Stop::Eos,"caller_eos_inserted_before_next_request":caller,
                 "retained_history_ids":history,"generation":generation,
+                "saved_reference_matches":reference_match,
                 "execution":"fresh F32 session replays own exact full prefix each turn"});
             write_row(
                 &mut stream,
@@ -696,10 +818,12 @@ fn generate_float(
     )?;
     let result = json!({"form":form,"requests":38,"responses":replies,"generated_selections":selected,
         "incremental_step_calls":calls,"native_generation_seconds":native_seconds,
+        "saved_reference_checked":reference.is_some(),"saved_reference_mismatches":reference_mismatches,
         "elapsed_seconds":clock.elapsed().as_secs_f64(),"rows":rows});
     write_json(&out.join(format!("responses-{form}.json")), &result)?;
     Ok(
         json!({"form":form,"responses":replies,"generated_selections":selected,"incremental_step_calls":calls,
+        "saved_reference_checked":reference.is_some(),"saved_reference_mismatches":reference_mismatches,
         "native_generation_seconds":native_seconds,"elapsed_seconds":clock.elapsed().as_secs_f64()}),
     )
 }
@@ -817,14 +941,70 @@ fn parameter_bindings(model: &JointModel) -> Result<Value> {
     Ok(json!(rows))
 }
 
-fn observe(args: &[PathBuf], source: &str) -> Result<()> {
+fn load_saved_reference(
+    args: &[PathBuf],
+    mode: ObservationMode,
+    provenance: &Value,
+) -> Result<SavedReplay> {
+    if mode == ObservationMode::HistoricalR1d {
+        return Ok(serde_json::from_slice(&fs::read(&args[6])?)?);
+    }
+    ensure(
+        sha256_file(&args[0].join("result.json"))? == CHILD_RESULT_SHA
+            && fs::canonicalize(&args[6])? == fs::canonicalize(args[0].join("responses.json"))?
+            && provenance["parameter_sha256"] == CHILD_MODEL_SHA
+            && provenance["parameter_fingerprint"] == CHILD_FINGERPRINT,
+        "child reference does not belong to the selected continuous checkpoint/report",
+    )?;
+    let result: Value = serde_json::from_slice(&fs::read(args[0].join("result.json"))?)?;
+    ensure(
+        result["schema"] == "uor-r4.dialogue-prefix-fit/1"
+            && result["status"] == "TARGET_COMPLETE"
+            && result["completed_step"] == 1024
+            && result["final_parameter_fingerprint"] == CHILD_FINGERPRINT,
+        "selected child result/clock/fingerprint differs",
+    )?;
+    let child: ChildResponses = serde_json::from_slice(&fs::read(&args[6])?)?;
+    ensure(
+        child.requests_sha256 == REQUESTS_SHA,
+        "child reference request identity differs",
+    )?;
+    let responses = child.rows.iter().map(|r| r.turns.len()).sum();
+    let calls = child
+        .rows
+        .iter()
+        .flat_map(|r| &r.turns)
+        .map(|t| t.generation.incremental_step_calls)
+        .sum();
+    let selected = child
+        .rows
+        .iter()
+        .flat_map(|r| &r.turns)
+        .map(|t| t.generation.generated_token_ids.len())
+        .sum();
+    // The child response file does not contain an artifact object. Its lineage
+    // is established above by the sealed report/result/checkpoint, then adapted
+    // into the shared trace validator; it is never relabeled as historical R1d.
+    Ok(SavedReplay {
+        artifact: provenance.clone(),
+        protocol: child.protocol,
+        protocol_identity: PROTOCOL_ID.into(),
+        requests: child.rows.len(),
+        responses,
+        rows: child.rows,
+        generation_incremental_step_calls: calls,
+        generated_selections: selected,
+    })
+}
+
+fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> {
     let clock = Instant::now();
     let out = &args[7];
     for (p, hash) in [
         (&args[1], CORPUS_SHA),
         (&args[2], TOKENIZER_SHA),
         (&args[5], REQUESTS_SHA),
-        (&args[6], REPLAY_SHA),
+        (&args[6], mode.reference_sha()),
     ] {
         ensure(
             sha256_file(p)? == hash,
@@ -842,7 +1022,6 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
     }
     report_output::verify(&args[4].join("tables"))?;
     let requests: Vec<Request> = serde_json::from_slice(&fs::read(&args[5])?)?;
-    let saved: SavedReplay = serde_json::from_slice(&fs::read(&args[6])?)?;
     let hard: Value = serde_json::from_slice(&fs::read(args[3].join("hard-model.json"))?)?;
     let bundle_meta: Value = serde_json::from_slice(&fs::read(args[4].join("bundle.json"))?)?;
     for name in [
@@ -860,17 +1039,34 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
             == sha256_file(&args[3].join("manifest.json"))?,
         "bundle does not bind supplied packed seal",
     )?;
-    let artifact = LegacyDialogueArtifact::load(&args[0], &args[1], &args[2], &Device::Cpu)?;
-    let provenance = serde_json::to_value(artifact.provenance())?;
+    let artifact =
+        match mode {
+            ObservationMode::HistoricalR1d => ParentArtifact::Historical(
+                LegacyDialogueArtifact::load(&args[0], &args[1], &args[2], &Device::Cpu)?,
+            ),
+            ObservationMode::CompletePrefixChild => ParentArtifact::Child(
+                DialogueChildArtifact::load(&args[0], &args[1], &args[2], &Device::Cpu)?,
+            ),
+        };
+    let provenance = artifact.provenance()?;
+    let saved = load_saved_reference(args, mode, &provenance)?;
+    let (parent_sha, conversion_schema) = match mode {
+        ObservationMode::HistoricalR1d => (PARENT_SHA, "uor-r4.native-dialogue576-conversion/1"),
+        ObservationMode::CompletePrefixChild => (
+            CHILD_MODEL_SHA,
+            "uor-r4.native-dialogue576-child-conversion/1",
+        ),
+    };
     ensure(
-        artifact.provenance().parameter_sha256 == PARENT_SHA
-            && artifact.provenance().steps_completed == 2237
-            && artifact.provenance().protocol_identity == PROTOCOL_ID
+        provenance["parameter_sha256"] == parent_sha
+            && provenance["steps_completed"] == mode.model_step()
+            && provenance["protocol_identity"] == PROTOCOL_ID
             && saved.artifact == provenance
             && hard["conversion_provenance"]["parent"] == provenance
+            && hard["conversion_provenance"]["schema"] == conversion_schema
             && saved.protocol_identity == PROTOCOL_ID
             && serde_json::to_value(&saved.protocol)? == serde_json::to_value(artifact.protocol())?,
-        "historical R1d/conversion/replay parent or protocol differs",
+        "selected parent/conversion/reference mode, identity or protocol differs",
     )?;
     let bundle = Bundle::load(&args[4])?;
     ensure(
@@ -897,8 +1093,8 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
             && qf.admission_policy() == AdmissionPolicy::Full
             && qf.precision_mode() == Some(PrecisionMode::QF)
             && qf.quantization() == qq.quantization()
-            && quant.start_step == 2237
-            && quant.completed_step == 2237
+            && quant.start_step == mode.model_step()
+            && quant.completed_step == mode.model_step()
             && quant.ramp_steps == 1
             && quant.preparation == Some(QuantizationPreparation::CalibratedForExport),
         "fixed FF/QF/QQ configuration or honest calibration clock differs",
@@ -915,8 +1111,14 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
         tokenizer.address() == artifact.tokenizer().address(),
         "F32 generation tokenizer differs",
     )?;
-    let traces = prepare_traces(&requests, &saved, artifact.tokenizer(), artifact.protocol())?;
-    let input_files = [
+    let traces = prepare_traces(
+        &requests,
+        &saved,
+        artifact.tokenizer(),
+        artifact.protocol(),
+        mode,
+    )?;
+    let mut input_files = vec![
         args[1].clone(),
         args[2].clone(),
         args[5].clone(),
@@ -932,6 +1134,15 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
         args[4].join("tables/tables.bin"),
         args[4].join("tables/manifest.json"),
     ];
+    if mode == ObservationMode::CompletePrefixChild {
+        input_files.extend([
+            args[0].join("result.json"),
+            args[0].join("checkpoint-final/manifest.json"),
+            args[0].join("checkpoint-final/checkpoint.json"),
+            args[0].join("checkpoint-final/config.json"),
+            args[0].join("checkpoint-final/model.safetensors"),
+        ]);
+    }
     let identities = input_files
         .iter()
         .map(|p| identity(p))
@@ -942,11 +1153,14 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
         "status":"VALIDATED_BEFORE_FIRST_FORWARD","source_commit":source,"executable_sha256":sha256_file(&std::env::current_exe()?)?,
         "source_sha256":source_hashes(),"cpu_accelerate_compiled":cfg!(feature="cpu-accelerate"),
         "thread_environment":(["RAYON_NUM_THREADS","VECLIB_MAXIMUM_THREADS","OMP_NUM_THREADS","GEMM_NUM_THREADS"].into_iter().map(|k|(k,std::env::var(k).ok())).collect::<BTreeMap<_,_>>()),
-        "inputs":identities,"historical_parent":provenance,"conversion_provenance":hard["conversion_provenance"],
+        "observation_mode":mode,"inputs":identities,"selected_parent":provenance,
+        "historical_parent":if mode==ObservationMode::HistoricalR1d {provenance.clone()} else {Value::Null},
+        "conversion_provenance":hard["conversion_provenance"],
         "packed_spec_and_scales":hard["quantization"],"bundle_identity":bundle.identity(),"protocol":artifact.protocol(),
         "FF_parameters":ff_parameters,"QF_QQ_parameters":qq_parameters,
         "numerical_contracts":{"FF":ff.numerical_contract(),"QF":qf.numerical_contract(),"QQ":qq.numerical_contract(),"integer":hard["numerical_contract"]},
-        "scope":"Historical R1d only; no current-study child. Legacy import hashes train AND heldout token/mask files for provenance; no corpus or heldout scoring, panel selection, calibration or optimizer updates."}),
+        "reference_counts":{"turns":mode.reference_counts().0,"prompt_id_occurrences":mode.reference_counts().1,"generated_selections":mode.reference_counts().2,"trace_positions_per_form":mode.reference_counts().3},
+        "scope":mode.input_scope()}),
     )?;
     write_json(
         &out.join("requests.json"),
@@ -966,6 +1180,7 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
         &requests,
         "FF",
         out,
+        (mode == ObservationMode::CompletePrefixChild).then_some(&saved),
     )?;
     let qq_output = generate_float(
         &qq,
@@ -975,6 +1190,7 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
         &requests,
         "QQ",
         out,
+        None,
     )?;
     let integer_output = generate_integer(&bundle, artifact.protocol(), &requests, out)?;
     ensure(
@@ -991,18 +1207,30 @@ fn observe(args: &[PathBuf], source: &str) -> Result<()> {
         .iter()
         .map(|v| v["generated_selections"].as_u64().unwrap_or(0))
         .sum::<u64>();
+    let reference_matches = mode == ObservationMode::HistoricalR1d
+        || ff_output["saved_reference_mismatches"]
+            .as_array()
+            .is_some_and(Vec::is_empty);
+    let trace_calls = trace_summary["model_step_calls"]
+        .as_u64()
+        .ok_or_else(|| io::Error::other("missing trace call count"))?;
     write_json(
         &out.join("result.json"),
-        &json!({"schema":"uor-r4.native-dialogue576-observation/1","status":"OBSERVATION_COMPLETE_REVIEW_PENDING",
+        &json!({"schema":"uor-r4.native-dialogue576-observation/1","status":if reference_matches {"OBSERVATION_COMPLETE_REVIEW_PENDING"} else {"OBSERVATION_COMPLETE_REFERENCE_MISMATCH"},
+        "observation_mode":mode,"child_FF_saved_reference_match":if mode==ObservationMode::CompletePrefixChild {json!(reference_matches)} else {Value::Null},
         "source_commit":source,"executable_sha256":sha256_file(&std::env::current_exe()?)?,
         "input_binding":identity(&out.join("input-binding.json"))?,"trace_summary":identity(&out.join("trace-summary.json"))?,
         "outputs":[ff_output,qq_output,integer_output],"requests":38,"responses":174,
         "trace_model_step_calls":trace_summary["model_step_calls"],"generation_model_step_calls":generation_calls,
-        "total_model_step_calls":17324+generation_calls,"generated_selections_including_eos":selections,
+        "total_model_step_calls":trace_calls+generation_calls,"generated_selections_including_eos":selections,
         "new_optimizer_updates":0,"new_backward_calls":0,"new_calibrations":0,"parameters_unchanged_after_observation":true,
         "preparation_seconds":preparation_seconds,"elapsed_seconds_before_sealing":clock.elapsed().as_secs_f64(),
         "quality":"REVIEW_PENDING_NO_AUTOMATIC_PASS","energy_or_native_speed_advantage":"NOT_MEASURED",
         "scope":"Four-view numerical localization on identical saved weak-parent trajectories and actual fixed greedy dialogue outputs. Dense parameter access remains; whole-form histories may diverge. No model promotion, new dose/decoder/seed or categorical RNG parity claim."}),
+    )?;
+    ensure(
+        reference_matches,
+        "current child FF differs from its own saved reference; all generated outputs preserved",
     )?;
     Ok(())
 }
@@ -1032,6 +1260,10 @@ fn source_hashes() -> BTreeMap<&'static str, String> {
         (
             "dialogue_artifact.rs",
             include_bytes!("../src/dialogue_artifact.rs").as_slice(),
+        ),
+        (
+            "dialogue_child_artifact.rs",
+            include_bytes!("../src/dialogue_child_artifact.rs").as_slice(),
         ),
         (
             "joint_model.rs",
@@ -1100,8 +1332,7 @@ fn source_hashes() -> BTreeMap<&'static str, String> {
 }
 
 fn main() -> Result<()> {
-    let args: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
-    ensure(args.len()==8, "usage: dialogue-integer-observe FIT_ROOT CORPUS_MANIFEST TOKENIZER PACKED_ROOT BUNDLE_ROOT REQUESTS RECORDED_REPLAY NEW_REPORT_ROOT")?;
+    let (mode, args) = parse_args(std::env::args_os().skip(1).map(PathBuf::from).collect())?;
     let source = option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("");
     ensure(
         source.len() == 40 && source.bytes().all(|b| b.is_ascii_hexdigit()),
@@ -1109,12 +1340,13 @@ fn main() -> Result<()> {
     )?;
     let out = &args[7];
     report_output::claim(out)?;
-    let result = observe(&args, source);
+    let result = observe(&args, source, mode);
     if let Err(error) = &result {
         write_json(
             &out.join("failed-attempt.json"),
             &json!({"status":"INCOMPLETE_OR_UNVERIFIED","error":error.to_string(),
-            "source_commit":source,"scope":"Preserved execution/input failure; not a model-quality verdict. Flushed per-position/turn rows retain any completed observations. No automatic retry."}),
+            "source_commit":source,"observation_mode":mode,"input_paths":&args[..7],
+            "scope":"Preserved execution/input failure; not a model-quality verdict. Flushed per-position/turn rows retain any completed observations. No automatic retry."}),
         )?;
     }
     report_output::seal(out)?;
@@ -1122,7 +1354,7 @@ fn main() -> Result<()> {
     result?;
     println!(
         "{}",
-        json!({"status":"OBSERVATION_COMPLETE_REVIEW_PENDING","report_root":out})
+        json!({"status":"OBSERVATION_COMPLETE_REVIEW_PENDING","observation_mode":mode,"report_root":out})
     );
     Ok(())
 }
@@ -1130,6 +1362,29 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn child_mode_is_explicit_and_keeps_distinct_reference_identity_and_counts() -> Result<()> {
+        let paths: Vec<PathBuf> = (0..8).map(|i| PathBuf::from(format!("path-{i}"))).collect();
+        let (historical, unchanged) = parse_args(paths.clone())?;
+        assert_eq!(historical, ObservationMode::HistoricalR1d);
+        assert_eq!(unchanged, paths);
+        let mut child_args = vec![PathBuf::from("--child")];
+        child_args.extend(paths.clone());
+        let (child, supplied) = parse_args(child_args)?;
+        assert_eq!(child, ObservationMode::CompletePrefixChild);
+        assert_eq!(supplied, paths);
+        assert_eq!(historical.reference_counts(), (58, 2623, 1766, 4331));
+        assert_eq!(child.reference_counts(), (58, 2464, 1508, 3914));
+        assert_ne!(historical.reference_sha(), child.reference_sha());
+        assert_eq!(child.model_step(), 1024);
+        assert_eq!(historical.model_step(), 2237);
+        assert!(parse_args(vec![PathBuf::from("--child")]).is_err());
+        let mut unknown = paths;
+        unknown[0] = PathBuf::from("--unknown");
+        assert!(parse_args(unknown).is_err());
+        Ok(())
+    }
 
     #[test]
     fn common_trace_scores_final_eos_without_consuming_it() -> Result<()> {
