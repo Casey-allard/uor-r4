@@ -181,6 +181,7 @@ fn study_config(cfg: &Campaign, geometry: ReadGeometry) -> Result<()> {
         || cfg.training_window_transition.is_some()
         || cfg.quantization_transition.is_some()
         || cfg.projection_transition.is_some()
+        || cfg.end_weight.is_some()
     {
         return Err(invalid("reader campaign changes the fixed model, objective/optimizer, stream, windows, shards or endpoint"));
     }
@@ -799,6 +800,30 @@ mod tests {
     fn reader_comparison_matches_training_identity_separately_from_evaluation() -> Result<()> {
         let cfg = campaign()?;
         study_config(&cfg, ReadGeometry::Dot)?;
+        for geometry in [
+            ReadGeometry::Dot,
+            ReadGeometry::Lorentz,
+            ReadGeometry::LorentzAffine,
+        ] {
+            let mut campaign_json = serde_json::to_value(&cfg)?;
+            campaign_json["model"]["read_geometry"] = serde_json::to_value(geometry)?;
+            campaign_json["read_initialization"] = if geometry == ReadGeometry::Dot {
+                Value::Null
+            } else {
+                json!("unit_scale")
+            };
+            // Historical campaigns omit this field. Explicit null also means
+            // no objective override; even weight 1.0 is outside this protocol.
+            assert!(campaign_json.get("end_weight").is_none());
+            study_config(&serde_json::from_value(campaign_json.clone())?, geometry)?;
+            campaign_json["end_weight"] = Value::Null;
+            study_config(&serde_json::from_value(campaign_json.clone())?, geometry)?;
+            for weight in [2.5, 1.0] {
+                campaign_json["end_weight"] = json!(weight);
+                let weighted: Campaign = serde_json::from_value(campaign_json.clone())?;
+                assert!(study_config(&weighted, geometry).is_err());
+            }
+        }
         for geometry in [ReadGeometry::Lorentz, ReadGeometry::LorentzAffine] {
             let mut radial = cfg.clone();
             radial.model.read_geometry = geometry;

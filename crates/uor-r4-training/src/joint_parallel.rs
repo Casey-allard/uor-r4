@@ -5,6 +5,9 @@
 //! is truncated. Named mean gradients are combined in shard order, before the
 //! caller performs one global clip and one optimizer update. F32 reductions
 //! differ from an unsplit batch; bitwise trajectory equivalence is not claimed.
+//! With optional target weights, each shard normalizes by its own weight sum
+//! before batch-fraction combination. Unequal shard weight sums therefore change
+//! the objective relative to a global weighted mean, beyond reduction rounding.
 
 use candle_core::backprop::GradStore;
 use candle_core::{DType, Device};
@@ -15,6 +18,7 @@ use crate::{invalid, Result, TrainingError};
 const WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 pub struct BatchGradients {
+    /// Actual objective value: weighted when target weights are supplied.
     pub mean_nll: f32,
     pub gradients: GradStore,
 }

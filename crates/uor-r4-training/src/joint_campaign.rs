@@ -111,8 +111,10 @@ pub struct Campaign {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub projection_transition: Option<ProjectionTransition>,
     /// Loss multiplier for sentence-final/EOS targets in the training
-    /// objective; absent = 1.0 for every target (historical behavior). Only the
-    /// training gradient is weighted; every reported metric stays standard.
+    /// objective; absent = 1.0 for every target (historical behavior). The
+    /// training `batch_mean_nll` is also weighted; development evaluation is not.
+    /// Multiple shards normalize locally, then combine by batch fraction, so
+    /// unequal shard weight totals do not implement a global weighted mean.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub end_weight: Option<f32>,
     pub trial_scope: String,

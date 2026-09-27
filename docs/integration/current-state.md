@@ -211,6 +211,20 @@ keeps the parent/control row join and recorded cost components. Owning-lab full
 resource reconciliation remains open; overlapping shared elapsed must not be
 charged again. The frozen unweighted reader study is unaffected.
 
+After the optional weighted objective entered mainline, the current-source
+fixed reader comparator now explicitly rejects any `end_weight` override.
+Three focused optimized Rust checks pass, including actual campaign
+deserialization for Dot, Lorentz and Affine: historical omission and null stay
+accepted, while explicit weights are rejected. The
+[source-bound guard receipt](../evidence/reader-objective-guard-2026-09-27.json)
+records 46.57 seconds of build/check work and the scope. Training arithmetic and
+the frozen running study are unchanged. Source/result descriptions now distinguish
+weighted training loss from ordinary evaluation and non-timing witness agreement
+from identical files. An
+[overlapping termination delivery charge was reconciled](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5853741962)
+against 18 linked receipts, removing 17,348,658 ms of duplicate shared wall time
+while preserving original records and unchanged resource limits.
+
 ## Decision and active work
 
 The owner supplied a whole-project stuck-point review and directed warranted

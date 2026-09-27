@@ -183,9 +183,10 @@ impl JointOutput {
     /// Weighted population-mean next-token NLL: `Σ(w_t · −ln p_t) / Σ(w_t)`.
     /// Targets and weights share the `[batch × time]` order of `loss`, and the
     /// denominator is the weight sum, so weighting a target cannot rescale the
-    /// objective by the target count. Only the optional training objective uses
-    /// this; `loss` and every reported metric remain the standard unweighted
-    /// mean.
+    /// objective by the target count. The optional training objective and its
+    /// reported `batch_mean_nll` use this value. Ordinary `loss` and development
+    /// evaluation remain unweighted; callers that shard weights must account
+    /// for their local denominators when combining results.
     pub fn weighted_loss(&self, targets: &[u32], weights: &[f32]) -> Result<Tensor> {
         let (batch, time, vocab) = self.probabilities.dims3()?;
         if targets.len() != batch * time

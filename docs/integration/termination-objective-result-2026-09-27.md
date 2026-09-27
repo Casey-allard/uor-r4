@@ -9,18 +9,25 @@ promoted, and no further dose follows automatically from this result.
 
 A new additive, absent-by-default `end_weight` in `uor-r4-training` multiplies the
 **training-objective** loss at targets that decode to `.` `!` `?` or EOS (boundary ids
-`[1, 3, 16, 33]`); the weighted mean uses the weight sum as denominator and only the
-training gradient is weighted, so every reported metric (development NLL, retained-fit
-NLL, checkpoints) stays standard and comparable. Executed source `c54d7801`; binary
-sha256 `b0ff04aa…`; the default path is proven unchanged (uniform-weight gradients match
-the existing loss within 1e-5; no report field or evaluation path changed).
+`[1, 3, 16, 33]`). Each shard normalizes by its own target-weight sum, then the
+implementation combines shard losses and gradients by batch fraction. Unequal
+shard weight sums therefore do not implement the intended global weighted mean.
+The training trace's `batch_mean_nll` is the weighted objective; independently
+unweighted development and retained-fit evaluation remain comparable. Executed
+source `c54d7801`; binary sha256 `b0ff04aa…`. The absent-weight path uses the
+existing loss, and the uniform-weight gradient check agrees within1e-5 at its
+tested scope. The [independent source and output review](termination-objective-review-2026-09-27.md)
+limits this result to the objective actually executed. It does not attribute
+the weak output to that defect or require an automatic corrected fit.
 
 The training artifacts were produced by source `c54d7801` (base `f8bee0ff`). The
 delivered branch rebases the same additive diff onto `bbce4cf6` over intervening
 absent-by-default merges; on the rebased source the full library suite passes (132/132)
 and re-evaluating both treatment checkpoints (`…-witness` roots, binary `9e351540…`)
-reproduces the sealed `generations.json` and `story-probes.json` identically, so the
-delivered evaluation path reproduces the artifacts exactly.
+reproduces all non-timing content of the sealed `generations.json` and
+`story-probes.json`, including token IDs, probability records, text and stops.
+The files differ in `elapsed_seconds`; this is trajectory agreement rather than
+byte-identical report reproduction.
 
 Four fits ran sequentially from the parents: 15,672 → 16,696 (**1,024 updates /
 4,194,304 targets** each), B16/T256/full256/shard2/seed 240924, no resumes, single final
@@ -128,9 +135,20 @@ artifacts and no new dose is authorized by this result.
 
 ## Cost and delivery
 
-- Fits 15,069 s total; evaluations 273 s; checks/tests/build ≈200 s; one ≈2 min lane wait;
-  total model wall ≈4.6 h; retained storage ≈180 MiB inside the existing model store; SSD
-  build cache reused; complete elapsed charged once to the shared ledger.
+- The four original fit reports record15,067.589105 s elapsed. The eight original
+  population evaluations plus their prose/source generation record266.314470 s;
+  two rebased witnesses add80.625907 s. The original12 roots contain180,933,666
+  logical bytes, and the witness roots add23,786,130, totaling204,719,796 bytes.
+  These measured components do not establish peak RSS, physical allocation or
+  cache growth. The original delivery estimated about200 s build/check work and
+  a two-minute lane wait; those estimates remain distinct from measured components.
+- The original delivery charged02:21:27–07:13:51.842851 UTC in full, overlapping
+  fourth-lab charges through07:10:35.664471. The
+  [recorded shared-ledger reconciliation](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5853741962)
+  removes17,348,658 ms of duplicate recorded time, retains the new tail and a6 ms
+  rounding remainder, and preserves all original receipts. Use the corrected
+  shared ledger and union of covered intervals for later charges; do not add
+  these subprocess components as another wall-time debit.
 - [Evidence](../evidence/termination-objective-2026-09-27.json) binds the campaigns,
   checkpoints, evaluations, row sets, guardrails and the independent audit. Delivered
   through a protected PR referencing #973 and #820; issue and handoff updated.

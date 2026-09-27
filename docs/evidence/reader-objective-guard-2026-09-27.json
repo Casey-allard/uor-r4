@@ -1,0 +1,109 @@
+{
+  "schema": "uor-r4.reader-objective-guard-validation/1",
+  "recorded_at": "2026-09-27T07:24:11.111333+00:00",
+  "source_commit": "1df9c90313242087770de4e2c2360c194fbc083e",
+  "base_commit": "6e32af270a570f77e84a0cbda641e40cd078eddb",
+  "scope": "Fixed reader-comparison configuration validation only; no training arithmetic, evaluator, model artifact or frozen running study changes.",
+  "change": "Reject any explicit end_weight override for Dot/Lorentz/LorentzAffine; accept historical omission and explicitnull.",
+  "checks": {
+    "started_at": "2026-09-27T07:22:16.983294+00:00",
+    "source_commit": "1df9c90313242087770de4e2c2360c194fbc083e",
+    "features": [
+      "cpu-accelerate"
+    ],
+    "profile": "release",
+    "build_jobs": 2,
+    "rayon_threads": 2,
+    "wall_limit_seconds": 600,
+    "commands": [
+      {
+        "command": [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-training",
+          "--features",
+          "cpu-accelerate",
+          "--lib",
+          "joint_reader_comparison::tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "started_at": "2026-09-27T07:22:16.984358+00:00",
+        "exit_code": 0,
+        "wall_seconds": 46.569098708
+      }
+    ],
+    "initial_free_bytes": {
+      "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926": 32625856512,
+      "/Volumes/UOR-Workspace": 172553199616
+    },
+    "wall_seconds": 46.571111583,
+    "finished_at": "2026-09-27T07:23:03.555796+00:00",
+    "maximum_child_rss_bytes": 634142720
+  },
+  "check_log": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/reader-objective-guard-checks-0.log",
+    "bytes": 2770,
+    "sha256": "20534e81e433410e9d40c6dfcc81987893d4b61ebab9707e818391d2202afc57"
+  },
+  "supervisor": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-reader-objective-guard-checks.py",
+    "bytes": 3236,
+    "sha256": "c6017b7175da0bc1b42d043815c48d106f3b3ad88b6f176ded2291e7b2906d29"
+  },
+  "projection": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-reader-objective-guard.json",
+    "bytes": 1374,
+    "sha256": "f62a31cd146d7e72b9bb2a87e1da054c06c86e6b1c2551131728d6ef09c19545"
+  },
+  "toolchain": {
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)"
+  },
+  "outcome": {
+    "passed": 3,
+    "failed": 0,
+    "filtered": 129,
+    "names": [
+      "reader_comparison_checks_shifted_target_rows_and_paired_direction",
+      "reader_comparison_keeps_prompt_ids_and_sampler_policies_distinct",
+      "reader_comparison_matches_training_identity_separately_from_evaluation"
+    ],
+    "regression_scope": "Actual Campaign JSON deserialization: each of3geometries accepts omitted/null objective field and rejects1.0/2.5. Some1.0 is outside this fixed protocol, not a claim of mathematical inequivalence.",
+    "format_check": "cargo fmt -p uor-r4-training -- --check PASS",
+    "claim_wording_check": "PASS"
+  },
+  "independent_review": "Source adversary found no functional blocker; final remaining weighted_loss documentation contradiction corrected after execution. Later changes are comments/documentation/evidence only.",
+  "numerical_work": {
+    "model_fits": 0,
+    "model_reloads": 0,
+    "generated_tokens": 0,
+    "native_seal_replays": 0
+  },
+  "limitations": [
+    "634142720B is reportedmaximumchildRSS, not complete machinewide simultaneouspeak.",
+    "Threefocusedcheckscompile/exercisevalidation; nofullsuiteorcapabilityclaim.",
+    "Frozenstudyremains onsource488e3976; current-sourcefixdoesnotchange its executable or restartit."
+  ],
+  "resource_free_bytes_after_checks": {
+    "/System/Volumes/Data": 32622796800,
+    "/Volumes/UOR-Workspace": 172554039296
+  },
+  "shared_accounting_correction": {
+    "receipt": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/ledger-termination-overlap-correction.json",
+      "bytes": 6740,
+      "sha256": "29e55af6ec5d8221f537899bc139d7496668bb2e3b9c5123e5c32369454ba417"
+    },
+    "public_record": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5853741962",
+    "duplicate_removed_ms": 17348658,
+    "rounding_remainder_retained_ms": 6,
+    "limits_unchanged": true
+  },
+  "complete_elapsed_accounting": "Concurrent source/review/build/delivery and ongoingstudy elapsed charged once via existingledgercursor; finaldeliveryreceipt records subsequenttail, withoutreaddingforeignoverlap."
+}
