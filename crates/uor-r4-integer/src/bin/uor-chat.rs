@@ -10,8 +10,8 @@ use uor_r4_integer::bundle::{create_test_bundle_with_byte_vocab, Bundle};
 use uor_r4_integer::config::ReadMode;
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::sampling::SamplePolicy;
-use uor_r4_integer::session::ChatSession;
-use uor_r4_integer::Result;
+use uor_r4_integer::session::{ChatSession, ChatTokenStream, StreamStopReason};
+use uor_r4_integer::{IntegerError, Result};
 
 const VERSION: &str = "0.1.0";
 
@@ -530,6 +530,48 @@ fn resolve_bundle_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
+/// Iterator exhaustion alone is not success: terminal model errors may arrive
+/// after the last visible text chunk, including while committing a stop token.
+fn completed_stream_stop(stream: &ChatTokenStream<'_, '_>) -> Result<StreamStopReason> {
+    if let Some(error) = stream.error() {
+        return Err(IntegerError::Invalid(format!(
+            "stream stopped with {:?} after {} generated tokens: {error}",
+            stream.stop_reason(),
+            stream.tokens_generated()
+        )));
+    }
+    stream.stop_reason().ok_or_else(|| {
+        IntegerError::Invalid("stream exhausted without a terminal stop reason".into())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chat_stream_cli_distinguishes_failed_and_successful_exhaustion() -> Result<()> {
+        let bundle = create_test_bundle_with_byte_vocab();
+        let mut session = ChatSession::new(&bundle, None, 17)?;
+        session.state_mut().identity = "injected identity mismatch".into();
+        let mut stream = ChatTokenStream::new(&mut session, 0, &[]);
+        assert_eq!(stream.next(), None);
+        let error =
+            completed_stream_stop(&stream).expect_err("terminal error must fail CLI outcome");
+        assert!(error.to_string().contains("ModelError"));
+        assert!(error.to_string().contains("identity"));
+
+        let mut session = ChatSession::new(&bundle, None, 17)?;
+        let mut stream = ChatTokenStream::new(&mut session, 0, &[]);
+        assert_eq!(stream.next(), None);
+        assert_eq!(
+            completed_stream_stop(&stream)?,
+            StreamStopReason::MaxTokens { count: 0 }
+        );
+        Ok(())
+    }
+}
+
 fn main() {
     retain_kernel_symbols();
 
@@ -645,6 +687,15 @@ fn main() {
                         }
                         println!();
 
+                        let stop = match completed_stream_stop(&stream) {
+                            Ok(stop) => stop,
+                            Err(error) => {
+                                eprintln!(
+                                    "{ANSI_RED_BOLD}[error]{ANSI_RESET} Generation failed: {error}"
+                                );
+                                process::exit(1);
+                            }
+                        };
                         let elapsed = start_time.elapsed();
                         let tok_count = stream.tokens_generated();
                         let elapsed_secs = elapsed.as_secs_f64();
@@ -659,7 +710,7 @@ fn main() {
                             0.0
                         };
                         println!(
-                            "{ANSI_YELLOW_BOLD}[telemetry]{ANSI_RESET} Generated {} tokens in {:.2}s ({:.1} tok/s, {:.3} ms/tok)",
+                            "{ANSI_YELLOW_BOLD}[telemetry]{ANSI_RESET} Generated {} tokens in {:.2}s ({:.1} tok/s, {:.3} ms/tok); stop={stop:?}",
                             tok_count, elapsed_secs, tok_per_sec, ms_per_tok
                         );
                     }

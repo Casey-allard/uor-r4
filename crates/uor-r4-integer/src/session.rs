@@ -305,6 +305,29 @@ impl<'s, 'a> ChatTokenStream<'s, 'a> {
     pub fn error(&self) -> Option<&IntegerError> {
         self.error.as_ref()
     }
+
+    /// Commit the terminal token before reporting a successful stop. A failed
+    /// model step may have changed state; retain its error rather than implying
+    /// that the turn closed successfully. Already buffered text is still flushed.
+    fn finish_turn(&mut self, token: u32, reason: StreamStopReason) -> Option<String> {
+        self.stopped = true;
+        match self.session.bundle.model().step_conversational_into(
+            &mut self.session.state,
+            token,
+            SlotTarget::Dialogue,
+            self.session.read_mode,
+        ) {
+            Ok(()) => {
+                self.stop_reason = Some(reason);
+                self.session.sync_last_step();
+            }
+            Err(error) => {
+                self.stop_reason = Some(StreamStopReason::ModelError);
+                self.error = Some(error);
+            }
+        }
+        self.decoder.flush()
+    }
 }
 
 fn short_cycle_check(tokens: &[u32]) -> Option<usize> {
@@ -378,32 +401,21 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
             let is_custom_stop = self.stop_tokens.contains(&selected_token);
 
             if is_turn_end || is_eos || is_custom_stop {
-                self.stopped = true;
-                if is_turn_end {
-                    self.stop_reason = Some(StreamStopReason::TurnEnd {
+                let reason = if is_turn_end {
+                    StreamStopReason::TurnEnd {
                         token_id: selected_token,
-                    });
+                    }
                 } else if is_eos {
-                    self.stop_reason = Some(StreamStopReason::Eos {
+                    StreamStopReason::Eos {
                         token_id: selected_token,
-                    });
+                    }
                 } else {
-                    self.stop_reason = Some(StreamStopReason::CustomStop {
+                    StreamStopReason::CustomStop {
                         token_id: selected_token,
-                    });
-                }
-
-                // Step the stop token into dialogue memory to conclude the turn cleanly
-                let _ = self.session.bundle.model().step_conversational_into(
-                    &mut self.session.state,
-                    selected_token,
-                    SlotTarget::Dialogue,
-                    self.session.read_mode,
-                );
-                self.session.sync_last_step();
-
+                    }
+                };
                 // Stop token is NOT emitted to user stream; flush any pending bytes
-                return self.decoder.flush();
+                return self.finish_turn(selected_token, reason);
             }
 
             self.tokens_generated += 1;
@@ -426,16 +438,10 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
             }
 
             if let Some(period) = short_cycle_check(&self.generated_tokens) {
-                self.stopped = true;
-                self.stop_reason = Some(StreamStopReason::CycleDetected { period });
-                let _ = self.session.bundle.model().step_conversational_into(
-                    &mut self.session.state,
+                return self.finish_turn(
                     self.session.roles.turn_end_id,
-                    SlotTarget::Dialogue,
-                    self.session.read_mode,
+                    StreamStopReason::CycleDetected { period },
                 );
-                self.session.sync_last_step();
-                return self.decoder.flush();
             }
 
             // Suppress literal `<|bos|>` (token 0) and `<|unk|>` (token 2) string tags
@@ -456,18 +462,12 @@ impl<'s, 'a> Iterator for ChatTokenStream<'s, 'a> {
             }
         }
 
-        self.stopped = true;
-        self.stop_reason = Some(StreamStopReason::MaxTokens {
-            count: self.tokens_generated,
-        });
-        let _ = self.session.bundle.model().step_conversational_into(
-            &mut self.session.state,
+        self.finish_turn(
             self.session.roles.turn_end_id,
-            SlotTarget::Dialogue,
-            self.session.read_mode,
-        );
-        self.session.sync_last_step();
-        self.decoder.flush()
+            StreamStopReason::MaxTokens {
+                count: self.tokens_generated,
+            },
+        )
     }
 }
 
@@ -1099,6 +1099,182 @@ impl Bundle {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn force_prediction(session: &mut ChatSession<'_>, token: u32) {
+        session.state.last_probabilities.fill(0);
+        session.state.last_probabilities[token as usize] = crate::PROBABILITY_TOTAL;
+        session.state.has_step = true;
+    }
+
+    #[test]
+    fn chat_stream_closure_errors_are_terminal() -> Result<()> {
+        let bundle = crate::bundle::create_test_bundle_with_byte_vocab();
+        let text_token = *bundle
+            .tokenizer()
+            .encode("x")
+            .first()
+            .ok_or_else(|| invalid("test tokenizer lacks x"))?;
+
+        // A sampled EOS used to report success even when its model write failed.
+        let mut session = ChatSession::new(&bundle, None, 17)?;
+        let eos = session.roles.eos_id;
+        force_prediction(&mut session, eos);
+        session.state.identity = "injected identity mismatch".into();
+        let mut stream = ChatTokenStream::new(&mut session, 8, &[]);
+        assert_eq!(stream.decoder.push_bytes(&[0xc3]), None);
+        assert_eq!(stream.next(), Some("\u{fffd}".into()));
+        assert_eq!(stream.stop_reason(), Some(StreamStopReason::ModelError));
+        assert!(stream
+            .error()
+            .is_some_and(|error| error.to_string().contains("identity")));
+        assert!(stream.generated_tokens().is_empty());
+        assert_eq!(stream.next(), None);
+
+        // Cap closure fails before any generated token or sampling operation.
+        let mut session = ChatSession::new(&bundle, None, 17)?;
+        session.roles.turn_end_id = bundle.model().config().vocab_size as u32;
+        let sampler_before = session.sampler.state();
+        let mut stream = ChatTokenStream::new(&mut session, 0, &[]);
+        assert_eq!(stream.next(), None);
+        assert_eq!(stream.stop_reason(), Some(StreamStopReason::ModelError));
+        assert!(stream
+            .error()
+            .is_some_and(|error| error.to_string().contains("bounds")));
+        assert_eq!(stream.session.state.dialogue_seen, 0);
+        assert_eq!(stream.session.sampler.state(), sampler_before);
+        assert_eq!(stream.next(), None);
+
+        // The third ordinary token is successfully written; only the inserted
+        // turn-end write fails. Preserve those generated IDs and report failure.
+        let mut session = ChatSession::new(&bundle, None, 17)?;
+        session.roles.turn_end_id = bundle.model().config().vocab_size as u32;
+        let mut stream = ChatTokenStream::new(&mut session, 8, &[]);
+        for _ in 0..2 {
+            force_prediction(stream.session, text_token);
+            assert_eq!(stream.next(), Some("x".into()));
+        }
+        force_prediction(stream.session, text_token);
+        assert_eq!(stream.next(), None);
+        assert_eq!(stream.stop_reason(), Some(StreamStopReason::ModelError));
+        assert!(stream
+            .error()
+            .is_some_and(|error| error.to_string().contains("bounds")));
+        assert_eq!(stream.generated_tokens(), &[text_token; 3]);
+        assert_eq!(stream.session.state.dialogue_seen, 3);
+        assert_eq!(stream.next(), None);
+        Ok(())
+    }
+
+    #[test]
+    fn chat_stream_successful_closures_preserve_history_and_sampler() -> Result<()> {
+        let bundle = crate::bundle::create_test_bundle_with_byte_vocab();
+        let text_token = *bundle
+            .tokenizer()
+            .encode("x")
+            .first()
+            .ok_or_else(|| invalid("test tokenizer lacks x"))?;
+        for case in 0..5 {
+            let mut session = ChatSession::new(&bundle, None, 17)?;
+            let mut expected = ChatSession::new(&bundle, None, 17)?;
+            let (selected, count, cap, stops, reason, policy) = match case {
+                0 => (
+                    session.roles.eos_id,
+                    1,
+                    8,
+                    vec![],
+                    StreamStopReason::Eos {
+                        token_id: session.roles.eos_id,
+                    },
+                    SamplePolicy::Categorical { top_k: 0 },
+                ),
+                1 => (
+                    session.roles.turn_end_id,
+                    1,
+                    8,
+                    vec![],
+                    StreamStopReason::TurnEnd {
+                        token_id: session.roles.turn_end_id,
+                    },
+                    SamplePolicy::Greedy,
+                ),
+                2 => (
+                    text_token,
+                    1,
+                    8,
+                    vec![text_token],
+                    StreamStopReason::CustomStop {
+                        token_id: text_token,
+                    },
+                    SamplePolicy::Categorical { top_k: 0 },
+                ),
+                3 => (
+                    text_token,
+                    1,
+                    1,
+                    vec![],
+                    StreamStopReason::MaxTokens { count: 1 },
+                    SamplePolicy::Categorical { top_k: 0 },
+                ),
+                _ => (
+                    text_token,
+                    3,
+                    8,
+                    vec![],
+                    StreamStopReason::CycleDetected { period: 1 },
+                    SamplePolicy::Categorical { top_k: 0 },
+                ),
+            };
+            session.set_policy(policy);
+            expected.set_policy(policy);
+            let turn_end = session.roles.turn_end_id;
+            let mut stream = ChatTokenStream::new(&mut session, cap, &stops).with_policy(policy);
+            let mut visible = String::new();
+            for _ in 0..count {
+                force_prediction(stream.session, selected);
+                force_prediction(&mut expected, selected);
+                let sampled = expected
+                    .sampler
+                    .select(&expected.state.last_probabilities[..], policy)
+                    .map_err(|error| invalid(error.to_string()))?;
+                assert_eq!(sampled, selected as usize);
+                expected.step_token(selected, SlotTarget::Dialogue)?;
+                if let Some(chunk) = stream.next() {
+                    visible.push_str(&chunk);
+                }
+            }
+            if case >= 3 {
+                expected.step_token(turn_end, SlotTarget::Dialogue)?;
+            }
+            // The cap closure occurs on the next iterator call after its text.
+            assert_eq!(stream.next(), None);
+            assert_eq!(stream.stop_reason(), Some(reason));
+            assert!(stream.error().is_none());
+            let generated = if case < 3 {
+                vec![]
+            } else {
+                vec![text_token; count]
+            };
+            assert_eq!(stream.generated_tokens(), generated);
+            assert_eq!(
+                visible,
+                match case {
+                    3 => "x",
+                    4 => "xx",
+                    _ => "",
+                }
+            );
+            drop(stream);
+            assert_eq!(
+                serde_json::to_value(session.to_serialized(None))?,
+                serde_json::to_value(expected.to_serialized(None))?
+            );
+            assert_eq!(
+                session.last_step().map(|step| &step.probabilities),
+                expected.last_step().map(|step| &step.probabilities)
+            );
+        }
+        Ok(())
+    }
 
     #[test]
     fn test_incremental_utf8_split_emoji_4bytes() {

@@ -55,6 +55,21 @@ Google retains CLI wiring ownership; this resolves its follow-up's
 [display-history reconstruction seam](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852795123)
 at the reusable library boundary, with adoption still pending.
 
+The separate `ChatTokenStream`/`uor-chat` path now reports failed terminal model
+writes instead of presenting a successful EOS, cap or cycle stop. Two synthetic
+library checks cover closure failures and successful history, probability and
+sampler preservation against direct stepping; one CLI completion-helper check
+and the release build also pass. The helper test does not spawn the CLI to test
+its exit status. Terminal errors now exit before success telemetry, while
+existing stream-construction errors remain visible and return to the prompt;
+exit status zero alone therefore does not establish that every command succeeded.
+The [source-bound validation and cost](../evidence/chat-stream-error-validation-2026-09-27.json)
+record 34.816 seconds of build/check work, including the initial 6.148-second
+test-only compile failure and its repair. No learned-model execution occurred.
+This improves runtime-versus-model diagnosis without adding rollback, recovery
+or a chat-quality result; Google's separate geometry/cache work remains outside
+this repair.
+
 The [retained R1d dialogue artifact](dialogue-artifact-replay-2026-09-27.md) now
 reloads through a strict offline continuous Full/Dot/Quaternion importer. All
 four focused checks pass; an initial malformed tokenizer fixture and its repair

@@ -155,6 +155,20 @@ reusing the original seed restarts that stream. Stops apply per call. Resuming
 after a returned EOS is an explicit caller decision. Session state is in memory;
 the generated report is not a serialized session checkpoint.
 
+The separate `session::ChatSession`/`ChatTokenStream` API used by `uor-chat` has
+its own session lifecycle. After draining a stream, callers must inspect
+`error()` and `stop_reason()`; iterator exhaustion alone is not success. If the
+model write that commits a sampled EOS, turn-end or custom stop, or an inserted
+cap/cycle turn-end, fails, the stream retains the error and reports `ModelError`
+while flushing already buffered text. `uor-chat` exits with status 1 before
+success telemetry on a terminal error and reports the actual stop on success.
+Existing stream-construction errors still print and return to the prompt, so
+exit status zero alone does not establish that all earlier commands succeeded.
+A failed model step may have changed state; this reporting provides no rollback
+or recovery. The [focused validation](../../docs/evidence/chat-stream-error-validation-2026-09-27.json)
+uses synthetic library and CLI-helper checks plus a release build, with no
+learned-model execution, spawned CLI exit-status test or chat-quality claim.
+
 ## Arithmetic and cost boundaries
 
 Model values use the retained signed parameter codes, fixed-point state, integer

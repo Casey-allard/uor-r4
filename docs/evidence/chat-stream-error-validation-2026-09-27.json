@@ -1,0 +1,376 @@
+{
+  "schema": "uor-r4.chat-stream-error-validation/1",
+  "recorded_at": "2026-09-27T10:12:09.384023+00:00",
+  "source_commit": "41a8059749a415299f8259a94455201f666cf6fc",
+  "base_commit": "0ac3df4679dd0696c4d1f56a231ac96e805ee3af",
+  "source_files_sha256": {
+    "crates/uor-r4-integer/src/session.rs": "c5d52ed5b71eb3fd9454e41e634b667c7abfa454c1c1ecd7ff9a89f9721138de",
+    "crates/uor-r4-integer/src/bin/uor-chat.rs": "2315dbbda9cfdb2b2929e92e2145c4b4a25e2c25ca68a5796af24dc109273259"
+  },
+  "problem": "Terminal model writes were discarded and uor-chat treated iterator exhaustion as success without inspecting stored errors. This could hide runtime failures behind ordinary-looking generated text.",
+  "behavior": [
+    "EOS, turn-end, custom-stop, cap and cycle terminal writes retain their underlying model error and report ModelError when closure fails.",
+    "Successful terminal paths keep token writes, state synchronization, sampler advancement and buffered output unchanged.",
+    "CLI checks terminal status after draining; stored error prints its cause and exits1 before success telemetry; successful telemetry includes actual stop reason."
+  ],
+  "validation": {
+    "library_regressions_passed": 2,
+    "cli_helper_regressions_passed": 1,
+    "release_cli_build": "PASS",
+    "format_and_diff_checks": "PASS",
+    "total_build_check_supervisor_seconds": 34.816250166,
+    "maximum_child_rss_bytes": 360923136,
+    "maximum_sampled_group_rss_bytes": 386646016,
+    "learned_model_execution_count": 0,
+    "initial_failure": "Test-only boxed-array to slice type mismatch; retained attempt1 and repaired only that test argument in41a80597."
+  },
+  "limitations": [
+    "CLI regression exercises completion helper, not spawned-process exit status.",
+    "Existing stream-construction errors still print and return to prompt; exit0 alone is not proof that all commands succeeded.",
+    "A failed model step may have changed state; no rollback, poisoning or recovery policy is added.",
+    "No learned-model inference, language-quality, geometric-advantage, throughput or energy result.",
+    "Frozen packed comparison binaries and running dialogue study are unchanged."
+  ],
+  "coordination": {
+    "issue": "https://github.com/UOR-Foundation/uor-r4/issues/973",
+    "google_pr": "https://github.com/UOR-Foundation/uor-r4/pull/1419",
+    "google_reviewed_head": "8b02021a1794c3f464d277693c075198a9c79bed",
+    "note": "Reviewed geometry/cache DTO/constructor/load hunks do not edit these terminal stream/CLI paths."
+  },
+  "records": {
+    "projection-chat-stream-errors.json": {
+      "sha256": "5bb7b23b161a5e862b33814ae16ca20b97ab7edeaa6e8762f8b7f8e1f024635f",
+      "content": {
+        "schema": "uor-r4.local-phase-projection/1",
+        "recorded_at": "2026-09-27T09:56:21.141274+00:00",
+        "scope": "Repair concealed conversational stream/closure errors so internal failure cannot be presented as a normal generated reply. Isolated source, synthetic error-path checks and release compile only; zero extra learned-model execution.",
+        "causal_evidence": "CLI exhausts ChatTokenStream without inspecting stored terminal error; closure paths discard fallible model steps. This undermines diagnosis of actual chat behavior and applies the existing recoverable-error contract.",
+        "wall_cap_seconds": 3600,
+        "build_check_wall_cap_seconds": 300,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000,
+        "parent_phase": "projection-dialogue-prefix-study.json",
+        "parent_caps_still_apply": true,
+        "new_allowance_ms": 0,
+        "resources": {
+          "compile_rss_cap_bytes": 4294967296,
+          "cargo_jobs": 2,
+          "one_cargo": true,
+          "no_additional_learned_model_process": true,
+          "launch_free_memory_percent": 25,
+          "build_stop_free_memory_percent": 25,
+          "new_internal_bytes": 563088334,
+          "tracked_checkout_logical_bytes": 495979470,
+          "shared_ssd_growth_bytes": 268435456,
+          "physical_reserve_bytes": 25971130368,
+          "storage_stop_margin_bytes": 134217728
+        },
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 32282550272,
+          "/Volumes/UOR-Workspace": 172551516160
+        },
+        "ownership": "New isolated worktree; only terminal error/stop handling in integer session and uor-chat, preserving Google geometry/cache hunks, packed candidate and frozen study. Protected PR delivery.",
+        "decision": "A targeted injected closure/stream failure must remain ModelError and be surfaced by CLI. Preserve successful stop behavior and inspect relevant source integration; no language, performance or model promotion follows.",
+        "accounting": "All overlapping study/research/preparation/build/delivery elapsed charged once through existing cursor; no allowance reset."
+      }
+    },
+    "chat-stream-errors-checks.json": {
+      "sha256": "76f7c192cfc7afb423fbed8ef39ec2d6b12e1d4e14576429960d46eb97bdca9c",
+      "content": {
+        "schema": "uor-r4.chat-stream-errors-checks/1",
+        "source_commit": "c1493ad6af9c9a9cf6b58d3d90309ece9f16e387",
+        "worktree": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4",
+        "started_at": "2026-09-27T10:08:13.948142+00:00",
+        "scope": "Synthetic stream-error and successful state/sampling tests and release compilation; zero learned-model execution.",
+        "maximum_sampled_group_rss_bytes": 201637888,
+        "jobs": [
+          {
+            "label": "focused",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "chat_stream_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:08:14.204833+00:00",
+            "pid": 52533,
+            "exit_code": 101,
+            "wall_seconds": 6.126365916,
+            "finished_at": "2026-09-27T10:08:20.331463+00:00"
+          }
+        ],
+        "projection_sha256": "5bb7b23b161a5e862b33814ae16ca20b97ab7edeaa6e8762f8b7f8e1f024635f",
+        "supervisor_sha256": "0efba4052bb55bddee96ed801d8269134103918bc41ba665619db6cd2d411566",
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "error": "RuntimeError: focused exited 101; no further command launched.",
+        "finished_at": "2026-09-27T10:08:20.331574+00:00",
+        "wall_seconds": 6.147606958,
+        "maximum_child_rss_bytes": 252428288
+      }
+    },
+    "chat-stream-errors-checks-2.json": {
+      "sha256": "00342a19736f44fba54624d2356aa828a8bb4226ad76d2a830c8083f2e259483",
+      "content": {
+        "schema": "uor-r4.chat-stream-errors-checks/1",
+        "source_commit": "41a8059749a415299f8259a94455201f666cf6fc",
+        "worktree": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4",
+        "started_at": "2026-09-27T10:09:10.353502+00:00",
+        "scope": "Synthetic stream-error and successful state/sampling tests and release compilation; zero learned-model execution.",
+        "maximum_sampled_group_rss_bytes": 386646016,
+        "jobs": [
+          {
+            "label": "focused",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "chat_stream_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:09:10.626072+00:00",
+            "pid": 52736,
+            "exit_code": 0,
+            "wall_seconds": 14.294067625,
+            "finished_at": "2026-09-27T10:09:24.920723+00:00"
+          },
+          {
+            "label": "cli",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--bin",
+              "uor-chat",
+              "chat_stream_cli_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:09:24.953982+00:00",
+            "pid": 52792,
+            "exit_code": 0,
+            "wall_seconds": 12.25881425,
+            "finished_at": "2026-09-27T10:09:37.213270+00:00"
+          },
+          {
+            "label": "build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--bin",
+              "uor-chat"
+            ],
+            "started_at": "2026-09-27T10:09:37.234401+00:00",
+            "pid": 52834,
+            "exit_code": 0,
+            "wall_seconds": 2.038756040999999,
+            "finished_at": "2026-09-27T10:09:39.273278+00:00"
+          }
+        ],
+        "projection_sha256": "5bb7b23b161a5e862b33814ae16ca20b97ab7edeaa6e8762f8b7f8e1f024635f",
+        "supervisor_sha256": "02f15ef95eae6ffd893b0fc0bc721be2a65ba17842999fa78509b21c332c6c80",
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "artifacts": {
+          "uor-chat": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-uor-chat",
+            "bytes": 1553920,
+            "sha256": "06954d898519ab97f3c349c1d0c64ad2b39da07f7a1177edcd2d8f73816ef719"
+          }
+        },
+        "finished_at": "2026-09-27T10:09:39.276724+00:00",
+        "wall_seconds": 28.668643208,
+        "maximum_child_rss_bytes": 360923136
+      }
+    },
+    "chat-stream-errors-final-review.json": {
+      "sha256": "291b6b72218103afcfeee84cb4b478ff5730bf072a56c2dea34924e841d27b03",
+      "content": {
+        "schema": "uor-r4.chat-stream-errors-final-review/1",
+        "recorded_at": "2026-09-27T10:11:08.450411+00:00",
+        "reviewer": "fourth-lab independent adversarial specialist",
+        "source_commit": "41a8059749a415299f8259a94455201f666cf6fc",
+        "status": "NO_CONSEQUENTIAL_ISSUE_FOUND_READY_FOR_PROTECTED_PR",
+        "source_files": [
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer/src/session.rs",
+            "bytes": 49073,
+            "sha256": "c5d52ed5b71eb3fd9454e41e634b667c7abfa454c1c1ecd7ff9a89f9721138de",
+            "repository_path": "crates/uor-r4-integer/src/session.rs",
+            "matches_source_commit": true
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer/src/bin/uor-chat.rs",
+            "bytes": 28839,
+            "sha256": "2315dbbda9cfdb2b2929e92e2145c4b4a25e2c25ca68a5796af24dc109273259",
+            "repository_path": "crates/uor-r4-integer/src/bin/uor-chat.rs",
+            "matches_source_commit": true
+          }
+        ],
+        "correction": {
+          "scope": "One test-only argument in session.rs1237",
+          "before": "&expected.state.last_probabilities",
+          "after": "&expected.state.last_probabilities[..]",
+          "effect": "Explicit immutable u64 slice from the same complete4096-element boxed array; no values, sampler policy, test assertion, production terminal behavior or CLI behavior changed."
+        },
+        "attempt1": {
+          "source": "c1493ad6af9c9a9cf6b58d3d90309ece9f16e387",
+          "result": "COMPILE_ERROR_E0308_EXPECTED_U64_SLICE_FOUND_BOXED_ARRAY_REFERENCE",
+          "focused_exit_code": 101,
+          "tests_executed": 0,
+          "later_commands_launched": false,
+          "wall_seconds": 6.147606958,
+          "scope": "Preserved test-only type error, not a model result."
+        },
+        "attempt2": {
+          "source": "41a8059749a415299f8259a94455201f666cf6fc",
+          "library_tests_passed": 2,
+          "cli_helper_tests_passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "release_cli_build_exit_code": 0,
+          "all_three_job_exit_codes": [
+            0,
+            0,
+            0
+          ],
+          "wall_seconds": 28.668643208,
+          "maximum_child_rss_bytes": 360923136,
+          "maximum_sampled_group_rss_bytes": 386646016,
+          "observed_test_names": [
+            "session::tests::chat_stream_closure_errors_are_terminal",
+            "session::tests::chat_stream_successful_closures_preserve_history_and_sampler",
+            "tests::chat_stream_cli_distinguishes_failed_and_successful_exhaustion"
+          ]
+        },
+        "receipts": [
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-checks.json",
+            "bytes": 1565,
+            "sha256": "76f7c192cfc7afb423fbed8ef39ec2d6b12e1d4e14576429960d46eb97bdca9c"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-checks-2.json",
+            "bytes": 2794,
+            "sha256": "00342a19736f44fba54624d2356aa828a8bb4226ad76d2a830c8083f2e259483"
+          }
+        ],
+        "logs": [
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-focused.log",
+            "bytes": 2033,
+            "sha256": "e270d9ffbc1c7e74d6a71374f6a7b332cb7e2be3556bd43da7645ee6ef792c08"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-2-focused.log",
+            "bytes": 1348,
+            "sha256": "2ad63a235df2596743395fc2b22e649c9e6db24c842f0c37f73e61dece9e4fd4"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-2-cli.log",
+            "bytes": 1274,
+            "sha256": "61cfbca322b8ce1092ba333a981f7d8a2f0051f8fd1ac9ec48d769e6d242022e"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-2-build.log",
+            "bytes": 961,
+            "sha256": "ae110241bcfc5197e99fae740e2ca9f8b2b26c6f160cb5ca1fa42cdd80c08f1e"
+          }
+        ],
+        "frozen_cli": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-uor-chat",
+          "bytes": 1553920,
+          "sha256": "06954d898519ab97f3c349c1d0c64ad2b39da07f7a1177edcd2d8f73816ef719",
+          "matches_success_receipt": true
+        },
+        "review_conclusion": "The correction resolves only Rust argument coercion in the direct-stepping sampler control. Actual retained logs show all three named regressions passing and the release CLI building. Prior independent production review remains applicable: successful terminal write/sync/flush and sampler behavior are retained; closure errors replace success with ModelError; CLI checks error after exhaustion and exits1 before success telemetry.",
+        "limits": [
+          "CLI regression exercises completed_stream_stop helper, not a spawned CLI exit-status proof.",
+          "Synthetic closure/error and successful-state regressions are implementation evidence, not learned-model generation or language-quality evidence.",
+          "No new error recovery, serialization schema, model arithmetic, sampler policy or adoption of PR1419.",
+          "Existing packed comparison binaries and dialogue study remain frozen; this receipt does not certify their outputs or performance."
+        ],
+        "reviewer_actions": {
+          "read_source_diff": true,
+          "read_existing_receipts_and_logs": true,
+          "hashed_current_files_and_frozen_binary": true,
+          "new_builds": false,
+          "new_tests": false,
+          "model_execution": false,
+          "source_edits": false,
+          "github_write": false,
+          "only_written_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/chat-stream-errors-final-review.json"
+        }
+      }
+    },
+    "ledger-chat-stream-errors-validation.json": {
+      "sha256": "3d5a278b005bda3b724a51c621758b24e94e1037322d26b36d89b5bd24f8ad2c",
+      "content": {
+        "last_charged_at": "2026-09-27T10:10:39.745472+00:00",
+        "charged_elapsed_ms": 34655733,
+        "tail_ms": 1746953,
+        "before": {
+          "cumulative_ms": 681064360,
+          "limit_ms": 744000000
+        },
+        "after": {
+          "cumulative_ms": 682811313,
+          "limit_ms": 744000000
+        },
+        "foreign_increment_since_last_cursor_ms": 0,
+        "verified_cumulative_allowance_ms": 722400000,
+        "owned_elapsed_cap_ms": 64800000,
+        "foreign_reported_limit_adopted": false,
+        "scope": "Packed comparison frozen data-only inputs and private report guard including retained failed compile; Google terminal-error source finding and coordination; isolated chat-stream error repair, independent review, first failed test compilation, corrected three focused tests/release build, and overlapping dialogue fit/wait charged once. No additional learned-model run or allowance increase.",
+        "limitations": "Local advisory lock and compare-before replacement; foreign writers do not share lock.",
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 31704780800,
+          "/Volumes/UOR-Workspace": 172547112960
+        }
+      }
+    }
+  },
+  "logs": {
+    "chat-stream-errors-focused.log": {
+      "sha256": "e270d9ffbc1c7e74d6a71374f6a7b332cb7e2be3556bd43da7645ee6ef792c08",
+      "text": "   Compiling arrayref v0.3.9 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/third_party/arrayref)\n   Compiling blake3 v1.5.0\n   Compiling uor-r4-tokenizer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-tokenizer)\n   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\nerror[E0308]: mismatched types\n    --> crates/uor-r4-integer/src/session.rs:1237:29\n     |\n1237 |                     .select(&expected.state.last_probabilities, policy)\n     |                      ------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u64]`, found `&Box<[u64; 4096]>`\n     |                      |\n     |                      arguments to this method are incorrect\n     |\n     = note: expected reference `&[u64]`\n                found reference `&Box<[u64; 4096]>`\nnote: method defined here\n    --> crates/uor-r4-integer/src/sampling.rs:100:12\n     |\n 100 |     pub fn select(\n     |            ^^^^^^\n 101 |         &mut self,\n 102 |         probabilities: &[u64],\n     |         ---------------------\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `uor-r4-integer` (lib test) due to 1 previous error\n        5.44 real         5.09 user         0.66 sys\n           252428288  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               50537  page reclaims\n               10115  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   7  signals received\n                1334  voluntary context switches\n                9000  involuntary context switches\n          1268890756  instructions retired\n           686954330  cycles elapsed\n            40010352  peak memory footprint\n"
+    },
+    "chat-stream-errors-2-focused.log": {
+      "sha256": "2ad63a235df2596743395fc2b22e649c9e6db24c842f0c37f73e61dece9e4fd4",
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 13.67s\n     Running unittests src/lib.rs (/Users/casey.allard/uor-r4/target/release/deps/uor_r4_integer-bea720be477d0689)\n\nrunning 2 tests\ntest session::tests::chat_stream_closure_errors_are_terminal ... ok\ntest session::tests::chat_stream_successful_closures_preserve_history_and_sampler ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 55 filtered out; finished in 0.04s\n\n       13.79 real        19.95 user         1.05 sys\n           360923136  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               62732  page reclaims\n               11482  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                1642  voluntary context switches\n               19724  involuntary context switches\n          1145809078  instructions retired\n           677038694  cycles elapsed\n            40043120  peak memory footprint\n"
+    },
+    "chat-stream-errors-2-cli.log": {
+      "sha256": "61cfbca322b8ce1092ba333a981f7d8a2f0051f8fd1ac9ec48d769e6d242022e",
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 10.33s\n     Running unittests src/bin/uor-chat.rs (/Users/casey.allard/uor-r4/target/release/deps/uor_chat-8b02553475c4fd49)\n\nrunning 1 test\ntest tests::chat_stream_cli_distinguishes_failed_and_successful_exhaustion ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n\n       10.42 real        16.75 user         0.60 sys\n           347930624  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               75413  page reclaims\n                1674  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   5  signals received\n                 657  voluntary context switches\n                7449  involuntary context switches\n          1074439368  instructions retired\n           558431491  cycles elapsed\n            40223368  peak memory footprint\n"
+    },
+    "chat-stream-errors-2-build.log": {
+      "sha256": "ae110241bcfc5197e99fae740e2ca9f8b2b26c6f160cb5ca1fa42cdd80c08f1e",
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 1.05s\n        1.13 real         1.06 user         0.22 sys\n           169312256  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               27431  page reclaims\n                 347  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                 580  voluntary context switches\n                1214  involuntary context switches\n          1067275463  instructions retired\n           551034844  cycles elapsed\n            40174240  peak memory footprint\n"
+    }
+  },
+  "accounting_note": "Complete overlapping elapsed is charged once through the shared cursor. Per-build durations are a breakdown and are not charged again. Active dialogue-fit and final-delivery tails remain open."
+}
