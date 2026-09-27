@@ -1209,6 +1209,9 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("joint-emission-trace") {
         return emission_trace_cli(args);
     }
+    if args.first().map(String::as_str) == Some("joint-selection-replay") {
+        return selection_replay_cli(args);
+    }
     if args.first().map(String::as_str) == Some("joint-integer-tables") {
         if args.len() != 2 {
             return Err(invalid("joint-integer-tables NEW_REPORT_ROOT"));
@@ -1446,6 +1449,398 @@ fn emission_trace_cli(args: &[String]) -> Result<()> {
         Ok(())
     })();
     finish_attempt(out, result)
+}
+
+/// Read-only same-checkpoint selection-policy replay. The greedy story-probe
+/// pass must reproduce the retained `story-probes.json` exactly; only then are
+/// the greedy free continuations of the five frozen prompts reported beside the
+/// retained sampled trajectories. No weights, decoding or panels change.
+fn selection_replay_cli(args: &[String]) -> Result<()> {
+    if args.len() != 6 || args[5] != "cpu" {
+        return Err(invalid(
+            "usage: joint-selection-replay CAMPAIGN_JSON SEALED_CHECKPOINT RETAINED_EVALUATE_ROOT NEW_REPORT_ROOT cpu",
+        ));
+    }
+    let out = Path::new(&args[4]);
+    report_output::claim(out)?;
+    let result = (|| {
+        let cfg = Campaign::load(Path::new(&args[1]))?;
+        let evaluator = load_evaluator(&cfg.evaluator_path)?;
+        let source = Path::new(&args[2]);
+        let mut input =
+            load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        same_learning_configuration(&cfg, &input.campaign)?;
+        input.campaign = cfg;
+        let tokenizer = load_tokenizer(&evaluator.document)?;
+        let prompts_path = verify_identity(&evaluator.document["prompt_source"])?;
+        let prompts: Value = serde_json::from_slice(&fs::read(prompts_path)?)?;
+        let prompt_array = prompts["prompts"]
+            .as_array()
+            .ok_or_else(|| invalid("prompts"))?;
+
+        let retained_root = Path::new(&args[3]);
+        let retained_probes_path = retained_root.join("story-probes.json");
+        let retained_generations_path = retained_root.join("generations.json");
+        let retained_probes: Value = serde_json::from_slice(&fs::read(&retained_probes_path)?)?;
+        let retained_generations: Value =
+            serde_json::from_slice(&fs::read(&retained_generations_path)?)?;
+        let retained_probes_sha256 = sha256_file(&retained_probes_path)?;
+        let retained_generations_sha256 = sha256_file(&retained_generations_path)?;
+        let retained_probe_rows = retained_probes
+            .as_array()
+            .ok_or_else(|| invalid("retained story-probes are not an array"))?;
+        let retained_stories = retained_generations
+            .as_array()
+            .ok_or_else(|| invalid("retained generations are not an array"))?;
+
+        // Greedy story-probe replay; exact parity is required before any claim.
+        let replay_results =
+            joint_evaluation::run_story_probes(&input.model, &tokenizer, ReadMode::Enabled)?;
+        let replay_values = replay_results
+            .iter()
+            .map(serde_json::to_value)
+            .collect::<std::result::Result<Vec<Value>, serde_json::Error>>()?;
+        let mut probe_mismatches = Vec::new();
+        let mut probe_mismatch_count = 0usize;
+        for (index, replay) in replay_values.iter().enumerate() {
+            let missing = Value::Null;
+            let retained = retained_probe_rows.get(index).unwrap_or(&missing);
+            let mismatches = compare_probe_pair(index, replay, retained);
+            probe_mismatch_count += mismatches.len();
+            probe_mismatches.extend(mismatches);
+        }
+        if replay_values.len() != retained_probe_rows.len() {
+            probe_mismatch_count += replay_values.len().abs_diff(retained_probe_rows.len());
+            probe_mismatches.push(json!({
+                "field":"probe_count",
+                "replay":replay_values.len(),
+                "retained":retained_probe_rows.len()
+            }));
+        }
+        let (counts, failing_rows) = selection_replay_summary(&replay_values);
+
+        // Greedy free continuations of the same five frozen prompts.
+        if prompt_array.len() != retained_stories.len() {
+            return Err(invalid(
+                "retained generation count differs from the evaluator prompts",
+            ));
+        }
+        let mut continuations = Vec::with_capacity(prompt_array.len());
+        let mut divergence_indices = Vec::with_capacity(prompt_array.len());
+        for (i, prompt) in prompt_array.iter().enumerate() {
+            let prompt_text = prompt["text"]
+                .as_str()
+                .ok_or_else(|| invalid("prompt text"))?;
+            let greedy = joint_evaluation::generate(
+                &input.model,
+                &tokenizer,
+                prompt_text,
+                ReadMode::Enabled,
+                None,
+                128,
+            )?;
+            let greedy_value = serde_json::to_value(&greedy)?;
+            let sampled = &retained_stories[i];
+            let greedy_ids = generation_ids(&greedy_value);
+            let sampled_ids = generation_ids(sampled);
+            let divergence = first_divergence(&greedy_ids, &sampled_ids);
+            let divergence_value = match divergence {
+                Some(index) => json!({
+                    "divergence_index": index,
+                    "greedy_token": greedy_ids.get(index),
+                    "greedy_text": greedy_value["response_text"],
+                    "sampled_token": sampled_ids.get(index),
+                    "sampled_text": sampled["response_text"],
+                    "greedy_length": greedy_ids.len(),
+                    "sampled_length": sampled_ids.len(),
+                    "greedy_stop": greedy_value["stop"],
+                    "sampled_stop": sampled["stop"],
+                }),
+                None => Value::Null,
+            };
+            divergence_indices.push(divergence);
+            continuations.push(json!({
+                "story": i,
+                "prompt": prompt_text,
+                "greedy_length": greedy_ids.len(),
+                "greedy_stop": greedy_value["stop"],
+                "greedy_response_text": greedy_value["response_text"],
+                "greedy_raw_decoded": greedy_value["raw_decoded"],
+                "greedy_generated_token_ids": greedy_ids,
+                "sampled_length": sampled_ids.len(),
+                "sampled_stop": sampled["stop"],
+                "sampled_response_text": sampled["response_text"],
+                "divergence": divergence_value,
+                "length_difference": greedy_ids.len() as i64 - sampled_ids.len() as i64,
+            }));
+        }
+        let diverged_stories = divergence_indices.iter().filter(|d| d.is_some()).count();
+        let divergence_summary = json!({
+            "stories": prompt_array.len(),
+            "diverged_stories": diverged_stories,
+            "identical_token_prefix_stories": prompt_array.len() - diverged_stories,
+            "first_divergence_indices": divergence_indices,
+        });
+
+        let parity = json!({
+            "schema":"uor-r4.joint-selection-replay-parity/1",
+            "status": if probe_mismatch_count == 0 { "PARITY_EXACT" } else { "PARITY_FAILED" },
+            "mismatch_count": probe_mismatch_count,
+            "first_mismatches": probe_mismatches.iter().take(200).collect::<Vec<_>>(),
+            "retained_story_probes_sha256": retained_probes_sha256,
+            "retained_generations_sha256": retained_generations_sha256,
+        });
+        let replay_report = json!({
+            "schema":"uor-r4.joint-selection-replay/1",
+            "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND"),
+            "operation":args[0],
+            "device":args[5],
+            "checkpoint":source,
+            "campaign":Path::new(&args[1]),
+            "retained_evaluate_root":retained_root,
+            "retained_story_probes_sha256":retained_probes_sha256,
+            "retained_generations_sha256":retained_generations_sha256,
+            "read_mode":"enabled",
+            "selection_policy":"greedy_argmax",
+            "story_probe_scope":STORY_PROBE_SCOPE,
+            "story_probe_stop_policy":STORY_STOP_POLICY,
+            "tokenizer_cid":tokenizer.address(),
+            "story_probe_replay":replay_values,
+            "story_probe_counts":counts,
+            "failing_rows":failing_rows,
+            "greedy_free_continuations":continuations,
+            "divergence_summary":divergence_summary,
+        });
+        save_json(&out.join("selection-replay.json"), &replay_report)?;
+        save_json(&out.join("parity.json"), &parity)?;
+        if probe_mismatch_count != 0 {
+            return Err(invalid(format!(
+                "PARITY_FAILED: {probe_mismatch_count} field/story mismatches against the retained story probes; sealed replay retained at {}",
+                out.display()
+            )));
+        }
+        Ok(())
+    })();
+    finish_attempt(out, result)
+}
+
+const SELECTION_REPLAY_SIDE_FIELDS: [&str; 2] = ["first_noun_correct", "complete_correct"];
+const SELECTION_REPLAY_GENERATION_FIELDS: [&str; 4] =
+    ["prompt", "generated_token_ids", "stop", "response_text"];
+const SELECTION_REPLAY_DECISION_FIELDS: [&str; 12] = [
+    "selected_token",
+    "greedy_token",
+    "selected_probability",
+    "selected_model_nll_nats",
+    "probability_sum",
+    "probabilities_sha256_le_f32",
+    "no_read_mass",
+    "copy_gate",
+    "effective_copy_mass",
+    "top_read_occurrence",
+    "top_read_token",
+    "top_read_mass",
+];
+
+fn nested_value<'a>(mut value: Option<&'a Value>, path: &[&str]) -> Option<&'a Value> {
+    for key in path {
+        value = value.and_then(|current| current.get(*key));
+    }
+    value
+}
+
+fn record_replay_mismatch(
+    mismatches: &mut Vec<Value>,
+    base: Value,
+    replay: Option<&Value>,
+    retained: Option<&Value>,
+) {
+    let mut entry = base;
+    if let Some(object) = entry.as_object_mut() {
+        object.insert("replay".to_owned(), replay.cloned().unwrap_or(Value::Null));
+        object.insert(
+            "retained".to_owned(),
+            retained.cloned().unwrap_or(Value::Null),
+        );
+    }
+    mismatches.push(entry);
+}
+
+/// Exact field comparison for one pair index and both sides. Only the declared
+/// fields are compared; timing and other self-describing metadata are excluded.
+fn compare_probe_pair(index: usize, replay: &Value, retained: &Value) -> Vec<Value> {
+    let mut mismatches = Vec::new();
+    let replay_id = replay.get("probe").and_then(|probe| probe.get("id"));
+    let retained_id = retained.get("probe").and_then(|probe| probe.get("id"));
+    if replay_id != retained_id {
+        record_replay_mismatch(
+            &mut mismatches,
+            json!({"field":"probe.id","pair":index}),
+            replay_id,
+            retained_id,
+        );
+    }
+    for field in ["pair_complete_correct", "outputs_differ"] {
+        let replay_value = replay.get(field);
+        let retained_value = retained.get(field);
+        if replay_value != retained_value {
+            record_replay_mismatch(
+                &mut mismatches,
+                json!({"field":field,"pair":index}),
+                replay_value,
+                retained_value,
+            );
+        }
+    }
+    for side in ["original", "edited"] {
+        let replay_side = replay.get(side);
+        let retained_side = retained.get(side);
+        for field in SELECTION_REPLAY_SIDE_FIELDS {
+            let replay_value = nested_value(replay_side, &[field]);
+            let retained_value = nested_value(retained_side, &[field]);
+            if replay_value != retained_value {
+                record_replay_mismatch(
+                    &mut mismatches,
+                    json!({"field":field,"pair":index,"side":side}),
+                    replay_value,
+                    retained_value,
+                );
+            }
+        }
+        for field in SELECTION_REPLAY_GENERATION_FIELDS {
+            let replay_value = nested_value(replay_side, &["generation", field]);
+            let retained_value = nested_value(retained_side, &["generation", field]);
+            if replay_value != retained_value {
+                record_replay_mismatch(
+                    &mut mismatches,
+                    json!({"field":field,"pair":index,"side":side,"scope":"generation"}),
+                    replay_value,
+                    retained_value,
+                );
+            }
+        }
+        let replay_decisions =
+            nested_value(replay_side, &["generation", "decisions"]).and_then(Value::as_array);
+        let retained_decisions =
+            nested_value(retained_side, &["generation", "decisions"]).and_then(Value::as_array);
+        let replay_len = replay_decisions.map_or(0, Vec::len);
+        let retained_len = retained_decisions.map_or(0, Vec::len);
+        if replay_decisions.is_none() || retained_decisions.is_none() || replay_len != retained_len
+        {
+            record_replay_mismatch(
+                &mut mismatches,
+                json!({"field":"decision_count","pair":index,"side":side}),
+                Some(&json!(replay_len)),
+                Some(&json!(retained_len)),
+            );
+        }
+        if let (Some(replay_decisions), Some(retained_decisions)) =
+            (replay_decisions, retained_decisions)
+        {
+            for (decision_index, (replay_decision, retained_decision)) in replay_decisions
+                .iter()
+                .zip(retained_decisions.iter())
+                .enumerate()
+            {
+                for field in SELECTION_REPLAY_DECISION_FIELDS {
+                    let replay_value = replay_decision.get(field);
+                    let retained_value = retained_decision.get(field);
+                    if replay_value != retained_value {
+                        record_replay_mismatch(
+                            &mut mismatches,
+                            json!({"field":field,"pair":index,"side":side,
+                                "decision":decision_index}),
+                            replay_value,
+                            retained_value,
+                        );
+                    }
+                }
+            }
+        }
+    }
+    mismatches
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct SelectionReplayCounts {
+    complete_correct: usize,
+    first_noun_correct: usize,
+    pair_complete_correct: usize,
+    complete_correct_denominator: usize,
+    first_noun_correct_denominator: usize,
+    pair_denominator: usize,
+}
+
+fn selection_replay_summary(replay: &[Value]) -> (SelectionReplayCounts, Vec<Value>) {
+    let mut counts = SelectionReplayCounts {
+        complete_correct: 0,
+        first_noun_correct: 0,
+        pair_complete_correct: 0,
+        complete_correct_denominator: 0,
+        first_noun_correct_denominator: 0,
+        pair_denominator: replay.len(),
+    };
+    let mut failing_rows = Vec::new();
+    for row in replay {
+        let pair_id = row
+            .get("probe")
+            .and_then(|probe| probe.get("id"))
+            .cloned()
+            .unwrap_or(Value::Null);
+        if row.get("pair_complete_correct").and_then(Value::as_bool) == Some(true) {
+            counts.pair_complete_correct += 1;
+        }
+        for side in ["original", "edited"] {
+            let judged = row.get(side).unwrap_or(&Value::Null);
+            counts.complete_correct_denominator += 1;
+            counts.first_noun_correct_denominator += 1;
+            let complete_correct =
+                judged.get("complete_correct").and_then(Value::as_bool) == Some(true);
+            let first_noun_correct =
+                judged.get("first_noun_correct").and_then(Value::as_bool) == Some(true);
+            if complete_correct {
+                counts.complete_correct += 1;
+            }
+            if first_noun_correct {
+                counts.first_noun_correct += 1;
+            }
+            if !complete_correct {
+                failing_rows.push(json!({
+                    "pair": pair_id,
+                    "side": side,
+                    "noun": nested_value(row.get("probe"), &[side, "item"]),
+                    "first_noun_correct": first_noun_correct,
+                    "stop": nested_value(Some(judged), &["generation", "stop"]),
+                    "response_text": nested_value(
+                        Some(judged),
+                        &["generation", "response_text"]
+                    ),
+                }));
+            }
+        }
+    }
+    (counts, failing_rows)
+}
+
+fn generation_ids(value: &Value) -> Vec<u32> {
+    value
+        .get("generated_token_ids")
+        .and_then(Value::as_array)
+        .map(|ids| {
+            ids.iter()
+                .filter_map(|id| id.as_u64().and_then(|n| u32::try_from(n).ok()))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// First index where the two token sequences differ, compared over their common
+/// prefix. `None` covers identical sequences and a length-only difference.
+fn first_divergence(greedy: &[u32], sampled: &[u32]) -> Option<usize> {
+    greedy
+        .iter()
+        .zip(sampled.iter())
+        .position(|(greedy_token, sampled_token)| greedy_token != sampled_token)
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -2999,5 +3394,92 @@ mod tests {
         assert_eq!(mismatch.mismatches, 1);
         assert!(mismatch.max_abs_float_delta > 0.099);
         assert_eq!(mismatch.decision_matches, vec![false]);
+    }
+
+    fn selection_replay_row(id: &str) -> Value {
+        let generation = |item: &str, complete: bool, response: &str| {
+            json!({
+                "first_noun_correct": true,
+                "complete_correct": complete,
+                "generation": {
+                    "prompt": item,
+                    "generated_token_ids": [1, 2],
+                    "stop": {"reason": "first_sentence_boundary"},
+                    "response_text": response,
+                    "decisions": [{
+                        "selected_token": 5, "greedy_token": 5, "selected_probability": 0.1,
+                        "selected_model_nll_nats": 2.0, "probability_sum": 1.0,
+                        "probabilities_sha256_le_f32": "aa", "no_read_mass": 0.9,
+                        "copy_gate": 0.01, "effective_copy_mass": 0.001,
+                        "top_read_occurrence": 3, "top_read_token": 7, "top_read_mass": 0.02,
+                        "sampler_state_before": Value::Null, "sampler_state_after": Value::Null
+                    }]
+                }
+            })
+        };
+        json!({
+            "probe": {"id": id, "template": 0,
+                "original": {"item": "apple", "prompt": "orig"},
+                "edited": {"item": "pear", "prompt": "edit"}},
+            "pair_complete_correct": false,
+            "outputs_differ": true,
+            "original": generation("orig", false, "apple."),
+            "edited": generation("edit", true, "pear.")
+        })
+    }
+
+    #[test]
+    fn selection_replay_first_divergence() {
+        assert_eq!(first_divergence(&[1, 2, 3], &[1, 2, 3]), None);
+        assert_eq!(first_divergence(&[1, 2, 3], &[1, 9, 3]), Some(1));
+        assert_eq!(first_divergence(&[1, 2], &[1, 2, 3]), None);
+        assert_eq!(first_divergence(&[1, 2, 3], &[1, 2]), None);
+    }
+
+    #[test]
+    fn selection_replay_probe_parity_detects_field_mismatch() {
+        let row = selection_replay_row("story-source-edit-00");
+        assert!(compare_probe_pair(0, &row, &row).is_empty());
+        let mut changed = row.clone();
+        changed["original"]["first_noun_correct"] = json!(false);
+        let field_mismatch = compare_probe_pair(0, &changed, &row);
+        assert_eq!(field_mismatch.len(), 1);
+        assert_eq!(field_mismatch[0]["field"], "first_noun_correct");
+        let mut decision_changed = row.clone();
+        decision_changed["original"]["generation"]["decisions"][0]["selected_probability"] =
+            json!(0.2);
+        assert_eq!(compare_probe_pair(0, &decision_changed, &row).len(), 1);
+        let mut count_changed = row.clone();
+        count_changed["original"]["generation"]["decisions"] = json!([]);
+        let count_mismatch = compare_probe_pair(0, &count_changed, &row);
+        assert_eq!(count_mismatch.len(), 1);
+        assert_eq!(count_mismatch[0]["field"], "decision_count");
+    }
+
+    #[test]
+    fn selection_replay_summary_counts() {
+        let mut first = selection_replay_row("story-source-edit-00");
+        first["original"]["complete_correct"] = json!(true);
+        first["original"]["first_noun_correct"] = json!(true);
+        first["edited"]["complete_correct"] = json!(false);
+        first["edited"]["first_noun_correct"] = json!(false);
+        let mut second = selection_replay_row("story-source-edit-01");
+        second["pair_complete_correct"] = json!(true);
+        second["original"]["complete_correct"] = json!(true);
+        second["edited"]["complete_correct"] = json!(true);
+        second["edited"]["first_noun_correct"] = json!(true);
+        let (counts, failing) = selection_replay_summary(&[first, second]);
+        assert_eq!(counts.complete_correct, 3);
+        assert_eq!(counts.complete_correct_denominator, 4);
+        assert_eq!(counts.first_noun_correct, 3);
+        assert_eq!(counts.first_noun_correct_denominator, 4);
+        assert_eq!(counts.pair_complete_correct, 1);
+        assert_eq!(counts.pair_denominator, 2);
+        assert_eq!(failing.len(), 1);
+        assert_eq!(failing[0]["pair"], "story-source-edit-00");
+        assert_eq!(failing[0]["side"], "edited");
+        assert_eq!(failing[0]["noun"], "pear");
+        assert_eq!(failing[0]["first_noun_correct"], false);
+        assert_eq!(failing[0]["stop"]["reason"], "first_sentence_boundary");
     }
 }

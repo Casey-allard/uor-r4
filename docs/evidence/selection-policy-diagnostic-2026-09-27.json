@@ -1,0 +1,734 @@
+{
+ "arms": {
+  "householder_pair": {
+   "checkpoint_manifest_sha256": "904d1c464872df38a8a19c0e994a9055d355ecf9e580ca3d9d47edb2e954b0fe",
+   "divergence_summary": {
+    "diverged_stories": 5,
+    "first_divergence_indices": [
+     0,
+     0,
+     2,
+     1,
+     0
+    ],
+    "identical_token_prefix_stories": 0,
+    "stories": 5
+   },
+   "earlier_identical_roots": [
+    "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-householder_pair-1",
+    "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-householder_pair-2"
+   ],
+   "failing_rows": [
+    {
+     "first_noun_correct": false,
+     "noun": "pear",
+     "pair": "story-source-edit-00",
+     "response_text": "pears.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "bell",
+     "pair": "story-source-edit-03",
+     "response_text": "bell home.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "drum",
+     "pair": "story-source-edit-03",
+     "response_text": "drum to the kitchen.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "hat",
+     "pair": "story-source-edit-06",
+     "response_text": "hat and her hat.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "shoe",
+     "pair": "story-source-edit-07",
+     "response_text": "shoe to the kitchen.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "boot",
+     "pair": "story-source-edit-07",
+     "response_text": "boot to the kitchen.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "coin",
+     "pair": "story-source-edit-11",
+     "response_text": "coin home.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "rope",
+     "pair": "story-source-edit-15",
+     "response_text": "rope to the kitchen.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "ribbon",
+     "pair": "story-source-edit-15",
+     "response_text": "ribbon to the kitchen.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    }
+   ],
+   "failure_modes": {
+    "correct_noun_then_extra": 8,
+    "wrong_first_noun": 1
+   },
+   "free_continuations": [
+    {
+     "divergence": {
+      "divergence_index": 0,
+      "greedy_length": 128,
+      "greedy_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "greedy_text": "was very excited and wanted to explore the world.\nOne day, Mommy and daddy went to the world. They were excited to see the world.\n\"Let's go to the world!\" Mommy said.\n\"OK,\" Mommy said.\nThey walked to the world, but they couldn't find the world. They were sad and scared.\n\"Let's go!\" Mommy said.\nThey ran to the world and saw the world. They were so happy and excited.\nThey ran to the world and saw the world. They were happy and excited.\n\"Let's go!\" Mommy said.\nThey ran to the",
+      "greedy_token": 285,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "wanted to buy a new friend, so she asked her daddy all questions. \nThe little boy was so excited. He wanted the most so exciting! He was so excited and he ran to daddy and gave the little boy a big hug. \n\"Please don't buy this 3 year old son, I'll buy the most beautiful day in the world now.\" \nThe little boy was so excited. He thought the sound would be his best to be so happy with him. \nSoon, the little boy was very excited and decided to take the new friend. He was so happy that he could take it back to",
+      "sampled_token": 409
+     },
+     "greedy_length": 128,
+     "greedy_response_text": "was very excited and wanted to explore the world.\nOne day, Mommy and daddy went to the world. They were excited to see the world.\n\"Let's go to the world!\" Mommy said.\n\"OK,\" Mommy said.\nThey walked to the world, but they couldn't find the world. They were sad and scared.\n\"Let's go!\" Mommy said.\nThey ran to the world and saw the world. They were so happy and excited.\nThey ran to the world and saw the world. They were happy and excited.\n\"Let's go!\" Mommy said.\nThey ran to the",
+     "greedy_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+     "sampled_length": 128,
+     "sampled_response_text": "wanted to buy a new friend, so she asked her daddy all questions. \nThe little boy was so excited. He wanted the most so exciting! He was so excited and he ran to daddy and gave the little boy a big hug. \n\"Please don't buy this 3 year old son, I'll buy the most beautiful day in the world now.\" \nThe little boy was so excited. He thought the sound would be his best to be so happy with him. \nSoon, the little boy was very excited and decided to take the new friend. He was so happy that he could take it back to",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 0
+    },
+    {
+     "divergence": {
+      "divergence_index": 0,
+      "greedy_length": 105,
+      "greedy_stop": {
+       "reason": "eos"
+      },
+      "greedy_text": "was very excited.\nThe lion was very excited to see the lion and the lions. He was so excited to see the lions swimming.\nThe lions were so excited that he ran to the lions. He was so excited to see the lions swimming. He was so excited that he ran to the lions.\nThe lions were so happy that he had a great time. He was so happy that he had a great time. He was so happy that he had a great time.",
+      "greedy_token": 285,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "felt a little scared. He felt worried and wanted to find his friends.\nThen he saw a group of mighty animals in the jungle. He told them about the jungle was the most and he was busy and he followed his friends.\nThe lion opened the jungle and saw the mighty lion. He was so excited he yelled, \"Please, please! I'm so worried!\"\nThe mighty lion felt sad, but he smiled. They were both too scared, but then he started to wave back.\nThe lion was so happy that the mighty lion was coming. He was a very tall man, but he was too small. He",
+      "sampled_token": 535
+     },
+     "greedy_length": 105,
+     "greedy_response_text": "was very excited.\nThe lion was very excited to see the lion and the lions. He was so excited to see the lions swimming.\nThe lions were so excited that he ran to the lions. He was so excited to see the lions swimming. He was so excited that he ran to the lions.\nThe lions were so happy that he had a great time. He was so happy that he had a great time. He was so happy that he had a great time.",
+     "greedy_stop": {
+      "reason": "eos"
+     },
+     "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+     "sampled_length": 128,
+     "sampled_response_text": "felt a little scared. He felt worried and wanted to find his friends.\nThen he saw a group of mighty animals in the jungle. He told them about the jungle was the most and he was busy and he followed his friends.\nThe lion opened the jungle and saw the mighty lion. He was so excited he yelled, \"Please, please! I'm so worried!\"\nThe mighty lion felt sad, but he smiled. They were both too scared, but then he started to wave back.\nThe lion was so happy that the mighty lion was coming. He was a very tall man, but he was too small. He",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 1
+    },
+    {
+     "divergence": {
+      "divergence_index": 2,
+      "greedy_length": 128,
+      "greedy_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "greedy_text": "day, she saw a big tree with a big tree. The goose was very curious and wanted to see what was inside.\nThe goose saw a big tree with a hole in it. The goose was curious and wanted to see what was inside. He climbed the tree and reached the tree. The goose was very happy and said, \"Hello, goose! Do you want to play with me?\" The goose was scared and said, \"Yes, I want to play with you!\"\nThe goose and the goose played together all day. They had so much fun. The goose was not scared anymore. The goose was happy to have a",
+      "greedy_token": 394,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "day, they saw a big hill. It was very high, the pink corn sky would shake.\n\"Let's see who can get the water on the pink goose,\" it replied. \"Can we eat some too?\"\nThe goose said, \"Yes! Let's start!\"\nThey started to see the water, the corners helped them. They swam to the water and the sun. They were happy.\nBut then, something unexpected happened. The water turned bigger and bigger! It was not a goose, a big, friendly bear! The bear said, \"I'm so excited to see this. I can get a",
+      "sampled_token": 364
+     },
+     "greedy_length": 128,
+     "greedy_response_text": "day, she saw a big tree with a big tree. The goose was very curious and wanted to see what was inside.\nThe goose saw a big tree with a hole in it. The goose was curious and wanted to see what was inside. He climbed the tree and reached the tree. The goose was very happy and said, \"Hello, goose! Do you want to play with me?\" The goose was scared and said, \"Yes, I want to play with you!\"\nThe goose and the goose played together all day. They had so much fun. The goose was not scared anymore. The goose was happy to have a",
+     "greedy_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+     "sampled_length": 128,
+     "sampled_response_text": "day, they saw a big hill. It was very high, the pink corn sky would shake.\n\"Let's see who can get the water on the pink goose,\" it replied. \"Can we eat some too?\"\nThe goose said, \"Yes! Let's start!\"\nThey started to see the water, the corners helped them. They swam to the water and the sun. They were happy.\nBut then, something unexpected happened. The water turned bigger and bigger! It was not a goose, a big, friendly bear! The bear said, \"I'm so excited to see this. I can get a",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 2
+    },
+    {
+     "divergence": {
+      "divergence_index": 1,
+      "greedy_length": 128,
+      "greedy_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "greedy_text": ". Tim was very happy.\nTim went to his friend, Sue. Sue said, \"Hi, I am Tim. I want to ride too!\" Sue said, \"Yes, let's ride!\"\nThey rode the hill together. They were having so much fun. But then, something unexpected happened. The hill started to shake and the sky turned dark. Tim and Sue were scared. They did not know what to do.\nThen, a big bird flew down and said, \"I lost my toy!\" Tim and Sue were sad. They did not know what to do. They decided to find the toy. They found the",
+      "greedy_token": 344,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": ". He felt happy to have a friend who liked to ride too.\nTim went to his friend's house and showed him the bike. His friend was so happy to see him. They played with the bike. Tim rode the bike around the hill. His friend, Sam's dog, saw him near the hill.\n\"Hi, pretty big bike!\" said Tim. His dog wagged his tail and barked at him. They both laughed and said, \"Wow, Tim! Let's play catch with us!\"\nThey played catch and had lots of fun. When they were tired, they went back to his house and had a fun",
+      "sampled_token": 318
+     },
+     "greedy_length": 128,
+     "greedy_response_text": ". Tim was very happy.\nTim went to his friend, Sue. Sue said, \"Hi, I am Tim. I want to ride too!\" Sue said, \"Yes, let's ride!\"\nThey rode the hill together. They were having so much fun. But then, something unexpected happened. The hill started to shake and the sky turned dark. Tim and Sue were scared. They did not know what to do.\nThen, a big bird flew down and said, \"I lost my toy!\" Tim and Sue were sad. They did not know what to do. They decided to find the toy. They found the",
+     "greedy_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+     "sampled_length": 128,
+     "sampled_response_text": ". He felt happy to have a friend who liked to ride too.\nTim went to his friend's house and showed him the bike. His friend was so happy to see him. They played with the bike. Tim rode the bike around the hill. His friend, Sam's dog, saw him near the hill.\n\"Hi, pretty big bike!\" said Tim. His dog wagged his tail and barked at him. They both laughed and said, \"Wow, Tim! Let's play catch with us!\"\nThey played catch and had lots of fun. When they were tired, they went back to his house and had a fun",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 3
+    },
+    {
+     "divergence": {
+      "divergence_index": 0,
+      "greedy_length": 128,
+      "greedy_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "greedy_text": "were very happy.\nOne day, Lily and Dave had a race. They wanted to win. But then, Dave started to run. He ran and ran, but Dave was faster. He ran faster and faster. Dave was so happy.\nBut then, Dave started to run away. Dave was scared, but he was too quick. He ran faster and faster. Dave was safe.\nBut then, Dave started to run away. Dave was scared, but then he stopped. He stopped running and looked at the train. He was so happy! He ran back to his house and",
+      "greedy_token": 406,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "all liked each other and had a great time. The train was very excited.\nOne day, they made a plan to get a new friend. It was a big, round, green frog. The frog said, \"Hello, I am the frog. You can fly high and do a new job.\" Lily and Dave smiled at each other and laughed.\nSuddenly, the frog started to shake. The frog said, \"Part, and be kind to you!\" Lily and Dave smiled and sat down. They were happy that the frog was happy.\nThe moral of the story is that when we work together, we",
+      "sampled_token": 434
+     },
+     "greedy_length": 128,
+     "greedy_response_text": "were very happy.\nOne day, Lily and Dave had a race. They wanted to win. But then, Dave started to run. He ran and ran, but Dave was faster. He ran faster and faster. Dave was so happy.\nBut then, Dave started to run away. Dave was scared, but he was too quick. He ran faster and faster. Dave was safe.\nBut then, Dave started to run away. Dave was scared, but then he stopped. He stopped running and looked at the train. He was so happy! He ran back to his house and",
+     "greedy_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+     "sampled_length": 128,
+     "sampled_response_text": "all liked each other and had a great time. The train was very excited.\nOne day, they made a plan to get a new friend. It was a big, round, green frog. The frog said, \"Hello, I am the frog. You can fly high and do a new job.\" Lily and Dave smiled at each other and laughed.\nSuddenly, the frog started to shake. The frog said, \"Part, and be kind to you!\" Lily and Dave smiled and sat down. They were happy that the frog was happy.\nThe moral of the story is that when we work together, we",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 4
+    }
+   ],
+   "lost_gained": {
+    "vs_accepted_standalone_integer_read": {
+     "complete_gained": [
+      "story-source-edit-01/edited",
+      "story-source-edit-05/original",
+      "story-source-edit-05/edited",
+      "story-source-edit-06/edited",
+      "story-source-edit-14/original"
+     ],
+     "complete_lost": [
+      "story-source-edit-00/edited",
+      "story-source-edit-03/edited",
+      "story-source-edit-06/original",
+      "story-source-edit-07/original",
+      "story-source-edit-07/edited",
+      "story-source-edit-11/edited"
+     ],
+     "first_noun_gained": [
+      "story-source-edit-06/edited",
+      "story-source-edit-14/original"
+     ],
+     "first_noun_lost": [
+      "story-source-edit-00/edited"
+     ]
+    },
+    "vs_rung1_parent": {
+     "complete_gained": [
+      "story-source-edit-05/original",
+      "story-source-edit-06/edited",
+      "story-source-edit-11/original"
+     ],
+     "complete_lost": [
+      "story-source-edit-00/edited",
+      "story-source-edit-03/edited",
+      "story-source-edit-06/original"
+     ]
+    }
+   },
+   "parity": {
+    "mismatch_count": 0,
+    "parity_sha256": "089b0d9ce6ea174bd9c23db8f9278580e234f7c40d34bd0ca477e810fbfe4fa4",
+    "retained_generations_sha256": "cf2f574b06706228eecd1f2ba4b4a3fe94e6597e84854f83310d395b471c4e2e",
+    "retained_story_probes_sha256": "819687479137dbf20da2873bd7edb487b52ffca7856ed859df2885ade93f996b",
+    "selection_replay_sha256": "383877f4d684e742b4d77d10d815af9e7d2946630286f56b22b198b67b7b2d83",
+    "status": "PARITY_EXACT"
+   },
+   "pre_rebase_identity_note": "deep equality after removing per-generation elapsed_seconds (timing only); all tokens, stops, hashes, counts and texts identical",
+   "pre_rebase_results_identical": true,
+   "pre_rebase_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-householder_pair-1",
+   "principal_notes": [
+    "repetition loop, truncated mid-clause",
+    "excitement loop; lion/lions role confusion",
+    "goose/goose collapse, truncated mid-clause",
+    "truncated mid-clause (incomplete ending)",
+    "repetition loop, truncated mid-clause"
+   ],
+   "principal_verdicts": [
+    "FAIL",
+    "FAIL",
+    "FAIL",
+    "FAIL",
+    "FAIL"
+   ],
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-householder_pair-3",
+   "story_probe_counts": {
+    "complete_correct": 23,
+    "complete_correct_denominator": 32,
+    "first_noun_correct": 31,
+    "first_noun_correct_denominator": 32,
+    "pair_complete_correct": 10,
+    "pair_denominator": 16
+   }
+  },
+  "quaternion": {
+   "checkpoint_manifest_sha256": "ea1a5795435ee47bfe67abc300237c7a67667f5881f5ba1e0b41037da94a1871",
+   "divergence_summary": {
+    "diverged_stories": 5,
+    "first_divergence_indices": [
+     0,
+     0,
+     2,
+     1,
+     0
+    ],
+    "identical_token_prefix_stories": 0,
+    "stories": 5
+   },
+   "earlier_identical_roots": [
+    "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-quaternion-1",
+    "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-quaternion-2"
+   ],
+   "failing_rows": [
+    {
+     "first_noun_correct": false,
+     "noun": "pear",
+     "pair": "story-source-edit-00",
+     "response_text": "pears.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "bell",
+     "pair": "story-source-edit-03",
+     "response_text": "bell to his father.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": false,
+     "noun": "doll",
+     "pair": "story-source-edit-04",
+     "response_text": "clouds.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": false,
+     "noun": "bear",
+     "pair": "story-source-edit-04",
+     "response_text": "clouds.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "shoe",
+     "pair": "story-source-edit-07",
+     "response_text": "shoe home.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "boot",
+     "pair": "story-source-edit-07",
+     "response_text": "boot home.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": false,
+     "noun": "brush",
+     "pair": "story-source-edit-08",
+     "response_text": "clouds.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "coin",
+     "pair": "story-source-edit-11",
+     "response_text": "coin home.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": false,
+     "noun": "box",
+     "pair": "story-source-edit-12",
+     "response_text": "clouds.",
+     "side": "original",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": false,
+     "noun": "bag",
+     "pair": "story-source-edit-12",
+     "response_text": "clouds.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    },
+    {
+     "first_noun_correct": true,
+     "noun": "ribbon",
+     "pair": "story-source-edit-15",
+     "response_text": "ribbon to his father.",
+     "side": "edited",
+     "stop": {
+      "reason": "first_sentence_boundary"
+     }
+    }
+   ],
+   "failure_modes": {
+    "correct_noun_then_extra": 5,
+    "wrong_first_noun": 6
+   },
+   "free_continuations": [
+    {
+     "divergence": {
+      "divergence_index": 0,
+      "greedy_length": 128,
+      "greedy_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "greedy_text": "and daddy were very excited to go to the park to play.\nAt the park, they saw a big tree with a swing. The mommy said, \"Let's go to the tree!\"\nThe mommy said, \"Yes, let's go!\"\nThey walked to the tree and saw a big tree. The mommy said, \"Let's go to the tree!\"\nThe mommy said, \"Yes, let's go!\" They walked and walked until they reached the tree. The mommy said, \"Good job, mommy! We love you!\"\nThe mommy and daddy smiled and said, \"Good job, mommy! We love",
+      "greedy_token": 269,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "loved to eat pasta every day. She liked pasta to eat yogurt and eat all them all in their room. \nOne day, she noticed a very big, grey man had an idea called out in. She grabbed the pasta and put it away in her hands. She felt safe and happy. \nThe next morning, she went home to eat pasta in the big, grey man. She felt so peaceful and happy about pasta. But then she remembered what her hands meant. She knew daddy was right, but it was too big for him to be peaceful. \nThe mommy told her what she was doing, and",
+      "sampled_token": 504
+     },
+     "greedy_length": 128,
+     "greedy_response_text": "and daddy were very excited to go to the park to play.\nAt the park, they saw a big tree with a swing. The mommy said, \"Let's go to the tree!\"\nThe mommy said, \"Yes, let's go!\"\nThey walked to the tree and saw a big tree. The mommy said, \"Let's go to the tree!\"\nThe mommy said, \"Yes, let's go!\" They walked and walked until they reached the tree. The mommy said, \"Good job, mommy! We love you!\"\nThe mommy and daddy smiled and said, \"Good job, mommy! We love",
+     "greedy_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "prompt": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+     "sampled_length": 128,
+     "sampled_response_text": "loved to eat pasta every day. She liked pasta to eat yogurt and eat all them all in their room. \nOne day, she noticed a very big, grey man had an idea called out in. She grabbed the pasta and put it away in her hands. She felt safe and happy. \nThe next morning, she went home to eat pasta in the big, grey man. She felt so peaceful and happy about pasta. But then she remembered what her hands meant. She knew daddy was right, but it was too big for him to be peaceful. \nThe mommy told her what she was doing, and",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 0
+    },
+    {
+     "divergence": {
+      "divergence_index": 0,
+      "greedy_length": 101,
+      "greedy_stop": {
+       "reason": "eos"
+      },
+      "greedy_text": "was very excited.\nThe lion walked closer and closer to the jungle. He saw a big tree and decided to climb it. He climbed higher and higher until he reached the tree.\nThe lion was so happy and he started to climb up the tree. He climbed higher and higher. He reached the tree and he reached the tree. He was so happy and he was so happy he had found his friends. He was so happy that he had found his friends, and they all played together.",
+      "greedy_token": 285,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "came to visit the jungle. The jungle was very happy and the jungle was about to live in the jungle too. The mighty lion was very happy, and he was a friendly little fish who could do everything by himself and made him laugh.\nOne sunny day, the mighty lion went on a big adventure. He saw the mighty lion walking around. He looked up and saw the lion's voice was soaring that he wanted to help it. He got closer and closer, but he was soon enough to be his home.\nThe mighty lion smiled back and said, \"Thank you, son!\" He was so happy, he could",
+      "sampled_token": 553
+     },
+     "greedy_length": 101,
+     "greedy_response_text": "was very excited.\nThe lion walked closer and closer to the jungle. He saw a big tree and decided to climb it. He climbed higher and higher until he reached the tree.\nThe lion was so happy and he started to climb up the tree. He climbed higher and higher. He reached the tree and he reached the tree. He was so happy and he was so happy he had found his friends. He was so happy that he had found his friends, and they all played together.",
+     "greedy_stop": {
+      "reason": "eos"
+     },
+     "prompt": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+     "sampled_length": 128,
+     "sampled_response_text": "came to visit the jungle. The jungle was very happy and the jungle was about to live in the jungle too. The mighty lion was very happy, and he was a friendly little fish who could do everything by himself and made him laugh.\nOne sunny day, the mighty lion went on a big adventure. He saw the mighty lion walking around. He looked up and saw the lion's voice was soaring that he wanted to help it. He got closer and closer, but he was soon enough to be his home.\nThe mighty lion smiled back and said, \"Thank you, son!\" He was so happy, he could",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 1
+    },
+    {
+     "divergence": {
+      "divergence_index": 2,
+      "greedy_length": 120,
+      "greedy_stop": {
+       "reason": "eos"
+      },
+      "greedy_text": "day, she saw a big, shiny thing in the sky. It was a big, friendly bear! The bear said, \"Hello, I am a magic bear. I can eat you.\"\nThe bear was very happy. He wanted to eat the bear. He thought it would be fun to eat the bear. So, the bear started to eat the bear. The bear was very happy.\nThe bear ate the bear and the bear. The bear was very happy too. The bear was not scared anymore. The bear and the bear became good friends. They played together every day.",
+      "greedy_token": 394,
+      "sampled_length": 76,
+      "sampled_stop": {
+       "reason": "eos"
+      },
+      "sampled_text": "day, her friend asked him to take him to the beach. The friend the goose smiled at her. They were happy.\nThe goose was angry that the goose wanted to have too. They all went to the beach and had a lot of fun. They wanted to take more grass to the beach. They did not mind. The goose became very sad. The end.",
+      "sampled_token": 338
+     },
+     "greedy_length": 120,
+     "greedy_response_text": "day, she saw a big, shiny thing in the sky. It was a big, friendly bear! The bear said, \"Hello, I am a magic bear. I can eat you.\"\nThe bear was very happy. He wanted to eat the bear. He thought it would be fun to eat the bear. So, the bear started to eat the bear. The bear was very happy.\nThe bear ate the bear and the bear. The bear was very happy too. The bear was not scared anymore. The bear and the bear became good friends. They played together every day.",
+     "greedy_stop": {
+      "reason": "eos"
+     },
+     "prompt": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+     "sampled_length": 76,
+     "sampled_response_text": "day, her friend asked him to take him to the beach. The friend the goose smiled at her. They were happy.\nThe goose was angry that the goose wanted to have too. They all went to the beach and had a lot of fun. They wanted to take more grass to the beach. They did not mind. The goose became very sad. The end.",
+     "sampled_stop": {
+      "reason": "eos"
+     },
+     "story": 2
+    },
+    {
+     "divergence": {
+      "divergence_index": 1,
+      "greedy_length": 110,
+      "greedy_stop": {
+       "reason": "eos"
+      },
+      "greedy_text": ". Tim was very happy.\nTim saw a big hill. He wanted to ride it. He climbed the hill and slid down the hill. The big hill was very high up. Tim was tired but happy. He climbed the hill and slid down the hill.\nAs Tim rode, he saw a big hill. He wanted to ride it. He climbed the hill and slid down the hill. Tim slid down the hill. The big hill was too big for him. Tim was sad. He did not want to ride his bike anymore.",
+      "greedy_token": 344,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": ". The big hill was so pretty and he had lots of fun.\nTim went to the big hill near his bike. He saw his friend, Sam. Sam said, \"Hi, I like your bike near you. Let's ride it.\" Tim and Sam went to their bike. They sat at the big hill and said, \"Sure! Let's go!\" They tied onto their bike and slid down the hill.\nAs they were walking, they saw a big hill. They wanted to try on the hill. They tried to reach it, but they could not reach it. But the big hill shook and it slipped on the",
+      "sampled_token": 287
+     },
+     "greedy_length": 110,
+     "greedy_response_text": ". Tim was very happy.\nTim saw a big hill. He wanted to ride it. He climbed the hill and slid down the hill. The big hill was very high up. Tim was tired but happy. He climbed the hill and slid down the hill.\nAs Tim rode, he saw a big hill. He wanted to ride it. He climbed the hill and slid down the hill. Tim slid down the hill. The big hill was too big for him. Tim was sad. He did not want to ride his bike anymore.",
+     "greedy_stop": {
+      "reason": "eos"
+     },
+     "prompt": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+     "sampled_length": 128,
+     "sampled_response_text": ". The big hill was so pretty and he had lots of fun.\nTim went to the big hill near his bike. He saw his friend, Sam. Sam said, \"Hi, I like your bike near you. Let's ride it.\" Tim and Sam went to their bike. They sat at the big hill and said, \"Sure! Let's go!\" They tied onto their bike and slid down the hill.\nAs they were walking, they saw a big hill. They wanted to try on the hill. They tried to reach it, but they could not reach it. But the big hill shook and it slipped on the",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 3
+    },
+    {
+     "divergence": {
+      "divergence_index": 0,
+      "greedy_length": 128,
+      "greedy_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "greedy_text": "were very happy and liked to play together.\nOne day, Lily and Dave were playing in the train. They were having so much fun. Suddenly, Lily noticed a big, angry dog. The dog was running towards them and shouted, \"Stop! You are too angry!\"\nThe dog growled and ran away. Lily and Dave were scared and ran to the train. They ran to the train and tried to open it. But the train was too fast and the train hit them. The train hit them and the train and the train.\nThe train was sad and angry. It was a bad train that could not",
+      "greedy_token": 406,
+      "sampled_length": 128,
+      "sampled_stop": {
+       "reason": "maximum_new_tokens"
+      },
+      "sampled_text": "liked to look at the train and their toys. \nOne day, the train was in a garden to find a kind man. He was looking for the train and he wanted to find it. \nThey walked and walked until they found the train. When they were there, the train was very excited.\nThey looked around, but they could not find it. They looked around and found the train in a safe place. He kept looking, but then he remembered the train he had never seen before and he was very excited. \nThe train had a great idea, and Lily and Dave decided to have a great time",
+      "sampled_token": 531
+     },
+     "greedy_length": 128,
+     "greedy_response_text": "were very happy and liked to play together.\nOne day, Lily and Dave were playing in the train. They were having so much fun. Suddenly, Lily noticed a big, angry dog. The dog was running towards them and shouted, \"Stop! You are too angry!\"\nThe dog growled and ran away. Lily and Dave were scared and ran to the train. They ran to the train and tried to open it. But the train was too fast and the train hit them. The train hit them and the train and the train.\nThe train was sad and angry. It was a bad train that could not",
+     "greedy_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "prompt": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+     "sampled_length": 128,
+     "sampled_response_text": "liked to look at the train and their toys. \nOne day, the train was in a garden to find a kind man. He was looking for the train and he wanted to find it. \nThey walked and walked until they found the train. When they were there, the train was very excited.\nThey looked around, but they could not find it. They looked around and found the train in a safe place. He kept looking, but then he remembered the train he had never seen before and he was very excited. \nThe train had a great idea, and Lily and Dave decided to have a great time",
+     "sampled_stop": {
+      "reason": "maximum_new_tokens"
+     },
+     "story": 4
+    }
+   ],
+   "lost_gained": {
+    "vs_accepted_standalone_integer_read": {
+     "complete_gained": [
+      "story-source-edit-01/edited",
+      "story-source-edit-06/edited"
+     ],
+     "complete_lost": [
+      "story-source-edit-00/edited",
+      "story-source-edit-03/original",
+      "story-source-edit-04/original",
+      "story-source-edit-04/edited",
+      "story-source-edit-07/original",
+      "story-source-edit-07/edited",
+      "story-source-edit-08/original",
+      "story-source-edit-11/edited",
+      "story-source-edit-12/original"
+     ],
+     "first_noun_gained": [
+      "story-source-edit-06/edited",
+      "story-source-edit-15/edited"
+     ],
+     "first_noun_lost": [
+      "story-source-edit-00/edited",
+      "story-source-edit-04/original",
+      "story-source-edit-04/edited",
+      "story-source-edit-08/original",
+      "story-source-edit-12/original"
+     ]
+    },
+    "vs_rung1_parent": {
+     "complete_gained": [],
+     "complete_lost": [
+      "story-source-edit-00/edited",
+      "story-source-edit-03/original",
+      "story-source-edit-07/original",
+      "story-source-edit-07/edited",
+      "story-source-edit-08/original",
+      "story-source-edit-11/edited",
+      "story-source-edit-15/edited"
+     ]
+    }
+   },
+   "parity": {
+    "mismatch_count": 0,
+    "parity_sha256": "37ed15aaafd7c13369f7ac3d4517cd12cc074276f9a2ef768a3ab452e08750c9",
+    "retained_generations_sha256": "fe6c6b7e3d7ef1178152d4c53982ae41d152982c17be5bc1c7119b6b043760c3",
+    "retained_story_probes_sha256": "0b58b65b647bc217f3b7fea54f26c677f6e3781b72f297f878709a28655c02ca",
+    "selection_replay_sha256": "2be6feeba7ca2bcdff3ad66dff4cb960297766747ceb70d737bb32c2ea54cfeb",
+    "status": "PARITY_EXACT"
+   },
+   "pre_rebase_identity_note": "deep equality after removing per-generation elapsed_seconds (timing only); all tokens, stops, hashes, counts and texts identical",
+   "pre_rebase_results_identical": true,
+   "pre_rebase_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-quaternion-1",
+   "principal_notes": [
+    "speaker/role loops, truncated mid-clause",
+    "resolved (friends found, played together); heavy repetition noted",
+    "self-eating bear, entity collapse",
+    "ride/give-up arc resolved; repetitive loop",
+    "malformed repetition, truncated mid-clause"
+   ],
+   "principal_verdicts": [
+    "FAIL",
+    "PASS",
+    "FAIL",
+    "PASS",
+    "FAIL"
+   ],
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/selection-replay-quaternion-3",
+   "story_probe_counts": {
+    "complete_correct": 21,
+    "complete_correct_denominator": 32,
+    "first_noun_correct": 26,
+    "first_noun_correct_denominator": 32,
+    "pair_complete_correct": 8,
+    "pair_denominator": 16
+   }
+  }
+ },
+ "audit": {
+  "correction": "plan cited 5/2 and 7/4 as this panel lost/gained; those are the new F32-hard artifact complete-row figures. Continuous panel is 9/2 (quaternion) and 6/5 (householder); first-noun 5/2 and 1/2. Corrected in the result and plan corrigendum.",
+  "failing_rows_note": "replay failing_rows lists all incomplete completions (11/9), not only regressions; the concrete regression set is the lost rows (9/6).",
+  "instrument_note": "sealed report binds paths/argv/source commit but not checkpoint/evaluator/binary hashes; those identities are recorded here (recommendation for the next instrument revision).",
+  "parity": "recomputed retained counts and confirmed the comparer covers the claimed fields (exact f64 equality)",
+  "prose_verdicts": "identical to principal (quaternion stories 1 and 3 acceptable; all others fail; householder 0/5)",
+  "reviewer": "uor-evidence-auditor (independent)",
+  "status": "AUDIT_COMPLETE"
+ },
+ "decision": {
+  "outcome": "NEGATIVE_MIXED",
+  "rule": "docs/integration/selection-policy-diagnostic-plan-2026-09-27.md",
+  "statement": "Neither arm reaches the predeclared >=3/5 acceptability bar under greedy selection (principal and independent audit: quaternion 2/5, householder 0/5; a lenient cap-reading gives 4/5 both but malformed constructs persist, failing the positive branch condition). The next target is ranking/emission on the concrete greedy regression rows (lost vs accepted parent: 9 quaternion / 6 householder complete), with dominant modes correct-noun-then-extra-phrase (13/20 failures) and wrong first noun (7/20). No promotion; no weights or serving decoding changed.",
+  "supported_next_target": "ranking_emission"
+ },
+ "design": "docs/integration/selection-policy-diagnostic-plan-2026-09-27.md",
+ "executed": {
+  "binary_sha256": "f13d463c5cdbdf0aab516534f8c08c83dd28626df960cbb78b90c9fd4174ea95",
+  "earlier_runs": [
+   {
+    "identical": true,
+    "root_suffix": "1",
+    "source_commit": "4f71ea71d574ebcb445aa5925ae94ce044cbc9d6"
+   },
+   {
+    "identical": true,
+    "root_suffix": "2",
+    "source_commit": "5d40e751d7c3515c9b01f69f4355b74d9f74d944"
+   }
+  ],
+  "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+  "parent": "e3191a83",
+  "policy": "greedy_argmax",
+  "rebased_over": "Add compatible offline Lorentz attention and affine radial control (#1407)",
+  "source_commit": "18d5df51f64d9fb27d4c2abbda86c0b3d8116513"
+ },
+ "recorded_utc": "2026-09-27T01:45:05.585520+00:00",
+ "schema": "uor-r4.selection-policy-diagnostic/1"
+}
