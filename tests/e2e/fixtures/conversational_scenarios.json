@@ -1,0 +1,78 @@
+[
+  {
+    "scenario_id": "astronomy_tutor_persona",
+    "persona": "You are an astronomy tutor explaining the solar system to curious students.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "Which planet is closest to the Sun?",
+        "expected_topics": ["Mercury"]
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "Why does Mercury experience extreme temperature swings between day and night?",
+        "expected_topics": ["atmosphere", "heat", "sun"]
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "What is the second planet from the Sun?",
+        "expected_topics": ["Venus"]
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "How does Venus differ from Mercury?",
+        "expected_topics": ["atmosphere", "greenhouse", "thick"]
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "Can you summarize the two planets we discussed?",
+        "expected_topics": ["Mercury", "Venus"]
+      }
+    ]
+  },
+  {
+    "scenario_id": "adversarial_cyclic_prompting",
+    "persona": "You are a concise AI assistant.",
+    "turns": [
+      { "turn": 1, "role": "user", "input": "Hello" },
+      { "turn": 2, "role": "user", "input": "Hello" },
+      { "turn": 3, "role": "user", "input": "Hello" },
+      { "turn": 4, "role": "user", "input": "Hello" },
+      { "turn": 5, "role": "user", "input": "Hello" }
+    ],
+    "invariants": {
+      "require_nonzero_holonomy": true,
+      "disallow_short_cycles": true,
+      "disallow_identical_consecutive_responses": true
+    }
+  },
+  {
+    "scenario_id": "multi_step_logic_puzzle",
+    "persona": "You are a logical reasoning assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "There are three boxes: Red, Green, and Blue. The gold key is not in the Red box. The silver key is in the Blue box.",
+        "expected_state": "knowledge_registered"
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "Where is the gold key?",
+        "expected_topics": ["Green"]
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "And which key is inside the Blue box?",
+        "expected_topics": ["silver"]
+      }
+    ]
+  }
+]

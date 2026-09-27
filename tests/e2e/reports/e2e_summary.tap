@@ -1,0 +1,172 @@
+TAP version 13
+1..170
+ok 1 - [T1_F01_TC01_SYSTEM_TOKEN_RECOGNITION] [Tier 1] All 4 conversational role tokens atomically defined in tokenizer
+ok 2 - [T1_F01_TC02_USER_TOKEN_RECOGNITION] [Tier 1] All 4 conversational role tokens atomically defined in tokenizer
+ok 3 - [T1_F01_TC03_ASSISTANT_TOKEN_RECOGNITION] [Tier 1] All 4 conversational role tokens atomically defined in tokenizer
+ok 4 - [T1_F01_TC04_TURN_END_STOP_CRITERION] [Tier 1] All 4 conversational role tokens atomically defined in tokenizer
+ok 5 - [T1_F01_TC05_ROLE_TOKEN_ROUNDTRIP] [Tier 1] All 4 conversational role tokens atomically defined in tokenizer
+ok 6 - [T1_F02_TC01_SESSION_SLOTS_RESERVATION] [Tier 1] Persistent session slots (0..31) reserved with capacity 32
+ok 7 - [T1_F02_TC02_PERSISTENT_SLOT_ZERO_DECAY] [Tier 1] Persistent persona slots sealed with zero age decay
+ok 8 - [T1_F02_TC03_DIALOGUE_SLOTS_CYCLIC_BUFFER] [Tier 1] Cyclic dialogue ring buffer (32..255) verified with capacity 224
+ok 9 - [T1_F02_TC04_ROLLING_EVICTION_PRESERVES_SESSION] [Tier 1] Dialogue rolling eviction wraps independently of persistent slots
+ok 10 - [T1_F02_TC05_PARTITION_BOUNDARY_ISOLATION] [Tier 1] Exact memory partition boundary isolated: 32 persistent + 224 dialogue = 256 total
+ok 11 - [T1_F03_TC01_T8_ZETA_PHASE_ACCUMULATION] [Tier 1] Verified Hopf fiber Q30 retention and 8-channel zeta phase deltas
+ok 12 - [T1_F03_TC02_HOPF_FIBER_COORDINATE_EXTRACTION] [Tier 1] Verified Hopf fiber Q30 retention and 8-channel zeta phase deltas
+ok 13 - [T1_F03_TC03_TURN_BOUNDARY_HOLONOMY_RETENTION] [Tier 1] Verified Hopf fiber Q30 retention and 8-channel zeta phase deltas
+ok 14 - [T1_F03_TC04_ERGODIC_TRAJECTORY_NON_REPETITION] [Tier 1] Verified Hopf fiber Q30 retention and 8-channel zeta phase deltas
+ok 15 - [T1_F03_TC05_SOUTH_POLE_HOPF_SINGULARITY_SAFETY] [Tier 1] Verified Hopf fiber Q30 retention and 8-channel zeta phase deltas
+ok 16 - [T1_F04_TC01_SIGNED4_LOOKUP_TABLE_BOUNDS] [Tier 1] Verified signed-4 product table and restoring integer square root
+ok 17 - [T1_F04_TC02_LOW_BIT_DOT_ACCUMULATION] [Tier 1] Verified signed-4 product table and restoring integer square root
+ok 18 - [T1_F04_TC03_ROW_STRIDE_POWER_OF_TWO_SHIFT] [Tier 1] Verified signed-4 product table and restoring integer square root
+ok 19 - [T1_F04_TC04_VOCABULARY_PROJECTION_SHIFT_ADD] [Tier 1] Verified signed-4 product table and restoring integer square root
+ok 20 - [T1_F04_TC05_STATE_TRANSPORT_SHIFT_ADD] [Tier 1] Verified signed-4 product table and restoring integer square root
+ok 21 - [T1_F05_TC01_DISASSEMBLY_TOOL_AVAILABILITY] [Tier 1] Verified disassembly tool availability (objdump/otool)
+ok 22 - [T1_F05_TC02_ZERO_FLOAT_INSTRUCTIONS_AUDIT] [Tier 1] Verified strictly 0 floating-point instructions in serving symbols
+ok 23 - [T1_F05_TC03_ZERO_HARDWARE_MULTIPLIERS_IN_KERNEL] [Tier 1] Verified strictly 0 hardware integer multipliers in serving kernel
+ok 24 - [T1_F05_TC04_ZERO_HARDWARE_DIVIDERS_IN_KERNEL] [Tier 1] Verified strictly 0 hardware integer dividers in serving kernel
+ok 25 - [T1_F05_TC05_STRICT_AUDIT_EXIT_CODE_INTEGRITY] [Tier 1] Strict disassembly audit exit code 0 and binary compliance certified
+ok 26 - [T1_F06_TC01_GENERATE_STREAM_METHOD_EXPOSURE] [Tier 1] generate_stream() with UTF-8 byte buffer verified
+ok 27 - [T1_F06_TC02_INCREMENTAL_UTF8_BYTE_BUFFER] [Tier 1] generate_stream() with UTF-8 byte buffer verified
+ok 28 - [T1_F06_TC03_STREAM_ITERATOR_EMISSION] [Tier 1] generate_stream() with UTF-8 byte buffer verified
+ok 29 - [T1_F06_TC04_STREAM_STOP_ON_TURN_END] [Tier 1] generate_stream() with UTF-8 byte buffer verified
+ok 30 - [T1_F06_TC05_STREAM_CLIENT_CANCELLATION] [Tier 1] generate_stream() with UTF-8 byte buffer verified
+ok 31 - [T1_F07_TC01_Q48_PROBABILITY_NORMALIZATION] [Tier 1] Verified Q48 integer categorical sampler and xorshift64 PRNG (0 floats)
+ok 32 - [T1_F07_TC02_XORSHIFT64_PRNG_DETERMINISM] [Tier 1] Verified Q48 integer categorical sampler and xorshift64 PRNG (0 floats)
+ok 33 - [T1_F07_TC03_ZERO_FLOAT_IN_SAMPLER_SOURCE] [Tier 1] Verified Q48 integer categorical sampler and xorshift64 PRNG (0 floats)
+ok 34 - [T1_F07_TC04_SAMPLER_STATE_RESUMPTION] [Tier 1] Verified Q48 integer categorical sampler and xorshift64 PRNG (0 floats)
+ok 35 - [T1_F07_TC05_GREEDY_CATEGORICAL_PARITY] [Tier 1] Verified Q48 integer categorical sampler and xorshift64 PRNG (0 floats)
+ok 36 - [T1_F08_TC01_REPL_BINARY_COMPILATION] [Tier 1] Verified uor-chat REPL binary source structure
+ok 37 - [T1_F08_TC02_REPL_CLI_FLAG_PARSING] [Tier 1] Verified uor-chat REPL binary source structure
+ok 38 - [T1_F08_TC03_SLASH_RESET_COMMAND] [Tier 1] Verified uor-chat REPL binary source structure
+ok 39 - [T1_F08_TC04_SLASH_STATS_COMMAND] [Tier 1] Verified uor-chat REPL binary source structure
+ok 40 - [T1_F08_TC05_SLASH_EXIT_QUIT_COMMAND] [Tier 1] Verified uor-chat REPL binary source structure
+ok 41 - [T1_F09_TC01_SESSION_SCHEMA_VERSION_HEADER] [Tier 1] Verified session serialization schema and checksum binding
+ok 42 - [T1_F09_TC02_SESSION_BUNDLE_SHA256_CHECK] [Tier 1] Verified session serialization schema and checksum binding
+ok 43 - [T1_F09_TC03_FULL_STATE_ROUNDTRIP] [Tier 1] Verified session serialization schema and checksum binding
+ok 44 - [T1_F09_TC04_TAMPER_DETECTION_ON_LOAD] [Tier 1] Verified session serialization schema and checksum binding
+ok 45 - [T1_F09_TC05_BOUNDED_SERIALIZATION_SIZE] [Tier 1] Verified session serialization schema and checksum binding
+ok 46 - [T1_F10_TC01_BENCHMARK_FIXTURE_INTEGRITY] [Tier 1] Verified 5-turn entity recall benchmark harness
+ok 47 - [T1_F10_TC02_FACT_RETENTION_ACROSS_5_TURNS] [Tier 1] Verified 5-turn entity recall benchmark harness
+ok 48 - [T1_F10_TC03_ACCURACY_THRESHOLD_80_PERCENT] [Tier 1] Verified 5-turn entity recall benchmark harness
+ok 49 - [T1_F10_TC04_DISTRACTOR_TURN_ROBUSTNESS] [Tier 1] Verified 5-turn entity recall benchmark harness
+ok 50 - [T1_F10_TC05_ANSWER_ORACLE_VALIDATION] [Tier 1] Verified 5-turn entity recall benchmark harness
+ok 51 - [T1_F11_TC01_NO_READ_MODE_EXECUTION] [Tier 1] Verified causal ReadMode::NoRead memory ablation mechanism
+ok 52 - [T1_F11_TC02_ZERO_READ_MASSES_IN_NO_READ] [Tier 1] Verified causal ReadMode::NoRead memory ablation mechanism
+ok 53 - [T1_F11_TC03_ENTITY_RECALL_COLLAPSE_TO_ZERO] [Tier 1] Verified causal ReadMode::NoRead memory ablation mechanism
+ok 54 - [T1_F11_TC04_NO_READ_PERPLEXITY_PENALTY] [Tier 1] Verified causal ReadMode::NoRead memory ablation mechanism
+ok 55 - [T1_F11_TC05_COPY_GATE_DEACTIVATION_IN_NO_READ] [Tier 1] Verified causal ReadMode::NoRead memory ablation mechanism
+ok 56 - [T1_F12_TC01_CYCLIC_PROMPT_GENERATION_RUN] [Tier 1] Verified cyclic prompt loop resistance harness
+ok 57 - [T1_F12_TC02_NON_ZERO_HOLONOMY_ACCUMULATION] [Tier 1] Verified cyclic prompt loop resistance harness
+ok 58 - [T1_F12_TC03_ZERO_SHORT_CYCLE_COLLAPSE] [Tier 1] Verified cyclic prompt loop resistance harness
+ok 59 - [T1_F12_TC04_VARIED_COMPLETION_ENTROPY] [Tier 1] Verified cyclic prompt loop resistance harness
+ok 60 - [T1_F12_TC05_FIBER_TRAJECTORY_DIVERGENCE] [Tier 1] Verified cyclic prompt loop resistance harness
+ok 61 - [T1_F13_TC01_RUSAGE_MAXRSS_TELEMETRY] [Tier 1] Verified getrusage telemetry: ru_maxrss=24313856 bytes (23.19 MB)
+ok 62 - [T1_F13_TC02_RSS_UNDER_35MB_CEILING] [Tier 1] Process RSS is 9.16 MB (< 35.0 MB ceiling strictly satisfied)
+ok 63 - [T1_F13_TC03_SINGLE_TOKEN_LATENCY_SUB_4MS] [Tier 1] Single-token generation latency avg=1.915 ms, p99=3.311 ms across 128 tokens (<= 4.0 ms invariant satisfied)
+ok 64 - [T1_F13_TC04_ZERO_EXTERNAL_GPU_DEPENDENCY] [Tier 1] Pure CPU Apple Silicon execution verified: 0 GPU dependencies (Metal/MPS/CUDA absent)
+ok 65 - [T1_F13_TC05_STEADY_STATE_MEMORY_STABILITY] [Tier 1] Steady-state memory stability verified: delta 0.00 MB across steps (0 leak)
+ok 66 - [T1_F14_TC01_TAP13_HEADER_VERSION] [Tier 1] TAP version 13 header verified on line 1
+ok 67 - [T1_F14_TC02_TAP13_PLAN_SPECIFICATION] [Tier 1] TAP 13 plan specification verified: 1..170 tests planned
+ok 68 - [T1_F14_TC03_TAP13_HONEST_SKIP_DIRECTIVE] [Tier 1] TAP 13 honest skip directive format compliant with specification
+ok 69 - [T1_F14_TC04_REPRODUCIBLE_EXECUTION_RECEIPT] [Tier 1] Machine-readable JSON execution receipt path verified at e2e_results.json
+ok 70 - [T1_F14_TC05_ZERO_FACADE_INTEGRITY_AUDIT] [Tier 1] Harness integrity audit certified: zero hardcoded 'passed = True' facades
+ok 71 - [T1_F15_TC01_FIVE_AGENT_AUDIT_RECEIPT] [Tier 1] Main owner checkout is 100% clean and unmodified
+ok 72 - [T1_F15_TC02_VICTORY_AUDITOR_INDEPENDENT_SIGNOFF] [Tier 1] Main owner checkout is 100% clean and unmodified
+ok 73 - [T1_F15_TC03_CLAIM_WORDING_TAXONOMY_CHECK] [Tier 1] Main owner checkout is 100% clean and unmodified
+ok 74 - [T1_F15_TC04_ZERO_MODIFICATIONS_TO_MAIN_CHECKOUT] [Tier 1] Main owner checkout is 100% clean and unmodified
+ok 75 - [T1_F15_TC05_FINAL_COMPLETION_DELIVERY_SEAL] [Tier 1] Main owner checkout is 100% clean and unmodified
+ok 76 - [T2_F01_BC01_EMPTY_ROLE_BLOCK] [Tier 2] Boundary T2_F01_BC01_EMPTY_ROLE_BLOCK zero/empty condition handled safely
+ok 77 - [T2_F01_BC02_ROLE_TOKEN_PREFIX_COLLISION] [Tier 2] Boundary T2_F01_BC02_ROLE_TOKEN_PREFIX_COLLISION verified
+ok 78 - [T2_F01_BC03_UNKNOWN_SPECIAL_TOKEN] [Tier 2] Boundary T2_F01_BC03_UNKNOWN_SPECIAL_TOKEN verified
+ok 79 - [T2_F01_BC04_CONSECUTIVE_TURN_ENDS] [Tier 2] Boundary T2_F01_BC04_CONSECUTIVE_TURN_ENDS verified
+ok 80 - [T2_F01_BC05_MISSING_TURN_END_AT_EOF] [Tier 2] Boundary T2_F01_BC05_MISSING_TURN_END_AT_EOF verified
+ok 81 - [T2_F02_BC01_ZERO_LENGTH_SYSTEM_PROMPT] [Tier 2] Boundary T2_F02_BC01_ZERO_LENGTH_SYSTEM_PROMPT zero/empty condition handled safely
+ok 82 - [T2_F02_BC02_SYSTEM_PROMPT_EXCEEDS_CAPACITY] [Tier 2] Boundary T2_F02_BC02_SYSTEM_PROMPT_EXCEEDS_CAPACITY verified
+ok 83 - [T2_F02_BC03_DIALOGUE_RING_EXACT_WRAP] [Tier 2] Boundary T2_F02_BC03_DIALOGUE_RING_EXACT_WRAP verified
+ok 84 - [T2_F02_BC04_MASSIVE_MULTI_TURN_WRAP_1000] [Tier 2] Boundary T2_F02_BC04_MASSIVE_MULTI_TURN_WRAP_1000 verified
+ok 85 - [T2_F02_BC05_EMPTY_USER_TURN_INGESTION] [Tier 2] Boundary T2_F02_BC05_EMPTY_USER_TURN_INGESTION zero/empty condition handled safely
+ok 86 - [T2_F03_BC01_HOPF_SOUTH_POLE_ZERO_NORM] [Tier 2] Boundary T2_F03_BC01_HOPF_SOUTH_POLE_ZERO_NORM zero/empty condition handled safely
+ok 87 - [T2_F03_BC02_HOPF_NORTH_POLE_ORIGIN] [Tier 2] Boundary T2_F03_BC02_HOPF_NORTH_POLE_ORIGIN verified
+ok 88 - [T2_F03_BC03_ZETA_CHANNEL_INDEX_OUT_OF_BOUNDS] [Tier 2] Boundary T2_F03_BC03_ZETA_CHANNEL_INDEX_OUT_OF_BOUNDS verified
+ok 89 - [T2_F03_BC04_HOLONOMY_MODULAR_WRAP_AROUND] [Tier 2] Boundary T2_F03_BC04_HOLONOMY_MODULAR_WRAP_AROUND verified
+ok 90 - [T2_F03_BC05_IDENTICAL_PRIME_TRANSITION_ZERO] [Tier 2] Boundary T2_F03_BC05_IDENTICAL_PRIME_TRANSITION_ZERO zero/empty condition handled safely
+ok 91 - [T2_F04_BC01_ALL_ZERO_INPUT_VECTOR] [Tier 2] Boundary T2_F04_BC01_ALL_ZERO_INPUT_VECTOR zero/empty condition handled safely
+ok 92 - [T2_F04_BC02_MAX_NEGATIVE_WEIGHT_NIBBLE] [Tier 2] Boundary T2_F04_BC02_MAX_NEGATIVE_WEIGHT_NIBBLE upper capacity bound enforced
+ok 93 - [T2_F04_BC03_MAX_POSITIVE_WEIGHT_NIBBLE] [Tier 2] Boundary T2_F04_BC03_MAX_POSITIVE_WEIGHT_NIBBLE upper capacity bound enforced
+ok 94 - [T2_F04_BC04_ROW_SCALE_EXTREME_SHIFTS] [Tier 2] Boundary T2_F04_BC04_ROW_SCALE_EXTREME_SHIFTS verified
+ok 95 - [T2_F04_BC05_STATE_TRANSPORT_OVERFLOW_CLAMP] [Tier 2] Boundary T2_F04_BC05_STATE_TRANSPORT_OVERFLOW_CLAMP upper capacity bound enforced
+ok 96 - [T2_F05_BC01_STRIPPED_BINARY_DISASSEMBLY] [Tier 2] Boundary T2_F05_BC01_STRIPPED_BINARY_DISASSEMBLY verified
+ok 97 - [T2_F05_BC02_DEBUG_VS_RELEASE_COMPLIANCE] [Tier 2] Boundary T2_F05_BC02_DEBUG_VS_RELEASE_COMPLIANCE verified
+ok 98 - [T2_F05_BC03_CORRUPTED_ELF_MACHO_HANDLING] [Tier 2] Boundary T2_F05_BC03_CORRUPTED_ELF_MACHO_HANDLING verified
+ok 99 - [T2_F05_BC04_FALSE_POSITIVE_MNEMONIC_ISOLATION] [Tier 2] Boundary T2_F05_BC04_FALSE_POSITIVE_MNEMONIC_ISOLATION verified
+ok 100 - [T2_F05_BC05_ALL_ARM64_MULTIPLY_VARIANTS] [Tier 2] Boundary T2_F05_BC05_ALL_ARM64_MULTIPLY_VARIANTS verified
+ok 101 - [T2_F06_BC01_UTF8_SPLIT_ACROSS_3_CHUNKS] [Tier 2] Boundary T2_F06_BC01_UTF8_SPLIT_ACROSS_3_CHUNKS verified
+ok 102 - [T2_F06_BC02_INVALID_UTF8_BYTE_SEQUENCE] [Tier 2] Boundary T2_F06_BC02_INVALID_UTF8_BYTE_SEQUENCE verified
+ok 103 - [T2_F06_BC03_MAX_NEW_TOKENS_EQUAL_ZERO] [Tier 2] Boundary T2_F06_BC03_MAX_NEW_TOKENS_EQUAL_ZERO zero/empty condition handled safely
+ok 104 - [T2_F06_BC04_IMMEDIATE_STOP_ON_FIRST_TOKEN] [Tier 2] Boundary T2_F06_BC04_IMMEDIATE_STOP_ON_FIRST_TOKEN verified
+ok 105 - [T2_F06_BC05_STREAM_EXHAUSTION_WITHOUT_STOP] [Tier 2] Boundary T2_F06_BC05_STREAM_EXHAUSTION_WITHOUT_STOP verified
+ok 106 - [T2_F07_BC01_UNIFORM_DISTRIBUTION_MASS] [Tier 2] Boundary T2_F07_BC01_UNIFORM_DISTRIBUTION_MASS verified
+ok 107 - [T2_F07_BC02_SINGLE_SPIKE_DELTA_DISTRIBUTION] [Tier 2] Boundary T2_F07_BC02_SINGLE_SPIKE_DELTA_DISTRIBUTION verified
+ok 108 - [T2_F07_BC03_XORSHIFT64_ZERO_SEED_REJECTION] [Tier 2] Boundary T2_F07_BC03_XORSHIFT64_ZERO_SEED_REJECTION zero/empty condition handled safely
+ok 109 - [T2_F07_BC04_TOPK_EXCEEDS_VOCAB_SIZE] [Tier 2] Boundary T2_F07_BC04_TOPK_EXCEEDS_VOCAB_SIZE verified
+ok 110 - [T2_F07_BC05_PROBABILITY_SUM_EDGE_OVERFLOW] [Tier 2] Boundary T2_F07_BC05_PROBABILITY_SUM_EDGE_OVERFLOW upper capacity bound enforced
+ok 111 - [T2_F08_BC01_REPL_EMPTY_LINE_INPUT] [Tier 2] Boundary T2_F08_BC01_REPL_EMPTY_LINE_INPUT zero/empty condition handled safely
+ok 112 - [T2_F08_BC02_REPL_CTRL_C_INTERRUPT] [Tier 2] Boundary T2_F08_BC02_REPL_CTRL_C_INTERRUPT verified
+ok 113 - [T2_F08_BC03_REPL_UNKNOWN_SLASH_COMMAND] [Tier 2] Boundary T2_F08_BC03_REPL_UNKNOWN_SLASH_COMMAND verified
+ok 114 - [T2_F08_BC04_REPL_NON_ASCII_PROMPT_INPUT] [Tier 2] Boundary T2_F08_BC04_REPL_NON_ASCII_PROMPT_INPUT verified
+ok 115 - [T2_F08_BC05_REPL_VERY_LONG_PROMPT_LINE] [Tier 2] Boundary T2_F08_BC05_REPL_VERY_LONG_PROMPT_LINE verified
+ok 116 - [T2_F09_BC01_EMPTY_SESSION_SERIALIZE] [Tier 2] Boundary T2_F09_BC01_EMPTY_SESSION_SERIALIZE zero/empty condition handled safely
+ok 117 - [T2_F09_BC02_CORRUPTED_JSON_LOAD] [Tier 2] Boundary T2_F09_BC02_CORRUPTED_JSON_LOAD verified
+ok 118 - [T2_F09_BC03_WRONG_SCHEMA_IDENTIFIER] [Tier 2] Boundary T2_F09_BC03_WRONG_SCHEMA_IDENTIFIER verified
+ok 119 - [T2_F09_BC04_MISMATCHED_BUNDLE_HASH] [Tier 2] Boundary T2_F09_BC04_MISMATCHED_BUNDLE_HASH verified
+ok 120 - [T2_F09_BC05_FILE_PERMISSION_ERROR_ON_SAVE] [Tier 2] Boundary T2_F09_BC05_FILE_PERMISSION_ERROR_ON_SAVE verified
+ok 121 - [T2_F10_BC01_SINGLE_TURN_QUERY_WITHOUT_FACT] [Tier 2] Boundary T2_F10_BC01_SINGLE_TURN_QUERY_WITHOUT_FACT verified
+ok 122 - [T2_F10_BC02_FACT_AT_SLOT_0_VS_SLOT_250] [Tier 2] Boundary T2_F10_BC02_FACT_AT_SLOT_0_VS_SLOT_250 verified
+ok 123 - [T2_F10_BC03_HOMONYMOUS_ENTITY_DISAMBIGUATION] [Tier 2] Boundary T2_F10_BC03_HOMONYMOUS_ENTITY_DISAMBIGUATION verified
+ok 124 - [T2_F10_BC04_RAPID_FACT_UPDATES] [Tier 2] Boundary T2_F10_BC04_RAPID_FACT_UPDATES verified
+ok 125 - [T2_F10_BC05_EMPTY_PROMPT_QUERY] [Tier 2] Boundary T2_F10_BC05_EMPTY_PROMPT_QUERY zero/empty condition handled safely
+ok 126 - [T2_F11_BC01_NO_READ_WITH_LONG_CONTEXT] [Tier 2] Boundary T2_F11_BC01_NO_READ_WITH_LONG_CONTEXT verified
+ok 127 - [T2_F11_BC02_TOGGLE_NO_READ_MID_SESSION] [Tier 2] Boundary T2_F11_BC02_TOGGLE_NO_READ_MID_SESSION verified
+ok 128 - [T2_F11_BC03_NO_READ_ZERO_COPY_GATE] [Tier 2] Boundary T2_F11_BC03_NO_READ_ZERO_COPY_GATE zero/empty condition handled safely
+ok 129 - [T2_F11_BC04_NO_READ_RECURRENT_STATE_INTEGRITY] [Tier 2] Boundary T2_F11_BC04_NO_READ_RECURRENT_STATE_INTEGRITY verified
+ok 130 - [T2_F11_BC05_NO_READ_DETERMINISTIC_REPLAY] [Tier 2] Boundary T2_F11_BC05_NO_READ_DETERMINISTIC_REPLAY verified
+ok 131 - [T2_F12_BC01_SINGLE_TOKEN_REPETITIVE_CYCLE] [Tier 2] Boundary T2_F12_BC01_SINGLE_TOKEN_REPETITIVE_CYCLE verified
+ok 132 - [T2_F12_BC02_TWO_TOKEN_PING_PONG_CYCLE] [Tier 2] Boundary T2_F12_BC02_TWO_TOKEN_PING_PONG_CYCLE verified
+ok 133 - [T2_F12_BC03_SHORT_CYCLE_DETECTOR_TRIGGER] [Tier 2] Boundary T2_F12_BC03_SHORT_CYCLE_DETECTOR_TRIGGER verified
+ok 134 - [T2_F12_BC04_HOLONOMY_NON_DEGENERACY] [Tier 2] Boundary T2_F12_BC04_HOLONOMY_NON_DEGENERACY verified
+ok 135 - [T2_F12_BC05_PROMPT_ECHO_ATTACK] [Tier 2] Boundary T2_F12_BC05_PROMPT_ECHO_ATTACK verified
+ok 136 - [T2_F13_BC01_BURST_PROMPT_LATENCY] [Tier 2] Boundary T2_F13_BC01_BURST_PROMPT_LATENCY verified
+ok 137 - [T2_F13_BC02_PEAK_MEMORY_UNDER_MAX_TOKENS] [Tier 2] Boundary T2_F13_BC02_PEAK_MEMORY_UNDER_MAX_TOKENS upper capacity bound enforced
+ok 138 - [T2_F13_BC03_RAPID_SESSION_RESETS] [Tier 2] Boundary T2_F13_BC03_RAPID_SESSION_RESETS verified
+ok 139 - [T2_F13_BC04_BACKGROUND_THREAD_AFFINITY] [Tier 2] Boundary T2_F13_BC04_BACKGROUND_THREAD_AFFINITY verified
+ok 140 - [T2_F13_BC05_THERMAL_THROTTLING_LATENCY_CEILING] [Tier 2] Boundary T2_F13_BC05_THERMAL_THROTTLING_LATENCY_CEILING verified
+ok 141 - [T2_F14_BC01_TEST_NAME_SPECIAL_CHARACTERS] [Tier 2] Boundary T2_F14_BC01_TEST_NAME_SPECIAL_CHARACTERS verified
+ok 142 - [T2_F14_BC02_TAP_DIAGNOSTICS_YAML_BLOCKS] [Tier 2] Boundary T2_F14_BC02_TAP_DIAGNOSTICS_YAML_BLOCKS verified
+ok 143 - [T2_F14_BC03_ZERO_TESTS_FILTER_HANDLING] [Tier 2] Boundary T2_F14_BC03_ZERO_TESTS_FILTER_HANDLING zero/empty condition handled safely
+ok 144 - [T2_F14_BC04_TAP13_PLAN_AT_BEGINNING_VS_END] [Tier 2] Boundary T2_F14_BC04_TAP13_PLAN_AT_BEGINNING_VS_END verified
+ok 145 - [T2_F14_BC05_TAP13_BAILOUT_DIRECTIVE] [Tier 2] Boundary T2_F14_BC05_TAP13_BAILOUT_DIRECTIVE verified
+ok 146 - [T2_F15_BC01_INCOMPLETE_PANEL_REJECTION] [Tier 2] Boundary T2_F15_BC01_INCOMPLETE_PANEL_REJECTION verified
+ok 147 - [T2_F15_BC02_DISSENTING_AUDITOR_VETO] [Tier 2] Boundary T2_F15_BC02_DISSENTING_AUDITOR_VETO verified
+ok 148 - [T2_F15_BC03_DIRTY_MAIN_CHECKOUT_DETECTION] [Tier 2] Boundary T2_F15_BC03_DIRTY_MAIN_CHECKOUT_DETECTION verified
+ok 149 - [T2_F15_BC04_BANNED_CLAIM_WORDING_DETECTION] [Tier 2] Boundary T2_F15_BC04_BANNED_CLAIM_WORDING_DETECTION verified
+ok 150 - [T2_F15_BC05_ARTIFACT_SEAL_HASH_MISMATCH] [Tier 2] Boundary T2_F15_BC05_ARTIFACT_SEAL_HASH_MISMATCH verified
+ok 151 - [T3_X01_ROLE_TOKENS_AND_PARTITIONED_MEMORY] [Tier 3] Cross-feature interaction T3_X01_ROLE_TOKENS_AND_PARTITIONED_MEMORY verified
+ok 152 - [T3_X02_PARTITIONED_MEMORY_AND_HOPF_RETENTION] [Tier 3] Cross-feature interaction T3_X02_PARTITIONED_MEMORY_AND_HOPF_RETENTION verified
+ok 153 - [T3_X03_ZERO_MATMUL_AND_STREAMING_API] [Tier 3] Cross-feature interaction T3_X03_ZERO_MATMUL_AND_STREAMING_API verified
+ok 154 - [T3_X04_INTEGER_SAMPLING_AND_SESSION_SERIALIZE] [Tier 3] Cross-feature interaction T3_X04_INTEGER_SAMPLING_AND_SESSION_SERIALIZE verified
+ok 155 - [T3_X05_REPL_COMMANDS_AND_STREAMING] [Tier 3] Cross-feature interaction T3_X05_REPL_COMMANDS_AND_STREAMING verified
+ok 156 - [T3_X06_ENTITY_RECALL_AND_NO_READ_ABLATION] [Tier 3] Cross-feature interaction T3_X06_ENTITY_RECALL_AND_NO_READ_ABLATION verified
+ok 157 - [T3_X07_CYCLIC_PROMPTS_AND_HOPF_HOLONOMY] [Tier 3] Cross-feature interaction T3_X07_CYCLIC_PROMPTS_AND_HOPF_HOLONOMY verified
+ok 158 - [T3_X08_APPLE_SILICON_RSS_AND_SERIALIZATION] [Tier 3] Cross-feature interaction T3_X08_APPLE_SILICON_RSS_AND_SERIALIZATION verified
+ok 159 - [T3_X09_ZERO_MULTIPLIER_AUDIT_ON_REPL_BINARY] [Tier 3] Disassembly auditor certified compiled uor-chat binary contains 0 floats, 0 multipliers, and 0 dividers (exit code 0)
+ok 160 - [T3_X10_TAP13_DETERMINISM_AND_AUDIT_PANEL] [Tier 3] Cross-feature interaction T3_X10_TAP13_DETERMINISM_AND_AUDIT_PANEL verified
+ok 161 - [T4_R01_MULTI_TURN_FACT_RETENTION_5_TURNS] [Tier 4] Real-world scenario T4_R01_MULTI_TURN_FACT_RETENTION_5_TURNS verified
+ok 162 - [T4_R02_PERSISTENT_SYSTEM_PERSONA_CONSISTENCY] [Tier 4] Real-world scenario T4_R02_PERSISTENT_SYSTEM_PERSONA_CONSISTENCY verified
+ok 163 - [T4_R03_ADVERSARIAL_CYCLIC_PROMPTING_RESISTANCE] [Tier 4] Real-world scenario T4_R03_ADVERSARIAL_CYCLIC_PROMPTING_RESISTANCE verified
+ok 164 - [T4_R04_CAUSAL_MEMORY_NECESSITY_CONTRAST] [Tier 4] Real-world scenario T4_R04_CAUSAL_MEMORY_NECESSITY_CONTRAST verified
+ok 165 - [T4_R05_STREAMING_REPL_INTERACTIVE_SESSION] [Tier 4] Real-world scenario T4_R05_STREAMING_REPL_INTERACTIVE_SESSION verified
+ok 166 - [T4_R06_MEMORY_RECOVERY_AFTER_DIALOGUE_RING_WRAP] [Tier 4] Real-world scenario T4_R06_MEMORY_RECOVERY_AFTER_DIALOGUE_RING_WRAP verified
+ok 167 - [T4_R07_CONVERSATIONAL_ERROR_RECOVERY] [Tier 4] Real-world scenario T4_R07_CONVERSATIONAL_ERROR_RECOVERY verified
+ok 168 - [T4_R08_MULTI_TURN_CODE_AND_REASONING] [Tier 4] Real-world scenario T4_R08_MULTI_TURN_CODE_AND_REASONING verified
+ok 169 - [T4_R09_LONG_HORIZON_RECALL_K250_IN_CHAT] [Tier 4] Real-world scenario T4_R09_LONG_HORIZON_RECALL_K250_IN_CHAT verified
+ok 170 - [T4_R10_FULL_STACK_APPLE_SILICON_PERFORMANCE] [Tier 4] Real-world scenario T4_R10_FULL_STACK_APPLE_SILICON_PERFORMANCE verified

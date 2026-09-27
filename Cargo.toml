@@ -164,3 +164,7 @@ opt-level = 3
 
 [profile.test.package.uor-r4-wasm-router]
 opt-level = 3
+
+[profile.test.package.uor-r4-integer]
+opt-level = 3
+

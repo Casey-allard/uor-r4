@@ -1,0 +1,38 @@
+[
+  {
+    "id": "empty_role_block",
+    "prompt": "<|user|><|turn_end|>",
+    "max_new_tokens": 16,
+    "expected_behavior": "safe_handling_no_panic"
+  },
+  {
+    "id": "missing_turn_end_eof",
+    "prompt": "<|user|>Hello world",
+    "max_new_tokens": 16,
+    "expected_behavior": "implicit_turn_boundary"
+  },
+  {
+    "id": "single_token_chat_prompt",
+    "prompt": "<|user|>Hi<|turn_end|><|assistant|>",
+    "max_new_tokens": 16,
+    "expected_behavior": "valid_generation"
+  },
+  {
+    "id": "zero_budget_continuation",
+    "prompt": "<|user|>Tell me a story<|turn_end|><|assistant|>",
+    "max_new_tokens": 0,
+    "expected_behavior": "immediate_empty_return"
+  },
+  {
+    "id": "context_horizon_256_saturation",
+    "prompt_tokens_count": 250,
+    "max_new_tokens": 20,
+    "expected_behavior": "cyclic_dialogue_wrap_or_bound"
+  },
+  {
+    "id": "malformed_special_token",
+    "prompt": "<|system|>Persona<|turn_end|><|invalid_role|>Test<|turn_end|>",
+    "max_new_tokens": 16,
+    "expected_behavior": "literal_text_fallback"
+  }
+]

@@ -1,0 +1,482 @@
+[
+  {
+    "scenario_id": "favorite_telescope_recall",
+    "persona": "You are a knowledgeable astronomy assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "My favorite telescope is the James Webb Space Telescope. Please remember this.",
+        "fact_registered": { "key": "favorite_telescope", "value": "James Webb Space Telescope" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "Can you describe the climate and terrain of the Atacama Desert in Chile?",
+        "type": "distractor_topic_shift"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Calculate 147 multiplied by 3 minus 41.",
+        "type": "distractor_arithmetic"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "In Rust programming, what is the Option enum used for?",
+        "type": "distractor_code_explanation"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "What is my favorite telescope?",
+        "type": "recall_query",
+        "expected_entity": "James Webb Space Telescope",
+        "query_target": "James Webb",
+        "accepted_answers": [
+          "James Webb Space Telescope",
+          "The James Webb Space Telescope",
+          "James Webb Space Telescope.",
+          "James Webb",
+          "JWST"
+        ],
+        "forbidden_answers": [
+          "Hubble",
+          "Spitzer",
+          "Chandra"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "secret_registry_code_recall",
+    "persona": "You are a secure data registrar.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "The project registry code is 8492. Remember this code.",
+        "fact_registered": { "key": "project_registry_code", "value": "8492" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "What is the weather usually like in Seattle during autumn?",
+        "type": "distractor_topic_shift"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Can you explain how photosynthesis works in green plants?",
+        "type": "distractor_science"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "Do you know who painted the Mona Lisa?",
+        "type": "distractor_history"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "What was the project registry code I mentioned earlier?",
+        "type": "recall_query",
+        "expected_entity": "8492",
+        "query_target": "8492",
+        "accepted_answers": [
+          "8492",
+          "The project registry code is 8492.",
+          "The code is 8492.",
+          "8492."
+        ],
+        "forbidden_answers": [
+          "1234",
+          "0000"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "user_identity_recall",
+    "persona": "You are a helpful personal assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "Hello! My name is Dr. Margaret Vance, and I study marine biology.",
+        "fact_registered": { "key": "user_name", "value": "Margaret Vance" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "Tell me an interesting fact about octopuses.",
+        "type": "distractor_science"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "How many hearts do they have?",
+        "type": "distractor_science"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "What is the speed of sound underwater?",
+        "type": "distractor_science"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "By the way, what is my name?",
+        "type": "recall_query",
+        "expected_entity": "Margaret Vance",
+        "query_target": "Margaret",
+        "accepted_answers": [
+          "Margaret Vance",
+          "Dr. Margaret Vance",
+          "Your name is Dr. Margaret Vance.",
+          "Your name is Margaret Vance."
+        ],
+        "forbidden_answers": [
+          "Alice",
+          "Bob"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "item_relocation_tracking",
+    "persona": "You are a household inventory tracker.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "I placed the golden antique vase on the dining table.",
+        "fact_registered": { "key": "vase_location", "value": "dining table" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "Later, I moved the golden antique vase from the dining table to the oak bookshelf.",
+        "type": "fact_update",
+        "fact_registered": { "key": "vase_location", "value": "oak bookshelf" }
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Is it going to rain this afternoon?",
+        "type": "distractor_weather"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "Should I bring an umbrella?",
+        "type": "distractor_practical"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "Where is the golden antique vase right now?",
+        "type": "recall_query",
+        "expected_entity": "oak bookshelf",
+        "query_target": "bookshelf",
+        "accepted_answers": [
+          "oak bookshelf",
+          "The golden antique vase is on the oak bookshelf.",
+          "On the oak bookshelf.",
+          "bookshelf"
+        ],
+        "forbidden_answers": [
+          "dining table",
+          "on the dining table"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "server_port_configuration",
+    "persona": "You are a DevOps systems assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "Our internal database cluster is configured to listen on port 7443.",
+        "fact_registered": { "key": "db_port", "value": "7443" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "How do you write an inner join between two tables in SQL?",
+        "type": "distractor_code_explanation"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "What is the standard MTU size for Ethernet packets?",
+        "type": "distractor_networking"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "If a server handles 250 requests per second, how many is that per minute?",
+        "type": "distractor_arithmetic"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "Which port does our internal database cluster listen on?",
+        "type": "recall_query",
+        "expected_entity": "7443",
+        "query_target": "7443",
+        "accepted_answers": [
+          "7443",
+          "Port 7443.",
+          "The database cluster listens on port 7443."
+        ],
+        "forbidden_answers": [
+          "5432",
+          "3306",
+          "8080"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "cryptographic_cipher_recall",
+    "persona": "You are a security audit assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "The primary encryption algorithm for our backup vault is ChaCha20-Poly1305.",
+        "fact_registered": { "key": "vault_cipher", "value": "ChaCha20-Poly1305" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "When was the Enigma machine decrypted by the codebreakers at Bletchley Park?",
+        "type": "distractor_history"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "How does the SHA-256 compression function handle 512-bit message blocks?",
+        "type": "distractor_code_explanation"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "What is 255 plus 1 represented in hexadecimal?",
+        "type": "distractor_arithmetic"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "What is the primary encryption algorithm for our backup vault?",
+        "type": "recall_query",
+        "expected_entity": "ChaCha20-Poly1305",
+        "query_target": "ChaCha20",
+        "accepted_answers": [
+          "ChaCha20-Poly1305",
+          "ChaCha20",
+          "The algorithm is ChaCha20-Poly1305."
+        ],
+        "forbidden_answers": [
+          "AES-256",
+          "RSA"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "lab_sample_destination",
+    "persona": "You are a clinical logistics coordinator.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "Courier batch 91-B was dispatched directly to CryoLab Sector 7.",
+        "fact_registered": { "key": "batch_destination", "value": "CryoLab Sector 7" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "What is the boiling point of liquid nitrogen in Celsius?",
+        "type": "distractor_science"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Show me a syntax snippet of a Rust match statement.",
+        "type": "distractor_code_explanation"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "What is the difference between an asteroid and a comet?",
+        "type": "distractor_topic_shift"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "Where was courier batch 91-B dispatched?",
+        "type": "recall_query",
+        "expected_entity": "CryoLab Sector 7",
+        "query_target": "Sector 7",
+        "accepted_answers": [
+          "CryoLab Sector 7",
+          "Sector 7",
+          "Dispatched to CryoLab Sector 7."
+        ],
+        "forbidden_answers": [
+          "Sector 4",
+          "Sector 9"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "meeting_time_reschedule",
+    "persona": "You are an executive scheduling assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "Our quarterly strategy review was originally set for Monday at 10 AM.",
+        "fact_registered": { "key": "review_time", "value": "Monday at 10 AM" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "Due to a conflict, the strategy review is now rescheduled to Thursday at 3 PM.",
+        "type": "fact_reschedule",
+        "fact_registered": { "key": "review_time", "value": "Thursday at 3 PM" }
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Calculate 15 percent of 480.",
+        "type": "distractor_arithmetic"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "Who wrote the play The Merchant of Venice?",
+        "type": "distractor_literature"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "When is our quarterly strategy review now scheduled?",
+        "type": "recall_query",
+        "expected_entity": "Thursday at 3 PM",
+        "query_target": "Thursday",
+        "accepted_answers": [
+          "Thursday at 3 PM",
+          "Thursday at 3:00 PM",
+          "The strategy review is scheduled for Thursday at 3 PM."
+        ],
+        "forbidden_answers": [
+          "Monday at 10 AM",
+          "Monday"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "favorite_programming_language",
+    "persona": "You are a software development assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "My all-time favorite systems programming language is Rust.",
+        "fact_registered": { "key": "favorite_language", "value": "Rust" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "What are the primary garbage collection strategies used in Go?",
+        "type": "distractor_topic_shift"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Evaluate 2 raised to the power of 12.",
+        "type": "distractor_arithmetic"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "What is the famous opening sentence of Pride and Prejudice?",
+        "type": "distractor_literature"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "Which systems programming language did I say is my favorite?",
+        "type": "recall_query",
+        "expected_entity": "Rust",
+        "query_target": "Rust",
+        "accepted_answers": [
+          "Rust",
+          "Your favorite systems programming language is Rust."
+        ],
+        "forbidden_answers": [
+          "C++",
+          "Go",
+          "Python"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario_id": "spacecraft_orbital_altitude",
+    "persona": "You are an orbital mechanics assistant.",
+    "turns": [
+      {
+        "turn": 1,
+        "role": "user",
+        "input": "The reconnaissance satellite was placed in a circular orbit at 550 kilometers altitude.",
+        "fact_registered": { "key": "orbital_altitude", "value": "550 kilometers" }
+      },
+      {
+        "turn": 2,
+        "role": "user",
+        "input": "What is the approximate escape velocity from the surface of Earth in km/s?",
+        "type": "distractor_physics"
+      },
+      {
+        "turn": 3,
+        "role": "user",
+        "input": "Explain the difference between stack and heap memory in runtime execution.",
+        "type": "distractor_code_explanation"
+      },
+      {
+        "turn": 4,
+        "role": "user",
+        "input": "Divide 1,000,000 by 8.",
+        "type": "distractor_arithmetic"
+      },
+      {
+        "turn": 5,
+        "role": "user",
+        "input": "At what altitude was the reconnaissance satellite placed in orbit?",
+        "type": "recall_query",
+        "expected_entity": "550 kilometers",
+        "query_target": "550",
+        "accepted_answers": [
+          "550 kilometers",
+          "550 km",
+          "550",
+          "The satellite was placed at 550 kilometers altitude."
+        ],
+        "forbidden_answers": [
+          "400 km",
+          "35,786 km"
+        ]
+      }
+    ]
+  }
+]

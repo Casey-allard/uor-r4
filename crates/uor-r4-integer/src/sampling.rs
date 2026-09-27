@@ -6,6 +6,7 @@
 //! masses and random values are integer comparisons, shifts, bit operations,
 //! additions and subtractions. A compiled instruction audit is a separate check.
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// The exact total required of a normalized Q48 output distribution.
@@ -13,9 +14,11 @@ pub const PROBABILITY_ONE: u64 = 1 << 48;
 const MAX_DRAW_ATTEMPTS: usize = 128;
 const ZERO_SEED_STATE: u64 = 0x9e37_79b9_7f4a_7c15;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SamplePolicy {
     /// Select the largest mass, resolving ties toward the lowest token ID.
+    #[default]
     Greedy,
     /// Sample at temperature one. Zero or a value at least the vocabulary size
     /// includes all tokens; one is exactly greedy and consumes no random value.
@@ -56,9 +59,10 @@ impl std::error::Error for SamplingError {}
 ///
 /// This generator is not cryptographic. Seed zero has a documented nonzero
 /// replacement because the xorshift recurrence otherwise remains at zero.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Sampler {
     state: u64,
+    #[serde(skip, default = "Vec::new")]
     ranked: Vec<usize>,
 }
 
@@ -68,6 +72,19 @@ impl Sampler {
             state: if seed == 0 { ZERO_SEED_STATE } else { seed },
             ranked: Vec::new(),
         }
+    }
+
+    /// Restore sampler from a previously saved state.
+    pub fn from_state(state: u64) -> Self {
+        Self {
+            state: if state == 0 { ZERO_SEED_STATE } else { state },
+            ranked: Vec::new(),
+        }
+    }
+
+    /// Set sampler state directly.
+    pub fn set_state(&mut self, state: u64) {
+        self.state = if state == 0 { ZERO_SEED_STATE } else { state };
     }
 
     /// Validate the complete model distribution before selecting a token.
@@ -119,13 +136,19 @@ impl Sampler {
         draw_below_with(bound, || self.next_word())
     }
 
-    fn next_word(&mut self) -> u64 {
+    /// Advance xorshift64 PRNG and return the next pseudorandom word.
+    pub fn next_word(&mut self) -> u64 {
         let mut state = self.state;
         state ^= state << 13;
         state ^= state >> 7;
         state ^= state << 17;
         self.state = state;
         state
+    }
+
+    /// Alias for `next_word` to advance xorshift64 PRNG.
+    pub fn xorshift64(&mut self) -> u64 {
+        self.next_word()
     }
 }
 
@@ -328,5 +351,61 @@ mod tests {
             Err(SamplingError::RejectionLimit)
         );
         assert_eq!(calls, MAX_DRAW_ATTEMPTS);
+    }
+
+    #[test]
+    fn sampler_from_state_and_set_state_resumes_prng_deterministically() {
+        let mut original = Sampler::new(42);
+        let probabilities = [
+            PROBABILITY_ONE >> 2,
+            PROBABILITY_ONE >> 2,
+            PROBABILITY_ONE >> 1,
+        ];
+        let policy = SamplePolicy::Categorical { top_k: 2 };
+        for _ in 0..5 {
+            let _ = original.select(&probabilities, policy);
+        }
+        let saved_state = original.state();
+
+        let mut restored = Sampler::from_state(saved_state);
+        assert_eq!(restored.state(), saved_state);
+
+        for _ in 0..10 {
+            let tok1 = original.select(&probabilities, policy).unwrap();
+            let tok2 = restored.select(&probabilities, policy).unwrap();
+            assert_eq!(tok1, tok2);
+        }
+
+        let mut another = Sampler::new(999);
+        another.set_state(saved_state);
+        assert_eq!(another.state(), saved_state);
+
+        let mut zero_restored = Sampler::from_state(0);
+        assert_eq!(zero_restored.state(), ZERO_SEED_STATE);
+        zero_restored.set_state(0);
+        assert_eq!(zero_restored.state(), ZERO_SEED_STATE);
+    }
+
+    #[test]
+    fn sampler_and_policy_serde_roundtrip() {
+        let mut original = Sampler::new(12345);
+        let probabilities = [PROBABILITY_ONE >> 1, PROBABILITY_ONE >> 1];
+        let policy = SamplePolicy::Categorical { top_k: 2 };
+        let _ = original.select(&probabilities, policy);
+
+        let json = serde_json::to_string(&original).unwrap();
+        let deserialized: Sampler = serde_json::from_str(&json).unwrap();
+        assert_eq!(original.state(), deserialized.state());
+
+        let policy_greedy = SamplePolicy::Greedy;
+        let json_greedy = serde_json::to_string(&policy_greedy).unwrap();
+        assert_eq!(json_greedy, "{\"kind\":\"greedy\"}");
+        let de_greedy: SamplePolicy = serde_json::from_str(&json_greedy).unwrap();
+        assert_eq!(de_greedy, SamplePolicy::Greedy);
+
+        let json_cat = serde_json::to_string(&policy).unwrap();
+        assert_eq!(json_cat, "{\"kind\":\"categorical\",\"top_k\":2}");
+        let de_cat: SamplePolicy = serde_json::from_str(&json_cat).unwrap();
+        assert_eq!(de_cat, policy);
     }
 }

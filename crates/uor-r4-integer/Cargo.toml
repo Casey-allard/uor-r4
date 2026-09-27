@@ -13,3 +13,15 @@ hex = "0.4.3"
 blake3 = "=1.5.0"
 
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+
+[[bin]]
+name = "uor-chat"
+path = "src/bin/uor-chat.rs"
+
+[[bin]]
+name = "uor-r4-integer"
+path = "src/bin/uor-r4-integer.rs"
+
+[[bin]]
+name = "verify-integer"
+path = "src/bin/verify-integer.rs"

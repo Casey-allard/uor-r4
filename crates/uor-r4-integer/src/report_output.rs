@@ -137,7 +137,7 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<String>) -> io::Result<()> {
         } else if kind.is_file() {
             let relative = path
                 .strip_prefix(root)
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| io::Error::other(e.to_string()))?;
             out.push(relative.to_string_lossy().into_owned());
         }
     }

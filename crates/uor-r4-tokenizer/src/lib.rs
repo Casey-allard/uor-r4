@@ -232,6 +232,12 @@ impl ByteBpeTokenizer {
         })
     }
 
+    /// Look up the token ID for an exact string (matching added tokens or vocab).
+    #[inline]
+    pub fn token_id(&self, token: &str) -> Option<u32> {
+        self.token_to_id.get(token).copied()
+    }
+
     /// Encode text to token ids: added tokens atomically, then the optional
     /// `Digits` split, then GPT-2 byte-level pre-tokenization and
     /// rank-ordered BPE per pre-token. No BOS/EOS tokens are added
@@ -856,6 +862,45 @@ mod tests {
         let conflicting_added = FIXTURE.replace("\"id\":8", "\"id\":0");
         assert!(
             ByteBpeTokenizer::from_tokenizer_json_bytes(conflicting_added.as_bytes()).is_none()
+        );
+    }
+
+    #[test]
+    fn role_tokens_and_token_id_lookup() {
+        let role_fixture = r#"{
+            "pre_tokenizer": {"type":"ByteLevel", "add_prefix_space":false},
+            "added_tokens":[
+                {"id":0,"content":"<|bos|>"},
+                {"id":1,"content":"<|eos|>"},
+                {"id":2,"content":"<|unk|>"},
+                {"id":3,"content":"<|system|>"},
+                {"id":4,"content":"<|user|>"},
+                {"id":5,"content":"<|assistant|>"},
+                {"id":6,"content":"<|turn_end|>"}
+            ],
+            "model":{"type":"BPE",
+                "vocab":{
+                    "<|bos|>":0,"<|eos|>":1,"<|unk|>":2,
+                    "<|system|>":3,"<|user|>":4,"<|assistant|>":5,"<|turn_end|>":6,
+                    "H":7,"i":8
+                },
+                "merges":[]
+            }
+        }"#;
+        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(role_fixture.as_bytes())
+            .expect("role fixture parses");
+
+        assert_eq!(tokenizer.token_id("<|system|>"), Some(3));
+        assert_eq!(tokenizer.token_id("<|user|>"), Some(4));
+        assert_eq!(tokenizer.token_id("<|assistant|>"), Some(5));
+        assert_eq!(tokenizer.token_id("<|turn_end|>"), Some(6));
+        assert_eq!(tokenizer.token_id("nonexistent"), None);
+
+        let encoded = tokenizer.encode("<|user|>Hi<|turn_end|>");
+        assert_eq!(encoded, vec![4, 7, 8, 6]);
+        assert_eq!(
+            tokenizer.decode_bytes(&[3, 4, 5, 6]),
+            b"<|system|><|user|><|assistant|><|turn_end|>"
         );
     }
 }

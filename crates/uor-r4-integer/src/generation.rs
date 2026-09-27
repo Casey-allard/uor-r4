@@ -1,4 +1,6 @@
 //! Stateful text sessions using integer predictions and integer token selection.
+//! Supports `generate_stream` and incremental UTF-8 decoding with `pending_bytes`.
+pub use crate::session::{ChatTokenStream, IncrementalUtf8Decoder};
 use crate::{
     bundle::Bundle, invalid, IntegerSession, IntegerStep, ReadMode, Result, SamplePolicy, Sampler,
     PROBABILITY_TOTAL,
@@ -32,10 +34,12 @@ pub struct Request {
     #[serde(default)]
     pub first_sentence: bool,
 }
-#[derive(Debug, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum Stop {
     Eos,
+    TurnEnd,
+    StopToken { token: u32 },
     FirstSentenceBoundary,
     ShortCycle { period: usize },
     MaximumNewTokens,
@@ -234,8 +238,17 @@ impl<'a> TextSession<'a> {
             });
             generated.push(selected as u32);
             self.pending = Some(selected as u32);
+            let turn_end_id = self
+                .bundle
+                .tokenizer()
+                .token_id("<|turn_end|>")
+                .unwrap_or(6);
             if selected == 1 {
                 stop = Stop::Eos;
+                break;
+            }
+            if selected == turn_end_id as usize {
+                stop = Stop::TurnEnd;
                 break;
             }
             if first_sentence
@@ -256,9 +269,14 @@ impl<'a> TextSession<'a> {
                 break;
             }
         }
+        let turn_end_id = self
+            .bundle
+            .tokenizer()
+            .token_id("<|turn_end|>")
+            .unwrap_or(6);
         let end = generated
             .iter()
-            .position(|&token| token == 1)
+            .position(|&token| token == 1 || token == turn_end_id)
             .unwrap_or(generated.len());
         let raw = self.bundle.tokenizer().decode_bytes(&generated);
         let bytes = self.bundle.tokenizer().decode_bytes(&generated[..end]);

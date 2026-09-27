@@ -58,6 +58,131 @@ impl Bundle {
     pub fn identity(&self) -> &str {
         &self.identity
     }
+
+    /// Construct a synthetic bundle in-memory for testing and offline verification.
+    pub fn synthetic_for_test() -> Self {
+        let model = IntegerModel::synthetic_for_test();
+        let mut vocab_map = serde_json::Map::new();
+        vocab_map.insert("<|bos|>".to_string(), json!(0));
+        vocab_map.insert("<|eos|>".to_string(), json!(1));
+        vocab_map.insert("<|unk|>".to_string(), json!(2));
+        vocab_map.insert("<|system|>".to_string(), json!(3));
+        vocab_map.insert("<|user|>".to_string(), json!(4));
+        vocab_map.insert("<|assistant|>".to_string(), json!(5));
+        vocab_map.insert("<|turn_end|>".to_string(), json!(6));
+        for i in 7..4096 {
+            vocab_map.insert(format!("t{i}"), json!(i));
+        }
+        let tok_json = json!({
+            "pre_tokenizer": {
+                "type": "ByteLevel",
+                "add_prefix_space": false
+            },
+            "model": {
+                "type": "BPE",
+                "vocab": vocab_map,
+                "merges": []
+            },
+            "added_tokens": [
+                {"id": 0, "content": "<|bos|>"},
+                {"id": 1, "content": "<|eos|>"},
+                {"id": 2, "content": "<|unk|>"},
+                {"id": 3, "content": "<|system|>"},
+                {"id": 4, "content": "<|user|>"},
+                {"id": 5, "content": "<|assistant|>"},
+                {"id": 6, "content": "<|turn_end|>"}
+            ]
+        });
+        let tok_bytes = serde_json::to_vec(&tok_json).expect("valid synthetic tokenizer json");
+        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tok_bytes)
+            .expect("valid synthetic tokenizer");
+        Self {
+            model,
+            tokenizer,
+            identity: "synthetic-test-bundle-sha256".to_string(),
+        }
+    }
+
+    /// Construct a bundle from explicit model, tokenizer, and identity components.
+    pub fn from_parts(model: IntegerModel, tokenizer: ByteBpeTokenizer, identity: String) -> Self {
+        Self {
+            model,
+            tokenizer,
+            identity,
+        }
+    }
+
+    /// Construct a synthetic bundle with complete 256-byte vocabulary + role tokens.
+    /// Guaranteed to encode and decode arbitrary UTF-8 text deterministically.
+    pub fn create_test_bundle_with_byte_vocab() -> Self {
+        let model = IntegerModel::synthetic_for_test();
+        let mut vocab_map = serde_json::Map::new();
+
+        // Special role tokens (IDs 0..6)
+        vocab_map.insert("<|bos|>".to_string(), json!(0));
+        vocab_map.insert("<|eos|>".to_string(), json!(1));
+        vocab_map.insert("<|unk|>".to_string(), json!(2));
+        vocab_map.insert("<|system|>".to_string(), json!(3));
+        vocab_map.insert("<|user|>".to_string(), json!(4));
+        vocab_map.insert("<|assistant|>".to_string(), json!(5));
+        vocab_map.insert("<|turn_end|>".to_string(), json!(6));
+
+        // Standard GPT-2 byte mapping: printable ASCII map to themselves, rest to U+0100..
+        let mut assigned = [false; 256];
+        for b in (b'!'..=b'~').chain(0xA1..=0xAC).chain(0xAE..=0xFF) {
+            let ch = char::from_u32(u32::from(b)).unwrap();
+            vocab_map.insert(ch.to_string(), json!(7 + b as usize));
+            assigned[b as usize] = true;
+        }
+        let mut extra = 0u32;
+        for (b, &is_assigned) in assigned.iter().enumerate() {
+            if !is_assigned {
+                let ch = char::from_u32(256 + extra).unwrap();
+                vocab_map.insert(ch.to_string(), json!(7 + b));
+                extra += 1;
+            }
+        }
+
+        // Pad remaining vocabulary up to 4096 tokens
+        for i in 263..4096 {
+            vocab_map.insert(format!("t{i}"), json!(i));
+        }
+
+        let tok_json = json!({
+            "pre_tokenizer": {
+                "type": "ByteLevel",
+                "add_prefix_space": false
+            },
+            "model": {
+                "type": "BPE",
+                "vocab": vocab_map,
+                "merges": []
+            },
+            "added_tokens": [
+                {"id": 0, "content": "<|bos|>"},
+                {"id": 1, "content": "<|eos|>"},
+                {"id": 2, "content": "<|unk|>"},
+                {"id": 3, "content": "<|system|>"},
+                {"id": 4, "content": "<|user|>"},
+                {"id": 5, "content": "<|assistant|>"},
+                {"id": 6, "content": "<|turn_end|>"}
+            ]
+        });
+
+        let tok_bytes = serde_json::to_vec(&tok_json).expect("valid synthetic tokenizer json");
+        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tok_bytes)
+            .expect("valid byte-level tokenizer");
+        Self {
+            model,
+            tokenizer,
+            identity: "synthetic-byte-vocab-bundle-sha256".to_string(),
+        }
+    }
+}
+
+/// Construct a synthetic bundle with complete 256-byte vocabulary + role tokens.
+pub fn create_test_bundle_with_byte_vocab() -> Bundle {
+    Bundle::create_test_bundle_with_byte_vocab()
 }
 
 /// Materialize unchanged accepted codes/tables with their training-bound tokenizer.
