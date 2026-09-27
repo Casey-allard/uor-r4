@@ -122,6 +122,14 @@ impl Bundle {
         }
     }
 
+    /// Construct a synthetic Lorentz bundle in-memory with complete byte vocabulary for testing.
+    pub fn synthetic_lorentz_for_test() -> Self {
+        let mut bundle = Self::create_test_bundle_with_byte_vocab();
+        bundle.model = IntegerModel::synthetic_lorentz_for_test();
+        bundle.identity = "synthetic-lorentz-test-bundle-sha256".to_string();
+        bundle
+    }
+
     /// Construct a bundle from explicit model, tokenizer, and identity components.
     pub fn from_parts(model: IntegerModel, tokenizer: ByteBpeTokenizer, identity: String) -> Self {
         Self {

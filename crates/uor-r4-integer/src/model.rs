@@ -355,6 +355,12 @@ pub struct SessionState {
 
     pub age_horizon_clamp: usize,
 
+    // --- Hyperbolic & Metric Cache Geometry ---
+    pub persistent_key_norms: Vec<i128>,
+    pub dialogue_key_norms: Box<[i128; DIALOGUE_CAPACITY]>,
+    pub l2_page_norms: Box<[i128; L2_PAGE_CAPACITY]>,
+    pub allow_hyperbolic_cache: bool,
+
     // --- Scratch Buffers (Reused across steps to eliminate stack/heap allocations) ---
     pub scratch_products: Vec<[i64; 16]>,
     pub copy_scratch: Vec<u64>,
@@ -398,6 +404,15 @@ impl SessionState {
 
     pub fn seal_persistent(&mut self) {
         self.persistent_sealed = true;
+    }
+
+    pub fn with_hyperbolic_cache(mut self) -> Self {
+        self.allow_hyperbolic_cache = true;
+        self
+    }
+
+    pub fn enable_hyperbolic_cache(&mut self) {
+        self.allow_hyperbolic_cache = true;
     }
 
     pub fn is_persistent_sealed(&self) -> bool {
@@ -1919,10 +1934,18 @@ impl IntegerModel {
             .into_boxed_slice()
             .try_into()
             .unwrap_or_else(|_| panic!("dialogue_values size mismatch"));
+        let dialogue_key_norms = vec![0i128; DIALOGUE_CAPACITY]
+            .into_boxed_slice()
+            .try_into()
+            .unwrap_or_else(|_| panic!("dialogue_key_norms size mismatch"));
         let l2_pages = vec![L2PrimePage::default(); L2_PAGE_CAPACITY]
             .into_boxed_slice()
             .try_into()
             .unwrap_or_else(|_| panic!("l2_pages size mismatch"));
+        let l2_page_norms = vec![0i128; L2_PAGE_CAPACITY]
+            .into_boxed_slice()
+            .try_into()
+            .unwrap_or_else(|_| panic!("l2_page_norms size mismatch"));
         let last_probabilities = vec![0u64; 4096]
             .into_boxed_slice()
             .try_into()
@@ -1934,6 +1957,7 @@ impl IntegerModel {
             persistent_keys: Vec::with_capacity(PERSISTENT_CAPACITY),
             persistent_values: Vec::with_capacity(PERSISTENT_CAPACITY),
             persistent_tokens: Vec::with_capacity(PERSISTENT_CAPACITY),
+            persistent_key_norms: Vec::with_capacity(PERSISTENT_CAPACITY),
             persistent_capacity: PERSISTENT_CAPACITY,
             persistent_sealed: false,
             dialogue_keys,
@@ -1941,12 +1965,14 @@ impl IntegerModel {
             dialogue_tokens: vec![0; DIALOGUE_CAPACITY],
             dialogue_sequences: vec![0; DIALOGUE_CAPACITY],
             dialogue_turn_ids: vec![0; DIALOGUE_CAPACITY],
+            dialogue_key_norms,
             dialogue_capacity: DIALOGUE_CAPACITY,
             dialogue_cursor: 0,
             dialogue_len: 0,
             dialogue_seen: 0,
             current_turn_id: 0,
             l2_pages,
+            l2_page_norms,
             l2_cursor: 0,
             l2_len: 0,
             l2_seen: 0,
@@ -1955,6 +1981,7 @@ impl IntegerModel {
             hopf_state: HopfFiberPointQ30::default(),
             cumulative_holonomy_q30: 0,
             age_horizon_clamp: AGE_HORIZON_CLAMP,
+            allow_hyperbolic_cache: false,
             scratch_products: vec![[0i64; 16]; 512],
             copy_scratch: vec![0u64; 4096],
             last_probabilities,
@@ -1963,6 +1990,11 @@ impl IntegerModel {
             last_copy_gate: 0,
             has_step: false,
         }
+    }
+
+    /// Whether this model uses Lorentz hyperbolic distance scoring for its read memory.
+    pub fn is_lorentz(&self) -> bool {
+        self.lorentz.is_some()
     }
 
     /// Look up signed 4-bit token embedding codes from embedding.weight.
@@ -2543,27 +2575,78 @@ impl IntegerModel {
             let mut scores = Vec::with_capacity(previous + 1);
             scores.push(null);
 
+            let mut query_products = [[0i64; 16]; KEY_DIM];
+            let q_len = query.len().min(KEY_DIM);
+            for d in 0..q_len {
+                query_products[d] = build_coord_products(query[d]);
+            }
+
             if let Some((read, query_norm, table)) = hyperbolic {
-                for (index, key) in session.keys.iter().enumerate() {
-                    let mut dot = 0i128;
-                    for (&q, &k) in query.iter().zip(key) {
-                        dot += product(i128::from(q), i128::from(k))?;
-                    }
-                    let key_norm = *session
+                let n_chunks = session.keys.len() >> 2;
+                let mut key_idx = 0;
+                for c in 0..n_chunks {
+                    let base = c << 2;
+                    let (d0, d1, d2, d3) = memory_dot_product_4x(
+                        &query_products,
+                        &session.keys[base],
+                        &session.keys[base + 1],
+                        &session.keys[base + 2],
+                        &session.keys[base + 3],
+                    );
+                    let kn0 = *session
                         .key_norms
-                        .get(index)
+                        .get(base)
                         .ok_or_else(|| invalid("missing Lorentz key norm"))?;
-                    let raw = read.score(query_norm, key_norm, dot, table, WORK_BITS)?;
-                    let score = raw + age[previous - 1 - index];
-                    scores.push(quantize(score, WORK_BITS, 8)?);
+                    let raw0 = read.score(query_norm, kn0, i128::from(d0), table, WORK_BITS)?;
+                    scores.push(quantize(raw0 + age[previous - 1 - key_idx], WORK_BITS, 8)?);
+
+                    let kn1 = *session
+                        .key_norms
+                        .get(base + 1)
+                        .ok_or_else(|| invalid("missing Lorentz key norm"))?;
+                    let raw1 = read.score(query_norm, kn1, i128::from(d1), table, WORK_BITS)?;
+                    scores.push(quantize(
+                        raw1 + age[previous - 1 - (key_idx + 1)],
+                        WORK_BITS,
+                        8,
+                    )?);
+
+                    let kn2 = *session
+                        .key_norms
+                        .get(base + 2)
+                        .ok_or_else(|| invalid("missing Lorentz key norm"))?;
+                    let raw2 = read.score(query_norm, kn2, i128::from(d2), table, WORK_BITS)?;
+                    scores.push(quantize(
+                        raw2 + age[previous - 1 - (key_idx + 2)],
+                        WORK_BITS,
+                        8,
+                    )?);
+
+                    let kn3 = *session
+                        .key_norms
+                        .get(base + 3)
+                        .ok_or_else(|| invalid("missing Lorentz key norm"))?;
+                    let raw3 = read.score(query_norm, kn3, i128::from(d3), table, WORK_BITS)?;
+                    scores.push(quantize(
+                        raw3 + age[previous - 1 - (key_idx + 3)],
+                        WORK_BITS,
+                        8,
+                    )?);
+
+                    key_idx += 4;
+                }
+                for (rem_idx, key) in session.keys[(n_chunks << 2)..].iter().enumerate() {
+                    let base = (n_chunks << 2) + rem_idx;
+                    let d = memory_dot_product_1x(&query_products, key);
+                    let kn = *session
+                        .key_norms
+                        .get(base)
+                        .ok_or_else(|| invalid("missing Lorentz key norm"))?;
+                    let raw = read.score(query_norm, kn, i128::from(d), table, WORK_BITS)?;
+                    scores.push(quantize(raw + age[previous - 1 - key_idx], WORK_BITS, 8)?);
+                    key_idx += 1;
                 }
             } else {
-                let mut query_products = [[0i64; 16]; KEY_DIM];
-                let q_len = query.len().min(KEY_DIM);
-                for d in 0..q_len {
-                    query_products[d] = build_coord_products(query[d]);
-                }
-
                 let n_chunks = session.keys.len() >> 2;
                 let mut key_idx = 0;
                 for c in 0..n_chunks {
@@ -2692,8 +2775,14 @@ impl IntegerModel {
             return Err(invalid("conversational step identity mismatch"));
         }
         // Partitioned conversational memory stores full-width values and scores
-        // keys by the dot read; a Lorentz or width-128 model uses `step`.
-        if self.lorentz.is_some() || self.config.width != VAL_DIM {
+        // keys by the dot read by default; a Lorentz or width-128 model uses `step`
+        // unless hyperbolic cache memory is explicitly enabled on the session.
+        if self.config.width != VAL_DIM {
+            return Err(invalid(
+                "conversational sessions serve only the width-256 shape",
+            ));
+        }
+        if self.lorentz.is_some() && !session.allow_hyperbolic_cache {
             return Err(invalid(
                 "conversational sessions serve only the width-256 dot-read shape",
             ));
@@ -2836,6 +2925,11 @@ impl IntegerModel {
                 &fallback_age
             };
 
+            let hyperbolic = match &self.lorentz {
+                Some(read) => Some((read, lorentz::squared_norm(&query)?, self.arcosh()?)),
+                None => None,
+            };
+
             // Precompute query coordinate product tables on stack (64 x 16 i64 = 8 KB).
             let mut query_products = [[0i64; 16]; KEY_DIM];
             for d in 0..KEY_DIM {
@@ -2857,15 +2951,43 @@ impl IntegerModel {
                     &session.persistent_keys[base + 2],
                     &session.persistent_keys[base + 3],
                 );
-                scores[score_count] = scale_and_quantize_score(d0, age[0]);
-                scores[score_count + 1] = scale_and_quantize_score(d1, age[0]);
-                scores[score_count + 2] = scale_and_quantize_score(d2, age[0]);
-                scores[score_count + 3] = scale_and_quantize_score(d3, age[0]);
+                if let Some((read, query_norm, table)) = hyperbolic {
+                    let kn0 = session.persistent_key_norms[base];
+                    let raw0 = read.score(query_norm, kn0, i128::from(d0), table, WORK_BITS)?;
+                    scores[score_count] = quantize(raw0 + age[0], WORK_BITS, 8)?;
+
+                    let kn1 = session.persistent_key_norms[base + 1];
+                    let raw1 = read.score(query_norm, kn1, i128::from(d1), table, WORK_BITS)?;
+                    scores[score_count + 1] = quantize(raw1 + age[0], WORK_BITS, 8)?;
+
+                    let kn2 = session.persistent_key_norms[base + 2];
+                    let raw2 = read.score(query_norm, kn2, i128::from(d2), table, WORK_BITS)?;
+                    scores[score_count + 2] = quantize(raw2 + age[0], WORK_BITS, 8)?;
+
+                    let kn3 = session.persistent_key_norms[base + 3];
+                    let raw3 = read.score(query_norm, kn3, i128::from(d3), table, WORK_BITS)?;
+                    scores[score_count + 3] = quantize(raw3 + age[0], WORK_BITS, 8)?;
+                } else {
+                    scores[score_count] = scale_and_quantize_score(d0, age[0]);
+                    scores[score_count + 1] = scale_and_quantize_score(d1, age[0]);
+                    scores[score_count + 2] = scale_and_quantize_score(d2, age[0]);
+                    scores[score_count + 3] = scale_and_quantize_score(d3, age[0]);
+                }
                 score_count += 4;
             }
-            for key in &session.persistent_keys[(n_sys_chunks << 2)..n_sys] {
+            for (rem_idx, key) in session.persistent_keys[(n_sys_chunks << 2)..n_sys]
+                .iter()
+                .enumerate()
+            {
+                let base = (n_sys_chunks << 2) + rem_idx;
                 let d = memory_dot_product_1x(&query_products, key);
-                scores[score_count] = scale_and_quantize_score(d, age[0]);
+                if let Some((read, query_norm, table)) = hyperbolic {
+                    let kn = session.persistent_key_norms[base];
+                    let raw = read.score(query_norm, kn, i128::from(d), table, WORK_BITS)?;
+                    scores[score_count] = quantize(raw + age[0], WORK_BITS, 8)?;
+                } else {
+                    scores[score_count] = scale_and_quantize_score(d, age[0]);
+                }
                 score_count += 1;
             }
 
@@ -2887,7 +3009,6 @@ impl IntegerModel {
                 let age_idx0 = (delta0 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count] = scale_and_quantize_score(d0, age[age_idx0]);
 
                 let delta1 = session
                     .dialogue_seen
@@ -2895,7 +3016,6 @@ impl IntegerModel {
                 let age_idx1 = (delta1 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count + 1] = scale_and_quantize_score(d1, age[age_idx1]);
 
                 let delta2 = session
                     .dialogue_seen
@@ -2903,7 +3023,6 @@ impl IntegerModel {
                 let age_idx2 = (delta2 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count + 2] = scale_and_quantize_score(d2, age[age_idx2]);
 
                 let delta3 = session
                     .dialogue_seen
@@ -2911,7 +3030,29 @@ impl IntegerModel {
                 let age_idx3 = (delta3 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count + 3] = scale_and_quantize_score(d3, age[age_idx3]);
+
+                if let Some((read, query_norm, table)) = hyperbolic {
+                    let kn0 = session.dialogue_key_norms[base];
+                    let raw0 = read.score(query_norm, kn0, i128::from(d0), table, WORK_BITS)?;
+                    scores[score_count] = quantize(raw0 + age[age_idx0], WORK_BITS, 8)?;
+
+                    let kn1 = session.dialogue_key_norms[base + 1];
+                    let raw1 = read.score(query_norm, kn1, i128::from(d1), table, WORK_BITS)?;
+                    scores[score_count + 1] = quantize(raw1 + age[age_idx1], WORK_BITS, 8)?;
+
+                    let kn2 = session.dialogue_key_norms[base + 2];
+                    let raw2 = read.score(query_norm, kn2, i128::from(d2), table, WORK_BITS)?;
+                    scores[score_count + 2] = quantize(raw2 + age[age_idx2], WORK_BITS, 8)?;
+
+                    let kn3 = session.dialogue_key_norms[base + 3];
+                    let raw3 = read.score(query_norm, kn3, i128::from(d3), table, WORK_BITS)?;
+                    scores[score_count + 3] = quantize(raw3 + age[age_idx3], WORK_BITS, 8)?;
+                } else {
+                    scores[score_count] = scale_and_quantize_score(d0, age[age_idx0]);
+                    scores[score_count + 1] = scale_and_quantize_score(d1, age[age_idx1]);
+                    scores[score_count + 2] = scale_and_quantize_score(d2, age[age_idx2]);
+                    scores[score_count + 3] = scale_and_quantize_score(d3, age[age_idx3]);
+                }
                 score_count += 4;
             }
 
@@ -2923,7 +3064,13 @@ impl IntegerModel {
                 let age_idx = (delta as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count] = scale_and_quantize_score(d, age[age_idx]);
+                if let Some((read, query_norm, table)) = hyperbolic {
+                    let kn = session.dialogue_key_norms[idx];
+                    let raw = read.score(query_norm, kn, i128::from(d), table, WORK_BITS)?;
+                    scores[score_count] = quantize(raw + age[age_idx], WORK_BITS, 8)?;
+                } else {
+                    scores[score_count] = scale_and_quantize_score(d, age[age_idx]);
+                }
                 score_count += 1;
             }
 
@@ -2945,7 +3092,6 @@ impl IntegerModel {
                 let age_idx0 = (delta0 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count] = scale_and_quantize_score(d0, age[age_idx0]);
 
                 let delta1 = session
                     .dialogue_seen
@@ -2953,7 +3099,6 @@ impl IntegerModel {
                 let age_idx1 = (delta1 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count + 1] = scale_and_quantize_score(d1, age[age_idx1]);
 
                 let delta2 = session
                     .dialogue_seen
@@ -2961,7 +3106,6 @@ impl IntegerModel {
                 let age_idx2 = (delta2 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count + 2] = scale_and_quantize_score(d2, age[age_idx2]);
 
                 let delta3 = session
                     .dialogue_seen
@@ -2969,7 +3113,29 @@ impl IntegerModel {
                 let age_idx3 = (delta3 as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count + 3] = scale_and_quantize_score(d3, age[age_idx3]);
+
+                if let Some((read, query_norm, table)) = hyperbolic {
+                    let kn0 = session.l2_page_norms[base];
+                    let raw0 = read.score(query_norm, kn0, i128::from(d0), table, WORK_BITS)?;
+                    scores[score_count] = quantize(raw0 + age[age_idx0], WORK_BITS, 8)?;
+
+                    let kn1 = session.l2_page_norms[base + 1];
+                    let raw1 = read.score(query_norm, kn1, i128::from(d1), table, WORK_BITS)?;
+                    scores[score_count + 1] = quantize(raw1 + age[age_idx1], WORK_BITS, 8)?;
+
+                    let kn2 = session.l2_page_norms[base + 2];
+                    let raw2 = read.score(query_norm, kn2, i128::from(d2), table, WORK_BITS)?;
+                    scores[score_count + 2] = quantize(raw2 + age[age_idx2], WORK_BITS, 8)?;
+
+                    let kn3 = session.l2_page_norms[base + 3];
+                    let raw3 = read.score(query_norm, kn3, i128::from(d3), table, WORK_BITS)?;
+                    scores[score_count + 3] = quantize(raw3 + age[age_idx3], WORK_BITS, 8)?;
+                } else {
+                    scores[score_count] = scale_and_quantize_score(d0, age[age_idx0]);
+                    scores[score_count + 1] = scale_and_quantize_score(d1, age[age_idx1]);
+                    scores[score_count + 2] = scale_and_quantize_score(d2, age[age_idx2]);
+                    scores[score_count + 3] = scale_and_quantize_score(d3, age[age_idx3]);
+                }
                 score_count += 4;
             }
 
@@ -2981,7 +3147,13 @@ impl IntegerModel {
                 let age_idx = (delta as usize)
                     .min(age.len().saturating_sub(1))
                     .min(session.age_horizon_clamp);
-                scores[score_count] = scale_and_quantize_score(d, age[age_idx]);
+                if let Some((read, query_norm, table)) = hyperbolic {
+                    let kn = session.l2_page_norms[idx];
+                    let raw = read.score(query_norm, kn, i128::from(d), table, WORK_BITS)?;
+                    scores[score_count] = quantize(raw + age[age_idx], WORK_BITS, 8)?;
+                } else {
+                    scores[score_count] = scale_and_quantize_score(d, age[age_idx]);
+                }
                 score_count += 1;
             }
 
@@ -3252,10 +3424,16 @@ impl IntegerModel {
                 key_arr.copy_from_slice(&key[..KEY_DIM]);
                 let mut val_arr = [0i32; VAL_DIM];
                 val_arr.copy_from_slice(&value[..VAL_DIM]);
+                let kn = if self.lorentz.is_some() {
+                    lorentz::squared_norm(&key_arr)?
+                } else {
+                    0i128
+                };
 
                 session.persistent_keys.push(key_arr);
                 session.persistent_values.push(val_arr);
                 session.persistent_tokens.push(token);
+                session.persistent_key_norms.push(kn);
             }
             SlotTarget::Dialogue => {
                 if session.dialogue_len >= session.dialogue_capacity {
@@ -3309,7 +3487,13 @@ impl IntegerModel {
                             page.turn_id = evict_turn_id;
 
                             let p_idx = session.l2_cursor;
+                            let p_kn = if self.lorentz.is_some() {
+                                lorentz::squared_norm(&page.key)?
+                            } else {
+                                0i128
+                            };
                             session.l2_pages[p_idx] = page;
+                            session.l2_page_norms[p_idx] = p_kn;
                             session.l2_cursor = if p_idx + 1 >= L2_PAGE_CAPACITY {
                                 0
                             } else {
@@ -3322,12 +3506,18 @@ impl IntegerModel {
                     }
                 }
 
+                let kn = if self.lorentz.is_some() {
+                    lorentz::squared_norm(&key[..KEY_DIM])?
+                } else {
+                    0i128
+                };
                 let idx = session.dialogue_cursor;
                 session.dialogue_keys[idx].copy_from_slice(&key[..KEY_DIM]);
                 session.dialogue_values[idx].copy_from_slice(&value[..VAL_DIM]);
                 session.dialogue_tokens[idx] = token;
                 session.dialogue_sequences[idx] = session.dialogue_seen;
                 session.dialogue_turn_ids[idx] = session.current_turn_id;
+                session.dialogue_key_norms[idx] = kn;
                 let next_cursor = session.dialogue_cursor + 1;
                 session.dialogue_cursor = if next_cursor >= session.dialogue_capacity {
                     0
@@ -3391,6 +3581,19 @@ impl IntegerModel {
             read_masses: session.last_read_masses.clone(),
             copy_gate: session.last_copy_gate,
         })
+    }
+
+    /// Step conversational session with hyperbolic cache scoring explicitly enabled.
+    #[inline(never)]
+    pub fn step_conversational_hyperbolic(
+        &self,
+        session: &mut SessionState,
+        token: u32,
+        target: SlotTarget,
+        mode: ReadMode,
+    ) -> Result<IntegerStep> {
+        session.enable_hyperbolic_cache();
+        self.step_conversational(session, token, target, mode)
     }
 
     pub fn synthetic_for_test() -> Self {
@@ -3544,6 +3747,33 @@ impl IntegerModel {
             p_read_value,
             p_output_norm,
         }
+    }
+
+    pub fn synthetic_lorentz_for_test() -> Self {
+        let mut model = Self::synthetic_for_test();
+        model.config.read_geometry = ReadGeometry::Lorentz;
+        let mut arcosh = vec![0u32; crate::lorentz::ARCOSH_ENTRIES];
+        let (i0, v0) = crate::lorentz::ARCOSH_ANCHORS[0];
+        let (i1, v1) = crate::lorentz::ARCOSH_ANCHORS[1];
+        let (i2, v2) = crate::lorentz::ARCOSH_ANCHORS[2];
+        arcosh[0] = 0;
+        arcosh[i0] = v0;
+        for i in (i0 + 1)..i1 {
+            let frac = (i - i0) as u64;
+            let span = (i1 - i0) as u64;
+            arcosh[i] = v0 + ((v1 - v0) as u64 * frac / span) as u32;
+        }
+        arcosh[i1] = v1;
+        for i in (i1 + 1)..=i2 {
+            let frac = (i - i1) as u64;
+            let span = (i2 - i1) as u64;
+            arcosh[i] = v1 + ((v2 - v1) as u64 * frac / span) as u32;
+        }
+        model.tables.arcosh = Some(arcosh);
+        model.tables.arcosh_sha256 = Some("synthetic_arcosh_hash".to_owned());
+        model.lorentz = Some(LorentzRead::new((0, 0), (5, 0)).expect("valid lorentz read"));
+        model.identity = "synthetic_lorentz_model".to_owned();
+        model
     }
 }
 

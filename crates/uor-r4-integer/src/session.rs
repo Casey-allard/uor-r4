@@ -520,6 +520,8 @@ pub struct SerializedSessionState {
     pub l2_seen: u64,
     #[serde(default = "default_last_compressed_turn_id")]
     pub last_compressed_turn_id: u32,
+    #[serde(default)]
+    pub allow_hyperbolic_cache: bool,
 }
 
 fn default_last_compressed_turn_id() -> u32 {
@@ -548,7 +550,10 @@ impl<'a> ChatSession<'a> {
     /// Initialize a new chat session with optional system prompt.
     pub fn new(bundle: &'a Bundle, system_prompt: Option<&str>, seed: u64) -> Result<Self> {
         let roles = RoleTokens::from_tokenizer(bundle.tokenizer())?;
-        let state = bundle.model().new_conversational_session();
+        let mut state = bundle.model().new_conversational_session();
+        if bundle.model().is_lorentz() {
+            state.enable_hyperbolic_cache();
+        }
         let mut session = Self {
             bundle,
             state,
@@ -856,6 +861,7 @@ impl<'a> ChatSession<'a> {
                 l2_len: self.state.l2_len,
                 l2_seen: self.state.l2_seen,
                 last_compressed_turn_id: self.state.last_compressed_turn_id,
+                allow_hyperbolic_cache: self.state.allow_hyperbolic_cache,
             },
             sampler_state: SerializedSamplerState {
                 state: self.sampler.state(),
@@ -940,11 +946,37 @@ impl<'a> ChatSession<'a> {
                 s_state.state.len()
             )));
         }
+        if s_state.persistent_capacity != PERSISTENT_CAPACITY {
+            return Err(invalid(format!(
+                "corrupted persistent capacity: expected {}, found {}",
+                PERSISTENT_CAPACITY, s_state.persistent_capacity
+            )));
+        }
         if s_state.persistent_keys.len() > PERSISTENT_CAPACITY {
             return Err(invalid(format!(
                 "persistent slot count {} exceeds capacity {}",
                 s_state.persistent_keys.len(),
                 PERSISTENT_CAPACITY
+            )));
+        }
+        if s_state.persistent_values.len() != s_state.persistent_keys.len() {
+            return Err(invalid(format!(
+                "corrupted persistent values count: expected {} (matching keys), found {}",
+                s_state.persistent_keys.len(),
+                s_state.persistent_values.len()
+            )));
+        }
+        if s_state.persistent_tokens.len() != s_state.persistent_keys.len() {
+            return Err(invalid(format!(
+                "corrupted persistent tokens count: expected {} (matching keys), found {}",
+                s_state.persistent_keys.len(),
+                s_state.persistent_tokens.len()
+            )));
+        }
+        if s_state.dialogue_capacity != DIALOGUE_CAPACITY {
+            return Err(invalid(format!(
+                "corrupted dialogue capacity: expected {}, found {}",
+                DIALOGUE_CAPACITY, s_state.dialogue_capacity
             )));
         }
         if s_state.dialogue_keys.len() != DIALOGUE_CAPACITY {
@@ -961,10 +993,37 @@ impl<'a> ChatSession<'a> {
                 s_state.dialogue_values.len()
             )));
         }
+        if s_state.dialogue_tokens.len() != DIALOGUE_CAPACITY {
+            return Err(invalid(format!(
+                "corrupted dialogue tokens: expected {} slots, found {}",
+                DIALOGUE_CAPACITY,
+                s_state.dialogue_tokens.len()
+            )));
+        }
+        if s_state.dialogue_sequences.len() != DIALOGUE_CAPACITY {
+            return Err(invalid(format!(
+                "corrupted dialogue sequences: expected {} slots, found {}",
+                DIALOGUE_CAPACITY,
+                s_state.dialogue_sequences.len()
+            )));
+        }
+        if s_state.dialogue_turn_ids.len() != DIALOGUE_CAPACITY {
+            return Err(invalid(format!(
+                "corrupted dialogue turn IDs: expected {} slots, found {}",
+                DIALOGUE_CAPACITY,
+                s_state.dialogue_turn_ids.len()
+            )));
+        }
         if s_state.dialogue_cursor >= DIALOGUE_CAPACITY {
             return Err(invalid(format!(
                 "dialogue cursor {} out of bounds [0, {})",
                 s_state.dialogue_cursor, DIALOGUE_CAPACITY
+            )));
+        }
+        if s_state.dialogue_len > DIALOGUE_CAPACITY {
+            return Err(invalid(format!(
+                "dialogue len {} exceeds capacity {}",
+                s_state.dialogue_len, DIALOGUE_CAPACITY
             )));
         }
 
@@ -974,6 +1033,13 @@ impl<'a> ChatSession<'a> {
                     "corrupted dialogue key at slot {i}: expected dimension {KEY_DIM}, found {}",
                     key.len()
                 )));
+            }
+            for (d, &coord) in key.iter().enumerate() {
+                if !(-32767..=32767).contains(&coord) {
+                    return Err(invalid(format!(
+                        "corrupted dialogue key coordinate at slot {i}, dim {d}: {coord} outside [-32767, 32767]"
+                    )));
+                }
             }
         }
         for (i, val) in s_state.dialogue_values.iter().enumerate() {
@@ -1003,6 +1069,13 @@ impl<'a> ChatSession<'a> {
                     key.len()
                 )));
             }
+            for (d, &coord) in key.iter().enumerate() {
+                if !(-32767..=32767).contains(&coord) {
+                    return Err(invalid(format!(
+                        "corrupted persistent key coordinate at slot {i}, dim {d}: {coord} outside [-32767, 32767]"
+                    )));
+                }
+            }
             let mut arr = [0i32; KEY_DIM];
             arr.copy_from_slice(&key);
             persistent_keys.push(arr);
@@ -1021,14 +1094,80 @@ impl<'a> ChatSession<'a> {
             persistent_values.push(arr);
         }
 
+        if s_state.l2_pages.len() > L2_PAGE_CAPACITY {
+            return Err(invalid(format!(
+                "l2 page count {} exceeds capacity {}",
+                s_state.l2_pages.len(),
+                L2_PAGE_CAPACITY
+            )));
+        }
+        if s_state.l2_cursor >= L2_PAGE_CAPACITY {
+            return Err(invalid(format!(
+                "l2 cursor {} out of bounds [0, {})",
+                s_state.l2_cursor, L2_PAGE_CAPACITY
+            )));
+        }
+        if s_state.l2_len > L2_PAGE_CAPACITY {
+            return Err(invalid(format!(
+                "l2 len {} exceeds capacity {}",
+                s_state.l2_len, L2_PAGE_CAPACITY
+            )));
+        }
+        if s_state.l2_pages.len() < s_state.l2_len {
+            return Err(invalid(format!(
+                "l2 pages count {} is less than l2_len {}",
+                s_state.l2_pages.len(),
+                s_state.l2_len
+            )));
+        }
+
         let mut l2_pages: Box<[L2PrimePage; L2_PAGE_CAPACITY]> =
             vec![L2PrimePage::default(); L2_PAGE_CAPACITY]
                 .into_boxed_slice()
                 .try_into()
-                .unwrap_or_else(|_| panic!("l2_pages size mismatch"));
+                .map_err(|_| invalid("l2_pages size mismatch"))?;
         for (i, page) in s_state.l2_pages.into_iter().enumerate() {
             if i < L2_PAGE_CAPACITY {
+                for (d, &coord) in page.key.iter().enumerate() {
+                    if !(-32767..=32767).contains(&coord) {
+                        return Err(invalid(format!(
+                            "corrupted L2 page key coordinate at page {i}, dim {d}: {coord} outside [-32767, 32767]"
+                        )));
+                    }
+                }
                 l2_pages[i] = page;
+            }
+        }
+
+        let is_lorentz = bundle.model().is_lorentz();
+        let allow_hyperbolic_cache = s_state.allow_hyperbolic_cache || is_lorentz;
+
+        let mut persistent_key_norms = Vec::with_capacity(persistent_keys.len());
+        if is_lorentz {
+            for key in &persistent_keys {
+                persistent_key_norms.push(crate::lorentz::squared_norm(key)?);
+            }
+        } else {
+            persistent_key_norms.resize(persistent_keys.len(), 0i128);
+        }
+
+        let mut dialogue_key_norms: Box<[i128; DIALOGUE_CAPACITY]> = vec![0i128; DIALOGUE_CAPACITY]
+            .into_boxed_slice()
+            .try_into()
+            .map_err(|_| invalid("dialogue_key_norms size mismatch"))?;
+        if is_lorentz {
+            for i in 0..DIALOGUE_CAPACITY {
+                dialogue_key_norms[i] = crate::lorentz::squared_norm(&dialogue_keys[i])?;
+            }
+        }
+
+        let mut l2_page_norms: Box<[i128; L2_PAGE_CAPACITY]> = vec![0i128; L2_PAGE_CAPACITY]
+            .into_boxed_slice()
+            .try_into()
+            .map_err(|_| invalid("l2_page_norms size mismatch"))?;
+        if is_lorentz {
+            for i in 0..L2_PAGE_CAPACITY {
+                l2_page_norms[i] = crate::lorentz::squared_norm(&l2_pages[i].key)?;
             }
         }
 
@@ -1051,20 +1190,24 @@ impl<'a> ChatSession<'a> {
             dialogue_seen: s_state.dialogue_seen,
             current_turn_id: s_state.current_turn_id,
             l2_pages,
-            l2_cursor: s_state.l2_cursor % L2_PAGE_CAPACITY,
-            l2_len: s_state.l2_len.min(L2_PAGE_CAPACITY),
+            l2_cursor: s_state.l2_cursor,
+            l2_len: s_state.l2_len,
             l2_seen: s_state.l2_seen,
             last_compressed_turn_id: s_state.last_compressed_turn_id,
             zeta_state: s_state.zeta_state,
             hopf_state: s_state.hopf_state,
             cumulative_holonomy_q30: s_state.cumulative_holonomy_q30,
             age_horizon_clamp: s_state.age_horizon_clamp,
+            persistent_key_norms,
+            dialogue_key_norms,
+            l2_page_norms,
+            allow_hyperbolic_cache,
             scratch_products: vec![[0i64; 16]; 512],
             copy_scratch: vec![0u64; 4096],
             last_probabilities: vec![0u64; 4096]
                 .into_boxed_slice()
                 .try_into()
-                .unwrap_or_else(|_| panic!("probabilities size mismatch")),
+                .map_err(|_| invalid("probabilities size mismatch"))?,
             last_read_masses: Vec::with_capacity(TOTAL_MEMORY_CANDIDATES),
             last_no_read_mass: 0,
             last_copy_gate: 0,
