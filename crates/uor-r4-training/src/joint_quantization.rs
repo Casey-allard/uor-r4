@@ -17,6 +17,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
+use uor_r4_integer::config::{LORENTZ_LOG_BETA, LORENTZ_OFFSET};
+
 use crate::{invalid, Result};
 
 pub const SPEC_SCHEMA: &str = "uor-r4.joint-dyadic-quantization/2";
@@ -102,7 +104,9 @@ fn required_bits(name: &str) -> Result<u8> {
     }
     if name.ends_with(".weight") {
         Ok(4)
-    } else if name.ends_with(".bias") || name == "read.age" {
+    } else if name.ends_with(".bias")
+        || matches!(name, "read.age" | LORENTZ_LOG_BETA | LORENTZ_OFFSET)
+    {
         Ok(16)
     } else {
         Err(invalid(format!("unsupported quantized parameter {name}")))

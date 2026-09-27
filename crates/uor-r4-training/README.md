@@ -197,6 +197,38 @@ size does not establish measured process RAM or serving speed.
 
 The descriptive `joint-state-drift` example accepts `QAT_CHECKPOINT PACKED_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT`. It claims and seals an independent root, verifies bitwise packed-parameter agreement with the quantized selected shadows, and records finite coordinate/norm differences by all 256 positions on the original 64 tune windows. It uses the shared model implementation with quantizers enabled/disabled; it does not isolate transport error or add an acceptance threshold. The result receipt binds the executed source and binary.
 
+The exploratory `joint-read-geometry` example trains the joint learner from scratch on u16 token files for one read geometry (`dot` or `lorentz`, in the campaign JSON `read_geometry`) and reports development likelihood with the read enabled and disabled, the mean NoRead mass, and bits per byte when a token byte-length file is given. Two runs that differ only in `geometry=` share their seed, initial arrays, sampled windows and evaluation windows. It claims and seals its report root. It is not a frozen campaign: it has no evaluator manifest, source-edit panel, generation panel, checkpoint selection or resume. The optional Lorentz read scores `exp(read.lorentz_log_beta)*(read.lorentz_offset - arcosh(z))`; both scalars are initialized so that the initial score matches the Dot read to first order (`lorentz_start=flat` starts the scale at 1 instead). `read_dropout=P` trains a share of every batch with the read disabled. `checkpoint_every` and `resume` continue an interrupted run exactly, in a new report root. Quantization, packed export and integer serving refuse Lorentz models. Reduced-scale results: [cycle 3](../../docs/integration/hyperbolic-cycle3-2026-09-26.md).
+
+### Curvature-homotopy conversion of a Llama checkpoint
+
+`kappa_llama` loads a Hugging Face Llama checkpoint (`config.json` plus BF16 or F32 `model.safetensors`, for example SmolLM2-135M/360M-Instruct; biases, RoPE scaling and interleaved RoPE are refused) and replaces only each head's attention score. With curvature `kappa = exp(2 log_eps)` per head and `d` the geodesic distance on the hyperboloid of curvature `-kappa`, `key_norm` scores `(|k|^2 - d(q,k)^2)/(2 sqrt(r))` and `intrinsic` scores `(d(o,k)^2 - d(q,k)^2)/(2 sqrt(r))`, with `o` the origin. These are flat-limit reparametrisations: by the polarization identity they reproduce the checkpoint's scaled dot product (up to a per-query constant) only as `kappa -> 0`, and to first order each adds `kappa F(q,k)/sqrt(r)` with the fixed quartic feature `F = (|q|^2-|k|^2)^2/8 + |q-k|^4/24` (minus `|k|^4/6` for `intrinsic`). The `*_linear` kinds are exactly that first-order model. Curvature is stated as the dimensionless `t = kappa * mean |k|^2` of a head, which a rescaling of the keys does not change; a head is genuinely hyperbolic only near `t ~ 1`. Per-head learnable curvature with an exact Euclidean limit is known (FPS-T, arXiv 2309.04082; kappa-GCN, 1911.05076), as is RoPE as a spatial Lorentz rotation (HELM, 2505.24722).
+
+The `kappa-conversion` example has five modes:
+
+- `tokenize` uses the checkpoint's own byte-level BPE, writing u16 tokens.
+- `probe` measures logit difference, KL, top-1 agreement and NLL against Dot over a grid of `t`.
+- `drive` is the zero-training test to run before any curvature training. Per head it reports the query/key-norm statistics, the cosine from each query to its top key, and the attention mass in the top 2% and 5% of keys (the ceiling for any index). It then gives the flat-limit curvature drive `dL/dt` of both first-order kinds (one backward pass per window; next-token loss, and KL to `teacher=` when given), with the self-distillation gradient as a sanity check (it must vanish), and the zero-shot NLL change when one layer's heads are set to each `t`. Finally it applies a pre-registered rule per layer: curvature training is warranted only if `-sum_h dL/dt_h` exceeds the measured zero-shot change at `t = 1`.
+- `train` minimizes next-token loss, or KL to a Dot `teacher=`. It optionally trains the query/key projections. It accumulates gradients over micro-batches (`accumulate`), and anneals every head's curvature toward `t = anneal_t` with a floor recomputed from the current keys at every step, so shrinking the keys cannot escape it. `score=dot` and `score=*_linear` are the matched plain and first-order controls.
+- `sample` writes a greedy reply under SmolLM2's chat template, including its default system turn. It refuses a saved variable file whose names do not match `score=`/`trainable=`.
+
+`probe`, `drive` and `train` claim and seal their report roots.
+
+Distilling a converted model toward its own flat teacher rewards zero curvature, and even under a data objective an exact start tends to stay in the flat basin, so `train` alone cannot show that heads want curvature; run `drive` first.
+
+Memory: the curved scores keep about thirty `(batch, heads, time, time)` tensors per layer for backward. A 135M student with a 360M teacher therefore needs `batch=1` at `time=256` (with `accumulate`) on a 16 GB machine, or `time=128` on 8 GB.
+
+Focused tests use a synthetic checkpoint: flat-limit agreement, first-order agreement, RoPE relative-position invariance, head statistics, the curvature drive and its vanishing self-distillation gradient, gradients to curvature and query/key weights, the arcosh series switch, the curvature floor and distillation toward a flat teacher. No real checkpoint has been converted with it yet.
+
+```text
+cargo run --release --features metal -p uor-r4-training --example kappa-conversion -- \
+  mode=drive device=metal model=.uor-models/sources/smollm2-135m-instruct \
+  teacher=.uor-models/sources/smollm2-360m-instruct tokens=valid.u16 out=reports/kappa-drive-1
+cargo run --release --features metal -p uor-r4-training --example kappa-conversion -- \
+  mode=train device=metal student=.uor-models/sources/smollm2-135m-instruct \
+  teacher=.uor-models/sources/smollm2-360m-instruct train=train.u16 valid=valid.u16 \
+  score=intrinsic trainable=query_key anneal_t=1 accumulate=4 out=reports/kappa-train-intrinsic-1
+```
+
 Evaluation accepts batches1–32. `joint-compare` joins all249,856 targets against the two sealed baseline evaluations and four learner/control evaluations. It verifies identities and original means, reports paired differences and horizon slices, and preserves the original generation/probe hashes. Rung1 selected by recorded F32 `quick_loss` tune scores; rung2 reports the frozen final common step. The comparison never reselects or decides generation quality. Hard and shadow modes are explicit, with matching Read/NoRead artifact/specification and cross-arm schedule/layout checks.
 
 On Apple hosts, optional `cpu-accelerate` enables the pinned, corrected Candle BLAS adapter for offline training. Its four-line source difference and all upstream identities are retained in [the vendor note](../../third_party/candle-core-0.9.2/UOR-PATCH.md). CPU/Rust-gemm and Metal remain explicit alternatives. Backend-specific numerical behavior is reported; cross-backend bitwise training identity is not claimed.

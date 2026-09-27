@@ -23,6 +23,12 @@ index tooling is optional repository tooling, not the native model lifecycle.
 |---|---|
 | What are we building and why? | [Canonical project plan](project-track.md) |
 | What is implemented and next? | [Current state](current-state.md), [continuation prompt](CONTINUE.md) |
+| Is the programme on course, and what can geometry actually do? | [First-principles review, September 25](first-principles-review-2026-09-25.md): an evidence document, not a decision record |
+| If the only goal is to stop wasting energy on matmul, what should we build? | [Recommended low-energy plan, September 25](low-energy-plan-2026-09-25.md): a proposal requested by the owner, not a decision record |
+| How should attention itself be redesigned from geometry? | [Geometric attention, September 26](geometric-attention-2026-09-26.md): the owner's mechanisms made precise and tested; a design note, not a decision record |
+| Does hyperbolic geometry hold up on real data and in the Rust model? | [Hyperbolic geometry, cycle 2](hyperbolic-cycle2-2026-09-26.md): real code hierarchy, the radius quantizer, code language models and the Rust Lorentz read; an evidence note |
+| Does the hyperbolic read help the project's Rust learner once trained? | [Hyperbolic geometry, cycle 3](hyperbolic-cycle3-2026-09-26.md): the first trained Lorentz reads at reduced scale, their initialisation, read dependence, and the integer design; an evidence note |
+| What is the route to a chat model, and has hyperbolic attention earned a place in it? | [Geometric LM lab, phase 2](geometric-lab-phase2-2026-09-26.md): conversion of an open instruct model, flat-limit curvature conversions and their limits, where hyperbolic geometry pays, the Rust conversion tool and its zero-training curvature test; an evidence note and proposed roadmap |
 | What bounds execution? | [Policy](agent-execution-policy.md), [machine invariants](agent-execution-policy.json) |
 | What was discovered in the prior audit? | [Historical reconciliation](roadmap-reconciliation.md), [dated snapshot](roadmap-state.json), [source catalog](source-catalog.json) |
 | What components might be reused? | [UOR source audit](uor-source-audit.md), [external-source review](external-research-audit.md), [historical frontend port plan](frontend-port-plan.md) |

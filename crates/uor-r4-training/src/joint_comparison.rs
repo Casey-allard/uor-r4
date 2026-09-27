@@ -872,7 +872,15 @@ fn validate_pairs(reports: &[Value]) -> Result<()> {
             )));
         }
     }
-    for field in ["vocab_size", "width", "read_width", "context", "seed"] {
+    // Absent read_geometry is JSON null for retained dot-read arms.
+    for field in [
+        "vocab_size",
+        "width",
+        "read_width",
+        "context",
+        "seed",
+        "read_geometry",
+    ] {
         if q["model"][field] != ordinary["model"][field] {
             return Err(invalid(format!(
                 "transport arms differ in shared model {field}"

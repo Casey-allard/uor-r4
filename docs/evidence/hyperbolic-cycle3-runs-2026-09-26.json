@@ -1,0 +1,4123 @@
+{
+ "schema": "uor-r4.hyperbolic-cycle3-evidence/1",
+ "note": "docs/integration/hyperbolic-cycle3-2026-09-26.md",
+ "scope": "Reduced-scale exploratory comparisons (width 128, context 128, batch 16, lr 1e-3); development windows are held-out but not a frozen final test",
+ "data": {
+  "code": {
+   "train_tokens": 7000992,
+   "valid_tokens": 206844,
+   "bytes_per_token_valid": 3.6005,
+   "tokenizer": "scratch byte-level BPE, 256 bytes + 3,840 merges"
+  },
+  "wikitext-2": {
+   "train_tokens": 3044794,
+   "valid_tokens": 316580,
+   "bytes_per_token_valid": 3.5431,
+   "tokenizer": "scratch byte-level BPE, 256 bytes + 3,840 merges"
+  }
+ },
+ "runs": [
+  {
+   "run": "pilot/dot_s2",
+   "phase": "pilot, scratch harness",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.0922676017653066,
+    "bpb_read": 1.7863347902501407,
+    "nll_no_read": 5.166867513605447,
+    "nll_read": 4.411364582799658,
+    "no_read_mass": 0.29702334011221665,
+    "read_effect_nats": 0.7555029308057888,
+    "targets": 32768
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.237460732332284,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.12244016918993594
+    },
+    {
+     "step": 100,
+     "nll_read": 6.353105084370044,
+     "nll_no_read": 6.952294668604485,
+     "no_read_mass": 0.05342370550852138
+    },
+    {
+     "step": 200,
+     "nll_read": 6.2137861839733155,
+     "nll_no_read": 6.852178498235822,
+     "no_read_mass": 0.04606971140859173
+    },
+    {
+     "step": 300,
+     "nll_read": 5.55571288179087,
+     "nll_no_read": 6.473252758653856,
+     "no_read_mass": 0.11463564042999691
+    },
+    {
+     "step": 400,
+     "nll_read": 5.125441374915016,
+     "nll_no_read": 6.024525038083153,
+     "no_read_mass": 0.15246574628330278
+    },
+    {
+     "step": 500,
+     "nll_read": 4.799872718872929,
+     "nll_no_read": 5.647474640865422,
+     "no_read_mass": 0.2522767430677215
+    }
+   ],
+   "train_seconds_per_update": 3.373430059805002
+  },
+  {
+   "run": "pilot/dot_v0_s1",
+   "phase": "pilot, scratch harness",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 3.0036114076631844,
+    "bpb_read": 1.8587618821272434,
+    "nll_no_read": 7.417436561487442,
+    "nll_read": 4.590223724818096,
+    "no_read_mass": 0.008735000400241565,
+    "read_effect_nats": 2.8272128366693456,
+    "targets": 32768
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.177165413019837,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.06016375085557968
+    },
+    {
+     "step": 100,
+     "nll_read": 6.358956984666998,
+     "nll_no_read": 7.00806895767795,
+     "no_read_mass": 0.01592401935059229
+    },
+    {
+     "step": 200,
+     "nll_read": 6.112607417891945,
+     "nll_no_read": 7.159341626561199,
+     "no_read_mass": 0.07667124429562477
+    },
+    {
+     "step": 300,
+     "nll_read": 5.561379116660303,
+     "nll_no_read": 7.3122376988071265,
+     "no_read_mass": 0.016499184661107332
+    },
+    {
+     "step": 400,
+     "nll_read": 5.2111075492028665,
+     "nll_no_read": 7.299851286517757,
+     "no_read_mass": 0.009649936773483754
+    },
+    {
+     "step": 500,
+     "nll_read": 4.908245893579966,
+     "nll_no_read": 7.630292896448756,
+     "no_read_mass": 0.008866200117511658
+    }
+   ],
+   "train_seconds_per_update": 2.965262882873332
+  },
+  {
+   "run": "pilot/dotflat_s1",
+   "phase": "pilot, scratch harness",
+   "arm": "dot, flat start (scratch control)",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.153625324245185,
+    "bpb_read": 1.8335789373516391,
+    "nll_no_read": 5.318390780859891,
+    "nll_read": 4.528034290183537,
+    "no_read_mass": 0.3129557613088853,
+    "read_effect_nats": 0.7903564906763547,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     -1.824187994003296
+    ],
+    "read.lorentz_offset": [
+     5.075024604797363
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.136362482110149,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.05590139573953934
+    },
+    {
+     "step": 100,
+     "nll_read": 6.358857405502508,
+     "nll_no_read": 6.939783295093392,
+     "no_read_mass": 0.21312908784784668
+    },
+    {
+     "step": 200,
+     "nll_read": 6.33122469346902,
+     "nll_no_read": 6.8778613072742765,
+     "no_read_mass": 0.29630744508176576
+    },
+    {
+     "step": 300,
+     "nll_read": 5.7551463102618206,
+     "nll_no_read": 6.5132587625637,
+     "no_read_mass": 0.19446604023455638
+    },
+    {
+     "step": 400,
+     "nll_read": 5.270614659773491,
+     "nll_no_read": 6.122477087548323,
+     "no_read_mass": 0.2711014614814501
+    },
+    {
+     "step": 500,
+     "nll_read": 4.907443596297785,
+     "nll_no_read": 5.776958232202751,
+     "no_read_mass": 0.3197839357346003
+    }
+   ],
+   "train_seconds_per_update": 3.241233424815
+  },
+  {
+   "run": "pilot/dotflat_s2",
+   "phase": "pilot, scratch harness",
+   "arm": "dot, flat start (scratch control)",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.0073387654411756,
+    "bpb_read": 1.742207345049001,
+    "nll_no_read": 4.9571352379628735,
+    "nll_read": 4.302391589633868,
+    "no_read_mass": 0.3396115758610372,
+    "read_effect_nats": 0.6547436483290054,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     -1.7590842247009277
+    ],
+    "read.lorentz_offset": [
+     5.063933372497559
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.133567988271143,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.08320733850931106
+    },
+    {
+     "step": 100,
+     "nll_read": 6.358013709175417,
+     "nll_no_read": 6.915708907017945,
+     "no_read_mass": 0.20088995520018216
+    },
+    {
+     "step": 200,
+     "nll_read": 6.276178820792898,
+     "nll_no_read": 6.820473052086409,
+     "no_read_mass": 0.2629508165464358
+    },
+    {
+     "step": 300,
+     "nll_read": 5.556659247088667,
+     "nll_no_read": 6.330862396651468,
+     "no_read_mass": 0.2666046666451054
+    },
+    {
+     "step": 400,
+     "nll_read": 5.068536694342949,
+     "nll_no_read": 5.825420013452551,
+     "no_read_mass": 0.26779709939890806
+    },
+    {
+     "step": 500,
+     "nll_read": 4.673322328757355,
+     "nll_no_read": 5.387536033984726,
+     "no_read_mass": 0.3420057620373367
+    }
+   ],
+   "train_seconds_per_update": 3.335437191635001
+  },
+  {
+   "run": "pilot/euclid_s1",
+   "phase": "pilot, scratch harness",
+   "arm": "euclidean distance (scratch control)",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.1458647435859772,
+    "bpb_read": 1.7979959823216234,
+    "nll_no_read": 5.299225979922888,
+    "nll_read": 4.440161967241887,
+    "no_read_mass": 0.10393780271636205,
+    "read_effect_nats": 0.8590640126810003,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     0.5037437081336975
+    ],
+    "read.lorentz_offset": [
+     12.918441772460938
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.577855403363521,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.024210909759393662
+    },
+    {
+     "step": 100,
+     "nll_read": 6.3726505584248905,
+     "nll_no_read": 6.936574841004698,
+     "no_read_mass": 0.015817265066004893
+    },
+    {
+     "step": 200,
+     "nll_read": 6.312554081685162,
+     "nll_no_read": 6.9097664524830975,
+     "no_read_mass": 0.013032640555337593
+    },
+    {
+     "step": 300,
+     "nll_read": 5.586790273098928,
+     "nll_no_read": 6.490674237619206,
+     "no_read_mass": 0.01287398544424556
+    },
+    {
+     "step": 400,
+     "nll_read": 5.223089106704288,
+     "nll_no_read": 6.162266532846481,
+     "no_read_mass": 0.01564933869675851
+    },
+    {
+     "step": 500,
+     "nll_read": 4.838899126965452,
+     "nll_no_read": 5.790032483134577,
+     "no_read_mass": 0.02364447520540987
+    }
+   ],
+   "train_seconds_per_update": 2.9669303339083317
+  },
+  {
+   "run": "pilot/lorentz_v0_s1",
+   "phase": "pilot, scratch harness",
+   "arm": "lorentz, cycle-2 score (no offset), beta 1",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.1286417469136967,
+    "bpb_read": 1.8144800840558506,
+    "nll_no_read": 5.256693685335973,
+    "nll_read": 4.480869556304436,
+    "no_read_mass": 0.6020360336743238,
+    "read_effect_nats": 0.7758241290315375,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     0.3230033814907074
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.639279882499658,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.8282826584327267
+    },
+    {
+     "step": 100,
+     "nll_read": 6.362167019373421,
+     "nll_no_read": 6.926130714576204,
+     "no_read_mass": 0.3882163608104747
+    },
+    {
+     "step": 200,
+     "nll_read": 6.319916899828762,
+     "nll_no_read": 6.920589945248406,
+     "no_read_mass": 0.5506650512033957
+    },
+    {
+     "step": 300,
+     "nll_read": 5.537738261964044,
+     "nll_no_read": 6.451164566220406,
+     "no_read_mass": 0.4902652881478389
+    },
+    {
+     "step": 400,
+     "nll_read": 5.092194678907776,
+     "nll_no_read": 6.019223747390988,
+     "no_read_mass": 0.4954041051914828
+    },
+    {
+     "step": 500,
+     "nll_read": 4.781247194559411,
+     "nll_no_read": 5.6577320264422655,
+     "no_read_mass": 0.5060416210549192
+    }
+   ],
+   "train_seconds_per_update": 2.9963766310483324
+  },
+  {
+   "run": "pilot/lorentz_v1_s1",
+   "phase": "pilot, scratch harness",
+   "arm": "lorentz, offset, flat start",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.0939206257509184,
+    "bpb_read": 1.774684054285895,
+    "nll_no_read": 5.170949666348845,
+    "nll_read": 4.382593019777573,
+    "no_read_mass": 0.5582050744100115,
+    "read_effect_nats": 0.7883566465712715,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     0.5554266571998596
+    ],
+    "read.lorentz_offset": [
+     5.093090534210205
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.13368538574777,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.04826271689569239
+    },
+    {
+     "step": 100,
+     "nll_read": 6.359885734077322,
+     "nll_no_read": 6.939078983206626,
+     "no_read_mass": 0.4876544608705444
+    },
+    {
+     "step": 200,
+     "nll_read": 6.303037140168027,
+     "nll_no_read": 6.905024755375154,
+     "no_read_mass": 0.5687289352936205
+    },
+    {
+     "step": 300,
+     "nll_read": 5.444514288169021,
+     "nll_no_read": 6.58214262727235,
+     "no_read_mass": 0.4431956833025197
+    },
+    {
+     "step": 400,
+     "nll_read": 4.976563927924369,
+     "nll_no_read": 5.991322909748969,
+     "no_read_mass": 0.4572753525853557
+    },
+    {
+     "step": 500,
+     "nll_read": 4.64800522236541,
+     "nll_no_read": 5.581148588264587,
+     "no_read_mass": 0.5204942520662144
+    }
+   ],
+   "train_seconds_per_update": 3.1603614727666653
+  },
+  {
+   "run": "pilot/lorentz_v1_s2",
+   "phase": "pilot, scratch harness",
+   "arm": "lorentz, offset, flat start",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.0722307412310363,
+    "bpb_read": 1.756221360911275,
+    "nll_no_read": 5.117386365170221,
+    "nll_read": 4.336999286676465,
+    "no_read_mass": 0.5889951783923948,
+    "read_effect_nats": 0.7803870784937557,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     0.6080393195152283
+    ],
+    "read.lorentz_offset": [
+     5.0715460777282715
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.13865943619089,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.07065494025883368
+    },
+    {
+     "step": 100,
+     "nll_read": 6.361454460748747,
+     "nll_no_read": 6.903555301533537,
+     "no_read_mass": 0.21601734557771124
+    },
+    {
+     "step": 200,
+     "nll_read": 6.286781248431553,
+     "nll_no_read": 6.815856627524143,
+     "no_read_mass": 0.2662239079709252
+    },
+    {
+     "step": 300,
+     "nll_read": 5.496391468756408,
+     "nll_no_read": 6.315781516242366,
+     "no_read_mass": 0.4388660020485986
+    },
+    {
+     "step": 400,
+     "nll_read": 5.056145226040848,
+     "nll_no_read": 5.899023040539994,
+     "no_read_mass": 0.5109308720770969
+    },
+    {
+     "step": 500,
+     "nll_read": 4.674706171655687,
+     "nll_no_read": 5.521072941153469,
+     "no_read_mass": 0.5855497813499824
+    }
+   ],
+   "train_seconds_per_update": 3.1600861086349994
+  },
+  {
+   "run": "pilot/lorentz_v2_s1",
+   "phase": "pilot, scratch harness",
+   "arm": "lorentz, offset, Dot-matched start",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 600,
+   "status": "completed",
+   "final_windows": 256,
+   "final": {
+    "bpb_no_read": 2.130185255016379,
+    "bpb_read": 1.7722092233012314,
+    "nll_no_read": 5.260505387943233,
+    "nll_read": 4.376481409673047,
+    "no_read_mass": 0.0748677147378943,
+    "read_effect_nats": 0.8840239782701866,
+    "targets": 32768
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     2.18829345703125
+    ],
+    "read.lorentz_offset": [
+     5.094221115112305
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 8.422972446314894,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.007992882844012205
+    },
+    {
+     "step": 100,
+     "nll_read": 6.35511350275445,
+     "nll_no_read": 7.009600198235484,
+     "no_read_mass": 0.036238280289126124
+    },
+    {
+     "step": 200,
+     "nll_read": 6.231193976850122,
+     "nll_no_read": 6.928068602728324,
+     "no_read_mass": 0.030031706188312857
+    },
+    {
+     "step": 300,
+     "nll_read": 5.463447444040849,
+     "nll_no_read": 6.4611885990836075,
+     "no_read_mass": 0.012710364049622887
+    },
+    {
+     "step": 400,
+     "nll_read": 5.059600346697439,
+     "nll_no_read": 6.0921357576234545,
+     "no_read_mass": 0.016429028923611446
+    },
+    {
+     "step": 500,
+     "nll_read": 4.727127753047935,
+     "nll_no_read": 5.738910264385789,
+     "no_read_mass": 0.02596646616367171
+    }
+   ],
+   "train_seconds_per_update": 3.2705971778999987
+  },
+  {
+   "run": "full/code_dot_s1",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 2000,
+   "status": "completed; model save failed (fixed in e6be6e3)",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5667713282543647,
+    "bits_per_byte_read": 1.307527362271972,
+    "nll_no_read": 3.8894840143935574,
+    "nll_read": 3.2459151391321375,
+    "no_read_mass": 0.4765841032689252,
+    "read_effect_nats": 0.6435688752614199,
+    "targets": 65536
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.177165413019837,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.06016375085557968
+    },
+    {
+     "step": 250,
+     "nll_read": 5.713710327219036,
+     "nll_no_read": 6.6836724984416644,
+     "no_read_mass": 0.012746760564976254
+    },
+    {
+     "step": 500,
+     "nll_read": 4.7082750693632995,
+     "nll_no_read": 7.237715598207284,
+     "no_read_mass": 0.02986032165272918
+    },
+    {
+     "step": 750,
+     "nll_read": 4.1586403835453165,
+     "nll_no_read": 5.034121032230274,
+     "no_read_mass": 0.193048978811185
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8429020062115873,
+     "nll_no_read": 4.590044890848223,
+     "no_read_mass": 0.3099991202792054
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.676878774393068,
+     "nll_no_read": 4.365503579400453,
+     "no_read_mass": 0.4232477038736788
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.516455952279868,
+     "nll_no_read": 4.187785115848288,
+     "no_read_mass": 0.4477517761795493
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.387911013113732,
+     "nll_no_read": 4.03482620783983,
+     "no_read_mass": 0.5155167200330539
+    }
+   ],
+   "report_sha256": "ac44cb4a42cd642086b127a6d5c53ced4d8b3f3764b5536340fa11c416411f7c",
+   "manifest_sha256": "404b968ffa2d49bf3361b07ca81ce4587aa8e4ad616b12f2f82468c896abcbb6",
+   "model_safetensors_sha256": null,
+   "config": {
+    "context": 128,
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_dot_s2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 2,
+   "status": "killed by a container restart; relaunched from scratch in a separate root",
+   "last_evaluated_step": 1750,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.80467690004196,
+     "nll_no_read": 6.569632933185263,
+     "no_read_mass": 0.06892388090582757
+    },
+    {
+     "step": 500,
+     "nll_read": 4.793516779714975,
+     "nll_no_read": 5.683563186076863,
+     "no_read_mass": 0.27845452183045666
+    },
+    {
+     "step": 750,
+     "nll_read": 4.182581471646622,
+     "nll_no_read": 4.963582291861418,
+     "no_read_mass": 0.36003229482511634
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8817051541211978,
+     "nll_no_read": 4.59858939212421,
+     "no_read_mass": 0.3955123261571089
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6713005800224585,
+     "nll_no_read": 4.332655197595844,
+     "no_read_mass": 0.427688408394154
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5241173707129185,
+     "nll_no_read": 4.179626731638145,
+     "no_read_mass": 0.4717611750536006
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.4223985367499963,
+     "nll_no_read": 4.071561241737115,
+     "no_read_mass": 0.5291470750352951
+    }
+   ],
+   "checkpoint_progress_sha256": null
+  },
+  {
+   "run": "full/code_dot_s2_r2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5718723827065115,
+    "bits_per_byte_read": 1.3132796841895273,
+    "nll_no_read": 3.9021472980459855,
+    "nll_read": 3.260195183539705,
+    "no_read_mass": 0.5677518408956727,
+    "read_effect_nats": 0.6419521145062803,
+    "targets": 65536
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.237460732332284,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.12244016918993594
+    },
+    {
+     "step": 250,
+     "nll_read": 5.804916962016355,
+     "nll_no_read": 6.569748431146203,
+     "no_read_mass": 0.06908694567504414
+    },
+    {
+     "step": 500,
+     "nll_read": 4.793220339753923,
+     "nll_no_read": 5.680958853776093,
+     "no_read_mass": 0.2771405806082487
+    },
+    {
+     "step": 750,
+     "nll_read": 4.183132278641261,
+     "nll_no_read": 4.964315604375861,
+     "no_read_mass": 0.359730453634349
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8829211749841943,
+     "nll_no_read": 4.59974026462464,
+     "no_read_mass": 0.3956409238861322
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.672214997253516,
+     "nll_no_read": 4.333534023510506,
+     "no_read_mass": 0.4262140749745136
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5251635432365243,
+     "nll_no_read": 4.180879161615297,
+     "no_read_mass": 0.47311186514146686
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.4230952251853517,
+     "nll_no_read": 4.073325926184266,
+     "no_read_mass": 0.5285652778195273
+    }
+   ],
+   "report_sha256": "9c126c37729e862ce8b99729ad53e8a5cb176413ee3cd666c5095d20df75d9d3",
+   "manifest_sha256": "2699c1a7f2347a950b501e563e262f38e073b88d7480f11fb820638700b18ded",
+   "model_safetensors_sha256": "eee9d1ca65dca001d2cdfa685841bea128dd40593f29d6197f4f3d54bbbfd02e",
+   "config": {
+    "context": 128,
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_dot_s3",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 3,
+   "status": "killed by a container restart; resumed from its checkpoint in a separate root",
+   "last_evaluated_step": 1500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.879382193213972,
+     "nll_no_read": 6.606428925087338,
+     "no_read_mass": 0.24720353573669795
+    },
+    {
+     "step": 500,
+     "nll_read": 4.761973995546299,
+     "nll_no_read": 5.6026703527703985,
+     "no_read_mass": 0.3535276510892439
+    },
+    {
+     "step": 750,
+     "nll_read": 4.175546002610772,
+     "nll_no_read": 4.943188551246154,
+     "no_read_mass": 0.38483874509454
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8699495100283285,
+     "nll_no_read": 4.594343535483326,
+     "no_read_mass": 0.45038491481362364
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6593469156607084,
+     "nll_no_read": 4.338811511166391,
+     "no_read_mass": 0.4936634346235138
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5395728905396417,
+     "nll_no_read": 4.203360728030902,
+     "no_read_mass": 0.5719939337325766
+    }
+   ],
+   "checkpoint_progress_sha256": "d5280d05d1df5f9cf84ec6d48d6377d7dcfb4eaa6093e227bb481c8edbccc869"
+  },
+  {
+   "run": "full/code_dot_s3_resumed",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 3,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": {
+    "checkpoint": "runs/full/code_dot_s3/checkpoint",
+    "model_sha256": "76c593743986d07ea1966417cd7cba1ff6afaaba25aa646513d30649f3ab0395",
+    "optimizer_sha256": "06a2d586155bacdb619789e6f434f055d98db694874502c0e4289560a881af19",
+    "progress_sha256": "d5280d05d1df5f9cf84ec6d48d6377d7dcfb4eaa6093e227bb481c8edbccc869",
+    "step": 1500
+   },
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5864322181074066,
+    "bits_per_byte_read": 1.3181892478024195,
+    "nll_no_read": 3.9382918495977925,
+    "nll_read": 3.272383094337938,
+    "no_read_mass": 0.5643463237097316,
+    "read_effect_nats": 0.6659087552598546,
+    "targets": 65536
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.222160341566813,
+     "nll_no_read": 8.36601142363831,
+     "no_read_mass": 0.10223921773272338
+    },
+    {
+     "step": 250,
+     "nll_read": 5.879382193213972,
+     "nll_no_read": 6.606428925087338,
+     "no_read_mass": 0.24720353573669795
+    },
+    {
+     "step": 500,
+     "nll_read": 4.761973995546299,
+     "nll_no_read": 5.6026703527703985,
+     "no_read_mass": 0.3535276510892439
+    },
+    {
+     "step": 750,
+     "nll_read": 4.175546002610772,
+     "nll_no_read": 4.943188551246154,
+     "no_read_mass": 0.38483874509454
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8699495100283285,
+     "nll_no_read": 4.594343535483326,
+     "no_read_mass": 0.45038491481362364
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6593469156607084,
+     "nll_no_read": 4.338811511166391,
+     "no_read_mass": 0.4936634346235138
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5395728905396417,
+     "nll_no_read": 4.203360728030902,
+     "no_read_mass": 0.5719939337325766
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.39415504358105,
+     "nll_no_read": 4.033931748547937,
+     "no_read_mass": 0.6098226099813093
+    }
+   ],
+   "report_sha256": "4128e1b2f4f8cfb58e9a68f01d4d0ae54f0ec0a86b8364ec0c5fb87559cbcd83",
+   "manifest_sha256": "495821a29a8cad3eeea859342c760ef2355225cd457ca992087d89413b756da9",
+   "model_safetensors_sha256": "163667c9cc195cb4de46eb8a1272af05f2710fb64c268b6dc1716f126bbaf65e",
+   "config": {
+    "context": 128,
+    "read_width": 64,
+    "seed": 3,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_dot_s4",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 4,
+   "status": "killed by a container restart; resumed from its checkpoint in a separate root",
+   "last_evaluated_step": 1500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.676467000393071,
+     "nll_no_read": 6.656167328250325,
+     "no_read_mass": 0.027048453705907107
+    },
+    {
+     "step": 500,
+     "nll_read": 4.682765073370696,
+     "nll_no_read": 5.6986320367222465,
+     "no_read_mass": 0.10181094633976819
+    },
+    {
+     "step": 750,
+     "nll_read": 4.136723130025911,
+     "nll_no_read": 4.927956429295064,
+     "no_read_mass": 0.20795793209359137
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.81590256036388,
+     "nll_no_read": 4.522401668353086,
+     "no_read_mass": 0.3733592756826962
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6363599776915287,
+     "nll_no_read": 4.300398691667631,
+     "no_read_mass": 0.43849877685772753
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4727339114201157,
+     "nll_no_read": 4.1321156240213295,
+     "no_read_mass": 0.5088225153561474
+    }
+   ],
+   "checkpoint_progress_sha256": "ff2374636b236eb31b1260a5a99997db8a31194ed0a32591cbbda86ab9c88097"
+  },
+  {
+   "run": "full/code_dot_s4_resumed",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "code",
+   "seed": 4,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": {
+    "checkpoint": "runs/full/code_dot_s4/checkpoint",
+    "model_sha256": "f87f5c0c86d77e8497bd9476adbdff57ec58a910d778fe611ec50f4462680478",
+    "optimizer_sha256": "1013a21f4406d685a74a7aa321319a4dead4370944bc763e74fb8ccc25038cbc",
+    "progress_sha256": "ff2374636b236eb31b1260a5a99997db8a31194ed0a32591cbbda86ab9c88097",
+    "step": 1500
+   },
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5615441370769259,
+    "bits_per_byte_read": 1.296515476716853,
+    "nll_no_read": 3.876507598398328,
+    "nll_read": 3.2185783146303204,
+    "no_read_mass": 0.5831845089939691,
+    "read_effect_nats": 0.6579292837680075,
+    "targets": 65536
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.253487060566382,
+     "nll_no_read": 8.345974303253286,
+     "no_read_mass": 0.18378260135982316
+    },
+    {
+     "step": 250,
+     "nll_read": 5.676467000393071,
+     "nll_no_read": 6.656167328250325,
+     "no_read_mass": 0.027048453705907107
+    },
+    {
+     "step": 500,
+     "nll_read": 4.682765073370696,
+     "nll_no_read": 5.6986320367222465,
+     "no_read_mass": 0.10181094633976819
+    },
+    {
+     "step": 750,
+     "nll_read": 4.136723130025911,
+     "nll_no_read": 4.927956429295064,
+     "no_read_mass": 0.20795793209359137
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.81590256036388,
+     "nll_no_read": 4.522401668353086,
+     "no_read_mass": 0.3733592756826962
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6363599776915287,
+     "nll_no_read": 4.300398691667631,
+     "no_read_mass": 0.43849877685772753
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4727339114201157,
+     "nll_no_read": 4.1321156240213295,
+     "no_read_mass": 0.5088225153561474
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.3410883721814577,
+     "nll_no_read": 3.974848467365385,
+     "no_read_mass": 0.4995858163983513
+    }
+   ],
+   "report_sha256": "e2d39807b7cc9d31deef7013b2dde8b3f80f3b5aaf91f8db9e6a1f6054d2d4ba",
+   "manifest_sha256": "f023aa2cb993517d971423152d21638dea43855b369acbde88e7da577a39dfc8",
+   "model_safetensors_sha256": "e8aecbde3ecc2c1260001a1f061e9fa7e5d53e2213bd8671c9e14e57b0ecbd15",
+   "config": {
+    "context": 128,
+    "read_width": 64,
+    "seed": 4,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_dotflat_s1",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot, flat start (scratch control)",
+   "corpus": "code",
+   "seed": 1,
+   "status": "killed by a container restart; relaunched from scratch in a separate root",
+   "last_evaluated_step": 500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.972988282593774,
+     "nll_no_read": 6.785204649551533,
+     "no_read_mass": 0.36343416185445676
+    },
+    {
+     "step": 500,
+     "nll_read": 4.84531545345675,
+     "nll_no_read": 5.713607341202417,
+     "no_read_mass": 0.33275262287820095
+    }
+   ],
+   "checkpoint_progress_sha256": null
+  },
+  {
+   "run": "full/code_dotflat_s1_r2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot, flat start (scratch control)",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.6053550318086514,
+    "bits_per_byte_read": 1.3425742899900723,
+    "nll_no_read": 3.985267422912847,
+    "nll_read": 3.3329185598961826,
+    "no_read_mass": 0.5075903756378586,
+    "read_effect_nats": 0.6523488630166643,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     -1.4693063497543335
+    ],
+    "read.lorentz_offset": [
+     4.8792924880981445
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.136362482110149,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.05590139573953934
+    },
+    {
+     "step": 250,
+     "nll_read": 5.973161760511004,
+     "nll_no_read": 6.785393332579142,
+     "no_read_mass": 0.362831214383732
+    },
+    {
+     "step": 500,
+     "nll_read": 4.846386361850542,
+     "nll_no_read": 5.713716625949953,
+     "no_read_mass": 0.3296786339056432
+    },
+    {
+     "step": 750,
+     "nll_read": 4.260370767009131,
+     "nll_no_read": 5.043553367938086,
+     "no_read_mass": 0.42706671998988516
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.941395100544426,
+     "nll_no_read": 4.627290881983632,
+     "no_read_mass": 0.45442713245441585
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.7790757084660678,
+     "nll_no_read": 4.443021069514309,
+     "no_read_mass": 0.48843904762088075
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.6231033375315276,
+     "nll_no_read": 4.268070869206195,
+     "no_read_mass": 0.5163649728010717
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.489153258340902,
+     "nll_no_read": 4.132871028550541,
+     "no_read_mass": 0.542541977883588
+    }
+   ],
+   "report_sha256": "e4ffccc8544e88d989d225527191f80a069ef333f03921bbbd4ed50af16c6994",
+   "manifest_sha256": "ef90b6a846a7fccaa561884e374c1a6fc30973bd3ead8204a8823edab3a43b5e",
+   "model_safetensors_sha256": "f9349ceb61c2732f0519514acd0f3743b3cdad4e1f94f39203b3d05f3dee48ae",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_dotflat_s2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot, flat start (scratch control)",
+   "corpus": "code",
+   "seed": 2,
+   "status": "killed by a container restart; relaunched from scratch in a separate root",
+   "last_evaluated_step": 500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.957840464804091,
+     "nll_no_read": 6.667514858661431,
+     "no_read_mass": 0.3100052145177301
+    },
+    {
+     "step": 500,
+     "nll_read": 4.731025155793087,
+     "nll_no_read": 5.540363638017663,
+     "no_read_mass": 0.38114383447405564
+    }
+   ],
+   "checkpoint_progress_sha256": null
+  },
+  {
+   "run": "full/code_dotflat_s2_r2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot, flat start (scratch control)",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5665122732574752,
+    "bits_per_byte_read": 1.3096648438203182,
+    "nll_no_read": 3.888840914630956,
+    "nll_read": 3.2512214018671184,
+    "no_read_mass": 0.5635451924921183,
+    "read_effect_nats": 0.6376195127638375,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     -1.3965075016021729
+    ],
+    "read.lorentz_offset": [
+     4.876213073730469
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.133567988271143,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.08320733850931106
+    },
+    {
+     "step": 250,
+     "nll_read": 5.957903947047518,
+     "nll_no_read": 6.667694763850288,
+     "no_read_mass": 0.31015798136346007
+    },
+    {
+     "step": 500,
+     "nll_read": 4.731135738189513,
+     "nll_no_read": 5.540235091338258,
+     "no_read_mass": 0.3807042235088108
+    },
+    {
+     "step": 750,
+     "nll_read": 4.140172141558417,
+     "nll_no_read": 4.8286932608591115,
+     "no_read_mass": 0.44486477330673013
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.843601721489063,
+     "nll_no_read": 4.51759032526058,
+     "no_read_mass": 0.4584137160077156
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6565962168866997,
+     "nll_no_read": 4.308671401018101,
+     "no_read_mass": 0.48700610247286946
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5063939085271096,
+     "nll_no_read": 4.140352514242806,
+     "no_read_mass": 0.5337768886760623
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.4184729571239965,
+     "nll_no_read": 4.05948025115105,
+     "no_read_mass": 0.5368202927217508
+    }
+   ],
+   "report_sha256": "7742321c9ca20d62a161220938db3b8211d37e470b23c2b4ac40e3113bd89ffe",
+   "manifest_sha256": "1286fbf5ba4cb3090c563839c47bff95cd8b9474d0db681049642c6b53cb68de",
+   "model_safetensors_sha256": "ada1f5a546ecfa4ba68930197bd68c1c3f84ea692d36f027676ca7b7ba7820be",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentz_s1",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 2000,
+   "status": "completed; model save failed (fixed in e6be6e3)",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 3.373669575202741,
+    "bits_per_byte_read": 1.3897773313994586,
+    "nll_no_read": 8.375079149052848,
+    "nll_read": 3.4500993326622504,
+    "no_read_mass": 0.03558275015182378,
+    "read_effect_nats": 4.924979816390597,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     1.9966806173324585
+    ],
+    "read.lorentz_offset": [
+     5.053430080413818
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 8.422972446314894,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.007992882844012205
+    },
+    {
+     "step": 250,
+     "nll_read": 5.639064883822272,
+     "nll_no_read": 7.354349509856572,
+     "no_read_mass": 0.010586123513029106
+    },
+    {
+     "step": 500,
+     "nll_read": 4.878446339438487,
+     "nll_no_read": 7.988997712676944,
+     "no_read_mass": 0.010174610399905266
+    },
+    {
+     "step": 750,
+     "nll_read": 4.373051761281129,
+     "nll_no_read": 8.126269608895331,
+     "no_read_mass": 0.009969957377848716
+    },
+    {
+     "step": 1000,
+     "nll_read": 4.078185725464668,
+     "nll_no_read": 8.762642386022554,
+     "no_read_mass": 0.013002066966182852
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.8926661340459727,
+     "nll_no_read": 9.151486955406682,
+     "no_read_mass": 0.016835959850256342
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.730867995612906,
+     "nll_no_read": 9.756809516433549,
+     "no_read_mass": 0.0226350870858001
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.6219036465121577,
+     "nll_no_read": 8.84900231328172,
+     "no_read_mass": 0.027992965267152614
+    }
+   ],
+   "report_sha256": "05cb2b6b2495603f2fc27ea9db3c5f29742e1df554008f64e0a298d4c4eada08",
+   "manifest_sha256": "8628d5ac631ff444e103bb6b0938f317098ad32068ca2b10ab0fd002f776299d",
+   "model_safetensors_sha256": null,
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentz_s2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 2,
+   "status": "killed by a container restart; relaunched from scratch in a separate root",
+   "last_evaluated_step": 1750,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 6.0786780844941015,
+     "nll_no_read": 6.823505394795182,
+     "no_read_mass": 0.00922796519564556
+    },
+    {
+     "step": 500,
+     "nll_read": 4.847434535824348,
+     "nll_no_read": 5.941121140072183,
+     "no_read_mass": 0.01425683637735884
+    },
+    {
+     "step": 750,
+     "nll_read": 4.222884475950138,
+     "nll_no_read": 5.172359283704195,
+     "no_read_mass": 0.14229474871960934
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8920197578056204,
+     "nll_no_read": 4.703368686321234,
+     "no_read_mass": 0.3892915210099446
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.679079425515307,
+     "nll_no_read": 4.404556614109364,
+     "no_read_mass": 0.4900043754292369
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.505614786365611,
+     "nll_no_read": 4.1977666154300515,
+     "no_read_mass": 0.5775624381985835
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.395022349713177,
+     "nll_no_read": 4.080247679554302,
+     "no_read_mass": 0.5982829120956268
+    }
+   ],
+   "checkpoint_progress_sha256": null
+  },
+  {
+   "run": "full/code_lorentz_s2_r2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5755164525832233,
+    "bits_per_byte_read": 1.3028123015825004,
+    "nll_no_read": 3.9111936414894757,
+    "nll_read": 3.2342100786374264,
+    "no_read_mass": 0.6160089750877993,
+    "read_effect_nats": 0.6769835628520493,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     2.083122968673706
+    ],
+    "read.lorentz_offset": [
+     4.900609970092773
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 8.471827378034392,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.007902486701859668
+    },
+    {
+     "step": 250,
+     "nll_read": 6.081399200595575,
+     "nll_no_read": 6.826471291697284,
+     "no_read_mass": 0.010459757926507052
+    },
+    {
+     "step": 500,
+     "nll_read": 4.832352235589411,
+     "nll_no_read": 5.912190197078423,
+     "no_read_mass": 0.013853405633203465
+    },
+    {
+     "step": 750,
+     "nll_read": 4.216057186536698,
+     "nll_no_read": 5.171564756996074,
+     "no_read_mass": 0.12450269809336285
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.9017053804815847,
+     "nll_no_read": 4.7118831035392725,
+     "no_read_mass": 0.3637214139250986
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6801718293509804,
+     "nll_no_read": 4.395148161545926,
+     "no_read_mass": 0.4851476178402834
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5154667628978284,
+     "nll_no_read": 4.211278635399045,
+     "no_read_mass": 0.5652861577891173
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.4022170640515,
+     "nll_no_read": 4.088450806945956,
+     "no_read_mass": 0.5783042930903264
+    }
+   ],
+   "report_sha256": "7ee3f85b841d12c08944eb331f309e91e9ac6717ed317a42e50cef50985b0ff4",
+   "manifest_sha256": "fa0629f1a0e2ba88059e713b3f92836819788f5a07c104a0dff8778495f21105",
+   "model_safetensors_sha256": "fa8136b832eabf38d764b41ab61a36871d27c992b3448ba32fdd42cfc2cf9737",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentz_s3",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 3,
+   "status": "killed by a container restart; resumed from its checkpoint in a separate root",
+   "last_evaluated_step": 1500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.890402946241113,
+     "nll_no_read": 6.60005752180261,
+     "no_read_mass": 0.40390476499396755
+    },
+    {
+     "step": 500,
+     "nll_read": 4.7056527612935195,
+     "nll_no_read": 5.626102260687617,
+     "no_read_mass": 0.5486986440161559
+    },
+    {
+     "step": 750,
+     "nll_read": 4.124897823075809,
+     "nll_no_read": 4.921994936450885,
+     "no_read_mass": 0.5817650819221001
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.80857620193517,
+     "nll_no_read": 4.559723335226063,
+     "no_read_mass": 0.6309607358170695
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6061870474533904,
+     "nll_no_read": 4.327661093763101,
+     "no_read_mass": 0.6343315462399914
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4824965650434487,
+     "nll_no_read": 4.190176170050419,
+     "no_read_mass": 0.6621815126578667
+    }
+   ],
+   "checkpoint_progress_sha256": "ec5bcfde0ae2f7fbcc709ac057e08c40c38cfa6671a10fe08693607b8c1bd94a"
+  },
+  {
+   "run": "full/code_lorentz_s3_resumed",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 3,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": {
+    "checkpoint": "runs/full/code_lorentz_s3/checkpoint",
+    "model_sha256": "4f55ab771567c29b17c9d953f81667d70b6b8b6ebdd864142172de6187ed162a",
+    "optimizer_sha256": "7a1983ecbe17f58efe5cafd8992b00edb074ce8ea4e59aa57a08fe7afa21a9e1",
+    "progress_sha256": "ec5bcfde0ae2f7fbcc709ac057e08c40c38cfa6671a10fe08693607b8c1bd94a",
+    "step": 1500
+   },
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5708998293116325,
+    "bits_per_byte_read": 1.296263206856062,
+    "nll_no_read": 3.899732950263185,
+    "nll_read": 3.2179520588563193,
+    "no_read_mass": 0.6646552577231184,
+    "read_effect_nats": 0.6817808914068655,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     2.2194502353668213
+    ],
+    "read.lorentz_offset": [
+     4.974931716918945
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 8.472554880449643,
+     "nll_no_read": 8.36601142363831,
+     "no_read_mass": 0.008135525710150303
+    },
+    {
+     "step": 250,
+     "nll_read": 5.890402946241113,
+     "nll_no_read": 6.60005752180261,
+     "no_read_mass": 0.40390476499396755
+    },
+    {
+     "step": 500,
+     "nll_read": 4.7056527612935195,
+     "nll_no_read": 5.626102260687617,
+     "no_read_mass": 0.5486986440161559
+    },
+    {
+     "step": 750,
+     "nll_read": 4.124897823075809,
+     "nll_no_read": 4.921994936450885,
+     "no_read_mass": 0.5817650819221001
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.80857620193517,
+     "nll_no_read": 4.559723335226063,
+     "no_read_mass": 0.6309607358170695
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6061870474533904,
+     "nll_no_read": 4.327661093763101,
+     "no_read_mass": 0.6343315462399914
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4824965650434487,
+     "nll_no_read": 4.190176170050419,
+     "no_read_mass": 0.6621815126578667
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.341877116908139,
+     "nll_no_read": 4.013651546789171,
+     "no_read_mass": 0.7084473403975267
+    }
+   ],
+   "report_sha256": "d778a57f0628cf14e4e5abda0a2ece97409be47210c8f3ac1f0c4cea096e644b",
+   "manifest_sha256": "93bb0ea9942174e9112acfe92a7152a82751bf2a5b241a84b6cc2d27612d1eb9",
+   "model_safetensors_sha256": "89a9bcd0134d11c02e67cdaeb8bb0f2f7ca0b0c2ff18d1b15f9fbfff8ee11886",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 3,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentz_s4",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 4,
+   "status": "killed by a container restart; resumed from its checkpoint in a separate root",
+   "last_evaluated_step": 1500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.8066459924929195,
+     "nll_no_read": 6.654106382711552,
+     "no_read_mass": 0.012222944564003572
+    },
+    {
+     "step": 500,
+     "nll_read": 4.7884920160080995,
+     "nll_no_read": 5.768848220987315,
+     "no_read_mass": 0.06395973662052526
+    },
+    {
+     "step": 750,
+     "nll_read": 4.151426245477478,
+     "nll_no_read": 4.9949021490989445,
+     "no_read_mass": 0.3545894738789457
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.811196256795353,
+     "nll_no_read": 4.5696133204038585,
+     "no_read_mass": 0.5395524397040106
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6192366796344695,
+     "nll_no_read": 4.341814386410156,
+     "no_read_mass": 0.5656734793625731
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.446832920382194,
+     "nll_no_read": 4.150006737720097,
+     "no_read_mass": 0.5837281209445564
+    }
+   ],
+   "checkpoint_progress_sha256": "de774d6c1d8a1fbca21181f61d18fe35c82471b3f4940186b587a909a971ab73"
+  },
+  {
+   "run": "full/code_lorentz_s4_resumed",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, offset, Dot-matched start (committed)",
+   "corpus": "code",
+   "seed": 4,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": {
+    "checkpoint": "runs/full/code_lorentz_s4/checkpoint",
+    "model_sha256": "0cab52a23d613b59e2f97a1359892ee76acf538dd4a4b9c11524cc6915bcfe09",
+    "optimizer_sha256": "2b0b1816655e997f642d5f54c3b30d82d269caae43422b498f2e6185f38b790d",
+    "progress_sha256": "de774d6c1d8a1fbca21181f61d18fe35c82471b3f4940186b587a909a971ab73",
+    "step": 1500
+   },
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5707132194064644,
+    "bits_per_byte_read": 1.2952061905867982,
+    "nll_no_read": 3.8992696942474603,
+    "nll_read": 3.215328033379138,
+    "no_read_mass": 0.626870365774228,
+    "read_effect_nats": 0.6839416608683222,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     2.1396517753601074
+    ],
+    "read.lorentz_offset": [
+     4.93138313293457
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 8.406253575900083,
+     "nll_no_read": 8.345974303253286,
+     "no_read_mass": 0.008111686917797395
+    },
+    {
+     "step": 250,
+     "nll_read": 5.8066459924929195,
+     "nll_no_read": 6.654106382711552,
+     "no_read_mass": 0.012222944564003572
+    },
+    {
+     "step": 500,
+     "nll_read": 4.7884920160080995,
+     "nll_no_read": 5.768848220987315,
+     "no_read_mass": 0.06395973662052526
+    },
+    {
+     "step": 750,
+     "nll_read": 4.151426245477478,
+     "nll_no_read": 4.9949021490989445,
+     "no_read_mass": 0.3545894738789457
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.811196256795353,
+     "nll_no_read": 4.5696133204038585,
+     "no_read_mass": 0.5395524397040106
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6192366796344695,
+     "nll_no_read": 4.341814386410156,
+     "no_read_mass": 0.5656734793625731
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.446832920382194,
+     "nll_no_read": 4.150006737720097,
+     "no_read_mass": 0.5837281209445564
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.324095026583278,
+     "nll_no_read": 4.002499335050576,
+     "no_read_mass": 0.616478046771789
+    }
+   ],
+   "report_sha256": "27e6ca3184afa7ba0a46c55b01de7292776254f170ffed90a98ae4d07993345f",
+   "manifest_sha256": "fd316b54b172bedb91727627a5a60bfb1537ba8f22927d014a1a9feaf2ac3b0a",
+   "model_safetensors_sha256": "110438ee47340b89940506ef19778fa7ef767ad371a81c371a3cfed33f64f518",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 4,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentzflat_s1",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 1,
+   "status": "killed by a container restart; relaunched from scratch in a separate root",
+   "last_evaluated_step": 500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 6.021800992214426,
+     "nll_no_read": 6.706518735937515,
+     "no_read_mass": 0.476443910614762
+    },
+    {
+     "step": 500,
+     "nll_read": 4.796886248923481,
+     "nll_no_read": 5.6623391096092766,
+     "no_read_mass": 0.6010488111878658
+    }
+   ],
+   "checkpoint_progress_sha256": null
+  },
+  {
+   "run": "full/code_lorentzflat_s1_r2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 1,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5662835444843324,
+    "bits_per_byte_read": 1.3035814132636947,
+    "nll_no_read": 3.88827309921927,
+    "nll_read": 3.2361193857171147,
+    "no_read_mass": 0.6496423308640562,
+    "read_effect_nats": 0.6521537135021553,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     1.275991439819336
+    ],
+    "read.lorentz_offset": [
+     4.957090854644775
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.13368538574777,
+     "nll_no_read": 8.336783691774007,
+     "no_read_mass": 0.04826271689569239
+    },
+    {
+     "step": 250,
+     "nll_read": 6.021799822415199,
+     "nll_no_read": 6.706569083055175,
+     "no_read_mass": 0.47640703724209743
+    },
+    {
+     "step": 500,
+     "nll_read": 4.7968573316117995,
+     "nll_no_read": 5.662511672012842,
+     "no_read_mass": 0.600982033613036
+    },
+    {
+     "step": 750,
+     "nll_read": 4.171699462994644,
+     "nll_no_read": 4.978952024293661,
+     "no_read_mass": 0.63854833807045
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.8400664430311684,
+     "nll_no_read": 4.567164668382247,
+     "no_read_mass": 0.651534802389051
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6578127525192374,
+     "nll_no_read": 4.34829322671946,
+     "no_read_mass": 0.6595615471607061
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5097263869843482,
+     "nll_no_read": 4.196695717513554,
+     "no_read_mass": 0.6747649417022785
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.3895121529340644,
+     "nll_no_read": 4.059647154967996,
+     "no_read_mass": 0.69351509455214
+    }
+   ],
+   "report_sha256": "8307df2006e1e943c5960d4b5093f537b16dcfe4afabb904c0fc715fce7c6436",
+   "manifest_sha256": "855776221b1ab659387d4ba7cb43a547a9736857c9fce272edd8995dd934f7cd",
+   "model_safetensors_sha256": "a5b3c442bb61117b6c1482606379d85a46273ec9c63a018c7ce3748a7e446885",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentzflat_s2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 2,
+   "status": "killed by a container restart; relaunched from scratch in a separate root",
+   "last_evaluated_step": 500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.932598917920146,
+     "nll_no_read": 6.805587542323267,
+     "no_read_mass": 0.4854048059842171
+    },
+    {
+     "step": 500,
+     "nll_read": 4.6777730616967865,
+     "nll_no_read": 5.5547305792720865,
+     "no_read_mass": 0.6443140764667987
+    }
+   ],
+   "checkpoint_progress_sha256": null
+  },
+  {
+   "run": "full/code_lorentzflat_s2_r2",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 2,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5728614635835676,
+    "bits_per_byte_read": 1.3073903710223813,
+    "nll_no_read": 3.904602675031048,
+    "nll_read": 3.24557506061156,
+    "no_read_mass": 0.6719523906666076,
+    "read_effect_nats": 0.6590276144194882,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     1.251156210899353
+    ],
+    "read.lorentz_offset": [
+     4.952436447143555
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.13865943619089,
+     "nll_no_read": 8.34492647197091,
+     "no_read_mass": 0.07065494025883368
+    },
+    {
+     "step": 250,
+     "nll_read": 5.932799609260541,
+     "nll_no_read": 6.80680539383726,
+     "no_read_mass": 0.48610905851546704
+    },
+    {
+     "step": 500,
+     "nll_read": 4.677683405932385,
+     "nll_no_read": 5.554798573852112,
+     "no_read_mass": 0.6442857954930332
+    },
+    {
+     "step": 750,
+     "nll_read": 4.117350420269584,
+     "nll_no_read": 4.902037396955965,
+     "no_read_mass": 0.6227078425702075
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.838139267803144,
+     "nll_no_read": 4.560686520587289,
+     "no_read_mass": 0.660105624442167
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.644073181465714,
+     "nll_no_read": 4.335505721571049,
+     "no_read_mass": 0.6496882583494425
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.5028966426870327,
+     "nll_no_read": 4.1706894659301135,
+     "no_read_mass": 0.6878780901324717
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.3896356826866842,
+     "nll_no_read": 4.05124619218915,
+     "no_read_mass": 0.6652904760298384
+    }
+   ],
+   "report_sha256": "f2ccb42fb3b40c88bd86279b655da603263469dd5023dc04de66a4bb857642f8",
+   "manifest_sha256": "dfbfcbd7b97f7c368c09c18a1d82c8932e17a91dbf0a7a74abd0148e280177e9",
+   "model_safetensors_sha256": "80f23a3267898570164e34d95333edc2d51b3c5b6b1b16c642dbe1f413bb8c8d",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 2,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentzflat_s3",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 3,
+   "status": "killed by a container restart; resumed from its checkpoint in a separate root",
+   "last_evaluated_step": 1500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.979216141684641,
+     "nll_no_read": 6.623933190395475,
+     "no_read_mass": 0.41429993090559947
+    },
+    {
+     "step": 500,
+     "nll_read": 4.8151792262437025,
+     "nll_no_read": 5.642062704580325,
+     "no_read_mass": 0.5783947075842661
+    },
+    {
+     "step": 750,
+     "nll_read": 4.12426181075436,
+     "nll_no_read": 4.893763531453819,
+     "no_read_mass": 0.6263204643908011
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.801859232464059,
+     "nll_no_read": 4.533355045572095,
+     "no_read_mass": 0.6588106201734263
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.598977725194851,
+     "nll_no_read": 4.295267268175996,
+     "no_read_mass": 0.6799459836008737
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4707656183057147,
+     "nll_no_read": 4.174939157652533,
+     "no_read_mass": 0.6799461759575252
+    }
+   ],
+   "checkpoint_progress_sha256": "730a8a97eb08674d888852258a9e8b08d4789b41a244c63f3b0610db0987e100"
+  },
+  {
+   "run": "full/code_lorentzflat_s3_resumed",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 3,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": {
+    "checkpoint": "runs/full/code_lorentzflat_s3/checkpoint",
+    "model_sha256": "724569630f8e4908be6c0605b6f6587fb22edc9cc0080a41bc728fe96f1ce08a",
+    "optimizer_sha256": "fb993e7dc4a294be7e3c1d006326aba900eeddd03f6440a8422fab3ae6e81ada",
+    "progress_sha256": "730a8a97eb08674d888852258a9e8b08d4789b41a244c63f3b0610db0987e100",
+    "step": 1500
+   },
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.5647623524999639,
+    "bits_per_byte_read": 1.297801809748724,
+    "nll_no_read": 3.884496765175286,
+    "nll_read": 3.2217716151933478,
+    "no_read_mass": 0.6538601682708016,
+    "read_effect_nats": 0.6627251499819384,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     1.2656266689300537
+    ],
+    "read.lorentz_offset": [
+     4.94352912902832
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.126568209799585,
+     "nll_no_read": 8.36601142363831,
+     "no_read_mass": 0.07090779400391511
+    },
+    {
+     "step": 250,
+     "nll_read": 5.979216141684641,
+     "nll_no_read": 6.623933190395475,
+     "no_read_mass": 0.41429993090559947
+    },
+    {
+     "step": 500,
+     "nll_read": 4.8151792262437025,
+     "nll_no_read": 5.642062704580325,
+     "no_read_mass": 0.5783947075842661
+    },
+    {
+     "step": 750,
+     "nll_read": 4.12426181075436,
+     "nll_no_read": 4.893763531453819,
+     "no_read_mass": 0.6263204643908011
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.801859232464059,
+     "nll_no_read": 4.533355045572095,
+     "no_read_mass": 0.6588106201734263
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.598977725194851,
+     "nll_no_read": 4.295267268175996,
+     "no_read_mass": 0.6799459836008737
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4707656183057147,
+     "nll_no_read": 4.174939157652533,
+     "no_read_mass": 0.6799461759575252
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.335976218275467,
+     "nll_no_read": 4.003541347166813,
+     "no_read_mass": 0.6958534157066651
+    }
+   ],
+   "report_sha256": "1ce84c478c5765dfed367737714263fe204edab4e5f64924e0010f961bf7ada8",
+   "manifest_sha256": "56be956214f58108080aa83ccd7197d01ab5f28c504fef265a61e2c71caf1e4c",
+   "model_safetensors_sha256": "da6d70800bccad7391d19160d6602ed4eaa0d300acbcbbc953bf15b6c250ec0b",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 3,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/code_lorentzflat_s4",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 4,
+   "status": "killed by a container restart; resumed from its checkpoint in a separate root",
+   "last_evaluated_step": 1500,
+   "curve": [
+    {
+     "step": 250,
+     "nll_read": 5.858750419284986,
+     "nll_no_read": 6.591141370751041,
+     "no_read_mass": 0.38554707446542125
+    },
+    {
+     "step": 500,
+     "nll_read": 4.726875367826846,
+     "nll_no_read": 5.5815812516545265,
+     "no_read_mass": 0.618380415980937
+    },
+    {
+     "step": 750,
+     "nll_read": 4.112736009163536,
+     "nll_no_read": 4.91488684840508,
+     "no_read_mass": 0.6106529886828866
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.795765149417879,
+     "nll_no_read": 4.5312215842098,
+     "no_read_mass": 0.6414812817779421
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6384320289643886,
+     "nll_no_read": 4.343988415755066,
+     "no_read_mass": 0.6770574484271492
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4564806309275586,
+     "nll_no_read": 4.144306837263309,
+     "no_read_mass": 0.6666811051272816
+    }
+   ],
+   "checkpoint_progress_sha256": "f045c4e255f12ffbb362e8816587c69a86a6935a8b6b4a8dad871e699c307341"
+  },
+  {
+   "run": "full/code_lorentzflat_s4_resumed",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "code",
+   "seed": 4,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": {
+    "checkpoint": "runs/full/code_lorentzflat_s4/checkpoint",
+    "model_sha256": "f1ba67e462e7d59f1e2d8757bf2f6e4116e9a31c8d95dfa2268264ab9d182315",
+    "optimizer_sha256": "ea5d638315dce814f341492cb65f32c8ee966add391b83dc59df9171cfcf6588",
+    "progress_sha256": "f045c4e255f12ffbb362e8816587c69a86a6935a8b6b4a8dad871e699c307341",
+    "step": 1500
+   },
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.55843284513656,
+    "bits_per_byte_read": 1.297918742711472,
+    "nll_no_read": 3.86878386740585,
+    "nll_read": 3.222061899347239,
+    "no_read_mass": 0.6945134222049631,
+    "read_effect_nats": 0.6467219680586109,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     1.2935518026351929
+    ],
+    "read.lorentz_offset": [
+     4.951144695281982
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.1941220261240435,
+     "nll_no_read": 8.345974303253286,
+     "no_read_mass": 0.11306759564828894
+    },
+    {
+     "step": 250,
+     "nll_read": 5.858750419284986,
+     "nll_no_read": 6.591141370751041,
+     "no_read_mass": 0.38554707446542125
+    },
+    {
+     "step": 500,
+     "nll_read": 4.726875367826846,
+     "nll_no_read": 5.5815812516545265,
+     "no_read_mass": 0.618380415980937
+    },
+    {
+     "step": 750,
+     "nll_read": 4.112736009163536,
+     "nll_no_read": 4.91488684840508,
+     "no_read_mass": 0.6106529886828866
+    },
+    {
+     "step": 1000,
+     "nll_read": 3.795765149417879,
+     "nll_no_read": 4.5312215842098,
+     "no_read_mass": 0.6414812817779421
+    },
+    {
+     "step": 1250,
+     "nll_read": 3.6384320289643886,
+     "nll_no_read": 4.343988415755066,
+     "no_read_mass": 0.6770574484271492
+    },
+    {
+     "step": 1500,
+     "nll_read": 3.4564806309275586,
+     "nll_no_read": 4.144306837263309,
+     "no_read_mass": 0.6666811051272816
+    },
+    {
+     "step": 1750,
+     "nll_read": 3.3408790834519833,
+     "nll_no_read": 4.004201496626208,
+     "no_read_mass": 0.6687540396736154
+    }
+   ],
+   "report_sha256": "f244033ccdcad8dea44629989a48f526de4526f0d89047452799b094b79ced66",
+   "manifest_sha256": "e29a819ddd881045dbdd6bb9d3b68912acb8e2df3485bcb19530816a8f104697",
+   "model_safetensors_sha256": "8c22bca6d844e11245b7bda83d7e7f169ac0fa3a8d16aa4068a973d00b87d77f",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 4,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/wiki_dot_s1",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "dot (retained)",
+   "corpus": "wikitext-2",
+   "seed": 1,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.8998825442354088,
+    "bits_per_byte_read": 1.8046376643267081,
+    "nll_no_read": 4.662996451004098,
+    "nll_read": 4.429231190968342,
+    "no_read_mass": 0.7459664801756922,
+    "read_effect_nats": 0.2337652600357556,
+    "targets": 65536
+   },
+   "learned_scalars": {},
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.464220361868327,
+     "nll_no_read": 8.349785933360515,
+     "no_read_mass": 0.05837488089622411
+    },
+    {
+     "step": 250,
+     "nll_read": 5.974422876331051,
+     "nll_no_read": 6.5654171436789746,
+     "no_read_mass": 0.23836960523249218
+    },
+    {
+     "step": 500,
+     "nll_read": 5.32983229284802,
+     "nll_no_read": 5.6770388702056795,
+     "no_read_mass": 0.46737831439016375
+    },
+    {
+     "step": 750,
+     "nll_read": 5.038169498159495,
+     "nll_no_read": 5.285693750723927,
+     "no_read_mass": 0.5398027357390234
+    },
+    {
+     "step": 1000,
+     "nll_read": 4.873508753321753,
+     "nll_no_read": 5.117057032535756,
+     "no_read_mass": 0.599136879800767
+    },
+    {
+     "step": 1250,
+     "nll_read": 4.736584106996387,
+     "nll_no_read": 4.960250003074853,
+     "no_read_mass": 0.6702709834235776
+    },
+    {
+     "step": 1500,
+     "nll_read": 4.616617567481472,
+     "nll_no_read": 4.837152693035168,
+     "no_read_mass": 0.7262912231992402
+    },
+    {
+     "step": 1750,
+     "nll_read": 4.523968339553435,
+     "nll_no_read": 4.738336214865976,
+     "no_read_mass": 0.7068421195490089
+    }
+   ],
+   "report_sha256": "be4fd95ac8f3cae1f5c80bd233e89708d0d41524a2d9113508b156bd9f9b03c9",
+   "manifest_sha256": "f399c5deecd819680e78846243d1e0e910d0a1894cc48b28e305f75bf263e161",
+   "model_safetensors_sha256": "06e8f87db208078c0e644cad10dce9b435e8a288f4f276ce9fde8ef57bb2b90e",
+   "config": {
+    "context": 128,
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  },
+  {
+   "run": "full/wiki_lorentzflat_s1",
+   "phase": "2,000-step comparison, committed example",
+   "arm": "lorentz, flat start",
+   "corpus": "wikitext-2",
+   "seed": 1,
+   "steps_completed": 2000,
+   "status": "completed",
+   "resumed_from": null,
+   "final_windows": 512,
+   "final": {
+    "bits_per_byte_no_read": 1.8888784135833203,
+    "bits_per_byte_read": 1.7896081848181011,
+    "nll_no_read": 4.635988348670211,
+    "nll_read": 4.392343431868857,
+    "no_read_mass": 0.7882668318270625,
+    "read_effect_nats": 0.24364491680135458,
+    "targets": 65536
+   },
+   "learned_scalars": {
+    "read.lorentz_log_beta": [
+     1.2816487550735474
+    ],
+    "read.lorentz_offset": [
+     4.967814922332764
+    ]
+   },
+   "curve": [
+    {
+     "step": 0,
+     "nll_read": 7.446001300533916,
+     "nll_no_read": 8.349785933360515,
+     "no_read_mass": 0.05358577978702783
+    },
+    {
+     "step": 250,
+     "nll_read": 5.954762745502391,
+     "nll_no_read": 6.6545562285044,
+     "no_read_mass": 0.6027245543364188
+    },
+    {
+     "step": 500,
+     "nll_read": 5.300745640275602,
+     "nll_no_read": 5.783760348704012,
+     "no_read_mass": 0.5462721141107068
+    },
+    {
+     "step": 750,
+     "nll_read": 4.9667430190109405,
+     "nll_no_read": 5.213669150756651,
+     "no_read_mass": 0.6484428237490647
+    },
+    {
+     "step": 1000,
+     "nll_read": 4.805611035864939,
+     "nll_no_read": 5.044123259815155,
+     "no_read_mass": 0.729671867326033
+    },
+    {
+     "step": 1250,
+     "nll_read": 4.672048549287231,
+     "nll_no_read": 4.912392432468106,
+     "no_read_mass": 0.7568971057041836
+    },
+    {
+     "step": 1500,
+     "nll_read": 4.567396631355578,
+     "nll_no_read": 4.80654050887692,
+     "no_read_mass": 0.7982550369893033
+    },
+    {
+     "step": 1750,
+     "nll_read": 4.479619895864462,
+     "nll_no_read": 4.712734914610088,
+     "no_read_mass": 0.8167574221081395
+    }
+   ],
+   "report_sha256": "4fbec5eced76a75bb5860bbd8e1cef6f50501e707d6e6a7fa3d1f81a573c4189",
+   "manifest_sha256": "5d933261e672a8195dd44980b680ba3427a3ea5fea987a2ba0c052d805c47e7a",
+   "model_safetensors_sha256": "459c96242169afefa1bff281eef776fddd3d7176e025f4762e0d0ad20d892f4d",
+   "config": {
+    "context": 128,
+    "read_geometry": "lorentz",
+    "read_width": 64,
+    "seed": 1,
+    "transport": "quaternion",
+    "vocab_size": 4096,
+    "width": 128
+   },
+   "batch": 16,
+   "optimizer": {
+    "allowed_missing_gradients": [],
+    "learning_rate": 0.001,
+    "parameter_abs_limit": 1000000.0,
+    "weight_decay": 0.01
+   }
+  }
+ ],
+ "context_256_addendum": {
+  "label": "Measured, reduced scale (code, width 128, 2 seeds)",
+  "settings": {
+   "context": 256,
+   "batch": 8,
+   "steps": 2000,
+   "width": 128,
+   "final_windows": 512,
+   "tokens_per_update": 2048,
+   "compare_context_128": "section 4 runs code_dot_s1/s2_r2 and code_lorentzflat_s1_r2/s2_r2 (batch 16, context 128)"
+  },
+  "runs": [
+   {
+    "run": "ctx256/dot_s1_r1",
+    "steps_completed": 2000,
+    "final_windows": 512,
+    "final": {
+     "bits_per_byte_no_read": 1.6273648212879244,
+     "bits_per_byte_read": 1.2743834025428735,
+     "nll_no_read": 4.047212841886387,
+     "nll_read": 3.169357481979053,
+     "no_read_mass": 0.4059268601837692,
+     "read_effect_nats": 0.8778553599073344,
+     "targets": 131072
+    },
+    "seconds": {
+     "final_evaluation": 87.184776453,
+     "training_updates": 10983.295772750018,
+     "wall": 5337.5898139
+    },
+    "resumed_from": "ctx256/dot_s1/checkpoint (step 750)"
+   },
+   {
+    "run": "ctx256/dot_s2_r1",
+    "steps_completed": 2000,
+    "final_windows": 512,
+    "final": {
+     "bits_per_byte_no_read": 2.3666531961768156,
+     "bits_per_byte_read": 1.2807324501600679,
+     "nll_no_read": 5.885803283051063,
+     "nll_read": 3.185147393813156,
+     "no_read_mass": 0.003947891773982219,
+     "read_effect_nats": 2.7006558892379067,
+     "targets": 131072
+    },
+    "seconds": {
+     "final_evaluation": 83.307204957,
+     "training_updates": 11058.10710701503,
+     "wall": 5347.500094958
+    },
+    "resumed_from": "ctx256/dot_s2/checkpoint (step 750)"
+   },
+   {
+    "run": "ctx256/lorentzflat_s1_r1",
+    "steps_completed": 2000,
+    "final_windows": 512,
+    "final": {
+     "bits_per_byte_no_read": 1.6084712202707074,
+     "bits_per_byte_read": 1.2539676503342445,
+     "nll_no_read": 4.00022496082488,
+     "nll_read": 3.1185840515627916,
+     "no_read_mass": 0.584263306348084,
+     "read_effect_nats": 0.8816409092620887,
+     "targets": 131072
+    },
+    "seconds": {
+     "final_evaluation": 84.983369973,
+     "training_updates": 11049.692448015,
+     "wall": 5306.56884056
+    },
+    "resumed_from": "ctx256/lorentzflat_s1/checkpoint (step 750)"
+   },
+   {
+    "run": "ctx256/lorentzflat_s2_r1",
+    "steps_completed": 2000,
+    "final_windows": 512,
+    "final": {
+     "bits_per_byte_no_read": 1.6046607669321793,
+     "bits_per_byte_read": 1.2560698941600619,
+     "nll_no_read": 3.990748465153249,
+     "nll_read": 3.123812275804416,
+     "no_read_mass": 0.5920177119950547,
+     "read_effect_nats": 0.8669361893488334,
+     "targets": 131072
+    },
+    "seconds": {
+     "final_evaluation": 81.835221489,
+     "training_updates": 11025.50810689299,
+     "wall": 5283.7395593
+    },
+    "resumed_from": "ctx256/lorentzflat_s2/checkpoint (step 750)"
+   }
+  ],
+  "lorentz_minus_dot_final_nll": {
+   "seed_1": -0.0508,
+   "seed_2": -0.0613,
+   "mean": -0.0561,
+   "same_seeds_context_128": {
+    "seed_1": -0.0098,
+    "seed_2": -0.0146
+   },
+   "four_seed_mean_context_128": -0.018
+  },
+  "probe_dump_windows": 800,
+  "per_category": {
+   "ctx256_s1": {
+    "all": {
+     "mean": -0.04755860017933578,
+     "lo": -0.0524536430333401,
+     "hi": -0.04305400992063134
+    },
+    "nll_dot": 3.1636607429274433,
+    "nll_lorentz": 3.1161021427481073,
+    "not_copyable": {
+     "frac": 0.4821225490196078,
+     "mean": -0.021167447203264658,
+     "lo": -0.02772407076417837,
+     "hi": -0.014307934759318913,
+     "contrib": -0.010304358775001281,
+     "nll_dot": 4.786911318240461
+    },
+    "copy_same_scope": {
+     "frac": 0.356328431372549,
+     "mean": -0.0642385908934526,
+     "lo": -0.07199586311861039,
+     "hi": -0.05640617102815833,
+     "contrib": -0.02435371286780423,
+     "nll_dot": 1.4812228213112375
+    },
+    "copy_enclosing_scope": {
+     "frac": 0.06969607843137254,
+     "mean": -0.053220766036003495,
+     "lo": -0.08048087849771182,
+     "hi": -0.027516617782695908,
+     "contrib": -0.0043937344694191666,
+     "nll_dot": 2.168864799534613
+    },
+    "copy_closed_child": {
+     "frac": 0.043397058823529414,
+     "mean": -0.04922304408620811,
+     "lo": -0.07474765909992256,
+     "hi": -0.0254351172278506,
+     "contrib": -0.002611637336683606,
+     "nll_dot": 1.93286801029399
+    },
+    "copy_other_scope": {
+     "frac": 0.048455882352941175,
+     "mean": -0.08537547417373113,
+     "lo": -0.1163965953242167,
+     "hi": -0.05332623321719527,
+     "contrib": -0.0058951567304274975,
+     "nll_dot": 1.9180105569492603
+    }
+   },
+   "ctx256_s2": {
+    "all": {
+     "mean": -0.06034796855389619,
+     "lo": -0.06586300896518013,
+     "hi": -0.054695394149775846
+    },
+    "nll_dot": 3.181276368256051,
+    "nll_lorentz": 3.1209283997021546,
+    "not_copyable": {
+     "frac": 0.4821225490196078,
+     "mean": -0.08011884662964673,
+     "lo": -0.08702879372951464,
+     "hi": -0.07331658214119222,
+     "contrib": -0.03781889041178339,
+     "nll_dot": 4.8353623157332875
+    },
+    "copy_same_scope": {
+     "frac": 0.356328431372549,
+     "mean": -0.02310626674687901,
+     "lo": -0.03248864125799789,
+     "hi": -0.013807653064819823,
+     "contrib": -0.010393009231799106,
+     "nll_dot": 1.4711481450063761
+    },
+    "copy_enclosing_scope": {
+     "frac": 0.06969607843137254,
+     "mean": -0.055938478337644724,
+     "lo": -0.08510885489618689,
+     "hi": -0.027195552727993583,
+     "contrib": -0.0055789342990371065,
+     "nll_dot": 2.1648925886573656
+    },
+    "copy_closed_child": {
+     "frac": 0.043397058823529414,
+     "mean": -0.04424716758195061,
+     "lo": -0.07196327813468173,
+     "hi": -0.01801234021518965,
+     "contrib": -0.0018906924793623415,
+     "nll_dot": 1.9005108482617308
+    },
+    "copy_other_scope": {
+     "frac": 0.048455882352941175,
+     "mean": -0.06572954742383687,
+     "lo": -0.09502725825117055,
+     "hi": -0.03644262082993296,
+     "contrib": -0.004666442131914235,
+     "nll_dot": 1.9082543359704927
+    }
+   },
+   "geometry": {}
+  },
+  "per_copy_distance_and_geometry": {
+   "s1": {
+    "1-4": {
+     "frac": 0.05835294117647059,
+     "mean": -0.0549,
+     "lo": -0.0732,
+     "hi": -0.0377
+    },
+    "5-16": {
+     "frac": 0.16255392156862744,
+     "mean": -0.0385,
+     "lo": -0.0496,
+     "hi": -0.0273
+    },
+    "17-64": {
+     "frac": 0.2046078431372549,
+     "mean": -0.0784,
+     "lo": -0.0896,
+     "hi": -0.0675
+    },
+    "65-255": {
+     "frac": 0.09236274509803921,
+     "mean": -0.0864,
+     "lo": -0.1048,
+     "hi": -0.0679
+    },
+    "slope_per_doubling": {
+     "mean": -0.0119,
+     "lo": -0.0151,
+     "hi": -0.0083
+    },
+    "geometry_lorentz": {
+     "key_norm_mean": 18.1802,
+     "query_norm_mean": 22.9956,
+     "key_radius_mean": 3.5668,
+     "key_radius_std": 0.243,
+     "query_radius_mean": 3.8142,
+     "query_radius_std": 0.1725,
+     "key_radius_within_window_std": 0.2347,
+     "KL_full_vs_spherical": 0.0719,
+     "TV_full_vs_spherical": 0.0972,
+     "top1_agree": 0.7557,
+     "R2_score_vs_cos": 0.7942
+    },
+    "geometry_dot": {
+     "key_norm_mean": 13.3135,
+     "query_norm_mean": 13.8982,
+     "key_norm_std": 1.8854,
+     "key_norm_within_window_cv": 0.1348,
+     "KL_full_vs_spherical": 0.1134,
+     "TV_full_vs_spherical": 0.1575,
+     "top1_agree": 0.7724,
+     "R2_score_vs_cos": 0.9774
+    }
+   },
+   "s2": {
+    "1-4": {
+     "frac": 0.05835294117647059,
+     "mean": 0.0413,
+     "lo": 0.0229,
+     "hi": 0.06
+    },
+    "5-16": {
+     "frac": 0.16255392156862744,
+     "mean": -0.0056,
+     "lo": -0.018,
+     "hi": 0.0068
+    },
+    "17-64": {
+     "frac": 0.2046078431372549,
+     "mean": -0.0525,
+     "lo": -0.0638,
+     "hi": -0.0413
+    },
+    "65-255": {
+     "frac": 0.09236274509803921,
+     "mean": -0.0877,
+     "lo": -0.1056,
+     "hi": -0.0693
+    },
+    "slope_per_doubling": {
+     "mean": -0.0231,
+     "lo": -0.0267,
+     "hi": -0.0196
+    },
+    "geometry_lorentz": {
+     "key_norm_mean": 17.7067,
+     "query_norm_mean": 22.3484,
+     "key_radius_mean": 3.5393,
+     "key_radius_std": 0.2443,
+     "query_radius_mean": 3.785,
+     "query_radius_std": 0.1763,
+     "key_radius_within_window_std": 0.2334,
+     "KL_full_vs_spherical": 0.0574,
+     "TV_full_vs_spherical": 0.0925,
+     "top1_agree": 0.769,
+     "R2_score_vs_cos": 0.806
+    },
+    "geometry_dot": {
+     "key_norm_mean": 12.6139,
+     "query_norm_mean": 14.1599,
+     "key_norm_std": 1.2734,
+     "key_norm_within_window_cv": 0.0953,
+     "KL_full_vs_spherical": 0.1818,
+     "TV_full_vs_spherical": 0.2144,
+     "top1_agree": 0.6876,
+     "R2_score_vs_cos": 0.9876
+    }
+   }
+  },
+  "caveats": [
+   "equal-start flat Dot control not run at context 256",
+   "Dot seed 2 read-dependent (NoRead mass 0.004)",
+   "category intervals do not control for copy distance",
+   "runs paused about 17 minutes in total for unrelated benchmarks; resumed exactly after a container restart at step 750"
+  ],
+  "distance_controlled_regression": {
+   "model": "per-token Lorentz - Dot NLL on copyable tokens = a + b log2(copy distance) + scope-category indicators (same scope baseline); 95% bootstrap over windows (400)",
+   "results": {
+    "s1": {
+     "intercept_same_scope": {
+      "mean": -0.0232,
+      "lo": -0.0366,
+      "hi": -0.0104
+     },
+     "per_doubling": {
+      "mean": -0.012,
+      "lo": -0.0156,
+      "hi": -0.0083
+     },
+     "enclosing_minus_same": {
+      "mean": 0.0233,
+      "lo": 0.0025,
+      "hi": 0.0425
+     },
+     "closed_child_minus_same": {
+      "mean": 0.0244,
+      "lo": 0.0027,
+      "hi": 0.0435
+     },
+     "other_minus_same": {
+      "mean": -0.0252,
+      "lo": -0.0514,
+      "hi": -0.0019
+     }
+    },
+    "s2": {
+     "intercept_same_scope": {
+      "mean": 0.0526,
+      "lo": 0.0378,
+      "hi": 0.067
+     },
+     "per_doubling": {
+      "mean": -0.0218,
+      "lo": -0.0256,
+      "hi": -0.0181
+     },
+     "enclosing_minus_same": {
+      "mean": -0.0183,
+      "lo": -0.0468,
+      "hi": 0.0099
+     },
+     "closed_child_minus_same": {
+      "mean": 0.0151,
+      "lo": -0.0082,
+      "hi": 0.0396
+     },
+     "other_minus_same": {
+      "mean": -0.0161,
+      "lo": -0.0401,
+      "hi": 0.0089
+     }
+    }
+   },
+   "reading": "distance effect in both seeds; enclosing-scope effect at equal distance has opposite signs across seeds"
+  }
+ },
+ "cycle_3b_integer_read": {
+  "label": "Measured (integer kernel, parity, timing, fine-tunes); code corpus development split; width 128, context 256",
+  "commits": [
+   "4183830",
+   "d0b417a",
+   "f92cf80"
+  ],
+  "tables": {
+   "root": "lab/exp/c3b/tables",
+   "tables_json_sha256": "2d16e17cd34c5a07681a7950a22c4b9a67df5208b28304ab8b7fbe94461c150d",
+   "arcosh_json_sha256": "eb4e49dc451341708d969028267a4b65132609f2dea65e6375804c882b34af9a"
+  },
+  "post_training_quantization": {
+   "dot_s1": {
+    "root": "lab/exp/c3b/run_dot_s1",
+    "manifest_sha256_packed": "2f1d9f079b1c91d1ab7bf3a3c9613ea64f395a754aa99d4bf4ce3bafe15b269b",
+    "checkpoint_weights_sha256": "7c07f6809a547a1b3aeef172b5470b68928dcabe44a03d71da121b76de5a6013",
+    "windows": 64,
+    "targets": 16384,
+    "stride": 3227,
+    "quantization": "Frozen dyadic scales calibrated once on the float checkpoint (configure_quantization(0, 1)); signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces; no quantization-aware training",
+    "read": {
+     "float_nll": 3.2675877594050395,
+     "emulator_nll": 3.35468705184652,
+     "integer_nll": 3.354624186291972,
+     "float_bits_per_byte": 1.342003882309814,
+     "emulator_bits_per_byte": 1.377775710707221,
+     "integer_bits_per_byte": 1.3777498917164304,
+     "emulator_minus_float_nll": 0.08709929244148062,
+     "integer_minus_emulator_nll": -6.28655545482637e-05,
+     "mean_total_variation_integer_emulator": 0.001741112533487495,
+     "maximum_probability_delta_integer_emulator": 0.01162908949447683,
+     "maximum_state_delta_integer_emulator": 0.0068359375,
+     "top1_agreement_integer_emulator": 0.996826171875,
+     "top1_agreement_integer_float": 0.79412841796875,
+     "mean_no_read_mass_integer": 0.4992925959217471,
+     "mean_no_read_mass_emulator": 0.4993086961259086,
+     "integer_seconds_per_step": 0.0042918848134155295
+    },
+    "no_read": {
+     "float_nll": 4.090175169758397,
+     "emulator_nll": 4.166888906036657,
+     "integer_nll": 4.166940994200945,
+     "float_bits_per_byte": 1.6798419388565742,
+     "emulator_bits_per_byte": 1.711348401572257,
+     "integer_bits_per_byte": 1.711369794270432,
+     "emulator_minus_float_nll": 0.07671373627826039,
+     "integer_minus_emulator_nll": 5.208816428758922e-05,
+     "mean_total_variation_integer_emulator": 0.0016849196338994022,
+     "maximum_probability_delta_integer_emulator": 0.008748433201528627,
+     "maximum_state_delta_integer_emulator": 0.0078125,
+     "top1_agreement_integer_emulator": 0.99658203125,
+     "top1_agreement_integer_float": 0.7392578125,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.002664183007995607
+    },
+    "read_effect_nats": {
+     "emulator": 0.8122018541901372,
+     "float": 0.8225874103533575,
+     "integer": 0.8123168079089731
+    },
+    "seconds": {
+     "preparation": 0.126562709,
+     "total": 139.684795872
+    }
+   },
+   "dot_s2": {
+    "root": "lab/exp/c3b/run_dot_s2",
+    "manifest_sha256_packed": "805b155b41834fa35ff628b0dad98b9e0fb5fc55c1a9f376434c38aed4a16765",
+    "checkpoint_weights_sha256": "378c24bc71202eb94ce60ed33c2d474dc2a6c8ee354af93f10837bcbaa2d7dbe",
+    "windows": 64,
+    "targets": 16384,
+    "stride": 3227,
+    "quantization": "Post-training: frozen dyadic scales calibrated once on the float checkpoint (configure_quantization(0, 1)); signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces; no quantization-aware training",
+    "read": {
+     "float_nll": 3.303681492611833,
+     "emulator_nll": 3.3703646931498135,
+     "integer_nll": 3.3703523028287266,
+     "float_bits_per_byte": 1.3568276402796353,
+     "emulator_bits_per_byte": 1.3842145448085923,
+     "integer_bits_per_byte": 1.384209456082527,
+     "emulator_minus_float_nll": 0.06668320053798027,
+     "integer_minus_emulator_nll": -1.2390321086908074e-05,
+     "mean_total_variation_integer_emulator": 0.0016518367156144842,
+     "maximum_probability_delta_integer_emulator": 0.007911358813927905,
+     "maximum_state_delta_integer_emulator": 0.00830078125,
+     "top1_agreement_integer_emulator": 0.99774169921875,
+     "top1_agreement_integer_float": 0.8026123046875,
+     "mean_no_read_mass_integer": 0.0039672549506307945,
+     "mean_no_read_mass_emulator": 0.003967236042386501,
+     "integer_seconds_per_step": 0.004344998710021978
+    },
+    "no_read": {
+     "float_nll": 5.884605779128229,
+     "emulator_nll": 5.858458882598959,
+     "integer_nll": 5.858418402901973,
+     "float_bits_per_byte": 2.4168176596703748,
+     "emulator_bits_per_byte": 2.4060790845390296,
+     "integer_bits_per_byte": 2.406062459458233,
+     "emulator_minus_float_nll": -0.02614689652927016,
+     "integer_minus_emulator_nll": -4.04796969863952e-05,
+     "mean_total_variation_integer_emulator": 0.0025601690244175003,
+     "maximum_probability_delta_integer_emulator": 0.012001518719678472,
+     "maximum_state_delta_integer_emulator": 0.0146484375,
+     "top1_agreement_integer_emulator": 0.995361328125,
+     "top1_agreement_integer_float": 0.65814208984375,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.002763083396850591
+    },
+    "read_effect_nats": {
+     "emulator": 2.4880941894491455,
+     "float": 2.580924286516396,
+     "integer": 2.488066100073246
+    },
+    "seconds": {
+     "preparation": 0.129760195,
+     "total": 142.94051892
+    }
+   },
+   "lorentzflat_s1": {
+    "root": "lab/exp/c3b/run_lorentzflat_s1",
+    "manifest_sha256_packed": "0a1e1962fc4afd65cdee0e7956102746db93feffca8442ca6a4af64b6eac1a51",
+    "checkpoint_weights_sha256": "4267dcb985ee5e6dd22d30ead5e844b614c305ee3eb93b0cd96ed65d609aa115",
+    "windows": 64,
+    "targets": 16384,
+    "stride": 3227,
+    "quantization": "Frozen dyadic scales calibrated once on the float checkpoint (configure_quantization(0, 1)); signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces; no quantization-aware training",
+    "read": {
+     "float_nll": 3.227564389478165,
+     "emulator_nll": 3.3037502965010397,
+     "integer_nll": 3.3037008904309833,
+     "float_bits_per_byte": 1.325566215817035,
+     "emulator_bits_per_byte": 1.3568558981546284,
+     "integer_bits_per_byte": 1.3568356069971421,
+     "emulator_minus_float_nll": 0.07618590702287475,
+     "integer_minus_emulator_nll": -4.9406070056434714e-05,
+     "mean_total_variation_integer_emulator": 0.0018583604039090573,
+     "maximum_probability_delta_integer_emulator": 0.009573919848360646,
+     "maximum_state_delta_integer_emulator": 0.0078125,
+     "top1_agreement_integer_emulator": 0.99749755859375,
+     "top1_agreement_integer_float": 0.8048095703125,
+     "mean_no_read_mass_integer": 0.5939436188404283,
+     "mean_no_read_mass_emulator": 0.5939357625316433,
+     "integer_seconds_per_step": 0.004472702394470203
+    },
+    "no_read": {
+     "float_nll": 4.0517537528854755,
+     "emulator_nll": 4.131877636465841,
+     "integer_nll": 4.131905780332053,
+     "float_bits_per_byte": 1.6640621972233478,
+     "emulator_bits_per_byte": 1.6969692132693894,
+     "integer_bits_per_byte": 1.6969807720033854,
+     "emulator_minus_float_nll": 0.0801238835803657,
+     "integer_minus_emulator_nll": 2.814386621174947e-05,
+     "mean_total_variation_integer_emulator": 0.0019103253407716232,
+     "maximum_probability_delta_integer_emulator": 0.011452348620721864,
+     "maximum_state_delta_integer_emulator": 0.00732421875,
+     "top1_agreement_integer_emulator": 0.99664306640625,
+     "top1_agreement_integer_float": 0.72821044921875,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.00267514799786376
+    },
+    "read_effect_nats": {
+     "emulator": 0.8281273399648015,
+     "float": 0.8241893634073105,
+     "integer": 0.8282048899010697
+    },
+    "seconds": {
+     "preparation": 0.12557452,
+     "total": 144.111552462
+    }
+   },
+   "lorentzflat_s2": {
+    "root": "lab/exp/c3b/run_lorentzflat_s2",
+    "manifest_sha256_packed": "ad91a95c894eab7ccbf32c1933cb062d1ea3da693c29a8f5593c21cfd2b4c2a1",
+    "checkpoint_weights_sha256": "d81adff1a9f45b5dedc4c0dedd5d57d0272e1a6a53aacbe864a96363f7f80acc",
+    "windows": 64,
+    "targets": 16384,
+    "stride": 3227,
+    "quantization": "Post-training: frozen dyadic scales calibrated once on the float checkpoint (configure_quantization(0, 1)); signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces; no quantization-aware training",
+    "read": {
+     "float_nll": 3.234188121953365,
+     "emulator_nll": 3.3167923628625036,
+     "integer_nll": 3.3167480618494127,
+     "float_bits_per_byte": 1.3282865940751287,
+     "emulator_bits_per_byte": 1.3622122971189865,
+     "integer_bits_per_byte": 1.362194102617129,
+     "emulator_minus_float_nll": 0.08260424090913876,
+     "integer_minus_emulator_nll": -4.4301013090830565e-05,
+     "mean_total_variation_integer_emulator": 0.002064972149752415,
+     "maximum_probability_delta_integer_emulator": 0.010901493298813847,
+     "maximum_state_delta_integer_emulator": 0.0087890625,
+     "top1_agreement_integer_emulator": 0.997314453125,
+     "top1_agreement_integer_float": 0.8040771484375,
+     "mean_no_read_mass_integer": 0.611100866428389,
+     "mean_no_read_mass_emulator": 0.6111007571966525,
+     "integer_seconds_per_step": 0.0045217729156494125
+    },
+    "no_read": {
+     "float_nll": 4.037962722979341,
+     "emulator_nll": 4.114618996724999,
+     "integer_nll": 4.114644741497507,
+     "float_bits_per_byte": 1.6583981976500193,
+     "emulator_bits_per_byte": 1.6898810604052672,
+     "integer_bits_per_byte": 1.6898916338273755,
+     "emulator_minus_float_nll": 0.07665627374565798,
+     "integer_minus_emulator_nll": 2.5744772508495828e-05,
+     "mean_total_variation_integer_emulator": 0.0020899466511531176,
+     "maximum_probability_delta_integer_emulator": 0.009842462663215201,
+     "maximum_state_delta_integer_emulator": 0.00634765625,
+     "top1_agreement_integer_emulator": 0.996337890625,
+     "top1_agreement_integer_float": 0.7415771484375,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.00271453294567871
+    },
+    "read_effect_nats": {
+     "emulator": 0.7978266338624951,
+     "float": 0.8037746010259759,
+     "integer": 0.7978966796480944
+    },
+    "seconds": {
+     "preparation": 0.099814753,
+     "total": 145.614207241
+    }
+   }
+  },
+  "timing_idle": [
+   {
+    "run": "timing_1_dot_s1",
+    "windows": 4,
+    "read_ms_per_step": 4.206322218750008,
+    "no_read_ms_per_step": 2.6806115751953095
+   },
+   {
+    "run": "timing_2_lorentzflat_s1",
+    "windows": 4,
+    "read_ms_per_step": 4.635827733398445,
+    "no_read_ms_per_step": 2.6150798164062525
+   },
+   {
+    "run": "timing_3_dot_s1",
+    "windows": 4,
+    "read_ms_per_step": 4.31758234570313,
+    "no_read_ms_per_step": 2.726067966796875
+   },
+   {
+    "run": "timing_4_lorentzflat_s1",
+    "windows": 4,
+    "read_ms_per_step": 4.316068624999999,
+    "no_read_ms_per_step": 2.9260920693359376
+   }
+  ],
+  "fine_tunes": {
+   "qat_dot_s1": {
+    "root": "lab/exp/c3b/ft_qat_dot_s1",
+    "final": {
+     "bits_per_byte_no_read": 1.6098101627303005,
+     "bits_per_byte_read": 1.2586876512494978,
+     "nll_no_read": 4.003554874957302,
+     "nll_read": 3.1303225677627484,
+     "no_read_mass": 0.4120984275469182,
+     "read_effect_nats": 0.8732323071945531,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 1.7113484015722513,
+       "bits_per_byte_read": 1.3777757107072202,
+       "nll_no_read": 4.166888906036643,
+       "nll_read": 3.3546870518465184,
+       "no_read_mass": 0.49930869612590867,
+       "read_effect_nats": 0.8122018541901248,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 1.6803717603466826,
+       "bits_per_byte_read": 1.3420373405171337,
+       "nll_no_read": 4.0914652094062465,
+       "nll_read": 3.2676692253606383,
+       "no_read_mass": 0.4010436799982559,
+       "read_effect_nats": 0.8237959840456082,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 1.672962098745008,
+       "bits_per_byte_read": 1.3350460466063299,
+       "nll_no_read": 4.073423741814295,
+       "nll_read": 3.2506464233356356,
+       "no_read_mass": 0.44506533004066157,
+       "read_effect_nats": 0.8227773184786598,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": {
+     "final_strength": 1.0,
+     "ramp_steps": 100,
+     "scope": "Frozen dyadic scales calibrated once on the starting weights; straight-through fake quantization; evaluations use the hard path"
+    },
+    "init": {
+     "config_sha256": "e4f7ac7104bc1bb11a8e6d0acda24b6434bea8dcf55f5ea56f7aeead273f055b",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/dot_s1_r1/model",
+     "weights_sha256": "7c07f6809a547a1b3aeef172b5470b68928dcabe44a03d71da121b76de5a6013"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 108.528175036,
+     "training_updates": 1059.7935121499995,
+     "wall": 1231.083537275
+    },
+    "lorentz": {}
+   },
+   "qat_dot_s2": {
+    "root": "lab/exp/c3b/ft_qat_dot_s2",
+    "final": {
+     "bits_per_byte_no_read": 2.4405572486075076,
+     "bits_per_byte_read": 1.2588191333456722,
+     "nll_no_read": 6.06960068738983,
+     "nll_read": 3.1306495602239064,
+     "no_read_mass": 0.003999736834150663,
+     "read_effect_nats": 2.9389511271659234,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 2.406079084539038,
+       "bits_per_byte_read": 1.3842145448086005,
+       "nll_no_read": 5.858458882598979,
+       "nll_read": 3.370364693149834,
+       "no_read_mass": 0.003967236042386499,
+       "read_effect_nats": 2.4880941894491455,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 2.4544357325555715,
+       "bits_per_byte_read": 1.3497621579327317,
+       "nll_no_read": 5.97620041317691,
+       "nll_read": 3.2864780523421233,
+       "no_read_mass": 0.003984064157723979,
+       "read_effect_nats": 2.6897223608347867,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 2.428925012386219,
+       "bits_per_byte_read": 1.338335321085514,
+       "nll_no_read": 5.9140854535573375,
+       "nll_read": 3.258655336847127,
+       "no_read_mass": 0.003973427573855604,
+       "read_effect_nats": 2.6554301167102103,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": {
+     "final_strength": 1.0,
+     "ramp_steps": 100,
+     "scope": "Frozen dyadic scales calibrated once on the starting weights; straight-through fake quantization; evaluations use the hard path"
+    },
+    "init": {
+     "config_sha256": "b3a1457ccb18bebfdd6ecc45ead2587739a519cdae0b2c3d4dd669c09b0f8845",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/dot_s2_r1/model",
+     "weights_sha256": "378c24bc71202eb94ce60ed33c2d474dc2a6c8ee354af93f10837bcbaa2d7dbe"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 107.586882976,
+     "training_updates": 1039.5038721340002,
+     "wall": 1210.161227364
+    },
+    "lorentz": {}
+   },
+   "qat_lorentzflat_s1": {
+    "root": "lab/exp/c3b/ft_qat_lorentzflat_s1",
+    "final": {
+     "bits_per_byte_no_read": 1.584163656891679,
+     "bits_per_byte_read": 1.2336489215905149,
+     "nll_no_read": 3.939772699982279,
+     "nll_read": 3.0680519159121347,
+     "no_read_mass": 0.5892894943853841,
+     "read_effect_nats": 0.8717207840701442,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 1.6969692132693874,
+       "bits_per_byte_read": 1.3568558981546275,
+       "nll_no_read": 4.131877636465836,
+       "nll_read": 3.303750296501038,
+       "no_read_mass": 0.5939357625316433,
+       "read_effect_nats": 0.8281273399647979,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 1.659370637439722,
+       "bits_per_byte_read": 1.321209603326548,
+       "nll_no_read": 4.040330474962383,
+       "nll_read": 3.2169566603694504,
+       "no_read_mass": 0.5981541081674919,
+       "read_effect_nats": 0.8233738145929328,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 1.6525980927421793,
+       "bits_per_byte_read": 1.3135355522610512,
+       "nll_no_read": 4.023840296025178,
+       "nll_read": 3.1982714421989136,
+       "no_read_mass": 0.6129306789454105,
+       "read_effect_nats": 0.825568853826264,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": {
+     "final_strength": 1.0,
+     "ramp_steps": 100,
+     "scope": "Frozen dyadic scales calibrated once on the starting weights; straight-through fake quantization; evaluations use the hard path"
+    },
+    "init": {
+     "config_sha256": "f7a173a88c444281ebad29bfaef0a64547ff377cdf5f02ba90b224520ce4cf92",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s1_r1/model",
+     "weights_sha256": "4267dcb985ee5e6dd22d30ead5e844b614c305ee3eb93b0cd96ed65d609aa115"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 109.949864507,
+     "training_updates": 1001.1819892159992,
+     "wall": 1177.47855003
+    },
+    "lorentz": {
+     "read.lorentz_log_beta": [
+      1.3752659559249878
+     ],
+     "read.lorentz_offset": [
+      4.931334495544434
+     ]
+    }
+   },
+   "qat_lorentzflat_s2": {
+    "root": "lab/exp/c3b/ft_qat_lorentzflat_s2",
+    "final": {
+     "bits_per_byte_no_read": 1.5827565582118566,
+     "bits_per_byte_read": 1.2349495471506504,
+     "nll_no_read": 3.936273283150672,
+     "nll_read": 3.0712865369390903,
+     "no_read_mass": 0.6003445744613476,
+     "read_effect_nats": 0.8649867462115819,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 1.6898810604052643,
+       "bits_per_byte_read": 1.3622122971189914,
+       "nll_no_read": 4.1146189967249915,
+       "nll_read": 3.3167923628625156,
+       "no_read_mass": 0.6111007571966525,
+       "read_effect_nats": 0.797826633862476,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 1.6521015755339892,
+       "bits_per_byte_read": 1.3258382672780944,
+       "nll_no_read": 4.022631347546561,
+       "nll_read": 3.2282267959255715,
+       "no_read_mass": 0.60049061254864,
+       "read_effect_nats": 0.7944045516209894,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 1.6414527069968472,
+       "bits_per_byte_read": 1.3151015149737286,
+       "nll_no_read": 3.9967028737603387,
+       "nll_read": 3.2020843377196195,
+       "no_read_mass": 0.6072975986409617,
+       "read_effect_nats": 0.7946185360407192,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": {
+     "final_strength": 1.0,
+     "ramp_steps": 100,
+     "scope": "Frozen dyadic scales calibrated once on the starting weights; straight-through fake quantization; evaluations use the hard path"
+    },
+    "init": {
+     "config_sha256": "5fd0e99bbbc1f82e13916257e7d666ac1a82c87f9bf6298e4b16cc7ded7b9fde",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s2_r1/model",
+     "weights_sha256": "d81adff1a9f45b5dedc4c0dedd5d57d0272e1a6a53aacbe864a96363f7f80acc"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 108.882962472,
+     "training_updates": 1006.5195026120007,
+     "wall": 1181.134261377
+    },
+    "lorentz": {
+     "read.lorentz_log_beta": [
+      1.3344987630844116
+     ],
+     "read.lorentz_offset": [
+      4.948954105377197
+     ]
+    }
+   },
+   "float_dot_s1": {
+    "root": "lab/exp/c3b/ft_float_dot_s1",
+    "final": {
+     "bits_per_byte_no_read": 1.5943456714003776,
+     "bits_per_byte_read": 1.2446183334132976,
+     "nll_no_read": 3.9650950980929034,
+     "nll_read": 3.095332550110661,
+     "no_read_mass": 0.4096846061124235,
+     "read_effect_nats": 0.8697625479822424,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 1.6798419379389202,
+       "bits_per_byte_read": 1.342003880508914,
+       "nll_no_read": 4.09017516752404,
+       "nll_read": 3.267587755020106,
+       "no_read_mass": 0.41806284553880874,
+       "read_effect_nats": 0.8225874125039345,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 1.664864047581921,
+       "bits_per_byte_read": 1.3268555063938807,
+       "nll_no_read": 4.05370614397099,
+       "nll_read": 3.23070362786842,
+       "no_read_mass": 0.40822329365215426,
+       "read_effect_nats": 0.8230025161025698,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 1.6583453502926557,
+       "bits_per_byte_read": 1.3198703737479462,
+       "nll_no_read": 4.037834047212963,
+       "nll_read": 3.2136958276432885,
+       "no_read_mass": 0.4351555320270227,
+       "read_effect_nats": 0.824138219569674,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": null,
+    "init": {
+     "config_sha256": "e4f7ac7104bc1bb11a8e6d0acda24b6434bea8dcf55f5ea56f7aeead273f055b",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/dot_s1_r1/model",
+     "weights_sha256": "7c07f6809a547a1b3aeef172b5470b68928dcabe44a03d71da121b76de5a6013"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 71.13711194,
+     "training_updates": 782.3909863609997,
+     "wall": 888.142742994
+    },
+    "lorentz": {}
+   },
+   "float_dot_s2": {
+    "root": "lab/exp/c3b/ft_float_dot_s2",
+    "final": {
+     "bits_per_byte_no_read": 2.400113538413491,
+     "bits_per_byte_read": 1.2450270045661846,
+     "nll_no_read": 5.96901826043211,
+     "nll_read": 3.096348904351847,
+     "no_read_mass": 0.003958546098657631,
+     "read_effect_nats": 2.8726693560802627,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 2.4168176491522897,
+       "bits_per_byte_read": 1.3568276434148963,
+       "nll_no_read": 5.884605753518195,
+       "nll_read": 3.3036815002457454,
+       "no_read_mass": 0.003946414606529211,
+       "read_effect_nats": 2.5809242532724497,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 2.420602401697743,
+       "bits_per_byte_read": 1.3345095825479512,
+       "nll_no_read": 5.893821085346159,
+       "nll_read": 3.2493402099828828,
+       "no_read_mass": 0.003946006632594334,
+       "read_effect_nats": 2.644480875363276,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 2.4092096313479425,
+       "bits_per_byte_read": 1.3242668788928549,
+       "nll_no_read": 5.866081316906259,
+       "nll_read": 3.2244006896671884,
+       "no_read_mass": 0.003946196246295408,
+       "read_effect_nats": 2.6416806272390705,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": null,
+    "init": {
+     "config_sha256": "b3a1457ccb18bebfdd6ecc45ead2587739a519cdae0b2c3d4dd669c09b0f8845",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/dot_s2_r1/model",
+     "weights_sha256": "378c24bc71202eb94ce60ed33c2d474dc2a6c8ee354af93f10837bcbaa2d7dbe"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 71.154885564,
+     "training_updates": 780.1403973279994,
+     "wall": 885.549464877
+    },
+    "lorentz": {}
+   },
+   "float_lorentzflat_s1": {
+    "root": "lab/exp/c3b/ft_float_lorentzflat_s1",
+    "final": {
+     "bits_per_byte_no_read": 1.567796122224693,
+     "bits_per_byte_read": 1.2207030695377066,
+     "nll_no_read": 3.899067078459859,
+     "nll_read": 3.0358559276543686,
+     "no_read_mass": 0.5877231939148708,
+     "read_effect_nats": 0.8632111508054905,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 1.6640622026296144,
+       "bits_per_byte_read": 1.3255662293280397,
+       "nll_no_read": 4.051753766048962,
+       "nll_read": 3.227564422375532,
+       "no_read_mass": 0.600249381041877,
+       "read_effect_nats": 0.8241893436734298,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 1.6430409243340636,
+       "bits_per_byte_read": 1.307001325212149,
+       "nll_no_read": 4.00056995611291,
+       "nll_read": 3.1823615326944665,
+       "no_read_mass": 0.6019290529210721,
+       "read_effect_nats": 0.8182084234184437,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 1.6338786046805476,
+       "bits_per_byte_read": 1.2991370729264202,
+       "nll_no_read": 3.9782610165172545,
+       "nll_read": 3.163213201721316,
+       "no_read_mass": 0.6130843400629473,
+       "read_effect_nats": 0.8150478147959386,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": null,
+    "init": {
+     "config_sha256": "f7a173a88c444281ebad29bfaef0a64547ff377cdf5f02ba90b224520ce4cf92",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s1_r1/model",
+     "weights_sha256": "4267dcb985ee5e6dd22d30ead5e844b614c305ee3eb93b0cd96ed65d609aa115"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 72.984718637,
+     "training_updates": 803.2777839869989,
+     "wall": 914.283415656
+    },
+    "lorentz": {
+     "read.lorentz_log_beta": [
+      1.3658394813537598
+     ],
+     "read.lorentz_offset": [
+      4.9326581954956055
+     ]
+    }
+   },
+   "float_lorentzflat_s2": {
+    "root": "lab/exp/c3b/ft_float_lorentzflat_s2",
+    "final": {
+     "bits_per_byte_no_read": 1.564776841069486,
+     "bits_per_byte_read": 1.2213436807756801,
+     "nll_no_read": 3.891558206875091,
+     "nll_read": 3.037449110691797,
+     "no_read_mass": 0.6030347880389959,
+     "read_effect_nats": 0.854109096183294,
+     "targets": 131072
+    },
+    "curve": [
+     {
+      "step": 0,
+      "development": {
+       "bits_per_byte_no_read": 1.6583982030947624,
+       "bits_per_byte_read": 1.3282865870757055,
+       "nll_no_read": 4.037962736236512,
+       "nll_read": 3.234188104910769,
+       "no_read_mass": 0.6097388061021647,
+       "read_effect_nats": 0.803774631325743,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 100,
+      "development": {
+       "bits_per_byte_no_read": 1.633717758772082,
+       "bits_per_byte_read": 1.308890673912929,
+       "nll_no_read": 3.9778693797056324,
+       "nll_read": 3.1869618269032207,
+       "no_read_mass": 0.6073697796956665,
+       "read_effect_nats": 0.7909075528024117,
+       "targets": 16384
+      }
+     },
+     {
+      "step": 200,
+      "development": {
+       "bits_per_byte_no_read": 1.624487707760181,
+       "bits_per_byte_read": 1.3002640725926402,
+       "nll_no_read": 3.9553955239271663,
+       "nll_read": 3.165957284926095,
+       "no_read_mass": 0.605815112876968,
+       "read_effect_nats": 0.7894382390010715,
+       "targets": 16384
+      }
+     }
+    ],
+    "quantization": null,
+    "init": {
+     "config_sha256": "5fd0e99bbbc1f82e13916257e7d666ac1a82c87f9bf6298e4b16cc7ded7b9fde",
+     "model": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/runs/ctx256/lorentzflat_s2_r1/model",
+     "weights_sha256": "d81adff1a9f45b5dedc4c0dedd5d57d0272e1a6a53aacbe864a96363f7f80acc"
+    },
+    "optimizer": {
+     "allowed_missing_gradients": [],
+     "learning_rate": 0.0003,
+     "parameter_abs_limit": 1000000.0,
+     "weight_decay": 0.01
+    },
+    "steps_completed": 300,
+    "seconds": {
+     "final_evaluation": 72.364371892,
+     "training_updates": 805.1195942400001,
+     "wall": 915.307015898
+    },
+    "lorentz": {
+     "read.lorentz_log_beta": [
+      1.326474905014038
+     ],
+     "read.lorentz_offset": [
+      4.948443412780762
+     ]
+    }
+   }
+  },
+  "quantization_aware_integer": {
+   "dot_s1": {
+    "root": "lab/exp/c3b/qatparity_dot_s1",
+    "manifest_sha256_packed": "d8d7792ceaa8acccb62084738bc43d5af9d6c3a0a6e44cd83d6d192994b7c9f9",
+    "checkpoint_weights_sha256": "c28769f5eb5c85a3b7d6dcd46c2af33c49c82976f6f9abd46400bf569e1fa0f6",
+    "windows": 512,
+    "targets": 131072,
+    "stride": 403,
+    "quantization": "Quantization-aware checkpoint: its own frozen dyadic scales; float scores use its F32 shadow weights; signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces",
+    "read": {
+     "float_nll": 3.159678742808971,
+     "emulator_nll": 3.1303225677627107,
+     "integer_nll": 3.130332939641356,
+     "float_bits_per_byte": 1.2704916280661769,
+     "emulator_bits_per_byte": 1.2586876512494825,
+     "integer_bits_per_byte": 1.2586918217320089,
+     "emulator_minus_float_nll": -0.029356175046260535,
+     "integer_minus_emulator_nll": 1.0371878645276666e-05,
+     "mean_total_variation_integer_emulator": 0.0017992858265051736,
+     "maximum_probability_delta_integer_emulator": 0.012404740268259218,
+     "maximum_state_delta_integer_emulator": 0.01220703125,
+     "top1_agreement_integer_emulator": 0.9970779418945312,
+     "top1_agreement_integer_float": 0.7987442016601562,
+     "mean_no_read_mass_integer": 0.4120929577519433,
+     "mean_no_read_mass_emulator": 0.4120984275469186,
+     "integer_seconds_per_step": 0.0042728311454697104
+    },
+    "no_read": {
+     "float_nll": 4.0292634362448805,
+     "emulator_nll": 4.003554874957287,
+     "integer_nll": 4.003559390202625,
+     "float_bits_per_byte": 1.6201474515954521,
+     "emulator_bits_per_byte": 1.609810162730295,
+     "integer_bits_per_byte": 1.609811978288732,
+     "emulator_minus_float_nll": -0.025708561287593135,
+     "integer_minus_emulator_nll": 4.5152453376218205e-06,
+     "mean_total_variation_integer_emulator": 0.0017767620127122148,
+     "maximum_probability_delta_integer_emulator": 0.012233103358234132,
+     "maximum_state_delta_integer_emulator": 0.0078125,
+     "top1_agreement_integer_emulator": 0.9964218139648438,
+     "top1_agreement_integer_float": 0.7256622314453125,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.0026678888267288735
+    },
+    "read_effect_nats": {
+     "emulator": 0.8732323071945767,
+     "float": 0.8695846934359093,
+     "integer": 0.873226450561269
+    },
+    "seconds": {
+     "preparation": 0.109660399,
+     "total": 1125.703422439
+    }
+   },
+   "dot_s2": {
+    "root": "lab/exp/c3b/qatparity_dot_s2",
+    "manifest_sha256_packed": "735618b508c02bb646024cc8a5891d399473aff7054b71bf1f2ddc8ee67c26b3",
+    "checkpoint_weights_sha256": "691c3a54e43370bf203d9f0111e69a137f48fac82dfc4e318f543f74a04b1dba",
+    "windows": 512,
+    "targets": 131072,
+    "stride": 403,
+    "quantization": "Quantization-aware checkpoint: its own frozen dyadic scales; float scores use its F32 shadow weights; signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces",
+    "read": {
+     "float_nll": 3.151165111646759,
+     "emulator_nll": 3.130649560223902,
+     "integer_nll": 3.130643081561889,
+     "float_bits_per_byte": 1.2670683379166165,
+     "emulator_bits_per_byte": 1.2588191333456702,
+     "integer_bits_per_byte": 1.2588165283068298,
+     "emulator_minus_float_nll": -0.020515551422857214,
+     "integer_minus_emulator_nll": -6.478662013087444e-06,
+     "mean_total_variation_integer_emulator": 0.001670375556933875,
+     "maximum_probability_delta_integer_emulator": 0.01504283044605259,
+     "maximum_state_delta_integer_emulator": 0.013671875,
+     "top1_agreement_integer_emulator": 0.9973068237304688,
+     "top1_agreement_integer_float": 0.8116989135742188,
+     "mean_no_read_mass_integer": 0.0039997540664975075,
+     "mean_no_read_mass_emulator": 0.003999736834150674,
+     "integer_seconds_per_step": 0.004280502712600691
+    },
+    "no_read": {
+     "float_nll": 6.055079277744864,
+     "emulator_nll": 6.069600687389814,
+     "integer_nll": 6.069594591599432,
+     "float_bits_per_byte": 2.43471825962053,
+     "emulator_bits_per_byte": 2.4405572486075013,
+     "integer_bits_per_byte": 2.4405547975195026,
+     "emulator_minus_float_nll": 0.01452140964495019,
+     "integer_minus_emulator_nll": -6.095790381799304e-06,
+     "mean_total_variation_integer_emulator": 0.002652594105282274,
+     "maximum_probability_delta_integer_emulator": 0.030764334837716234,
+     "maximum_state_delta_integer_emulator": 0.0341796875,
+     "top1_agreement_integer_emulator": 0.994873046875,
+     "top1_agreement_integer_float": 0.6731796264648438,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.002701333667480459
+    },
+    "read_effect_nats": {
+     "emulator": 2.938951127165912,
+     "float": 2.9039141660981045,
+     "integer": 2.938951510037543
+    },
+    "seconds": {
+     "preparation": 0.094803579,
+     "total": 1131.569103731
+    }
+   },
+   "lorentzflat_s1": {
+    "root": "lab/exp/c3b/qatparity_lorentzflat_s1",
+    "manifest_sha256_packed": "579dd6c319c695e29f5e84c60a1ffb80def8719f464efeb06dcbe85fbeab137b",
+    "checkpoint_weights_sha256": "7e509fe08b2ef265e84abf069e5c44a9fa964db2eaa99cd24b11e22451f55954",
+    "windows": 512,
+    "targets": 131072,
+    "stride": 403,
+    "quantization": "Quantization-aware checkpoint: its own frozen dyadic scales; float scores use its F32 shadow weights; signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces",
+    "read": {
+     "float_nll": 3.086594152165209,
+     "emulator_nll": 3.068051915912154,
+     "integer_nll": 3.068046453944831,
+     "float_bits_per_byte": 1.2411046656210658,
+     "emulator_bits_per_byte": 1.2336489215905229,
+     "integer_bits_per_byte": 1.2336467253597279,
+     "emulator_minus_float_nll": -0.018542236253054956,
+     "integer_minus_emulator_nll": -5.461967323316941e-06,
+     "mean_total_variation_integer_emulator": 0.0018658343698007447,
+     "maximum_probability_delta_integer_emulator": 0.014383480300516283,
+     "maximum_state_delta_integer_emulator": 0.017578125,
+     "top1_agreement_integer_emulator": 0.997100830078125,
+     "top1_agreement_integer_float": 0.8073883056640625,
+     "mean_no_read_mass_integer": 0.5892973819861487,
+     "mean_no_read_mass_emulator": 0.5892894943853841,
+     "integer_seconds_per_step": 0.004460722919662501
+    },
+    "no_read": {
+     "float_nll": 3.964300773681826,
+     "emulator_nll": 3.939772699982262,
+     "integer_nll": 3.9398015875544665,
+     "float_bits_per_byte": 1.5940262773744696,
+     "emulator_bits_per_byte": 1.5841636568916722,
+     "integer_bits_per_byte": 1.5841752724455398,
+     "emulator_minus_float_nll": -0.02452807369956389,
+     "integer_minus_emulator_nll": 2.888757220453897e-05,
+     "mean_total_variation_integer_emulator": 0.0019796457793243524,
+     "maximum_probability_delta_integer_emulator": 0.012634369741178375,
+     "maximum_state_delta_integer_emulator": 0.01220703125,
+     "top1_agreement_integer_emulator": 0.996063232421875,
+     "top1_agreement_integer_float": 0.7306060791015625,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.002662025857177751
+    },
+    "read_effect_nats": {
+     "emulator": 0.8717207840701078,
+     "float": 0.8777066215166167,
+     "integer": 0.8717551336096356
+    },
+    "seconds": {
+     "preparation": 0.087462163,
+     "total": 1154.301922922
+    }
+   },
+   "lorentzflat_s2": {
+    "root": "lab/exp/c3b/qatparity_lorentzflat_s2",
+    "manifest_sha256_packed": "7caba0c601e10e72beeab449485eb327e0ea7535c054351c95ffd7d7cad500b4",
+    "checkpoint_weights_sha256": "facbe5636871f4f07e81b4d95296592852dcd94e5c1eb8f9b44c9ae45f964eb6",
+    "windows": 512,
+    "targets": 131072,
+    "stride": 403,
+    "quantization": "Quantization-aware checkpoint: its own frozen dyadic scales; float scores use its F32 shadow weights; signed4 weights, signed16 additive and Lorentz scalars; quantized interfaces",
+    "read": {
+     "float_nll": 3.0943190250392605,
+     "emulator_nll": 3.0712865369391324,
+     "integer_nll": 3.0712766438024737,
+     "float_bits_per_byte": 1.2442107998559762,
+     "emulator_bits_per_byte": 1.2349495471506673,
+     "integer_bits_per_byte": 1.2349455691679914,
+     "emulator_minus_float_nll": -0.023032488100128035,
+     "integer_minus_emulator_nll": -9.893136658778445e-06,
+     "mean_total_variation_integer_emulator": 0.0021015749663485287,
+     "maximum_probability_delta_integer_emulator": 0.0173427662448411,
+     "maximum_state_delta_integer_emulator": 0.0087890625,
+     "top1_agreement_integer_emulator": 0.9966354370117188,
+     "top1_agreement_integer_float": 0.7985916137695312,
+     "mean_no_read_mass_integer": 0.6003436362424898,
+     "mean_no_read_mass_emulator": 0.6003445744613476,
+     "integer_seconds_per_step": 0.004461498861160214
+    },
+    "no_read": {
+     "float_nll": 3.9622005188447362,
+     "emulator_nll": 3.9362732831506944,
+     "integer_nll": 3.9362730308432647,
+     "float_bits_per_byte": 1.5931817750042836,
+     "emulator_bits_per_byte": 1.5827565582118654,
+     "integer_bits_per_byte": 1.5827564567602612,
+     "emulator_minus_float_nll": -0.025927235694041872,
+     "integer_minus_emulator_nll": -2.5230742961568353e-07,
+     "mean_total_variation_integer_emulator": 0.0021958509005571805,
+     "maximum_probability_delta_integer_emulator": 0.014559210602378414,
+     "maximum_state_delta_integer_emulator": 0.00830078125,
+     "top1_agreement_integer_emulator": 0.9963226318359375,
+     "top1_agreement_integer_float": 0.7333297729492188,
+     "mean_no_read_mass_integer": 1.0,
+     "mean_no_read_mass_emulator": 1.0,
+     "integer_seconds_per_step": 0.002661835631347692
+    },
+    "read_effect_nats": {
+     "emulator": 0.8649867462115619,
+     "float": 0.8678814938054757,
+     "integer": 0.8649963870407911
+    },
+    "seconds": {
+     "preparation": 0.093746523,
+     "total": 1155.640395098
+    }
+   }
+  },
+  "paths": "Relative to the session scratch directory; roots are claimed and sealed; models and tables are not committed",
+  "evaluation": "joint-integer-parity: evenly spaced windows of the code development split (valid.u16), fresh state per window; float and emulator by full-window forward, integer by incremental steps. post_training_quantization uses 64 windows; quantization_aware_integer uses 512 windows, the same windows as the section-10 final evaluation",
+  "fine_tune_settings": {
+   "steps": 300,
+   "batch": 8,
+   "context": 256,
+   "learning_rate": 0.0003,
+   "quantize_ramp": 100,
+   "eval_every": 100,
+   "eval_windows": 64,
+   "final_windows": 512,
+   "window_stream": "fine-tune stream seed ^ 0x5EED0FD8 ^ 0xF1AE7C0E",
+   "arms": "qat (quantize_ramp=100) and float (same settings, no quantization), from each section-10 model"
+  },
+  "summary": {
+   "quantization_aware_integer_minus_float_fine_tune_nll": {
+    "dot_s1": 0.03500038953069495,
+    "dot_s2": 0.0342941772100418,
+    "lorentzflat_s1": 0.03219052629046226,
+    "lorentzflat_s2": 0.033827533110676544
+   },
+   "integer_lorentz_minus_dot_nll": {
+    "s1": -0.06228648569652506,
+    "s2": -0.05936643775941519
+   },
+   "float_fine_tune_lorentz_minus_dot_nll": {
+    "s1": -0.05947662245629237,
+    "s2": -0.05889979366004994
+   }
+  }
+ }
+}

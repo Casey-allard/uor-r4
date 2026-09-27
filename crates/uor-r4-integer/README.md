@@ -2,9 +2,23 @@
 
 This crate serves the retained learned recurrent model with full causal context,
 integer model arithmetic, and integer token selection. It supports the quaternion
-model and the matched Householder-pair control. The weights retain the model's
-existing limitations: general prose remains weak, and useful general reasoning
-and frontier capability are not established.
+model and the matched Householder-pair control, with the retained dot-product
+read or the hyperbolic (Lorentz) read, at state width 128 or 256 (read width 64,
+context up to 256). Serving bundles keep the retained width-256, context-256
+shape. The weights retain the model's existing
+limitations: general prose remains weak, and useful general reasoning and
+frontier capability are not established.
+
+A Lorentz model is served under its own packed contract
+(`config::packed_numerical_contract`), which differs from the retained one only
+in its read declaration. Its two learned scalars are signed 16-bit codes. At load,
+`exp(read.lorentz_log_beta)` is computed once with integer arithmetic. For each
+key, `z - 1` of the lifted query and key comes from their Q8 codes as a
+difference of exact integers, with one square root and one rounded division
+(see [`src/lorentz.rs`](src/lorentz.rs)). The distance `arcosh(z)` is read from
+a sealed Q24 table (`arcosh.json`/`arcosh.bin`), which the training tool now
+exports next to the retained tables; the retained table files are unchanged.
+A Lorentz model refuses a table root without it.
 
 The crate depends on the shared byte-level tokenizer, Serde/JSON, and hashing
 libraries. It has no dependency on Candle, the training crate, the core crate,
@@ -25,6 +39,13 @@ integer table directory; `TOKENIZER_JSON` is the original tokenizer file. The
 tokenizer's SHA-256 must match the parent's evaluator provenance. Packaging
 copies the existing parameter codes and tables; it performs no fitting or table
 construction. `NEW_BUNDLE` must not exist.
+
+For a model packed by a training tool rather than an accepted campaign (for
+example the `joint-integer-parity` example of `uor-r4-training`), use
+`pack-development PACKED TABLES TOKENIZER_JSON NEW_BUNDLE`. It produces the
+same sealed layout without evaluator provenance: the tokenizer is the caller's,
+and `bundle.json` records the bundle as a development bundle with no accepted
+parent. A Lorentz model's table root must carry the arcosh table.
 
 The resulting sealed bundle binds the model, table hashes, tokenizer bytes and
 identity, full context policy, and parent provenance. Loading uses the files

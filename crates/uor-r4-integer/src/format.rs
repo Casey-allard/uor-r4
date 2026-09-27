@@ -3,6 +3,7 @@
 //! Legacy error statistics are JSON numbers inspected only during loading;
 //! parameter decoding and all model computation use integer codes directly.
 
+use crate::config::{LORENTZ_LOG_BETA, LORENTZ_OFFSET};
 use crate::{invalid, Result};
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -83,7 +84,9 @@ fn required_bits(name: &str) -> Result<u8> {
     }
     if name.ends_with(".weight") {
         Ok(4)
-    } else if name.ends_with(".bias") || name == "read.age" {
+    } else if name.ends_with(".bias")
+        || matches!(name, "read.age" | LORENTZ_LOG_BETA | LORENTZ_OFFSET)
+    {
         Ok(16)
     } else {
         Err(invalid(format!("unsupported quantized parameter {name}")))

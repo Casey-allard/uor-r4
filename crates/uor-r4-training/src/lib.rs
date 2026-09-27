@@ -9,6 +9,7 @@
 
 pub mod baseline_counts;
 pub mod baseline_protocol;
+pub mod cache_memory;
 pub mod joint_admission;
 pub mod joint_bounded_campaign;
 pub mod joint_campaign;
@@ -24,6 +25,8 @@ pub mod joint_parallel;
 pub mod joint_quantization;
 pub mod joint_rounding;
 pub mod joint_rounding_campaign;
+pub mod kappa_llama;
+pub mod lut_export;
 pub mod ngram;
 pub mod reference_campaign;
 pub mod reference_eval;

@@ -1,0 +1,8 @@
+[package]
+name = "uor-r4-simd"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Audited vector kernels (AVX2, NEON, portable) for the multiplier-free 4-bit table GEMV of uor-r4-lut (owner decision D10)"
+
+[dependencies]

@@ -2887,6 +2887,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-lut"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uor-r4-simd",
+ "uor-r4-tokenizer",
+]
+
+[[package]]
 name = "uor-r4-model-source"
 version = "0.1.0"
 dependencies = [
@@ -2940,6 +2953,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-simd"
+version = "0.1.0"
+
+[[package]]
 name = "uor-r4-tokenizer"
 version = "0.1.0"
 dependencies = [
@@ -2955,12 +2972,14 @@ dependencies = [
  "candle-core",
  "candle-nn",
  "hex",
+ "rayon",
  "safetensors 0.6.2",
  "serde",
  "serde_json",
  "sha2",
  "uor-r4-core",
  "uor-r4-integer",
+ "uor-r4-lut",
  "uor-r4-model-source",
 ]
 

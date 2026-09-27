@@ -11,6 +11,7 @@ pub mod bundle;
 pub mod config;
 pub mod format;
 pub mod generation;
+pub mod lorentz;
 pub mod math;
 pub mod model;
 pub mod report_output;
@@ -19,7 +20,7 @@ pub mod session;
 pub mod tables;
 
 pub use bundle::{create_test_bundle_with_byte_vocab, Bundle};
-pub use config::{JointConfig, ReadMode, Transport};
+pub use config::{JointConfig, ReadGeometry, ReadMode, Transport};
 pub use model::{
     atan2_q30, HopfFiberPointQ30, IntegerModel, IntegerSession, IntegerStep, SessionState,
     SlotTarget, T8ZetaState, UnitS3Q30, AGE_HORIZON_CLAMP, DIALOGUE_CAPACITY, PERSISTENT_CAPACITY,

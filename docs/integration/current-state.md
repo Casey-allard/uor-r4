@@ -76,6 +76,50 @@ also fail; quaternion has source regressions against the accepted parent and an
 actual integer short-cycle. No candidate is promoted. The [next single work card](#next-single-work-card--failure-localization)
 localizes these failures from existing records; it authorizes no fit or sweep.
 
+## Parallel lab track: integer chat vehicle and hyperbolic reads, September26
+
+A separate lab on branch `claude/blissful-wozniak-girwwq` followed the owner's
+decisions of 2026-09-26 ([D10](DECISIONS.md)). An open instruct model, converted
+and served without floating point or multiplier-based weight maps, is the interim
+chat vehicle, reported as dense; hyperbolic geometry is the lead mechanism. This
+track does not change the work card below.
+
+- **Integer chat engine** (`crates/uor-r4-lut`, the audited SIMD crate
+  `crates/uor-r4-simd`, the exporter `lut_export` and `lut-chat`). It has 4-bit
+  table GEMV (AVX2/NEON), integer attention and integer sampling.
+  - A 4.2M-parameter stand-in Llama exported with GPTQ scores +0.0034 nats with
+    97.95% top-1 agreement against bf16.
+  - A SmolLM2-135M-shaped model decodes 36.5–54.8 tokens/s on the 4-core x86
+    sandbox.
+  - M1 speed, energy and real SmolLM2 fidelity are unmeasured
+    ([lab note §7](geometric-lab-phase2-2026-09-26.md#7-m3-the-integer-serving-engine)).
+- **Hyperbolic cache memory.** A learned Lorentz cache over a frozen backbone
+  beats equal Euclidean and dot caches. Its integer form keeps 99.3% of the float
+  gain on the stand-in
+  ([§8](geometric-lab-phase2-2026-09-26.md#8-m4a-work-card-a-learned-cache-memory-over-a-frozen-backbone)).
+- **The native model's Lorentz read** ([cycle 3](hyperbolic-cycle3-2026-09-26.md)).
+  At reduced scale (code corpus, width 128), the flat-start Lorentz read beats the
+  retained Dot read.
+  - At context 128 it wins in 3 of 4 seeds, by 0.018 nats on average; at context
+    256 it wins by 0.051–0.061.
+  - `uor-r4-integer` now serves the Lorentz read. The Dot contract, tables and
+    arithmetic are unchanged.
+  - The Lorentz read adds two learned signed 16-bit scalars (log β and δ) beside
+    the ≤4-bit weight maps, plus a Q32 scale derived at load. They are not 4-bit
+    parameters; whether D10 admits them awaits the owner's clarification.
+  - After 300 quantization-aware updates, 4-bit integer serving is within 0.035
+    nats of equal float fine-tunes and keeps the Lorentz advantage (−0.062 and
+    −0.059 nats)
+    ([§11](hyperbolic-cycle3-2026-09-26.md#11-addendum-the-integer-lorentz-read)).
+- **Owner-runnable M1 scripts.**
+  - `scripts/lut-m1-chat.sh`: integer SmolLM2 chat, with an optional cache stage
+    and joules per token.
+  - `scripts/kappa-m1-pilot.sh`: the curvature drive test on real SmolLM2 heads.
+  - `scripts/native-lorentz-m1.sh`: the full-scale native Dot/Lorentz comparison
+    through integer serving.
+- **Scope.** Development measurements on stand-ins and at reduced scale. No
+  chat-quality, M1-energy or general-language qualification.
+
 ## Retained result: standalone integer serving and exact speedup, September25
 
 The [standalone result](integer-serving-result-2026-09-25.md) delivers a Rust

@@ -4,18 +4,30 @@
 use std::fs;
 use std::path::Path;
 
+use crate::lorentz::{
+    ARCOSH_ANCHORS, ARCOSH_CODE_BITS, ARCOSH_ENTRIES, ARCOSH_FRACTION_BITS, ARCOSH_MANTISSA_BITS,
+    ARCOSH_OUTPUT_BITS,
+};
 use crate::{invalid, Result};
 
 pub const TOTAL: u64 = 1 << 48;
 const ENTRIES: usize = 65535;
 const BYTES: usize = ENTRIES * 16;
 const SCHEMA: &str = "uor-r4.joint-integer-tables/1";
+/// Optional Lorentz read table files in the same sealed root.
+pub const ARCOSH_METADATA: &str = "arcosh.json";
+pub const ARCOSH_PAYLOAD: &str = "arcosh.bin";
+pub const ARCOSH_SCHEMA: &str = "uor-r4.joint-integer-arcosh/1";
 
 pub struct Tables {
     pub(crate) sigmoid: Vec<i32>,
     pub(crate) tanh: Vec<i32>,
     pub(crate) exp: Vec<u64>,
+    /// Q24 arcosh(1+u) on `lorentz::arcosh_grid`, when the root carries it.
+    pub(crate) arcosh: Option<Vec<u32>>,
     pub sha256: String,
+    /// SHA-256 of `arcosh.json` when the arcosh table is present.
+    pub arcosh_sha256: Option<String>,
 }
 
 impl Tables {
@@ -58,11 +70,19 @@ impl Tables {
         {
             return Err(invalid("integer table monotonicity or origin differs"));
         }
+        let (arcosh, arcosh_sha256) = if directory.join(ARCOSH_METADATA).try_exists()? {
+            let (table, sha256) = load_arcosh(directory)?;
+            (Some(table), Some(sha256))
+        } else {
+            (None, None)
+        };
         Ok(Self {
             sigmoid,
             tanh,
             exp,
+            arcosh,
             sha256: crate::sha256_file(&directory.join("tables.json"))?,
+            arcosh_sha256,
         })
     }
 
@@ -91,7 +111,41 @@ impl Tables {
             sigmoid,
             tanh,
             exp,
+            arcosh: None,
             sha256: "synthetic_tables_hash".to_owned(),
+            arcosh_sha256: None,
         }
     }
+}
+
+/// The Lorentz read's arcosh table: bound metadata, monotone Q24 values, and
+/// fixed anchors that a table of another function would fail.
+fn load_arcosh(directory: &Path) -> Result<(Vec<u32>, String)> {
+    let metadata_path = directory.join(ARCOSH_METADATA);
+    let metadata: serde_json::Value = serde_json::from_slice(&fs::read(&metadata_path)?)?;
+    let path = directory.join(ARCOSH_PAYLOAD);
+    if metadata["schema"] != ARCOSH_SCHEMA
+        || metadata["entries"].as_u64() != Some(ARCOSH_ENTRIES as u64)
+        || metadata["argument_fraction_bits"] != ARCOSH_FRACTION_BITS
+        || metadata["points_per_octave_bits"] != ARCOSH_MANTISSA_BITS
+        || metadata["argument_code_bits"] != ARCOSH_CODE_BITS
+        || metadata["output_fraction_bits"] != ARCOSH_OUTPUT_BITS
+        || fs::metadata(&path)?.len() != (ARCOSH_ENTRIES * 4) as u64
+        || metadata["payload_sha256"] != crate::sha256_file(&path)?
+    {
+        return Err(invalid("arcosh table schema, size or hash differs"));
+    }
+    let table: Vec<u32> = fs::read(path)?
+        .chunks_exact(4)
+        .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        .collect();
+    if table.windows(2).any(|v| v[0] > v[1])
+        || table[0] != 0
+        || ARCOSH_ANCHORS
+            .iter()
+            .any(|&(index, value)| table[index] != value)
+    {
+        return Err(invalid("arcosh table monotonicity or anchors differ"));
+    }
+    Ok((table, crate::sha256_file(&metadata_path)?))
 }

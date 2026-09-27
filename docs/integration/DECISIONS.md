@@ -356,3 +356,27 @@ ordinary controls remain in force. No new model training is part of this process
 correction. The [current execution contract](current-state.md#active-execution-contract)
 is authoritative for the next implementation; historical experiment schedules do
 not override it.
+
+## D10 — A converted open-weight backbone is the interim chat vehicle; serving arithmetic restated
+
+Owner: Casey · Drafted by: the lab lead · Date: 2026-09-26 · **Owner decision in the 2026-09-26 lab session, recorded on
+branch `claude/blissful-wozniak-girwwq`; it reaches `main` only through protected delivery.** Context:
+[lab phase 2](geometric-lab-phase2-2026-09-26.md) §6.
+
+1. **Backbone.** A converted open-weight instruct model (SmolLM2, Apache-2.0) is accepted as the chat backbone. The
+   rule "no transformer backbone at serving" is restated as: **no floating point and no dense float matmul at serving,
+   and learned weight maps execute without a multiplier instruction** (≤4-bit table, add, subtract and shift kernels,
+   as in D0-b).
+2. **Multipliers.** Delegated by the owner to runtime speed. Hardware integer multiplication is allowed where both
+   operands are runtime values or fixed non-learned constants: attention scores, gating, value mixing, normalization,
+   RoPE and softmax normalization. The systems review measured table-driven products at about 1.8× the cost of a
+   hardware multiply on the same core. Learned weight maps stay multiplier-free, including their scales (shift-add).
+3. **SIMD.** Chosen for speed. One small audited SIMD crate may use `unsafe` for NEON table and dot-product kernels.
+   The crates that declare `forbid(unsafe_code)` keep it. Every `unsafe` block carries a safety comment and an
+   equivalence test against the portable kernel.
+4. **D5 is unchanged.** Dense per-token access to a learned weight store remains non-compliant with the end state and
+   is reported as such. The converted backbone is the interim chat vehicle. Geometric routing to sparse parameter
+   access (memory layers) remains the terminal target, as do the hyperbolic memory and index layers of the phase-2
+   roadmap.
+5. **Paid compute is not yet authorized.** The owner asked for its size and cost; the answer is in the phase-2 note §6.
+6. The frozen R4G1/TLA runtime contract is unaffected.

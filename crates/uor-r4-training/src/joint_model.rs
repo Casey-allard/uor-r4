@@ -4,7 +4,8 @@
 //! a differentiable soft read over all earlier events. It is not integer
 //! serving, a transformer, a physical Hamiltonian, or an exact arithmetic
 //! geometric kernel. Quaternion signs remain distinct. The Householder arm
-//! changes only the lane transport formula and its declared local scale.
+//! changes only the lane transport formula and its declared local scale. The
+//! optional Lorentz read geometry changes only the raw query/key read score.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
@@ -22,9 +23,15 @@ use crate::joint_admission::{AdmissionIndex, AdmissionPolicy, AdmissionWork};
 use crate::joint_quantization::{self, QuantizationSpec};
 use crate::{invalid, Result};
 
+pub use uor_r4_integer::config::{ReadGeometry, LORENTZ_LOG_BETA, LORENTZ_OFFSET};
+
 pub const UNIFORM_MIXTURE: f64 = 1e-8;
 pub const RMS_EPSILON: f64 = 1e-5;
 pub const TRANSPORT_MIN_NORM: f64 = 1e-6;
+/// Lorentz products are clamped to this before arcosh: exact arithmetic gives
+/// z >= 1, F32 cancellation can undershoot, and arcosh'(1) is infinite. The
+/// clamp runs in F32, so the effective bound is this value rounded to F32.
+pub const LORENTZ_MIN_INNER: f64 = 1.0 + 1e-6;
 pub const QUATERNION_DELTA_SCALE: f64 = 0.1;
 pub const CHECKPOINT_SCHEMA: &str = "uor-r4.joint-recurrent-checkpoint/1";
 
@@ -271,6 +278,10 @@ impl JointModel {
                 values.fill(-0.5);
             } else if name == "copy.gate.bias" {
                 values.fill(-1.0);
+            } else if name == LORENTZ_OFFSET {
+                values.fill(lorentz_initial_offset(&config) as f32);
+            } else if name == LORENTZ_LOG_BETA {
+                values.fill(lorentz_initial_log_beta(&config) as f32);
             }
             variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
         }
@@ -1052,11 +1063,7 @@ impl JointModel {
                 .values
                 .as_ref()
                 .ok_or_else(|| invalid("missing prior value history"))?;
-            let scores = query
-                .unsqueeze(1)?
-                .matmul(&keys.transpose(1, 2)?.contiguous()?)?
-                .squeeze(1)?
-                .affine(1.0 / (self.config.read_width as f64).sqrt(), 0.0)?;
+            let scores = self.read_scores(&query, keys, training)?;
             let age_indices =
                 self.age_order
                     .narrow(0, self.config.context - 1 - previous, previous)?;
@@ -1166,6 +1173,28 @@ impl JointModel {
         })
     }
 
+    /// Raw read scores [batch, candidates] before the shared learned age bias,
+    /// interface, NoRead competition and value mixing. `Dot` keeps the retained
+    /// operations and order; `Lorentz` is
+    /// exp(read.lorentz_log_beta)*(read.lorentz_offset - arcosh(z)).
+    fn read_scores(&self, query: &Tensor, keys: &Tensor, training: bool) -> Result<Tensor> {
+        match self.config.read_geometry {
+            ReadGeometry::Dot => Ok(query
+                .unsqueeze(1)?
+                .matmul(&keys.transpose(1, 2)?.contiguous()?)?
+                .squeeze(1)?
+                .affine(1.0 / (self.config.read_width as f64).sqrt(), 0.0)?),
+            ReadGeometry::Lorentz => {
+                let beta = self.weight(LORENTZ_LOG_BETA, training)?.exp()?;
+                let offset = self.weight(LORENTZ_OFFSET, training)?;
+                Ok(lorentz_distance(query, keys)?
+                    .broadcast_sub(&offset)?
+                    .broadcast_mul(&beta)?
+                    .neg()?)
+            }
+        }
+    }
+
     fn selected_read(
         &self,
         memory: &RecurrentState,
@@ -1212,11 +1241,7 @@ impl JointModel {
             self.config.width,
             memory.dense_batch_history,
         )?;
-        let scores = query
-            .unsqueeze(1)?
-            .matmul(&keys.transpose(1, 2)?.contiguous()?)?
-            .squeeze(1)?
-            .affine(1.0 / (self.config.read_width as f64).sqrt(), 0.0)?;
+        let scores = self.read_scores(query, &keys, training)?;
         let age = self
             .weight("read.age", training)?
             .index_select(&Tensor::from_vec(ages, (batch * count,), &self.device)?, 0)?
@@ -1497,7 +1522,10 @@ impl JointModel {
         } else {
             numerical_contract()
         };
-        let expected_contract = admission_contract(expected_contract, config.admission);
+        let expected_contract = admission_contract(
+            read_geometry_contract(expected_contract, config.model.read_geometry),
+            config.admission,
+        );
         if config.schema != CHECKPOINT_SCHEMA || config.numerical_contract != expected_contract {
             return Err(invalid(
                 "joint checkpoint schema or numerical contract mismatch",
@@ -1566,7 +1594,10 @@ impl JointModel {
             contract["quantization"]["artifact"] =
                 json!("In-memory diagnostic view of a floating checkpoint; cannot be saved as a training or packed model");
         }
-        admission_contract(contract, self.admission)
+        admission_contract(
+            read_geometry_contract(contract, self.config.read_geometry),
+            self.admission,
+        )
     }
 
     /// Packed parameter export for the shared quantized F32 evaluator. This is
@@ -1589,7 +1620,10 @@ impl JointModel {
             "schema":"uor-r4.joint-recurrent-packed-emulator/1",
             "model":self.config,
             "quantization":state,
-            "numerical_contract":admission_contract(quantized_numerical_contract(), self.admission),
+            "numerical_contract":admission_contract(
+                read_geometry_contract(quantized_numerical_contract(), self.config.read_geometry),
+                self.admission,
+            ),
             "parameter_manifest":parameters,
             "parameter_manifest_sha256":crate::sha256_file(&directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE))?,
             "scope":"Packed signed 4-bit multiplicative weights and signed 16-bit additive offsets; dyadic scales; quantized recurrent interfaces; F32 emulation, not D0-b integer serving"
@@ -1612,9 +1646,13 @@ impl JointModel {
             .map(|v| serde_json::from_value(v.clone()))
             .transpose()?
             .unwrap_or_default();
+        let config: JointConfig = serde_json::from_value(manifest["model"].clone())?;
         if manifest["schema"] != "uor-r4.joint-recurrent-packed-emulator/1"
             || manifest["numerical_contract"]
-                != admission_contract(quantized_numerical_contract(), admission)
+                != admission_contract(
+                    read_geometry_contract(quantized_numerical_contract(), config.read_geometry),
+                    admission,
+                )
             || manifest["parameter_manifest_sha256"]
                 != crate::sha256_file(
                     &directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE),
@@ -1630,7 +1668,6 @@ impl JointModel {
         if actual_manifest != manifest["parameter_manifest"] {
             return Err(invalid("packed model parameter manifest binding"));
         }
-        let config: JointConfig = serde_json::from_value(manifest["model"].clone())?;
         config.validate()?;
         let state: QuantizedTrainingState =
             serde_json::from_value(manifest["quantization"].clone())?;
@@ -1683,6 +1720,29 @@ fn admission_contract(mut contract: Value, policy: AdmissionPolicy) -> Value {
             contract["quantization"]["remaining_float"] = json!("F32 recurrent/output dense maps, selected key/value scoring, normalization, nonlinearities and sampling remain. Bounded incremental admission/read/copy visit at most64 selected events; offline batch storage and diagnostic masses may be dense.");
         }
         contract["admission"] = json!({"policy":policy,"maximum_scored_candidates":64,"backward":"Hard causal index mask is stopped-gradient; selected query/key/value/state/output retain full-trajectory language credit. No estimator of cross-bucket membership credit.","scope":"Selected retrieval/ranking/value/copy in the shared recurrent graph; full-context and exact-cache controls. Not integer execution, unbounded context, parameter sparsity or measured energy."});
+    }
+    contract
+}
+
+/// Declare a Lorentz read in the bound contract. `Dot` returns the retained
+/// contract unchanged, so existing checkpoints keep their exact identity. A
+/// quantized contract takes the integer runtime's quantized Lorentz declaration,
+/// so quantized training, packed export and integer serving bind one contract.
+fn read_geometry_contract(mut contract: Value, geometry: ReadGeometry) -> Value {
+    if geometry == ReadGeometry::Lorentz && contract.get("quantization").is_some() {
+        return uor_r4_integer::config::with_lorentz_quantized_read(contract);
+    }
+    if geometry == ReadGeometry::Lorentz {
+        contract["read"] = json!("Query/Key from RMS-normalized provisional/written states, each lifted to the hyperboloid x0=sqrt(1+|x|^2); Value=tanh(affine(normalized written state)); score=exp(read.lorentz_log_beta)*(read.lorentz_offset-arcosh(max(q0*k0-<q,k>,1+1e-6)))+learned age, competing with learned NoRead");
+        contract["read_geometry"] = json!({
+            "geometry":geometry,
+            "minimum_inner_product":LORENTZ_MIN_INNER,
+            "distance":"arcosh(z)=ln(z+sqrt((z-1)(z+1))) after the F32 clamp",
+            "scale":"exp(read.lorentz_log_beta); learned scalar initialized ln(sinh(offset0)/sqrt(r)), matching the Dot read scale to first order",
+            "offset":"read.lorentz_offset; learned scalar radius initialized arcosh(1+2*r*d/(r+d)), the distance between independent initial query/key rows",
+            "admission":"Bounded candidate admission is unchanged; this score ranks admitted candidates only",
+            "scope":"F32 offline training and evaluation only; no quantized interface, packed export or integer arcosh kernel"
+        });
     }
     contract
 }
@@ -1756,6 +1816,52 @@ fn rms(input: &Tensor) -> Result<Tensor> {
             .affine(1.0, RMS_EPSILON)?
             .sqrt()?,
     )?)
+}
+
+/// Initial Lorentz read radius: the geodesic distance between independent
+/// initial query and key rows. RMS-normalized inputs have unit mean square and
+/// a Glorot-uniform [r, d] map gives each coordinate variance 2d/(r+d), so
+/// E|q|^2 = 2rd/(r+d), and orthogonal rows of that norm have z = 1 + E|q|^2.
+/// Initial Lorentz scores then start near zero, as the Dot arm's do, instead of
+/// ceding almost all read mass to NoRead (all distances start near this value).
+pub fn lorentz_initial_offset(config: &JointConfig) -> f64 {
+    let (d, r) = (config.width as f64, config.read_width as f64);
+    (1.0 + 2.0 * r * d / (r + d)).acosh()
+}
+
+/// Initial Lorentz log scale, matching the Dot read to first order. Near the
+/// initial z0 = cosh(offset), arcosh(z) ~ offset - <q,k>/sinh(offset) for
+/// fixed norms, so beta0 = sinh(offset)/sqrt(r) makes the initial score
+/// approximately <q,k>/sqrt(r) plus a per-key radius term. With beta 1 the
+/// candidate scores started about ten times flatter than Dot's.
+pub fn lorentz_initial_log_beta(config: &JointConfig) -> f64 {
+    let r = config.read_width as f64;
+    (lorentz_initial_offset(config).sinh() / r.sqrt()).ln()
+}
+
+/// Hyperbolic geodesic distance from each query [batch, width] to its keys
+/// [batch, count, width] in the Lorentz model: rows lift to the hyperboloid
+/// x -> (sqrt(1+|x|^2), x), z = q0*k0 - <q,k> is clamped to LORENTZ_MIN_INNER,
+/// and arcosh(z) = ln(z + sqrt(z^2-1)) evaluates z^2-1 as (z-1)(z+1), which
+/// keeps its precision near z=1. All operations are differentiable in Candle.
+fn lorentz_distance(query: &Tensor, keys: &Tensor) -> Result<Tensor> {
+    let query_time = query.sqr()?.sum_keepdim(1)?.affine(1.0, 1.0)?.sqrt()?;
+    let key_time = keys
+        .sqr()?
+        .sum_keepdim(2)?
+        .affine(1.0, 1.0)?
+        .sqrt()?
+        .squeeze(2)?;
+    let spatial = query
+        .unsqueeze(1)?
+        .matmul(&keys.transpose(1, 2)?.contiguous()?)?
+        .squeeze(1)?;
+    let z = key_time
+        .broadcast_mul(&query_time)?
+        .sub(&spatial)?
+        .clamp(LORENTZ_MIN_INNER as f32, f32::MAX)?;
+    let root = z.affine(1.0, -1.0)?.mul(&z.affine(1.0, 1.0)?)?.sqrt()?;
+    Ok(z.add(&root)?.log()?)
 }
 
 /// Matched four-coordinate lane transports. Identity-centered normalization
@@ -2555,6 +2661,499 @@ mod tests {
                 let values = gradient.flatten_all()?.to_vec1::<f32>()?;
                 assert!(values.iter().all(|value| value.is_finite()), "{name}");
                 assert!(values.iter().any(|&value| value != 0.0), "{name}");
+            }
+        }
+        Ok(())
+    }
+
+    fn lorentz(transport: Transport) -> JointConfig {
+        JointConfig {
+            read_geometry: ReadGeometry::Lorentz,
+            ..small(transport)
+        }
+    }
+
+    fn finite_nonzero_gradient(
+        gradients: &candle_core::backprop::GradStore,
+        model: &JointModel,
+        name: &str,
+    ) -> Result<()> {
+        let values = gradients
+            .get(model.variables()[name].as_tensor())
+            .ok_or_else(|| invalid(format!("missing Lorentz language gradient {name}")))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(values.iter().all(|value| value.is_finite()), "{name}");
+        assert!(values.iter().any(|&value| value != 0.0), "{name}");
+        Ok(())
+    }
+
+    /// (a) Full-read Lorentz arm: shares the Dot arm's initial arrays, adds
+    /// only the initial log beta and offset, yields finite normalized
+    /// causal distributions that differ from Dot, matches its incremental core,
+    /// and trains query/key, log beta and offset with finite gradients.
+    #[test]
+    fn lorentz_read_forward_is_finite_and_trains_query_key_and_log_beta() -> Result<()> {
+        let ids = [3, 17, 4, 9, 2, 10, 6, 11, 7, 22];
+        let targets = [17, 4, 9, 2, 5, 6, 11, 7, 22, 8];
+        for transport in [Transport::Quaternion, Transport::HouseholderPair] {
+            let model = JointModel::new(lorentz(transport), &Device::Cpu)?;
+            let dot = JointModel::new(small(transport), &Device::Cpu)?;
+            for (name, value) in model.variables() {
+                match dot.variables().get(name) {
+                    Some(other) => {
+                        assert!(same_bits(value.as_tensor(), other.as_tensor())?, "{name}")
+                    }
+                    None if name == LORENTZ_LOG_BETA => {
+                        let log_beta = lorentz_initial_log_beta(&model.config) as f32;
+                        assert_eq!(value.to_vec1::<f32>()?, [log_beta]);
+                    }
+                    None => {
+                        assert_eq!(name, LORENTZ_OFFSET);
+                        let offset = lorentz_initial_offset(&model.config) as f32;
+                        assert_eq!(value.to_vec1::<f32>()?, [offset]);
+                    }
+                }
+            }
+            assert_eq!(model.variables().len(), dot.variables().len() + 2);
+            let evaluated = model.forward(&ids, 2, 5, ReadMode::Enabled, false)?;
+            for tensor in [
+                &evaluated.probabilities,
+                &evaluated.read_masses,
+                &evaluated.no_read_mass,
+                &evaluated.states,
+            ] {
+                let values = tensor.flatten_all()?.to_vec1::<f32>()?;
+                assert!(values.iter().all(|value| value.is_finite()));
+            }
+            // Summing the 4096 F32 masses in F64 leaves only the model's own F32
+            // normalization error (about 2e-6 here for either geometry); an F32
+            // check sum adds comparable noise, so it is not used for this bound.
+            for lane in evaluated.probabilities.to_vec3::<f32>()? {
+                for row in lane {
+                    let sum: f64 = row.iter().map(|&mass| f64::from(mass)).sum();
+                    assert!((sum - 1.0).abs() < 1e-5, "{transport:?} row sum {sum:e}");
+                }
+            }
+            for lane in evaluated.read_masses.to_vec3::<f32>()? {
+                for (position, row) in lane.iter().enumerate() {
+                    assert!(row[position..].iter().all(|&mass| mass == 0.0));
+                }
+            }
+            let dot_output = dot.forward(&ids, 2, 5, ReadMode::Enabled, false)?;
+            assert!(max_delta(&evaluated.read_masses, &dot_output.read_masses)? > 0.0);
+            let mut session = model.new_session(2)?;
+            for position in 0..5 {
+                let step = model.step(
+                    &mut session,
+                    &[ids[position], ids[5 + position]],
+                    ReadMode::Enabled,
+                )?;
+                assert!(
+                    max_delta(
+                        &step.probabilities,
+                        &evaluated.probabilities.narrow(1, position, 1)?.squeeze(1)?
+                    )? < 2e-6
+                );
+            }
+            let trained = model.forward(&ids, 2, 5, ReadMode::Enabled, true)?;
+            let loss = trained.loss(&targets)?;
+            assert!(loss.to_scalar::<f32>()?.is_finite());
+            let gradients = loss.backward()?;
+            for name in [
+                "read.query.weight",
+                "read.query.bias",
+                "read.key.weight",
+                "read.key.bias",
+                LORENTZ_LOG_BETA,
+                LORENTZ_OFFSET,
+                "read.value.weight",
+                "read.age",
+                "read.no_read.weight",
+            ] {
+                finite_nonzero_gradient(&gradients, &model, name)?;
+            }
+            for (name, variable) in model.variables() {
+                if let Some(gradient) = gradients.get(variable.as_tensor()) {
+                    let values = gradient.flatten_all()?.to_vec1::<f32>()?;
+                    assert!(values.iter().all(|value| value.is_finite()), "{name}");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// (a) Bounded-admission Lorentz arm: admission is unchanged, admitted and
+    /// padded candidates stay finite, the incremental core matches the full
+    /// window, and query/key/log-beta receive finite language gradients.
+    #[test]
+    fn lorentz_bounded_read_matches_sessions_and_trains() -> Result<()> {
+        let mut config = lorentz(Transport::Quaternion);
+        config.context = 72;
+        let ids: Vec<u32> = (0..144)
+            .map(|i| ((i * 17 + i / 7) % 4095 + 1) as u32)
+            .collect();
+        let targets: Vec<u32> = ids.iter().map(|id| (id + 1) % 4096).collect();
+        for policy in [AdmissionPolicy::Recent64, AdmissionPolicy::Orthant64] {
+            let mut model = JointModel::new(config.clone(), &Device::Cpu)?;
+            model.set_admission_policy(policy)?;
+            let full = model.forward(&ids, 2, 72, ReadMode::Enabled, false)?;
+            let mut session = model.new_session(2)?;
+            let mut padded = false;
+            for position in 0..72 {
+                let step = model.step(
+                    &mut session,
+                    &[ids[position], ids[72 + position]],
+                    ReadMode::Enabled,
+                )?;
+                let expected = full.probabilities.narrow(1, position, 1)?.squeeze(1)?;
+                assert!(
+                    max_delta(&expected, &step.probabilities)? < 2e-6,
+                    "{policy:?} at {position}"
+                );
+                let rows = &step.read_occurrences_by_lane;
+                assert!(rows
+                    .iter()
+                    .all(|row| row.len() <= 64 && row.iter().all(|&id| id < position)));
+                padded |= rows.iter().any(|row| row.len() != rows[0].len());
+            }
+            // Unequal per-lane admission leaves masked padding slots, which
+            // must also pass through the Lorentz score without a NaN.
+            assert!(policy != AdmissionPolicy::Orthant64 || padded, "{policy:?}");
+            let trained = model.forward(&ids, 2, 72, ReadMode::Enabled, true)?;
+            let gradients = trained.loss(&targets)?.backward()?;
+            for name in [
+                "read.query.weight",
+                "read.key.weight",
+                LORENTZ_LOG_BETA,
+                LORENTZ_OFFSET,
+            ] {
+                finite_nonzero_gradient(&gradients, &model, name)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// (b) Lift, Minkowski sign, clamp and arcosh against an F64 reference on
+    /// the same F32 inputs. Row 0 has exact lifts (z = 1 clamped, 2, 7); row 1
+    /// is generic, including a near-equal pair whose F32 cancellation is
+    /// bounded by the product's conditioning. The model composes
+    /// exp(log beta)*(offset - d), and the Dot branch is bitwise the retained
+    /// expression.
+    #[test]
+    fn lorentz_score_matches_f64_reference() -> Result<()> {
+        let device = Device::Cpu;
+        let queries = [[1f32, 1.0, 1.0], [0.3, -1.7, 2.2]];
+        let keys = [
+            [[1f32, 1.0, 1.0], [2.0, 2.0, 0.0], [-1.0, -1.0, -1.0]],
+            [[0.0, 0.0, 0.0], [-0.4, 0.9, 1.1], [0.3, -1.7, 2.1]],
+        ];
+        let query = Tensor::from_vec(queries.concat(), (2, 3), &device)?;
+        let key_values: Vec<f32> = keys.iter().flatten().flatten().copied().collect();
+        let key = Tensor::from_vec(key_values, (2, 3, 3), &device)?;
+        let distance = lorentz_distance(&query, &key)?.to_vec2::<f32>()?;
+        let minimum = f64::from(LORENTZ_MIN_INNER as f32);
+        let lift =
+            |x: &[f32; 3]| (1.0 + x.iter().map(|&v| f64::from(v).powi(2)).sum::<f64>()).sqrt();
+        let mut references = Vec::new();
+        for (row, (q, row_keys)) in queries.iter().zip(&keys).enumerate() {
+            for (column, k) in row_keys.iter().enumerate() {
+                let inner: f64 = q
+                    .iter()
+                    .zip(k)
+                    .map(|(&a, &b)| f64::from(a) * f64::from(b))
+                    .sum();
+                let product = lift(q) * lift(k);
+                let z = (product - inner).max(minimum);
+                let reference = z.acosh();
+                let conditioning = (product + inner.abs()) / (z * z - 1.0).sqrt();
+                let bound = 1e-6 + 1e-5 * reference + 8.0 * f64::from(f32::EPSILON) * conditioning;
+                let actual = f64::from(distance[row][column]);
+                assert!(
+                    (actual - reference).abs() <= bound,
+                    "({row},{column}) {actual} vs {reference}"
+                );
+                if row == 0 {
+                    // Exact F32 lifts and products: only arcosh rounding remains.
+                    assert!((actual - reference).abs() <= 1e-6, "({row},{column})");
+                }
+                references.push(reference);
+            }
+        }
+        assert_eq!(references[0], minimum.acosh());
+        assert!((references[1] - 2f64.acosh()).abs() < 1e-12);
+        assert!((references[2] - 7f64.acosh()).abs() < 1e-12);
+
+        let model = JointModel::new(lorentz(Transport::Quaternion), &device)?;
+        model.variables()[LORENTZ_LOG_BETA].set(&Tensor::from_vec(vec![0.5f32], (1,), &device)?)?;
+        model.variables()[LORENTZ_OFFSET].set(&Tensor::from_vec(vec![1.25f32], (1,), &device)?)?;
+        let scores = model.read_scores(&query, &key, false)?.to_vec2::<f32>()?;
+        for (score_row, distance_row) in scores.iter().zip(&distance) {
+            for (&score, &d) in score_row.iter().zip(distance_row) {
+                let expected = 0.5f64.exp() * (1.25 - f64::from(d));
+                assert!((f64::from(score) - expected).abs() <= 1e-6 * (1.0 + expected.abs()));
+            }
+        }
+        let dot = JointModel::new(small(Transport::Quaternion), &device)?;
+        let dot_scores = dot.read_scores(&query, &key, false)?;
+        let retained = query
+            .unsqueeze(1)?
+            .matmul(&key.transpose(1, 2)?.contiguous()?)?
+            .squeeze(1)?
+            .affine(1.0 / (dot.config.read_width as f64).sqrt(), 0.0)?;
+        assert!(same_bits(&dot_scores, &retained)?);
+        let dot_scores = dot_scores.to_vec2::<f32>()?;
+        for (q, (row_keys, score_row)) in queries.iter().zip(keys.iter().zip(&dot_scores)) {
+            for (k, &score) in row_keys.iter().zip(score_row) {
+                let inner: f64 = q
+                    .iter()
+                    .zip(k)
+                    .map(|(&a, &b)| f64::from(a) * f64::from(b))
+                    .sum();
+                assert!((f64::from(score) - inner / 8.0).abs() <= 1e-6 * (1.0 + inner.abs()));
+            }
+        }
+        Ok(())
+    }
+
+    /// (c) Retained metadata without the field is `Dot`. Dot keeps its exact
+    /// JSON, parameter inventory and numerical contracts (the quantized one as
+    /// the frozen integer import contract), and its saved checkpoint stays in
+    /// the retained format and reloads with bit-identical outputs.
+    #[test]
+    fn absent_read_geometry_is_dot_with_retained_identity() -> Result<()> {
+        let retained_json = r#"{"vocab_size":4096,"width":128,"read_width":64,"context":8,"transport":"quaternion","seed":7}"#;
+        let config: JointConfig = serde_json::from_str(retained_json)?;
+        assert_eq!(config.read_geometry, ReadGeometry::Dot);
+        assert_eq!(config, small(Transport::Quaternion));
+        assert_eq!(serde_json::to_string(&config)?, retained_json);
+        let explicit: JointConfig = serde_json::from_str(
+            &retained_json.replace(r#""seed":7}"#, r#""seed":7,"read_geometry":"dot"}"#),
+        )?;
+        assert_eq!(explicit, config);
+        let model = JointModel::new(config.clone(), &Device::Cpu)?;
+        let retained_names = BTreeSet::from([
+            "copy.gate.bias",
+            "copy.gate.weight",
+            "embedding.weight",
+            "output.bias",
+            "output.norm.weight",
+            "read.age",
+            "read.key.bias",
+            "read.key.weight",
+            "read.no_read.bias",
+            "read.no_read.weight",
+            "read.query.bias",
+            "read.query.weight",
+            "read.value.bias",
+            "read.value.weight",
+            "recurrent.bias",
+            "recurrent.input.weight",
+            "recurrent.state.weight",
+            "update.bias",
+            "update.gate.bias",
+            "update.gate.weight",
+            "update.weight",
+        ]);
+        let names: BTreeSet<&str> = model.variables().keys().map(String::as_str).collect();
+        assert_eq!(names, retained_names);
+        assert_eq!(model.numerical_contract(), numerical_contract());
+        let mut quantized = JointModel::new(config.clone(), &Device::Cpu)?;
+        quantized.configure_quantization(0, 1)?;
+        assert_eq!(
+            quantized.numerical_contract(),
+            quantized_numerical_contract()
+        );
+        let written: Value =
+            serde_json::from_str(&serde_json::to_string(&quantized.numerical_contract())?)?;
+        assert_eq!(
+            written,
+            uor_r4_integer::config::quantized_numerical_contract()?
+        );
+        let root = precision_test_root("retained-dot")?;
+        model.save(&root)?;
+        let text = fs::read_to_string(root.join("config.json"))?;
+        assert!(!text.contains("read_geometry") && !text.contains("lorentz"));
+        let reloaded = JointModel::load(&root, &Device::Cpu)?;
+        assert_eq!(reloaded.config, config);
+        let ids = [3, 17, 4, 9, 2, 10, 6, 11, 7, 22];
+        for mode in [ReadMode::Enabled, ReadMode::NoRead] {
+            let expected = model.forward(&ids, 2, 5, mode, false)?;
+            let actual = reloaded.forward(&ids, 2, 5, mode, false)?;
+            for (actual, expected) in [
+                (&actual.probabilities, &expected.probabilities),
+                (&actual.states, &expected.states),
+                (&actual.read_masses, &expected.read_masses),
+                (&actual.no_read_mass, &expected.no_read_mass),
+                (&actual.copy_gate, &expected.copy_gate),
+            ] {
+                assert!(same_bits(actual, expected)?, "{mode:?}");
+            }
+        }
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    /// (d) Lorentz metadata round-trips; its checkpoint binds the geometry,
+    /// contract and learned scale and reloads bit-identically. Relabeling it
+    /// as Dot fails the contract and then the parameter inventory. The float
+    /// model has no packed export; quantizing it binds the quantized Lorentz
+    /// contract shared with the integer runtime.
+    #[test]
+    fn lorentz_config_and_checkpoint_round_trip() -> Result<()> {
+        let config = lorentz(Transport::HouseholderPair);
+        let text = serde_json::to_string(&config)?;
+        assert!(text.ends_with(r#","read_geometry":"lorentz"}"#), "{text}");
+        assert_eq!(serde_json::from_str::<JointConfig>(&text)?, config);
+        let model = JointModel::new(config.clone(), &Device::Cpu)?;
+        model.variables()[LORENTZ_LOG_BETA].set(&Tensor::from_vec(
+            vec![0.375f32],
+            (1,),
+            &Device::Cpu,
+        )?)?;
+        model.variables()[LORENTZ_OFFSET].set(&Tensor::from_vec(
+            vec![4.5f32],
+            (1,),
+            &Device::Cpu,
+        )?)?;
+        let contract = model.numerical_contract();
+        assert_eq!(contract["read_geometry"]["geometry"], "lorentz");
+        assert_ne!(contract["read"], numerical_contract()["read"]);
+        let root = precision_test_root("lorentz-checkpoint")?;
+        assert!(model.save_hard(&root).is_err());
+        model.save(&root)?;
+        let reloaded = JointModel::load(&root, &Device::Cpu)?;
+        assert_eq!(reloaded.config, config);
+        assert_eq!(reloaded.numerical_contract(), contract);
+        assert_eq!(
+            reloaded.variables()[LORENTZ_LOG_BETA].to_vec1::<f32>()?,
+            [0.375]
+        );
+        assert_eq!(
+            reloaded.variables()[LORENTZ_OFFSET].to_vec1::<f32>()?,
+            [4.5]
+        );
+        let ids = [3, 17, 4, 9, 2, 10, 6, 11, 7, 22];
+        let expected = model.forward(&ids, 2, 5, ReadMode::Enabled, false)?;
+        let actual = reloaded.forward(&ids, 2, 5, ReadMode::Enabled, false)?;
+        assert!(same_bits(&expected.probabilities, &actual.probabilities)?);
+        assert!(same_bits(&expected.read_masses, &actual.read_masses)?);
+        let path = root.join("config.json");
+        let mut relabeled: Value = serde_json::from_slice(&fs::read(&path)?)?;
+        relabeled["model"]
+            .as_object_mut()
+            .ok_or_else(|| invalid("checkpoint model object"))?
+            .remove("read_geometry");
+        fs::write(&path, serde_json::to_vec(&relabeled)?)?;
+        let Err(error) = JointModel::load(&root, &Device::Cpu) else {
+            return Err(invalid("Lorentz checkpoint relabeled as Dot was accepted"));
+        };
+        assert!(error.to_string().contains("numerical contract"), "{error}");
+        relabeled["numerical_contract"] = numerical_contract();
+        fs::write(&path, serde_json::to_vec(&relabeled)?)?;
+        let Err(error) = JointModel::load(&root, &Device::Cpu) else {
+            return Err(invalid("Lorentz parameters loaded as a Dot model"));
+        };
+        assert!(error.to_string().contains("parameter names"), "{error}");
+        fs::remove_dir_all(root)?;
+
+        let mut quantized = model.without_quantization()?;
+        quantized.configure_quantization(0, 1)?;
+        let spec = quantized.quantization().map(|state| &state.spec);
+        for name in [LORENTZ_LOG_BETA, LORENTZ_OFFSET] {
+            let parameter = spec
+                .and_then(|spec| spec.parameters.get(name))
+                .ok_or_else(|| invalid("quantized Lorentz scalar"))?;
+            assert_eq!((parameter.bits, parameter.shape.as_slice()), (16, &[1][..]));
+        }
+        let written: Value =
+            serde_json::from_str(&serde_json::to_string(&quantized.numerical_contract())?)?;
+        assert_eq!(
+            written,
+            uor_r4_integer::config::packed_numerical_contract(ReadGeometry::Lorentz)?
+        );
+        assert_ne!(written["read"], contract["read"]);
+        Ok(())
+    }
+
+    /// (e) The initial Lorentz read matches the Dot read's scale. Every initial
+    /// distance sits near the initial offset, so scores start centered instead
+    /// of ceding the read mass to NoRead; the initial scale makes their spread
+    /// and ranking follow the Dot scores to first order, and the remainder is a
+    /// per-key radius term. With beta 1 the scores were about ten times flatter.
+    #[test]
+    fn lorentz_initial_read_matches_dot_scale() -> Result<()> {
+        let device = Device::Cpu;
+        let statistics = |values: &[f32]| {
+            let n = values.len() as f64;
+            let mean = values.iter().map(|&v| f64::from(v)).sum::<f64>() / n;
+            let variance = values
+                .iter()
+                .map(|&v| (f64::from(v) - mean).powi(2))
+                .sum::<f64>()
+                / n;
+            (mean, variance.sqrt())
+        };
+        for width in [128, 256] {
+            let config = JointConfig {
+                width,
+                ..lorentz(Transport::Quaternion)
+            };
+            let model = JointModel::new(config.clone(), &device)?;
+            let dot = JointModel::new(
+                JointConfig {
+                    width,
+                    ..small(Transport::Quaternion)
+                },
+                &device,
+            )?;
+            let offset = lorentz_initial_offset(&config);
+            let expected = (1.0 + 2.0 * 64.0 * width as f64 / (64.0 + width as f64)).acosh();
+            assert!((offset - expected).abs() < 1e-12);
+            let beta = lorentz_initial_log_beta(&config).exp();
+            assert!((beta - offset.sinh() / 8.0).abs() < 1e-9);
+            let mut rng = Initializer(11);
+            let mut draw =
+                |count: usize| -> Vec<f32> { (0..count).map(|_| rng.symmetric()).collect() };
+            let states = Tensor::from_vec(draw(4 * width), (4, width), &device)?;
+            let written = Tensor::from_vec(draw(4 * 32 * width), (4 * 32, width), &device)?;
+            // The arms share every initial array, so one query/key set serves both.
+            let query = model.linear(&model.normalized(&states, false)?, "read.query", false)?;
+            let keys = model
+                .linear(&model.normalized(&written, false)?, "read.key", false)?
+                .reshape((4, 32, 64))?;
+            let distances = lorentz_distance(&query, &keys)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(
+                (statistics(&distances).0 - offset).abs() < 0.5,
+                "width {width}"
+            );
+            let lorentz_rows = model.read_scores(&query, &keys, false)?.to_vec2::<f32>()?;
+            let dot_rows = dot.read_scores(&query, &keys, false)?.to_vec2::<f32>()?;
+            for (lorentz_row, dot_row) in lorentz_rows.iter().zip(&dot_rows) {
+                let (lorentz_mean, lorentz_spread) = statistics(lorentz_row);
+                let (dot_mean, dot_spread) = statistics(dot_row);
+                assert!(
+                    lorentz_mean.abs() < 1.5,
+                    "width {width}: mean {lorentz_mean}"
+                );
+                let ratio = lorentz_spread / dot_spread;
+                assert!(
+                    (0.5..2.0).contains(&ratio),
+                    "width {width}: spread ratio {ratio}"
+                );
+                let covariance = lorentz_row
+                    .iter()
+                    .zip(dot_row)
+                    .map(|(&a, &b)| (f64::from(a) - lorentz_mean) * (f64::from(b) - dot_mean))
+                    .sum::<f64>()
+                    / lorentz_row.len() as f64;
+                let correlation = covariance / (lorentz_spread * dot_spread);
+                assert!(
+                    correlation > 0.5,
+                    "width {width}: correlation {correlation}"
+                );
             }
         }
         Ok(())

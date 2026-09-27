@@ -21,6 +21,38 @@ pub enum ReadMode {
     NoRead,
 }
 
+/// Read-score geometry. `Dot` is the retained scaled dot product. `Lorentz`
+/// lifts query and key to the hyperboloid x -> (sqrt(1+|x|^2), x) and scores
+/// the scaled geodesic distance below a learned radius. Offline F32 training
+/// implements both; this runtime serves a quantized Lorentz model through the
+/// integer kernel in `crate::lorentz` under [`packed_numerical_contract`].
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadGeometry {
+    #[default]
+    Dot,
+    Lorentz,
+}
+
+impl ReadGeometry {
+    pub const fn is_dot(&self) -> bool {
+        matches!(self, Self::Dot)
+    }
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Dot => "dot",
+            Self::Lorentz => "lorentz",
+        }
+    }
+}
+
+/// Learned scalar log scale of the Lorentz read; absent from `Dot` models.
+pub const LORENTZ_LOG_BETA: &str = "read.lorentz_log_beta";
+/// Learned scalar radius of the Lorentz read: keys closer than this geodesic
+/// distance score above zero against NoRead. Absent from `Dot` models.
+pub const LORENTZ_OFFSET: &str = "read.lorentz_offset";
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct JointConfig {
     pub vocab_size: usize,
@@ -29,6 +61,10 @@ pub struct JointConfig {
     pub context: usize,
     pub transport: Transport,
     pub seed: u64,
+    /// Absent in retained metadata, which therefore reads as `Dot`. `Dot` is
+    /// never serialized, so existing configs, manifests and hashes are unchanged.
+    #[serde(default, skip_serializing_if = "ReadGeometry::is_dot")]
+    pub read_geometry: ReadGeometry,
 }
 impl Default for JointConfig {
     fn default() -> Self {
@@ -39,6 +75,7 @@ impl Default for JointConfig {
             context: 256,
             transport: Transport::Quaternion,
             seed: 0,
+            read_geometry: ReadGeometry::Dot,
         }
     }
 }
@@ -59,7 +96,7 @@ impl JointConfig {
     pub fn shapes(&self) -> BTreeMap<String, Vec<usize>> {
         let d = self.width;
         let r = self.read_width;
-        BTreeMap::from([
+        let mut shapes = BTreeMap::from([
             ("embedding.weight".into(), vec![self.vocab_size, d]),
             ("recurrent.input.weight".into(), vec![3 * d, d]),
             ("recurrent.state.weight".into(), vec![3 * d, d]),
@@ -81,7 +118,13 @@ impl JointConfig {
             ("copy.gate.bias".into(), vec![1]),
             ("output.norm.weight".into(), vec![d]),
             ("output.bias".into(), vec![self.vocab_size]),
-        ])
+        ]);
+        if self.read_geometry == ReadGeometry::Lorentz {
+            // Two learned scalars; `Dot` keeps its exact retained inventory.
+            shapes.insert(LORENTZ_LOG_BETA.into(), vec![1]);
+            shapes.insert(LORENTZ_OFFSET.into(), vec![1]);
+        }
+        shapes
     }
 }
 
@@ -118,6 +161,46 @@ pub fn valid_quantization_clock(
 /// preserves its scalar values without evaluating a floating-point expression.
 pub fn quantized_numerical_contract() -> Result<serde_json::Value> {
     Ok(serde_json::from_str(LEGACY_CONTRACT)?)
+}
+
+/// Packed-model contract for `geometry`: the retained legacy contract, unchanged
+/// for `Dot`, and with the quantized Lorentz read declaration for `Lorentz`.
+pub fn packed_numerical_contract(geometry: ReadGeometry) -> Result<serde_json::Value> {
+    let contract = quantized_numerical_contract()?;
+    Ok(match geometry {
+        ReadGeometry::Dot => contract,
+        ReadGeometry::Lorentz => with_lorentz_quantized_read(contract),
+    })
+}
+
+/// Replace the read declaration of a quantized contract with the Lorentz one.
+/// Offline quantized training and this runtime bind the same fields.
+pub fn with_lorentz_quantized_read(mut contract: serde_json::Value) -> serde_json::Value {
+    if let (Some(target), serde_json::Value::Object(fields)) =
+        (contract.as_object_mut(), lorentz_quantized_read())
+    {
+        target.extend(fields);
+    }
+    contract
+}
+
+fn lorentz_quantized_read() -> serde_json::Value {
+    serde_json::json!({
+        "read":"Query/Key from RMS-normalized provisional/written states, each lifted to the hyperboloid x0=sqrt(1+|x|^2); Value=tanh(affine(normalized written state)); score=exp(read.lorentz_log_beta)*(read.lorentz_offset-arcosh(max(q0*k0-<q,k>,1+2^-20)))+learned age at the affine score interface, competing with learned NoRead",
+        "read_geometry":{
+            "geometry":"lorentz",
+            "schema":"uor-r4.joint-lorentz-read-quantized/1",
+            "minimum_inner_product":"1+2^-20, the F32 value of the training clamp 1+1e-6",
+            "distance":"arcosh(z)=ln(z+sqrt((z-1)(z+1)))",
+            "scale":"exp(read.lorentz_log_beta); learned scalar initialized ln(sinh(offset0)/sqrt(r))",
+            "offset":"read.lorentz_offset; learned scalar radius initialized arcosh(1+2*r*d/(r+d))",
+            "parameters":"read.lorentz_log_beta and read.lorentz_offset are signed16 [-32767,32767] with one frozen ceiling dyadic scale each, like the additive parameters",
+            "emulator":"F32 score from the dyadic scalars and the Q8 query/key codes, then the affine score interface",
+            "integer_kernel":"With Q=|q|^2, K=|k|^2 and D=<q,k> in Q8 code units, P=(2^16+Q)(2^16+K) and M=2^16+D: z-1=(sqrt(P)-M)/2^16, evaluated as (P-M^2)/(2^16(sqrt(P)+M)) when M>0, where P-M^2 is an exact integer; one floor square root with 24 guard bits and one division rounded to nearest give z-1 at Q32, clamped below at 2^-20. arcosh(1+u) is read from the sealed Q24 table (argument codes below 2^10 directly, then 1024 linearly interpolated points per octave up to 2^64). exp(read.lorentz_log_beta) is evaluated once at load at Q32 (ln2 range reduction and a Q60 Taylor series) and must stay below 2^31. The score product rounds to Q40, adds age, then rounds and clips to the Q8 score interface",
+            "admission":"Bounded candidate admission is unchanged; this score ranks admitted candidates only. Integer serving requires full admission",
+            "scope":"Quantized training, packed F32 emulation and integer serving of the Lorentz read. Integer and F32 scores differ by F32 rounding and interface rounding; no bitwise agreement is claimed"
+        }
+    })
 }
 
 const LEGACY_CONTRACT: &str = r#"{
