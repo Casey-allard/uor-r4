@@ -18,8 +18,8 @@ use std::path::Path;
 use serde_json::Value;
 
 use crate::config::{
-    JointConfig, QuantizedTrainingState, ReadGeometry, ReadMode, Transport, LORENTZ_LOG_BETA,
-    LORENTZ_OFFSET,
+    JointConfig, QuantizedTrainingState, ReadGeometry, ReadMode, ServingProfile, Transport,
+    LORENTZ_LOG_BETA, LORENTZ_OFFSET,
 };
 use crate::format::{self as joint_quantization, ParameterQuantization};
 use crate::lorentz::{self, LorentzRead};
@@ -53,6 +53,7 @@ pub struct CoefficientStorage {
 
 pub struct IntegerModel {
     config: JointConfig,
+    serving_profile: ServingProfile,
     parameters: BTreeMap<String, Parameter>,
     tables: Tables,
     /// Load-time constants of a Lorentz read; `None` for the dot read.
@@ -88,8 +89,69 @@ pub struct IntegerSession {
     keys: Vec<[i32; KEY_DIM]>,
     /// Squared key norms in code units, kept for a Lorentz read only.
     key_norms: Vec<i128>,
-    values: Vec<[i32; VAL_DIM]>,
+    values: SessionValues,
     tokens: Vec<u32>,
+}
+
+// Ordinary sessions retain their original 256-coordinate allocation; only the
+// explicit wide profile allocates 576-coordinate rows. Google's SessionState
+// and its fixed VAL_DIM storage are independent of this enum.
+enum SessionValues {
+    Retained(Vec<[i32; VAL_DIM]>),
+    Dialogue576(Vec<[i32; 576]>),
+}
+
+impl SessionValues {
+    fn read(&self, masses: &[u64], width: usize) -> Result<Vec<i32>> {
+        let mut read = vec![0i32; width];
+        match self {
+            Self::Retained(values) => {
+                if !matches!(width, 128 | 256) || masses.len() != values.len() {
+                    return Err(invalid("retained value memory shape differs"));
+                }
+                let mut sum_coords = [0i64; VAL_DIM];
+                for (&mass, value) in masses.iter().zip(values) {
+                    accumulate_slot_value_1x(&mut sum_coords, mass, value);
+                }
+                for (coordinate, out) in read.iter_mut().enumerate() {
+                    *out = quantize(sum_coords[coordinate] as i128, 48 + 14, STATE_BITS)?;
+                }
+            }
+            Self::Dialogue576(values) => {
+                if width != 576 || masses.len() != values.len() {
+                    return Err(invalid("dialogue576 value memory shape differs"));
+                }
+                let mut sum_coords = [0i64; 576];
+                for (&mass, value) in masses.iter().zip(values) {
+                    accumulate_slot_value_576(&mut sum_coords, mass, value);
+                }
+                for (coordinate, out) in read.iter_mut().enumerate() {
+                    *out = quantize(sum_coords[coordinate] as i128, 48 + 14, STATE_BITS)?;
+                }
+            }
+        }
+        Ok(read)
+    }
+
+    fn push(&mut self, value: &[i32]) -> Result<()> {
+        match self {
+            Self::Retained(values) => {
+                if !matches!(value.len(), 128 | 256) {
+                    return Err(invalid("retained value write width differs"));
+                }
+                let mut row = [0; VAL_DIM];
+                row[..value.len()].copy_from_slice(value);
+                values.push(row);
+            }
+            Self::Dialogue576(values) => {
+                let row: [i32; 576] = value
+                    .try_into()
+                    .map_err(|_| invalid("dialogue576 value write width differs"))?;
+                values.push(row);
+            }
+        }
+        Ok(())
+    }
 }
 
 impl IntegerSession {
@@ -1534,16 +1596,55 @@ fn accumulate_slot_value_1x(sum_coords: &mut [i64; VAL_DIM], mass: u64, val: &[i
     }
 }
 
+/// Wide values retain the same Q14 range and total Q48 attention mass as the
+/// retained path. Each coordinate's magnitude is at most 2^62; increasing the
+/// number of coordinates does not increase a coordinate's accumulation bound.
+#[inline(never)]
+fn accumulate_slot_value_576(sum_coords: &mut [i64; 576], mass: u64, val: &[i32; 576]) {
+    if mass == 0 {
+        return;
+    }
+    let t = build_mass_table_i64(mass);
+    for i in (0..576).step_by(4) {
+        sum_coords[i] = sum_coords[i].wrapping_add(mul_mass_coord(&t, val[i]));
+        sum_coords[i + 1] = sum_coords[i + 1].wrapping_add(mul_mass_coord(&t, val[i + 1]));
+        sum_coords[i + 2] = sum_coords[i + 2].wrapping_add(mul_mass_coord(&t, val[i + 2]));
+        sum_coords[i + 3] = sum_coords[i + 3].wrapping_add(mul_mass_coord(&t, val[i + 3]));
+    }
+}
+
 impl IntegerModel {
     pub fn load_with_tables(directory: &Path, tables: &Path) -> Result<Self> {
+        Self::load_with_tables_profile(directory, tables, ServingProfile::Retained)
+    }
+
+    /// Load an explicitly requested serving profile. Shape alone never opts an
+    /// artifact into the wider runtime or changes the canonical import scope.
+    pub fn load_with_tables_profile(
+        directory: &Path,
+        tables: &Path,
+        profile: ServingProfile,
+    ) -> Result<Self> {
         let manifest_path = directory.join("hard-model.json");
         if fs::metadata(&manifest_path)?.len() > 8 * 1024 * 1024 {
             return Err(invalid("integer model manifest too large"));
         }
         let manifest: Value = serde_json::from_slice(&fs::read(&manifest_path)?)?;
+        let stored_profile: ServingProfile = manifest
+            .get("serving_profile")
+            .cloned()
+            .map(serde_json::from_value)
+            .transpose()?
+            .unwrap_or_default();
+        if stored_profile != profile {
+            return Err(invalid(
+                "integer serving profile differs from requested profile",
+            ));
+        }
         // The read geometry selects the contract: the retained legacy contract
         // for the dot read, with the quantized Lorentz declaration otherwise.
         let config: JointConfig = serde_json::from_value(manifest["model"].clone())?;
+        config.validate_for_profile(profile)?;
         if config.read_geometry == ReadGeometry::LorentzAffine {
             return Err(crate::IntegerError::UnsupportedReadGeometry(
                 config.read_geometry,
@@ -1553,8 +1654,12 @@ impl IntegerModel {
             || manifest
                 .get("admission")
                 .is_some_and(|value| value != "full")
+            || (profile == ServingProfile::Dialogue576 && manifest["admission"] != "full")
             || manifest["numerical_contract"]
-                != crate::config::packed_numerical_contract(config.read_geometry)?
+                != crate::config::packed_numerical_contract_for_profile(
+                    config.read_geometry,
+                    profile,
+                )?
             || manifest["parameter_manifest_sha256"]
                 != crate::sha256_file(
                     &directory.join(joint_quantization::HARD_PARAMETERS_MANIFEST_FILE),
@@ -1575,8 +1680,7 @@ impl IntegerModel {
         if descriptor != manifest["parameter_manifest"] {
             return Err(invalid("integer parameter manifest binding differs"));
         }
-        config.validate()?;
-        // `validate` bounds width to 128 or 256 and context to 2..256.
+        // Profile validation above bounds every shape and keeps read width64.
         if config.read_width != 64 {
             return Err(invalid("integer bridge fixes read64"));
         }
@@ -1733,6 +1837,7 @@ impl IntegerModel {
         };
         Ok(Self {
             config,
+            serving_profile: profile,
             parameters,
             tables,
             lorentz,
@@ -1766,6 +1871,10 @@ impl IntegerModel {
         &self.config
     }
 
+    pub fn serving_profile(&self) -> ServingProfile {
+        self.serving_profile
+    }
+
     /// Count each parameter's shared code allocation once, including arrays
     /// also referenced by cached hot-parameter fields.
     pub fn coefficient_storage(&self) -> CoefficientStorage {
@@ -1788,7 +1897,14 @@ impl IntegerModel {
             state: vec![0; self.config.width],
             keys: Vec::with_capacity(self.config.context),
             key_norms: Vec::with_capacity(self.config.context),
-            values: Vec::with_capacity(self.config.context),
+            values: match self.serving_profile {
+                ServingProfile::Retained => {
+                    SessionValues::Retained(Vec::with_capacity(self.config.context))
+                }
+                ServingProfile::Dialogue576 => {
+                    SessionValues::Dialogue576(Vec::with_capacity(self.config.context))
+                }
+            },
             tokens: Vec::with_capacity(self.config.context),
         }
     }
@@ -1863,6 +1979,7 @@ impl IntegerModel {
         let start = match width {
             256 => token_index << 8,
             128 => token_index << 7,
+            576 => (token_index << 9) + (token_index << 6),
             _ => return Err(invalid("unsupported embedding width")),
         };
         let end = start + width;
@@ -1956,6 +2073,14 @@ impl IntegerModel {
                 let end = start + 128;
                 let row = embedding.codes.packed_range(start, end - start)?;
                 let dot = low_bit_dot(&products[..width], row);
+                let scaled_val = scaled(i128::from(dot), output_shifts[row_idx])?;
+                logits[row_idx] = quantize(scaled_val + bias, WORK_BITS, 8)?;
+            }
+        } else if width == 576 {
+            for (row_idx, &bias) in output_bias.iter().enumerate().take(vocab_size) {
+                let start = (row_idx << 9) + (row_idx << 6);
+                let row = embedding.codes.packed_range(start, 576)?;
+                let dot = low_bit_dot(&products[..576], row);
                 let scaled_val = scaled(i128::from(dot), output_shifts[row_idx])?;
                 logits[row_idx] = quantize(scaled_val + bias, WORK_BITS, 8)?;
             }
@@ -2159,6 +2284,20 @@ impl IntegerModel {
                         i128::from(low_bit_dot(&products[..128], row)),
                         WORK_BITS + input_exponent + i32::from(exponent),
                     )?;
+                }
+                Ok(())
+            }
+            576 | 1152 => {
+                // Both non-power-of-two strides use a monotonic address, so
+                // row indexing does not request a variable hardware product.
+                let mut start = 0;
+                for (r, &exponent) in p.spec.row_exponents.iter().enumerate() {
+                    let row = p.codes.packed_range(start, input_len)?;
+                    out[r] = scaled(
+                        i128::from(low_bit_dot(&products[..input_len], row)),
+                        WORK_BITS + input_exponent + i32::from(exponent),
+                    )?;
+                    start += input_len;
                 }
                 Ok(())
             }
@@ -2458,14 +2597,7 @@ impl IntegerModel {
             }
 
             let masses = softmax(&scores, &self.tables)?;
-            let mut sum_coords = [0i64; VAL_DIM];
-            for (&mass, value) in masses[1..].iter().zip(&session.values) {
-                accumulate_slot_value_1x(&mut sum_coords, mass, value);
-            }
-            let mut read = vec![0i32; width];
-            for (coordinate, out) in read.iter_mut().enumerate() {
-                *out = quantize(sum_coords[coordinate] as i128, 48 + 14, STATE_BITS)?;
-            }
+            let read = session.values.read(&masses[1..], width)?;
             (masses[0], masses[1..].to_vec(), read)
         };
         let mut update_input = provisional.clone();
@@ -2528,16 +2660,15 @@ impl IntegerModel {
         normalize_residual(&mut probabilities)?;
         // Commit after the complete prediction succeeds. Current input is
         // written here and cannot be a source for this step's contextual copy.
+        // The value shape check precedes all mutation; after its successful
+        // push, the remaining commits below are infallible.
+        session.values.push(&value)?;
         session.state = state.clone();
         let mut key_arr = [0i32; KEY_DIM];
         let key_len = key.len().min(KEY_DIM);
         key_arr[..key_len].copy_from_slice(&key[..key_len]);
         session.keys.push(key_arr);
         session.key_norms.extend(key_norm);
-        let mut val_arr = [0i32; VAL_DIM];
-        let val_len = value.len().min(VAL_DIM);
-        val_arr[..val_len].copy_from_slice(&value[..val_len]);
-        session.values.push(val_arr);
         session.tokens.push(token);
         Ok(IntegerStep {
             probabilities,
@@ -3263,7 +3394,10 @@ impl IntegerModel {
     }
 
     pub fn synthetic_for_test() -> Self {
-        let config = JointConfig::default();
+        Self::synthetic_with_config(JointConfig::default(), ServingProfile::Retained)
+    }
+
+    fn synthetic_with_config(config: JointConfig, serving_profile: ServingProfile) -> Self {
         let mut parameters = BTreeMap::new();
         let shapes = config.shapes();
         for (name, shape) in shapes {
@@ -3378,10 +3512,15 @@ impl IntegerModel {
         let tables = Tables::synthetic_for_test();
         Self {
             config,
+            serving_profile,
             parameters,
             tables,
             lorentz: None,
-            identity: "synthetic_model".to_owned(),
+            identity: match serving_profile {
+                ServingProfile::Retained => "synthetic_model",
+                ServingProfile::Dialogue576 => "synthetic_dialogue576",
+            }
+            .to_owned(),
             output_bias,
             output_shifts,
             recurrent_bias,
@@ -3443,6 +3582,9 @@ fn normalize_state_into(input: &[i32], out: &mut [i32; 256]) -> Result<()> {
 
 #[inline(never)]
 fn normalize_state(input: &[i32]) -> Result<Vec<i32>> {
+    if input.len() == 576 {
+        return normalize_state_576(input);
+    }
     let shift = match input.len() {
         128 => 57,
         256 => 56,
@@ -3474,6 +3616,39 @@ fn normalize_state(input: &[i32]) -> Result<Vec<i32>> {
             let q = fast_div_round_radix16_u64(abs_x << 42, &table, d_u64);
             let val = if neg { -(q as i32) } else { q as i32 };
             out[i] = val.clamp(-32767, 32767);
+        }
+    }
+    Ok(out)
+}
+
+/// Q11 -> Q10 with the explicit width576 rational variance. The signed16
+/// interface bound gives S<9*2^36, (S<<58)<2^98, D<2^47 and a radix16 divisor
+/// table below 2^51. Reject a wider private-helper domain before accumulating.
+/// The division by9 floors BEFORE epsilon and square root; rounding it or
+/// first dividing S by576 would define a different numerical contract.
+#[inline(never)]
+fn normalize_state_576(input: &[i32]) -> Result<Vec<i32>> {
+    if input.len() != 576 || input.iter().any(|&x| !(-32767..=32767).contains(&x)) {
+        return Err(invalid(
+            "dialogue576 normalization requires 576 signed16 interface codes",
+        ));
+    }
+    let mut sum = 0u64;
+    for &x in input {
+        let x64 = i64::from(x);
+        sum += mul_shift_add_i64(x64, x64) as u64;
+    }
+    const EPSILON: u128 = (1u128 << 86) / 100_000 + 1;
+    let variance = arithmetic(math::div_rem_unsigned(u128::from(sum) << 58, 9))?.0 + EPSILON;
+    let denominator = math::isqrt(variance) as u64;
+    let table = build_div_table_u64(denominator);
+    let mut out = vec![0i32; 576];
+    for (value, &x) in out.iter_mut().zip(input) {
+        if x != 0 {
+            let q =
+                fast_div_round_radix16_u64(u128::from(x.unsigned_abs()) << 42, &table, denominator);
+            let signed = if x < 0 { -(q as i32) } else { q as i32 };
+            *value = signed.clamp(-32767, 32767);
         }
     }
     Ok(out)
@@ -3750,9 +3925,10 @@ mod tests {
     #[test]
     fn packed_signed4_matrix_dispatch_rows_scales_and_embedding() -> Result<()> {
         let mut model = IntegerModel::synthetic_for_test();
-        for width in [128, 256, 512] {
+        for width in [128, 256, 512, 576, 1152] {
             // Mixed signs, zero, and non-block-aligned row counts exercise all
-            // three dispatches, including the tail after a blocked group.
+            // dispatches, including the tail after a blocked group and the
+            // non-power-of-two wide rows.
             let rows = 9;
             let input: Vec<i32> = (0..width)
                 .map(|i| [i32::MIN, -32767, -1, 0, 1, 32767, i32::MAX][i % 7])
@@ -3799,7 +3975,7 @@ mod tests {
                 .is_err());
             assert_eq!(untouched, vec![123; rows]);
         }
-        for width in [128, 256] {
+        for width in [128, 256, 576] {
             let decoded: Vec<i16> = (0..4096 * width)
                 .map(|i| ((i * 7 + 2) % 15) as i16 - 7)
                 .collect();
@@ -3883,6 +4059,226 @@ mod tests {
         );
         assert_eq!(blend(&state, &[0; 4], &[0; 4])?, state);
         assert_eq!(blend(&state, &[16384; 4], &[32768; 4])?, vec![2048; 4]);
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue576_normalization_matches_rational_reference() -> Result<()> {
+        let mut sparse = vec![0; 576];
+        sparse[575] = -32767;
+        let mixed: Vec<i32> = (0..576)
+            .map(|i| [-32767, -2048, -1, 0, 1, 2, 16384, 32767][i % 8])
+            .collect();
+        for input in [
+            vec![0; 576],
+            vec![2048; 576],
+            vec![32767; 576],
+            sparse,
+            mixed,
+        ] {
+            // Test-only ordinary arithmetic independently evaluates the new
+            // rational variance and the existing ties-away quotient rule.
+            let sum: u128 = input
+                .iter()
+                .map(|&x| (i128::from(x) * i128::from(x)) as u128)
+                .sum();
+            let variance = (sum << 58) / 9 + (1u128 << 86) / 100_000 + 1;
+            let denominator = math::isqrt(variance);
+            let expected: Vec<i32> = input
+                .iter()
+                .map(|&x| {
+                    let numerator = u128::from(x.unsigned_abs()) << 42;
+                    let rounded = (numerator / denominator)
+                        + u128::from(
+                            numerator % denominator >= denominator - numerator % denominator,
+                        );
+                    let signed = if x < 0 {
+                        -(rounded as i32)
+                    } else {
+                        rounded as i32
+                    };
+                    signed.clamp(-32767, 32767)
+                })
+                .collect();
+            assert_eq!(normalize_state(&input)?, expected);
+        }
+        assert_eq!(normalize_state(&vec![2048; 576])?, vec![1024; 576]);
+        assert!(normalize_state_576(&vec![1; 575]).is_err());
+        for bad in [i32::MIN, -32768, 32768, i32::MAX] {
+            let mut input = vec![0; 576];
+            input[575] = bad;
+            assert!(normalize_state(&input).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue576_full_value_memory_and_step() -> Result<()> {
+        // All 256 slots and coordinates beyond the old limit participate.
+        let mut memory = SessionValues::Dialogue576(Vec::with_capacity(256));
+        let mut row = [0; 576];
+        row[0] = 8192;
+        row[255] = -8192;
+        row[256] = 16384;
+        row[575] = -16384;
+        for _ in 0..256 {
+            memory.push(&row)?;
+        }
+        let read = memory.read(&[TOTAL >> 8; 256], 576)?;
+        assert_eq!(
+            (read[0], read[255], read[256], read[575]),
+            (1024, -1024, 2048, -2048)
+        );
+        assert!(memory.push(&row[..256]).is_err());
+        assert_eq!(memory.read(&[TOTAL >> 8; 256], 576)?, read);
+        assert!(memory.read(&[TOTAL >> 8; 255], 576).is_err());
+
+        let config = JointConfig {
+            width: 576,
+            ..JointConfig::default()
+        };
+        config.validate_for_profile(ServingProfile::Dialogue576)?;
+        let model = IntegerModel::synthetic_with_config(config, ServingProfile::Dialogue576);
+        assert_eq!(model.serving_profile(), ServingProfile::Dialogue576);
+        for mode in [ReadMode::Enabled, ReadMode::NoRead] {
+            let mut session = model.new_session();
+            let first = model.step(&mut session, 0, mode)?;
+            let second = model.step(&mut session, 10, mode)?;
+            assert_eq!(first.state.len(), 576);
+            assert_eq!(second.state.len(), 576);
+            assert_eq!(second.probabilities.iter().sum::<u64>(), TOTAL);
+            assert_eq!(second.read_masses.len(), 1);
+            if mode == ReadMode::NoRead {
+                assert_eq!(second.read_masses, [0]);
+            }
+            let SessionValues::Dialogue576(values) = &session.values else {
+                return Err(invalid("wide session allocated retained values"));
+            };
+            assert_eq!(values.len(), 2);
+            assert!(values.iter().all(|value| value[575] != 0));
+            let old_state = session.state.clone();
+            session.tokens.resize(256, 0);
+            assert!(model.step(&mut session, 0, mode).is_err());
+            assert_eq!(session.state, old_state);
+        }
+        // The separate, fixed256 Google API remains outside this profile.
+        let mut conversational = model.new_conversational_session();
+        assert!(model
+            .step_conversational(
+                &mut conversational,
+                0,
+                SlotTarget::Dialogue,
+                ReadMode::Enabled
+            )
+            .is_err());
+        let retained = IntegerModel::synthetic_for_test().new_session();
+        assert!(matches!(retained.values, SessionValues::Retained(_)));
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue576_profile_manifest_is_explicit_and_separate() -> Result<()> {
+        use crate::config::packed_numerical_contract_for_profile;
+        use crate::IntegerError;
+        let config = JointConfig {
+            width: 576,
+            ..JointConfig::default()
+        };
+        assert!(config.validate().is_err());
+        config.validate_for_profile(ServingProfile::Dialogue576)?;
+        assert!(JointConfig::default()
+            .validate_for_profile(ServingProfile::Dialogue576)
+            .is_err());
+        let value = serde_json::to_value(&config)?;
+        for (field, bad) in [
+            ("vocab_size", serde_json::json!(2048)),
+            ("width", serde_json::json!(256)),
+            ("read_width", serde_json::json!(128)),
+            ("context", serde_json::json!(128)),
+            ("transport", serde_json::json!("householder_pair")),
+            ("read_geometry", serde_json::json!("lorentz")),
+        ] {
+            let mut changed = value.clone();
+            changed[field] = bad;
+            assert!(serde_json::from_value::<JointConfig>(changed)?
+                .validate_for_profile(ServingProfile::Dialogue576)
+                .is_err());
+        }
+        let retained = crate::config::packed_numerical_contract(ReadGeometry::Dot)?;
+        assert_eq!(
+            serde_json::to_vec(&packed_numerical_contract_for_profile(
+                ReadGeometry::Dot,
+                ServingProfile::Retained
+            )?)?,
+            serde_json::to_vec(&retained)?
+        );
+        let wide =
+            packed_numerical_contract_for_profile(ReadGeometry::Dot, ServingProfile::Dialogue576)?;
+        assert_eq!(wide["native_integer_profile"]["width"], 576);
+        assert!(packed_numerical_contract_for_profile(
+            ReadGeometry::Lorentz,
+            ServingProfile::Dialogue576
+        )
+        .is_err());
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock before epoch"))?
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "uor-integer-dialogue576-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir(&directory)?;
+        let manifest = serde_json::json!({
+            "schema": "uor-r4.joint-recurrent-packed-emulator/1",
+            "serving_profile": "dialogue576", "admission": "full",
+            "model": config, "numerical_contract": wide,
+        });
+        for (field, replacement) in [
+            ("serving_profile", None),
+            ("serving_profile", Some(serde_json::json!("retained"))),
+            ("admission", None),
+            ("admission", Some(serde_json::json!("recent64"))),
+            ("numerical_contract", Some(retained)),
+        ] {
+            let mut changed = manifest.clone();
+            if let Some(replacement) = replacement {
+                changed[field] = replacement;
+            } else if let Some(object) = changed.as_object_mut() {
+                object.remove(field);
+            }
+            fs::write(
+                directory.join("hard-model.json"),
+                serde_json::to_vec(&changed)?,
+            )?;
+            assert!(matches!(
+                IntegerModel::load_with_tables_profile(
+                    &directory,
+                    &directory,
+                    ServingProfile::Dialogue576
+                ),
+                Err(IntegerError::Invalid(_))
+            ));
+        }
+        fs::write(
+            directory.join("hard-model.json"),
+            serde_json::to_vec(&manifest)?,
+        )?;
+        assert!(matches!(
+            IntegerModel::load_with_tables(&directory, &directory),
+            Err(IntegerError::Invalid(_))
+        ));
+        // Correct metadata reaches the absent parameter descriptor; this is
+        // profile/contract evidence, not a loaded learned artifact replay.
+        assert!(matches!(
+            IntegerModel::load_with_tables_profile(
+                &directory,
+                &directory,
+                ServingProfile::Dialogue576
+            ),
+            Err(IntegerError::Io(_))
+        ));
+        fs::remove_dir_all(directory)?;
         Ok(())
     }
 

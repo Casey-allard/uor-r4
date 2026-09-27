@@ -110,7 +110,10 @@ matched two-update witnesses. Eight focused checks pass, but actual replies
 remain weak. The [substantive study](dialogue-prefix-study-2026-09-27.md) now
 runs one fixed 1,024-update pair from the retained parent, using 161 sealed,
 source-stratified development responses and the same 58 existing open replies
-per saved model. Full-prefix is running; role-only follows sequentially.
+per saved model. Full-prefix has completed its fixed endpoint and actual-output
+review. Role-only is recovering the same endpoint from its sealed step-512 model
+and optimizer after a storage interruption; no scientific condition changes.
+Complete the matched endpoint before choosing the next learning intervention.
 Judge actual request/history correctness against both parent and control,
 preserving source-specific gains and regressions. A loss-only improvement or a
 gap caused by harming the control does not establish useful dialogue. Preserve
@@ -119,6 +122,13 @@ no automatic dose/seed/decoder extension. Foreign trainer and CLI ownership
 remain preserved.
 
 While the fixed pair runs, the independent [packed coefficient implementation](packed-integer-preparation-2026-09-27.md) advances the supported integer runtime without changing learning or widening the loader. Keep it as a draft until the same loaded artifacts preserve actual decisions/state and a measured workload establishes the storage/cost tradeoff. It is an interim dense-access optimization; D5 selected access and a useful native learner remain separate architectural work.
+
+The separately scoped [width-576 development profile](native-dialogue576-preparation-2026-09-27.md)
+is built, but actual historical-R1d conversion and complete native dialogue
+output remain NOT_RUN. After the fixed pair completes, use a prospectively
+bounded observation to separate parameter quantization, interface quantization
+and integer arithmetic effects while preserving the existing parent, panel and
+decoder. Dense parameter access remains an unresolved architectural limit.
 
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
@@ -147,13 +157,21 @@ identities were verified; raw model preservation is being coordinated on the
 owner SSD, with transfer/verification still pending. The input-content resume
 and scan/stability source corrections do not retroactively change older runs.
 Its implementation batches windows while scanning recurrence time sequentially;
-it has no integrated integer/session path. The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
+it has no integrated native multiplier-free integer/session path. The [source review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852370380)
 records the concrete lineage and claim corrections, with the
 [delta review](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5852801270)
 confirming their resolution in new source. Keep this Claude-owned
 experiment complementary to the retained-reader comparison. Completed results
 may change the next architecture investment; an offline package comparison
 does not by itself isolate curvature, qualify efficient serving, or adopt D10.
+
+The [later stack packet review at `86f5b4e6`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5855426807)
+adds a second seed with reversed Lorentz/Dot ordering and no consistent reader
+advantage across the two seeds. Trained D10 integer-retention reports are now
+available, but use a different arithmetic contract; useful generated output and
+local payload validation remain open. Preserve these findings alongside the
+historical pilot results. The later `4a0463e7` delta remains unreviewed; the
+fourth lab's native study and serving target stay fixed.
 
 ## Active programme — learn the model, then harden its execution
 

@@ -39,6 +39,20 @@ This remains a draft pending actual loaded-output/state/RNG equality and workloa
 cost after the single owned model slot is free. It leaves the running dialogue
 pair unchanged and establishes neither useful language nor D5 selected access.
 
+The [explicit width-576 integer development profile](native-dialogue576-preparation-2026-09-27.md)
+is implemented and built through source `e75acd94`. Ten distinct focused checks
+pass. Inspection finds no forbidden opcode in the declared emitted ranges;
+three historical conversational helpers remain absent from the ordinary binary,
+so this is not whole-process certification. The
+[source-bound packet](../evidence/native-dialogue576-preparation-2026-09-27.json)
+records the scope and complete build attempts. The profile provides an explicit
+historical-R1d conversion path and ordinary integer dialogue APIs while preserving
+the default retained profiles. Actual historical-parent conversion, numerical
+retention and generated output through this profile are **NOT_RUN**. They need a
+separate prospective observation after the fixed dialogue pair frees the owned
+model slot. This is a draft implementation, not artifact promotion or D5 selected
+parameter access.
+
 The retained integer `TextSession` now has an opt-in exact-ID dialogue adapter
 and consistent optional stop-token handling. Six focused checks pass. A loaded
 accepted-bundle witness matches exact prefix IDs and all 16 prediction records
@@ -95,9 +109,10 @@ record 18.132 seconds of actual inference and 58,572,800 bytes peak child RSS.
 The historical fit remains 9,162,752 sampled positions; summing its per-update
 records gives 6,280,627 response-supervised positions, correcting a duplicated
 report field. Its bounded no-longer-fit decision remains; unstable extrapolated
-floors do not establish capacity as the cause. No training extension or integer
-loader widening follows. The frozen reader study and other labs' mechanisms
-remain independent.
+floors do not establish capacity as the cause. That replay alone did not select
+a training extension or integer loader widening; subsequent learning and profile
+preparation have separate work cards and evidence. The frozen reader study and
+other labs' mechanisms remain independent.
 
 The [R1d training-context audit](dialogue-context-audit-2026-09-27.md) now
 reconstructs all 2,237 update denominators exactly. Of 6,280,627 response-target
@@ -192,19 +207,38 @@ source identities and the 40.528-second combined process wall cost are retained
 in its [packet](../evidence/dialogue-prefix-implementation-2026-09-27.json).
 This is integrated execution, not useful chat or conditioning advantage.
 The [substantive complete-prefix study](dialogue-prefix-study-2026-09-27.md)
-is now **RUNNING** from the retained parent: full-prefix first, with role-only
-queued under one sequential supervisor. The source-stratified open-development
-panel is sealed before learning: 161 distinct responses, with source counts
-23/32/10/32/32/32. Three focused selection/aggregation checks pass. Each arm is
-fixed at 1,024 updates, followed by saved-weight reload and all 58 existing
-open-development replies. The [launch packet](../evidence/dialogue-prefix-study-2026-09-27.json)
-binds the source, executable, both campaigns, actual panel IDs, prospective
-resources and independently reviewed decision method. It records a live launch,
-not a completed pair or language result. Wait for the declared endpoints, then
-review actual request fulfillment and history correctness against the parent
-and control, with source-specific losses and regressions. No automatic dose,
-seed or decoder extension follows. Other labs retain their CLI, trainer and
-deeper stack ownership. Native, multiplier-free serving remains the target.
+has one completed endpoint: full-prefix reached 1,024 updates and 1,165,549
+supervised response/EOS targets, reloaded its saved model and generated all 58
+fixed open-development replies. Development NLL improved from 3.022131 to
+2.773887. Principal and independent review retain selected factual/recall gains
+alongside broad instruction, relevance and multi-turn failures; no responsive
+three-turn trajectory was established. The
+[completed endpoint review](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5854996853)
+records those limitations and individual label disagreements. This endpoint alone
+does not establish a conditioning advantage.
+
+The role-only attempt stopped on a storage guard after 558 logged updates.
+Its sealed step-512 model and Adam checkpoint is now **RECOVERING** to the same
+fixed step-1,024 endpoint with unchanged source, binary, learning fields,
+optimizer, data schedule, panel and decoder. The 46 discarded updates and 50,798
+supervised targets remain charged work, not retained exposure. The
+[prospective recovery card](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5855294255)
+separates study material from shared-volume growth, preserves the original
+physical baseline and phase end, and makes owned builds and fits sequential.
+No compiler or model-quality failure is inferred from the storage interruption.
+
+The source-stratified open-development panel was sealed before learning: 161
+distinct responses, with source counts 23/32/10/32/32/32. Three focused
+selection/aggregation checks pass. Each arm keeps its fixed 1,024-update endpoint,
+saved-weight reload and all 58 existing open-development replies. The original
+[launch packet](../evidence/dialogue-prefix-study-2026-09-27.json) binds the frozen
+conditions; the [new preparation packet](../evidence/native-dialogue576-preparation-2026-09-27.json)
+adds a dated recovery snapshot. The pair remains incomplete. Complete and review
+the recovered role-only endpoint before comparing request fulfillment, history
+correctness, source-specific losses and regressions against both parent and
+control. No automatic dose, seed or decoder extension follows. Other labs retain
+their CLI, trainer and deeper stack ownership. Native, multiplier-free serving
+remains the target.
 
 The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
 identifies useful serving optimization alongside unresolved integration and
@@ -222,7 +256,7 @@ changed source separately.
 
 
 Claude's [draft stack experiment, PR #1414](https://github.com/UOR-Foundation/uor-r4/pull/1414)
-now has a reviewed six-pilot packet at `dc721f0a`: all 31 listed file identities
+initially supplied a reviewed six-pilot packet at `dc721f0a`: all 31 listed file identities
 match. Each pilot used 1,000 updates / 4,096,000 visits at one seed, with final
 evaluation on 131,072 exposed development targets. The selected geometric
 lr0.004 NLL is 2.609729 versus the selected transformer lr0.002 control's 2.768041.
@@ -246,12 +280,26 @@ executed binaries. Raw model weights and executables remain external;
 the designated owner-SSD intake is empty and no transfer branch is available.
 Payload verification remains pending.
 [Preservation coordination](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5853595061).
-This complementary Claude-owned track has no integrated integer/session path.
+This complementary Claude-owned track has no integrated native multiplier-free
+integer/session path; its subsequent D10 runtime is a separate contract.
 Its Dot ablation belongs to the deeper stack, not the fourth lab's already
 completed retained-reader comparison or running dialogue study. Its
 configuration-level likelihood results keep deeper architecture as a candidate;
 useful generated behavior remains required, and our fixed dose and native
 multiplier-free serving target stay unchanged.
+
+The subsequent [stack review at `86f5b4e6`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5855426807)
+verifies 58 added/changed report identities in the 101-file packet. A second
+seed reverses Lorentz-versus-Dot ordering, leaving mean NLL difference about
+-0.000100 across two seeds: no consistent reader advantage is established.
+All twelve new continuous continuations remain repetitive or malformed. Five
+trained D10 integer-retention reports show NLL gaps +0.007695 to +0.012756 and
+92.68–93.61% top-1 agreement on exposed development. These are AVX2 results with
+hardware multiplication/division and dense parameter reads, not this lab's
+native serving contract. The engine timer now excludes floating scoring, but
+integer continuation records and locally validated raw payloads remain absent.
+Head `4a0463e7` advanced after that pinned review and is not covered by it. These
+reports do not change the fixed dialogue pair or promote a model.
 
 The separately owned termination-objective study has a
 [source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)

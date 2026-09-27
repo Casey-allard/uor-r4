@@ -1,0 +1,1121 @@
+{
+  "schema": "uor-r4.native-dialogue576-preparation-evidence/1",
+  "recorded_at": "2026-09-27T11:27:23.240168+00:00",
+  "status": "SOURCE_FOCUSED_CHECKS_AND_SCOPED_STATIC_EVIDENCE_COMPLETE_LEARNED_OBSERVATION_NOT_RUN",
+  "scope": "Explicit development-only native Dialogue576 profile. Synthetic focused checks, release builds and recorded emitted numerical ranges; no retained learned-parent conversion, native replay, output or performance measurement.",
+  "source": {
+    "base_commit": "013f2c1c6142c33a02d8fbac54b4734fcc533d49",
+    "implementation_commit": "558aedf7c572550c22fff5cd0df1c2241ff59977",
+    "final_code_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+    "delta": "Only bundle.rs changed between these commits: failed packaging attempt preservation and its focused test; numerical source unchanged.",
+    "final_source_files": {
+      "crates/uor-r4-integer/src/config.rs": {
+        "bytes": 16383,
+        "sha256": "f9adc4ddbd4eb5f69608ae48e4275d98d52db717fabed58057b313b8e9629750"
+      },
+      "crates/uor-r4-integer/src/model.rs": {
+        "bytes": 167687,
+        "sha256": "9b91bcde1866dbaff6286ac2e69b79363fe50f9c508fd992b81d219dcf1581c7"
+      },
+      "crates/uor-r4-integer/src/packed_rows.rs": {
+        "bytes": 9533,
+        "sha256": "d757d6ac46c270444dbfaff3b69097ee85b2b0eae22654a53842342676c1c6f8"
+      },
+      "crates/uor-r4-integer/src/bundle.rs": {
+        "bytes": 25425,
+        "sha256": "e38a8884179588db7e924a2743a1ddc4a5b19d75e1691bb64d4a987335d5e9d1"
+      },
+      "crates/uor-r4-integer/src/bin/uor-r4-integer.rs": {
+        "bytes": 3215,
+        "sha256": "3f804cd73e271a0d491c4c3788b002a2625cc7fb4065c19726d072f41696e7eb"
+      },
+      "crates/uor-r4-training/src/joint_model.rs": {
+        "bytes": 171650,
+        "sha256": "ceb6adf7d85f38ab4f1cd44f07f0a7e47f0cf35dfbbc106ff9d237b5c37e6a55"
+      },
+      "crates/uor-r4-training/examples/dialogue-integer-bridge.rs": {
+        "bytes": 9435,
+        "sha256": "a8431d63684b9f33db4a2aadb902e5f687c55327bc33747dafb1f270ccabbc85"
+      }
+    }
+  },
+  "implementation": {
+    "profile": "dialogue576",
+    "constraints": {
+      "transport": "quaternion",
+      "read_geometry": "dot",
+      "admission": "full",
+      "vocabulary": 4096,
+      "state_width": 576,
+      "read_width": 64,
+      "context": 256
+    },
+    "ordinary_path": [
+      "IntegerSession",
+      "TextSession",
+      "DialogueConversation"
+    ],
+    "retained_scope": "Canonical128/256 validation/artifact contracts remain separate. Google fixed256 SessionState is not widened.",
+    "arithmetic": "True576 value rows and accumulation; packed576/1152 kernels. For bounded signed16 state codes S=sum(code^2), RMS uses floor((S<<58)/9), original EPSILON, integer square root and existing ties-away output division/clamp. Retained128/256 shift paths are preserved.",
+    "conversion": "Verified historical R1d parameters only; calibrated-for-export row-MSE scale selection is numerical optimization, with zero corpus forward/backward, generation or optimizer/model updates. Running dialogue-study endpoint conversion is not implemented.",
+    "remaining_cost": "Dense per-token parameter access remains; this is interim D0-b work, not D5 selected/sparse geometric operators or proven efficiency."
+  },
+  "frozen_artifacts": {
+    "source_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+    "artifacts": {
+      "uor-r4-integer": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-final-uor-r4-integer",
+        "bytes": 1418944,
+        "sha256": "d658fc42163741399fe2061b80687ca8cbf7883db665e2cf8d8e194a86d5b5c7"
+      },
+      "libuor_r4_integer.rlib": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-final-libuor_r4_integer.rlib",
+        "bytes": 4152680,
+        "sha256": "9ef3b5ba08384847f71a39f5331d1022ab94f70508f09ebf7e5512ed4cae18b1"
+      },
+      "examples/dialogue-integer-bridge": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-final-dialogue-integer-bridge",
+        "bytes": 2536288,
+        "sha256": "1d0392fcb0d76d6acb60ab2100ce81ef6a8934dc3573f1989bd1d963b737421d"
+      }
+    }
+  },
+  "checks": {
+    "distinct_passing_tests": 10,
+    "passing_occurrences": 12,
+    "distinct_test_names": [
+      "bundle::tests::dialogue576_bundle_rejects_tokenizer_lineage_and_clock_changes",
+      "bundle::tests::dialogue576_bundle_requires_explicit_development_profile",
+      "bundle::tests::dialogue576_bundle_seals_failed_packaging_without_overwrite",
+      "joint_model::tests::dialogue576_hard_profile_roundtrip_and_zero_update_clock",
+      "model::tests::dialogue576_full_value_memory_and_step",
+      "model::tests::dialogue576_normalization_matches_rational_reference",
+      "model::tests::dialogue576_profile_manifest_is_explicit_and_separate",
+      "model::tests::loader_binds_each_read_geometry_to_its_contract",
+      "model::tests::normalization_zero_scale_and_transport_identity",
+      "model::tests::packed_signed4_matrix_dispatch_rows_scales_and_embedding"
+    ],
+    "total_supervisor_wall_seconds": 778.38110075,
+    "maximum_child_rss_bytes": 3333554176,
+    "maximum_sampled_group_rss_bytes": 3393503232,
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "attempts": [
+      {
+        "source_commit": "558aedf7c572550c22fff5cd0df1c2241ff59977",
+        "started_at": "2026-09-27T10:48:22.162631+00:00",
+        "finished_at": "2026-09-27T10:55:10.262824+00:00",
+        "wall_seconds": 407.91591516700004,
+        "error": "RuntimeError: Build resource stop; frozen model process remains untouched.",
+        "maximum_sampled_group_rss_bytes": 2258780160,
+        "maximum_child_rss_bytes": 2139291648,
+        "projection_sha256": "560557a6d63743586968181f36027c1f23e3857753c4a766032fd130a5194db4",
+        "supervisor_sha256": "125253f635404f521225d1e2a420326285bd217991219163afdd10c03591c59e",
+        "receipt_binding": "native-dialogue576-checks-1.json",
+        "jobs": [
+          {
+            "label": "wide",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "dialogue576_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:48:22.382711+00:00",
+            "finished_at": "2026-09-27T10:48:36.714641+00:00",
+            "exit_code": 0,
+            "wall_seconds": 14.33238125,
+            "log_binding": "native-dialogue576-checks-1-wide.log",
+            "passing_tests": [
+              "bundle::tests::dialogue576_bundle_rejects_tokenizer_lineage_and_clock_changes",
+              "bundle::tests::dialogue576_bundle_requires_explicit_development_profile",
+              "model::tests::dialogue576_full_value_memory_and_step",
+              "model::tests::dialogue576_normalization_matches_rational_reference",
+              "model::tests::dialogue576_profile_manifest_is_explicit_and_separate"
+            ],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "packed",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "packed_signed4_matrix_dispatch_rows_scales_and_embedding",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:48:36.740625+00:00",
+            "finished_at": "2026-09-27T10:48:38.780969+00:00",
+            "exit_code": 0,
+            "wall_seconds": 2.0403174999999987,
+            "log_binding": "native-dialogue576-checks-1-packed.log",
+            "passing_tests": [
+              "model::tests::packed_signed4_matrix_dispatch_rows_scales_and_embedding"
+            ],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "retained-normalization",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "normalization_zero_scale_and_transport_identity",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:48:38.802562+00:00",
+            "finished_at": "2026-09-27T10:48:40.848401+00:00",
+            "exit_code": 0,
+            "wall_seconds": 2.0458386249999982,
+            "log_binding": "native-dialogue576-checks-1-retained-normalization.log",
+            "passing_tests": [
+              "model::tests::normalization_zero_scale_and_transport_identity"
+            ],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "retained-loader",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "loader_binds_each_read_geometry_to_its_contract",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:48:40.869420+00:00",
+            "finished_at": "2026-09-27T10:48:42.904461+00:00",
+            "exit_code": 0,
+            "wall_seconds": 2.0350462500000006,
+            "log_binding": "native-dialogue576-checks-1-retained-loader.log",
+            "passing_tests": [
+              "model::tests::loader_binds_each_read_geometry_to_its_contract"
+            ],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "export",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--lib",
+              "dialogue576_hard_profile_roundtrip_and_zero_update_clock",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:48:42.924075+00:00",
+            "finished_at": "2026-09-27T10:54:27.340969+00:00",
+            "exit_code": 0,
+            "wall_seconds": 344.428996125,
+            "log_binding": "native-dialogue576-checks-1-export.log",
+            "passing_tests": [
+              "joint_model::tests::dialogue576_hard_profile_roundtrip_and_zero_update_clock"
+            ],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "integer-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "--bin",
+              "uor-r4-integer"
+            ],
+            "started_at": "2026-09-27T10:54:27.364027+00:00",
+            "finished_at": "2026-09-27T10:54:39.590890+00:00",
+            "exit_code": 0,
+            "wall_seconds": 12.227240207999955,
+            "log_binding": "native-dialogue576-checks-1-integer-build.log",
+            "passing_tests": [],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "converter-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--example",
+              "dialogue-integer-bridge"
+            ],
+            "started_at": "2026-09-27T10:54:39.612162+00:00",
+            "log_binding": "native-dialogue576-checks-1-converter-build.log",
+            "passing_tests": [],
+            "outcome": "RESOURCE_INTERRUPTED_NO_RECORDED_EXIT"
+          }
+        ]
+      },
+      {
+        "source_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+        "started_at": "2026-09-27T10:57:17.713606+00:00",
+        "finished_at": "2026-09-27T10:58:54.615918+00:00",
+        "wall_seconds": 96.48261658300001,
+        "error": "RuntimeError: Build resource stop; frozen model process remains untouched.",
+        "stop_observation": {
+          "free_bytes": {
+            "/System/Volumes/Data": 30453047296,
+            "/Volumes/UOR-Workspace": 172631699456
+          },
+          "group_rss_bytes": 1432829952,
+          "aggregate_wall_seconds": 504.39293866700007,
+          "remaining_seconds": 20200.737363,
+          "free_memory_percent_recheck": 45
+        },
+        "maximum_sampled_group_rss_bytes": 2330132480,
+        "maximum_child_rss_bytes": 357171200,
+        "projection_sha256": "7d15141f4946f954870ce44add69e1fec65131b36292f6a8ec62ab1023e05556",
+        "supervisor_sha256": "ff399a29f727f3cb39989d6343548976efd94298dafb8eff70e650e441a8ea6c",
+        "receipt_binding": "native-dialogue576-checks-2.json",
+        "jobs": [
+          {
+            "label": "bundle-failure",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "dialogue576_bundle_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T10:57:18.158133+00:00",
+            "finished_at": "2026-09-27T10:57:32.494261+00:00",
+            "exit_code": 0,
+            "wall_seconds": 14.336628,
+            "log_binding": "native-dialogue576-checks-2-bundle-failure.log",
+            "passing_tests": [
+              "bundle::tests::dialogue576_bundle_rejects_tokenizer_lineage_and_clock_changes",
+              "bundle::tests::dialogue576_bundle_requires_explicit_development_profile",
+              "bundle::tests::dialogue576_bundle_seals_failed_packaging_without_overwrite"
+            ],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "integer-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-integer",
+              "--lib",
+              "--bin",
+              "uor-r4-integer"
+            ],
+            "started_at": "2026-09-27T10:57:32.516138+00:00",
+            "finished_at": "2026-09-27T10:57:44.746856+00:00",
+            "exit_code": 0,
+            "wall_seconds": 12.231117792,
+            "log_binding": "native-dialogue576-checks-2-integer-build.log",
+            "passing_tests": [],
+            "outcome": "COMPLETED"
+          },
+          {
+            "label": "converter-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--example",
+              "dialogue-integer-bridge"
+            ],
+            "started_at": "2026-09-27T10:57:44.769309+00:00",
+            "log_binding": "native-dialogue576-checks-2-converter-build.log",
+            "passing_tests": [],
+            "outcome": "RESOURCE_INTERRUPTED_NO_RECORDED_EXIT"
+          }
+        ]
+      },
+      {
+        "source_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+        "started_at": "2026-09-27T11:02:46.234882+00:00",
+        "finished_at": "2026-09-27T11:07:20.386910+00:00",
+        "wall_seconds": 273.98256899999996,
+        "maximum_sampled_group_rss_bytes": 3393503232,
+        "maximum_child_rss_bytes": 3333554176,
+        "projection_sha256": "32e23dcfec8859fbbee35f137c2daed9a00c5e21a59d61cf53efff5fe65ffee5",
+        "supervisor_sha256": "ee8a9c01054cec90812b393265cfccfb0f1b435bbb3d9a58c96481e7a460ee8a",
+        "receipt_binding": "native-dialogue576-checks-3.json",
+        "jobs": [
+          {
+            "label": "converter-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "--release",
+              "--offline",
+              "-p",
+              "uor-r4-training",
+              "--example",
+              "dialogue-integer-bridge"
+            ],
+            "started_at": "2026-09-27T11:02:46.427679+00:00",
+            "finished_at": "2026-09-27T11:07:20.347773+00:00",
+            "exit_code": 0,
+            "wall_seconds": 273.92972025,
+            "log_binding": "native-dialogue576-checks-3-converter-build.log",
+            "passing_tests": [],
+            "outcome": "COMPLETED"
+          }
+        ]
+      }
+    ],
+    "interpretation": "Both resource-interrupted converter builds remain preserved and charged. Checks3 only completes the remaining release build and repeats no tests. Focused fixtures are not learned-model evidence."
+  },
+  "independent_reviews": {
+    "native-dialogue576-source-review.json": {
+      "receipt_binding": "native-dialogue576-source-review.json",
+      "recorded_at_utc": "2026-09-27T10:54:23.511764+00:00",
+      "reviewer": "fourth-lab/adversarial_lab",
+      "source_commit": "558aedf7c572550c22fff5cd0df1c2241ff59977",
+      "status": "NUMERICAL_PROFILE_BINDING_SOURCE_REVIEW_CLEAR_NEW_PACK_FAILURE_SEALING_FIX_PENDING",
+      "review_scope": "Read-only integration, arithmetic-domain, explicit serving-profile, artifact-lineage and API review. No source edits, Cargo, test, model loading, inference, training, or disassembly execution by this reviewer."
+    },
+    "native-dialogue576-final-source-review.json": {
+      "receipt_binding": "native-dialogue576-final-source-review.json",
+      "recorded_at_utc": "2026-09-27T10:59:26.129586+00:00",
+      "reviewer": "fourth-lab/adversarial_lab",
+      "source_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+      "status": "PENDING_FAILURE_PRESERVATION_ISSUE_CLOSED_WITH_NONBLOCKING_DIAGNOSTIC_LIMITATION",
+      "scope": "Read-only delta review of new pack_dialogue576 failure preservation. Numerical/profile/provenance review is inherited from the bound prior receipt; it was not repeated. No edits, Cargo, tests, learned-model calls, conversion, disassembly or resource-envelope execution by reviewer."
+    },
+    "native-dialogue576-compiled-review.json": {
+      "receipt_binding": "native-dialogue576-compiled-review.json",
+      "recorded_at_utc": "2026-09-27T11:12:16.900361+00:00",
+      "reviewer": "fourth-lab/adversarial_lab",
+      "source_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+      "status": "SCOPED_RECORDED_KERNEL_EVIDENCE_CONFIRMED",
+      "scope": "Reviewed saved source-bound build logs/receipts, emitted instruction ranges and direct-call inventory. Recounted saved range lengths and reapplied unchanged auditor patterns to stored instruction text. Hashed frozen artifacts and scripts. Did not run disassembler, compiler, tests, converter or learned model."
+    }
+  },
+  "static_numerical_evidence": {
+    "receipt_binding": "native-dialogue576-static-audit.json",
+    "compiled_review_binding": "native-dialogue576-compiled-review.json",
+    "source_commit": "e75acd94281a4bfff99ece8e5228ea76a1647265",
+    "status": "SCOPED_MATCHED_RANGES_ONLY_NOT_FULL_AUDIT_PASS",
+    "wall_seconds": 1.135740792,
+    "targets": [
+      {
+        "artifact": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-final-uor-r4-integer",
+          "bytes": 1418944,
+          "sha256": "d658fc42163741399fe2061b80687ca8cbf7883db665e2cf8d8e194a86d5b5c7"
+        },
+        "disassembly_sha256": "f2c4bfe22b1129ff3de7553530aec970623abbd6c3df3c7ab154b65266034161",
+        "existing_matched_symbols": 16,
+        "supplement_matched_symbols": 5,
+        "overlapping_symbols": [
+          "<uor_r4_integer::model::IntegerModel>::step"
+        ],
+        "unique_matched_symbols": 20,
+        "existing_missing_mandatory": [
+          [
+            "model::compress_barycenter_key_fibonacci",
+            "Fibonacci integer barycenter key compression in Z[phi]"
+          ],
+          [
+            "model::compute_turn_prime_signature",
+            "Galois LFSR 64-bit prime signature computation"
+          ],
+          [
+            "model::extract_salient_tokens",
+            "Top-4 salient entity token extraction via zero-matmul scoring"
+          ]
+        ],
+        "recorded_matched_violations": 0,
+        "supplement": [
+          {
+            "label": "normalize_state_dispatch",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::model::normalize_state",
+                "instruction_count": 439,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "normalize_state_576",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::model::normalize_state_576",
+                "instruction_count": 299,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "accumulate_slot_value_576",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::model::accumulate_slot_value_576",
+                "instruction_count": 137,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "SessionValues::read",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "<uor_r4_integer::model::SessionValues>::read",
+                "instruction_count": 403,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "IntegerModel::step",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "<uor_r4_integer::model::IntegerModel>::step",
+                "instruction_count": 3481,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "div_rem_unsigned",
+            "separately_emitted": false,
+            "ranges": []
+          },
+          {
+            "label": "isqrt",
+            "separately_emitted": false,
+            "ranges": []
+          }
+        ]
+      },
+      {
+        "artifact": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-final-libuor_r4_integer.rlib",
+          "bytes": 4152680,
+          "sha256": "9ef3b5ba08384847f71a39f5331d1022ab94f70508f09ebf7e5512ed4cae18b1"
+        },
+        "disassembly_sha256": "96fdefea5397e46b348953cb23fc55bad1f8e16b21960a776f3261bf57311669",
+        "existing_matched_symbols": 30,
+        "supplement_matched_symbols": 6,
+        "overlapping_symbols": [
+          "<uor_r4_integer::model::IntegerModel>::step"
+        ],
+        "unique_matched_symbols": 35,
+        "existing_missing_mandatory": [],
+        "recorded_matched_violations": 0,
+        "supplement": [
+          {
+            "label": "normalize_state_dispatch",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::model::normalize_state",
+                "instruction_count": 439,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "normalize_state_576",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::model::normalize_state_576",
+                "instruction_count": 299,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "accumulate_slot_value_576",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::model::accumulate_slot_value_576",
+                "instruction_count": 137,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "SessionValues::read",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "<uor_r4_integer::model::SessionValues>::read",
+                "instruction_count": 403,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "IntegerModel::step",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "<uor_r4_integer::model::IntegerModel>::step",
+                "instruction_count": 3481,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "div_rem_unsigned",
+            "separately_emitted": true,
+            "ranges": [
+              {
+                "symbol": "uor_r4_integer::math::div_rem_unsigned",
+                "instruction_count": 131,
+                "violations": {
+                  "CLASS_I_PATTERN": [],
+                  "CLASS_II_PATTERN": [],
+                  "CLASS_III_PATTERN": []
+                }
+              }
+            ]
+          },
+          {
+            "label": "isqrt",
+            "separately_emitted": false,
+            "ranges": []
+          }
+        ]
+      }
+    ],
+    "RMS576_interpretation": {
+      "executable_instructions": 299,
+      "manual_source_to_instruction_observation": "The saved executable range includes the shift/subtract long-division loop with constant9 and the restoring integer-square-root loop. The only six external direct branch-with-link records name Rust allocator/no-allocation-shim/zeroed-allocation/handle_error routines. No out-of-line numerical quotient or square-root call appears in this executable range.",
+      "separate_symbol_limits": "Executable div_rem_unsigned and isqrt are absent as separate symbols. div_rem_unsigned is separately present with131 instructions in the rlib; isqrt is absent there too. Absence is not independently passed; executable containing-range observation supplies the relevant scoped evidence.",
+      "rlib_relocations": "The archive saved disassembly contains unresolved call relocations displayed as local-looking addresses. Its raw call labels cannot establish callee identity without relocation information; executable call inventory is the basis for the inlining interpretation.",
+      "value_accumulator": "The137-instruction wide accumulator range has no recorded out-of-line call and empty forbidden lists."
+    },
+    "limits": [
+      "Three mandatory conversational symbols are absent from the ordinary executable. No missing mandatory symbol is recorded for the rlib. Zero violations applies only to matched saved ranges.",
+      "Executable div_rem_unsigned and isqrt are not separately emitted; RMS arithmetic is reviewed in its containing emitted range. Missing symbols are not separate passes.",
+      "Rlib relocation labels alone do not prove linked callees. This audit establishes neither complete-path compliance nor learned numerical equivalence, speed or energy."
+    ]
+  },
+  "resources": {
+    "projections": [
+      {
+        "receipt_binding": "projection-native-dialogue576-preparation.json",
+        "recorded_at": "2026-09-27T10:35:35.990776+00:00",
+        "wall_cap_seconds": 21600,
+        "build_check_wall_cap_seconds": 900,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000,
+        "new_allowance_ms": 0,
+        "resources": {
+          "compile_rss_cap_bytes": 4294967296,
+          "cargo_jobs": 2,
+          "one_cargo": true,
+          "one_owned_model": true,
+          "no_additional_learned_model_during_dialogue_pair": true,
+          "launch_free_memory_percent": 25,
+          "build_stop_free_memory_percent": 25,
+          "new_internal_bytes": 67108864,
+          "shared_ssd_growth_bytes": 536870912,
+          "physical_reserve_bytes": 25971130368,
+          "storage_stop_margin_bytes": 134217728
+        },
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 31605911552,
+          "/Volumes/UOR-Workspace": 172547112960
+        }
+      },
+      {
+        "receipt_binding": "projection-native-dialogue576-closeout.json",
+        "recorded_at": "2026-09-27T10:57:07.347740+00:00",
+        "wall_cap_seconds": 20308,
+        "build_check_wall_cap_seconds": 900,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000,
+        "new_allowance_ms": 0,
+        "resources": {
+          "compile_rss_cap_bytes": 4294967296,
+          "cargo_jobs": 2,
+          "one_cargo": true,
+          "one_owned_model": true,
+          "no_additional_learned_model_during_dialogue_pair": true,
+          "launch_free_memory_percent": 25,
+          "build_stop_free_memory_percent": 25,
+          "new_internal_bytes": 134217728,
+          "shared_ssd_growth_bytes": 536870912,
+          "physical_reserve_bytes": 25971130368,
+          "storage_stop_margin_bytes": 134217728
+        },
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 31605911552,
+          "/Volumes/UOR-Workspace": 172547112960
+        },
+        "storage_adjustment": {
+          "physical_volume_growth_guard_before": 67108864,
+          "physical_volume_growth_guard_after": 134217728,
+          "increment_bytes": 67108864,
+          "own_preparation_material_cap_bytes_unchanged": 67108864,
+          "reason": "Role-only fixed study wrote already-authorized512recovery model21721056B+optimizer43442224B during root compilation. Adjacent physical snapshots exceed the old64MiB whole-volume guard. Stopped record gives genericresource stop, so exacttrigger is inferred from snapshots and guardcode, not per-condition receipt. Expand overlap allowance prospectively; no deletion, study extension or learned conversion.",
+          "standing_authorization": "Owner2026-09-06 necessary local storage extensions; record prospectively, retain128MiBphysicalstopmargin.",
+          "before_retry_physical_free_bytes": {
+            "/System/Volumes/Data": 31527481344,
+            "/Volumes/UOR-Workspace": 172520497152
+          },
+          "cumulative_elapsed_limit_increment_ms": 0,
+          "build_check_wall_increment_seconds": 0
+        }
+      },
+      {
+        "receipt_binding": "projection-native-dialogue576-build-completion.json",
+        "recorded_at": "2026-09-27T11:02:18.404346+00:00",
+        "wall_cap_seconds": 19997,
+        "build_check_wall_cap_seconds": 1200,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000,
+        "new_allowance_ms": 0,
+        "resources": {
+          "compile_rss_cap_bytes": 4294967296,
+          "cargo_jobs": 1,
+          "one_cargo": true,
+          "one_owned_model": true,
+          "no_additional_learned_model_during_dialogue_pair": true,
+          "launch_free_memory_percent": 25,
+          "build_stop_free_memory_percent": 25,
+          "new_internal_bytes": 3221225472,
+          "shared_ssd_growth_bytes": 536870912,
+          "physical_reserve_bytes": 25971130368,
+          "storage_stop_margin_bytes": 134217728,
+          "one_owned_heavy_process_total": true
+        },
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 31605911552,
+          "/Volumes/UOR-Workspace": 172547112960
+        },
+        "storage_adjustment": {
+          "physical_volume_growth_guard_before": 67108864,
+          "physical_volume_growth_guard_after": 134217728,
+          "increment_bytes": 67108864,
+          "own_preparation_material_cap_bytes_unchanged": 67108864,
+          "reason": "Role-only fixed study wrote already-authorized512recovery model21721056B+optimizer43442224B during root compilation. Adjacent physical snapshots exceed the old64MiB whole-volume guard. Stopped record gives genericresource stop, so exacttrigger is inferred from snapshots and guardcode, not per-condition receipt. Expand overlap allowance prospectively; no deletion, study extension or learned conversion.",
+          "standing_authorization": "Owner2026-09-06 necessary local storage extensions; record prospectively, retain128MiBphysicalstopmargin.",
+          "before_retry_physical_free_bytes": {
+            "/System/Volumes/Data": 31527481344,
+            "/Volumes/UOR-Workspace": 172520497152
+          },
+          "cumulative_elapsed_limit_increment_ms": 0,
+          "build_check_wall_increment_seconds": 0
+        },
+        "resource_adjustment": {
+          "reason": "Secondsupervisedbuild androle-onlyfit stopped onsharedAPFSgrowth; nativephysicaldelta1152864256B, actualstudyfiles218901708B, sourceCargooutputsareexternalSSD. VMaftereventtotal9216MiB used7934.44MiB; noVMbeforesnapshot, so VM/otherAPFSallocation explains measurement category but exactallocationcause is notproven. Preservebothstoppedattempts andsealed512checkpoint. Prior9+newfailurechecks passed; onlyconvertercompile remains.",
+          "internal_whole_volume_growth_guard_before_bytes": 134217728,
+          "internal_whole_volume_growth_guard_after_bytes": 3221225472,
+          "increment_bytes": 3087007744,
+          "own_preparation_material_cap_bytes_unchanged": 67108864,
+          "aggregate_build_cap_before_seconds": 900,
+          "aggregate_build_cap_after_seconds": 1200,
+          "build_allowance_increment_seconds": 300,
+          "prior_aggregate_build_seconds": 504.39853175,
+          "complete_expected_remaining_build_seconds": 360,
+          "closeout_margin_seconds": 335.60146825,
+          "physical_floor_and_margin_unchanged_bytes": 26105348096,
+          "current_physical_free_bytes": {
+            "/System/Volumes/Data": 30449577984,
+            "/Volumes/UOR-Workspace": 172631736320
+          },
+          "vm_swapusage_after_event": "vm.swapusage: total = 9216.00M  used = 7926.44M  free = 1289.56M  (encrypted)",
+          "authorization": "Ownerstanding2026-09-06 necessarylocaltime/storageextensions, recordedprospectively. No paidcompute/deletion, no modeldoseextension, existing18howned and722400000mssharedcap unchanged."
+        }
+      }
+    ],
+    "original_physical_baseline_preserved": true,
+    "own_preparation_material_cap_bytes": 67108864,
+    "physical_floor_including_margin_bytes": 26105348096,
+    "accounting_receipt_binding": "ledger-native-dialogue576-preparation.json",
+    "accounting_snapshot": {
+      "last_charged_at": "2026-09-27T11:20:27.078249+00:00",
+      "charged_elapsed_ms": 38843065,
+      "tail_ms": 1274573,
+      "before": {
+        "cumulative_ms": 685724072,
+        "limit_ms": 744000000
+      },
+      "after": {
+        "cumulative_ms": 686998645,
+        "limit_ms": 744000000
+      },
+      "foreign_increment_since_last_cursor_ms": 0,
+      "verified_cumulative_allowance_ms": 722400000,
+      "owned_elapsed_cap_ms": 64800000,
+      "foreign_reported_limit_adopted": false,
+      "scope": "Completed native Dialogue576 source, ten distinct focused checks, all three build attempts, scoped disassembly and independent review; preparation documents and exact role-only recovery from checkpoint 512 launched after all owned builds ended. Preparation, repair, review, delivery and overlapping model time charged once. Recovery and delivery remain live; later elapsed tail remains open.",
+      "limitations": "Advisory lock and compare-before replacement; foreign writers do not share lock. Child model/build durations are breakdown only, not additional elapsed charges.",
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 30437728256,
+        "/Volumes/UOR-Workspace": 172506365952
+      }
+    },
+    "accounting_scope": "Fixed cursor charges through11:20:27UTC once, including preparation, interrupted builds, reviews and overlapping model work. Child component durations are not added again. Later recovery/delivery tail remains open. Raw shared744000000ms limit is not adopted; verified allowance remains722400000ms.",
+    "incident": "Shared APFS physical growth stopped build2 and the original role-only fit. Own files and shared-volume allocation are distinct. Swap was observed only after the event; exact allocation cause is unresolved.",
+    "prospective_changes": "Original physical baseline and source-phase end retained. Shared-volume guard64MiB to128MiB to3GiB; native own material remains64MiB. Aggregate build cap prospectively900s to1200s, actual778.38110075s. No cumulative allowance or study-dose increase.",
+    "execution_serialization": "Final converter build ended11:07:20UTC before recovery launched11:16:18UTC. One owned heavy process applies thereafter; no further owned build/model overlap."
+  },
+  "learned_observation": {
+    "conversion": "NOT_RUN",
+    "native_numerical_replay": "NOT_RUN",
+    "native_generated_output": "NOT_RUN",
+    "performance_or_energy_measurement": "NOT_RUN",
+    "design_binding": "native-dialogue576-observation-design.json",
+    "design_status": "PROPOSED_NOT_IMPLEMENTED_OR_RUN_NOT_EXECUTION_AUTHORIZATION",
+    "design_source_commit": "558aedf7c572550c22fff5cd0df1c2241ff59977",
+    "design_scope": "One retained historical R1d conversion, a fixed-trace numerical decomposition, and complete open-panel dialogue output under the same declared greedy controller. Preparation only; no model/Cargo/fit/heldout access performed for this design. The live full-prefix/role-only study is unchanged.",
+    "scope_limit": "Design is not launch authorization or model promotion. Actual parent conversion/reload/output needs separate prospective execution after the current model slot is free."
+  },
+  "recovery_snapshot": {
+    "as_of": "2026-09-27T11:27:23.240168+00:00",
+    "receipt_binding": "dialogue-study-role_only-recovery-1-execution.json",
+    "live_mutable_receipt": true,
+    "identity_scope": "Raw SHA/bytes bind exactly the single snapshot used here; the source receipt continues updating. This is the separate continuous dialogue-study recovery, not native integer execution.",
+    "public_launch_note": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5855364592",
+    "status": "RUNNING",
+    "started_at": "2026-09-27T11:16:18.727784+00:00",
+    "launched_at": "2026-09-27T11:16:18.843895+00:00",
+    "pid": 61953,
+    "source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6",
+    "binary_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+    "campaign_sha256": "c715a2c8ade0775f38eabd642f6114a26eb7235aef655d46458a60fe860512e8",
+    "original_campaign_sha256": "7d206c61803929d3098a94768d3313e38d2eeae35a22ced1157388f4051f8c7d",
+    "build_receipt_sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda",
+    "supervisor_sha256": "2c519b9cc53aa7b0bb75c9fae4e66839a37bd879ef73044065c3c98162d59e72",
+    "projection_sha256": "307fa3e35d05b8ac1880ad0c7885b00d4ccec05ab8182e25c2cbe71b66e4fa05",
+    "resume_checkpoint_manifest_sha256": "273248faeb1f855c819d78785676f6a0d03f56a25d8d6321ec6cdc9335a8811e",
+    "resume_checkpoint_file_sha256": {
+      "attempt.json": "da1e7ea84d3fe32614f39a43bf47ed6eec06a290153e376c9684b276c9b954c1",
+      "checkpoint.json": "98e26476ca89eb97c6511e4eaff2c8afb4a4b2533ca809c3cfec01b67c6376e9",
+      "config.json": "728ae27414012b057bbc407d6c3574aaa89e978d491f79cd74b0d8c3c55b47dd",
+      "manifest.json": "273248faeb1f855c819d78785676f6a0d03f56a25d8d6321ec6cdc9335a8811e",
+      "model.safetensors": "be6aa9d00920291da4870772000503f644d950533f286d4e33317fa37958ded7",
+      "optimizer.json": "d583e4b3d3fed09822230de080a0a862e7e1b1e70e3b80d40128b20d40c007a6",
+      "optimizer.safetensors": "d7ec5b1621b789dba1f0e47d3ec5a558d775f8a88ea56f63f017d1b836f1bead"
+    },
+    "starting_step": 512,
+    "prior_role_wall_seconds": 2742.9389957500002,
+    "aggregate_role_hard_seconds": 14400,
+    "discarded_updates_still_charged": 46,
+    "discarded_supervised_visits_still_charged": 50798,
+    "initial_development_scope": "Resumed step512 model, not fresh step0.",
+    "elapsed_seconds": 664.008491125,
+    "aggregate_role_wall_seconds": 3406.9474868750003,
+    "peak_sampled_rss_bytes": 4943790080,
+    "last_free_memory_percent": 58,
+    "last_observed_cargo_active": false,
+    "soft_stop": null,
+    "hard_stop": null,
+    "resume_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-1/checkpoint-00000512",
+    "retention": "Original46updates/50798supervised visits after512 remain charged but are absent from the restored model/optimizer. Initial development evaluates restored step512, not fresh step0.",
+    "expected_endpoint_not_observed": {
+      "final_step": 1024,
+      "new_updates": 512,
+      "new_padded_positions": 2097152,
+      "cumulative_supervised_visits": 1165549
+    },
+    "limits": {
+      "model_rss_cap_bytes": 6442450944,
+      "new_internal_bytes": 1073741824,
+      "internal_physical_growth_bytes": 4294967296,
+      "shared_ssd_growth_bytes": 2147483648,
+      "physical_reserve_bytes": 25971130368,
+      "storage_stop_margin_bytes": 134217728,
+      "hard_wall_seconds": 10800,
+      "soft_update_seconds": 9000,
+      "one_owned_heavy_process_total": true
+    }
+  },
+  "limitations": [
+    "Synthetic tests and emitted code ranges do not establish useful chat, general prose, geometric advantage, conversion quality, speed or energy.",
+    "Normal failed packaging attempts and existing sealed roots are preserved. A secondary failure while recording/sealing an error can replace the original diagnostic; both remain errors. This nonblocking limitation is retained without another patch cycle.",
+    "Packet assembly reads/hashes saved sources, artifacts, logs and receipts and performs JSON load/consistency checks only. No model, converter, test, compiler, disassembler or seal-verifier execution was added."
+  ],
+  "receipt_bindings": {
+    "native-dialogue576-checks-1.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1.json",
+      "bytes": 4840,
+      "sha256": "358053959c749c4ebbb7d2af1b43652d18eaa8a578a6111289ff579cf29fba97"
+    },
+    "native-dialogue576-checks-2.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-2.json",
+      "bytes": 2858,
+      "sha256": "d827a1748ac7e6e33180ad579d2889a3118a7aa54400f4517c882653dabeb1c7"
+    },
+    "native-dialogue576-checks-3.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-3.json",
+      "bytes": 2458,
+      "sha256": "882b8ff340a805b37200d2f0d560f53462d805b45ebd80c50854943c45ecd083"
+    },
+    "native-dialogue576-static-audit.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-static-audit.json",
+      "bytes": 817651,
+      "sha256": "478a5d0f916c70c3d53e6b342bece28546af9ee3da5515351ff1101dddfc7366"
+    },
+    "native-dialogue576-source-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-source-review.json",
+      "bytes": 12588,
+      "sha256": "ace929ec26321d0e800f8e585a27fa5657b4ca051a9b994be097a7a578aac28b"
+    },
+    "native-dialogue576-final-source-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-final-source-review.json",
+      "bytes": 5027,
+      "sha256": "bbc782908af77755e0cf5a6dbc3e089585c975d6b7e0595afb6203b7e9b0649a"
+    },
+    "native-dialogue576-compiled-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-compiled-review.json",
+      "bytes": 11542,
+      "sha256": "0070690c70b9b2955e99c304f15eb1b720a328da7acc22e4147dc05cb3744a0d"
+    },
+    "projection-native-dialogue576-preparation.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-native-dialogue576-preparation.json",
+      "bytes": 3596,
+      "sha256": "560557a6d63743586968181f36027c1f23e3857753c4a766032fd130a5194db4"
+    },
+    "projection-native-dialogue576-closeout.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-native-dialogue576-closeout.json",
+      "bytes": 4552,
+      "sha256": "7d15141f4946f954870ce44add69e1fec65131b36292f6a8ec62ab1023e05556"
+    },
+    "projection-native-dialogue576-build-completion.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-native-dialogue576-build-completion.json",
+      "bytes": 6126,
+      "sha256": "32e23dcfec8859fbbee35f137c2daed9a00c5e21a59d61cf53efff5fe65ffee5"
+    },
+    "ledger-native-dialogue576-preparation.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/ledger-native-dialogue576-preparation.json",
+      "bytes": 1147,
+      "sha256": "cf9057137ffc26bf9a06936fbb26c72236c23200e687d1457faf036284261ec5"
+    },
+    "native-dialogue576-observation-design.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-observation-design.json",
+      "bytes": 22997,
+      "sha256": "fb9e2df65866af200d967fc4ea0fc9085ad10923c1a2d0b3cf7a19c4716a4f85"
+    },
+    "dialogue-study-role_only-recovery-1-execution.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1-execution.json",
+      "bytes": 6614,
+      "sha256": "7d14fb3855aa1c4aaee853dc26e11b58e29428220435b56d6438213d22d22c0e"
+    },
+    "projection-dialogue-role-recovery.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-role-recovery.json",
+      "bytes": 7660,
+      "sha256": "307fa3e35d05b8ac1880ad0c7885b00d4ccec05ab8182e25c2cbe71b66e4fa05"
+    },
+    "dialogue-study-recovery-source-review.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-recovery-source-review.json",
+      "bytes": 5345,
+      "sha256": "02d28f2b24786ef94afaf117981c9f9f577ea44bf57a4225e884211c31e1921f"
+    },
+    "dialogue-study-build.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-build.json",
+      "bytes": 1799,
+      "sha256": "6bd91188a47a9412fea61d888c165e8b4a61c7c47f2f33c352a0affaca285cda"
+    },
+    "dialogue-study-role_only-1-execution.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-1-execution.json",
+      "bytes": 5845,
+      "sha256": "112e5bed341992465c57bb79a85c6844d1cb0a35cd04a5280ce92ac83c935dec"
+    },
+    "dialogue-study-pipeline.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-pipeline.json",
+      "bytes": 6600,
+      "sha256": "1c2f40d00dd53ef76738a3665ec046a5e2697f5274b7acede0e7e8feaab7d62c"
+    },
+    "check-native-dialogue576-1.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/check-native-dialogue576-1.py",
+      "bytes": 8005,
+      "sha256": "125253f635404f521225d1e2a420326285bd217991219163afdd10c03591c59e"
+    },
+    "check-native-dialogue576-2.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/check-native-dialogue576-2.py",
+      "bytes": 7611,
+      "sha256": "ff399a29f727f3cb39989d6343548976efd94298dafb8eff70e650e441a8ea6c"
+    },
+    "check-native-dialogue576-3.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/check-native-dialogue576-3.py",
+      "bytes": 7715,
+      "sha256": "ee8a9c01054cec90812b393265cfccfb0f1b435bbb3d9a58c96481e7a460ee8a"
+    },
+    "audit-native-dialogue576.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/audit-native-dialogue576.py",
+      "bytes": 3787,
+      "sha256": "0506ed1a9b4b7b9893ddbaba2937dd3d1e7d954e4e33c8429b384f6f038fa5e1"
+    },
+    "run-dialogue-study-recovery.py": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-study-recovery.py",
+      "bytes": 24484,
+      "sha256": "2c519b9cc53aa7b0bb75c9fae4e66839a37bd879ef73044065c3c98162d59e72"
+    },
+    "existing_static_auditor": {
+      "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/scripts/audit_zero_matmul_serving.py",
+      "bytes": 27933,
+      "sha256": "a5045342cfced26f78019daa12acee0de8caedef3fe66ec3cf42c62a3a49cb95"
+    },
+    "recovery_campaign": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-recovery-inputs-1/role_only.json",
+      "bytes": 2056,
+      "sha256": "c715a2c8ade0775f38eabd642f6114a26eb7235aef655d46458a60fe860512e8"
+    },
+    "native-dialogue576-checks-1-wide.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-wide.log",
+      "bytes": 1589,
+      "sha256": "25740544a07d8057eea648c895759b72e42a27e03a8090257cc8b165e333f3e0"
+    },
+    "native-dialogue576-checks-1-packed.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-packed.log",
+      "bytes": 1150,
+      "sha256": "5f9c65168b773e0b677ca575b3cf67537558ae4d016609b45d4a86768a672530"
+    },
+    "native-dialogue576-checks-1-retained-normalization.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-retained-normalization.log",
+      "bytes": 1141,
+      "sha256": "e43e492eeba4ef3e5015cf0348172b4389c4f290d856d8472fec8d0f68b76864"
+    },
+    "native-dialogue576-checks-1-retained-loader.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-retained-loader.log",
+      "bytes": 1141,
+      "sha256": "5d6df3cd1e6867f2cf23eb871789033133b32a99f8bda47c0f5a7e1ed829e884"
+    },
+    "native-dialogue576-checks-1-export.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-export.log",
+      "bytes": 3871,
+      "sha256": "45527b5c5f3a371ded0e898eb1fc6561c4b08e8c601d61c5f702e8df0fc6b774"
+    },
+    "native-dialogue576-checks-1-integer-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-integer-build.log",
+      "bytes": 962,
+      "sha256": "8705d2c1363d6b8ceb3c2356d082a173a65f8dd74126c57c2758516832855d28"
+    },
+    "native-dialogue576-checks-1-converter-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-1-converter-build.log",
+      "bytes": 1520,
+      "sha256": "95d1d0e42f93103365eb2be42cc7f88e7a73f83253fe261aa93e39c53a66b8b0"
+    },
+    "native-dialogue576-checks-2-bundle-failure.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-2-bundle-failure.log",
+      "bytes": 1452,
+      "sha256": "66eee5f0bbeeb8240c4aa51089408876ffdd69dc8edc5d68255e83630b6d2048"
+    },
+    "native-dialogue576-checks-2-integer-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-2-integer-build.log",
+      "bytes": 962,
+      "sha256": "df1aa03e9512a262d534a208b22944a1ef76b6ad4d7dbedc9bb7cc479e8e44fa"
+    },
+    "native-dialogue576-checks-2-converter-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-2-converter-build.log",
+      "bytes": 1708,
+      "sha256": "aa5624899c641ac2bc1bfc406ebf2a576092f89c69455b0f8323365c4af330f0"
+    },
+    "native-dialogue576-checks-3-converter-build.log": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/native-dialogue576-checks-3-converter-build.log",
+      "bytes": 2596,
+      "sha256": "8b301761c06f4f8669b7787c9455de9cc62d952835613b06f8fec99e1824bfa0"
+    }
+  }
+}

@@ -21,6 +21,16 @@ pub enum ReadMode {
     NoRead,
 }
 
+/// Explicit artifact/runtime scope. An omitted profile retains the existing
+/// 128/256 contract; the wider dialogue model is never inferred from its shape.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServingProfile {
+    #[default]
+    Retained,
+    Dialogue576,
+}
+
 /// Read-score geometry. `Dot` is the retained scaled dot product. `Lorentz`
 /// lifts query and key to the hyperboloid x -> (sqrt(1+|x|^2), x) and scores
 /// the scaled geodesic distance below a learned radius. Offline F32 training
@@ -97,6 +107,26 @@ impl JointConfig {
         Ok(())
     }
 
+    pub fn validate_for_profile(&self, profile: ServingProfile) -> Result<()> {
+        match profile {
+            ServingProfile::Retained => self.validate(),
+            ServingProfile::Dialogue576 => {
+                if self.vocab_size != 4096
+                    || self.width != 576
+                    || self.read_width != 64
+                    || self.context != 256
+                    || self.transport != Transport::Quaternion
+                    || self.read_geometry != ReadGeometry::Dot
+                {
+                    return Err(invalid(
+                        "dialogue576 requires vocabulary4096, width576, read_width64, context256, Quaternion/Dot",
+                    ));
+                }
+                Ok(())
+            }
+        }
+    }
+
     pub fn shapes(&self) -> BTreeMap<String, Vec<usize>> {
         let d = self.width;
         let r = self.read_width;
@@ -148,6 +178,8 @@ pub struct QuantizedTrainingState {
 #[serde(rename_all = "snake_case")]
 pub enum QuantizationPreparation {
     CalibratedForRounding,
+    /// Frozen scale calibration for a new export, with no QAT or rounding fit.
+    CalibratedForExport,
 }
 
 pub fn valid_quantization_clock(
@@ -178,6 +210,37 @@ pub fn packed_numerical_contract(geometry: ReadGeometry) -> Result<serde_json::V
             return Err(crate::IntegerError::UnsupportedReadGeometry(geometry));
         }
     })
+}
+
+/// The retained profile is byte-for-byte the existing contract. The explicit
+/// dialogue profile adds its shape and integer RMS rule without altering the
+/// packed coefficient format or the offline quantized interface declaration.
+pub fn packed_numerical_contract_for_profile(
+    geometry: ReadGeometry,
+    profile: ServingProfile,
+) -> Result<serde_json::Value> {
+    if profile == ServingProfile::Retained {
+        return packed_numerical_contract(geometry);
+    }
+    if geometry != ReadGeometry::Dot {
+        return Err(crate::IntegerError::UnsupportedReadGeometry(geometry));
+    }
+    let mut contract = packed_numerical_contract(geometry)?;
+    contract["serving_profile"] = serde_json::json!("dialogue576");
+    contract["native_integer_profile"] = serde_json::json!({
+        "schema": "uor-r4.native-dialogue576/1",
+        "vocab_size": 4096,
+        "width": 576,
+        "read_width": 64,
+        "context": 256,
+        "transport": "quaternion",
+        "read_geometry": "dot",
+        "admission": "full",
+        "rms": "Q11 signed codes in [-32767,32767]; S=sum(x_code^2); V=floor((S<<58)/9)+floor(2^86/100000)+1; D=floor_sqrt(V); Q10 output=sign(x)*round_nearest_ties_away((abs(x)<<42)/D), clipped to [-32767,32767]; quotient, square root and products use shift/add integer algorithms",
+        "memory": "All 576 value/state coordinates retained for all 256 context tokens; query/key width64 and score divisor sqrt(64)=8 unchanged",
+        "scope": "Ordinary full-context IntegerSession only; dense signed4 coefficient access; no fixed-width conversational SessionState extension or F32/integer output-equivalence claim"
+    });
+    Ok(contract)
 }
 
 /// Replace the read declaration of a quantized contract with the Lorentz one.

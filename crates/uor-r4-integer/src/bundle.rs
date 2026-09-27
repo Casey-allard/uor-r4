@@ -1,8 +1,11 @@
 //! Portable, sealed serving bundle binding exact model, tables and tokenizer.
-use crate::{format, invalid, report_output, sha256_file, tables, IntegerModel, Result};
+use crate::{
+    config::{packed_numerical_contract_for_profile, ServingProfile},
+    format, invalid, report_output, sha256_file, tables, IntegerModel, Result,
+};
 use serde_json::{json, Value};
 use std::{fs, path::Path};
-use uor_r4_tokenizer::ByteBpeTokenizer;
+use uor_r4_tokenizer::{dialogue::DialogueProtocol, ByteBpeTokenizer};
 
 const SCHEMA: &str = "uor-r4.integer-serving-bundle/1";
 const MODEL_FILES: [&str; 3] = [
@@ -35,7 +38,23 @@ impl Bundle {
         }
         let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(tokenizer_path)?)
             .ok_or_else(|| invalid("serving bundle tokenizer invalid"))?;
-        let model = IntegerModel::load_with_tables(&root.join("model"), &root.join("tables"))?;
+        let profile = bundle_profile(&metadata)?;
+        let model = IntegerModel::load_with_tables_profile(
+            &root.join("model"),
+            &root.join("tables"),
+            profile,
+        )?;
+        if profile == ServingProfile::Dialogue576 {
+            let manifest: Value =
+                serde_json::from_slice(&fs::read(root.join("model/hard-model.json"))?)?;
+            validate_dialogue_conversion(&manifest, &metadata["tokenizer_sha256"], &tokenizer)?;
+            if metadata["model"] != serde_json::to_value(model.config())?
+                || metadata["numerical_contract"] != manifest["numerical_contract"]
+                || !valid_hash(&metadata["parent_sealed_manifest_sha256"], 64)
+            {
+                return Err(invalid("dialogue576 bundle model/contract binding differs"));
+            }
+        }
         if tokenizer.vocab_size() != model.config().vocab_size
             || tokenizer.encode("<|bos|>") != [0]
             || tokenizer.encode("<|eos|>") != [1]
@@ -301,4 +320,259 @@ pub fn pack_development(
     report_output::seal(output)?;
     Bundle::load(output)?;
     Ok(())
+}
+
+/// Package the explicitly converted native width576 model as development
+/// evidence. The sealed child carries the verified historical parent and the
+/// caller's tokenizer must match that child; no source tree is needed to load it.
+pub fn pack_dialogue576(
+    packed: &Path,
+    tables: &Path,
+    tokenizer: &Path,
+    output: &Path,
+) -> Result<()> {
+    report_output::claim(output)?;
+    let outcome = pack_dialogue576_claimed(packed, tables, tokenizer, output);
+    if let Err(error) = &outcome {
+        // A successfully sealed bundle remains immutable even if its final
+        // reload fails. Earlier failures preserve a sealed, explicit attempt.
+        if !output.join("manifest.json").try_exists()? {
+            fs::write(
+                output.join("failed-attempt.json"),
+                serde_json::to_vec_pretty(&json!({
+                    "schema":"uor-r4.native-dialogue576-package-failure/1",
+                    "status":"PACKAGING_FAILED","error":error.to_string(),
+                    "serving_profile":"dialogue576","provenance_kind":"development"
+                }))?,
+            )?;
+            report_output::seal(output)?;
+            report_output::verify(output)?;
+        }
+    }
+    outcome
+}
+
+fn pack_dialogue576_claimed(
+    packed: &Path,
+    tables: &Path,
+    tokenizer: &Path,
+    output: &Path,
+) -> Result<()> {
+    format::verify_sealed(packed)?;
+    format::verify_sealed(tables)?;
+    let profile = ServingProfile::Dialogue576;
+    let model = IntegerModel::load_with_tables_profile(packed, tables, profile)?;
+    let manifest: Value = serde_json::from_slice(&fs::read(packed.join("hard-model.json"))?)?;
+    let bytes = fs::read(tokenizer)?;
+    let tokenizer_sha = sha256_file(tokenizer)?;
+    let codec = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("tokenizer parse failed"))?;
+    validate_dialogue_conversion(&manifest, &json!(tokenizer_sha), &codec)?;
+    if codec.vocab_size() != model.config().vocab_size
+        || codec.encode("<|bos|>") != [0]
+        || codec.encode("<|eos|>") != [1]
+    {
+        return Err(invalid("dialogue576 tokenizer/model vocabulary differs"));
+    }
+    copy_model_and_tables(packed, tables, output)?;
+    fs::write(output.join("tokenizer.json"), &bytes)?;
+    let metadata = json!({
+        "schema":SCHEMA,"context":256,"admission":"full",
+        "serving_profile":profile,"provenance_kind":"development",
+        "model":model.config(),"tokenizer_sha256":tokenizer_sha,
+        "tokenizer_cid":codec.address(),
+        "model_manifest_sha256":sha256_file(&packed.join("hard-model.json"))?,
+        "tables_manifest_sha256":sha256_file(&tables.join("tables.json"))?,
+        "parent_sealed_manifest_sha256":sha256_file(&packed.join("manifest.json"))?,
+        "origin_packed_path":packed,"origin_tables_path":tables,
+        "numerical_contract":packed_numerical_contract_for_profile(model.config().read_geometry,profile)?,
+        "sampling":"greedy or categorical temperature1 Q48/top-k/xorshift64",
+        "provenance":"Explicit native dialogue576 conversion; portable parent/source/tokenizer bindings in model/hard-model.json. Development only; numerical retention, generated behavior and efficiency require separate observation. Dense coefficient access and allocation remain."
+    });
+    fs::write(
+        output.join("bundle.json"),
+        serde_json::to_vec_pretty(&metadata)?,
+    )?;
+    report_output::seal(output)?;
+    Bundle::load(output)?;
+    Ok(())
+}
+
+fn bundle_profile(metadata: &Value) -> Result<ServingProfile> {
+    let profile: ServingProfile = metadata
+        .get("serving_profile")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()?
+        .unwrap_or_default();
+    if profile == ServingProfile::Dialogue576 && metadata["provenance_kind"] != "development" {
+        return Err(invalid(
+            "dialogue576 requires explicit development provenance",
+        ));
+    }
+    Ok(profile)
+}
+
+fn valid_hash(value: &Value, length: usize) -> bool {
+    value.as_str().is_some_and(|text| {
+        text.len() == length && text.bytes().all(|byte| byte.is_ascii_hexdigit())
+    })
+}
+
+/// Verify portable lineage consistency, not the truth of historical capability
+/// claims. The converter verifies parent bytes before authoring this record.
+fn validate_dialogue_conversion(
+    manifest: &Value,
+    tokenizer_sha: &Value,
+    tokenizer: &ByteBpeTokenizer,
+) -> Result<()> {
+    let provenance = &manifest["conversion_provenance"];
+    let parent = &provenance["parent"];
+    let quantization = &manifest["quantization"];
+    let source_hashes = provenance["source_sha256"].as_object();
+    let protocol =
+        DialogueProtocol::from_json(&serde_json::to_vec(&parent["protocol"])?, tokenizer)
+            .map_err(|error| invalid(error.to_string()))?;
+    if manifest["serving_profile"] != "dialogue576"
+        || provenance["schema"] != "uor-r4.native-dialogue576-conversion/1"
+        || provenance["serving_profile"] != "dialogue576"
+        || provenance["admission"] != "full"
+        || provenance["tokenizer_sha256"] != *tokenizer_sha
+        || parent["tokenizer_sha256"] != *tokenizer_sha
+        || !valid_hash(tokenizer_sha, 64)
+        || parent["current_model"] != manifest["model"]
+        || parent["admission"] != "full"
+        || parent["read_geometry"] != "dot"
+        || !valid_hash(&parent["fit_seal_sha256"], 64)
+        || !valid_hash(&parent["parameter_sha256"], 64)
+        || !valid_hash(&parent["prepared_manifest_sha256"], 64)
+        || provenance["protocol_identity"]
+            != protocol
+                .identity()
+                .map_err(|error| invalid(error.to_string()))?
+        || provenance["protocol_identity"] != parent["protocol_identity"]
+        || !valid_hash(&provenance["conversion_source_commit"], 40)
+        || !valid_hash(&provenance["conversion_executable_sha256"], 64)
+        || source_hashes.is_none_or(|hashes| {
+            hashes.is_empty() || hashes.values().any(|value| !valid_hash(value, 64))
+        })
+        || quantization["preparation"] != "calibrated_for_export"
+        || quantization["ramp_steps"] != 1
+        || parent["steps_completed"].as_u64().is_none()
+        || quantization["start_step"] != parent["steps_completed"]
+        || quantization["completed_step"] != parent["steps_completed"]
+        || [
+            "new_forward_calls",
+            "new_generation_calls",
+            "new_optimizer_updates",
+            "new_model_updates",
+        ]
+        .iter()
+        .any(|field| provenance[*field] != 0)
+    {
+        return Err(invalid(
+            "dialogue576 conversion provenance/tokenizer/clock mismatch",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dialogue576_bundle_seals_failed_packaging_without_overwrite() -> Result<()> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| invalid("test clock before epoch"))?
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "uor-dialogue576-pack-{}-{nonce}",
+            std::process::id()
+        ));
+        let missing = root.join("missing-input");
+        assert!(pack_dialogue576(&missing, &missing, &missing, &root).is_err());
+        report_output::verify(&root)?;
+        let failure: Value = serde_json::from_slice(&fs::read(root.join("failed-attempt.json"))?)?;
+        assert_eq!(failure["status"], "PACKAGING_FAILED");
+        let original_seal = fs::read(root.join("manifest.json"))?;
+        assert!(pack_dialogue576(&missing, &missing, &missing, &root).is_err());
+        assert_eq!(fs::read(root.join("manifest.json"))?, original_seal);
+        assert!(Bundle::load(&root).is_err());
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue576_bundle_requires_explicit_development_profile() -> Result<()> {
+        assert_eq!(bundle_profile(&json!({}))?, ServingProfile::Retained);
+        assert!(bundle_profile(&json!({"serving_profile":"dialogue576"})).is_err());
+        assert!(bundle_profile(&json!({"serving_profile":"unknown"})).is_err());
+        assert_eq!(
+            bundle_profile(
+                &json!({"serving_profile":"dialogue576", "provenance_kind":"development"})
+            )?,
+            ServingProfile::Dialogue576
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue576_bundle_rejects_tokenizer_lineage_and_clock_changes() -> Result<()> {
+        // A small metadata-only fixture. Full artifact import is exercised by
+        // the converter; this test isolates portable bundle binding failures.
+        let hash = "a".repeat(64);
+        let tokenizer = Bundle::create_test_bundle_with_byte_vocab().tokenizer;
+        let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
+            .map_err(|error| invalid(error.to_string()))?;
+        let protocol_identity = protocol
+            .identity()
+            .map_err(|error| invalid(error.to_string()))?;
+        let config = crate::config::JointConfig {
+            width: 576,
+            ..Default::default()
+        };
+        let manifest = json!({
+            "serving_profile":"dialogue576","model":config,
+            "quantization":{"preparation":"calibrated_for_export","start_step":2237,"completed_step":2237,"ramp_steps":1},
+            "conversion_provenance":{
+                "schema":"uor-r4.native-dialogue576-conversion/1",
+                "serving_profile":"dialogue576","admission":"full",
+                "tokenizer_sha256":hash,"protocol_identity":protocol_identity,
+                "conversion_source_commit":"b".repeat(40),
+                "conversion_executable_sha256":hash,"source_sha256":{"example.rs":hash},
+                "new_forward_calls":0,"new_generation_calls":0,"new_optimizer_updates":0,"new_model_updates":0,
+                "parent":{"current_model":config,"admission":"full","read_geometry":"dot","tokenizer_sha256":hash,
+                    "protocol_identity":protocol_identity,"protocol":protocol,"fit_seal_sha256":hash,"parameter_sha256":hash,"prepared_manifest_sha256":hash,"steps_completed":2237}
+            }
+        });
+        validate_dialogue_conversion(&manifest, &json!(hash), &tokenizer)?;
+        assert!(
+            validate_dialogue_conversion(&manifest, &json!("c".repeat(64)), &tokenizer).is_err()
+        );
+        for path in [
+            "/conversion_provenance/parent/tokenizer_sha256",
+            "/conversion_provenance/source_sha256/example.rs",
+            "/conversion_provenance/protocol_identity",
+        ] {
+            let mut changed = manifest.clone();
+            *changed
+                .pointer_mut(path)
+                .ok_or_else(|| invalid("fixture pointer missing"))? = json!("invalid");
+            assert!(validate_dialogue_conversion(&changed, &json!(hash), &tokenizer).is_err());
+        }
+        for path in [
+            "/quantization/completed_step",
+            "/conversion_provenance/new_optimizer_updates",
+            "/conversion_provenance/parent/current_model/width",
+        ] {
+            let mut changed = manifest.clone();
+            *changed
+                .pointer_mut(path)
+                .ok_or_else(|| invalid("fixture pointer missing"))? = json!(42);
+            assert!(validate_dialogue_conversion(&changed, &json!(hash), &tokenizer).is_err());
+        }
+        Ok(())
+    }
 }

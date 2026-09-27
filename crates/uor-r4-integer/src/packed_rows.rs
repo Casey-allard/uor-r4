@@ -141,7 +141,7 @@ pub(crate) fn low_bit_dot(products: &[[i64; 16]], weights: &[u8]) -> i64 {
         acc[6] += p[6][usize::from(w[3] & 15)];
         acc[7] += p[7][usize::from(w[3] >> 4)];
     }
-    // Admitted matrix widths (128,256,512) have no remainder.
+    // Admitted matrix widths (128,256,512,576,1152) have no remainder.
     (acc[0] + acc[1]) + (acc[2] + acc[3]) + (acc[4] + acc[5]) + (acc[6] + acc[7])
 }
 
