@@ -1613,6 +1613,41 @@ impl JointModel {
         let config: CheckpointConfig =
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
         config.model.validate()?;
+        Self::load_checkpoint_parameters(directory, config, device)
+    }
+
+    /// Reload a sealed checkpoint from an explicitly declared offline dialogue
+    /// continuation. Canonical and integer loaders retain their width limits.
+    /// The caller validates its campaign, parent, optimizer and data lineage;
+    /// this boundary validates the complete seal and the continuous model.
+    pub(crate) fn load_offline_dialogue_checkpoint(
+        directory: &Path,
+        device: &Device,
+    ) -> Result<Self> {
+        uor_r4_core::report_output::verify(directory)?;
+        if directory.join("failed-attempt.json").exists() {
+            return Err(invalid(
+                "offline dialogue checkpoint records a failed attempt",
+            ));
+        }
+        let config: CheckpointConfig =
+            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        crate::dialogue_artifact::validate_model_config(&config.model)?;
+        if config.quantization.is_some() || config.admission != AdmissionPolicy::Full {
+            return Err(invalid(
+                "offline dialogue checkpoint requires continuous Full admission",
+            ));
+        }
+        Self::load_checkpoint_parameters(directory, config, device)
+    }
+
+    /// Shared hash, numerical-contract and complete named-tensor validation.
+    /// Each caller must first apply its own permitted model configuration.
+    fn load_checkpoint_parameters(
+        directory: &Path,
+        config: CheckpointConfig,
+        device: &Device,
+    ) -> Result<Self> {
         if config.quantization.is_some() {
             require_quantized_read(config.model.read_geometry)?;
         }

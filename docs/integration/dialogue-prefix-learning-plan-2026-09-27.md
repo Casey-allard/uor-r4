@@ -1,6 +1,11 @@
 # Complete-prefix dialogue learning candidate
 
-References #973. **Status: selected next implementation; fit NOT_RUN.** The
+References #973. **Execution update:** the [implementation and two-update
+integration witnesses](dialogue-prefix-implementation-2026-09-27.md) are complete.
+The substantive paired study remains NOT_RUN. The prospective design below is
+preserved; its implementation requirements now have a separately bound result.
+
+The
 [completed reader comparison](radial-adaptation-result-2026-09-27.md) does not
 support promoting either transferred radial configuration. This independently
 justified dialogue intervention is the next fourth-lab learning investment.

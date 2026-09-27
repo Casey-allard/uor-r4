@@ -104,8 +104,12 @@ refines the earlier historical-suffix-control proposal: removing arbitrary answe
 prefixes would also change which early reply tokens receive training. The new
 control directly compares conditional with role-only response learning; it does
 not reconstruct the historical sampler or identify that sampler as the cause of
-failure. Build the integrated parameter-start → learning → save/reload → actual
-reply path before the new fit, preserving foreign trainer and CLI ownership.
+failure. The [integrated parameter-start → learning → save/reload → actual
+reply path](dialogue-prefix-implementation-2026-09-27.md) is now executed in two
+matched two-update witnesses. Eight focused checks pass, but actual replies
+remain weak. Freeze source-stratified open-development IDs/reporting and complete
+resources before one substantive 1,024-update pair from the retained parent.
+This study is NOT_RUN; foreign trainer and CLI ownership remain preserved.
 
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
@@ -118,7 +122,8 @@ now parks the transferred radial configurations: both lose to matched Dot on
 likelihood and complete source responses. Lorentz's isolated greedy story gain
 is preserved alongside concrete source regressions. Keep the native Dot path;
 no new serving operator, extra dose or seed sweep is selected. Advance the
-complete-prefix dialogue implementation next. Deeper geometric state/read
+fixed complete-prefix dialogue study after its implemented integration
+witness and prospective work card. Deeper geometric state/read
 structure remains a complementary Claude-owned candidate; its distinct
 population and serving contracts remain explicit.
 

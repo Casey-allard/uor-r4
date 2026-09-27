@@ -180,12 +180,21 @@ pub struct DialogueArtifactProvenance {
     pub compatibility_scope: &'static str,
 }
 
-/// No mutable model, training, quantization or export interface is exposed.
+/// The public API exposes no mutable model, training, quantization or export.
 pub struct LegacyDialogueArtifact {
     model: JointModel,
     tokenizer: ByteBpeTokenizer,
     generation_tokenizer: HfBpeTokenizer,
     provenance: DialogueArtifactProvenance,
+}
+
+/// Explicit ownership handoff for a new offline parameter-only continuation.
+/// This contains no historical optimizer, sampler cursor or resumable clock.
+pub(crate) struct DialogueTrainingParts {
+    pub model: JointModel,
+    pub tokenizer: ByteBpeTokenizer,
+    pub generation_tokenizer: HfBpeTokenizer,
+    pub provenance: DialogueArtifactProvenance,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -473,6 +482,19 @@ impl LegacyDialogueArtifact {
         &self.provenance
     }
 
+    /// Consume this verified import for a newly declared offline training run.
+    /// Load separately for each arm: moving these parts neither clones shared
+    /// Vars nor changes the historical provenance into a resume assertion.
+    /// The caller owns fresh optimizer/data clocks and the new artifact lineage.
+    pub(crate) fn into_training_parts(self) -> DialogueTrainingParts {
+        DialogueTrainingParts {
+            model: self.model,
+            tokenizer: self.tokenizer,
+            generation_tokenizer: self.generation_tokenizer,
+            provenance: self.provenance,
+        }
+    }
+
     /// Exact prefix replay into a fresh continuous session. Greedy selection,
     /// EOS and the existing short-cycle stop are unchanged. Generated history
     /// must be passed as IDs by the caller, never decoded and re-encoded.
@@ -583,6 +605,188 @@ mod tests {
             },
             bytes,
         )
+    }
+
+    fn checkpoint_fixture_root(label: &str) -> Result<PathBuf> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|error| invalid(error.to_string()))?
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "uor-r4-dialogue-checkpoint-{}-{label}-{nonce}",
+            std::process::id()
+        ));
+        report_output::claim(&root)?;
+        Ok(root)
+    }
+
+    #[test]
+    fn dialogue_artifact_offline_checkpoint_round_trip_and_independent_arrays() -> Result<()> {
+        let (manifest, bytes) = flat_fixture();
+        let (parameters, _) = decode_parameters(&config(), &manifest, &bytes)?;
+        let model =
+            JointModel::from_offline_dialogue_parameters(config(), parameters, &Device::Cpu)?;
+        let root = checkpoint_fixture_root("round-trip")?;
+        model.save(&root)?;
+        report_output::seal(&root)?;
+
+        // A wide offline checkpoint does not become a canonical checkpoint.
+        assert!(JointModel::load(&root, &Device::Cpu).is_err());
+        let left = JointModel::load_offline_dialogue_checkpoint(&root, &Device::Cpu)?;
+        let right = JointModel::load_offline_dialogue_checkpoint(&root, &Device::Cpu)?;
+        assert_eq!(left.config, model.config);
+        assert_eq!(left.numerical_contract(), model.numerical_contract());
+        assert_eq!(left.parameter_count(), PARAMETER_COUNT);
+        for (name, expected) in model.variables() {
+            let expected = expected.flatten_all()?.to_vec1::<f32>()?;
+            for loaded in [&left, &right] {
+                let actual = loaded
+                    .variables()
+                    .get(name)
+                    .ok_or_else(|| invalid("missing reloaded dialogue variable"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert!(
+                    actual
+                        .iter()
+                        .map(|x| x.to_bits())
+                        .eq(expected.iter().map(|x| x.to_bits())),
+                    "{name}"
+                );
+            }
+        }
+        let prefix = [0, 3];
+        let expected = model
+            .forward(&prefix, 1, prefix.len(), ReadMode::Enabled, false)?
+            .probabilities
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let actual = left
+            .forward(&prefix, 1, prefix.len(), ReadMode::Enabled, false)?
+            .probabilities
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(actual.iter().all(|x| x.is_finite()));
+        assert!(actual
+            .iter()
+            .map(|x| x.to_bits())
+            .eq(expected.iter().map(|x| x.to_bits())));
+
+        let name = "copy.gate.bias";
+        left.variables()
+            .get(name)
+            .ok_or_else(|| invalid("missing left copy gate"))?
+            .set(&candle_core::Tensor::from_vec(
+                vec![91f32],
+                (1,),
+                &Device::Cpu,
+            )?)?;
+        let original = model
+            .variables()
+            .get(name)
+            .ok_or_else(|| invalid("missing original copy gate"))?
+            .to_vec1::<f32>()?;
+        assert_eq!(original, vec![0.25]);
+        assert_eq!(
+            right
+                .variables()
+                .get(name)
+                .ok_or_else(|| invalid("missing right copy gate"))?
+                .to_vec1::<f32>()?,
+            original
+        );
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue_artifact_offline_checkpoint_rejects_scope_and_integrity_changes() -> Result<()> {
+        let (manifest, bytes) = flat_fixture();
+        let (parameters, _) = decode_parameters(&config(), &manifest, &bytes)?;
+        let model =
+            JointModel::from_offline_dialogue_parameters(config(), parameters, &Device::Cpu)?;
+        let source = checkpoint_fixture_root("source")?;
+        model.save(&source)?;
+        let saved_config: Value = serde_json::from_slice(&fs::read(source.join("config.json"))?)?;
+        let saved_weights = fs::read(source.join("model.safetensors"))?;
+        fs::remove_dir_all(source)?;
+
+        for case in [
+            "unsealed",
+            "failed",
+            "contract",
+            "admission",
+            "quantization",
+            "geometry",
+            "weight_hash",
+            "nonfinite",
+            "inventory",
+        ] {
+            // Each malformed input is its own new fixture, never a mutation of
+            // the successfully sealed checkpoint or any retained artifact.
+            let root = checkpoint_fixture_root(case)?;
+            let mut config = saved_config.clone();
+            let mut weights = saved_weights.clone();
+            let expected_error = match case {
+                "unsealed" => None,
+                "failed" => {
+                    fs::write(root.join("failed-attempt.json"), b"{}")?;
+                    Some("records a failed attempt")
+                }
+                "contract" => {
+                    config["numerical_contract"]["read"] = json!("different arithmetic");
+                    Some("numerical contract mismatch")
+                }
+                "admission" => {
+                    config["admission"] = json!("recent64");
+                    Some("requires continuous Full admission")
+                }
+                "quantization" => {
+                    config["quantization"] = json!({"start_step":0,"ramp_steps":1,
+                        "completed_step":0,"spec":{"schema":"test","parameters":{}}});
+                    Some("requires continuous Full admission")
+                }
+                "geometry" => {
+                    config["model"]["read_geometry"] = json!("lorentz");
+                    Some("offline R1d import requires")
+                }
+                "weight_hash" => {
+                    config["weights_sha256"] = json!("00".repeat(32));
+                    Some("weights hash mismatch")
+                }
+                "nonfinite" => {
+                    let end = weights.len();
+                    weights[end - 4..].copy_from_slice(&f32::NAN.to_le_bytes());
+                    config["weights_sha256"] = json!(hex::encode(Sha256::digest(&weights)));
+                    Some("nonfinite loaded joint parameter")
+                }
+                "inventory" => {
+                    let scalar = 0f32.to_le_bytes();
+                    let tensor = safetensors::tensor::TensorView::new(
+                        safetensors::Dtype::F32,
+                        vec![1],
+                        &scalar,
+                    )?;
+                    weights = safetensors::serialize([("copy.gate.bias", tensor)], None)?;
+                    config["weights_sha256"] = json!(hex::encode(Sha256::digest(&weights)));
+                    Some("parameter names mismatch")
+                }
+                _ => return Err(invalid("unknown checkpoint test case")),
+            };
+            fs::write(root.join("config.json"), serde_json::to_vec(&config)?)?;
+            fs::write(root.join("model.safetensors"), weights)?;
+            if case != "unsealed" {
+                report_output::seal(&root)?;
+            }
+            let error = JointModel::load_offline_dialogue_checkpoint(&root, &Device::Cpu)
+                .err()
+                .ok_or_else(|| invalid(format!("accepted malformed checkpoint: {case}")))?;
+            if let Some(expected) = expected_error {
+                assert!(error.to_string().contains(expected), "{case}: {error}");
+            }
+            fs::remove_dir_all(root)?;
+        }
+        Ok(())
     }
 
     #[test]

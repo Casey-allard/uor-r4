@@ -23,6 +23,150 @@ pub struct BatchGradients {
     pub gradients: GradStore,
 }
 
+/// Response-token mean over the whole batch, including genuine EOS targets.
+/// This separate reducer does not change historical termination weighting.
+pub struct ResponseGradients {
+    pub mean_nll: f32,
+    pub supervised_targets: usize,
+    pub gradients: GradStore,
+}
+
+/// Binary response masks preserve gradients through every observed prefix.
+/// Every row must contain supervision; empty shards are not silently skipped.
+pub fn response_batch_gradients(
+    model: &JointModel,
+    inputs: &[u32],
+    targets: &[u32],
+    weights: &[f32],
+    batch: usize,
+    time: usize,
+    shards: usize,
+) -> Result<ResponseGradients> {
+    if !matches!(shards, 1 | 2 | 4)
+        || batch == 0
+        || batch > 64
+        || batch % shards != 0
+        || time == 0
+        || time > model.config.context
+        || batch.checked_mul(time) != Some(inputs.len())
+        || targets.len() != inputs.len()
+        || weights.len() != inputs.len()
+        || inputs
+            .iter()
+            .chain(targets)
+            .any(|&id| id as usize >= model.config.vocab_size)
+        || weights.iter().any(|&w| w != 0.0 && w != 1.0)
+        || weights.chunks(time).any(|row| !row.contains(&1.0))
+    {
+        return Err(invalid("invalid complete-response gradient batch/mask"));
+    }
+    let supervised_targets = weights.iter().filter(|&&w| w == 1.0).count();
+    if shards == 1 {
+        let result = shard_gradients(model, inputs, targets, Some(weights), batch, time)?;
+        return Ok(ResponseGradients {
+            mean_nll: result.mean_nll,
+            supervised_targets,
+            gradients: result.gradients,
+        });
+    }
+    if !matches!(model.device(), Device::Cpu) {
+        return Err(invalid("multiple response shards require CPU"));
+    }
+    let shard_batch = batch / shards;
+    let shard_tokens = shard_batch * time;
+    let masses: Vec<f64> = weights
+        .chunks(shard_tokens)
+        .map(|row| row.iter().filter(|&&w| w == 1.0).count() as f64 / supervised_targets as f64)
+        .collect();
+    let mut results = std::thread::scope(|scope| -> Result<Vec<BatchGradients>> {
+        let mut handles = Vec::with_capacity(shards);
+        let mut first_error: Option<TrainingError> = None;
+        for shard in 0..shards {
+            let start = shard * shard_tokens;
+            let inputs = &inputs[start..start + shard_tokens];
+            let targets = &targets[start..start + shard_tokens];
+            let weights = &weights[start..start + shard_tokens];
+            match std::thread::Builder::new()
+                .name(format!("dialogue-gradient-{shard}"))
+                .stack_size(WORKER_STACK_BYTES)
+                .spawn_scoped(scope, move || {
+                    shard_gradients(model, inputs, targets, Some(weights), shard_batch, time)
+                }) {
+                Ok(handle) => handles.push(handle),
+                Err(error) => {
+                    first_error = Some(error.into());
+                    break;
+                }
+            }
+        }
+        let mut outputs = Vec::with_capacity(shards);
+        for handle in handles {
+            match handle.join() {
+                Ok(Ok(output)) => outputs.push(output),
+                Ok(Err(error)) => {
+                    if first_error.is_none() {
+                        first_error = Some(error);
+                    }
+                }
+                Err(_) => {
+                    if first_error.is_none() {
+                        first_error = Some(invalid("response gradient worker panicked"));
+                    }
+                }
+            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
+        }
+        Ok(outputs)
+    })?;
+    let mean_nll = results
+        .iter()
+        .zip(&masses)
+        .map(|(result, mass)| f64::from(result.mean_nll) * mass)
+        .sum::<f64>() as f32;
+    let (first, others) = results
+        .split_first_mut()
+        .ok_or_else(|| invalid("response workers returned no gradients"))?;
+    for (name, variable) in model.variables() {
+        let gradient = first
+            .gradients
+            .remove(variable.as_tensor())
+            .ok_or_else(|| invalid(format!("response shard0 missing {name}")))?;
+        if gradient.dtype() != DType::F32
+            || gradient.dims() != variable.dims()
+            || !gradient.device().same_device(variable.device())
+        {
+            return Err(invalid(format!(
+                "response shard0 gradient binding differs for {name}"
+            )));
+        }
+        let mut combined = gradient.detach().affine(masses[0], 0.0)?;
+        for (index, result) in others.iter_mut().enumerate() {
+            let gradient = result
+                .gradients
+                .remove(variable.as_tensor())
+                .ok_or_else(|| invalid(format!("response shard{} missing {name}", index + 1)))?;
+            if gradient.dtype() != DType::F32
+                || gradient.dims() != variable.dims()
+                || !gradient.device().same_device(variable.device())
+            {
+                return Err(invalid(format!(
+                    "response gradient binding differs for {name}"
+                )));
+            }
+            combined = combined.add(&gradient.detach().affine(masses[index + 1], 0.0)?)?;
+        }
+        first.gradients.insert(variable.as_tensor(), combined);
+    }
+    let result = results.remove(0);
+    Ok(ResponseGradients {
+        mean_nll,
+        supervised_targets,
+        gradients: result.gradients,
+    })
+}
+
 fn shard_gradients(
     model: &JointModel,
     inputs: &[u32],
@@ -166,6 +310,83 @@ pub fn batch_gradients(
 mod tests {
     use super::*;
     use crate::joint_model::{JointConfig, Transport};
+
+    #[test]
+    fn response_shards_preserve_global_target_mean_and_padding_causality() -> Result<()> {
+        let model = JointModel::new(
+            JointConfig {
+                width: 128,
+                context: 8,
+                seed: 97,
+                ..JointConfig::default()
+            },
+            &Device::Cpu,
+        )?;
+        let inputs: Vec<u32> = (0..32).map(|i| (i * 7 + 3) % 101).collect();
+        let targets: Vec<u32> = (0..32).map(|i| (i * 7 + 10) % 101).collect();
+        let mut weights = vec![0.0; 32];
+        for i in [2, 3, 12, 18, 19, 20, 21, 22, 25, 26] {
+            weights[i] = 1.0;
+        }
+        // Two shards have 3 and 7 response targets; batch-fraction reduction
+        // would implement a different objective despite identical lane counts.
+        let expected = response_batch_gradients(&model, &inputs, &targets, &weights, 4, 8, 1)?;
+        let check = |actual: ResponseGradients| -> Result<()> {
+            assert_eq!(actual.supervised_targets, 10);
+            assert!((actual.mean_nll - expected.mean_nll).abs() < 2e-5);
+            for (name, variable) in model.variables() {
+                let a = actual
+                    .gradients
+                    .get(variable.as_tensor())
+                    .ok_or_else(|| invalid(format!("masked gradient missing {name}")))?;
+                let e = expected
+                    .gradients
+                    .get(variable.as_tensor())
+                    .ok_or_else(|| invalid(format!("full response gradient missing {name}")))?;
+                let delta = a.sub(e)?.abs()?.max_all()?.to_scalar::<f32>()?;
+                let scale = e.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(
+                    delta.is_finite() && delta <= 2e-5 + 2e-4 * scale,
+                    "response gradient {name}: delta {delta}, scale {scale}"
+                );
+            }
+            Ok(())
+        };
+        for shards in [2, 4] {
+            check(response_batch_gradients(
+                &model, &inputs, &targets, &weights, 4, 8, shards,
+            )?)?;
+        }
+        let mut padded_inputs = inputs.clone();
+        let mut padded_targets = targets.clone();
+        for row in 0..4 {
+            let last = weights[row * 8..(row + 1) * 8]
+                .iter()
+                .rposition(|&w| w == 1.0)
+                .ok_or_else(|| invalid("fixture missing response"))?;
+            for time in last + 1..8 {
+                padded_inputs[row * 8 + time] = 103;
+                padded_targets[row * 8 + time] = 104;
+            }
+        }
+        check(response_batch_gradients(
+            &model,
+            &padded_inputs,
+            &padded_targets,
+            &weights,
+            4,
+            8,
+            2,
+        )?)?;
+        for invalid_weight in [f32::NAN, -1.0, 0.5, 2.0] {
+            let mut bad = weights.clone();
+            bad[2] = invalid_weight;
+            assert!(response_batch_gradients(&model, &inputs, &targets, &bad, 4, 8, 2).is_err());
+        }
+        weights[..8].fill(0.0);
+        assert!(response_batch_gradients(&model, &inputs, &targets, &weights, 4, 8, 2).is_err());
+        Ok(())
+    }
 
     #[test]
     fn full_window_shards_match_loss_and_every_named_gradient() -> Result<()> {

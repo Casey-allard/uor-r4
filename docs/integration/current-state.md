@@ -82,9 +82,9 @@ weak generated replies. Only 14,826/129,486 complete response prefixes fit
 within 256 total IDs; 89.4847% of that eligible response-run population comes
 from Everyday Conversations and Smol Constraints. A prefix-preserving option
 therefore requires explicit population/weighting choices and a matched control.
-The selected next implementation below supplies that design while preserving
-the separate dialogue trainer owner's files. No fit or filtering of
-retained artifacts follows. Three focused Rust checks pass; the data-only pass
+The complete-prefix implementation below supplies that design while preserving
+the separate dialogue trainer owner's files. The audit itself performs no fit
+or filtering of retained artifacts. Three focused Rust checks pass; the data-only pass
 took 3.210 seconds with no model execution. The
 [receipt](../evidence/dialogue-context-audit-2026-09-27.json) binds source,
 inputs, rowwise reconstruction, result and cost.
@@ -157,14 +157,20 @@ partial findings. Its [source-bound packet](../evidence/radial-adaptation-result
 records actual outputs, paired population/source differences, independent review,
 source/binary/weight identities and complete cost components. No extra fit,
 initializer, seed or decoder sweep follows. This does not reject geometric
-readers or establish integer/energy advantage. The selected next fourth-lab
-implementation is the [complete-prefix dialogue learner](dialogue-prefix-learning-plan-2026-09-27.md):
-exact same complete responses and real EOS under full original versus role-only
-prefixes, explicitly restricted population, global response-token normalization,
-parameter-only initialization and actual saved offline reload/replies. Fit remains
-NOT_RUN pending its implementation and prospectively accounted work card. Other
-labs retain their CLI, trainer and deeper-stack ownership. The owner-confirmed
-native, multiplier-free serving target is unchanged.
+readers or establish integer/energy advantage. The [complete-prefix dialogue learner](dialogue-prefix-implementation-2026-09-27.md)
+now executes that independent intervention: two fresh two-update witnesses use
+identical 32 response visits / 1,991 response-EOS targets, global token-mean
+gradients, exact parameter/Adam checkpoint reload and actual replies. Eight
+focused Rust checks pass. Both saved models reproduce last-batch loss exactly;
+neither answers Paris or recalls Alex in the final memory turn. All ten replies,
+source identities and the 40.528-second combined process wall cost are retained
+in its [packet](../evidence/dialogue-prefix-implementation-2026-09-27.json).
+This is integrated execution, not useful chat or conditioning advantage. The
+substantive 1,024-update pair remains NOT_RUN. Next freeze source-stratified open
+development IDs/reporting, the existing open request panel and a complete
+prospective cost before that one paired study; restart from the retained parent,
+not the two-update descendants. Other labs retain their CLI, trainer and deeper
+stack ownership. Native, multiplier-free serving remains the target.
 
 The fourth lab's [source review of Google PR #1410 at `9722200c`](https://github.com/UOR-Foundation/uor-r4/pull/1410#issuecomment-5851958824)
 identifies useful serving optimization alongside unresolved integration and
