@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 use uor_r4_core::answer_oracle::{self, Intent};
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 
-use crate::joint_model::{JointModel, JointStep, ReadMode};
+use crate::joint_model::{JointModel, JointSession, JointStep, ReadMode, UNIFORM_MIXTURE};
 use crate::reference_eval::short_cycle_period;
 use crate::{invalid, Result};
 
@@ -887,6 +887,687 @@ pub(crate) fn sample_top_k_q32(probabilities: &[f32], sampler: &mut SplitMix64) 
     }
     Err(invalid(
         "joint Q32 draw fell outside normalized integer mass",
+    ))
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct EmissionTraceDecision {
+    #[serde(flatten)]
+    pub base: JointGenerationDecision,
+    pub selected_text: String,
+    pub greedy_text: String,
+    pub greedy_probability: f64,
+    pub selected_full_rank: usize,
+    pub sampling_candidates: Vec<SamplingCandidateTrace>,
+    pub total_weight: u64,
+    pub threshold: u64,
+    pub draw_fraction: f64,
+    pub selected_sampling_rank: usize,
+    pub selected_sampling_probability: f64,
+    pub best_token: u32,
+    pub best_raw_probability: f64,
+    pub best_sampling_probability: f64,
+    pub ratio_selected_to_best: f64,
+    pub selected_components: TokenComponents,
+    pub greedy_components: TokenComponents,
+    pub selected_copy_contributors: Vec<CopyContributor>,
+    pub greedy_copy_contributors: Vec<CopyContributor>,
+    pub classification: String,
+    pub copy_dominated: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tier2_source_row: Option<Vec<CopyContributor>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tier2_candidate_copy_contributors: Option<Vec<Tier2TokenContributors>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SamplingCandidateTrace {
+    pub rank: usize,
+    pub token: u32,
+    pub text: String,
+    pub raw_probability: f64,
+    pub weight: u64,
+    pub sampling_probability: f64,
+    pub cumulative_bound: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CopyContributor {
+    pub occurrence: usize,
+    pub token: u32,
+    pub text: String,
+    pub mass: f64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TokenComponents {
+    pub token: u32,
+    pub vocabulary_mass: f64,
+    pub copy_mass: f64,
+    pub vocab_contribution: f64,
+    pub copy_contribution: f64,
+    pub uniform_contribution: f64,
+    pub reconstruction_error: f64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Tier2TokenContributors {
+    pub token: u32,
+    pub text: String,
+    pub copy_contributors: Vec<CopyContributor>,
+}
+
+#[derive(Clone, Debug, Serialize, Default)]
+pub struct ClassificationCounts {
+    pub top_choice: usize,
+    pub near_tie: usize,
+    pub departure: usize,
+    pub copy_dominated: usize,
+}
+
+impl ClassificationCounts {
+    fn add(&mut self, decision: &EmissionTraceDecision) {
+        match decision.classification.as_str() {
+            "top_choice" => self.top_choice += 1,
+            "near_tie" => self.near_tie += 1,
+            _ => self.departure += 1,
+        }
+        if decision.copy_dominated {
+            self.copy_dominated += 1;
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct EmissionTraceStory {
+    pub seed: u64,
+    pub prompt: String,
+    pub generated_token_ids: Vec<u32>,
+    pub stop: JointGenerationStop,
+    pub decisions: Vec<EmissionTraceDecision>,
+    pub classification_counts: ClassificationCounts,
+}
+
+impl EmissionTraceStory {
+    pub fn new(
+        generation: &JointGeneration,
+        seed: u64,
+        decisions: Vec<EmissionTraceDecision>,
+    ) -> Self {
+        let mut classification_counts = ClassificationCounts::default();
+        for decision in &decisions {
+            classification_counts.add(decision);
+        }
+        Self {
+            seed,
+            prompt: generation.prompt.clone(),
+            generated_token_ids: generation.generated_token_ids.clone(),
+            stop: generation.stop.clone(),
+            decisions,
+            classification_counts,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SamplingCandidate {
+    rank: usize,
+    token: u32,
+    raw_probability: f64,
+    weight: u64,
+    sampling_probability: f64,
+    cumulative_bound: u64,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SamplingTable {
+    candidates: Vec<SamplingCandidate>,
+    total_weight: u64,
+}
+
+/// The exact probability-desc/token-asc order `sample_top_k_q32` uses, over the
+/// full vocabulary rather than the truncated table.
+pub(crate) fn probability_order(probabilities: &[f32]) -> Result<Vec<(u32, f64)>> {
+    row_summary(probabilities)?;
+    let mut ranked = probabilities
+        .iter()
+        .copied()
+        .enumerate()
+        .collect::<Vec<_>>();
+    ranked.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    ranked
+        .into_iter()
+        .map(|(token, probability)| {
+            Ok((
+                u32::try_from(token).map_err(|_| invalid("joint vocabulary exceeds u32"))?,
+                f64::from(probability),
+            ))
+        })
+        .collect()
+}
+
+/// Replica of the `sample_top_k_q32` weighting and cumulative-bound arithmetic.
+pub(crate) fn sampling_table_from_order(
+    order: &[(u32, f64)],
+    top_k: usize,
+) -> Result<SamplingTable> {
+    if order.is_empty() {
+        return Err(invalid("joint probability order is empty"));
+    }
+    if top_k == 0 {
+        return Err(invalid("joint sampling table top_k is zero"));
+    }
+    let truncated = &order[..top_k.min(order.len())];
+    let maximum = truncated[0].1.ln();
+    let mut candidates = Vec::with_capacity(truncated.len());
+    let mut total = 0u64;
+    let mut cumulative = 0u64;
+    for (rank, &(token, probability)) in truncated.iter().enumerate() {
+        let ratio = ((probability.ln() - maximum) / 0.8).exp();
+        let weight = (ratio * 4_294_967_296.0)
+            .round()
+            .clamp(1.0, u64::MAX as f64) as u64;
+        total = total
+            .checked_add(weight)
+            .ok_or_else(|| invalid("joint Q32 sampler total overflow"))?;
+        cumulative = cumulative
+            .checked_add(weight)
+            .ok_or_else(|| invalid("joint Q32 sampler cumulative overflow"))?;
+        candidates.push(SamplingCandidate {
+            rank,
+            token,
+            raw_probability: probability,
+            weight,
+            sampling_probability: 0.0,
+            cumulative_bound: cumulative,
+        });
+    }
+    for candidate in &mut candidates {
+        candidate.sampling_probability = candidate.weight as f64 / total as f64;
+    }
+    Ok(SamplingTable {
+        candidates,
+        total_weight: total,
+    })
+}
+
+/// Resolve the table interval against the exact draw from a cloned sampler and
+/// return the threshold, selected token and the replica's post-draw state.
+pub(crate) fn resolve_sampling_draw(
+    table: &SamplingTable,
+    sampler_state_before: u64,
+) -> Result<(u64, u32, u64)> {
+    let mut replica = SplitMix64::new(sampler_state_before);
+    let draw = replica.next_u64();
+    let threshold = ((u128::from(draw) * u128::from(table.total_weight)) >> 64) as u64;
+    let mut cumulative = 0u64;
+    for candidate in &table.candidates {
+        cumulative = cumulative
+            .checked_add(candidate.weight)
+            .ok_or_else(|| invalid("joint Q32 table cumulative overflow"))?;
+        if threshold < cumulative {
+            return Ok((threshold, candidate.token, replica.state));
+        }
+    }
+    Err(invalid(
+        "joint Q32 table draw fell outside normalized integer mass",
+    ))
+}
+
+pub(crate) fn classify_decision(
+    selected_sampling_rank: usize,
+    selected_sampling_probability: f64,
+    best_sampling_probability: f64,
+) -> &'static str {
+    if selected_sampling_rank == 0 {
+        "top_choice"
+    } else if selected_sampling_probability >= 0.5 * best_sampling_probability {
+        "near_tie"
+    } else {
+        "departure"
+    }
+}
+
+pub(crate) fn token_components(
+    vocabulary: &[f32],
+    copy: &[f32],
+    row: &[f32],
+    token: u32,
+    no_read_mass: f64,
+    copy_gate: f64,
+    vocab_size: usize,
+) -> Result<TokenComponents> {
+    let index = token as usize;
+    let vocabulary_mass = f64::from(
+        *vocabulary
+            .get(index)
+            .ok_or_else(|| invalid("joint vocabulary row is short"))?,
+    );
+    let copy_mass = f64::from(
+        *copy
+            .get(index)
+            .ok_or_else(|| invalid("joint copy row is short"))?,
+    );
+    let mixture = f64::from(
+        *row.get(index)
+            .ok_or_else(|| invalid("joint probability row is short"))?,
+    );
+    let vocab_contribution =
+        (1.0 - UNIFORM_MIXTURE) * vocabulary_mass * (1.0 - copy_gate * (1.0 - no_read_mass));
+    let copy_contribution = (1.0 - UNIFORM_MIXTURE) * copy_mass * copy_gate;
+    let uniform_contribution = UNIFORM_MIXTURE / vocab_size as f64;
+    Ok(TokenComponents {
+        token,
+        vocabulary_mass,
+        copy_mass,
+        vocab_contribution,
+        copy_contribution,
+        uniform_contribution,
+        reconstruction_error: (vocab_contribution + copy_contribution + uniform_contribution
+            - mixture)
+            .abs(),
+    })
+}
+
+fn decode_single(tokenizer: &HfBpeTokenizer, token: u32) -> String {
+    String::from_utf8_lossy(&tokenizer.decode_bytes(&[token])).into_owned()
+}
+
+fn copy_contributors(
+    masses: &[f32],
+    read_occurrences: &[usize],
+    inputs: &[u32],
+    token: u32,
+    tokenizer: &HfBpeTokenizer,
+    limit: usize,
+) -> Result<Vec<CopyContributor>> {
+    if masses.len() != read_occurrences.len() {
+        return Err(invalid("joint read mass and occurrence counts differ"));
+    }
+    let mut contributors = Vec::new();
+    for (index, &mass) in masses.iter().enumerate() {
+        let mass = f64::from(mass);
+        if mass <= 0.0 {
+            continue;
+        }
+        let position = read_occurrences[index];
+        let observed = *inputs
+            .get(position)
+            .ok_or_else(|| invalid("joint read occurrence outside consumed inputs"))?;
+        if observed != token {
+            continue;
+        }
+        contributors.push(CopyContributor {
+            occurrence: position,
+            token: observed,
+            text: decode_single(tokenizer, observed),
+            mass,
+        });
+    }
+    contributors.sort_by(|left, right| right.mass.total_cmp(&left.mass));
+    contributors.truncate(limit);
+    Ok(contributors)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn trace_decision(
+    model: &JointModel,
+    tokenizer: &HfBpeTokenizer,
+    step: &JointStep,
+    session: &JointSession,
+    inputs: &[u32],
+    row: &[f32],
+    audit: &ReadAudit,
+    decision: usize,
+    selected: u32,
+    greedy: u32,
+    base: JointGenerationDecision,
+    sampler_state_before: u64,
+    sampler_state_after: u64,
+    tier2: bool,
+) -> Result<EmissionTraceDecision> {
+    let order = probability_order(row)?;
+    let table = sampling_table_from_order(&order, 40)?;
+    let selected_full_rank = order
+        .iter()
+        .position(|&(token, _)| token == selected)
+        .ok_or_else(|| invalid("joint trace selected token missing from full ranking"))?;
+    let (threshold, replica_token, replica_state_after) =
+        resolve_sampling_draw(&table, sampler_state_before)?;
+    if replica_token != selected {
+        return Err(invalid(format!(
+            "joint emission trace instrument contract failed at decision {decision}: table interval resolves {replica_token}, sampler selected {selected}"
+        )));
+    }
+    if replica_state_after != sampler_state_after {
+        return Err(invalid(format!(
+            "joint emission trace instrument contract failed at decision {decision}: replica sampler state {replica_state_after} differs from actual {sampler_state_after}"
+        )));
+    }
+    let selected_candidate = table
+        .candidates
+        .iter()
+        .find(|candidate| candidate.token == selected)
+        .ok_or_else(|| invalid("joint trace selected token outside top-k table"))?;
+    let best = table
+        .candidates
+        .first()
+        .ok_or_else(|| invalid("joint Q32 sampling table is empty"))?;
+    let ratio_selected_to_best =
+        selected_candidate.sampling_probability / best.sampling_probability;
+    let classification = classify_decision(
+        selected_candidate.rank,
+        selected_candidate.sampling_probability,
+        best.sampling_probability,
+    )
+    .to_owned();
+    let vocabulary_row = model
+        .output_vocabulary(&step.state)?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let copy_row = model
+        .incremental_copy(
+            &step.read_masses,
+            &session.events()[..step.written_occurrence],
+            1,
+        )?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let masses = step.read_masses.flatten_all()?.to_vec1::<f32>()?;
+    let selected_components = token_components(
+        &vocabulary_row,
+        &copy_row,
+        row,
+        selected,
+        audit.no_read_mass,
+        audit.copy_gate,
+        model.config.vocab_size,
+    )?;
+    let greedy_components = token_components(
+        &vocabulary_row,
+        &copy_row,
+        row,
+        greedy,
+        audit.no_read_mass,
+        audit.copy_gate,
+        model.config.vocab_size,
+    )?;
+    let copy_dominated =
+        selected_components.copy_contribution > selected_components.vocab_contribution;
+    let selected_copy_contributors = copy_contributors(
+        &masses,
+        &step.read_occurrences,
+        inputs,
+        selected,
+        tokenizer,
+        8,
+    )?;
+    let greedy_copy_contributors = copy_contributors(
+        &masses,
+        &step.read_occurrences,
+        inputs,
+        greedy,
+        tokenizer,
+        8,
+    )?;
+    let sampling_candidates = table
+        .candidates
+        .iter()
+        .take(10)
+        .map(|candidate| SamplingCandidateTrace {
+            rank: candidate.rank,
+            token: candidate.token,
+            text: decode_single(tokenizer, candidate.token),
+            raw_probability: candidate.raw_probability,
+            weight: candidate.weight,
+            sampling_probability: candidate.sampling_probability,
+            cumulative_bound: candidate.cumulative_bound,
+        })
+        .collect();
+    let (tier2_source_row, tier2_candidate_copy_contributors) = if tier2 {
+        let mut source_row = Vec::new();
+        for (index, &mass) in masses.iter().enumerate() {
+            let mass = f64::from(mass);
+            if mass <= 0.0 {
+                continue;
+            }
+            let position = *step
+                .read_occurrences
+                .get(index)
+                .ok_or_else(|| invalid("joint read mass and occurrence counts differ"))?;
+            let observed = *inputs
+                .get(position)
+                .ok_or_else(|| invalid("joint read occurrence outside consumed inputs"))?;
+            source_row.push(CopyContributor {
+                occurrence: position,
+                token: observed,
+                text: decode_single(tokenizer, observed),
+                mass,
+            });
+        }
+        source_row.sort_by_key(|contributor| contributor.occurrence);
+        let mut reported = table
+            .candidates
+            .iter()
+            .take(10)
+            .map(|candidate| candidate.token)
+            .collect::<Vec<_>>();
+        for token in [selected, greedy] {
+            if !reported.contains(&token) {
+                reported.push(token);
+            }
+        }
+        let mut groups = Vec::with_capacity(reported.len());
+        for token in reported {
+            groups.push(Tier2TokenContributors {
+                token,
+                text: decode_single(tokenizer, token),
+                copy_contributors: copy_contributors(
+                    &masses,
+                    &step.read_occurrences,
+                    inputs,
+                    token,
+                    tokenizer,
+                    8,
+                )?,
+            });
+        }
+        (Some(source_row), Some(groups))
+    } else {
+        (None, None)
+    };
+    let greedy_probability = f64::from(
+        *row.get(greedy as usize)
+            .ok_or_else(|| invalid("joint greedy token outside probability row"))?,
+    );
+    Ok(EmissionTraceDecision {
+        base,
+        selected_text: decode_single(tokenizer, selected),
+        greedy_text: decode_single(tokenizer, greedy),
+        greedy_probability,
+        selected_full_rank,
+        sampling_candidates,
+        total_weight: table.total_weight,
+        threshold,
+        draw_fraction: threshold as f64 / table.total_weight as f64,
+        selected_sampling_rank: selected_candidate.rank,
+        selected_sampling_probability: selected_candidate.sampling_probability,
+        best_token: best.token,
+        best_raw_probability: best.raw_probability,
+        best_sampling_probability: best.sampling_probability,
+        ratio_selected_to_best,
+        selected_components,
+        greedy_components,
+        selected_copy_contributors,
+        greedy_copy_contributors,
+        classification,
+        copy_dominated,
+        tier2_source_row,
+        tier2_candidate_copy_contributors,
+    })
+}
+
+/// A verbatim copy of `generate_inner(..., first_sentence=false)` that also
+/// captures the read-only emission/selection evidence. `generate_inner` is
+/// untouched; the parity gate validates this copy against retained output.
+#[allow(clippy::too_many_arguments)]
+pub fn generate_traced(
+    model: &JointModel,
+    tokenizer: &HfBpeTokenizer,
+    prompt: &str,
+    mode: ReadMode,
+    seed: Option<u64>,
+    max_new_tokens: usize,
+    tier2: bool,
+) -> Result<(JointGeneration, Vec<EmissionTraceDecision>)> {
+    let started = Instant::now();
+    let seed = seed.ok_or_else(|| invalid("joint emission trace requires a seeded sampler"))?;
+    if !(1..=MAX_NEW_TOKENS).contains(&max_new_tokens)
+        || model.config.vocab_size != tokenizer.vocab_size()
+    {
+        return Err(invalid(
+            "joint generation horizon or tokenizer vocabulary differs",
+        ));
+    }
+    let content = tokenizer.encode(prompt);
+    if content.is_empty()
+        || content
+            .iter()
+            .any(|&id| id as usize >= model.config.vocab_size)
+        || content
+            .len()
+            .checked_add(1)
+            .and_then(|n| n.checked_add(max_new_tokens))
+            .is_none_or(|n| n > model.config.context)
+    {
+        return Err(invalid(
+            "joint prompt plus BOS and generation horizon exceeds context",
+        ));
+    }
+    let mut inputs = Vec::with_capacity(content.len() + 1 + max_new_tokens);
+    inputs.push(0);
+    inputs.extend(content);
+    let prompt_token_ids = inputs.clone();
+    let mut session = model.new_session(1)?;
+    let mut current = None;
+    for &token in &inputs {
+        current = Some(model.step(&mut session, &[token], mode)?);
+    }
+    let mut calls = inputs.len();
+    let mut generated = Vec::with_capacity(max_new_tokens);
+    let mut decisions = Vec::with_capacity(max_new_tokens);
+    let mut traces = Vec::with_capacity(max_new_tokens);
+    let mut sampler = Some(SplitMix64::new(seed));
+    let mut stop = JointGenerationStop::MaximumNewTokens;
+    for decision in 0..max_new_tokens {
+        let step = current
+            .take()
+            .ok_or_else(|| invalid("joint generation has no current prediction"))?;
+        let (row, audit) = generation_row(&step, &inputs, mode, model.config.vocab_size)?;
+        let sampler_state_before = sampler.as_ref().map(|rng| rng.state);
+        let selected = match sampler.as_mut() {
+            Some(rng) => sample_top_k_q32(&row, rng)?,
+            None => row_summary(&row)?.0,
+        };
+        let score = score_probabilities(&row, selected)?;
+        let mut digest = Sha256::new();
+        for &value in &row {
+            digest.update(value.to_le_bytes());
+        }
+        let top_read_occurrence = audit
+            .top_read_index
+            .map(|index| step.read_occurrences[index]);
+        let sampler_state_after = sampler.as_ref().map(|rng| rng.state);
+        let base = JointGenerationDecision {
+            decision,
+            input_positions: inputs.len(),
+            selected_token: selected,
+            greedy_token: score.predicted_token,
+            selected_probability: score.target_probability,
+            selected_model_nll_nats: score.nll_nats,
+            probability_sum: score.probability_sum,
+            probabilities_sha256_le_f32: hex::encode(digest.finalize()),
+            no_read_mass: audit.no_read_mass,
+            copy_gate: audit.copy_gate,
+            effective_copy_mass: audit.effective_copy_mass,
+            top_read_occurrence,
+            top_read_token: top_read_occurrence.map(|position| inputs[position]),
+            top_read_mass: audit.top_read_mass,
+            sampler_state_before,
+            sampler_state_after,
+        };
+        decisions.push(base.clone());
+        traces.push(trace_decision(
+            model,
+            tokenizer,
+            &step,
+            &session,
+            &inputs,
+            &row,
+            &audit,
+            decision,
+            selected,
+            score.predicted_token,
+            base,
+            sampler_state_before
+                .ok_or_else(|| invalid("joint emission trace lost its sampler state"))?,
+            sampler_state_after
+                .ok_or_else(|| invalid("joint emission trace lost its sampler state"))?,
+            tier2,
+        )?);
+        generated.push(selected);
+        if selected == 1 {
+            stop = JointGenerationStop::Eos;
+            break;
+        }
+        if let Some(period) = short_cycle_period(&generated) {
+            stop = JointGenerationStop::ShortCycle { period };
+            break;
+        }
+        if decision + 1 < max_new_tokens {
+            inputs.push(selected);
+            current = Some(model.step(&mut session, &[selected], mode)?);
+            calls += 1;
+        }
+    }
+    let end = generated
+        .iter()
+        .position(|&id| id == 1)
+        .unwrap_or(generated.len());
+    let raw_bytes = tokenizer.decode_bytes(&generated);
+    let response_bytes = tokenizer.decode_bytes(&generated[..end]);
+    Ok((
+        JointGeneration {
+            schema: "uor-r4.joint-incremental-generation/1",
+            prompt: prompt.to_owned(),
+            mode,
+            seed: Some(seed),
+            tokenizer_cid: tokenizer.address(),
+            sampler_policy: SEEDED_POLICY,
+            bos_policy: "prepend checkpoint BOS0 exactly once; EOS1 ends output",
+            prompt_token_ids,
+            generated_token_ids: generated,
+            raw_decoded: String::from_utf8_lossy(&raw_bytes).into_owned(),
+            response_text: String::from_utf8_lossy(&response_bytes).trim().to_owned(),
+            utf8_decodable: std::str::from_utf8(&raw_bytes).is_ok()
+                && std::str::from_utf8(&response_bytes).is_ok(),
+            raw_decoded_bytes: raw_bytes,
+            stop,
+            max_new_tokens,
+            context_capacity: model.config.context,
+            incremental_step_calls: calls,
+            fresh_session: true,
+            whole_prompt_read_mode: true,
+            gradients_tracked: false,
+            decisions,
+            elapsed_seconds: started.elapsed().as_secs_f64(),
+        },
+        traces,
     ))
 }
 

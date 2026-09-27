@@ -1376,6 +1376,21 @@ impl JointModel {
         )?)
     }
 
+    /// Verbatim vocabulary softmax of `output_distribution` (read-only; no
+    /// parameter, gate or sampler state changes). The emission trace rebuilds
+    /// the mixture split from this row, so the block above must stay identical.
+    pub(crate) fn output_vocabulary(&self, states: &Tensor) -> Result<Tensor> {
+        let hidden = self
+            .normalized(states, false)?
+            .broadcast_mul(&self.weight("output.norm.weight", false)?)?;
+        let hidden = self.interface(&hidden, Interface::Normalized, false)?;
+        let logits = hidden
+            .matmul(&self.weight("embedding.weight", false)?.t()?)?
+            .broadcast_add(&self.weight("output.bias", false)?)?;
+        let logits = self.interface(&logits, Interface::Affine, false)?;
+        Ok(candle_nn::ops::softmax(&logits, 1)?)
+    }
+
     fn training_copy(
         &self,
         masses: &Tensor,
@@ -1403,7 +1418,7 @@ impl JointModel {
         Ok(Tensor::stack(&copied, 0)?)
     }
 
-    fn incremental_copy(
+    pub(crate) fn incremental_copy(
         &self,
         masses: &Tensor,
         events: &[MemoryEvent],

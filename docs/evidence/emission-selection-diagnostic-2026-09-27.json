@@ -1,0 +1,447 @@
+{
+ "all_story_counts": {
+  "householder_pair": {
+   "2014": {
+    "copy_dominated": 16,
+    "departure": 46,
+    "near_tie": 19,
+    "top_choice": 63
+   },
+   "2015": {
+    "copy_dominated": 15,
+    "departure": 44,
+    "near_tie": 11,
+    "top_choice": 73
+   },
+   "2016": {
+    "copy_dominated": 15,
+    "departure": 44,
+    "near_tie": 15,
+    "top_choice": 69
+   },
+   "2017": {
+    "copy_dominated": 16,
+    "departure": 34,
+    "near_tie": 12,
+    "top_choice": 82
+   },
+   "2018": {
+    "copy_dominated": 14,
+    "departure": 38,
+    "near_tie": 11,
+    "top_choice": 79
+   }
+  },
+  "quaternion": {
+   "2014": {
+    "copy_dominated": 15,
+    "departure": 49,
+    "near_tie": 18,
+    "top_choice": 61
+   },
+   "2015": {
+    "copy_dominated": 15,
+    "departure": 43,
+    "near_tie": 15,
+    "top_choice": 70
+   },
+   "2016": {
+    "copy_dominated": 9,
+    "departure": 29,
+    "near_tie": 5,
+    "top_choice": 42
+   },
+   "2017": {
+    "copy_dominated": 19,
+    "departure": 36,
+    "near_tie": 12,
+    "top_choice": 80
+   },
+   "2018": {
+    "copy_dominated": 12,
+    "departure": 35,
+    "near_tie": 14,
+    "top_choice": 79
+   }
+  }
+ },
+ "cost": {
+  "check_seconds": 54.16,
+  "first_release_build_seconds": 26.75,
+  "focused_test_build_seconds": 15.91,
+  "ledger_receipt": "investigations/language-continuation-20260925/ledger-emission-trace-delivery-1.json",
+  "post_rebase_release_build_seconds": 213.4,
+  "report_roots_total_bytes_four_roots": 23565314,
+  "ssd_cache_bytes_after": 1546188226,
+  "ssd_cache_note": "1.4 GiB new target dir /Volumes/UOR-Workspace/BuildCaches/uor-r4-emission-20260926-1; no internal-disk target",
+  "witness_run_seconds": {
+   "run_1_householder_pair": 8,
+   "run_1_quaternion": 7
+  }
+ },
+ "decision": {
+  "rule": "docs/integration/emission-selection-diagnostic-plan-2026-09-27.md (#predeclared-classification-rule)",
+  "statement": "At the witnessed malformed decisions the model typically preferred a materially better-ranked alternative while the declared sampling policy drew a low-probability continuation; no witnessed decision was copy-dominated. The predeclared rule therefore supports the selection interface for a later, separately authorized bounded decoding-policy diagnostic. The retained greedy source-panel regressions remain a separate ranking-side obligation; no alternate trajectory was run and no weight, decoding, gate or candidate change is authorized or promoted here.",
+  "supported_interface": "selection_policy",
+  "witness_class_counts": {
+   "copy_dominated": 0,
+   "departure": 8,
+   "near_tie": 2,
+   "top_choice": 2
+  }
+ },
+ "design": "docs/integration/emission-selection-diagnostic-plan-2026-09-27.md",
+ "executed": {
+  "delivered": {
+   "binary_sha256": "cc1137287642ed1298ddae9457f3de23466c62f5ba8ea794932f2170f85b8af2",
+   "parent_main": "19991e40b68d619d0abf1bc7f4c139931961121d",
+   "source_commit": "9bed4d8b4845b084150e4022a70806264d9ac929"
+  },
+  "pre_rebase": {
+   "binary_sha256": "d420cc8af444dc52b133d368d5986949f42bb0ab3e2942a6d1ef44e50a2bb9b5",
+   "source_commit": "ca66663b1fd7dead121d4468c2a9e53ab140a3e8"
+  }
+ },
+ "fixed_inputs": {
+  "campaigns": {
+   "householder_pair": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/householder_pair-resume-6.json",
+   "quaternion": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/campaigns/quaternion-resume-6.json"
+  },
+  "checkpoints": {
+   "householder_pair": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-householder_pair-6/checkpoint-final",
+   "quaternion": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final"
+  },
+  "evaluator": "/Users/casey.allard/uor-r4/docs/integration/reference-evaluator-v2.json",
+  "horizon": 128,
+  "mode": "read",
+  "sampler_policy": "joint-probability-top-k-q32-splitmix64/1;score=ln(f64(probability));temperature=0.8;top-k=40;rank=probability-desc-token-asc",
+  "seeds": "2014..2018"
+ },
+ "limits": [
+  "Twelve witnessed decisions at one exposed seed-2014 story per arm; classes use the predeclared 0.5-ratio cuts and are descriptive.",
+  "Sampling probabilities are for the declared Q32/temperature-0.8/top-40 policy and do not revise the frozen prose verdict.",
+  "A better-ranked token is not a coherent alternative trajectory; no greedy or alternate rollout was executed.",
+  "Copy-dominated decisions exist elsewhere (15-16 in the seed-2014 story per arm) but not at the witnesses.",
+  "No mechanism outside the emission/selection interface is promoted or demoted."
+ ],
+ "parity": {
+  "householder_pair": {
+   "decision_counts": [
+    128,
+    128,
+    128,
+    128,
+    128
+   ],
+   "emission_trace_sha256": "1e481752c028383ce78a5c895d6f4b9ec3495ee789d0f135ed2bb758e231ce13",
+   "max_abs_float_delta": 0.0,
+   "mismatch_count": 0,
+   "parity_sha256": "6b4832bfc82e6bc09265f02d08c2d465486feadff055d8ce6154a9175c2a00bd",
+   "pre_rebase_replay_identical": true,
+   "retained_generations_sha256": "cf2f574b06706228eecd1f2ba4b4a3fe94e6597e84854f83310d395b471c4e2e",
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/emission-trace-householder_pair-2",
+   "root_bytes": 6031740,
+   "status": "PARITY_EXACT"
+  },
+  "quaternion": {
+   "decision_counts": [
+    128,
+    128,
+    76,
+    128,
+    128
+   ],
+   "emission_trace_sha256": "c9f294a6fbe028bf9cc26d38801754a1a7774ee8e279032a1fa6d8f9072407d8",
+   "max_abs_float_delta": 0.0,
+   "mismatch_count": 0,
+   "parity_sha256": "41eda9eee4ecf95cd5d44bd29c981db7214ff687bf380939e5cf94dca6a39ad4",
+   "pre_rebase_replay_identical": true,
+   "retained_generations_sha256": "fe6c6b7e3d7ef1178152d4c53982ae41d152982c17be5bc1c7119b6b043760c3",
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/emission-trace-quaternion-2",
+   "root_bytes": 5750916,
+   "status": "PARITY_EXACT"
+  }
+ },
+ "recorded_utc": "2026-09-27T01:13:57.448434+00:00",
+ "schema": "uor-r4.emission-selection-diagnostic/1",
+ "story_2014_counts": {
+  "householder_pair": {
+   "copy_dominated": 16,
+   "departure": 46,
+   "near_tie": 19,
+   "top_choice": 63
+  },
+  "quaternion": {
+   "copy_dominated": 15,
+   "departure": 49,
+   "near_tie": 18,
+   "top_choice": 61
+  }
+ },
+ "witness": {
+  "householder_pair": [
+   {
+    "best_sampling_probability": 0.32782758726846806,
+    "classification": "top_choice",
+    "copy_contribution": 0.0002829290658323563,
+    "copy_dominated": false,
+    "decision": 25,
+    "greedy_probability": 0.19577106833457947,
+    "greedy_text": " wanted",
+    "greedy_token": 409,
+    "input_positions": 50,
+    "ratio_selected_to_best": 1.0,
+    "reconstruction_error": 2.822209521635699e-09,
+    "selected_full_rank": 0,
+    "selected_probability": 0.19577106833457947,
+    "selected_sampling_probability": 0.32782758726846806,
+    "selected_sampling_rank": 0,
+    "selected_text": " wanted",
+    "selected_token": 409,
+    "vocab_contribution": 0.19548813644409618
+   },
+   {
+    "best_sampling_probability": 0.9590988335031168,
+    "classification": "departure",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 26,
+    "greedy_probability": 0.8846762776374817,
+    "greedy_text": " to",
+    "greedy_token": 268,
+    "input_positions": 51,
+    "ratio_selected_to_best": 0.015251415316015482,
+    "reconstruction_error": 8.979431850852926e-10,
+    "selected_full_rank": 1,
+    "selected_probability": 0.031148167327046394,
+    "selected_sampling_probability": 0.014627614638862018,
+    "selected_sampling_rank": 1,
+    "selected_text": " the",
+    "selected_token": 265,
+    "vocab_contribution": 0.031148168222548175
+   },
+   {
+    "best_sampling_probability": 0.6571255076121678,
+    "classification": "departure",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 27,
+    "greedy_probability": 0.47563448548316956,
+    "greedy_text": " new",
+    "greedy_token": 545,
+    "input_positions": 52,
+    "ratio_selected_to_best": 0.04540845635347069,
+    "reconstruction_error": 2.0024277791463874e-09,
+    "selected_full_rank": 2,
+    "selected_probability": 0.0400850772857666,
+    "selected_sampling_probability": 0.029839054931159393,
+    "selected_sampling_rank": 2,
+    "selected_text": " most",
+    "selected_token": 1996,
+    "vocab_contribution": 0.04008507928575297
+   },
+   {
+    "best_sampling_probability": 0.41879254619308254,
+    "classification": "departure",
+    "copy_contribution": 8.642841134848017e-05,
+    "copy_dominated": false,
+    "decision": 28,
+    "greedy_probability": 0.2150934785604477,
+    "greedy_text": " exciting",
+    "greedy_token": 2935,
+    "input_positions": 53,
+    "ratio_selected_to_best": 0.04017158900387585,
+    "reconstruction_error": 7.144546586290712e-10,
+    "selected_full_rank": 9,
+    "selected_probability": 0.016434725373983383,
+    "selected_sampling_probability": 0.016823562043555205,
+    "selected_sampling_rank": 9,
+    "selected_text": " so",
+    "selected_token": 391,
+    "vocab_contribution": 0.01634829624573884
+   },
+   {
+    "best_sampling_probability": 0.18764480298997677,
+    "classification": "near_tie",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 29,
+    "greedy_probability": 0.11422733217477798,
+    "greedy_text": "c",
+    "greedy_token": 69,
+    "input_positions": 54,
+    "ratio_selected_to_best": 0.7517303773202002,
+    "reconstruction_error": 1.6248707795929462e-09,
+    "selected_full_rank": 1,
+    "selected_probability": 0.09091168642044067,
+    "selected_sampling_probability": 0.14105829855382987,
+    "selected_sampling_rank": 1,
+    "selected_text": " exciting",
+    "selected_token": 2935,
+    "vocab_contribution": 0.09091168804287005
+   },
+   {
+    "best_sampling_probability": 0.33147549358728035,
+    "classification": "departure",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 30,
+    "greedy_probability": 0.23141048848628998,
+    "greedy_text": ",",
+    "greedy_token": 14,
+    "input_positions": 55,
+    "ratio_selected_to_best": 0.20214817137457433,
+    "reconstruction_error": 1.2979436692095447e-09,
+    "selected_full_rank": 5,
+    "selected_probability": 0.06440489739179611,
+    "selected_sampling_probability": 0.06700716488415316,
+    "selected_sampling_rank": 5,
+    "selected_text": "!",
+    "selected_token": 3,
+    "vocab_contribution": 0.06440489868729837
+   }
+  ],
+  "quaternion": [
+   {
+    "best_sampling_probability": 0.2754006814537368,
+    "classification": "departure",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 37,
+    "greedy_probability": 0.12673446536064148,
+    "greedy_text": " a",
+    "greedy_token": 261,
+    "input_positions": 62,
+    "ratio_selected_to_best": 0.4379040724597871,
+    "reconstruction_error": 2.971859217049122e-09,
+    "selected_full_rank": 2,
+    "selected_probability": 0.06546330451965332,
+    "selected_sampling_probability": 0.12059907996679191,
+    "selected_sampling_rank": 2,
+    "selected_text": " an",
+    "selected_token": 423,
+    "vocab_contribution": 0.0654633015453527
+   },
+   {
+    "best_sampling_probability": 0.7945309176466433,
+    "classification": "top_choice",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 38,
+    "greedy_probability": 0.5233873724937439,
+    "greedy_text": " idea",
+    "greedy_token": 822,
+    "input_positions": 63,
+    "ratio_selected_to_best": 1.0,
+    "reconstruction_error": 1.5982341117215526e-08,
+    "selected_full_rank": 0,
+    "selected_probability": 0.5233873724937439,
+    "selected_sampling_probability": 0.7945309176466433,
+    "selected_sampling_rank": 0,
+    "selected_text": " idea",
+    "selected_token": 822,
+    "vocab_contribution": 0.5233873565089614
+   },
+   {
+    "best_sampling_probability": 0.9708855876082678,
+    "classification": "departure",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 39,
+    "greedy_probability": 0.9229082465171814,
+    "greedy_text": ".",
+    "greedy_token": 16,
+    "input_positions": 64,
+    "ratio_selected_to_best": 0.00039451150223612785,
+    "reconstruction_error": 5.328056463908826e-11,
+    "selected_full_rank": 6,
+    "selected_probability": 0.0017458474030718207,
+    "selected_sampling_probability": 0.00038302553166674345,
+    "selected_sampling_rank": 6,
+    "selected_text": " called",
+    "selected_token": 1028,
+    "vocab_contribution": 0.0017458473473498499
+   },
+   {
+    "best_sampling_probability": 0.2615612344335814,
+    "classification": "near_tie",
+    "copy_contribution": 0.0,
+    "copy_dominated": false,
+    "decision": 40,
+    "greedy_probability": 0.14317235350608826,
+    "greedy_text": " a",
+    "greedy_token": 261,
+    "input_positions": 65,
+    "ratio_selected_to_best": 0.6300408197566867,
+    "reconstruction_error": 2.4156275452158482e-09,
+    "selected_full_rank": 1,
+    "selected_probability": 0.09893594682216644,
+    "selected_sampling_probability": 0.16479425455910454,
+    "selected_sampling_rank": 1,
+    "selected_text": " out",
+    "selected_token": 486,
+    "vocab_contribution": 0.09893594440409749
+   },
+   {
+    "best_sampling_probability": 0.606887077362935,
+    "classification": "departure",
+    "copy_contribution": 5.805546701790528e-05,
+    "copy_dominated": false,
+    "decision": 41,
+    "greedy_probability": 0.4439704418182373,
+    "greedy_text": ".",
+    "greedy_token": 16,
+    "input_positions": 66,
+    "ratio_selected_to_best": 0.01229530363343656,
+    "reconstruction_error": 8.609376666440793e-10,
+    "selected_full_rank": 8,
+    "selected_probability": 0.013156654313206673,
+    "selected_sampling_probability": 0.0074618608873861896,
+    "selected_sampling_rank": 8,
+    "selected_text": " in",
+    "selected_token": 315,
+    "vocab_contribution": 0.013098597982809695
+   },
+   {
+    "best_sampling_probability": 0.694606726471739,
+    "classification": "departure",
+    "copy_contribution": 3.3982938725053433e-05,
+    "copy_dominated": false,
+    "decision": 42,
+    "greedy_probability": 0.5468164682388306,
+    "greedy_text": " the",
+    "greedy_token": 265,
+    "input_positions": 67,
+    "ratio_selected_to_best": 0.22310770954936743,
+    "reconstruction_error": 5.336373842812492e-10,
+    "selected_full_rank": 1,
+    "selected_probability": 0.1646846979856491,
+    "selected_sampling_probability": 0.15497211578069367,
+    "selected_sampling_rank": 1,
+    "selected_text": ".",
+    "selected_token": 16,
+    "vocab_contribution": 0.16465071451084526
+   }
+  ]
+ },
+ "witness_class_counts": {
+  "combined": {
+   "copy_dominated": 0,
+   "departure": 8,
+   "near_tie": 2,
+   "top_choice": 2
+  },
+  "householder_pair": {
+   "copy_dominated": 0,
+   "departure": 4,
+   "near_tie": 1,
+   "top_choice": 1
+  },
+  "quaternion": {
+   "copy_dominated": 0,
+   "departure": 4,
+   "near_tie": 1,
+   "top_choice": 1
+  }
+ }
+}

@@ -57,6 +57,7 @@ uor-r4-training joint-round-calibrate ROUNDING_RECIPE_INPUT_JSON NEW_REPORT_ROOT
 uor-r4-training joint-round-fit RESOLVED_ROUNDING_RECIPE_JSON NEW_REPORT_ROOT [SEALED_ROUNDING_CHECKPOINT]
 uor-r4-training joint-bound-fit BOUNDED_CAMPAIGN_JSON NEW_REPORT_ROOT [SEALED_BOUNDED_CHECKPOINT]
 uor-r4-training joint-evaluate-admission PACKED_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT cpu {read|no-read} BATCH {full|recent64|recent32|orthant64|exact_cache64}
+uor-r4-training joint-emission-trace CAMPAIGN_JSON SEALED_CHECKPOINT RETAINED_GENERATIONS_JSON NEW_REPORT_ROOT cpu {read|no-read}
 ```
 
 The [frozen campaign](../../docs/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.

@@ -1,6 +1,6 @@
 # Current UOR-R4 research state
 
-Updated September 26, 2026. **Pre-alpha; no useful general-language, coding,
+Updated September 27, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 
 ## Fourth lab: shared research and integration
@@ -54,8 +54,12 @@ The full-context standalone integer serving session is now implemented and retai
 at the scope below. An exact arithmetic optimization makes actual generation
 4.5–6.6 times faster on the measured workloads. The subsequent fixed exposure
 completed without meeting coherent-language criteria. Preserve the accepted
-parents and close exposure-only fitting; one later localization from existing
-evidence is the recommended next work card. Admission pruning remains deferred.
+parents and close exposure-only fitting. The recommended same-checkpoint
+emission/selection diagnostic is now executed read-only at the same step-15,672
+artifacts; its witnessed malformed decisions are predominantly low-probability
+draws from the model's own ranking, so the selection interface is supported for
+a later bounded experiment, while the retained greedy source-panel regressions
+remain a separate ranking-side obligation. Admission pruning remains deferred.
 The transformerless integer/table serving goal and D0-b/D4–D6 remain unchanged.
 
 ## Latest result: completed continuation, useful-language target unmet
@@ -383,43 +387,25 @@ integer goose short-cycle. Different continuous/integer sampling policies preven
 attributing sample differences alone to conversion. Final delivery items are
 listed only in the result's [delivery section](language-continuation-result-2026-09-26.md#delivery-and-cost-closeout).
 
-### Next single work card — failure localization
+### Executed: same-checkpoint emission/selection diagnostic (September 27)
 
-- **Completed evidence review:** the fixed dose and output packet are closed.
-  The [existing trace analysis](../evidence/language-continuation-trace-coverage-2026-09-26.json)
-  and [independent direction review](../evidence/language-continuation-direction-review-2026-09-26.json)
-  justify prioritizing the emission/selection interface. They do not establish a
-  sole cause or a successful decoder repair. #973 and #820 remain open at their
-  wider acceptance scope.
-- **Observed blocker:** continuous prose misses the frozen criterion despite
-  improved natural likelihood. Ordinary numerical/source retention fails;
-  quaternion source regressions and an integer short-cycle also remain. Existing
-  greedy source-panel regressions prevent a sampling-only explanation of all
-  failures. Neither absent attention, capacity saturation nor a necessary new
-  Hamiltonian follows from this result.
-- **One recommended later causal diagnostic:** use the same checkpoints and
-  witnessed failing prefixes in both arms to distinguish a poorly ranked
-  semantic token from a stochastic choice that departs from a better-ranked
-  alternative. Define the decision this observation can change and its complete
-  prospective cost before execution. Capture missing per-token vocabulary/copy
-  components only where necessary. This work card is a recommendation, not an
-  executed replay or authorization to change decoding or model weights.
-- **Existing evidence and limits:** continuous generations already retain top-read
-  occurrence/token/mass, copy gate/effective copy mass, selected raw model
-  probability and greedy token; integer records retain selected probability,
-  NoRead mass and hashes. Selected model probability is not the post-temperature,
-  top-k sampling probability. Low total copy mass cannot exclude copying of a
-  particular low-probability token. Full source-weight distributions, separate
-  vocabulary/copy components and alternate state trajectories are absent; claims
-  needing those records remain UNRESOLVED. A greedy alternative at a sampled
-  prefix does not establish coherent greedy generation.
-- **Decision and stop:** finish with one supported implementation decision or an
-  explicit UNRESOLVED finding. Keep accepted parents, both new final paths,
-  negative history, full256 access, ordinary controls and the original output
-  criteria. No new fit, exposure tranche, prompt acceptance panel, coefficient/
-  scale/admission sweep or expanded test programme follows from this closeout.
-  Numerical repair alone cannot qualify the continuous-language result that
-  already failed. Remaining machine allowance is not a reason to repeat a run.
+- **Executed read-only** from the [predeclared plan](emission-selection-diagnostic-plan-2026-09-27.md)
+  and [result](emission-selection-diagnostic-result-2026-09-27.md) at the same
+  step-15,672 checkpoints, frozen prompts/seeds/policy and Read mode. The new
+  additive `joint-emission-trace` instrument reproduced the retained packet
+  exactly (`PARITY_EXACT`, 0 mismatches, maximum float delta0.0, all five
+  stories in both arms); [evidence](../evidence/emission-selection-diagnostic-2026-09-27.json).
+- **Witnessed result:** 8 of 12 witnessed decisions are low-probability draws
+  that departed from a materially better-ranked alternative (2 near-ties,
+  2 top choices, 0 copy-dominated). The witnessed malformed tokens were
+  vocabulary-side, not copy-side.
+- **Supported interface:** selection policy. The next work card, not started, is
+  one separately authorized bounded same-checkpoint selection-policy diagnostic
+  with no weight change; it must also explain the retained greedy source-panel
+  regressions. No decoding/weight change and no candidate promotion follows; a
+  better-ranked token is not a coherent alternate trajectory.
+- **Stop:** this packet is closed. #973 and #820 remain open at their wider
+  acceptance scope.
 
 The full256 baseline is finite; terminal D5 parameter sparsity remains open.
 Standalone integer generation is **executed at the scoped numerical boundary**.

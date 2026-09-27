@@ -1206,6 +1206,9 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("joint-calibrate-shadow") {
         return calibrate_shadow_cli(args);
     }
+    if args.first().map(String::as_str) == Some("joint-emission-trace") {
+        return emission_trace_cli(args);
+    }
     if args.first().map(String::as_str) == Some("joint-integer-tables") {
         if args.len() != 2 {
             return Err(invalid("joint-integer-tables NEW_REPORT_ROOT"));
@@ -1353,6 +1356,253 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
         }
     })();
     finish_attempt(out, result)
+}
+
+/// Read-only same-checkpoint emission/selection localization. Replays the five
+/// frozen prompts through `generate_traced`, then requires exact parity against
+/// the retained generations before any localization claim is allowed.
+fn emission_trace_cli(args: &[String]) -> Result<()> {
+    if args.len() != 7 || args[5] != "cpu" {
+        return Err(invalid(
+            "usage: joint-emission-trace CAMPAIGN_JSON SEALED_CHECKPOINT RETAINED_GENERATIONS_JSON NEW_REPORT_ROOT cpu {read|no-read}",
+        ));
+    }
+    let mode = match args[6].as_str() {
+        "read" => ReadMode::Enabled,
+        "no-read" => ReadMode::NoRead,
+        _ => return Err(invalid("emission trace read mode read|no-read")),
+    };
+    let out = Path::new(&args[4]);
+    report_output::claim(out)?;
+    let result = (|| {
+        let cfg = Campaign::load(Path::new(&args[1]))?;
+        let evaluator = load_evaluator(&cfg.evaluator_path)?;
+        let source = Path::new(&args[2]);
+        let mut input =
+            load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        same_learning_configuration(&cfg, &input.campaign)?;
+        input.campaign = cfg;
+        let tokenizer = load_tokenizer(&evaluator.document)?;
+        let prompts_path = verify_identity(&evaluator.document["prompt_source"])?;
+        let prompts: Value = serde_json::from_slice(&fs::read(prompts_path)?)?;
+        let retained_path = Path::new(&args[3]);
+        let retained: Value = serde_json::from_slice(&fs::read(retained_path)?)?;
+        let retained_sha256 = sha256_file(retained_path)?;
+        let prompt_array = prompts["prompts"]
+            .as_array()
+            .ok_or_else(|| invalid("prompts"))?;
+        let retained_stories = retained
+            .as_array()
+            .ok_or_else(|| invalid("retained generations are not an array"))?;
+        if prompt_array.len() != retained_stories.len() {
+            return Err(invalid(
+                "retained generation count differs from the evaluator prompts",
+            ));
+        }
+        let mut stories = Vec::with_capacity(prompt_array.len());
+        let mut replay_values = Vec::with_capacity(prompt_array.len());
+        for (i, prompt) in prompt_array.iter().enumerate() {
+            let prompt_text = prompt["text"]
+                .as_str()
+                .ok_or_else(|| invalid("prompt text"))?;
+            let seed = 2014 + i as u64;
+            let (generation, decisions) = joint_evaluation::generate_traced(
+                &input.model,
+                &tokenizer,
+                prompt_text,
+                mode,
+                Some(seed),
+                128,
+                i == 0,
+            )?;
+            replay_values.push(serde_json::to_value(&generation)?);
+            stories.push(joint_evaluation::EmissionTraceStory::new(
+                &generation,
+                seed,
+                decisions,
+            ));
+        }
+        let parity = compare_generations(&replay_values, retained_stories, &retained_sha256);
+        let trace_report = json!({
+            "schema":"uor-r4.joint-emission-trace/1",
+            "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND"),
+            "checkpoint":source,
+            "retained_generations":retained_path,
+            "retained_generations_sha256":retained_sha256,
+            "mode":args[6],
+            "tokenizer_cid":tokenizer.address(),
+            "sampler_policy":joint_evaluation::SEEDED_POLICY,
+            "stories":stories,
+        });
+        save_json(&out.join("emission-trace.json"), &trace_report)?;
+        save_json(&out.join("parity.json"), &parity)?;
+        if parity.status != "PARITY_EXACT" {
+            return Err(invalid(format!(
+                "PARITY_FAILED: {} field/story mismatches; sealed trace retained at {}",
+                parity.mismatch_count,
+                out.display()
+            )));
+        }
+        Ok(())
+    })();
+    finish_attempt(out, result)
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct StoryParity {
+    story: usize,
+    matches: bool,
+    mismatches: usize,
+    decision_count_matches: bool,
+    decision_matches: Vec<bool>,
+    max_abs_float_delta: f64,
+    details: Vec<Value>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct ParityReport {
+    schema: &'static str,
+    status: String,
+    retained_generations_sha256: String,
+    mismatch_count: usize,
+    max_abs_float_delta: f64,
+    stories: Vec<StoryParity>,
+    mismatches: Vec<Value>,
+}
+
+const PARITY_FLOAT_FIELDS: [&str; 7] = [
+    "selected_probability",
+    "selected_model_nll_nats",
+    "probability_sum",
+    "no_read_mass",
+    "copy_gate",
+    "effective_copy_mass",
+    "top_read_mass",
+];
+const PARITY_EXACT_FIELDS: [&str; 7] = [
+    "selected_token",
+    "greedy_token",
+    "probabilities_sha256_le_f32",
+    "top_read_occurrence",
+    "top_read_token",
+    "sampler_state_before",
+    "sampler_state_after",
+];
+
+fn compare_generation_pair(story: usize, replay: &Value, retained: &Value) -> StoryParity {
+    let mut details = Vec::new();
+    let mut mismatches = 0usize;
+    let mut max_abs_float_delta = 0.0f64;
+    for field in ["prompt", "seed", "mode", "generated_token_ids", "stop"] {
+        if replay.get(field) != retained.get(field) {
+            mismatches += 1;
+            details.push(json!({"field":field,"story":story,
+                "replay":replay.get(field),"retained":retained.get(field)}));
+        }
+    }
+    let replay_decisions = replay["decisions"].as_array().cloned().unwrap_or_default();
+    let retained_decisions = retained["decisions"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let decision_count_matches = replay_decisions.len() == retained_decisions.len();
+    if !decision_count_matches {
+        mismatches += 1;
+        details.push(json!({"field":"decision_count","story":story,
+            "replay":replay_decisions.len(),"retained":retained_decisions.len()}));
+    }
+    let mut decision_matches = Vec::with_capacity(replay_decisions.len());
+    for (index, replay_decision) in replay_decisions.iter().enumerate() {
+        let mut matched = true;
+        let Some(retained_decision) = retained_decisions.get(index) else {
+            mismatches += 1;
+            decision_matches.push(false);
+            continue;
+        };
+        for field in PARITY_EXACT_FIELDS {
+            if replay_decision.get(field) != retained_decision.get(field) {
+                matched = false;
+                mismatches += 1;
+                details.push(json!({"field":field,"story":story,"decision":index,
+                    "replay":replay_decision.get(field),"retained":retained_decision.get(field)}));
+            }
+        }
+        for field in PARITY_FLOAT_FIELDS {
+            let replay_value = replay_decision.get(field).and_then(Value::as_f64);
+            let retained_value = retained_decision.get(field).and_then(Value::as_f64);
+            match (replay_value, retained_value) {
+                (Some(replay_value), Some(retained_value)) => {
+                    let delta = (replay_value - retained_value).abs();
+                    if delta > max_abs_float_delta {
+                        max_abs_float_delta = delta;
+                    }
+                    if replay_value != retained_value {
+                        matched = false;
+                        mismatches += 1;
+                        details.push(json!({"field":field,"story":story,"decision":index,
+                            "replay":replay_value,"retained":retained_value,"abs_delta":delta}));
+                    }
+                }
+                (None, None) => {}
+                _ => {
+                    matched = false;
+                    mismatches += 1;
+                    details.push(json!({"field":field,"story":story,"decision":index,
+                        "replay":replay_decision.get(field),"retained":retained_decision.get(field)}));
+                }
+            }
+        }
+        decision_matches.push(matched);
+    }
+    StoryParity {
+        story,
+        matches: mismatches == 0,
+        mismatches,
+        decision_count_matches,
+        decision_matches,
+        max_abs_float_delta,
+        details,
+    }
+}
+
+fn compare_generations(
+    replay: &[Value],
+    retained: &[Value],
+    retained_sha256: &str,
+) -> ParityReport {
+    let mut stories = Vec::with_capacity(replay.len());
+    let mut mismatches = Vec::new();
+    let mut mismatch_count = 0usize;
+    let mut max_abs_float_delta = 0.0f64;
+    for (index, replay_story) in replay.iter().enumerate() {
+        let missing = Value::Null;
+        let retained_story = retained.get(index).unwrap_or(&missing);
+        let story = compare_generation_pair(index, replay_story, retained_story);
+        mismatch_count += story.mismatches;
+        if story.max_abs_float_delta > max_abs_float_delta {
+            max_abs_float_delta = story.max_abs_float_delta;
+        }
+        mismatches.extend(story.details.iter().cloned());
+        stories.push(story);
+    }
+    if replay.len() != retained.len() {
+        mismatch_count += replay.len().abs_diff(retained.len());
+        mismatches
+            .push(json!({"field":"story_count","replay":replay.len(),"retained":retained.len()}));
+    }
+    ParityReport {
+        schema: "uor-r4.joint-emission-trace-parity/1",
+        status: if mismatch_count == 0 {
+            "PARITY_EXACT".to_owned()
+        } else {
+            "PARITY_FAILED".to_owned()
+        },
+        retained_generations_sha256: retained_sha256.to_owned(),
+        mismatch_count,
+        max_abs_float_delta,
+        stories,
+        mismatches,
+    }
 }
 
 /// A fixed-checkpoint numerical intervention, never a training or export mode.
@@ -2644,5 +2894,110 @@ mod tests {
         }
         cfg.data_seed += 1;
         assert_ne!((x, y), training_batch(&stores, &cfg, 7).unwrap());
+    }
+
+    #[test]
+    fn emission_trace_sampling_table_matches_actual_draw() -> Result<()> {
+        let mut raw = vec![0.0f32; 16];
+        for (index, value) in raw.iter_mut().enumerate() {
+            *value = ((index as f32) * 0.61).sin().abs() + 0.03;
+        }
+        let total: f32 = raw.iter().sum();
+        let probabilities = raw.iter().map(|value| value / total).collect::<Vec<_>>();
+        for seed in [0u64, 1, 7, 42, 2014, 60_000, u64::MAX] {
+            let mut actual_sampler = joint_evaluation::SplitMix64::new(seed);
+            let actual = joint_evaluation::sample_top_k_q32(&probabilities, &mut actual_sampler)?;
+            let order = joint_evaluation::probability_order(&probabilities)?;
+            let table = joint_evaluation::sampling_table_from_order(&order, 40)?;
+            let (_, replica, replica_state) =
+                joint_evaluation::resolve_sampling_draw(&table, seed)?;
+            assert_eq!(actual, replica, "seed {seed}");
+            assert_eq!(replica_state, actual_sampler.state, "seed {seed}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn emission_trace_classification_boundaries() {
+        assert_eq!(
+            joint_evaluation::classify_decision(0, 0.0, 1.0),
+            "top_choice"
+        );
+        assert_eq!(joint_evaluation::classify_decision(1, 0.5, 1.0), "near_tie");
+        assert_eq!(
+            joint_evaluation::classify_decision(1, 0.499999, 1.0),
+            "departure"
+        );
+        assert_eq!(joint_evaluation::classify_decision(3, 0.8, 1.0), "near_tie");
+        assert_eq!(
+            joint_evaluation::classify_decision(2, 0.1, 0.9),
+            "departure"
+        );
+    }
+
+    #[test]
+    fn emission_trace_component_reconstruction() -> Result<()> {
+        let vocab_size = 16usize;
+        let token = 5u32;
+        let no_read_mass = 0.82f64;
+        let copy_gate = 0.31f64;
+        let vocabulary_mass = 0.24f64;
+        let copy_mass = 0.19f64;
+        let mut vocabulary = vec![0f32; vocab_size];
+        let mut copy = vec![0f32; vocab_size];
+        let mut row = vec![0f32; vocab_size];
+        vocabulary[token as usize] = vocabulary_mass as f32;
+        copy[token as usize] = copy_mass as f32;
+        let expected = (1.0 - crate::joint_model::UNIFORM_MIXTURE)
+            * (vocabulary_mass * (1.0 - copy_gate * (1.0 - no_read_mass)) + copy_mass * copy_gate)
+            + crate::joint_model::UNIFORM_MIXTURE / vocab_size as f64;
+        row[token as usize] = expected as f32;
+        let components = joint_evaluation::token_components(
+            &vocabulary,
+            &copy,
+            &row,
+            token,
+            no_read_mass,
+            copy_gate,
+            vocab_size,
+        )?;
+        let formula = (1.0 - crate::joint_model::UNIFORM_MIXTURE)
+            * (components.vocabulary_mass * (1.0 - copy_gate * (1.0 - no_read_mass))
+                + components.copy_mass * copy_gate)
+            + crate::joint_model::UNIFORM_MIXTURE / vocab_size as f64;
+        let reconstructed = components.vocab_contribution
+            + components.copy_contribution
+            + components.uniform_contribution;
+        assert!((reconstructed - formula).abs() < 1e-12);
+        assert!((components.vocabulary_mass - vocabulary_mass).abs() < 1e-6);
+        assert!((components.copy_mass - copy_mass).abs() < 1e-6);
+        assert!(components.reconstruction_error < 1e-6);
+        Ok(())
+    }
+
+    #[test]
+    fn emission_trace_parity_detects_field_mismatch() {
+        let retained = json!({
+            "prompt":"p","seed":2014,"mode":"enabled","generated_token_ids":[1,2],
+            "stop":{"reason":"maximum_new_tokens"},
+            "decisions":[{
+                "selected_token":5,"greedy_token":6,"selected_probability":0.1,
+                "selected_model_nll_nats":2.0,"probability_sum":1.0,
+                "probabilities_sha256_le_f32":"aa","no_read_mass":0.9,"copy_gate":0.01,
+                "effective_copy_mass":0.001,"top_read_occurrence":3,"top_read_token":7,
+                "top_read_mass":0.02,"sampler_state_before":2014,"sampler_state_after":9
+            }]
+        });
+        let exact = compare_generation_pair(0, &retained, &retained);
+        assert!(exact.matches);
+        assert_eq!(exact.mismatches, 0);
+        assert_eq!(exact.decision_matches, vec![true]);
+        let mut changed = retained.clone();
+        changed["decisions"][0]["selected_probability"] = json!(0.2);
+        let mismatch = compare_generation_pair(0, &changed, &retained);
+        assert!(!mismatch.matches);
+        assert_eq!(mismatch.mismatches, 1);
+        assert!(mismatch.max_abs_float_delta > 0.099);
+        assert_eq!(mismatch.decision_matches, vec![false]);
     }
 }
