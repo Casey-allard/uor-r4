@@ -76,6 +76,12 @@ pub fn decay_rate(decay: f64) -> f64 {
     DECAY_EXPONENT * (-decay).exp().ln_1p()
 }
 
+/// The decay whose rate ([`decay_rate`]) is `rate`: how the grid reference
+/// and the served representation read a rate's grid code back.
+pub(crate) fn decay_of_rate(rate: f64) -> f64 {
+    -((rate / DECAY_EXPONENT).exp_m1().ln())
+}
+
 fn values(model: &StackModel, name: &str) -> Result<Vec<f32>> {
     let var = model
         .variables()
@@ -85,7 +91,7 @@ fn values(model: &StackModel, name: &str) -> Result<Vec<f32>> {
 }
 
 /// Multiply column `c` of a row-major matrix by `gain[c]` (RMSNorm folding).
-fn fold_columns(values: &mut [f32], cols: usize, gain: &[f32]) {
+pub(crate) fn fold_columns(values: &mut [f32], cols: usize, gain: &[f32]) {
     for row in values.chunks_exact_mut(cols) {
         for (v, g) in row.iter_mut().zip(gain) {
             *v *= g;
@@ -94,7 +100,13 @@ fn fold_columns(values: &mut [f32], cols: usize, gain: &[f32]) {
 }
 
 /// Pad a row-major `rows x cols` matrix with zero rows and columns.
-fn pad(values: &[f32], rows: usize, cols: usize, to_rows: usize, to_cols: usize) -> Vec<f32> {
+pub(crate) fn pad(
+    values: &[f32],
+    rows: usize,
+    cols: usize,
+    to_rows: usize,
+    to_cols: usize,
+) -> Vec<f32> {
     let mut out = vec![0f32; to_rows * to_cols];
     for r in 0..rows {
         out[r * to_cols..r * to_cols + cols].copy_from_slice(&values[r * cols..(r + 1) * cols]);
@@ -102,12 +114,18 @@ fn pad(values: &[f32], rows: usize, cols: usize, to_rows: usize, to_cols: usize)
     out
 }
 
-fn fixed(value: f64, exp: i32) -> Result<i32> {
+/// `value` as an integer at `2^exp`, rounded to nearest.
+pub(crate) fn fixed(value: f64, exp: i32) -> Result<i32> {
     let scaled = (value * 2f64.powi(-exp)).round();
     if !scaled.is_finite() || scaled.abs() > f64::from(i32::MAX) {
         return Err(invalid("a bias or offset overflows its integer"));
     }
     Ok(scaled as i32)
+}
+
+/// The value of an integer at `2^exp` ([`fixed`]).
+pub(crate) fn fixed_value(value: i32, exp: i32) -> f64 {
+    f64::from(value) * 2f64.powi(exp)
 }
 
 /// Second moments `sum_t x_t x_t^T` of every weight map's input over
@@ -595,7 +613,7 @@ fn packed_values<H: uor_r4_lut::format::Sections>(
 }
 
 /// The first `rows x cols` block of a row-major `stride`-column matrix.
-fn block(values: &[f32], stride: usize, rows: usize, cols: usize) -> Vec<f32> {
+pub(crate) fn block(values: &[f32], stride: usize, rows: usize, cols: usize) -> Vec<f32> {
     (0..rows)
         .flat_map(|r| values[r * stride..r * stride + cols].iter().copied())
         .collect()
@@ -633,7 +651,7 @@ pub fn stack_grid_reference(
             .table_i32(name)
             .map_err(lut_error)?
             .iter()
-            .map(|&v| (f64::from(v) * 2f64.powi(exp)) as f32)
+            .map(|&v| fixed_value(v, exp) as f32)
             .collect())
     };
     let codes = |name: &str| -> Result<Vec<f64>> {
@@ -662,7 +680,7 @@ pub fn stack_grid_reference(
             // The decay whose rate 8 softplus(-decay) is the grid code's value.
             let decay = codes(&a("decay_rate"))?
                 .iter()
-                .map(|&rate| -((rate / DECAY_EXPONENT).exp_m1().ln()) as f32)
+                .map(|&rate| decay_of_rate(rate) as f32)
                 .collect();
             set(&reference, &t("rec.decay"), decay)?;
         } else {

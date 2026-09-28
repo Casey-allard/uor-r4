@@ -6,7 +6,8 @@
 //!
 //! ```text
 //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
-//!   out=NEW_REPORT_ROOT arch=transformer|geometric [pattern=rrarra] [read=lorentz|dot] [rotation=true|false] \
+//!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
+//!   [read=lorentz|dot] [rotation=true|false] [qat=false|true] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -61,6 +62,19 @@
 //! report root is claimed before loading and sealed at the end. Set
 //! RAYON_NUM_THREADS to bound the threads.
 //!
+//! With `init=ROOT/model`, `train` starts from that model's weights with a
+//! fresh optimizer and schedule and takes its configuration from
+//! `ROOT/model/config.json`; architecture options given beside it must agree
+//! with the saved model, and `seed=` (default: the saved one) seeds the window
+//! sampler. It scores the model at step 0 before any update. `qat=true` trains
+//! with the served representation in the forward pass (quantization-aware
+//! training, `StackModel::set_served_representation` with the D11 interim
+//! codec): the values `export` writes when rounding to nearest, with
+//! straight-through gradients. A QAT run's evaluations score the served
+//! representation (`dev`, `final`) and the float weights (`dev_float`,
+//! `final_float`) on the same windows; its saved model is the float weights,
+//! whose round-to-nearest export is the representation it trained.
+//!
 //! `evaluate` scores consecutive 256-input blocks with a fresh state per
 //! block (257 stored ids, 256 targets), the retained evaluator's protocol
 //! (`docs/integration/reference-evaluator-v2.json`): it reports the first
@@ -105,6 +119,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Instant;
 
 use candle_core::Device;
@@ -114,7 +129,8 @@ use uor_r4_core::report_output;
 use uor_r4_training::dialogue_development;
 use uor_r4_training::dialogue_episodes::{PrefixPolicy, EPISODE_CONTEXT};
 use uor_r4_training::geometric_stack::{
-    logits_cross_entropy, ReadScore, StackAdamW, StackArch, StackConfig, StackModel,
+    logits_cross_entropy, D11Interim, MapCodec, ReadScore, ServedStatistics, StackAdamW, StackArch,
+    StackConfig, StackModel,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -526,6 +542,11 @@ struct Settings {
     merges: Option<PathBuf>,
     tokenizer: Option<PathBuf>,
     config: StackConfig,
+    /// A trained model directory the run starts from (`init=`), with a fresh
+    /// optimizer and schedule.
+    init: Option<PathBuf>,
+    /// Train with the served representation (`qat=true`).
+    qat: bool,
     steps: usize,
     batch: usize,
     lr: f64,
@@ -542,27 +563,47 @@ struct Settings {
     sample_tokens: usize,
 }
 
+/// The served representation of `qat=true`.
+fn qat_codec() -> Arc<dyn MapCodec> {
+    Arc::new(D11Interim)
+}
+
 impl Settings {
-    fn record(&self) -> Value {
-        json!({
+    fn record(&self) -> Result<Value> {
+        let init = match &self.init {
+            Some(directory) => json!({
+                "model": identity(&directory.join("model.safetensors"))?,
+                "config": identity(&directory.join("config.json"))?,
+            }),
+            None => Value::Null,
+        };
+        Ok(json!({
             "train": self.train, "train_weights": self.train_weights, "valid": self.valid,
             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
-            "config": self.config, "steps": self.steps, "batch": self.batch, "lr": self.lr,
+            "config": self.config, "init": init,
+            "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+            "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
             "final_windows": self.final_windows, "checkpoint_every": self.checkpoint_every,
             "sample_tokens": self.sample_tokens,
-        })
+        }))
     }
 
     /// Settings and input contents a resumed run must share with its parent.
+    /// A run from `init=` or with `qat=true` also shares those; other runs'
+    /// lineage is unchanged, so their earlier checkpoints still resume.
     fn lineage(&self, inputs: &Value) -> Value {
-        json!({
+        let mut lineage = json!({
             "config": self.config, "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
             "train_weights": self.train_weights, "inputs": inputs,
-        })
+        });
+        if self.qat {
+            lineage["qat"] = json!({"codec": qat_codec().name()});
+        }
+        lineage
     }
 
     /// Content identities (size and SHA-256, not paths) of every file the run
@@ -571,14 +612,155 @@ impl Settings {
         let content = |path: &Path| -> Result<Value> {
             Ok(json!({"bytes": fs::metadata(path)?.len(), "sha256": sha256_file(path)?}))
         };
-        Ok(json!({
+        let mut inputs = json!({
             "train": self.train.iter().map(|p| content(p)).collect::<Result<Vec<_>>>()?,
             "valid": content(&self.valid)?,
             "lens": self.lens.as_deref().map(content).transpose()?,
             "merges": self.merges.as_deref().map(content).transpose()?,
             "tokenizer": self.tokenizer.as_deref().map(content).transpose()?,
-        }))
+        });
+        if let Some(directory) = &self.init {
+            inputs["init"] = json!({
+                "model": content(&directory.join("model.safetensors"))?,
+                "config": content(&directory.join("config.json"))?,
+            });
+        }
+        Ok(inputs)
     }
+}
+
+/// The configuration of `init=`'s model: its `config.json`, with `seed=`
+/// (which seeds the window sampler) in place of the saved seed when given.
+/// Architecture options given beside `init=` must agree with the saved model.
+fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
+    let mut config: StackConfig =
+        serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+    config.validate()?;
+    let name = |arch: StackArch| match arch {
+        StackArch::Geometric => "geometric",
+        StackArch::Transformer => "transformer",
+    };
+    let mut saved: Vec<(&str, String)> = vec![
+        ("arch", name(config.arch).to_owned()),
+        ("pattern", config.pattern.clone()),
+        (
+            "read",
+            match config.read {
+                ReadScore::Lorentz => "lorentz",
+                ReadScore::Dot => "dot",
+            }
+            .to_owned(),
+        ),
+        ("rotation", config.rotation.to_string()),
+        ("width", config.width.to_string()),
+        ("heads", config.heads.to_string()),
+        ("layers", config.layers().to_string()),
+        ("context", config.context.to_string()),
+        (
+            match config.arch {
+                StackArch::Transformer => "mlp",
+                StackArch::Geometric => "stack_mlp",
+            },
+            config.mlp_hidden.to_string(),
+        ),
+    ];
+    if let Some(memory) = &config.memory {
+        let layers: Vec<String> = memory.layers.iter().map(ToString::to_string).collect();
+        saved.extend([
+            ("memory_layers", layers.join(",")),
+            ("memory_sub_keys", memory.sub_keys.to_string()),
+            ("memory_top_k", memory.top_k.to_string()),
+            ("memory_heads", memory.heads.to_string()),
+            ("memory_key_dim", memory.key_dim.to_string()),
+            (
+                "memory_score",
+                match memory.score {
+                    MemoryScore::Dot => "dot",
+                    MemoryScore::Lorentz => "lorentz",
+                }
+                .to_owned(),
+            ),
+            (
+                "memory_codebook",
+                match memory.codebook {
+                    Some(Codebook::H4) => "h4",
+                    Some(Codebook::E8) => "e8",
+                    None => "none",
+                }
+                .to_owned(),
+            ),
+        ]);
+    }
+    // Numbers compare as numbers, everything else as text.
+    let agree = |given: &str, saved: &str| match (given.parse::<usize>(), saved.parse::<usize>()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => given == saved,
+    };
+    let mut conflicts: Vec<String> = saved
+        .iter()
+        .filter_map(|(key, value)| {
+            let given = args.optional(key)?;
+            (!agree(&given, value)).then(|| format!("{key}={given} (the model has {value})"))
+        })
+        .collect();
+    let options = [
+        "memory_layers",
+        "memory_sub_keys",
+        "memory_top_k",
+        "memory_heads",
+        "memory_key_dim",
+        "memory_score",
+        "memory_codebook",
+    ];
+    if config.memory.is_none() {
+        conflicts.extend(
+            options
+                .iter()
+                .filter(|key| args.optional(key).is_some())
+                .map(|key| format!("{key}= (the model has no memory layers)")),
+        );
+    }
+    // A geometric stack's `mlp=` is its control's; it must match the saved width.
+    if let (StackArch::Geometric, Some(text)) = (config.arch, args.optional("mlp")) {
+        let mlp: usize = text
+            .parse()
+            .map_err(|_| invalid(format!("invalid mlp={text}")))?;
+        let mut control = StackConfig::transformer(
+            config.width,
+            config.heads,
+            config.layers(),
+            mlp,
+            config.context,
+            config.seed,
+        )?;
+        control.vocab_size = config.vocab_size;
+        let matched = StackConfig::geometric_matched_to(
+            &control,
+            &config.pattern,
+            config.read,
+            config.rotation,
+        )?
+        .mlp_hidden;
+        if matched != config.mlp_hidden {
+            conflicts.push(format!(
+                "mlp={mlp} matches a stack MLP of {matched} (the model has {})",
+                config.mlp_hidden
+            ));
+        }
+    }
+    if !conflicts.is_empty() {
+        return Err(invalid(format!(
+            "init= takes the architecture of {}; these options conflict: {}",
+            directory.display(),
+            conflicts.join("; ")
+        )));
+    }
+    if let Some(seed) = args.optional("seed") {
+        config.seed = seed
+            .parse()
+            .map_err(|_| invalid(format!("invalid seed={seed}")))?;
+    }
+    Ok(config)
 }
 
 /// The model shape of `arch=` and the shape options: the control's shape,
@@ -678,7 +860,27 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
 }
 
 fn train_settings(args: &Args) -> Result<Settings> {
-    let config = stack_config(args, None)?;
+    let init = args.optional("init").map(PathBuf::from);
+    let config = match &init {
+        Some(directory) => init_config(args, directory)?,
+        None => stack_config(args, None)?,
+    };
+    let qat = match args.optional("qat").as_deref() {
+        None | Some("false") => false,
+        Some("true") => true,
+        Some(other) => return Err(invalid(format!("invalid qat={other}"))),
+    };
+    if qat
+        && (config.arch != StackArch::Geometric
+            || config.memory.is_some()
+            || !config.width.is_multiple_of(uor_r4_lut::GROUP))
+    {
+        return Err(invalid(format!(
+            "qat=true trains the geometric stack export's representation: a geometric stack \
+             without memory layers whose width is a multiple of {}",
+            uor_r4_lut::GROUP
+        )));
+    }
     let train: Vec<PathBuf> = args
         .required("train")?
         .split(',')
@@ -709,6 +911,8 @@ fn train_settings(args: &Args) -> Result<Settings> {
         merges: args.optional("merges").map(PathBuf::from),
         tokenizer: args.optional("tokenizer").map(PathBuf::from),
         config,
+        init,
+        qat,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
         lr: args.number("lr", 0.002)?,
@@ -807,6 +1011,52 @@ fn evaluate(
         bits_per_byte: lens.map(|_| nll / std::f64::consts::LN_2 / bytes),
         targets: targets_seen,
     })
+}
+
+/// [`evaluate`] in the model's mode and, in served mode (a QAT run), of its
+/// float weights too, on the same windows.
+fn evaluate_modes(
+    model: &mut StackModel,
+    valid: &[u32],
+    lens: Option<&[u32]>,
+    windows: usize,
+) -> Result<(Evaluation, Option<Evaluation>)> {
+    let evaluation = evaluate(model, valid, lens, windows)?;
+    let float = match model.served_codec() {
+        Some(_) => Some(model.with_float_forward(|model| evaluate(model, valid, lens, windows))?),
+        None => None,
+    };
+    Ok((evaluation, float))
+}
+
+/// Seconds of this process's updates: the first (which includes one-time
+/// allocation) apart from the rest.
+fn step_timing(seconds: &[f64]) -> Value {
+    let rest = seconds.get(1..).unwrap_or(&[]);
+    let mean = |values: &[f64]| {
+        (!values.is_empty()).then(|| values.iter().sum::<f64>() / values.len() as f64)
+    };
+    json!({
+        "steps": seconds.len(),
+        "first": seconds.first(),
+        "mean_after_first": mean(rest),
+        "min_after_first": rest.iter().copied().reduce(f64::min),
+        "max_after_first": rest.iter().copied().reduce(f64::max),
+    })
+}
+
+/// Add the served representation's work between `before` and `after` to `total`.
+fn add_served_work(
+    total: &mut ServedStatistics,
+    before: Option<ServedStatistics>,
+    after: Option<ServedStatistics>,
+) {
+    if let (Some(before), Some(after)) = (before, after) {
+        total.checks += after.checks - before.checks;
+        total.refreshes += after.refreshes - before.refreshes;
+        total.tensors += after.tensors - before.tensors;
+        total.seconds += after.seconds - before.seconds;
+    }
 }
 
 /// Greedy (`temperature = 0`) or top-k sampled continuation of `prompt`.
@@ -995,9 +1245,22 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             "token files are too short for the context and windows",
         ));
     }
-    let (model, mut optimizer, mut progress, resumed_from) = match &settings.resume {
+    let (mut model, mut optimizer, mut progress, resumed_from) = match &settings.resume {
         None => {
-            let model = StackModel::new(settings.config.clone(), &device)?;
+            let model = match &settings.init {
+                Some(directory) => {
+                    let mut model = StackModel::load(directory, &device)?;
+                    // `seed=` alone may differ from the saved configuration.
+                    let mut saved = model.config.clone();
+                    saved.seed = settings.config.seed;
+                    if saved != settings.config {
+                        return Err(invalid("init='s model differs from its config.json"));
+                    }
+                    model.config = saved;
+                    model
+                }
+                None => StackModel::new(settings.config.clone(), &device)?,
+            };
             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
             let progress = Progress {
                 step: 0,
@@ -1023,8 +1286,26 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         model.config.rotation,
         model.config.mlp_hidden
     );
+    if settings.qat {
+        model.set_served_representation(Some(qat_codec()))?;
+    }
+    // A run from a trained model scores it before any update.
+    if settings.init.is_some() && progress.step == 0 {
+        let (evaluation, float) =
+            evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+        let mut point = json!({"step": 0, "tokens": 0, "dev": evaluation.record()});
+        if let Some(float) = &float {
+            point["dev_float"] = float.record();
+        }
+        eprintln!("{point}");
+        progress.curve.push(point);
+    }
     let mut window_loss = (0f64, 0usize);
     let mut stopped_early = false;
+    // This process's updates: their seconds, and the served representation's
+    // work inside them.
+    let mut step_seconds = Vec::new();
+    let mut served_in_steps = ServedStatistics::default();
     let started = Instant::now();
     while progress.step < settings.steps {
         let lr = learning_rate(settings, progress.step);
@@ -1045,6 +1326,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             ids.extend_from_slice(&stream[start..start + time]);
             targets.extend_from_slice(&stream[start + 1..start + time + 1]);
         }
+        let served_before = model.served_statistics()?;
         let loss = model.loss(&ids, &targets, settings.batch, time)?;
         let value = f64::from(loss.to_scalar::<f32>()?);
         if !value.is_finite() {
@@ -1055,20 +1337,31 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         }
         let grads = loss.backward()?;
         let grad_norm = optimizer.update(&model, &grads, lr)?;
-        progress.train_seconds += clock.elapsed().as_secs_f64();
+        let seconds = clock.elapsed().as_secs_f64();
+        add_served_work(
+            &mut served_in_steps,
+            served_before,
+            model.served_statistics()?,
+        );
+        step_seconds.push(seconds);
+        progress.train_seconds += seconds;
         progress.step += 1;
         window_loss.0 += value;
         window_loss.1 += 1;
         if progress.step % settings.eval_every == 0 || progress.step == settings.steps {
-            let evaluation = evaluate(&model, &valid, lens.as_deref(), settings.eval_windows)?;
+            let (evaluation, float) =
+                evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
             let tokens = progress.step * settings.batch * time;
-            let point = json!({
+            let mut point = json!({
                 "step": progress.step, "tokens": tokens, "lr": lr,
                 "train_loss": window_loss.0 / window_loss.1.max(1) as f64,
                 "dev": evaluation.record(), "grad_norm": grad_norm,
                 "train_seconds": progress.train_seconds,
                 "tokens_per_second": tokens as f64 / progress.train_seconds,
             });
+            if let Some(float) = &float {
+                point["dev_float"] = float.record();
+            }
             eprintln!("{point}");
             progress.curve.push(point);
             window_loss = (0.0, 0);
@@ -1085,8 +1378,12 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             break;
         }
     }
-    let final_evaluation = evaluate(&model, &valid, lens.as_deref(), settings.final_windows)?;
+    let (final_evaluation, final_float) =
+        evaluate_modes(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
     eprintln!("final: {}", final_evaluation.record());
+    if let Some(float) = &final_float {
+        eprintln!("final float: {}", float.record());
+    }
     model.save(&out.join("model"))?;
     if !stopped_early {
         // A completed run keeps only its final model; a stopped one keeps the
@@ -1109,9 +1406,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         Value::Null
     };
     let executable = std::env::current_exe()?;
-    let report = json!({
+    let mut report = json!({
         "schema": "uor-r4.geometric-stack-run/1",
-        "settings": settings.record(),
+        "settings": settings.record()?,
         "parameters": parameters,
         "active_parameters": active_parameters,
         "completed_steps": progress.step,
@@ -1120,6 +1417,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "target_visits": progress.step * settings.batch * time,
         "train_seconds": progress.train_seconds,
         "tokens_per_second": (progress.step * settings.batch * time) as f64 / progress.train_seconds.max(1e-9),
+        "step_seconds": step_timing(&step_seconds),
         "threads": std::env::var("RAYON_NUM_THREADS").ok(),
         "curve": progress.curve,
         "final": final_evaluation.record(),
@@ -1130,10 +1428,20 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             "lens": settings.lens.as_ref().map(|p| identity(p)).transpose()?,
             "merges": settings.merges.as_ref().map(|p| identity(p)).transpose()?,
             "tokenizer": settings.tokenizer.as_ref().map(|p| identity(p)).transpose()?,
+            "init": settings.init.as_ref().map(|p| identity(&p.join("model.safetensors"))).transpose()?,
         },
         "executable": identity(&executable)?,
         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
     });
+    if let Some(codec) = model.served_codec() {
+        report["qat"] = json!({
+            "codec": codec.name(),
+            "representation": "the forward pass read the round-to-nearest export's values (4-bit maps with the norm gains folded in, grid-code scalars, fixed-point biases, age tables and offsets) with straight-through gradients; `dev` and `final` score that representation, `dev_float` and `final_float` the float weights on the same windows; samples come from the served representation",
+            "final_float": final_float.as_ref().map(Evaluation::record),
+            "served_work_in_updates": served_in_steps,
+            "served_work_total": model.served_statistics()?,
+        });
+    }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
     Ok(())
 }
@@ -2778,6 +3086,8 @@ fn main() -> Result<()> {
                     "memory_key_dim",
                     "memory_score",
                     "memory_codebook",
+                    "init",
+                    "qat",
                 ],
             )?;
             let settings = train_settings(&args)?;

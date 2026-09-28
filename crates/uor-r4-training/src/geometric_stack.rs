@@ -27,15 +27,31 @@
 //! The control layer is RoPE softmax attention plus a SwiGLU MLP, #1017's
 //! layout. Its attention uses the same fused op with the Dot score and no NoRead
 //! or age, so both models run on the same kernels.
+//!
+//! Quantization-aware training: with a served representation set
+//! ([`StackModel::set_served_representation`]), a geometric stack's forward
+//! pass reads exactly the values its integer export writes
+//! ([`crate::stack_export::export_stack`]): weight maps through a
+//! [`MapCodec`] (by default [`D11Interim`], the export's own 4-bit groups)
+//! with the norm gains folded in, per-channel scalars through their grid codes
+//! and biases, age tables and Lorentz offsets in fixed point. Gradients reach
+//! the float variables by a straight-through estimator.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use uor_r4_lut::GROUP;
 
+use crate::lut_export::{dequantize_matrix, quantize_matrix};
+use crate::stack_export::{
+    block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
+};
 use crate::stack_memory::{keys_aux_len, product_key_memory, MemoryConfig, MemoryScore};
 use crate::{invalid, Result};
 
@@ -400,6 +416,9 @@ pub struct StackModel {
     pub config: StackConfig,
     variables: BTreeMap<String, Var>,
     device: Device,
+    /// The served representation the forward pass reads, if set
+    /// ([`Self::set_served_representation`]).
+    served: Option<ServedState>,
 }
 
 impl StackModel {
@@ -490,6 +509,7 @@ impl StackModel {
             config,
             variables,
             device: device.clone(),
+            served: None,
         })
     }
 
@@ -519,15 +539,23 @@ impl StackModel {
         &self.variables
     }
 
-    fn weight(&self, name: &str) -> Result<&Tensor> {
-        self.variables
-            .get(name)
-            .map(Var::as_tensor)
-            .ok_or_else(|| invalid(format!("missing stack variable {name}")))
+    /// The tensors a forward pass reads: the variables, or in served mode the
+    /// served view of their current values.
+    fn params(&self) -> Result<Params<'_>> {
+        match &self.served {
+            None => Ok(Params::Float(&self.variables)),
+            Some(state) => Ok(Params::Served(self.served_view(state)?)),
+        }
     }
 
-    fn layer_weight(&self, layer: usize, suffix: &str) -> Result<&Tensor> {
-        self.weight(&format!("layers.{layer:02}.{suffix}"))
+    /// RMSNorm with the gain `gain`; in served mode the gain is folded into
+    /// the maps that read the norm, so the norm itself is unit.
+    fn norm(&self, p: &Params<'_>, input: &Tensor, gain: &str) -> Result<Tensor> {
+        if p.folded_gains() {
+            self.unit_norm(input)
+        } else {
+            self.rms_norm(input, p.get(gain)?)
+        }
     }
 
     fn rms_norm(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
@@ -557,31 +585,43 @@ impl StackModel {
         Ok(output.reshape(shape)?)
     }
 
-    fn mlp(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+    fn mlp(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        x: &Tensor,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
         tap(capture, StackSite::Mlp(layer), || self.unit_norm(x))?;
-        let u = self.rms_norm(x, self.layer_weight(layer, "mlp_norm.weight")?)?;
+        let u = self.norm(p, x, &layer_name(layer, "mlp_norm.weight"))?;
         if let Some(memory) = self
             .config
             .memory
             .as_ref()
             .filter(|m| m.layers.contains(&layer))
         {
-            return self.memory(layer, &u, memory);
+            return self.memory(p, layer, &u, memory);
         }
-        let gate = Self::linear(&u, self.layer_weight(layer, "mlp.gate.weight")?)?;
-        let up = Self::linear(&u, self.layer_weight(layer, "mlp.up.weight")?)?;
+        let gate = Self::linear(&u, p.layer(layer, "mlp.gate.weight")?)?;
+        let up = Self::linear(&u, p.layer(layer, "mlp.up.weight")?)?;
         let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
         tap(capture, StackSite::Down(layer), || Ok(mixed.clone()))?;
-        Self::linear(&mixed, self.layer_weight(layer, "mlp.down.weight")?)
+        Self::linear(&mixed, p.layer(layer, "mlp.down.weight")?)
     }
 
     /// The product-key memory in place of `layer`'s MLP, on the normalized
     /// input `u` [batch, time, width].
-    fn memory(&self, layer: usize, u: &Tensor, memory: &MemoryConfig) -> Result<Tensor> {
+    fn memory(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        u: &Tensor,
+        memory: &MemoryConfig,
+    ) -> Result<Tensor> {
         let (batch, time, width) = u.dims3()?;
-        let query = Self::linear(u, self.layer_weight(layer, "memory.query.weight")?)?
+        let query = Self::linear(u, p.layer(layer, "memory.query.weight")?)?
             .reshape((batch * time, memory.heads * memory.key_dim))?;
-        let keys = self.layer_weight(layer, "memory.keys")?.flatten_all()?;
+        let keys = p.layer(layer, "memory.keys")?.flatten_all()?;
         // Fixed codebook keys carry no gradient, so they never move.
         let mut aux = vec![if memory.codebook.is_some() {
             keys.detach()
@@ -589,19 +629,16 @@ impl StackModel {
             keys
         }];
         if memory.score == MemoryScore::Lorentz {
-            aux.push(self.layer_weight(layer, "memory.log_beta")?.exp()?);
+            aux.push(p.layer(layer, "memory.log_beta")?.exp()?);
         }
         let aux = Tensor::cat(&aux, 0)?;
         if aux.elem_count() != keys_aux_len(memory) {
             return Err(invalid("memory key layout differs from its configuration"));
         }
-        Ok(product_key_memory(
-            &query,
-            &aux,
-            self.layer_weight(layer, "memory.values")?,
-            memory,
-        )?
-        .reshape((batch, time, width))?)
+        Ok(
+            product_key_memory(&query, &aux, p.layer(layer, "memory.values")?, memory)?
+                .reshape((batch, time, width))?,
+        )
     }
 
     /// Splits [batch, time, width] into [batch, heads, time, head_width].
@@ -618,16 +655,19 @@ impl StackModel {
             .reshape((batch, time, self.config.width))?)
     }
 
-    fn attention(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+    fn attention(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        x: &Tensor,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
         let (batch, time, _) = x.dims3()?;
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
-        let u = self.rms_norm(x, self.layer_weight(layer, "attn_norm.weight")?)?;
+        let u = self.norm(p, x, &layer_name(layer, "attn_norm.weight"))?;
         let project = |part: &str| -> Result<Tensor> {
             self.heads(
-                &Self::linear(
-                    &u,
-                    self.layer_weight(layer, &format!("attn.{part}.weight"))?,
-                )?,
+                &Self::linear(&u, p.layer(layer, &format!("attn.{part}.weight"))?)?,
                 batch,
                 time,
             )
@@ -646,11 +686,12 @@ impl StackModel {
         )?;
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
-        Self::linear(&merged, self.layer_weight(layer, "attn.o.weight")?)
+        Self::linear(&merged, p.layer(layer, "attn.o.weight")?)
     }
 
     fn geometric_read(
         &self,
+        p: &Params<'_>,
         layer: usize,
         x: &Tensor,
         capture: &mut Capture<'_>,
@@ -658,30 +699,27 @@ impl StackModel {
         let (batch, time, _) = x.dims3()?;
         let heads = self.config.heads;
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
-        let u = self.rms_norm(x, self.layer_weight(layer, "read_norm.weight")?)?;
+        let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let project = |part: &str| -> Result<Tensor> {
             self.heads(
-                &Self::linear(
-                    &u,
-                    self.layer_weight(layer, &format!("read.{part}.weight"))?,
-                )?,
+                &Self::linear(&u, p.layer(layer, &format!("read.{part}.weight"))?)?,
                 batch,
                 time,
             )
         };
         let (query, key, value) = (project("query")?, project("key")?, project("value")?);
-        let null = Self::linear(&u, self.layer_weight(layer, "read.null.weight")?)?
-            .broadcast_add(self.layer_weight(layer, "read.null.bias")?)?
+        let null = Self::linear(&u, p.layer(layer, "read.null.weight")?)?
+            .broadcast_add(p.layer(layer, "read.null.bias")?)?
             .transpose(1, 2)?
             .flatten_all()?;
-        let age = self
-            .layer_weight(layer, "read.age")?
+        let age = p
+            .layer(layer, "read.age")?
             .narrow(1, 0, time)?
             .flatten_all()?;
         let mut aux = vec![null, age];
         if self.config.read == ReadScore::Lorentz {
-            aux.push(self.layer_weight(layer, "read.log_beta")?.exp()?);
-            aux.push(self.layer_weight(layer, "read.offset")?.clone());
+            aux.push(p.layer(layer, "read.log_beta")?.exp()?);
+            aux.push(p.layer(layer, "read.offset")?.clone());
         }
         let aux = Tensor::cat(&aux, 0)?;
         if aux.dim(0)? != fused_aux_len(batch, heads, time, self.config.read, true, true) {
@@ -699,21 +737,27 @@ impl StackModel {
         )?;
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
-        Self::linear(&merged, self.layer_weight(layer, "read.out.weight")?)
+        Self::linear(&merged, p.layer(layer, "read.out.weight")?)
     }
 
-    fn recurrence(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+    fn recurrence(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        x: &Tensor,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
         let (batch, time, width) = x.dims3()?;
         tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
-        let u = self.rms_norm(x, self.layer_weight(layer, "rec_norm.weight")?)?;
-        let branches = Self::linear(&u, self.layer_weight(layer, "rec.in.weight")?)?;
-        let gates = Self::linear(&u, self.layer_weight(layer, "rec.gate.weight")?)?
-            .broadcast_add(self.layer_weight(layer, "rec.gate.bias")?)?;
+        let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
+        let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
+        let gates = Self::linear(&u, p.layer(layer, "rec.gate.weight")?)?
+            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
         let parameters = Tensor::cat(
             &[
-                &self.layer_weight(layer, "rec.conv.weight")?.flatten_all()?,
-                self.layer_weight(layer, "rec.conv.bias")?,
-                self.layer_weight(layer, "rec.decay")?,
+                &p.layer(layer, "rec.conv.weight")?.flatten_all()?,
+                p.layer(layer, "rec.conv.bias")?,
+                p.layer(layer, "rec.decay")?,
             ],
             0,
         )?;
@@ -732,20 +776,22 @@ impl StackModel {
             StackSite::RecurrenceOut(layer),
             || Ok(core.clone()),
         )?;
-        Self::linear(&core, self.layer_weight(layer, "rec.out.weight")?)
+        Self::linear(&core, p.layer(layer, "rec.out.weight")?)
     }
 
     /// Logits [batch * time, vocabulary] for a batch of windows. Positions see
     /// only themselves and earlier positions of the same window.
     pub fn forward(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
-        let embedding = self.weight("embedding.weight")?;
-        Ok(self.hidden(ids, batch, time)?.matmul(&embedding.t()?)?)
+        let p = self.params()?;
+        let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
     /// The final normalized states [batch * time, width], which the tied
-    /// embedding maps to logits.
+    /// embedding (in served mode, the served head) maps to logits.
     pub fn hidden(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
-        self.hidden_hooked(ids, batch, time, &mut None)
+        let p = self.params()?;
+        self.hidden_hooked(&p, ids, batch, time, &mut None)
     }
 
     /// [`hidden`](Self::hidden), presenting the input of every weight map to
@@ -760,22 +806,29 @@ impl StackModel {
         time: usize,
         capture: &mut dyn FnMut(StackSite, &Tensor) -> Result<()>,
     ) -> Result<Tensor> {
-        self.hidden_hooked(ids, batch, time, &mut Some(capture))
+        let p = self.params()?;
+        self.hidden_hooked(&p, ids, batch, time, &mut Some(capture))
     }
 
     fn hidden_hooked(
         &self,
+        p: &Params<'_>,
         ids: &[u32],
         batch: usize,
         time: usize,
         capture: &mut Capture<'_>,
     ) -> Result<Tensor> {
-        let x = self.embed(ids, batch, time)?;
-        self.layers_hooked(x, capture)
+        let x = self.embed_with(p, ids, batch, time)?;
+        self.layers_hooked(p, x, capture)
     }
 
     /// The token embeddings [batch, time, width] that the first layer reads.
     pub fn embed(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+        let p = self.params()?;
+        self.embed_with(&p, ids, batch, time)
+    }
+
+    fn embed_with(&self, p: &Params<'_>, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
         if ids.len() != batch * time || time == 0 || time > self.config.context {
             return Err(invalid(
                 "stack forward needs batch * time ids within the context",
@@ -784,7 +837,7 @@ impl StackModel {
         if ids.iter().any(|&id| id as usize >= self.config.vocab_size) {
             return Err(invalid("token id outside the vocabulary"));
         }
-        let embedding = self.weight("embedding.weight")?;
+        let embedding = p.get("embedding.weight")?;
         let index = Tensor::from_vec(ids.to_vec(), batch * time, &self.device)?;
         Ok(embedding
             .index_select(&index, 0)?
@@ -801,12 +854,15 @@ impl StackModel {
                 "stack input needs [batch, time, width] within the context",
             ));
         }
-        self.layers_hooked(x, &mut None)
+        let p = self.params()?;
+        self.layers_hooked(&p, x, &mut None)
     }
 
-    /// Logits [rows, vocabulary] from final states, through the tied embedding.
+    /// Logits [rows, vocabulary] from final states, through the tied embedding
+    /// (in served mode, the served head).
     pub fn head(&self, hidden: &Tensor) -> Result<Tensor> {
-        Ok(hidden.matmul(&self.weight("embedding.weight")?.t()?)?)
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
     /// The residual stream [batch, time, width] after running `layers` on
@@ -824,42 +880,55 @@ impl StackModel {
                 "stack layers need [batch, time, width] within the context and a valid layer range",
             ));
         }
-        self.layer_range_hooked(x, layers, &mut None)
+        let p = self.params()?;
+        self.layer_range_hooked(&p, x, layers, &mut None)
     }
 
     /// The final normalized states [batch * time, width] from the residual
     /// stream after the last layer.
     pub fn finish(&self, x: Tensor) -> Result<Tensor> {
-        self.finish_hooked(x, &mut None)
+        let p = self.params()?;
+        self.finish_hooked(&p, x, &mut None)
     }
 
-    fn layers_hooked(&self, x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
-        let x = self.layer_range_hooked(x, 0..self.config.layers(), capture)?;
-        self.finish_hooked(x, capture)
+    fn layers_hooked(
+        &self,
+        p: &Params<'_>,
+        x: Tensor,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
+        let x = self.layer_range_hooked(p, x, 0..self.config.layers(), capture)?;
+        self.finish_hooked(p, x, capture)
     }
 
     fn layer_range_hooked(
         &self,
+        p: &Params<'_>,
         mut x: Tensor,
         layers: std::ops::Range<usize>,
         capture: &mut Capture<'_>,
     ) -> Result<Tensor> {
         for layer in layers {
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
-                (StackArch::Transformer, _) => self.attention(layer, &x, capture)?,
-                (StackArch::Geometric, 'r') => self.recurrence(layer, &x, capture)?,
-                (StackArch::Geometric, _) => self.geometric_read(layer, &x, capture)?,
+                (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
+                (StackArch::Geometric, 'r') => self.recurrence(p, layer, &x, capture)?,
+                (StackArch::Geometric, _) => self.geometric_read(p, layer, &x, capture)?,
             };
             x = x.add(&mixed)?;
-            x = x.add(&self.mlp(layer, &x, capture)?)?;
+            x = x.add(&self.mlp(p, layer, &x, capture)?)?;
         }
         Ok(x)
     }
 
-    fn finish_hooked(&self, x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+    fn finish_hooked(
+        &self,
+        p: &Params<'_>,
+        x: Tensor,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
         let (batch, time, _) = x.dims3()?;
         tap(capture, StackSite::Head, || self.unit_norm(&x))?;
-        let x = self.rms_norm(&x, self.weight("final_norm.weight")?)?;
+        let x = self.norm(p, &x, "final_norm.weight")?;
         Ok(x.reshape((batch * time, self.config.width))?)
     }
 
@@ -971,6 +1040,7 @@ impl StackModel {
             config,
             variables,
             device: device.clone(),
+            served: None,
         })
     }
 }
@@ -995,38 +1065,40 @@ impl StackModel {
         if snap.is_some() && !self.config.rotation {
             return Err(invalid("transport snapping needs a rotating stack"));
         }
-        let mut x = self.embed(ids, batch, time)?;
+        let p = self.params()?;
+        let mut x = self.embed_with(&p, ids, batch, time)?;
         for layer in 0..self.config.layers() {
             let mixed = match self.config.layer_kind(layer) {
-                'r' => self.composed_recurrence(layer, &x, snap)?,
-                _ => self.geometric_read(layer, &x, &mut None)?,
+                'r' => self.composed_recurrence(&p, layer, &x, snap)?,
+                _ => self.geometric_read(&p, layer, &x, &mut None)?,
             };
             x = x.add(&mixed)?;
-            x = x.add(&self.mlp(layer, &x, &mut None)?)?;
+            x = x.add(&self.mlp(&p, layer, &x, &mut None)?)?;
         }
-        let hidden = self.finish_hooked(x, &mut None)?;
-        self.head(&hidden)
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
     /// The recurrence mixer composed from Candle operations: the reference
     /// for the fused core. `snap` replaces each unit transport quaternion by
     /// its nearest root (see [`Self::logits_with_transport`]).
-    pub(crate) fn composed_recurrence(
+    fn composed_recurrence(
         &self,
+        p: &Params<'_>,
         layer: usize,
         x: &Tensor,
         snap: Option<&[[f32; 4]]>,
     ) -> Result<Tensor> {
         let (batch, time, width) = x.dims3()?;
         let lanes = width / 4;
-        let u = self.rms_norm(x, self.layer_weight(layer, "rec_norm.weight")?)?;
-        let branches = Self::linear(&u, self.layer_weight(layer, "rec.in.weight")?)?;
+        let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
+        let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
         let input = branches.narrow(2, 0, width)?;
         let gate = branches.narrow(2, width, width)?;
         // Width-4 causal depthwise convolution over time.
-        let weights = self.layer_weight(layer, "rec.conv.weight")?;
-        let mut convolved = self
-            .layer_weight(layer, "rec.conv.bias")?
+        let weights = p.layer(layer, "rec.conv.weight")?;
+        let mut convolved = p
+            .layer(layer, "rec.conv.bias")?
             .broadcast_as((batch, time, width))?
             .contiguous()?;
         for shift in 0..CONVOLUTION_WIDTH.min(time) {
@@ -1043,12 +1115,12 @@ impl StackModel {
             };
             convolved = convolved.add(&shifted.broadcast_mul(&weights.get(shift)?)?)?;
         }
-        let gates = Self::linear(&u, self.layer_weight(layer, "rec.gate.weight")?)?
-            .broadcast_add(self.layer_weight(layer, "rec.gate.bias")?)?;
+        let gates = Self::linear(&u, p.layer(layer, "rec.gate.weight")?)?
+            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
         let opening = candle_nn::ops::sigmoid(&gates.narrow(2, 0, lanes)?)?;
         // log a = -softplus(-decay) keeps a in (0, 1); log lambda = c r log a.
-        let log_a = self
-            .layer_weight(layer, "rec.decay")?
+        let log_a = p
+            .layer(layer, "rec.decay")?
             .neg()?
             .exp()?
             .affine(1.0, 1.0)?
@@ -1083,7 +1155,7 @@ impl StackModel {
             .reshape((batch, time, width))?;
         Self::linear(
             &state.mul(&gate.gelu()?)?,
-            self.layer_weight(layer, "rec.out.weight")?,
+            p.layer(layer, "rec.out.weight")?,
         )
     }
 }
@@ -1116,6 +1188,561 @@ fn snap_to_roots(unit: &Tensor, roots: &[[f32; 4]]) -> Result<Tensor> {
         shape,
         unit.device(),
     )?)
+}
+
+// ---------------------------------------------------------------------------
+// The served representation: training with the export's values in the loop.
+
+/// A representation of the weight maps whose values a forward pass can read
+/// ([`StackModel::set_served_representation`]): its round trip returns the
+/// dequantized values a serving artifact would hold. [`D11Interim`] is the
+/// stack export's own; a geometry-coded 4-bit codec (roadmap D4) plugs in here.
+pub trait MapCodec: Send + Sync {
+    /// A stable name for reports.
+    fn name(&self) -> &str;
+
+    /// Round-trip a row-major `rows x cols` matrix through the codec
+    /// (dequantized values). `cols` is a multiple of `uor_r4_lut::GROUP`.
+    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>>;
+}
+
+/// The D11 interim weight format exactly as
+/// [`crate::stack_export::export_stack`] writes it without calibration: 4-bit
+/// values in groups of `GROUP` columns with a one-byte grid scale per group,
+/// rounded to nearest ([`quantize_matrix`], then [`dequantize_matrix`]).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct D11Interim;
+
+impl MapCodec for D11Interim {
+    fn name(&self) -> &str {
+        "d11-interim-4bit-g32-round-to-nearest"
+    }
+
+    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>> {
+        let packed = quantize_matrix(values, rows, cols)?;
+        dequantize_matrix(rows, cols, packed.exp_base, &packed.nibbles, &packed.scales)
+    }
+}
+
+/// The served view's name for the output map: the embedding with the final
+/// norm's gain folded in, which the export writes as its own matrix.
+const SERVED_HEAD: &str = "head";
+
+fn layer_name(layer: usize, suffix: &str) -> String {
+    format!("layers.{layer:02}.{suffix}")
+}
+
+/// How the export writes one tensor.
+#[derive(Clone, Debug)]
+enum ServedKind {
+    /// A `rows x cols` weight map through the codec: its columns times the
+    /// norm gain `gain` first, if any, and padded with zeros to `padded` (the
+    /// MLP's units) as the export pads.
+    Map {
+        gain: Option<String>,
+        rows: usize,
+        cols: usize,
+        padded: (usize, usize),
+    },
+    /// Grid codes of the values (convolution taps).
+    Taps,
+    /// Grid codes of the rate `8 softplus(-decay)`, read back as a decay.
+    DecayRate,
+    /// Grid codes of `beta = exp(log_beta)`, read back as `ln beta`.
+    LorentzScale,
+    /// Integers at `2^exp`.
+    Fixed(i32),
+}
+
+/// One tensor of the served view.
+#[derive(Clone, Debug)]
+struct ServedTensor {
+    /// Its name in the view: its variable's, or [`SERVED_HEAD`].
+    name: String,
+    /// The variable it stands for, which its gradient reaches.
+    source: String,
+    kind: ServedKind,
+}
+
+impl ServedTensor {
+    /// The variables its value is computed from.
+    fn sources(&self) -> impl Iterator<Item = &str> {
+        let gain = match &self.kind {
+            ServedKind::Map { gain, .. } => gain.as_deref(),
+            _ => None,
+        };
+        std::iter::once(self.source.as_str()).chain(gain)
+    }
+
+    /// The values the export writes for this tensor, read back as floats
+    /// (what [`crate::stack_export::stack_grid_reference`] holds), from the
+    /// variables' current `values`.
+    fn served_values(
+        &self,
+        values: &BTreeMap<String, Vec<f32>>,
+        codec: &dyn MapCodec,
+    ) -> Result<Vec<f32>> {
+        let get = |name: &str| {
+            values
+                .get(name)
+                .ok_or_else(|| invalid(format!("missing stack variable {name}")))
+        };
+        let source = get(&self.source)?;
+        let scalars = |f: &dyn Fn(f64) -> Result<f64>| -> Result<Vec<f32>> {
+            source
+                .iter()
+                .map(|&v| Ok(f(f64::from(v))? as f32))
+                .collect()
+        };
+        match &self.kind {
+            ServedKind::Map {
+                gain,
+                rows,
+                cols,
+                padded,
+            } => {
+                let mut map = source.clone();
+                if let Some(gain) = gain {
+                    fold_columns(&mut map, *cols, get(gain)?);
+                }
+                let (to_rows, to_cols) = *padded;
+                let same = (to_rows, to_cols) == (*rows, *cols);
+                if !same {
+                    map = pad(&map, *rows, *cols, to_rows, to_cols);
+                }
+                let served = codec.round_trip(&map, to_rows, to_cols)?;
+                if served.len() != to_rows * to_cols || served.iter().any(|v| !v.is_finite()) {
+                    return Err(invalid(format!(
+                        "codec {} returned {} values or a nonfinite one for {} ({to_rows} x {to_cols})",
+                        codec.name(),
+                        served.len(),
+                        self.name
+                    )));
+                }
+                Ok(if same {
+                    served
+                } else {
+                    block(&served, to_cols, *rows, *cols)
+                })
+            }
+            ServedKind::Taps => scalars(&|v| Ok(grid_value(grid_code(v)?))),
+            ServedKind::DecayRate => {
+                scalars(&|v| Ok(decay_of_rate(grid_value(grid_code(decay_rate(v))?))))
+            }
+            ServedKind::LorentzScale => scalars(&|v| Ok(grid_value(grid_code(v.exp())?).ln())),
+            ServedKind::Fixed(exp) => scalars(&|v| Ok(fixed_value(fixed(v, *exp)?, *exp))),
+        }
+    }
+}
+
+/// Every tensor the stack export writes, in the forward pass's terms: for a
+/// geometric stack without memories whose width is a multiple of `GROUP`.
+fn served_plan(config: &StackConfig) -> Result<Vec<ServedTensor>> {
+    if config.arch != StackArch::Geometric || config.memory.is_some() {
+        return Err(invalid(
+            "the served representation is the geometric stack export's; it has no transformer or memory layers",
+        ));
+    }
+    if !config.width.is_multiple_of(GROUP) {
+        return Err(invalid(format!(
+            "the served representation needs a width that is a multiple of {GROUP}"
+        )));
+    }
+    let (d, vocab) = (config.width, config.vocab_size);
+    let m = config.mlp_hidden;
+    let padded_mlp = m.div_ceil(GROUP) * GROUP;
+    let map = |name: String, gain: Option<String>, rows: usize, cols: usize, padded| ServedTensor {
+        source: name.clone(),
+        name,
+        kind: ServedKind::Map {
+            gain,
+            rows,
+            cols,
+            padded,
+        },
+    };
+    let scalar = |name: String, kind: ServedKind| ServedTensor {
+        source: name.clone(),
+        name,
+        kind,
+    };
+    let mut plan = vec![
+        map("embedding.weight".into(), None, vocab, d, (vocab, d)),
+        ServedTensor {
+            name: SERVED_HEAD.into(),
+            source: "embedding.weight".into(),
+            kind: ServedKind::Map {
+                gain: Some("final_norm.weight".into()),
+                rows: vocab,
+                cols: d,
+                padded: (vocab, d),
+            },
+        },
+    ];
+    for layer in 0..config.layers() {
+        let n = |suffix: &str| layer_name(layer, suffix);
+        if config.layer_kind(layer) == 'r' {
+            let gain = Some(n("rec_norm.weight"));
+            let gate_rows = d / 4 + config.rotation_rows();
+            plan.push(map(n("rec.in.weight"), gain.clone(), 2 * d, d, (2 * d, d)));
+            plan.push(map(
+                n("rec.gate.weight"),
+                gain,
+                gate_rows,
+                d,
+                (gate_rows, d),
+            ));
+            plan.push(map(n("rec.out.weight"), None, d, d, (d, d)));
+            plan.push(scalar(n("rec.conv.weight"), ServedKind::Taps));
+            plan.push(scalar(n("rec.conv.bias"), ServedKind::Fixed(-16)));
+            plan.push(scalar(n("rec.gate.bias"), ServedKind::Fixed(-16)));
+            plan.push(scalar(n("rec.decay"), ServedKind::DecayRate));
+        } else {
+            let gain = Some(n("read_norm.weight"));
+            for part in ["query", "key", "value"] {
+                let name = n(&format!("read.{part}.weight"));
+                plan.push(map(name, gain.clone(), d, d, (d, d)));
+            }
+            let heads = config.heads;
+            plan.push(map(n("read.null.weight"), gain, heads, d, (heads, d)));
+            plan.push(map(n("read.out.weight"), None, d, d, (d, d)));
+            plan.push(scalar(n("read.null.bias"), ServedKind::Fixed(-16)));
+            plan.push(scalar(n("read.age"), ServedKind::Fixed(-16)));
+            if config.read == ReadScore::Lorentz {
+                plan.push(scalar(n("read.log_beta"), ServedKind::LorentzScale));
+                plan.push(scalar(n("read.offset"), ServedKind::Fixed(-24)));
+            }
+        }
+        let gain = Some(n("mlp_norm.weight"));
+        plan.push(map(
+            n("mlp.gate.weight"),
+            gain.clone(),
+            m,
+            d,
+            (padded_mlp, d),
+        ));
+        plan.push(map(n("mlp.up.weight"), gain, m, d, (padded_mlp, d)));
+        plan.push(map(n("mlp.down.weight"), None, d, m, (d, padded_mlp)));
+    }
+    Ok(plan)
+}
+
+/// Straight-through estimator: the output is the second input's values
+/// exactly (the served values) and the gradient passes to the first input (the
+/// float expression they were computed from) unchanged. This is
+/// `w + (q(w) - w).detach()` without the rounding of that sum.
+struct StraightThrough;
+
+impl CustomOp2 for StraightThrough {
+    fn name(&self) -> &'static str {
+        "geometric-stack-straight-through"
+    }
+
+    fn cpu_fwd(
+        &self,
+        _s1: &CpuStorage,
+        l1: &Layout,
+        s2: &CpuStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        if l1.shape() != l2.shape() {
+            candle_core::bail!("straight-through inputs must have one shape");
+        }
+        Ok((
+            CpuStorage::F32(contiguous(s2, l2)?.to_vec()),
+            l2.shape().clone(),
+        ))
+    }
+
+    fn bwd(
+        &self,
+        _source: &Tensor,
+        _served: &Tensor,
+        _out: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        Ok((Some(grad.clone()), None))
+    }
+}
+
+/// Work of the served representation so far ([`StackModel::served_statistics`]).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+pub struct ServedStatistics {
+    /// Forward passes that compared the variables with the served view's.
+    pub checks: usize,
+    /// Checks that found changed variables and recomputed served tensors.
+    pub refreshes: usize,
+    /// Served tensors recomputed.
+    pub tensors: usize,
+    /// Seconds spent comparing and recomputing.
+    pub seconds: f64,
+}
+
+/// A served view and the variable values it was computed from.
+#[derive(Clone)]
+struct ServedCache {
+    sources: Arc<BTreeMap<String, Vec<f32>>>,
+    tensors: Arc<BTreeMap<String, Tensor>>,
+}
+
+/// Served mode ([`StackModel::set_served_representation`]).
+struct ServedState {
+    codec: Arc<dyn MapCodec>,
+    plan: Vec<ServedTensor>,
+    cache: Mutex<Option<ServedCache>>,
+    statistics: Mutex<ServedStatistics>,
+}
+
+/// The tensors one forward pass reads: the variables, or in served mode the
+/// served view of their current values.
+enum Params<'a> {
+    Float(&'a BTreeMap<String, Var>),
+    Served(Arc<BTreeMap<String, Tensor>>),
+}
+
+impl Params<'_> {
+    fn get(&self, name: &str) -> Result<&Tensor> {
+        let found = match self {
+            Self::Float(variables) => variables.get(name).map(Var::as_tensor),
+            Self::Served(tensors) => tensors.get(name),
+        };
+        found.ok_or_else(|| invalid(format!("missing stack variable {name}")))
+    }
+
+    fn layer(&self, layer: usize, suffix: &str) -> Result<&Tensor> {
+        self.get(&layer_name(layer, suffix))
+    }
+
+    /// The output map: the tied embedding, or the served head.
+    fn head(&self) -> Result<&Tensor> {
+        match self {
+            Self::Float(_) => self.get("embedding.weight"),
+            Self::Served(_) => self.get(SERVED_HEAD),
+        }
+    }
+
+    /// Whether the norm gains are folded into the maps that read the norms.
+    fn folded_gains(&self) -> bool {
+        matches!(self, Self::Served(_))
+    }
+}
+
+/// Bitwise equality of two float slices.
+fn same_bits(a: &[f32], b: &[f32]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.to_bits() == y.to_bits())
+}
+
+impl StackModel {
+    /// Train and evaluate with the served representation (`Some`), or in
+    /// float (`None`, the default). In served mode every forward pass
+    /// ([`forward`](Self::forward), [`loss`](Self::loss) and the rest) reads
+    /// exactly the values [`crate::stack_export::export_stack`] writes:
+    /// weight maps through `codec` with the norm gains folded in (the norms
+    /// themselves unit, the head a separate map of the embedding times the
+    /// final gain, the MLP padded to whole groups), per-channel scalars
+    /// through their grid codes (convolution taps; decays through their rates;
+    /// Lorentz scales through `beta`), and biases, age tables and Lorentz
+    /// offsets in fixed point, each rounded as the export rounds it. Gradients
+    /// reach the float variables by a straight-through estimator, the gains'
+    /// through the folded products. Served values are recomputed, in
+    /// parallel, whenever a variable they come from changed. Geometric stacks
+    /// without memories whose width is a multiple of `GROUP` only.
+    pub fn set_served_representation(&mut self, codec: Option<Arc<dyn MapCodec>>) -> Result<()> {
+        self.served = match codec {
+            None => None,
+            Some(codec) => {
+                let plan = served_plan(&self.config)?;
+                self.check_served_plan(&plan)?;
+                Some(ServedState {
+                    codec,
+                    plan,
+                    cache: Mutex::new(None),
+                    statistics: Mutex::new(ServedStatistics::default()),
+                })
+            }
+        };
+        Ok(())
+    }
+
+    /// The served representation's codec, in served mode.
+    pub fn served_codec(&self) -> Option<&dyn MapCodec> {
+        self.served.as_ref().map(|state| state.codec.as_ref())
+    }
+
+    /// The served representation's work so far, in served mode.
+    pub fn served_statistics(&self) -> Result<Option<ServedStatistics>> {
+        self.served
+            .as_ref()
+            .map(|state| {
+                state
+                    .statistics
+                    .lock()
+                    .map(|statistics| *statistics)
+                    .map_err(|_| invalid("the served statistics are poisoned"))
+            })
+            .transpose()
+    }
+
+    /// `f` on this model in float, with served mode (and its computed values)
+    /// restored afterwards.
+    pub fn with_float_forward<T>(&mut self, f: impl FnOnce(&Self) -> Result<T>) -> Result<T> {
+        let served = self.served.take();
+        let result = f(self);
+        self.served = served;
+        result
+    }
+
+    /// Every served tensor's variables exist with the export's shapes, and
+    /// every variable is served or folded into a served map.
+    fn check_served_plan(&self, plan: &[ServedTensor]) -> Result<()> {
+        let dims = |name: &str| -> Result<&[usize]> {
+            self.variables
+                .get(name)
+                .map(|var| var.dims())
+                .ok_or_else(|| invalid(format!("the served representation needs {name}")))
+        };
+        let mut covered = BTreeSet::new();
+        for tensor in plan {
+            for source in tensor.sources() {
+                dims(source)?;
+                covered.insert(source);
+            }
+            if let ServedKind::Map {
+                gain, rows, cols, ..
+            } = &tensor.kind
+            {
+                if dims(&tensor.source)? != [*rows, *cols]
+                    || gain
+                        .as_deref()
+                        .map(|gain| dims(gain).map(|g| g != [*cols]))
+                        .transpose()?
+                        .unwrap_or(false)
+                {
+                    return Err(invalid(format!(
+                        "{} differs from its served shape",
+                        tensor.name
+                    )));
+                }
+            }
+        }
+        if let Some(name) = self
+            .variables
+            .keys()
+            .find(|name| !covered.contains(name.as_str()))
+        {
+            return Err(invalid(format!(
+                "the served representation leaves {name} in float"
+            )));
+        }
+        Ok(())
+    }
+
+    /// The served view of the current variables. Served tensors whose
+    /// variables changed since the last view are recomputed, in parallel; the
+    /// rest are reused.
+    fn served_view(&self, state: &ServedState) -> Result<Arc<BTreeMap<String, Tensor>>> {
+        let started = Instant::now();
+        // No lock is held while the parallel work runs.
+        let previous = state
+            .cache
+            .lock()
+            .map_err(|_| invalid("the served cache is poisoned"))?
+            .clone();
+        let names: Vec<&String> = self.variables.keys().collect();
+        let current: Vec<(Vec<f32>, bool)> = names
+            .par_iter()
+            .map(|name| -> Result<(Vec<f32>, bool)> {
+                let values = self.variables[*name]
+                    .as_tensor()
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                let changed = previous
+                    .as_ref()
+                    .and_then(|cache| cache.sources.get(*name))
+                    .is_none_or(|old| !same_bits(old, &values));
+                Ok((values, changed))
+            })
+            .collect::<Result<_>>()?;
+        let changed: BTreeSet<&str> = names
+            .iter()
+            .zip(&current)
+            .filter(|(_, (_, changed))| *changed)
+            .map(|(name, _)| name.as_str())
+            .collect();
+        let mut statistics = ServedStatistics {
+            checks: 1,
+            ..ServedStatistics::default()
+        };
+        let view = match &previous {
+            Some(cache) if changed.is_empty() => cache.tensors.clone(),
+            _ => {
+                let sources: BTreeMap<String, Vec<f32>> = names
+                    .iter()
+                    .map(|name| (*name).clone())
+                    .zip(current.into_iter().map(|(values, _)| values))
+                    .collect();
+                let stale: Vec<&ServedTensor> = state
+                    .plan
+                    .iter()
+                    .filter(|tensor| {
+                        previous.is_none() || tensor.sources().any(|s| changed.contains(s))
+                    })
+                    .collect();
+                let rebuilt: Vec<(String, Tensor)> = stale
+                    .par_iter()
+                    .map(|tensor| -> Result<(String, Tensor)> {
+                        let values = tensor.served_values(&sources, state.codec.as_ref())?;
+                        Ok((tensor.name.clone(), self.straight_through(tensor, values)?))
+                    })
+                    .collect::<Result<_>>()?;
+                let mut tensors = previous
+                    .as_ref()
+                    .map(|cache| (*cache.tensors).clone())
+                    .unwrap_or_default();
+                tensors.extend(rebuilt);
+                let tensors = Arc::new(tensors);
+                *state
+                    .cache
+                    .lock()
+                    .map_err(|_| invalid("the served cache is poisoned"))? = Some(ServedCache {
+                    sources: Arc::new(sources),
+                    tensors: tensors.clone(),
+                });
+                statistics.refreshes = 1;
+                statistics.tensors = stale.len();
+                tensors
+            }
+        };
+        let mut total = state
+            .statistics
+            .lock()
+            .map_err(|_| invalid("the served statistics are poisoned"))?;
+        total.checks += statistics.checks;
+        total.refreshes += statistics.refreshes;
+        total.tensors += statistics.tensors;
+        total.seconds += started.elapsed().as_secs_f64();
+        Ok(view)
+    }
+
+    /// `values` in the forward pass, with the gradient of `tensor`'s float
+    /// expression: its variable, times its norm gain for a folded map.
+    fn straight_through(&self, tensor: &ServedTensor, values: Vec<f32>) -> Result<Tensor> {
+        let variable = |name: &str| {
+            self.variables
+                .get(name)
+                .map(Var::as_tensor)
+                .ok_or_else(|| invalid(format!("missing stack variable {name}")))
+        };
+        let source = variable(&tensor.source)?;
+        let input = match &tensor.kind {
+            ServedKind::Map {
+                gain: Some(gain), ..
+            } => source.broadcast_mul(variable(gain)?)?,
+            _ => source.clone(),
+        };
+        let served = Tensor::from_vec(values, source.shape(), source.device())?;
+        Ok(input.apply_op2(&served, StraightThrough)?)
+    }
 }
 
 /// Matrices take weight decay; norms, biases, decays, age tables, the
@@ -3382,8 +4009,9 @@ mod tests {
                 var.set(&random(&mut Initializer(43), var.dims(), 0.5))?;
             }
             let x = random(&mut Initializer(47), &[2, 9, 16], 1.0);
-            let fused = model.recurrence(0, &x, &mut None)?;
-            let composed = model.composed_recurrence(0, &x, None)?;
+            let p = model.params()?;
+            let fused = model.recurrence(&p, 0, &x, &mut None)?;
+            let composed = model.composed_recurrence(&p, 0, &x, None)?;
             let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
             assert!(
                 gap < 1e-5,
@@ -3403,11 +4031,11 @@ mod tests {
                 .map(|name| model.variables()[*name].clone())
                 .collect();
             let fused_loss = model
-                .recurrence(0, &x, &mut None)?
+                .recurrence(&p, 0, &x, &mut None)?
                 .mul(&weights)?
                 .sum_all()?;
             let composed_loss = model
-                .composed_recurrence(0, &x, None)?
+                .composed_recurrence(&p, 0, &x, None)?
                 .mul(&weights)?
                 .sum_all()?;
             let (a, b) = (fused_loss.backward()?, composed_loss.backward()?);
@@ -3847,6 +4475,595 @@ mod tests {
         let a = model.forward(&ids, 1, 8)?;
         let b = loaded.forward(&ids, 1, 8)?;
         assert_eq!(a.sub(&b)?.abs()?.max_all()?.to_scalar::<f32>()?, 0.0);
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // The served representation.
+
+    /// A small geometric stack the export takes: its width a multiple of
+    /// `GROUP` and an MLP the export pads (40 units to 64).
+    fn exportable(pattern: &str, read: ReadScore, rotation: bool) -> StackConfig {
+        StackConfig {
+            arch: StackArch::Geometric,
+            vocab_size: 96,
+            width: 64,
+            heads: 2,
+            mlp_hidden: 40,
+            context: 16,
+            pattern: pattern.into(),
+            read,
+            rotation,
+            seed: 29,
+            memory: None,
+        }
+    }
+
+    /// Weights spread over many magnitudes, so the export uses many grid
+    /// exponents: every row of a map has its own power-of-two scale (2^-4 to
+    /// 2^3 of the base), some groups are zero, and some rows lie 2^-24 below
+    /// the rest, under the export's exponent floor. Norm gains stay near one;
+    /// decays, ages, gate biases and Lorentz offsets near their initial
+    /// values; the convolution taps get scales of 2^-3 to 2^2.
+    fn spread(model: &StackModel, seed: u64) -> Result<()> {
+        let mut rng = Initializer(seed);
+        for (name, var) in model.variables() {
+            let cols = var.dims().last().copied().unwrap_or(1).max(1);
+            let old = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let mut values = Vec::with_capacity(old.len());
+            for (i, &v) in old.iter().enumerate() {
+                let (row, col) = (i / cols, i % cols);
+                let n = rng.normal();
+                let near = |noise: f64| f64::from(v) + noise * n;
+                let value = if name.ends_with("norm.weight") {
+                    1.0 + 0.3 * n
+                } else if ["rec.decay", "read.age", "rec.gate.bias", "read.offset"]
+                    .iter()
+                    .any(|suffix| name.ends_with(suffix))
+                {
+                    near(0.3)
+                } else if name.ends_with("log_beta") || name.ends_with("bias") {
+                    0.5 * n
+                } else if name.ends_with("conv.weight") {
+                    near(0.3 * 2f64.powi((i % 6) as i32 - 3))
+                } else if var.rank() == 2 {
+                    if row % 11 == 5 && col < GROUP {
+                        0.0
+                    } else if row % 13 == 7 {
+                        0.05 * n * 2f64.powi(-24)
+                    } else {
+                        0.05 * n * 2f64.powi((row % 8) as i32 - 4)
+                    }
+                } else {
+                    0.05 * n
+                };
+                values.push(value as f32);
+            }
+            var.set(&Tensor::from_vec(values, var.shape(), &cpu())?)?;
+        }
+        Ok(())
+    }
+
+    fn token_ids(count: usize, vocab: u32, seed: u64) -> Vec<u32> {
+        let mut rng = Initializer(seed);
+        (0..count)
+            .map(|_| (rng.next() % u64::from(vocab)) as u32)
+            .collect()
+    }
+
+    fn max_abs_gap(a: &Tensor, b: &Tensor) -> Result<f32> {
+        Ok(a.sub(b)?.abs()?.max_all()?.to_scalar::<f32>()?)
+    }
+
+    fn bits(tensor: &Tensor) -> Result<Vec<u32>> {
+        Ok(tensor
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .map(|v| v.to_bits())
+            .collect())
+    }
+
+    /// The export of `model` (round to nearest, no calibration) and its grid
+    /// reference.
+    fn exported_reference(model: &StackModel) -> Result<crate::stack_export::GridReference> {
+        let (bytes, _) =
+            crate::stack_export::export_stack(model, serde_json::json!({"test": "qat"}), None)?;
+        let artifact = uor_r4_lut::format::StackArtifact::parse(bytes)
+            .map_err(|error| invalid(error.to_string()))?;
+        crate::stack_export::stack_grid_reference(model, &artifact)
+    }
+
+    #[test]
+    fn served_forward_equals_the_exported_reference() -> Result<()> {
+        let mut worst = 0f32;
+        for pattern in ["rar", "rrarra"] {
+            for read in [ReadScore::Lorentz, ReadScore::Dot] {
+                for rotation in [true, false] {
+                    let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
+                    spread(&model, 71)?;
+                    let reference = exported_reference(&model)?;
+                    let time = model.config.context;
+                    let ids = token_ids(2 * time, 96, 5);
+                    let float = model.forward(&ids, 2, time)?;
+                    model.set_served_representation(Some(Arc::new(D11Interim)))?;
+                    let served = model.forward(&ids, 2, time)?;
+                    let want = reference.logits(&ids, 2, time)?;
+                    let gap = max_abs_gap(&served, &want)?;
+                    let label = format!("{pattern} {read:?} rotation {rotation}");
+                    assert!(
+                        gap <= 1e-5,
+                        "{label}: served logits differ from the exported reference by {gap}"
+                    );
+                    assert!(
+                        max_abs_gap(&served, &float)? > 1e-3,
+                        "{label}: the served representation left the logits unchanged"
+                    );
+                    worst = worst.max(gap);
+                    // The piecewise entry points read the same served view.
+                    let x =
+                        model.run_layers(model.embed(&ids, 2, time)?, 0..model.config.layers())?;
+                    let piecewise = model.head(&model.finish(x)?)?;
+                    assert_eq!(bits(&piecewise)?, bits(&served)?, "{label}: piecewise");
+                    let targets = token_ids(2 * time, 96, 6);
+                    let loss = model.loss(&ids, &targets, 2, time)?.to_scalar::<f32>()?;
+                    let reference_loss =
+                        logits_cross_entropy(&want, &targets, None)?.to_scalar::<f32>()?;
+                    assert!((loss - reference_loss).abs() <= 1e-6, "{label}: loss");
+                }
+            }
+        }
+        // The weights exercise many of the export's scale exponents.
+        let model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
+        spread(&model, 71)?;
+        let embedding = model.variables()["embedding.weight"]
+            .as_tensor()
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let packed = quantize_matrix(&embedding, 96, 64)?;
+        let exponents: BTreeSet<u8> = packed.scales.iter().map(|scale| scale >> 4).collect();
+        assert!(
+            exponents.len() >= 8,
+            "only {} scale exponents",
+            exponents.len()
+        );
+        eprintln!(
+            "served forward against the exported reference: worst absolute logit gap {worst}"
+        );
+        Ok(())
+    }
+
+    /// The float forward composed directly from the variables with the
+    /// stack's kernels, in the order the forward pass took before the served
+    /// representation existed.
+    fn float_reference_logits(
+        model: &StackModel,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        let c = &model.config;
+        let w = |name: &str| -> Result<Tensor> {
+            Ok(model
+                .variables()
+                .get(name)
+                .ok_or_else(|| invalid(name.to_owned()))?
+                .as_tensor()
+                .clone())
+        };
+        let l = |layer: usize, suffix: &str| w(&layer_name(layer, suffix));
+        let norm = |x: &Tensor, gain: &Tensor| -> Result<Tensor> {
+            Ok(x.contiguous()?.apply_op2(&gain.contiguous()?, RmsNorm)?)
+        };
+        let linear = StackModel::linear;
+        let split = |x: &Tensor| -> Result<Tensor> {
+            Ok(x.reshape((batch, time, c.heads, c.head_width()))?
+                .transpose(1, 2)?
+                .contiguous()?)
+        };
+        let index = Tensor::from_vec(ids.to_vec(), batch * time, model.device())?;
+        let mut x = w("embedding.weight")?
+            .index_select(&index, 0)?
+            .reshape((batch, time, c.width))?;
+        for layer in 0..c.layers() {
+            let mixed = if c.layer_kind(layer) == 'r' {
+                let u = norm(&x, &l(layer, "rec_norm.weight")?)?;
+                let branches = linear(&u, &l(layer, "rec.in.weight")?)?;
+                let gates = linear(&u, &l(layer, "rec.gate.weight")?)?
+                    .broadcast_add(&l(layer, "rec.gate.bias")?)?;
+                let parameters = Tensor::cat(
+                    &[
+                        &l(layer, "rec.conv.weight")?.flatten_all()?,
+                        &l(layer, "rec.conv.bias")?,
+                        &l(layer, "rec.decay")?,
+                    ],
+                    0,
+                )?;
+                let core = branches.contiguous()?.apply_op3(
+                    &gates.contiguous()?,
+                    &parameters,
+                    RecurrenceCore {
+                        batch,
+                        time,
+                        width: c.width,
+                        rotation: c.rotation,
+                    },
+                )?;
+                linear(&core, &l(layer, "rec.out.weight")?)?
+            } else {
+                let u = norm(&x, &l(layer, "read_norm.weight")?)?;
+                let project = |part: &str| -> Result<Tensor> {
+                    split(&linear(&u, &l(layer, &format!("read.{part}.weight"))?)?)
+                };
+                let null = linear(&u, &l(layer, "read.null.weight")?)?
+                    .broadcast_add(&l(layer, "read.null.bias")?)?
+                    .transpose(1, 2)?
+                    .flatten_all()?;
+                let age = l(layer, "read.age")?.narrow(1, 0, time)?.flatten_all()?;
+                let mut aux = vec![null, age];
+                if c.read == ReadScore::Lorentz {
+                    aux.push(l(layer, "read.log_beta")?.exp()?);
+                    aux.push(l(layer, "read.offset")?);
+                }
+                let read = fused_read(
+                    &project("query")?,
+                    &project("key")?,
+                    &project("value")?,
+                    &Tensor::cat(&aux, 0)?,
+                    c.read,
+                    true,
+                    true,
+                    false,
+                )?;
+                let merged = read.transpose(1, 2)?.reshape((batch, time, c.width))?;
+                linear(&merged, &l(layer, "read.out.weight")?)?
+            };
+            x = x.add(&mixed)?;
+            let u = norm(&x, &l(layer, "mlp_norm.weight")?)?;
+            let gate = linear(&u, &l(layer, "mlp.gate.weight")?)?;
+            let up = linear(&u, &l(layer, "mlp.up.weight")?)?;
+            let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
+            x = x.add(&linear(&mixed, &l(layer, "mlp.down.weight")?)?)?;
+        }
+        let hidden = norm(&x, &w("final_norm.weight")?)?.reshape((batch * time, c.width))?;
+        Ok(hidden.matmul(&w("embedding.weight")?.t()?)?)
+    }
+
+    #[test]
+    fn served_mode_off_is_bit_identical_to_the_float_forward() -> Result<()> {
+        for (pattern, read, rotation) in [
+            ("rar", ReadScore::Lorentz, true),
+            ("rrarra", ReadScore::Dot, false),
+            ("rrarra", ReadScore::Lorentz, true),
+        ] {
+            let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
+            spread(&model, 73)?;
+            let time = model.config.context;
+            let (ids, targets) = (token_ids(2 * time, 96, 9), token_ids(2 * time, 96, 10));
+            let plain = bits(&model.forward(&ids, 2, time)?)?;
+            let reference = float_reference_logits(&model, &ids, 2, time)?;
+            assert_eq!(
+                plain,
+                bits(&reference)?,
+                "{pattern}: the float forward changed"
+            );
+            // The backward too: every variable's gradient, bit for bit.
+            let grads = model.loss(&ids, &targets, 2, time)?.backward()?;
+            let reference_grads = logits_cross_entropy(&reference, &targets, None)?.backward()?;
+            for (name, var) in model.variables() {
+                let (a, b) = (
+                    grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid(name.clone()))?,
+                    reference_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid(name.clone()))?,
+                );
+                assert_eq!(
+                    bits(a)?,
+                    bits(b)?,
+                    "{pattern}: the gradient of {name} changed"
+                );
+            }
+            // Served mode changes the logits; off again, or bypassed, it is gone.
+            model.set_served_representation(Some(Arc::new(D11Interim)))?;
+            assert_ne!(plain, bits(&model.forward(&ids, 2, time)?)?);
+            let bypassed = model.with_float_forward(|m| m.forward(&ids, 2, time))?;
+            assert_eq!(plain, bits(&bypassed)?, "{pattern}: with_float_forward");
+            assert!(model.served_codec().is_some());
+            model.set_served_representation(None)?;
+            assert_eq!(
+                plain,
+                bits(&model.forward(&ids, 2, time)?)?,
+                "{pattern}: off again"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_served_training_step_reaches_every_parameter() -> Result<()> {
+        for (pattern, read, rotation) in [
+            ("rar", ReadScore::Lorentz, true),
+            ("rrarra", ReadScore::Dot, false),
+        ] {
+            let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
+            spread(&model, 79)?;
+            // The whole context, so every age-table entry is read.
+            let time = model.config.context;
+            let (ids, targets) = (token_ids(2 * time, 96, 13), token_ids(2 * time, 96, 17));
+            let reference = exported_reference(&model)?;
+            model.set_served_representation(Some(Arc::new(D11Interim)))?;
+            let loss = model.loss(&ids, &targets, 2, time)?;
+            let grads = loss.backward()?;
+            // The reference's gradients at the served values, its head a variable.
+            let head = Var::from_tensor(&reference.head)?;
+            let reference_logits = reference
+                .model
+                .hidden(&ids, 2, time)?
+                .matmul(&head.as_tensor().t()?)?;
+            let reference_loss = logits_cross_entropy(&reference_logits, &targets, None)?;
+            assert!((loss.to_scalar::<f32>()? - reference_loss.to_scalar::<f32>()?).abs() <= 1e-6);
+            let reference_grads = reference_loss.backward()?;
+            // The straight-through gradient of every variable: the reference's
+            // gradient of its served value, through the folded gain for a map.
+            let variables = model.variables();
+            let mut expected: BTreeMap<String, Tensor> = BTreeMap::new();
+            for tensor in served_plan(&model.config)? {
+                let served_grad = if tensor.name == SERVED_HEAD {
+                    reference_grads.get(head.as_tensor())
+                } else {
+                    reference_grads.get(reference.model.variables()[&tensor.name].as_tensor())
+                }
+                .ok_or_else(|| invalid(format!("no reference gradient for {}", tensor.name)))?;
+                let mut parts = Vec::new();
+                match &tensor.kind {
+                    ServedKind::Map {
+                        gain: Some(gain), ..
+                    } => {
+                        let (w, g) = (
+                            variables[&tensor.source].as_tensor(),
+                            variables[gain].as_tensor(),
+                        );
+                        parts.push((tensor.source.clone(), served_grad.broadcast_mul(g)?));
+                        parts.push((gain.clone(), served_grad.mul(w)?.sum(0)?));
+                    }
+                    _ => parts.push((tensor.source.clone(), served_grad.clone())),
+                }
+                for (name, part) in parts {
+                    let total = match expected.remove(&name) {
+                        Some(sum) => sum.add(&part)?,
+                        None => part,
+                    };
+                    expected.insert(name, total);
+                }
+            }
+            for (name, var) in variables {
+                let got = grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid(format!("{name} has no gradient in served mode")))?;
+                let values = got.flatten_all()?.to_vec1::<f32>()?;
+                assert!(values.iter().all(|v| v.is_finite()), "{name}: nonfinite");
+                let size = got.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(size > 0.0, "{pattern}: {name} has a zero gradient");
+                let gap = max_abs_gap(got, &expected[name])?;
+                assert!(
+                    gap <= 1e-4 * size,
+                    "{pattern}: {name}'s straight-through gradient differs by {gap} of {size}"
+                );
+            }
+            // One update moves every variable, and the next served forward
+            // reads the new values: it equals the new export's reference.
+            let before: Vec<Vec<f32>> = variables
+                .values()
+                .map(|var| Ok(var.as_tensor().flatten_all()?.to_vec1::<f32>()?))
+                .collect::<Result<_>>()?;
+            let mut optimizer = StackAdamW::new(&model, 0.1, 1.0)?;
+            optimizer.update(&model, &grads, 1e-3)?;
+            for ((name, var), old) in variables.iter().zip(&before) {
+                let new = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+                assert!(!same_bits(old, &new), "{pattern}: {name} did not move");
+            }
+            let updated = exported_reference(&model)?;
+            let gap = max_abs_gap(
+                &model.forward(&ids, 2, time)?,
+                &updated.logits(&ids, 2, time)?,
+            )?;
+            assert!(
+                gap <= 1e-5,
+                "{pattern}: after an update the served forward is {gap} off"
+            );
+        }
+        Ok(())
+    }
+
+    /// A lossless codec.
+    struct Identity;
+
+    impl MapCodec for Identity {
+        fn name(&self) -> &str {
+            "identity"
+        }
+
+        fn round_trip(&self, values: &[f32], _rows: usize, _cols: usize) -> Result<Vec<f32>> {
+            Ok(values.to_vec())
+        }
+    }
+
+    #[test]
+    fn an_identity_codec_gives_the_plain_forward() -> Result<()> {
+        for (pattern, read, rotation) in [
+            ("rar", ReadScore::Lorentz, true),
+            ("rrarra", ReadScore::Dot, false),
+            ("rrarra", ReadScore::Lorentz, false),
+        ] {
+            let mut model = StackModel::new(exportable(pattern, read, rotation), &cpu())?;
+            spread(&model, 83)?;
+            // Norm gains of +-2^k: a gain folded into a map is then exact, as
+            // it is applied to the normalized state, so the served forward
+            // differs from the plain one in no rounding at all. (With other
+            // gains the two round differently, and the Lorentz score amplifies
+            // that; `served_forward_equals_the_exported_reference` covers them.)
+            let mut rng = Initializer(85);
+            for (name, var) in model.variables() {
+                if name.ends_with("norm.weight") {
+                    let gains: Vec<f32> = (0..var.elem_count())
+                        .map(|_| {
+                            let k = (rng.next() % 3) as i32 - 1;
+                            let sign = if rng.next().is_multiple_of(5) {
+                                -1.0
+                            } else {
+                                1.0
+                            };
+                            sign * 2f32.powi(k)
+                        })
+                        .collect();
+                    var.set(&Tensor::from_vec(gains, var.shape(), &cpu())?)?;
+                }
+            }
+            // The codec covers the maps; the scalars keep the export's grid
+            // codes and fixed point. On their grid (where the scalar round
+            // trip is the identity) the whole representation is lossless.
+            let values = |model: &StackModel| -> Result<BTreeMap<String, Vec<f32>>> {
+                model
+                    .variables()
+                    .iter()
+                    .map(|(name, var)| {
+                        Ok((
+                            name.clone(),
+                            var.as_tensor().flatten_all()?.to_vec1::<f32>()?,
+                        ))
+                    })
+                    .collect()
+            };
+            let plan = served_plan(&model.config)?;
+            let scalars: Vec<&ServedTensor> = plan
+                .iter()
+                .filter(|tensor| !matches!(tensor.kind, ServedKind::Map { .. }))
+                .collect();
+            let current = values(&model)?;
+            for tensor in &scalars {
+                let var = &model.variables()[&tensor.source];
+                let on_grid = tensor.served_values(&current, &Identity)?;
+                var.set(&Tensor::from_vec(on_grid, var.shape(), &cpu())?)?;
+            }
+            let current = values(&model)?;
+            for tensor in &scalars {
+                let again = tensor.served_values(&current, &Identity)?;
+                assert!(
+                    same_bits(&again, &current[&tensor.source]),
+                    "{}",
+                    tensor.name
+                );
+            }
+            let time = model.config.context;
+            let (ids, targets) = (token_ids(2 * time, 96, 19), token_ids(2 * time, 96, 23));
+            let plain = model.forward(&ids, 2, time)?;
+            let plain_grads = model.loss(&ids, &targets, 2, time)?.backward()?;
+            model.set_served_representation(Some(Arc::new(Identity)))?;
+            let label = format!("{pattern} {read:?} rotation {rotation}");
+            assert_eq!(
+                bits(&model.forward(&ids, 2, time)?)?,
+                bits(&plain)?,
+                "{label}: the identity codec's logits"
+            );
+            // Gradients agree too, up to summation order: a norm gain's
+            // gradient gathers its terms through each map it is folded into.
+            let served_grads = model.loss(&ids, &targets, 2, time)?.backward()?;
+            for (name, var) in model.variables() {
+                let (a, b) = (
+                    served_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid(name.clone()))?,
+                    plain_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid(name.clone()))?,
+                );
+                let size = b.abs()?.max_all()?.to_scalar::<f32>()?;
+                let gap = max_abs_gap(a, b)?;
+                assert!(
+                    gap <= 1e-5 * size,
+                    "{label}: {name}'s gradient differs by {gap} of {size}"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn served_values_are_recomputed_exactly_when_their_variables_change() -> Result<()> {
+        let mut model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
+        spread(&model, 89)?;
+        let tensors = served_plan(&model.config)?.len();
+        model.set_served_representation(Some(Arc::new(D11Interim)))?;
+        let time = model.config.context;
+        let ids = token_ids(time, 96, 29);
+        let first = bits(&model.forward(&ids, 1, time)?)?;
+        assert_eq!(first, bits(&model.forward(&ids, 1, time)?)?);
+        let statistics = |model: &StackModel| -> Result<ServedStatistics> {
+            model
+                .served_statistics()?
+                .ok_or_else(|| invalid("no served statistics"))
+        };
+        let seen = statistics(&model)?;
+        assert_eq!((seen.checks, seen.refreshes, seen.tensors), (2, 1, tensors));
+        // A decay feeds one served tensor; a norm gain the two maps it is
+        // folded into; the embedding its lookup and the head.
+        for (name, recomputed) in [
+            ("layers.00.rec.decay", 1),
+            ("layers.00.rec_norm.weight", 2),
+            ("embedding.weight", 2),
+        ] {
+            let var = &model.variables()[name];
+            var.set(&var.as_tensor().affine(1.25, 0.01)?)?;
+            let before = statistics(&model)?;
+            let logits = model.forward(&ids, 1, time)?;
+            let after = statistics(&model)?;
+            assert_eq!(after.refreshes, before.refreshes + 1, "{name}");
+            assert_eq!(after.tensors, before.tensors + recomputed, "{name}");
+            let gap = max_abs_gap(&logits, &exported_reference(&model)?.logits(&ids, 1, time)?)?;
+            assert!(
+                gap <= 1e-5,
+                "after changing {name} the served forward is {gap} off"
+            );
+        }
+        Ok(())
+    }
+
+    /// A codec that loses a value.
+    struct Short;
+
+    impl MapCodec for Short {
+        fn name(&self) -> &str {
+            "short"
+        }
+
+        fn round_trip(&self, values: &[f32], _rows: usize, _cols: usize) -> Result<Vec<f32>> {
+            Ok(values[..values.len().saturating_sub(1)].to_vec())
+        }
+    }
+
+    #[test]
+    fn the_served_representation_takes_exportable_stacks_only() -> Result<()> {
+        let codec: Arc<dyn MapCodec> = Arc::new(D11Interim);
+        for config in [
+            tiny(StackArch::Transformer, "aa", ReadScore::Dot, false),
+            with_memory(exportable("ra", ReadScore::Dot, true), MemoryScore::Dot),
+            // Width 16 is not a whole group.
+            tiny(StackArch::Geometric, "ra", ReadScore::Dot, true),
+        ] {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            assert!(
+                model
+                    .set_served_representation(Some(codec.clone()))
+                    .is_err(),
+                "{config:?}"
+            );
+            assert!(model.served_codec().is_none());
+        }
+        let mut model = StackModel::new(exportable("ra", ReadScore::Dot, true), &cpu())?;
+        model.set_served_representation(Some(Arc::new(Short)))?;
+        assert!(model.forward(&token_ids(8, 96, 3), 1, 8).is_err());
         Ok(())
     }
 }
