@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 pub mod bundle;
+pub mod capability_api;
 pub mod config;
 pub mod format;
 pub mod generation;
@@ -22,8 +23,13 @@ pub mod sampling;
 pub mod session;
 pub mod stack;
 pub mod tables;
+pub mod wasm;
 
 pub use bundle::{create_test_bundle_with_byte_vocab, Bundle};
+pub use capability_api::{
+    CapabilityTruthMatrix, IntegerCapabilityApi, ModelCapabilityMetadata, SessionConfig,
+    SessionTelemetry, CAPABILITY_API_SCHEMA,
+};
 pub use config::{JointConfig, ReadGeometry, ReadMode, Transport};
 pub use model::{
     atan2_q30, compress_barycenter_key_fibonacci, compute_turn_prime_signature,
