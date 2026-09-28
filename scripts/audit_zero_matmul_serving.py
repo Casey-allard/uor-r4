@@ -48,7 +48,7 @@ def get_artifact_metadata(path):
 
 # Class I: Hardware Multipliers (AArch64 / ARM64)
 CLASS_I_PATTERN = re.compile(
-    r"\b(mul|madd|msub|mneg|smull|umull|smaddl|umaddl|smsubl|umsubl|smulh|umulh|sqdmulh|sqrdmulh|mla|mls|pmul|pmull|sdot|udot|smlal|smlsl|umlal|umlsl)\b",
+    r"\b(mul|madd|msub|mneg|smull|umull|smaddl|umaddl|smsubl|umsubl|smulh|umulh|sqdmulh|sqrdmulh|mla|mls|pmul|pmull|sdot|udot|smlal|smlsl|umlal|umlsl|smull2|umull2|smlal2|smlsl2|umlal2|umlsl2|sqdmull|sqdmull2|sqdmlal|sqdmlal2|sqdmlsl|sqdmlsl2|smmla|ummla|usmmla|usdot|sudot|pmull2)\b",
     re.IGNORECASE,
 )
 
@@ -60,19 +60,19 @@ CLASS_II_PATTERN = re.compile(
 
 # Class III: Floating-Point & Register Transfer Instructions
 CLASS_III_PATTERN = re.compile(
-    r"(\b(fmul|fmov|fadd|fsub|fdiv|fmadd|fmsub|fnmadd|fnmsub|fnmul|fsqrt|fcmp|fcmpe|scvtf|ucvtf|fneg|fabs)\b"
+    r"(\b(fmul|fmov|fadd|fsub|fdiv|fmadd|fmsub|fnmadd|fnmsub|fnmul|fsqrt|fcmp|fcmpe|scvtf|ucvtf|fneg|fabs|fmla|fmls|fmax|fmin|fmaxnm|fminnm|fmaxp|fminp|fmaxnmp|fminnmp|fmaxv|fminv|fmaxnmv|fminnmv|fmulx|fabd|faddp|facge|facgt|fcmeq|fcmge|fcmgt|fcmle|fcmlt|fcsel|fccmp|fccmpe|frecpe|frecps|frecpx|frsqrte|frsqrts|fcmla|fcadd|fdot|fmlal|fmlsl|fmmla|bfdot|bfmmla|bfmlal|bfmlalb|bfmlalt)\b"
     r"|\b(frint[aimnpzx]|fcvt[a-z0-9]*)\b"
-    r"|\b(fneg|fabs)\.[0-9][a-z]\b)",
+    r"|\b(f[a-z]+|bf[a-z]+)\.[0-9]+[a-z]\b)",
     re.IGNORECASE,
 )
 
 # Combined full strict pattern
 STRICT_FORBIDDEN_PATTERN = re.compile(
-    r"(\b(mul|madd|msub|mneg|smull|umull|smaddl|umaddl|smsubl|umsubl|smulh|umulh|sqdmulh|sqrdmulh|mla|mls|pmul|pmull|sdot|udot|smlal|smlsl|umlal|umlsl"
+    r"(\b(mul|madd|msub|mneg|smull|umull|smaddl|umaddl|smsubl|umsubl|smulh|umulh|sqdmulh|sqrdmulh|mla|mls|pmul|pmull|sdot|udot|smlal|smlsl|umlal|umlsl|smull2|umull2|smlal2|smlsl2|umlal2|umlsl2|sqdmull|sqdmull2|sqdmlal|sqdmlal2|sqdmlsl|sqdmlsl2|smmla|ummla|usmmla|usdot|sudot|pmull2"
     r"|sdiv|udiv"
-    r"|fmul|fmov|fadd|fsub|fdiv|fmadd|fmsub|fnmadd|fnmsub|fnmul|fsqrt|fcmp|fcmpe|scvtf|ucvtf|fneg|fabs)\b"
+    r"|fmul|fmov|fadd|fsub|fdiv|fmadd|fmsub|fnmadd|fnmsub|fnmul|fsqrt|fcmp|fcmpe|scvtf|ucvtf|fneg|fabs|fmla|fmls|fmax|fmin|fmaxnm|fminnm|fmaxp|fminp|fmaxnmp|fminnmp|fmaxv|fminv|fmaxnmv|fminnmv|fmulx|fabd|faddp|facge|facgt|fcmeq|fcmge|fcmgt|fcmle|fcmlt|fcsel|fccmp|fccmpe|frecpe|frecps|frecpx|frsqrte|frsqrts|fcmla|fcadd|fdot|fmlal|fmlsl|fmmla|bfdot|bfmmla|bfmlal|bfmlalb|bfmlalt)\b"
     r"|\b(frint[aimnpzx]|fcvt[a-z0-9]*)\b"
-    r"|\b(fneg|fabs)\.[0-9][a-z]\b)",
+    r"|\b(f[a-z]+|bf[a-z]+)\.[0-9]+[a-z]\b)",
     re.IGNORECASE,
 )
 
@@ -813,6 +813,7 @@ def print_tap_output(results, tools_found):
     print("1..5")
     print(f"# Target: {results['target']}")
     print(f"# Artifact SHA-256: {results.get('artifact_sha256', 'unknown')}")
+    print(f"# Source Commit: {results.get('git_commit', 'unknown')}")
     print(f"# Matched symbol ranges checked: {results['symbols_checked']}")
     if results.get("call_graph_checked"):
         print(f"# Transitive call-graph reachability checked: {results['call_graph_checked']} functions (0 violations)")
@@ -939,8 +940,10 @@ def print_standard_report(results):
 
     if "call_graph_checked" in results:
         print(f"FULL PASS: 0 forbidden instructions across {results['symbols_checked']} symbol ranges AND {results['call_graph_checked']} reachable call-graph functions; all hardware invariants satisfied.")
+        print("Scope: the declared serving roots and their reachable callees in this artifact; not a whole-process D0-b certification.")
     else:
         print("FULL PASS: 0 forbidden instructions in all matched symbol ranges; mandatory coverage satisfied.")
+        print("Unmatched or inlined functions are not independently audited; this is not a transitive call-graph or whole-process D0-b certification.")
     return 0
 def run_sentinel_tests():
     """Verify that forbidden opcode patterns detect all required sentinels.
@@ -962,7 +965,31 @@ def run_sentinel_tests():
         ("fneg.4s v0, v0", False, False, True),
         ("fabs.2d v0, v0", False, False, True),
         ("scvtf d0, x0", False, False, True),
+        # Added after the 2026-09-28 oversight audit: forms the earlier patterns missed.
+        ("fmla v0.4s, v1.4s, v2.4s", False, False, True),
+        ("fmla.4s v0, v1, v2", False, False, True),
+        ("fmls v0.2d, v1.2d, v2.2d", False, False, True),
+        ("fmax d0, d1, d2", False, False, True),
+        ("fmin d0, d1, d2", False, False, True),
+        ("fmaxnm s0, s1, s2", False, False, True),
+        ("fabs s0, s1", False, False, True),
+        ("faddp v0.4s, v1.4s, v2.4s", False, False, True),
+        ("fcmgt v0.4s, v1.4s, v2.4s", False, False, True),
+        ("frecpe v0.4s, v1.4s", False, False, True),
+        ("bfdot v0.4s, v1.8h, v2.8h", False, False, True),
+        ("mla v0.4s, v1.4s, v2.4s", True, False, False),
+        ("mul v0.4s, v1.4s, v2.4s", True, False, False),
+        ("smull2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("umull2 v0.2d, v1.4s, v2.4s", True, False, False),
+        ("sqdmull v0.4s, v1.4h, v2.4h", True, False, False),
+        ("smmla v0.4s, v1.16b, v2.16b", True, False, False),
     ]
+    # Negative sentinels: integer data movement and arithmetic must stay unflagged.
+    benign = ["add x0, x1, x2", "sub x0, x1, x2", "neg v0.2d, v1.2d", "lsl x0, x1, #3",
+              "ldr x0, [x1]", "cmp x0, x1", "csel x0, x1, x2, lt", "tbl v0.16b, {v1.16b}, v2.16b"]
+    for instr in benign:
+        if STRICT_FORBIDDEN_PATTERN.search(instr):
+            raise AssertionError(f"Sentinel test failed: benign '{instr}' flagged by STRICT_FORBIDDEN_PATTERN")
 
     for instr, exp_c1, exp_c2, exp_c3 in sentinels:
         m1 = bool(CLASS_I_PATTERN.search(instr))

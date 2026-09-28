@@ -1,0 +1,77 @@
+{
+  "schema": "uor-r4.m1-marginal-energy-summary/1",
+  "provenance": {
+    "bundle": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1",
+      "manifest_sha256": "ce134a1a088eab2858d072bb0182af0c473f18add4a6b4c799af0dc78526dead",
+      "bundle_json_sha256": "b52c9cdba9800a601435f3c798f88d798bb742ff1a0adce97572c46f36d79412",
+      "hard_parameters_bin_sha256": "550ccb81ba3678f51521f6965bcb640599cbe39a8ab63230816f3f5f8452a56e",
+      "hard_parameters_bytes": 847876
+    },
+    "ff_checkpoint": {
+      "path": "/Users/casey.allard/uor-r4-investigations/joint-recurrent-20260924/fit256-quaternion-3/checkpoint-final",
+      "checkpoint_json_sha256": "b6f442589ab60c158dd737ead4917e2f7400b55dbb3035459bfaec8acc0375d0",
+      "model_safetensors_sha256": "3ca828e5668e8faccfb434d5f74ba4cd7556e144eadcceaf3f8d2177b64be99f",
+      "model_safetensors_bytes": 6715592
+    },
+    "model_divergence_record": "Different models: bundle-quaternion-1 was packed from fit-quaternion-rounding-3/packed-model (step 8348). That model was trained with learned rounding on fit-quaternion-projected-1 (step 7836), which originated from fit256-quaternion-3 (step 7324). bundle-quaternion-1 and fit256-quaternion-3 are DIFFERENT models."
+  },
+  "models": {
+    "integer": {
+      "name": "Integer Bundle (w256, same-input-step)",
+      "sampler": "dual",
+      "power_field": "sys_power (macmon whole-system)",
+      "k_low": 10240,
+      "k_high": 32768,
+      "delta_n": 22528,
+      "idle_mean_mw": 12453.616666666667,
+      "idle_std_mw": 1519.9166666666667,
+      "e_low_mean_net_j": 29.201666666666664,
+      "e_low_net_j_repeats": [
+        23.06,
+        38.013,
+        26.532
+      ],
+      "e_high_mean_net_j": 122.32066666666667,
+      "e_high_net_j_repeats": [
+        121.902,
+        129.698,
+        115.362
+      ],
+      "marginal_j_per_token_mean": 0.004133478338068181,
+      "marginal_j_per_token_repeats": [
+        0.004387517755681818,
+        0.00406982421875,
+        0.003943093039772728
+      ]
+    },
+    "continuous_ff": {
+      "name": "Continuous FF Parent (fit256, same-input-step)",
+      "sampler": "dual",
+      "power_field": "sys_power (macmon whole-system)",
+      "k_low": 10240,
+      "k_high": 32768,
+      "delta_n": 22528,
+      "idle_mean_mw": 12718.483333333332,
+      "idle_std_mw": 1822.7166666666665,
+      "e_low_mean_net_j": 32.16866666666667,
+      "e_low_net_j_repeats": [
+        49.376,
+        23.898,
+        23.232
+      ],
+      "e_high_mean_net_j": 53.786333333333324,
+      "e_high_net_j_repeats": [
+        62.975,
+        52.846,
+        45.538
+      ],
+      "marginal_j_per_token_mean": 0.0009595910274621208,
+      "marginal_j_per_token_repeats": [
+        0.0006036487926136365,
+        0.0012849786931818181,
+        0.000990145596590909
+      ]
+    }
+  }
+}
