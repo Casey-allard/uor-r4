@@ -1,5 +1,15 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Current programme entry point, September 28
+
+Use the [three-lab operating policy](agent-execution-policy.md), the
+[roadmap's current assignment and temporary integration handover](../../ROADMAP.md#temporary-integration-handover-september-28-2245-utc),
+and [current state](current-state.md) before reading historical plans below.
+Astra temporarily covers the integration lead at the owner's request; Kimi is
+supporting delivery, not another model programme. D11, terminal D5 and D12
+remain in force. The twelve capability responsibilities and their acceptance
+remain unchanged; every task must feed the same native geometric model.
+
 ## Four-lab research programme — owner direction September 26
 
 > **Historical since 2026-09-28.** The paragraph below describes the Codex lab, which is not part of the owner's three-lab charter; it is assigned no work and returns only by owner direction. See the [execution policy](agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28). Results recorded in this section keep their exact scope.

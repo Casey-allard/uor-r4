@@ -8,6 +8,69 @@ Owner decisions live in [DECISIONS](docs/integration/DECISIONS.md). Director rul
 coordinate the labs. They do not amend an owner decision record, and the owner keeps
 strategic authority.
 
+## Temporary integration handover, September 28, 22:45 UTC
+
+**Owner-directed acting lead:** Astra covers project management, technical review,
+course correction and qualified protected delivery during Claude's approximately
+three-hour quota reset. [Owner instruction and work allocation](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5880102513).
+Claude remains the substantive Lab 1 lead. This cover ends on explicit handback or
+September 29 at 01:45 UTC; it does not restart the retired Codex lab. Kimi is an
+integration/delivery steward inside this function, not an independent research lab.
+D11, D5, D12, owner ratification, provider/spending limits, preservation and the
+existing class A/B/C merge requirements are unchanged. No unconditional auto-merge.
+
+**One delivery target:** the recurrence-primary stack, its declared tokenizer,
+learned geometric transport/read, exact versioned memory, response training and
+native artifact/session must converge on useful complete replies. Low loss,
+finite-group tracking, arithmetic parity and library availability remain distinct
+from that end-to-end result. Geometry is trained into causal computation; it is
+neither retired by one failed configuration nor qualified by telemetry alone.
+
+**Execution order and ownership:**
+- **S1/QAT follow-ups, then S4 integration:** original Claude workers retain
+  their live files. Kimi refreshes their exact heads/diffs and coordinates a
+  clean-worktree handover before editing. Preserve both changes in the two
+  overlapping training files. Do not replace either whole file from the other
+  branch. Reuse valid executed checks; add one necessary combined-mode
+  save/metadata/reapply/export-refusal check, not a new training campaign.
+- **#1468, Lab 3:** resolve the existing technical findings and Git conflict;
+  acting lead reviews the changed diff and closes out Claude's original
+  committed-source rerun. A completed rerun alone is not merge approval.
+- **#1469, Lab 2:** the frozen run is complete and independently re-read;
+  its [source-bound closeout](https://github.com/UOR-Foundation/uor-r4/pull/1469#issuecomment-5880287835)
+  permits protected delivery as unpromoted research evidence, not adoption by
+  the dialogue stack. Diagnose only what its retained failure traces expose;
+  the runner saved reports, not trained weights. No assumed replay or refit.
+- **Next learned consumer:** I1 memory with G in the dialogue stack, and
+  trained-in S4 geometry through the declared learning/serving bridge. Further
+  compute requires its named causal change, retained weights where needed,
+  consumer and prospective limits. No third learner or automatic seed/dose sweep.
+
+**Kimi's continuing remit:** choose the highest-value unblocked integration or
+review task from this queue, announce its exact owned paths on #973, complete it
+through source, focused checks and a PR, then take the next justified task. Keep
+one write task active. At most one additional read-only specialist on the already
+configured owner-approved no-charge route may assist a genuinely independent
+question; no recursion or implicit paid-provider fallback. Permissions must be
+available explicitly, not bypassed. The acting lead holds cross-lab decisions,
+non-author acceptance and merge approval. Kimi may execute the existing protected
+merge procedure for an exact head already approved with every class condition
+met, then verify delivery and notify the consumer. Kimi cannot approve its own
+work; a changed head or new blocker requires a fresh review, not a bypass.
+
+**Important review correction:** the current proposed `StackModel::load` returns
+float weights with neither served nor snapped mode enabled. Read saved metadata
+with the declared accessors and explicitly reapply the requested mode. Do not
+change default loading merely to satisfy wording in the supplied Kimi review.
+Keep combined-mode score labels explicit; no fourth scoring arm is mandated
+unless it changes a pending decision. [Source/log triage](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5880133239).
+
+**Resources and handback:** source-only review may proceed during a heavy job;
+new builds and model work obey the shared reservation. A live child PID is not
+proof of a live supervisor. Publish supervisor identity, current limit, source,
+root, result, blocker and next consumer. GitHub records actual activity; neither
+this document nor a ChatGPT reply creates an unattended execution process.
+
 ## 0. Mission and hard runtime rules
 
 **North star: geometric intelligence.** The goal is a working geometric language model whose
