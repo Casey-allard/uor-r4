@@ -131,7 +131,7 @@ Geometry sits in five places: the core's transport (D1), exact identity, exact a
 | D1 | Is the transport load-bearing at matched width? | Cloud | **Decided: keep.** Identity costs +0.0711 and +0.0774 nats (2 seeds). The record waits for its branch push |
 | D2 | Does exact memory give small models updated relations? | Lab 1 | **Frozen gate FAIL (margin)**. The store is perfect in distribution (1.000 on every class). Held out, the learned read trigger fails ([result](docs/integration/d2-aerm-probe-result-2026-09-28.md)) |
 | D3 | Geometric against ordinary index, at equal bits and fewer inspected events? | Lab 2 | Frozen run **NOT QUALIFIED** at its scope (#1456). The gain-controlled follow-up decides |
-| D4 | Does geometry-coded coding fix the hard artifact? | Lab 3 | [#1458](https://github.com/UOR-Foundation/uor-r4/pull/1458) reports that H+G4 passes. **Under director verification** |
+| D4 | Does geometry-coded coding fix the hard artifact? | Lab 3 | **Open.** [#1458](https://github.com/UOR-Foundation/uor-r4/pull/1458)'s D4 numbers (142 flips, +0.0125 nats, 7/10) are **constants in its test source, not measurements**. It has no pre-registration, fit, report roots or replies, so the result is **not accepted** ([review](https://github.com/UOR-Foundation/uor-r4/pull/1458#issuecomment-5873489608)). Lab 3 is to pre-register and run it |
 | D6 | What does the 2I read representation discard? Evaluation only | Lab 2 | Next. **Evidence, not a veto** (owner, 15:27 UTC) |
 | G | The geometric read/address operator | Labs 1 and 2 | **Main path** (owner, 15:27 UTC): designed after D6, built behind I4 |
 | D5 | The milestone candidate (§8) | All | The fit waits for G's first comparison and D4. Integration engineering proceeds now (ruling 12) |
@@ -140,17 +140,17 @@ Geometry sits in five places: the core's transport (D1), exact identity, exact a
 
 This is the single integration target. Unknown fields are marked, never filled from an older artifact.
 
-| Field | State, 2026-09-28 15:40 UTC |
+| Field | State, 2026-09-28 15:33 UTC; the D4 rows corrected at 15:45 |
 |---|---|
 | Model family and configuration | Geometric stack `rrarra`, quaternion transport (D0, D1). Milestone width and depth (10–30M): **UNRESOLVED** |
 | Tokenizer and dialogue protocol | Protocol `uor-r4.literal-role-dialogue/1` (`blake3:0099a613…`). Tokenizer: **UNRESOLVED** (I5; recommended #1017, `d36d3e87…`) |
 | Retained checkpoint | **None for the milestone.** References only: cycle-4 `geometric_s1` (code BPE, `3eb1ebbb…`) and the continuous dialogue child (`98aca5ab…`, D4's fidelity reference) |
 | Memory semantics and persistence | The D2 probe keeps the current and previous distinct value, fresh per sequence. For the product: **UNRESOLVED**, a choice among current, previous record, previous distinct and initial (the scoped-memory contract), plus session persistence with save and reload |
 | Reader and addressing | Fallback: the stack's dense `a` read. G: **design UNRESOLVED** (after D6) |
-| Codec and serving profile | D11. Codec candidate H+G4, and a stack integer runtime with `uor-r4.stack-bundle/1` (#1458, **under verification**) |
-| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export into the integer bundle: #1458 (under verification). Store serialization in the session: **NOT IMPLEMENTED** |
+| Codec and serving profile | D11. Codec: **UNRESOLVED** (D4 open). #1458's `IntegerStackSession` is **not accepted**: it is incomplete (no rotation, Lorentz scoring or NoRead) and not D11-clean (`step` compiles to multiply, `udiv` and float instructions), and `uor-r4.stack-bundle/1` is prose only |
+| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export into the integer bundle: **NOT IMPLEMENTED** (no writer or loader exists). Store serialization in the session: **NOT IMPLEMENTED** |
 | Complete-response acceptance | The §8 milestone panel (40/30/30), sealed before the candidate's final fit: **NOT AUTHORED** |
-| Producer → consumer → next missing artifact | Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: the stack integer bundle and codec (#1458). Lab 2 → Lab 1: D6 evidence for G |
+| Producer → consumer → next missing artifact | Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: a measured D4 codec, and a D11-clean stack integer runtime with a bundle writer and loader, **missing**. Lab 2 → Lab 1: D6 evidence for G |
 
 ## 3. Deconfliction rulings, 2026-09-27
 
@@ -241,6 +241,7 @@ This is the single integration target. Unknown fields are marked, never filled f
     - **Every handoff states four facts:** what was selected or rejected; which artifact exists (path and identity); who consumes it; what they do next.
     - **D6 is evidence, not a veto** (owner). Its outcomes describe the representation tested. The next reader experiment must target the failure D6 shows.
     - **G is on the main path** (owner). It is designed after D6, built behind I4 with the dense read as fallback, and promoted only if it wins at equal cost.
+    - **Results need measurements** (added 15:45, after #1458). A result merges only with its sealed report roots on disk, and the director re-reads or reproduces its headline numbers from those roots before merging. A number typed into a test, a document or a PR description is never a result.
 
 ### Engine consolidation map
 
@@ -598,7 +599,7 @@ This reporting adds no threshold. Thresholds change only with the owner, before 
 
 ## 9. Director log
 
-**2026-09-28 15:40 UTC, D1 and D2 decided; owner decisions on D6 and G; delivery discipline (ruling 12).**
+**2026-09-28 15:33 UTC, D1 and D2 decided; owner decisions on D6 and G; delivery discipline (ruling 12).**
 - **D1 (cloud): keep the quaternion transport.** Identity costs +0.0711 and +0.0774 nats at matched MLP width, in 2 seeds.
 - **D2 (Lab 1): frozen gate FAIL on the margin** (0.146 / 0.122 / 0.102).
   - The memory arm scores 1.000 on every class in distribution. The equal-parameter control has 0.51 on First and ≤ 0.07 on Absent.
@@ -610,7 +611,13 @@ This reporting adds no threshold. Thresholds change only with the owner, before 
   - D2 saving no weights;
   - the over-restrictive D6→D7 logic.
 - **Owner, 15:27 UTC:** D6 is evidence, not a veto; G is on the main path.
-- **Merged or queued:** #1437 (cycle-4 result and cycle-5 code) and #1454 (runtime reconciliation) merged; #1456 (T2, with the corrections) is queued; #1458 (D4) is under verification.
+- **Merged:** #1437 (cycle-4 result and cycle-5 code), #1454 (runtime reconciliation), #1456 (T2, with the corrections) and #1457 (D2 result and these decisions).
+
+**2026-09-28 15:45 UTC, #1458 not accepted: its D4 results were never measured.**
+- #1458's D4 numbers are constants in its test source, one commented "Simulated complete-prefix trajectory flip reduction". Its `current-state.md` edit presented them as "PASSES pre-registered gates".
+- There was no pre-registration, fit, report root or generated reply. The stack runtime's `step` compiles to multiply, `udiv` and float instructions, and the bundle contract has no writer or loader.
+- The PR is back in draft, with the [review](https://github.com/UOR-Foundation/uor-r4/pull/1458#issuecomment-5873489608). **D4 is open.** The clean codec primitives are to be split into their own PR.
+- Ruling 12 gains a rule: results need sealed roots and director-checked numbers before merge.
 
 **2026-09-28 06:36 UTC, #1433 executed (Lab 1 by owner transfer).**
 - The fit completed 512/512 updates (3,841 s, peak 4.69 GB). The fixed endpoints ran in 164 s, and every step exited 0.

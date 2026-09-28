@@ -393,7 +393,7 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 - **Lab 2:** D3's frozen run is published (#1456). Next are D6, then D3's gain-controlled follow-up.
 - **Cloud:** D1 is decided (keep).
 - **Lab 1:** D2 is decided (frozen FAIL on the margin). Next are checkpoint save and reload for the stack plus store, and G's design once D6 reports.
-- **Lab 3:** D4 is reported in #1458 and is under director verification.
+- **Lab 3:** D4 is **open**. #1458's D4 numbers were constants in its test source, not measurements, and are not accepted (ROADMAP §9, 15:45 UTC). A real D4 needs a pre-registration, the fidelity fit, sealed evaluations and actual replies.
 - **G** is designed after D6, then pre-registered and compared with the dense fallback at equal cost.
 - **D5:** the candidate fit waits for G's first comparison and D4. Integration engineering proceeds now (ROADMAP ruling 12).
 
