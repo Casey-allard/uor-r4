@@ -1,0 +1,262 @@
+{
+  "schema": "uor-r4.exact-h4-classifier-evidence/1",
+  "date": "2026-09-27",
+  "status": "ARITHMETIC_AND_SCOPED_OPCODE_PASS_DONOR_NOT_RUN",
+  "source_commit": "43e543fd876f59ebc7c4889970bb228d1b010a07",
+  "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "environment": {
+    "CARGO_TARGET_DIR": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/target",
+    "CARGO_BUILD_JOBS": "1",
+    "RAYON_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "GEMM_NUM_THREADS": "1",
+    "UOR_BUILD_SOURCE_COMMIT": "43e543fd876f59ebc7c4889970bb228d1b010a07",
+    "RUSTFLAGS": null,
+    "CARGO_ENCODED_RUSTFLAGS": null
+  },
+  "artifact": {
+    "bytes": 4273632,
+    "sha256": "715bb4492a75c8a55ff63bde31553ff4d769d2503858f3d6726cf4d19c9d88c7"
+  },
+  "source_files": {
+    "crates/uor-r4-integer/src/h4_classifier.rs": {
+      "filename": "h4_classifier.rs",
+      "bytes": 13872,
+      "sha256": "41c23d2d1c21dc77827406ab27fcf4d4df4d448473810d64762230f822876a1b"
+    },
+    "crates/uor-r4-training/src/native_h4_contract.rs": {
+      "filename": "native_h4_contract.rs",
+      "bytes": 988,
+      "sha256": "af45abffaa8f6f1ae0d3d7b7cf56b64d2d7591d29dd1058950755e7b43a2880f"
+    },
+    "scripts/audit_zero_matmul_serving.py": {
+      "filename": "audit_zero_matmul_serving.py",
+      "bytes": 28875,
+      "sha256": "9be2ce5a02fc43354d78913144fd74449a1269d3f8780c576527ceca555d2923"
+    }
+  },
+  "focused_checks": {
+    "passed": 3,
+    "failed": 0,
+    "filtered": 65,
+    "scope": "Independent i128 algebraic-norm/full120 oracle; zero, signed identity, axes, exact ties, Fibonacci near ties, i32 extremes, ternary grid and fixed pseudo-random lanes. No model execution.",
+    "log": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/h4-integer-classifier/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 41.94s\n     Running unittests src/lib.rs (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/target/release/deps/uor_r4_integer-bea720be477d0689)\n\nrunning 3 tests\ntest h4_classifier::tests::h4_classifier_exact_ties_keep_lowest_historical_index ... ok\ntest h4_classifier::tests::h4_classifier_extremes_and_lanes_match_independent_i128_oracle ... ok\ntest h4_classifier::tests::h4_classifier_zero_axes_and_signed_half_roots ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 0.00s\n\n       42.92 real        30.01 user         2.46 sys\n           322174976  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n              100034  page reclaims\n               10181  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                2401  voluntary context switches\n              177260  involuntary context switches\n          1354591894  instructions retired\n          1034187692  cycles elapsed\n            45580960  peak memory footprint\n"
+  },
+  "build_attempts": [
+    {
+      "receipt": {
+        "filename": "h4-light-build-execution-1.json",
+        "bytes": 4086,
+        "sha256": "c6acd609fa06978fcc19d39a92919533037cf3122e61ce8a6eb63745e3fb0d38"
+      },
+      "source_commit": "7e4129b042ed54f1b8a0f6a6e42b639b4fe1da0d",
+      "status": "COMPLETE",
+      "wall_seconds": 114.8580127498135,
+      "peak_sampled_group_rss_bytes": 344752128,
+      "error": null,
+      "commands": [
+        [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--locked",
+          "-p",
+          "uor-r4-integer",
+          "--release",
+          "--offline",
+          "--lib",
+          "h4_classifier::tests",
+          "--",
+          "--test-threads=1"
+        ],
+        [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--locked",
+          "-p",
+          "uor-r4-integer",
+          "--release",
+          "--offline",
+          "--lib"
+        ]
+      ]
+    },
+    {
+      "receipt": {
+        "filename": "h4-light-build-execution-2.json",
+        "bytes": 1217,
+        "sha256": "df6dbbc9c361c8a7eec64fe29536d4b97d894d80334999ccea8b7a007e8a28e1"
+      },
+      "source_commit": "43e543fd876f59ebc7c4889970bb228d1b010a07",
+      "status": "STOPPED_INCOMPLETE",
+      "wall_seconds": 0.13542916700000007,
+      "peak_sampled_group_rss_bytes": 0,
+      "error": "another Cargo process is active",
+      "commands": []
+    },
+    {
+      "receipt": {
+        "filename": "h4-light-build-execution-3.json",
+        "bytes": 3024,
+        "sha256": "b8f34bd99a79eef4f38d5f81aa55f2fb87ee0d6c00536533d71f180fb079e169"
+      },
+      "source_commit": "43e543fd876f59ebc7c4889970bb228d1b010a07",
+      "status": "STOPPED_INCOMPLETE",
+      "wall_seconds": 22.51887575024739,
+      "peak_sampled_group_rss_bytes": 334069760,
+      "error": "foreign Cargo appeared",
+      "commands": [
+        [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--locked",
+          "-p",
+          "uor-r4-integer",
+          "--release",
+          "--offline",
+          "--lib",
+          "h4_classifier::tests",
+          "--",
+          "--test-threads=1"
+        ]
+      ]
+    },
+    {
+      "receipt": {
+        "filename": "h4-light-build-execution-4.json",
+        "bytes": 5185,
+        "sha256": "9f5c076042911bffd38541f32dd8bf463b7b530f534ee0dae9ce1b3811346519"
+      },
+      "source_commit": "43e543fd876f59ebc7c4889970bb228d1b010a07",
+      "status": "COMPLETE",
+      "wall_seconds": 81.65455970913172,
+      "peak_sampled_group_rss_bytes": 353845248,
+      "error": null,
+      "commands": [
+        [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--locked",
+          "-p",
+          "uor-r4-integer",
+          "--release",
+          "--offline",
+          "--lib",
+          "h4_classifier::tests",
+          "--",
+          "--test-threads=1"
+        ],
+        [
+          "/usr/bin/time",
+          "-l",
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--locked",
+          "-p",
+          "uor-r4-integer",
+          "--release",
+          "--offline",
+          "--lib"
+        ]
+      ]
+    }
+  ],
+  "opcode_audits": [
+    {
+      "receipt": {
+        "filename": "h4-opcode-inspection-1.json",
+        "bytes": 1678,
+        "sha256": "5c4c666b9b04d3acfbc850571bb1707d7693973b155961040adf992832bc0a13"
+      },
+      "source_commit": "7e4129b042ed54f1b8a0f6a6e42b639b4fe1da0d",
+      "artifact_sha256": "0adabc8a8a5223ad72740c7897b49e9593f5d88742689899091d27b57a43cdbd",
+      "auditor": {
+        "bytes": 28811,
+        "sha256": "5b36c0f9bec1b4f97887ab2601b777f6fb4f7e5da1bf0fa34b46b333ab439d1d"
+      },
+      "status": "AUDIT_FAILED_OR_STOPPED",
+      "exit_code": 1,
+      "wall_seconds": 1.9756303750909865,
+      "peak_sampled_group_rss_bytes": 91308032,
+      "log": {
+        "filename": "h4-opcode-inspection-1.log",
+        "bytes": 9775,
+        "sha256": "58d68825d7a3322831af38bf6ec3efe9fe03acf796fe8da86697169d557bac86"
+      },
+      "result": {
+        "matched_symbol_ranges": 31,
+        "missing_mandatory": 0,
+        "h4_umulh": 1,
+        "h4_fmov": 19
+      }
+    },
+    {
+      "receipt": {
+        "filename": "h4-opcode-inspection-2.json",
+        "bytes": 1919,
+        "sha256": "577b6d8fb1562066e787ccef493647e0387033ff46154a3f44e20e06dd8bd13e"
+      },
+      "source_commit": "43e543fd876f59ebc7c4889970bb228d1b010a07",
+      "artifact_sha256": "715bb4492a75c8a55ff63bde31553ff4d769d2503858f3d6726cf4d19c9d88c7",
+      "auditor": {
+        "bytes": 28875,
+        "sha256": "9be2ce5a02fc43354d78913144fd74449a1269d3f8780c576527ceca555d2923"
+      },
+      "status": "COMPLETE",
+      "exit_code": 0,
+      "wall_seconds": 1.4992318339645863,
+      "peak_sampled_group_rss_bytes": 96321536,
+      "log": {
+        "filename": "h4-opcode-inspection-2.log",
+        "bytes": 9465,
+        "sha256": "ee641f9e0a65248404f506daae095706be77923e1143a93c900550b056a3d44e"
+      },
+      "result": {
+        "matched_symbol_ranges": 33,
+        "missing_mandatory": 0,
+        "forbidden_instructions": 0,
+        "h4_classifier_instructions": 651,
+        "golden_sign_bits_instructions": 67,
+        "checked_add_square_terms_instructions": 11
+      }
+    }
+  ],
+  "correction": "Separate non-inlined scalar sign-scatter and checked-add helpers preserve exact family winners and comparator while preventing observed LLVM vector/multiplier lowering. Audit policy unchanged.",
+  "cost_breakdown": {
+    "all_build_supervisors_seconds": 219.1668773761926,
+    "correction_projection_seconds": 104.3088646263791,
+    "correction_projection_cap_seconds": 180,
+    "all_opcode_supervisors_seconds": 3.4748622090555727,
+    "accounting": "Breakdown only. Preparation/review/waits/delivery and concurrent fit/build elapsed are charged once to the existing cumulative ledger, not summed again.",
+    "independent_compiled_review_seconds": 1.041102125
+  },
+  "not_established": [
+    "training-crate exact donor test execution",
+    "F32 or Q30 decision parity",
+    "reader integration or learned-score precision",
+    "language retention or general capability",
+    "runtime latency or energy improvement",
+    "whole-process or transitive-call-graph D0-b certification"
+  ],
+  "next": "Run separate donor-order check when training-package compute is available. Connect Q/K scale, exact group tables and lawful learned scoring only if reader evidence supports continuation; observe actual generated output.",
+  "independent_compiled_review": {
+    "diagnostic": {
+      "filename": "h4-opcode-diagnostic-2.txt",
+      "bytes": 45512,
+      "sha256": "82bf105eaa26d7f498f44bc7525d7d1d90fc3758d58aa382e79224ec35d4b9bf"
+    },
+    "wall_seconds": 1.041102125,
+    "peak_sampled_objdump_group_rss_bytes": 7979008,
+    "method": "objdump -dr --demangle; three emitted H4 ranges including relocations",
+    "finding": "Classifier has twelve calls to golden_sign_bits and one to checked_add_square_terms. Both numerical callees inspected; checked shift/add squares, family selection, coefficient accumulation and comparator are inline. No indirect call. Other external calls are Rust bounds-panic routines, excluded for the reviewed declared-domain bounds. No forbidden instructions in these three ranges.",
+    "limitation": "Scoped H4 call inspection, not whole-program or future-linked-artifact certification."
+  }
+}

@@ -99,6 +99,20 @@ to be selected before fitting. Actual relation recovery and all-output retention
 govern that decision; the old width-256 rounding result warns that lower
 numerical loss alone does not preserve complete answers. No new alpha fit ran.
 
+Parallel source preparation adds a standalone
+[exact signed H4 integer classifier](exact-h4-classifier-2026-09-27.md), with an
+immutable historical-order coefficient table and explicit zero/tie behavior.
+At source `43e543fd`, all three focused integer checks and release compilation
+pass. After preserving an initial compiler-lowering failure, the corrected
+frozen library passes strict instruction inspection in 33 emitted ranges,
+including the classifier and both scalar helpers. The separate training-crate
+donor-order check is NOT_RUN; no core/training or model execution occurred.
+[Source, artifact, failed/passing outcomes and complete build breakdown](../evidence/exact-h4-classifier-2026-09-27.json)
+retain their scope. It is not connected to a reader or promoted artifact, and
+does not establish F32 decision parity, language retention or serving speed.
+The [learning and exact-table reuse review](finite-h4-learning-and-native-reuse-2026-09-27.md)
+guides conditional integration and selects no additional fit.
+
 The retained integer `TextSession` now has an opt-in exact-ID dialogue adapter
 and consistent optional stop-token handling. Six focused checks pass. A loaded
 accepted-bundle witness matches exact prefix IDs and all 16 prediction records
@@ -355,12 +369,19 @@ Reference-minus-float NLL is +0.007543 to +0.012756; integer-minus-reference is
 -0.00000170 to +0.00015188. The reference substitutes packed matrices, scalars,
 biases, folded normalization gains and head values, so the localization is to
 the packed representation collectively, not uniquely four-bit matrix rounding.
-New integer continuations remain weak. GPTQ source and synthetic checks are
-present without a trained GPTQ result packet. Grouped scales and a separate
-embedding/head differ from the native tied-readout codec. Hardware multiply/divide
-serving and the empty designated local payload intake remain unresolved for
-this lab's target. These reports do not promote a model or change the completed
-fixed dialogue pair.
+New integer continuations remain weak. The [subsequent trained GPTQ packet](geometric-stack-cycle4-2026-09-27.md#8-integer-serving-under-d10)
+at `c22a97e6`, retained in merged main `72538ffb`, resolves the earlier source-only
+limitation: all five parent/calibration/development joins were reviewed, and the
+2,560 saved window reductions reproduce their reported NLLs. Against each model's
+nearest-rounding export, GPTQ removes 40.53–47.63% of the four geometric stacks'
+integer-minus-float gap and 54.25% of the transformer control's gap. This is
+exposed code-development numerical retention; the packet adds no GPTQ-generated
+reply records. Its grouped scales and separate embedding/head differ from the
+native tied-readout codec, and scales are reselected during compensation rather
+than held on our fixed grid. [Transfer assessment](finite-h4-learning-and-native-reuse-2026-09-27.md).
+Hardware multiply/divide serving and the empty designated local payload intake
+remain unresolved for this lab's target. These reports do not promote a model,
+alter the retained dialogue pair, or change the fixed 512-update child study.
 
 The separately owned termination-objective study has a
 [source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)

@@ -43,6 +43,9 @@ pub mod stack_dialogue;
 pub mod stack_export;
 pub mod stack_tracking;
 
+#[cfg(test)]
+mod native_h4_contract;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
