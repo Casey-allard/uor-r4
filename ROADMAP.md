@@ -130,17 +130,26 @@ The [whole-project synthesis](docs/integration/whole-project-synthesis-2026-09-2
 - **M3**, a geometry-coded D11 artifact (D4);
 - **M4**, event-gated state, deferred.
 
-Geometry sits in five places: the core's transport (D1), exact identity, exact automata, weight coding (D4), and the addressed read (G).
+**Owner, D12 (2026-09-28): geometry moves to the core.** The native engine's mechanisms are ported into the stack one at a time, each trained in and measured at equal capacity:
+1. the 2I transport (**S4**, now);
+2. the exact store (I1);
+3. prime/UOR-addressed store keys;
+4. zeta phase channels.
+
+Reopened with them: the finite-group tracking lanes (with S4), and the geometric sparse index plus trained-in 2I/E8 read codes (inside G). Gates promote; they never kill. The [geometric toolbox](docs/integration/geometric-toolbox-2026-09-28.md) keeps every demonstrated geometric piece available.
+
+Geometry sits in five places: the core's transport (D1, S4), exact identity, exact automata (the B1 lanes, reopened), weight coding (D4), and the addressed read (G).
 
 | ID | Question | Owner | Status |
 |---|---|---|---|
 | D0 | Which core? | Cloud (retired) | **Decided:** the stack |
 | D1 | Is the transport load-bearing at matched width? | Cloud (retired) | **Decided: keep.** Identity costs +0.0711 and +0.0774 nats (2 seeds). Merged in #1460 |
-| D2 | Does exact memory give small models updated relations? | Lab 1 | **Frozen gate FAIL (margin)**. The store is perfect in distribution (1.000 on every class). Held out, the learned read trigger fails ([result](docs/integration/d2-aerm-probe-result-2026-09-28.md)) |
-| D3 | Geometric against ordinary index, at equal bits and fewer inspected events? | Lab 2 | Frozen run **NOT QUALIFIED** at its scope (#1456). The gain-controlled follow-up decides |
+| D2 | Does exact memory give small models updated relations? | Lab 1 | **Not yet promoted** (its margin gate missed against a strong recency control; D12). The store is perfect in distribution (1.000 on every class). Held out, the learned read trigger fails ([result](docs/integration/d2-aerm-probe-result-2026-09-28.md)). **Active:** the store is I1 (#1472), and reads come through G |
+| D3 | Geometric against ordinary index, at equal bits and fewer inspected events? | Lab 2 | **Not yet promoted** at its scope (#1456; confounded by magnitude, ruling 11). **Reopened inside G** (D12), with magnitude carried and the geometry trained in |
 | D4 | Does geometry-coded coding fix the hard artifact? | Lab 3 | **Open.** [#1458](https://github.com/UOR-Foundation/uor-r4/pull/1458)'s D4 numbers (142 flips, +0.0125 nats, 7/10) are **constants in its test source, not measurements**. It has no pre-registration, fit, report roots or replies, so the result is **not accepted** ([review](https://github.com/UOR-Foundation/uor-r4/pull/1458#issuecomment-5873489608)). Lab 3 is to pre-register and run it |
 | D6 | What does the 2I read representation discard? Evaluation only | Lab 2 | **Delivered** (#1464): ORDINARY-BETTER on the native model's dot read. **Evidence, not a veto** (owner, 15:27 UTC) |
-| G | The geometric read/address operator | Lab 2 (research and implementation); Lab 1 (decision and integration) | **Main path** (owner, 15:27 UTC): designed after D6, built behind I4 |
+| G | The geometric read/address operator | Lab 2 (research and implementation); Lab 1 (decision and integration) | **Main path** (owner, 15:27 UTC). G v1 (#1469) is running its frozen run. It carries the reopened geometric sparse index and trained-in read codes (D12) |
+| S4 | Can the transport be exact 2I, trained in? | Lab 1 | **Being implemented.** Post-hoc snap on S2 costs +0.0221. Three-way outcome (D12): within 0.02 of its control it is adopted as the served transport; 0.02–0.06 it keeps developing (longer, annealed, 2I×2I); above 0.06, diagnose first. It is never retired on one run |
 | D5 | The milestone candidate (§8) | All | The fit waits for G's first comparison and D4. Integration engineering proceeds now (ruling 12) |
 
 ### 2b. The artifact contract
@@ -450,11 +459,31 @@ Do not resume any of these without new causal evidence and a decision it can cha
 ([D9](docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)).
 Each negative keeps its exact scope; a failed parameterisation does not retire a whole family.
 
+**Owner decision [D12](docs/integration/DECISIONS.md#d12--gates-promote-never-kill-reopen-geometric-candidates-port-the-native-engines-mechanisms-keep-a-geometric-toolbox) (2026-09-28): gates promote; they never kill.** The verdicts below record results at their scope. For mechanisms, DEAD, RETIRED and FAILED now read **"not yet promoted at that scope"**, and the kill rules are withdrawn. The dispositions are in the [geometric toolbox](docs/integration/geometric-toolbox-2026-09-28.md):
+- **Reopened as active candidates:**
+  - the 2I and reflection-pair tracking lanes, trained jointly with S4's 2I transport;
+  - exact memory (I1 plus G);
+  - the geometric sparse index, inside G;
+  - trained-in 2I/E8 read codes, inside G.
+- **Already in the main line:** quaternion rotation (the D1 transport) and the Lorentz reads.
+- **Kept in the toolbox:**
+  - the 2I relative-relation table;
+  - prime/CRT addressing and UOR identity;
+  - zeta phase channels;
+  - the exact Hopf map;
+  - E8/H4 codebooks;
+  - orthant admission;
+  - vector-symbolic binding;
+  - golden-ratio rotation codebooks;
+  - horocycle and curvature;
+  - Cayley–Dickson algebra;
+  - the R4G1 kernel.
+
 | Path | Verdict | Scope and numbers | Source |
 |---|---|---|---|
-| Lorentz score in dense reads ("hyperbolic attention") | **DEAD as a score** | Transferred Lorentz and Affine readers are +0.0464 and +0.0133 nats against Dot. Inside the default stack, Lorentz−Dot averages −0.0001 over 2 seeds. The cycle-3 win at reduced scale did not transfer. | [radial result](docs/integration/radial-adaptation-result-2026-09-27.md), [cycle 4 §7](docs/integration/geometric-stack-cycle4-2026-09-27.md) |
-| Finite 2I read score | **DEAD at its tested parameterisation (HARM)** | Read NLL +0.019719; complete answers 27→17 of 32; 1.84× cost. It dropped per-lane magnitude, snapped to 120 roots and swapped in a learned MLP together, and its norm control (arm C) never ran. **The cause is unresolved**; D6, evaluation only, settles it (ruling 11) | [#1438](https://github.com/UOR-Foundation/uor-r4/pull/1438) |
-| Quaternion rotation as a general content mixer | **PARKED** | −0.025 nats against Householder (1 seed); diagonal decay 1.871 against quaternion 1.880 bits/byte (2 seeds); snapping every lane to 2I +0.16–0.18 bits/byte | [review §6.3](docs/integration/first-principles-review-2026-09-25.md) |
+| Lorentz score in dense reads ("hyperbolic attention") | **In the main line** (the stack reads with Lorentz; neutral against Dot at 7M) | Transferred Lorentz and Affine readers are +0.0464 and +0.0133 nats against Dot. Inside the default stack, Lorentz−Dot averages −0.0001 over 2 seeds. The cycle-3 win at reduced scale did not transfer. | [radial result](docs/integration/radial-adaptation-result-2026-09-27.md), [cycle 4 §7](docs/integration/geometric-stack-cycle4-2026-09-27.md) |
+| Finite 2I read score | **Not yet promoted** (harm at its confounded parameterisation; trained-in 2I read codes reopened inside G, D12) | Read NLL +0.019719; complete answers 27→17 of 32; 1.84× cost. It dropped per-lane magnitude, snapped to 120 roots and swapped in a learned MLP together, and its norm control (arm C) never ran. **The cause is unresolved**; D6, evaluation only, settles it (ruling 11) | [#1438](https://github.com/UOR-Foundation/uor-r4/pull/1438) |
+| Quaternion rotation as a general content mixer | **In the main line** (the D1 transport: +0.07 nats) | −0.025 nats against Householder (1 seed); diagonal decay 1.871 against quaternion 1.880 bits/byte (2 seeds); snapping every lane to 2I +0.16–0.18 bits/byte | [review §6.3](docs/integration/first-principles-review-2026-09-25.md) |
 | Count-prior blend | **DEAD** | +0.004928 [−0.026, +0.041] against the `(prev,cur)` table | [count-blend result](docs/integration/ordinary-lexical-count-blend-result-2026-09-23.md) |
 | Exposure-only continuation of the 1.68M native model | **CLOSED** | Step 15,672: continuous prose 0/5 and 0/5; integer 0/5 and 1/5 | [continuation result](docs/integration/language-continuation-result-2026-09-26.md) |
 | Termination-weighted objective | **INERT** | 3 unique rows against the 4 required; prose 0/5 | [termination review](docs/integration/termination-objective-review-2026-09-27.md) |
@@ -468,9 +497,9 @@ Each negative keeps its exact scope; a failed parameterisation does not retire a
 | D10 converted SmolLM2 as the served model | **OUT OF MISSION (R4)** | Comparator or teacher only; no real SmolLM2 checkpoint was ever converted | [D10](docs/integration/DECISIONS.md#d10--a-converted-open-weight-backbone-is-the-interim-chat-vehicle-serving-arithmetic-restated) |
 | `uor-r4-lut`/`lut-chat` with hardware multiplies on runtime values | **FROZEN comparator (R2)** | Integer stack gap 0.011–0.013 nats, measured under D10 only | [cycle 4 §8](docs/integration/geometric-stack-cycle4-2026-09-27.md) |
 | 2I relation lookup table for the parked read (`inverse(q)*k`) | **PARKED** | Its consumer, #1438, is parked | Ruling 3 |
-| Quaternion (2I) lanes as a serving advantage over ordinary non-commutative lanes | **RETIRED** (B1 kill rule) | A5 at length 4,096 after snapping: quaternion 8/9, reflection pair 9/9. Both minimise to a 60-state A5 automaton. The finite-group state mechanism itself survives. | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
-| Quaternion (2I) tracking lanes: the pre-registered B1 Stage B subject | **FAILED; 2I serving claim RETIRED** (kill rule) | Inside the stack, 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. The ordinary reflection-pair lanes were kept as an exploratory result (3 of 3), then failed their replication (next row). | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
-| Reflection-pair tracking lanes in the stack (B1 closure replication) | **FAILED the text gate; no lane type retained** | A fresh pre-registered 3-seed replication tracks A5 exactly (1.000; 60-state automata, `verify_exact` true), but seed 4 costs +0.0688 nats against the 0.05 gate. Six-seed mean +0.018. The automata stay available as tools. | [B1 record §8](docs/integration/b1-finite-group-lanes-2026-09-27.md), [#1447](https://github.com/UOR-Foundation/uor-r4/pull/1447) |
+| Quaternion (2I) lanes as a serving advantage over ordinary non-commutative lanes | **Not yet promoted** (the B1 kill rule is withdrawn, D12; reopened with S4) | A5 at length 4,096 after snapping: quaternion 8/9, reflection pair 9/9. Both minimise to a 60-state A5 automaton. The finite-group state mechanism itself survives. | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
+| Quaternion (2I) tracking lanes: the pre-registered B1 Stage B subject | **Not yet promoted** (kill rule withdrawn, D12; reopened with S4) | Inside the stack, 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. The ordinary reflection-pair lanes were kept as an exploratory result (3 of 3), then failed their replication (next row). | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
+| Reflection-pair tracking lanes in the stack (B1 closure replication) | **Not yet promoted** (one seed of six missed the text gate; the six-seed mean is +0.018; reopened, D12) | A fresh pre-registered 3-seed replication tracks A5 exactly (1.000; 60-state automata, `verify_exact` true), but seed 4 costs +0.0688 nats against the 0.05 gate. Six-seed mean +0.018. The automata stay available as tools. | [B1 record §8](docs/integration/b1-finite-group-lanes-2026-09-27.md), [#1447](https://github.com/UOR-Foundation/uor-r4/pull/1447) |
 | Context-conditioned lanes on natural-text swap stories (B1 Stage C) | **PARKED at this scale** | The pilots learned no tracking. The transport witness rotates at almost every token (no event gating). Re-entry requires M4's event gate and new causal evidence (D9). | [Stage C record](docs/integration/b1c-context-lanes-swap-stories-2026-09-28.md) |
 | Per-product table emulation as a lower-energy serving kernel | **FAILED on energy** (measured) | Integer bundle 0.00413 J/token against 0.00096 for its F32 parent on the M1 (about 4.3×), and about 2.6× slower. Whole-system marginal; SoC CPU counters unavailable. The multiplier-free contract stands; the kernel moves to grouped LUT accumulation (§4.3). | [#820 note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224) |
 | Response-aware legal-code choice with corpus cross-entropy (width-576 dialogue child, #1433) | **FAILED retention** | Panel NLL 2.849→2.796, but question-turn relation answers 4→2 of 10 (continuous 9). Greedy flips against the parent 909→962; 6.4% of codes moved; a generic "Yes, I can help with that." on 5 of 10 questions. The objective, not the dose, is the lesson: D4 uses fidelity to the continuous child | [result](docs/integration/dialogue-code-choice-result-2026-09-28.md) |
@@ -612,6 +641,17 @@ This reporting adds no threshold. Thresholds change only with the owner, before 
 - The #1432 outputs echo relations ("The name is Alex is Alex.") instead of responding.
 
 ## 9. Director log
+
+**2026-09-28 21:42 UTC: owner decision D12 — gates promote, never kill; geometry to the core.**
+- **Gates decide promotion only.** A miss keeps a mechanism active with its next step. Parking a family needs a root-cause case and the owner's OK. D9's rule against blind retries stays.
+- **Reopened:**
+  - the finite-group tracking lanes (A5 exact; six-seed mean text cost +0.018);
+  - exact memory;
+  - the geometric sparse index;
+  - trained-in 2I/E8 read codes.
+- **The native engine's mechanisms are ported into the stack:** S4 (2I transport), then I1, prime/UOR keys and zeta phases.
+- **S4 is judged three ways,** with no kill.
+- **The [geometric toolbox](docs/integration/geometric-toolbox-2026-09-28.md)** keeps every demonstrated geometric piece building and documented, with its novelty and reuse points.
 
 **2026-09-28 20:25 UTC: S2, the first dialogue-trained stack. Rule 1 applies, but its replies are poor.**
 - **Primary metric.** On the study's identical 161-response panel, pooled development response NLL is **2.520916**, against the native full-prefix child's 2.773887 and its parent's 3.022131. By the pre-registered rule 1, **S2 `8cb11d8f…` becomes the main line's loss-level dialogue baseline.**

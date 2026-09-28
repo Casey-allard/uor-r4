@@ -420,3 +420,43 @@ Context:
    - Every mission serving change carries the R1–R2 instruction audit of its release binary and reports per-token parameter reads (R3).
    - The runtime track (T3) extends the audit to every served symbol, including the Lorentz and sampling paths (ROADMAP ruling 9).
 
+
+## D12 — Gates promote, never kill; reopen geometric candidates; port the native engine's mechanisms; keep a geometric toolbox
+
+Owner: Casey · Drafted by: Lab 1 (Claude main) · Date: 2026-09-28 · **Owner decision in the Lab 1 session, answering four prompts.** Each answer picked the recommended option. The owner also added a synthesis instruction, quoted in item 5.
+
+Context. Near misses on one configuration of mechanisms still under construction had become eliminations of whole mechanism families. Examples:
+- **B1's 2I tracking lanes** tracked A5 exactly, then were closed for a +0.069-nat text cost in one seed, against a 0.05 limit, under a kill rule.
+- **D2's exact memory** scored 1.000 in distribution, then was marked FAIL because the margin gate missed against a strong control.
+- **The geometric sparse index** was ruled "not qualified" in a contest later found to be confounded by magnitude.
+- **2I codes** were "rejected" after post-hoc tests only (D6, S1.0b).
+- **The native geometric engine** was set aside at 1.68M parameters, and never compared at matched capacity.
+
+1. **Gates promote; they never kill.**
+   - A pre-registered gate decides only whether a mechanism enters the served or main-line model now.
+   - A miss keeps the mechanism active, with its next diagnosed step recorded.
+   - **Parking a mechanism family** needs a written root-cause case and the owner's OK.
+   - [D9](#d9--prevent-experiment-loops-and-preserve-the-context-contract) stays: every retry needs a real causal change, not an extra seed or dose.
+   - Earlier FAIL, DEAD and RETIRED labels on mechanisms now read **"not yet promoted at that scope"**. The measured numbers keep their exact scope.
+   - Kill rules attached to earlier gates are withdrawn, for example B1's "retire the geometric state claim from the serving path".
+2. **Reopened as active geometric candidates, each with a named next step** (ROADMAP §2a and §5):
+   - **B1 2I tracking lanes:** trained jointly with the trained-in 2I transport (S4). Lab 1.
+   - **D2 exact memory:** as I1's store, with G's learned reads. Labs 1 and 2.
+   - **The geometric sparse index:** re-tested inside G, with magnitude carried and geometry trained in. Lab 2.
+   - **2I (or E8) read codes, trained in, not snapped post hoc:** inside G. Lab 2.
+3. **The native engine's mechanisms are ported into the main-line stack's core,** one at a time. Each is trained in and measured at equal capacity:
+   - **First:** the 2I transport (S4, now).
+   - **Then:** the exact store (I1); prime/UOR-addressed store keys; zeta phase channels.
+
+   One learner is kept. Geometry moves from the edges of the model to its core.
+4. **S4 is judged three ways, with no kill:**
+   - **Within 0.02 nats of its control:** it becomes the served transport now.
+   - **0.02–0.06:** it stays on the geometric track, with named next steps: longer training, an annealed snap, the finer 2I×2I set.
+   - **Above 0.06:** diagnose before the next step.
+
+   The 2I transport is never retired on one run.
+5. **A geometric toolbox.** The owner's instruction, quoted:
+
+   > leave closed mechanisms that demonstrated real geometric capabilities that are absent from the rest of our mechanisms so that we have their tools and pieces available to fix other problems later - use your context and project understanding synthesis to evaluate them and their novelty
+
+   Lab 1 keeps such mechanisms' code building and documented, with their demonstrated capability, novelty and reuse points, in the [geometric toolbox](geometric-toolbox-2026-09-28.md).

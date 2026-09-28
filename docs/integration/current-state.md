@@ -5,6 +5,10 @@ frontier, geometric-advantage or full-path energy qualification.**
 
 ## September 28: base decided, track approved, #1433 result
 
+- **Owner decision [D12](DECISIONS.md#d12--gates-promote-never-kill-reopen-geometric-candidates-port-the-native-engines-mechanisms-keep-a-geometric-toolbox): gates promote, never kill.**
+  - The finite-group lanes, exact memory, the geometric sparse index and trained-in 2I/E8 read codes are reopened.
+  - The native engine's mechanisms move into the stack's core, starting with S4's trained-in 2I transport.
+  - The [geometric toolbox](geometric-toolbox-2026-09-28.md) lists the pieces kept available.
 - **Organization (owner charter, 17:25 UTC).** There are now three labs:
   - **Lab 1, Claude main:** lead, integration, learner, dialogue, memory, the complete response path and the stack serving port.
   - **Lab 2, OpenCode:** geometric read and addressing.
