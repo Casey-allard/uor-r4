@@ -2,6 +2,8 @@
 
 ## Four-lab research programme — owner direction September 26
 
+> **Historical since 2026-09-28.** The paragraph below describes the Codex lab, which is not part of the owner's three-lab charter; it is assigned no work and returns only by owner direction. See the [execution policy](agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28). Results recorded in this section keep their exact scope.
+
 The owner authorizes a fourth, autonomous Codex lab alongside Google,
 OpenCode/DeepSeek/Kimi and Claude, coordinated through shared GitHub issues and
 isolated worktrees. The [fourth-lab operating guide](../../.codex-lab/README.md)

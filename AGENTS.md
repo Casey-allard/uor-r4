@@ -8,10 +8,10 @@ The owner-directed mode is `native_geometric_ai`. Build a learned local language
 
 **Owner charter, September 28: three labs.** **Lab 1 (Claude main)** leads the programme and integrates the work. It owns:
 - the architecture, shared interfaces and promotion;
-- the learner, dialogue conditioning, persistent memory and the complete response path;
+- the learner, dialogue conditioning, learning objectives, persistent memory and the complete response path;
 - the stack writer, loader and integer forward, absorbed from the retired cloud track.
 
-**Lab 2 (OpenCode)** owns geometric read/address research and its implementation behind the read interface. **Lab 3 (Anti-Gravity)** owns numerical fidelity, codecs, kernels, execution audits and measured local cost. The Claude cloud track and the Codex lab are retired, with no future assignments. The single shared operating policy, including the standing merge and review criteria, is in [agent-execution-policy.md](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
+**Lab 2 (OpenCode)** owns geometric read/address research and its implementation behind the read interface. **Lab 3 (Anti-Gravity)** owns numerical fidelity, codecs, kernels, execution audits and measured local cost. The Claude cloud track is retired. The Codex lab is not part of the three-lab organization: it is assigned no work and returns only by owner direction. The single shared operating policy, including the standing merge and review criteria, is in [agent-execution-policy.md](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
 
 ## Authority and recovery
 
@@ -139,7 +139,7 @@ Google, OpenCode/DeepSeek/Kimi and Claude, using shared GitHub issues and isolat
 worktrees. Its allowance is exhausted, its T4 study transferred to Lab 1, and the three-lab charter above
 assigns it no future work. The paragraph and `.codex-lab/` are kept as its record. Read [.codex-lab/README.md](.codex-lab/README.md) for its expert bench,
 complete-context task packet, recursive evidence review and cross-lab ownership
-protocol. Its whole-project authorization covers successive necessary research
+protocol. Its whole-project authorization covered successive necessary research
 and implementation; old one-milestone stop instructions do not limit that goal.
 The canonical plan owns the adaptive attention/inference/prose/chat/reasoning
 roadmap. Preserve each lab's active files/jobs, source-bound evidence and all

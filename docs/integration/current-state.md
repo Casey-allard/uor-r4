@@ -10,7 +10,7 @@ frontier, geometric-advantage or full-path energy qualification.**
   - **Lab 2, OpenCode:** geometric read and addressing.
   - **Lab 3, Anti-Gravity:** fidelity, codecs, kernels, audits and cost.
 
-  The retired cloud track's obligations are absorbed (ROADMAP §9), and the Codex lab is retired.
+  The retired cloud track's obligations are absorbed (ROADMAP §9), and the Codex lab is not part of the three-lab organization.
   - **Pinned baselines:** native dialogue `98aca5ab…` (development response NLL 2.773887) and code stack `3eb1ebbb…` (1.998113).
   - **S2, the first dialogue-trained stack** (`8cb11d8f…`, [result](s2-dialogue-stack-baseline-2026-09-28.md)):
     - development response NLL 2.520916, against the native child's 2.773887 on the same panel, making it the loss-level dialogue baseline;
@@ -28,7 +28,7 @@ frontier, geometric-advantage or full-path energy qualification.**
   - The core is the stack, keeping its quaternion transport (D1, #1460).
   - D2 (architectural exact relational memory) ran: **frozen FAIL on the margin**. The store is perfect in distribution; the learned read does not generalise ([result](d2-aerm-probe-result-2026-09-28.md)).
   - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2). It is evidence, not a veto; the geometric read/address operator G is on the main path (owner, 15:27 UTC).
-  - D4 is geometry-coded QAT with a fidelity objective (Lab 3).
+  - D4 is Lab 3's geometry-coded codecs with a fidelity objective, to be trained through Lab 1's QAT hook (#1466). It is still open.
 - **S1, the stack's D11 serving port (Lab 1): measured, not yet qualified** ([record](s1-stack-serving-measurements-2026-09-28.md)).
   - The 4-bit export misses the 0.02-nat fidelity gate: +0.0362 nats (round to nearest), +0.0257 (GPTQ). The integer arithmetic costs ≤ 10⁻⁶ nats.
   - The head is about half of the gap.
@@ -44,6 +44,8 @@ frontier, geometric-advantage or full-path energy qualification.**
 - **Unchanged:** no useful general chat, prose, instruction following, geometric advantage, selected parameter access or energy saving is established.
 
 ## Fourth lab: shared research and integration
+
+> **Historical since 2026-09-28.** The paragraph below describes the Codex lab, which is not part of the owner's three-lab charter; it is assigned no work and returns only by owner direction. See the [execution policy](agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28). Results recorded in this section keep their exact scope.
 
 The owner has authorized the [fourth Codex research lab](../../.codex-lab/README.md)
 and shared GitHub/worktree coordination with Google, OpenCode/DeepSeek/Kimi and

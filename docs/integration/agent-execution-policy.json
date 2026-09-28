@@ -193,7 +193,7 @@
   },
   "organization": {
     "authority": "docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28",
-    "owner": "mission_hard_constraints_spending_destructive_actions",
+    "owner": "mission_strategic_authority_hard_constraints_ratification_of_decisions_organization_lanes_merge_criteria_spending_destructive_actions",
     "labs": {
       "lab1_claude_main": [
         "roadmap",
@@ -205,7 +205,8 @@
         "learner_dialogue_conditioning_learning_objectives",
         "persistent_memory",
         "complete_response_path",
-        "stack_writer_loader_integer_forward"
+        "stack_writer_loader_integer_forward",
+        "qat_hook_and_validation_fine_tune"
       ],
       "lab2_opencode": [
         "geometric_read_address_research",
@@ -219,11 +220,12 @@
         "measured_local_cost"
       ]
     },
-    "retired_no_future_assignments": [
+    "single_shared_policy_on_main": true,
+    "charter_record": "docs/integration/three-lab-charter-2026-09-28.md",
+    "not_in_organization_no_future_assignments": [
       "claude_cloud_track_2026-09-28",
-      "codex_lab4_2026-09-28"
-    ],
-    "single_shared_policy_on_main": true
+      "codex_lab4_not_in_three_lab_organization_returns_only_by_owner_direction"
+    ]
   },
   "merge_review": {
     "classes": {
@@ -235,19 +237,22 @@
       "B_results": [
         "class_A",
         "sealed_report_roots_on_disk",
-        "headline_numbers_reread_from_roots_by_non_author",
-        "lab3_gating_measurement_rerun_by_lab1"
+        "headline_numbers_reread_from_roots_by_lab1_or_for_lab1_results_by_another_lab_or_independent_pass",
+        "artifact_promotion_needs_lab1_decision",
+        "lab3_results_gating_measurement_rerun_by_lab1"
       ],
       "C_shared_interfaces_architecture": [
         "class_A",
-        "lab1_documented_decision_in_roadmap_or_decisions",
-        "owner_for_owner_level_constraints"
+        "class_B_if_results",
+        "lab1_documented_decision_in_roadmap",
+        "owner_ratification_for_decisions_d11_invariants_organization_and_merge_criteria"
       ]
     },
     "lab1_own_consequential_changes_need_non_author_review": true,
     "owner_approval_per_merge_required": false,
-    "merge_path": "merge_queue_when_clean_then_verify_tree_equality_and_notify_consumer",
+    "merge_path": "merge_queue_when_clean_then_verify_squash_diff_equals_pr_diff_and_notify_consumer",
     "failed_gate_merges_as_negative_without_promotion": true,
-    "result_readers_fail_on_missing_keys": true
+    "result_readers_fail_on_missing_keys": true,
+    "review_listing_required_fixes_is_not_approval_until_they_land": true
   }
 }

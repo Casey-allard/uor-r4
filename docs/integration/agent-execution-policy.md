@@ -8,20 +8,20 @@ not a hardcoded stage order or copies of roadmap prose.
 
 ## Three-lab organization and shared operating policy (owner charter, 2026-09-28)
 
-This section is the **single shared operating policy for every lab**. The labs' standing prompts restate it; they do not replace it. Where a prompt and this file disagree, this file on `main` wins until a protected PR changes it.
+This section is the **single shared operating policy for every lab**. The labs' standing prompts restate it; they do not replace it. Where a prompt and this file disagree, this file on `main` wins until a protected PR changes it, except against a newer explicit owner instruction. Lab 1 records such an instruction here by protected PR. The owner's charter is recorded verbatim in [three-lab-charter-2026-09-28.md](three-lab-charter-2026-09-28.md).
 
 ### Organization
 
 | Party | Owns | Does not own |
 |---|---|---|
-| **Owner (Casey)** | The mission, hard constraints (D11 and the invariants in this file), spending and destructive-action authority | — |
-| **Lab 1, Claude main** (lead research lab) | The roadmap, the architecture, difficult mathematical decisions, shared interfaces and promotion. The integrated artifact contract (ROADMAP §2b). The learner, dialogue conditioning, learning objectives, persistent memory and the complete response path. The stack writer, loader and integer forward, absorbed from the retired cloud track | Promotion of its own work without non-author review |
-| **Lab 2, OpenCode** | Geometric read/address research and its integration-ready implementation behind the stack's read interface: query formation, candidate admission, ranking, NoRead, value use and language-to-address generalization | The learner, tokenizer, memory semantics, training policy and serving contract. It proposes changes to these; Lab 1 decides |
-| **Lab 3, Anti-Gravity** | Numerical fidelity, codecs and training-aware discretization, kernels, execution audits and measured local cost, coordinated with Lab 1's bundle and session | A second engine, format, frontend or deployment path |
+| **Owner (Casey)** | The mission and strategic authority. The hard constraints: D11 and the stable invariants in this file. Ratification of every `DECISIONS.md` entry. The organization, lane ownership and merge and review criteria in this section. Spending and destructive-action authority | — |
+| **Lab 1, Claude main** (lead research lab) | The roadmap, the architecture, difficult mathematical decisions, shared interfaces and promotion. The integrated artifact contract (ROADMAP §2b). The learner, dialogue conditioning, learning objectives, persistent memory and the complete response path. The stack writer, loader and integer forward, absorbed from the retired cloud track. The QAT hook and its validation fine-tune (owner, 17:00 UTC) | Promotion of its own work without non-author review. Owner-level constraints |
+| **Lab 2, OpenCode** | Geometric read/address research and its integration-ready implementation behind the stack's read interface: query formation, candidate admission, ranking, NoRead, value use and language-to-address generalization | The learner, tokenizer, memory semantics, training policy and serving contract. It proposes changes to these; Lab 1 decides, except for owner-level constraints (D11, `DECISIONS.md`), which go to the owner |
+| **Lab 3, Anti-Gravity** | Numerical fidelity, codecs (including D4's training-aware discretization, through Lab 1's QAT hook), kernels, execution audits and measured local cost, coordinated with Lab 1's bundle and session | A second engine, format, frontend or deployment path |
 
-**Retired, with no future assignments.** Their records are preserved:
+**Not part of the three-lab organization, with no future assignments.** Their records are preserved:
 - **The Claude cloud track**, stood down on 2026-09-28. Lab 1 absorbed its work and obligations; see ROADMAP §9, 2026-09-28.
-- **The Codex lab (Lab 4).** Its allowance is exhausted, and its T4 study transferred to Lab 1 on 2026-09-28.
+- **The Codex lab (Lab 4).** Its allowance is exhausted, and its T4 study transferred to Lab 1 on 2026-09-28. It is assigned no work and returns only by owner direction.
 
 ### Standing operation
 
@@ -31,7 +31,7 @@ This section is the **single shared operating policy for every lab**. The labs' 
   - Verify consequential claims even when they are on `main`.
 - **At startup or resumption:**
   - fetch `origin/main`;
-  - read `AGENTS.md`, `ROADMAP.md`, `project-track.md`, `current-state.md`, `DECISIONS.md` and recent #820 and #973 activity (recent pages, not only the first);
+  - read `AGENTS.md` and its reading order (README → project track → current state → model direction → project map), plus `ROADMAP.md`, `DECISIONS.md` and recent #820 and #973 activity (recent pages, not only the first);
   - inspect the task's source, artifacts, jobs and reservations. Reuse prior work.
 - **Choose the highest-value unblocked task** in your lane and the roadmap. Record it in the existing issue with the progress-control work card below.
   - Routine work and bounded research inside a lane need no new owner approval.
@@ -63,17 +63,19 @@ This section is the **single shared operating policy for every lab**. The labs' 
 
 Every PR names its lab and its class. Once its class's conditions hold, the approved merge path needs no further owner approval:
 1. run `gh pr merge` into the queue once `mergeStateStatus` is CLEAN;
-2. check that `main`'s tree equals the branch's tree;
+2. check that the squash commit's diff against its parent equals the PR's diff. The merge queue can merge several entries together, so `main`'s tree may legitimately differ from the branch's;
 3. notify the consumer.
 
 | Class | Covers | Merge when |
 |---|---|---|
-| **A. Lane work** | Code, tests, tooling and documents inside the lab's owned paths, with no result claim and no shared-interface change | The required checks pass, the PR lists the focused local checks run (commands and outcomes), and one non-author technical review approves |
-| **B. Results** | Any measured number, fidelity or capability statement, or artifact promotion | Class A, plus sealed roots on disk and the headline numbers re-read from those roots by a non-author. **Lab 3 results also need Lab 1 to re-run the gating measurement** from the committed code into a fresh root (owner, 2026-09-28 17:11 UTC). A failed gate merges as a negative; promotion is a separate step |
-| **C. Shared interfaces and architecture** | The artifact contract (ROADMAP §2b), checkpoint, bundle and session formats, the read interface, cross-lab trainer and export hooks, `DECISIONS.md`, this policy and the serving contract | Class A (and B if it carries results), plus Lab 1's documented decision in ROADMAP or `DECISIONS.md`. Owner-level constraints change only with the owner |
+| **A. Lane work** | Code, tests, tooling and documents inside the lab's owned paths (listed in the lab's ROADMAP §4 subsection; otherwise the files its PR creates), with no result claim and no shared-interface change | The required checks pass, the PR lists the focused local checks run (commands and outcomes), and one non-author technical review approves |
+| **B. Results** | Any measured number, fidelity or capability statement, or artifact promotion | Class A, plus sealed roots on disk and the headline numbers re-read from those roots by Lab 1. Lab 1's own results are re-read by another lab or an independent pass. Artifact promotion also needs Lab 1's documented decision. **Lab 3 results also need Lab 1 to re-run the gating measurement** from the committed code into a fresh root (owner, 2026-09-28 17:11 UTC). A failed gate merges as a negative; promotion is a separate step |
+| **C. Shared interfaces and architecture** | The artifact contract (ROADMAP §2b), checkpoint, bundle and session formats, the read interface, cross-lab trainer and export hooks, `DECISIONS.md`, this policy and the serving contract | Class A (and B if it carries results), plus Lab 1's documented decision in ROADMAP §2b or §9. A change to `DECISIONS.md`, D11, this policy's stable invariants, or this section's organization and merge criteria also needs **the owner's recorded ratification** |
 
-- **A non-author review** is a written review, linked from the PR, by another lab or by an independent reviewer pass that did not write the change. Lab 1's own class B and C changes get one too.
+- **A non-author review** is a written review, linked from the PR, by another lab or by an independent reviewer pass that did not write the change. The review names who launched it. Lab 1's own class B and C changes get one too.
+  - All labs share one GitHub account and the ruleset enforces no reviews, so this rule is procedural. Keep it anyway.
 - **Never** push directly to `main`, bypass protection, use an admin merge or force-push shared work. A blocked merge names its cause and owner.
+- **A review that lists required fixes is not an approval** until those fixes land.
 - **Safe, inactive research and negative evidence** may merge without model promotion.
 
 ### Knowledge and resources

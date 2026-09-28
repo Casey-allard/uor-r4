@@ -1,5 +1,7 @@
 # Fourth research lab — UOR-R4 Geometric Language Model
 
+> **Historical since 2026-09-28.** The owner's three-lab charter supersedes this file's instructions: see the [execution policy](../docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28). The Codex lab is not part of the three-lab organization; it is assigned no work and returns only by owner direction. Results recorded here keep their exact scope.
+
 Established by owner direction on September 26, 2026. The fourth lab is the
 Codex research and integration team alongside Google, OpenCode/DeepSeek/Kimi,
 and Claude. The shared objective is a useful native geometric language model
