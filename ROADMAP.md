@@ -67,10 +67,10 @@ three-lab brief does not assign it work.
 
 | Track | Owner | Goal | Current hypothesis | Status | Next decision point |
 |---|---|---|---|---|---|
-| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) Full-exposure run in the cloud sandbox, ETA ≈07:00 UTC 09-28. (b) Stage A PASS. Stage B: the **pre-registered 2I arm FAILS**, the transformer control is NOT_RUN, and reflection-pair lanes pass as an exploratory arm (#1442). Stage C (natural-text swap stories) is in progress (#1447). (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). | §4.1 |
-| **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | Never run (D5 names it; nobody has run it). | §4.2 |
-| **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)). No J/token has been measured in the repository. | §4.3 |
-| **T4 Native dialogue and conversion fidelity** | Lab 4 Codex | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | [#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433) at 231 of 512 updates. | §4.4 |
+| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) Full-exposure run in the cloud sandbox (estimated ≈07:00 UTC 09-28). Its result is **unpublished**, and it is the base decision's only dependency ([director plan](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5863390710) §1). (b) Stage A PASS. Stage B: the **pre-registered 2I arm FAILS**, the transformer control is NOT_RUN, and reflection-pair lanes pass as an exploratory arm (#1442). Stage C (natural-text swap stories) is **parked** at this scale on pilot evidence. The B1 closure (a fresh reflection-pair replication, the transformer control, Stage A with `verify_exact`) is running (#1447). (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). | §4.1 |
+| **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | In progress on Lab 2's unpublished branch. Admission, relational ranking and dense-reader imitation are reported separately. | §4.2 |
+| **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)). **The auditor's matcher is incomplete:** it misses `fneg`, `fabs`, `fmla`, `fmax`, `fmin` and `fneg.2d`, so "audit FULL PASS" is withdrawn until it is repaired. `uor-chat` sessions serve only width 256. **First J/token measured** (owner run, 2026-09-28): the integer path is 0.00413 J/token against 0.00096 for its float parent, whole-system marginal: about 4.3× the energy and about 2.6× slower ([note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)). | §4.3 |
+| **T4 Native dialogue and conversion fidelity** | Lab 4 Codex | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | [#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433) at 231 of 512 updates. Its frozen resume is queued, then the fixed 161-response and 58-turn evaluations. | §4.4 |
 
 **Main-line consolidation rule (director, pending T1(a)):**
 - **If the stack comes within 0.03 nats of its transformer control at full exposure:**
@@ -79,6 +79,18 @@ three-lab brief does not assign it work.
   - the 1.68M native model is frozen as the retained baseline.
 - **Otherwise:** the native model stays the main line, and the stack goes to ablations under its pre-registered card.
 - **Either way:** no lab starts a third learner.
+
+**Integration interfaces** (director, 2026-09-28; details in the [plan](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5863390710) §3):
+- **I1, base checkpoint** (T1): `StackConfig` or the native config, weights, tokenizer identity and training provenance, in a sealed report root.
+- **I2, native serving bundle** (T1 exports, T3 serves): `uor-r4.integer-serving-bundle/1`.
+  - The default profile serves the native model. A `stack` profile is added only if the stack wins.
+  - The bundle carries ≤4-bit maps with shift-friendly scales, shift-and-add grid codes, integer biases, sealed tables, optional `verify_exact` lane automata, and `numerical_contract: "D11"`.
+  - Conformance: fidelity ≤0.02 nats with the decision-flip rate, the repaired auditor clean on one serving binary, and identical tokens after save and reload.
+- **I3, session** (T3, `uor-chat`): one conversation API for every profile, with a declared context budget and eviction policy, per-turn starting seeds, transactional settings, and rejection of unsupported commands.
+- **I4, addressed reads** (T2): `admit` and `rank`, measured separately, with bytes touched per token and decode cost.
+- **I5, dialogue data and panels** (T4): sealed and versioned.
+  - The tokenizer is still open: code BPE for the cycle-4 base, the #1017 tokenizer for the dialogue line.
+  - It is decided at the product milestone's first step (§8), after the frozen studies.
 
 ## 3. Deconfliction rulings, 2026-09-27
 
@@ -258,6 +270,17 @@ index does?
 
 That decides which serving levers matter: bytes, instructions or products.
 
+**Result, 2026-09-28** (*Measured*, owner-run; [#820 note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)). Whole-system marginal energy ΔE/ΔN from macmon `sys_power`, single thread, 3 repeats at 10,240 and 32,768 steps, source `3b463398`:
+- the retained integer session (`bundle-quaternion-1`, no float, no multiplier): **0.00413 J/token** [0.00394–0.00439], 836–892 tok/s;
+- the F32 parent (`fit256-quaternion-3`, comparator only): **0.00096 J/token** [0.00060–0.00128], 1,802–2,552 tok/s;
+- the llama.cpp SmolLM2-135M Q4_0 reference: NOT_RUN.
+
+What the numbers show:
+- **The integer path, which emulates products with tables, costs about 4.3× the energy per token of hardware float on the M1.** It is also about 2.6× slower. Gross energy for 32,768 tokens is about 578 J against 236 J, so the direction does not depend on the idle subtraction.
+- Lab 3's pre-registered consequence therefore applies: the stack port below uses **grouped LUT accumulation (T-MAC style) and fewer bytes touched**, not per-product tables.
+- `powermetrics` and macmon both read CPU power as 0 mW on Darwin 27.0.0. SoC CPU energy is UNAVAILABLE on this OS, so the owner's cross-check could not validate macmon.
+- The idle spread (±1.5–1.8 W) is about half the net load, so the ratio is directional and the absolute J/token approximate.
+
 **Second: the stack's mission port.** Serve T1's export in `uor-r4-integer` without D10 exceptions:
 - table products;
 - a rounded fixed-point quaternion scan;
@@ -305,6 +328,7 @@ Each negative keeps its exact scope; a failed parameterisation does not retire a
 | 2I relation lookup table for the parked read (`inverse(q)*k`) | **PARKED** | Its consumer, #1438, is parked | Ruling 3 |
 | Quaternion (2I) lanes as a serving advantage over ordinary non-commutative lanes | **RETIRED** (B1 kill rule) | A5 at length 4,096 after snapping: quaternion 8/9, reflection pair 9/9. Both minimise to a 60-state A5 automaton. The finite-group state mechanism itself survives. | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
 | Quaternion (2I) tracking lanes: the pre-registered B1 Stage B subject | **FAILED; 2I serving claim RETIRED** (kill rule) | Inside the stack, 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. The ordinary reflection-pair lanes are kept as an exploratory result (3 of 3). | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
+| Per-product table emulation as a lower-energy serving kernel | **FAILED on energy** (measured) | Integer bundle 0.00413 J/token against 0.00096 for its F32 parent on the M1 (about 4.3×), and about 2.6× slower. Whole-system marginal; SoC CPU counters unavailable. The multiplier-free contract stands; the kernel moves to grouped LUT accumulation (§4.3). | [#820 note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224) |
 
 ## 6. Shared machine protocol
 
@@ -410,7 +434,53 @@ These are canonical in the [project plan](docs/integration/project-track.md); [#
 General prose, reasoning, coding, chat quality, frontier capability and complete-path energy
 savings all remain unqualified.
 
+### Next product milestone (defined prospectively, 2026-09-28)
+
+This applies only to candidates built after the frozen studies: B1 closure, #1433, the T2 contest and the base reading. It is never applied retroactively to an earlier experiment.
+
+**The artifact:**
+- one sealed D11 bundle, saved and then reloaded in a fresh `uor-chat` process;
+- the repaired auditor is clean on its serving binary;
+- it declares its context budget, eviction policy and per-turn token limit.
+
+**The panel:**
+- authored once from typed intent (`answer_oracle`), sealed before the candidate's final fit, and held out from all training and development;
+- every conversation fits the declared budget;
+- **responsive multi-turn:** 40 conversations of 3–4 turns, each reply answering its own latest turn;
+- **updated relation:** 30 conversations that assert, update and then query a relation, answered with the updated value;
+- **new simple instructions:** 30 instructions of at least 6 types absent from training templates.
+
+**Pass:**
+- at least 80% of scored turns in each category;
+- 100% identical greedy streams across the reload;
+- a cost report: tokens/s, RSS, and whole-system J/token.
+
+**Always reported:** the float parent and the current dialogue child on the same panel. Thresholds change only with the owner, before any candidate exists.
+
+**Baseline, descriptive only:**
+- `uor-chat` cannot serve `dialogue-child-bundle-1` (width 576).
+- The width-256 `bundle-quaternion-6` answers every turn with an unrelated story.
+- The #1432 outputs echo relations ("The name is Alex is Alex.") instead of responding.
+
 ## 9. Director log
+
+**2026-09-28 04:30 UTC, the owner-commissioned oversight audit was verified and reconciled** ([plan](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5863390710)).
+- **Verified:** the auditor's matcher misses six float forms on main, #1446 and #1444. The energy labels were stale; Lab 3 fixed them. Unpublished branches: Lab 2 (7 commits), Lab 4 (`852c1c67`), `geometric-lm-goal` (13 dirty files).
+- **Not verified:** the audit's three independent reviewers exited at a usage limit and produced nothing.
+- **Base decision:** blocked only on the unpublished cycle-4 full-exposure result in the cloud sandbox. The rule above decides it.
+- **Rulings:**
+  - no new learner starts until then;
+  - cycle 5 is held;
+  - the transformer comparators are never the served backbone.
+- **Queue:** B1 closure → #1433 frozen resume (alone) → T2 contest → T3 matched-quality cost. The slot lock is the only reservation.
+- **Milestone:** the next product milestone is defined prospectively (§8).
+
+**2026-09-28 03:42 UTC, first measured serving energy.**
+- The owner ran Lab 3's harness with the `powermetrics` cross-check (§4.3, [note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)).
+- The multiplier-free integer path costs about 4.3× the energy per token of its float parent, and runs about 2.6× slower. Lab 3's pre-registered reading attributes the gap to per-product table emulation rather than to the contract; that attribution is not separately measured.
+- **No lower-energy claim is supported for any served path today.** T3's next kernel is grouped LUT accumulation with fewer bytes touched.
+- On this macOS build only whole-system energy is measurable; SoC CPU counters read 0 mW.
+- Stage C of B1 (#1447) is in its third pilot, with dense state supervision (amendment 2 on #973).
 
 **2026-09-27 22:45 UTC, first assignments.**
 - **Survey.**
