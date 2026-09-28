@@ -1,6 +1,10 @@
-//! D2 (whole-project synthesis §4): architectural exact relational memory in
-//! the recurrence-primary stack against the same stack with an equal-size MLP
-//! and no store (`uor_r4_training::stack_aerm`).
+//! D2/G v1 (whole-project synthesis §3 M1, §4 D2): architectural exact
+//! relational memory in the recurrence-primary stack against the same stack
+//! with an equal-size MLP and no store (`uor_r4_training::stack_aerm`).
+//!
+//! G v1 replaces D2's trigger-gated read with the always-on, address-driven
+//! dual-register read (`stack_aerm`'s G v1 read policy). Everything else —
+//! data, schedule, seeds, evaluation and the control — is D2's.
 //!
 //! ```text
 //! aerm-probe run out=NEW_REPORT_ROOT text=TRAIN.u16 dev=DEV.u16 tokenizer=TOKENIZER.json \
@@ -8,7 +12,7 @@
 //!   [heads=4] [mlp=384] [pattern=rrar] [context=256] [split=2] [steps=1500] [batch=16] \
 //!   [lr=0.003] [warmup=100] [weight_decay=0.1] [clip=1] [tag_weight=1] [trigger_weight=1] \
 //!   [trigger_positive=5] [dev_windows=512] [eval_episodes=512] [free_episodes=32] [verify=256]
-//! aerm-probe summarize out=NEW_REPORT_ROOT roots=ROOT,ROOT,...
+//! aerm-probe summarize out=NEW_REPORT_ROOT roots=ROOT,ROOT,... [gates=g1|d2]
 //! ```
 //!
 //! `run` claims its report root before building anything, verifies `verify`
@@ -16,8 +20,11 @@
 //! protocol encoder, trains each arm with each seed on identical data, and
 //! evaluates development text NLL, fresh relation dialogues (training
 //! templates and names), held-out-template dialogues and free-running answers.
-//! `summarize` applies the pre-registered D2 gates to sealed run roots. Set
-//! RAYON_NUM_THREADS to bound the threads.
+//! `summarize` applies the pre-registered gate set to sealed run roots:
+//! `gates=g1` is Lab 1's five-part G v1 acceptance (held-out Updated ≥ 0.90 in
+//! every seed, an equal-parameter control, text NLL within 0.05, the failure
+//! trace reported, sealed roots); `gates=d2` reproduces D2's original gates.
+//! Set RAYON_NUM_THREADS to bound the threads.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -38,10 +45,14 @@ use uor_r4_training::stack_aerm::{
 use uor_r4_training::stack_tracking::Rng;
 use uor_r4_training::{sha256_file, Result, TrainingError};
 
-/// Pre-registered D2 gates (synthesis §4).
+/// Pre-registered D2 gates (synthesis §4) and the G v1 acceptance gates
+/// (Lab 1's 17:33 UTC assignment).
 const GATE_ACCURACY: f64 = 0.90;
 const GATE_MARGIN: f64 = 0.30;
 const GATE_TEXT: f64 = 0.05;
+/// The equal-parameter control's total may differ from the memory arm's by at
+/// most this fraction (the MLP widening rounds to whole units).
+const GATE_PARAMETER_TOLERANCE: f64 = 0.0005;
 const DIALOGUE_SEED: u64 = 9_001;
 const HELD_SEED: u64 = 9_002;
 const FREE_SEED: u64 = 9_003;
@@ -304,6 +315,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
             let run = json!({
                 "arm": arm,
                 "seed": seed,
+                "read_policy": "always_on_address_driven",
                 "stack": config,
                 "split": split,
                 "train": train_config,
@@ -330,7 +342,8 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         }
     }
     let summary = json!({
-        "schema": "uor-r4.d2-aerm-probe/1",
+        "schema": "uor-r4.g1-aerm-probe/1",
+        "read_policy": "always_on_address_driven",
         "arms": arms,
         "seeds": seeds,
         "stack_template": template,
@@ -387,44 +400,102 @@ fn summarize(args: &Args, out: &Path) -> Result<()> {
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();
+    let gates = args.0.get("gates").map(String::as_str).unwrap_or("g1");
+    if !matches!(gates, "g1" | "d2") {
+        return Err(invalid(format!("gates is g1 or d2, got {gates}")));
+    }
     let mut rows = Vec::new();
     let mut all_pass = !seeds.is_empty();
-    for seed in &seeds {
-        let aerm = runs.get(&("aerm".to_owned(), *seed));
-        let control = runs.get(&("control".to_owned(), *seed));
-        let (Some(aerm), Some(control)) = (aerm, control) else {
-            all_pass = false;
-            rows.push(json!({"seed": seed, "complete": false}));
-            continue;
-        };
-        let a = accuracy(aerm, "dialogues", "Updated");
-        let c = accuracy(control, "dialogues", "Updated");
-        let text_delta = aerm["text"]["dev_nll"]
-            .as_f64()
-            .zip(control["text"]["dev_nll"].as_f64())
-            .map(|(a, c)| a - c);
-        let accuracy_pass = a.is_some_and(|a| a >= GATE_ACCURACY);
-        let margin = a.zip(c).map(|(a, c)| a - c);
-        let margin_pass = margin.is_some_and(|m| m >= GATE_MARGIN);
-        let text_pass = text_delta.is_some_and(|d| d <= GATE_TEXT);
-        let pass = accuracy_pass && margin_pass && text_pass;
-        all_pass &= pass;
-        rows.push(json!({
-            "seed": seed, "complete": true,
-            "aerm_updated": a, "control_updated": c, "margin": margin,
-            "aerm_text_nll": aerm["text"]["dev_nll"], "control_text_nll": control["text"]["dev_nll"],
-            "text_delta": text_delta,
-            "accuracy_pass": accuracy_pass, "margin_pass": margin_pass, "text_pass": text_pass, "pass": pass,
-        }));
-    }
-    let summary = json!({
-        "schema": "uor-r4.d2-aerm-probe-summary/1",
-        "gates": {"aerm_updated_accuracy_at_least": GATE_ACCURACY, "margin_over_control_at_least": GATE_MARGIN,
-                  "text_nll_delta_at_most": GATE_TEXT, "every_seed": true},
-        "roots": identities,
-        "seeds": rows,
-        "outcome": if all_pass { "PASS" } else { "FAIL" },
-    });
+    let summary = if gates == "g1" {
+        for seed in &seeds {
+            let aerm = runs.get(&("aerm".to_owned(), *seed));
+            let control = runs.get(&("control".to_owned(), *seed));
+            let (Some(aerm), Some(control)) = (aerm, control) else {
+                all_pass = false;
+                rows.push(json!({"seed": seed, "complete": false}));
+                continue;
+            };
+            let held = accuracy(aerm, "held_out", "Updated");
+            let fresh = accuracy(aerm, "dialogues", "Updated");
+            let control_fresh = accuracy(control, "dialogues", "Updated");
+            let aerm_total = aerm["parameters"]["total"].as_f64();
+            let control_total = control["parameters"]["total"].as_f64();
+            let text_delta = aerm["text"]["dev_nll"]
+                .as_f64()
+                .zip(control["text"]["dev_nll"].as_f64())
+                .map(|(a, c)| a - c);
+            let held_pass = held.is_some_and(|h| h >= GATE_ACCURACY);
+            let text_pass = text_delta.is_some_and(|d| d <= GATE_TEXT);
+            let parameters_pass = aerm_total.zip(control_total).is_some_and(|(a, c)| {
+                (a - c).abs() / a.max(c).max(1.0) <= GATE_PARAMETER_TOLERANCE
+            });
+            let pass = held_pass && text_pass && parameters_pass;
+            all_pass &= pass;
+            rows.push(json!({
+                "seed": seed, "complete": true,
+                "held_out_updated": held,
+                "held_out_first": accuracy(aerm, "held_out", "First"),
+                "control_held_out_updated": accuracy(control, "held_out", "Updated"),
+                "in_distribution_updated": fresh, "control_updated": control_fresh,
+                "margin": fresh.zip(control_fresh).map(|(a, c)| a - c),
+                "aerm_total_parameters": aerm_total, "control_total_parameters": control_total,
+                "aerm_text_nll": aerm["text"]["dev_nll"], "control_text_nll": control["text"]["dev_nll"],
+                "text_delta": text_delta,
+                "trace": aerm["held_out"]["trace"], "read_events": aerm["held_out"]["read_events"],
+                "held_out_pass": held_pass, "text_pass": text_pass,
+                "parameters_pass": parameters_pass, "pass": pass,
+            }));
+        }
+        json!({
+            "schema": "uor-r4.g1-aerm-gate-summary/1",
+            "gates": {
+                "held_out_updated_accuracy_at_least": GATE_ACCURACY,
+                "text_nll_delta_at_most": GATE_TEXT,
+                "parameter_relative_tolerance": GATE_PARAMETER_TOLERANCE,
+                "every_seed": true,
+            },
+            "roots": identities,
+            "seeds": rows,
+            "outcome": if all_pass { "PASS" } else { "FAIL" },
+        })
+    } else {
+        for seed in &seeds {
+            let aerm = runs.get(&("aerm".to_owned(), *seed));
+            let control = runs.get(&("control".to_owned(), *seed));
+            let (Some(aerm), Some(control)) = (aerm, control) else {
+                all_pass = false;
+                rows.push(json!({"seed": seed, "complete": false}));
+                continue;
+            };
+            let a = accuracy(aerm, "dialogues", "Updated");
+            let c = accuracy(control, "dialogues", "Updated");
+            let text_delta = aerm["text"]["dev_nll"]
+                .as_f64()
+                .zip(control["text"]["dev_nll"].as_f64())
+                .map(|(a, c)| a - c);
+            let accuracy_pass = a.is_some_and(|a| a >= GATE_ACCURACY);
+            let margin = a.zip(c).map(|(a, c)| a - c);
+            let margin_pass = margin.is_some_and(|m| m >= GATE_MARGIN);
+            let text_pass = text_delta.is_some_and(|d| d <= GATE_TEXT);
+            let pass = accuracy_pass && margin_pass && text_pass;
+            all_pass &= pass;
+            rows.push(json!({
+                "seed": seed, "complete": true,
+                "aerm_updated": a, "control_updated": c, "margin": margin,
+                "aerm_text_nll": aerm["text"]["dev_nll"], "control_text_nll": control["text"]["dev_nll"],
+                "text_delta": text_delta,
+                "accuracy_pass": accuracy_pass, "margin_pass": margin_pass, "text_pass": text_pass, "pass": pass,
+            }));
+        }
+        json!({
+            "schema": "uor-r4.d2-aerm-probe-summary/1",
+            "gates": {"aerm_updated_accuracy_at_least": GATE_ACCURACY, "margin_over_control_at_least": GATE_MARGIN,
+                      "text_nll_delta_at_most": GATE_TEXT, "every_seed": true},
+            "roots": identities,
+            "seeds": rows,
+            "outcome": if all_pass { "PASS" } else { "FAIL" },
+        })
+    };
     println!("{}", serde_json::to_string_pretty(&summary)?);
     fs::write(
         out.join("summary.json"),
@@ -480,7 +551,7 @@ fn main() -> Result<()> {
             finish(&out, result)
         }
         "summarize" => {
-            let args = Args::parse(rest, &["out", "roots"])?;
+            let args = Args::parse(rest, &["out", "roots", "gates"])?;
             let out = PathBuf::from(args.required("out")?);
             report_output::claim(&out)?;
             let result = summarize(&args, &out);

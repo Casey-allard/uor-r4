@@ -1,5 +1,5 @@
-//! D2: architectural exact relational memory (AERM) inside the
-//! recurrence-primary geometric stack (whole-project synthesis §3 M1, §4 D2).
+//! Architectural exact relational memory (AERM) inside the recurrence-primary
+//! geometric stack (whole-project synthesis §3 M1, §4 D2; G v1 read policy).
 //!
 //! The stack is split after `split` layers. Two learned heads read the
 //! RMS-normalised residual stream there: a per-token role tag (entity,
@@ -7,21 +7,33 @@
 //! current value, read the previous value). An exact integer store sits
 //! between the two halves:
 //!
-//! - a trigger closes the open clause: the latest tagged entity, relation and
-//!   value tokens since the previous trigger or end of turn;
+//! - a write or the end of a turn closes the open clause: the latest tagged
+//!   entity, relation and value tokens since the previous close;
 //! - a write stores `(entity, relation) -> value`. A hit on an existing key
 //!   overwrites it, keeps the previous distinct value and increments the
 //!   version: version order, never a score, decides the current value;
 //! - a read looks the key up and sets a register `(status, value)` that holds
-//!   until the next read. The statuses are None, Hit, Absent and Evicted.
+//!   until the next read of that register. The statuses are None, Hit, Absent
+//!   and Evicted.
 //!
-//! The register re-enters the residual stream through a zero-initialised status
-//! embedding and value projection, and adds a zero-initialised copy boost to
-//! the value token's logit, so the branch starts silent. Training drives the
-//! store from the gold tags and triggers (teacher forcing) and trains the heads
-//! with auxiliary cross-entropies: no gradient passes through the discrete
-//! store. Evaluation drives the store from the model's own tags and triggers
-//! only.
+//! **G v1 read policy (always-on, address-driven).** Reads are no longer a
+//! learned per-token fire decision. Whenever the tag stream yields an entity or
+//! relation label and both are defined, the store is read twice at that
+//! position — the current value and the previous distinct value — and **two**
+//! registers update. Reads never close the clause; writes (`TRIGGER_WRITE`,
+//! still the learned trigger) and `eos` close it. The trigger head and its gold
+//! loss are unchanged; only the simulator's read policy changed from D2's
+//! `TRIGGER_READ`/`TRIGGER_READ_PREVIOUS` gating. The failed D2 decision was
+//! surface-dependent (a fire at the end of the user turn); address completion
+//! occurs at the entity/relation token, which every phrasing contains.
+//!
+//! Both registers re-enter the residual stream through zero-initialised status
+//! embeddings and value projections, and each adds a zero-initialised copy
+//! boost to its value token's logit, so the branch starts silent. Training
+//! drives the store from the gold tags and write triggers (teacher forcing) and
+//! trains the heads with auxiliary cross-entropies: no gradient passes through
+//! the discrete store. Evaluation drives the store from the model's own tags
+//! and triggers only.
 //!
 //! The control arm has the same heads and auxiliary losses, a widened MLP of
 //! about equal parameter count, and no store.
@@ -214,12 +226,29 @@ pub struct ReadEvent {
 pub struct Simulation {
     pub status: Vec<u32>,
     pub value: Vec<u32>,
+    pub status_previous: Vec<u32>,
+    pub value_previous: Vec<u32>,
     pub reads: Vec<ReadEvent>,
     pub store: RelationStore,
 }
 
+/// The model's own registers for one padded batch, row-major, plus the number
+/// of read events its tag stream produced.
+#[derive(Clone, Debug, Default)]
+pub struct Registers {
+    pub status: Vec<u32>,
+    pub value: Vec<u32>,
+    pub status_previous: Vec<u32>,
+    pub value_previous: Vec<u32>,
+    pub read_events: usize,
+}
+
 /// Runs the store over one sequence from its per-token tags and triggers.
 /// `eos` also closes the open clause (a turn boundary).
+///
+/// G v1 read policy: an entity or relation label with a complete address reads
+/// both registers at that position; the read trigger classes no longer decide
+/// reads and never close the clause.
 pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Result<Simulation> {
     if tags.len() != tokens.len() || triggers.len() != tokens.len() {
         return Err(invalid("one tag and one trigger per token"));
@@ -227,8 +256,11 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
     let mut store = RelationStore::new();
     let (mut entity, mut relation, mut value) = (None, None, None);
     let mut register = (STATUS_NONE, 0u32);
+    let mut previous = (STATUS_NONE, 0u32);
     let mut status = Vec::with_capacity(tokens.len());
     let mut values = Vec::with_capacity(tokens.len());
+    let mut status_previous = Vec::with_capacity(tokens.len());
+    let mut values_previous = Vec::with_capacity(tokens.len());
     let mut reads = Vec::new();
     for (position, ((&token, &tag), &trigger)) in tokens.iter().zip(tags).zip(triggers).enumerate()
     {
@@ -239,29 +271,33 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
             TAG_VALUE => value = Some(token),
             _ => return Err(invalid("tag outside the tag set")),
         }
+        if matches!(tag, TAG_ENTITY | TAG_RELATION) {
+            if let (Some(e), Some(r)) = (entity, relation) {
+                register = store.read(e, r, false);
+                previous = store.read(e, r, true);
+                reads.push(ReadEvent {
+                    position,
+                    key: Some((e, r)),
+                    previous: false,
+                    status: register.0,
+                    value: register.1,
+                });
+                reads.push(ReadEvent {
+                    position,
+                    key: Some((e, r)),
+                    previous: true,
+                    status: previous.0,
+                    value: previous.1,
+                });
+            }
+        }
         let mut close = token == eos;
         match trigger {
-            TRIGGER_NONE => {}
+            TRIGGER_NONE | TRIGGER_READ | TRIGGER_READ_PREVIOUS => {}
             TRIGGER_WRITE => {
                 if let (Some(e), Some(r), Some(v)) = (entity, relation, value) {
                     store.write(e, r, v);
                 }
-                close = true;
-            }
-            TRIGGER_READ | TRIGGER_READ_PREVIOUS => {
-                let previous = trigger == TRIGGER_READ_PREVIOUS;
-                let key = entity.zip(relation);
-                register = match key {
-                    Some((e, r)) => store.read(e, r, previous),
-                    None => (STATUS_ABSENT, 0),
-                };
-                reads.push(ReadEvent {
-                    position,
-                    key,
-                    previous,
-                    status: register.0,
-                    value: register.1,
-                });
                 close = true;
             }
             _ => return Err(invalid("trigger outside the trigger set")),
@@ -271,10 +307,14 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
         }
         status.push(register.0);
         values.push(register.1);
+        status_previous.push(previous.0);
+        values_previous.push(previous.1);
     }
     Ok(Simulation {
         status,
         value: values,
+        status_previous,
+        value_previous: values_previous,
         reads,
         store,
     })
@@ -1244,9 +1284,12 @@ pub struct DialogueBatch {
     pub real: Vec<f32>,
     pub tags: Vec<u32>,
     pub triggers: Vec<u32>,
-    /// Gold registers (teacher forcing).
+    /// Gold registers (teacher forcing) for both the current and previous
+    /// registers.
     pub status: Vec<u32>,
     pub value: Vec<u32>,
+    pub status_previous: Vec<u32>,
+    pub value_previous: Vec<u32>,
 }
 
 impl RelationWorld {
@@ -1281,6 +1324,8 @@ impl RelationWorld {
             triggers: vec![TRIGGER_NONE; rows],
             status: vec![STATUS_NONE; rows],
             value: vec![0; rows],
+            status_previous: vec![STATUS_NONE; rows],
+            value_previous: vec![0; rows],
         };
         for (b, episode) in episodes.iter().enumerate() {
             let n = episode.tokens.len();
@@ -1304,6 +1349,8 @@ impl RelationWorld {
                 out.triggers[row] = episode.triggers[t];
                 out.status[row] = gold.status[t];
                 out.value[row] = gold.value[t];
+                out.status_previous[row] = gold.status_previous[t];
+                out.value_previous[row] = gold.value_previous[t];
             }
         }
         out.episodes = episodes;
@@ -1335,13 +1382,92 @@ fn zeros_var(shape: &[usize], device: &Device) -> Result<Var> {
     )?)?)
 }
 
-/// The memory branch: status embedding, value projection and copy boost.
+/// The memory branch: one status embedding, value projection and copy boost per
+/// register (current and previous).
 struct MemoryBranch {
     status: Var,
     projection: Var,
     copy_weight: Var,
     copy_bias: Var,
     copy_scale: Var,
+    status_previous: Var,
+    projection_previous: Var,
+    copy_weight_previous: Var,
+    copy_bias_previous: Var,
+    copy_scale_previous: Var,
+}
+
+impl MemoryBranch {
+    fn registers_side(
+        &self,
+        embedding: &Tensor,
+        batch: usize,
+        time: usize,
+        width: usize,
+        status: &[u32],
+        value: &[u32],
+        previous: bool,
+    ) -> Result<Tensor> {
+        let rows = status.len();
+        let device = embedding.device();
+        let (status_var, projection) = if previous {
+            (&self.status_previous, &self.projection_previous)
+        } else {
+            (&self.status, &self.projection)
+        };
+        let hit: Vec<f32> = status
+            .iter()
+            .map(|&s| if s == STATUS_HIT { 1.0 } else { 0.0 })
+            .collect();
+        let hit = Tensor::from_vec(hit, (rows, 1), device)?;
+        let status_index = Tensor::from_vec(status.to_vec(), rows, device)?;
+        let value_index = Tensor::from_vec(value.to_vec(), rows, device)?;
+        let value_rows = embedding
+            .index_select(&value_index, 0)?
+            .broadcast_mul(&hit)?;
+        Ok(status_var
+            .as_tensor()
+            .index_select(&status_index, 0)?
+            .add(&value_rows.matmul(&projection.as_tensor().t()?)?)?
+            .reshape((batch, time, width))?)
+    }
+
+    fn copy_boost(
+        &self,
+        out: &Tensor,
+        status: &[u32],
+        value: &[u32],
+        vocab: u32,
+        previous: bool,
+    ) -> Result<Tensor> {
+        let rows = status.len();
+        let device = out.device();
+        let (weight, bias, scale) = if previous {
+            (
+                &self.copy_weight_previous,
+                &self.copy_bias_previous,
+                &self.copy_scale_previous,
+            )
+        } else {
+            (&self.copy_weight, &self.copy_bias, &self.copy_scale)
+        };
+        let hit: Vec<f32> = status
+            .iter()
+            .map(|&s| if s == STATUS_HIT { 1.0 } else { 0.0 })
+            .collect();
+        let hit = Tensor::from_vec(hit, (rows, 1), device)?;
+        let value_index = Tensor::from_vec(value.to_vec(), rows, device)?;
+        let gate = candle_nn::ops::sigmoid(
+            &out.matmul(weight.as_tensor())?
+                .broadcast_add(bias.as_tensor())?,
+        )?;
+        let boost = gate.broadcast_mul(scale.as_tensor())?.broadcast_mul(&hit)?;
+        let onehot = value_index
+            .unsqueeze(1)?
+            .broadcast_eq(&Tensor::arange(0u32, vocab, device)?.unsqueeze(0)?)?
+            .to_dtype(DType::F32)?;
+        Ok(onehot.broadcast_mul(&boost)?)
+    }
 }
 
 /// The stack split after `split` layers, with tag and trigger heads there and,
@@ -1384,6 +1510,11 @@ impl AermModel {
                 copy_weight: zeros_var(&[width, 1], device)?,
                 copy_bias: zeros_var(&[1], device)?,
                 copy_scale: zeros_var(&[1], device)?,
+                status_previous: zeros_var(&[STATUSES, width], device)?,
+                projection_previous: zeros_var(&[width, width], device)?,
+                copy_weight_previous: zeros_var(&[width, 1], device)?,
+                copy_bias_previous: zeros_var(&[1], device)?,
+                copy_scale_previous: zeros_var(&[1], device)?,
             })
         } else {
             None
@@ -1415,6 +1546,11 @@ impl AermModel {
                 + m.copy_weight.elem_count()
                 + m.copy_bias.elem_count()
                 + m.copy_scale.elem_count()
+                + m.status_previous.elem_count()
+                + m.projection_previous.elem_count()
+                + m.copy_weight_previous.elem_count()
+                + m.copy_bias_previous.elem_count()
+                + m.copy_scale_previous.elem_count()
         });
         (self.stack.parameter_count(), heads, memory)
     }
@@ -1432,6 +1568,11 @@ impl AermModel {
             plain.push(m.copy_weight.clone());
             plain.push(m.copy_bias.clone());
             plain.push(m.copy_scale.clone());
+            decayed.push(m.status_previous.clone());
+            decayed.push(m.projection_previous.clone());
+            plain.push(m.copy_weight_previous.clone());
+            plain.push(m.copy_bias_previous.clone());
+            plain.push(m.copy_scale_previous.clone());
         }
         (decayed, plain)
     }
@@ -1458,66 +1599,67 @@ impl AermModel {
     }
 
     /// Next-token logits `[batch * time, vocabulary]` from the bottom's residual
-    /// stream and the per-position registers (ignored without a memory branch).
-    pub fn top(&self, hidden: &Tensor, status: &[u32], value: &[u32]) -> Result<Tensor> {
+    /// stream and the per-position register pairs (ignored without a memory
+    /// branch).
+    pub fn top(
+        &self,
+        hidden: &Tensor,
+        status: &[u32],
+        value: &[u32],
+        status_previous: &[u32],
+        value_previous: &[u32],
+    ) -> Result<Tensor> {
         let (batch, time, width) = hidden.dims3()?;
         let rows = batch * time;
-        let device = self.stack.device();
         let layers = self.stack.config.layers();
         let Some(m) = &self.memory else {
             let x = self.stack.run_layers(hidden.clone(), self.split..layers)?;
             return self.stack.head(&self.stack.finish(x)?);
         };
-        if status.len() != rows || value.len() != rows {
+        if status.len() != rows
+            || value.len() != rows
+            || status_previous.len() != rows
+            || value_previous.len() != rows
+        {
             return Err(invalid("one register per position"));
         }
-        if status.iter().any(|&s| s as usize >= STATUSES)
+        if status
+            .iter()
+            .chain(status_previous)
+            .any(|&s| s as usize >= STATUSES)
             || value
                 .iter()
+                .chain(value_previous)
                 .any(|&v| v as usize >= self.stack.config.vocab_size)
         {
             return Err(invalid("register outside the status set or vocabulary"));
         }
-        let hit: Vec<f32> = status
-            .iter()
-            .map(|&s| if s == STATUS_HIT { 1.0 } else { 0.0 })
-            .collect();
-        let hit = Tensor::from_vec(hit, (rows, 1), device)?;
-        let status_index = Tensor::from_vec(status.to_vec(), rows, device)?;
-        let value_index = Tensor::from_vec(value.to_vec(), rows, device)?;
         let embedding = self
             .stack
             .variables()
             .get("embedding.weight")
             .ok_or_else(|| invalid("the stack has no embedding"))?
             .as_tensor();
-        let value_rows = embedding
-            .index_select(&value_index, 0)?
-            .broadcast_mul(&hit)?;
-        let side = m
-            .status
-            .as_tensor()
-            .index_select(&status_index, 0)?
-            .add(&value_rows.matmul(&m.projection.as_tensor().t()?)?)?
-            .reshape((batch, time, width))?;
-        let x = self
-            .stack
-            .run_layers(hidden.add(&side)?, self.split..layers)?;
+        let side_current = m.registers_side(embedding, batch, time, width, status, value, false)?;
+        let side_previous = m.registers_side(
+            embedding,
+            batch,
+            time,
+            width,
+            status_previous,
+            value_previous,
+            true,
+        )?;
+        let x = self.stack.run_layers(
+            hidden.add(&side_current.add(&side_previous)?)?,
+            self.split..layers,
+        )?;
         let out = self.stack.finish(x)?;
         let logits = self.stack.head(&out)?;
-        let gate = candle_nn::ops::sigmoid(
-            &out.matmul(m.copy_weight.as_tensor())?
-                .broadcast_add(m.copy_bias.as_tensor())?,
-        )?;
-        let boost = gate
-            .broadcast_mul(m.copy_scale.as_tensor())?
-            .broadcast_mul(&hit)?;
         let vocab = self.stack.config.vocab_size as u32;
-        let onehot = value_index
-            .unsqueeze(1)?
-            .broadcast_eq(&Tensor::arange(0u32, vocab, device)?.unsqueeze(0)?)?
-            .to_dtype(DType::F32)?;
-        Ok(logits.add(&onehot.broadcast_mul(&boost)?)?)
+        let boost_current = m.copy_boost(&out, status, value, vocab, false)?;
+        let boost_previous = m.copy_boost(&out, status_previous, value_previous, vocab, true)?;
+        Ok(logits.add(&boost_current)?.add(&boost_previous)?)
     }
 }
 
@@ -1526,7 +1668,8 @@ fn argmax_rows(logits: &Tensor) -> Result<Vec<u32>> {
     Ok(logits.detach().argmax(D::Minus1)?.to_vec1::<u32>()?)
 }
 
-/// Registers from the model's own tags and triggers, one sequence at a time.
+/// Registers from the model's own tags and write triggers, one sequence at a
+/// time.
 pub fn model_registers(
     ids: &[u32],
     tags: &[u32],
@@ -1534,9 +1677,14 @@ pub fn model_registers(
     batch: usize,
     time: usize,
     eos: u32,
-) -> Result<(Vec<u32>, Vec<u32>)> {
-    let mut status = Vec::with_capacity(batch * time);
-    let mut value = Vec::with_capacity(batch * time);
+) -> Result<Registers> {
+    let mut out = Registers {
+        status: Vec::with_capacity(batch * time),
+        value: Vec::with_capacity(batch * time),
+        status_previous: Vec::with_capacity(batch * time),
+        value_previous: Vec::with_capacity(batch * time),
+        read_events: 0,
+    };
     for b in 0..batch {
         let range = b * time..(b + 1) * time;
         let simulation = simulate(
@@ -1545,10 +1693,13 @@ pub fn model_registers(
             &triggers[range],
             eos,
         )?;
-        status.extend(simulation.status);
-        value.extend(simulation.value);
+        out.read_events += simulation.reads.len();
+        out.status.extend(simulation.status);
+        out.value.extend(simulation.value);
+        out.status_previous.extend(simulation.status_previous);
+        out.value_previous.extend(simulation.value_previous);
     }
-    Ok((status, value))
+    Ok(out)
 }
 
 // ---------------------------------------------------------------------------
@@ -1680,14 +1831,26 @@ pub fn train_aerm(
         // Text.
         let (ids, targets) = text_batch(text, &mut rng, batch, context)?;
         let bottom = model.bottom(&ids, batch, context)?;
-        let logits = model.top(&bottom.hidden, &silent_status, &silent_value)?;
+        let logits = model.top(
+            &bottom.hidden,
+            &silent_status,
+            &silent_value,
+            &silent_status,
+            &silent_value,
+        )?;
         let text_loss = logits_cross_entropy(&logits, &targets, None)?;
         let text_tag = head_loss(&bottom.tags, &text_tags, &text_ones)?;
         let text_trigger = head_loss(&bottom.triggers, &text_triggers, &text_ones)?;
         // Dialogues.
         let dialogues = world.batch(&mut rng, batch, context, false)?;
         let bottom = model.bottom(&dialogues.ids, batch, context)?;
-        let logits = model.top(&bottom.hidden, &dialogues.status, &dialogues.value)?;
+        let logits = model.top(
+            &bottom.hidden,
+            &dialogues.status,
+            &dialogues.value,
+            &dialogues.status_previous,
+            &dialogues.value_previous,
+        )?;
         let dialogue_loss =
             logits_cross_entropy(&logits, &dialogues.targets, Some(&dialogues.response))?;
         let tag_loss = head_loss(&bottom.tags, &dialogues.tags, &dialogues.real)?;
@@ -1761,6 +1924,9 @@ pub struct DialogueEvaluation {
     pub tag_accuracy: f64,
     /// `[gold][predicted]` trigger counts over real positions.
     pub trigger_confusion: [[usize; TRIGGERS]; TRIGGERS],
+    /// Model read events over the evaluated episodes (two per completed
+    /// address).
+    pub read_events: usize,
     pub trace: BTreeMap<String, usize>,
     /// The last query of the first episodes: gold and teacher-forced predictions.
     pub examples: Vec<QueryExample>,
@@ -1771,8 +1937,9 @@ pub struct QueryExample {
     pub class: QueryClass,
     pub gold_answer: Vec<u32>,
     pub predicted_answer: Vec<u32>,
-    pub register: (u32, u32),
-    pub gold_register: (u32, u32),
+    /// `(status, value, status_previous, value_previous)`.
+    pub register: (u32, u32, u32, u32),
+    pub gold_register: (u32, u32, u32, u32),
 }
 
 impl DialogueEvaluation {
@@ -1817,14 +1984,22 @@ pub fn evaluate_dialogues(
                 result.trigger_confusion[data.triggers[row] as usize][triggers[row] as usize] += 1;
             }
         }
-        let (status, value) =
-            model_registers(&data.ids, &tags, &triggers, size, context, world.eos)?;
-        let predicted = argmax_rows(&model.top(&bottom.hidden, &status, &value)?)?;
+        let registers = model_registers(&data.ids, &tags, &triggers, size, context, world.eos)?;
+        result.read_events += registers.read_events;
+        let predicted = argmax_rows(&model.top(
+            &bottom.hidden,
+            &registers.status,
+            &registers.value,
+            &registers.status_previous,
+            &registers.value_previous,
+        )?)?;
         let oracle = if model.has_memory() {
             Some(argmax_rows(&model.top(
                 &bottom.hidden,
                 &data.status,
                 &data.value,
+                &data.status_previous,
+                &data.value_previous,
             )?)?)
         } else {
             None
@@ -1864,8 +2039,18 @@ pub fn evaluate_dialogues(
                     trap.oracle_correct += usize::from(oracle_correct);
                 }
                 let check = slot_row.unwrap_or(query.answer_start - 1);
-                let register = (status[base + check], value[base + check]);
-                let gold_register = (data.status[base + check], data.value[base + check]);
+                let register = (
+                    registers.status[base + check],
+                    registers.value[base + check],
+                    registers.status_previous[base + check],
+                    registers.value_previous[base + check],
+                );
+                let gold_register = (
+                    data.status[base + check],
+                    data.value[base + check],
+                    data.status_previous[base + check],
+                    data.value_previous[base + check],
+                );
                 if model.has_memory() && !correct {
                     let class = trace(
                         episode,
@@ -1900,8 +2085,8 @@ fn trace(
     query: &Query,
     tags: &[u32],
     triggers: &[u32],
-    register: (u32, u32),
-    gold_register: (u32, u32),
+    register: (u32, u32, u32, u32),
+    gold_register: (u32, u32, u32, u32),
     eos: u32,
 ) -> Result<TraceClass> {
     if register == gold_register {
@@ -1977,8 +2162,16 @@ pub fn text_nll(
         let tags = argmax_rows(&bottom.tags)?;
         let triggers = argmax_rows(&bottom.triggers)?;
         fired += triggers.iter().filter(|&&t| t != TRIGGER_NONE).count();
-        let (status, value) = model_registers(&ids, &tags, &triggers, chunk.len(), context, eos)?;
-        let logits = model.top(&bottom.hidden, &status, &value)?.detach();
+        let registers = model_registers(&ids, &tags, &triggers, chunk.len(), context, eos)?;
+        let logits = model
+            .top(
+                &bottom.hidden,
+                &registers.status,
+                &registers.value,
+                &registers.status_previous,
+                &registers.value_previous,
+            )?
+            .detach();
         let loss = logits_cross_entropy(&logits, &targets, None)?;
         total += f64::from(loss.to_scalar::<f32>()?) * ids.len() as f64;
         count += ids.len();
@@ -2020,8 +2213,14 @@ pub fn free_running(
             let bottom = model.bottom(&ids, 1, time)?;
             let tags = argmax_rows(&bottom.tags)?;
             let triggers = argmax_rows(&bottom.triggers)?;
-            let (status, value) = model_registers(&ids, &tags, &triggers, 1, time, world.eos)?;
-            let logits = model.top(&bottom.hidden, &status, &value)?;
+            let registers = model_registers(&ids, &tags, &triggers, 1, time, world.eos)?;
+            let logits = model.top(
+                &bottom.hidden,
+                &registers.status,
+                &registers.value,
+                &registers.status_previous,
+                &registers.value_previous,
+            )?;
             let next = argmax_rows(&logits.narrow(0, time - 1, 1)?)?[0];
             generated.push(next);
             ids.push(next);
@@ -2163,18 +2362,29 @@ mod tests {
             let gold = simulate(&episode.tokens, &episode.tags, &episode.triggers, 1)?;
             for query in &episode.queries {
                 *classes.entry(query.class).or_insert(0) += 1;
-                let register = (
-                    gold.status[query.answer_start - 1],
-                    gold.value[query.answer_start - 1],
-                );
+                let check = query.answer_start - 1;
                 match query.value {
                     Some(value) => {
-                        assert_eq!(register, (STATUS_HIT, value));
+                        // Previous-value queries are answered by the previous
+                        // register; every other class by the current register.
+                        let (status, register_value) = if query.class == QueryClass::Previous {
+                            (gold.status_previous[check], gold.value_previous[check])
+                        } else {
+                            (gold.status[check], gold.value[check])
+                        };
+                        assert_eq!((status, register_value), (STATUS_HIT, value));
                         let slot = query.value_position.expect("value slot");
                         assert_eq!(episode.tokens[slot], value);
                         assert_eq!(episode.response_mask[slot], 1);
                     }
-                    None => assert_ne!(register.0, STATUS_HIT),
+                    None if query.class == QueryClass::PreviousAbsent => {
+                        assert_eq!(gold.status[check], STATUS_HIT);
+                        assert_ne!(gold.status_previous[check], STATUS_HIT);
+                    }
+                    None => {
+                        assert_ne!(gold.status[check], STATUS_HIT);
+                        assert_ne!(gold.status_previous[check], STATUS_HIT);
+                    }
                 }
                 assert_eq!(episode.tokens[query.answer_end], 1);
             }
@@ -2192,6 +2402,170 @@ mod tests {
                 "{class:?} is rare: {classes:?}"
             );
         }
+        Ok(())
+    }
+
+    #[test]
+    fn an_address_tag_reads_without_any_read_trigger() -> Result<()> {
+        // Turn 1 writes (entity 10, relation 20) = 30. Turn 2 queries the same
+        // key. No token carries a read trigger in either turn, and the write
+        // still sees a complete clause: the read neither needs a trigger nor
+        // closes the clause.
+        let eos = 1u32;
+        let tokens = vec![0u32, 10, 20, 30, 40, eos, 10, 20, 41, eos];
+        let tags = vec![
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_VALUE,
+            TAG_OTHER,
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_OTHER,
+            TAG_OTHER,
+        ];
+        let triggers = vec![
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_WRITE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+        ];
+        let simulation = simulate(&tokens, &tags, &triggers, eos)?;
+        assert_eq!(
+            simulation.store.record(10, 20).map(|r| r.value),
+            Some(30),
+            "the write after the read still saw the open clause"
+        );
+        // The read fired at the relation tag of turn 2 with no trigger.
+        assert_eq!(simulation.reads.len(), 4);
+        let read = simulation
+            .reads
+            .iter()
+            .find(|r| r.position == 7 && !r.previous)
+            .expect("current read at the held-out address tag");
+        assert_eq!(read.key, Some((10, 20)));
+        assert_eq!((read.status, read.value), (STATUS_HIT, 30));
+        // The register persists to the end of the query turn.
+        assert_eq!(
+            (simulation.status[9], simulation.value[9]),
+            (STATUS_HIT, 30)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn different_trailing_phrases_do_not_change_the_read() -> Result<()> {
+        // The D2 failure: a trigger learned at the end of the training query
+        // template never fired on a held-out ending. The address tags are the
+        // same in both endings, so the always-on read must be identical.
+        let eos = 1u32;
+        let prefix = vec![0u32, 10, 20, 30, 40, eos];
+        let prefix_tags = vec![
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_VALUE,
+            TAG_OTHER,
+            TAG_OTHER,
+        ];
+        let prefix_triggers = vec![
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_WRITE,
+            TRIGGER_NONE,
+        ];
+        let run = |query: &[u32], query_tags: &[u32]| -> Result<Simulation> {
+            let mut tokens = prefix.clone();
+            tokens.extend_from_slice(query);
+            let mut tags = prefix_tags.clone();
+            tags.extend_from_slice(query_tags);
+            let mut triggers = prefix_triggers.clone();
+            triggers.extend(std::iter::repeat_n(TRIGGER_NONE, query.len()));
+            simulate(&tokens, &tags, &triggers, eos)
+        };
+        let train = run(
+            &[10, 20, 41, eos],
+            &[TAG_ENTITY, TAG_RELATION, TAG_OTHER, TAG_OTHER],
+        )?;
+        let held = run(
+            &[20, 50, 10, 60, 61, 42, eos],
+            &[
+                TAG_RELATION,
+                TAG_OTHER,
+                TAG_ENTITY,
+                TAG_OTHER,
+                TAG_OTHER,
+                TAG_OTHER,
+                TAG_OTHER,
+            ],
+        )?;
+        let last = |s: &Simulation| (s.status[s.status.len() - 1], s.value[s.status.len() - 1]);
+        assert_eq!(last(&train), (STATUS_HIT, 30));
+        assert_eq!(last(&held), (STATUS_HIT, 30));
+        assert!(held.reads.iter().any(|r| r.key == Some((10, 20))));
+        Ok(())
+    }
+
+    #[test]
+    fn the_previous_register_follows_updates_and_reassertions() -> Result<()> {
+        let eos = 1u32;
+        let turn = |value: u32| -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+            (
+                vec![10, 20, value, 40],
+                vec![TAG_ENTITY, TAG_RELATION, TAG_VALUE, TAG_OTHER],
+                vec![TRIGGER_NONE, TRIGGER_NONE, TRIGGER_NONE, TRIGGER_WRITE],
+            )
+        };
+        let mut tokens = vec![0u32];
+        let mut tags = vec![TAG_OTHER];
+        let mut triggers = vec![TRIGGER_NONE];
+        for value in [30, 31, 31] {
+            let (t, g, r) = turn(value);
+            tokens.extend(t);
+            tags.extend(g);
+            triggers.extend(r);
+            tokens.push(eos);
+            tags.push(TAG_OTHER);
+            triggers.push(TRIGGER_NONE);
+        }
+        tokens.extend([10, 20, eos]);
+        tags.extend([TAG_ENTITY, TAG_RELATION, TAG_OTHER]);
+        triggers.extend([TRIGGER_NONE, TRIGGER_NONE, TRIGGER_NONE]);
+        let simulation = simulate(&tokens, &tags, &triggers, eos)?;
+        let last = simulation.status.len() - 1;
+        assert_eq!(
+            (simulation.status[last], simulation.value[last]),
+            (STATUS_HIT, 31)
+        );
+        assert_eq!(
+            (
+                simulation.status_previous[last],
+                simulation.value_previous[last]
+            ),
+            (STATUS_HIT, 30),
+            "the same-value reassertion kept the previous distinct value"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn untagged_text_is_register_silent() -> Result<()> {
+        let tokens: Vec<u32> = (0..64).collect();
+        let tags = vec![TAG_OTHER; tokens.len()];
+        let triggers = vec![TRIGGER_NONE; tokens.len()];
+        let simulation = simulate(&tokens, &tags, &triggers, 1)?;
+        assert!(simulation.reads.is_empty());
+        assert!(simulation.status.iter().all(|&s| s == STATUS_NONE));
+        assert!(simulation.status_previous.iter().all(|&s| s == STATUS_NONE));
         Ok(())
     }
 
@@ -2232,7 +2606,7 @@ mod tests {
         let status: Vec<u32> = (0..32).map(|i| (i % 4) as u32).collect();
         let value: Vec<u32> = (0..32).map(|i| (i * 13 % 400) as u32).collect();
         let split = model
-            .top(&bottom.hidden, &status, &value)?
+            .top(&bottom.hidden, &status, &value, &status, &value)?
             .to_vec2::<f32>()?;
         for (a, b) in reference.iter().flatten().zip(split.iter().flatten()) {
             assert!((a - b).abs() < 1e-5, "{a} vs {b}");
@@ -2261,7 +2635,13 @@ mod tests {
         let mut rng = Rng::new(3);
         let data = world.batch(&mut rng, 2, 256, false)?;
         let bottom = model.bottom(&data.ids, 2, 256)?;
-        let logits = model.top(&bottom.hidden, &data.status, &data.value)?;
+        let logits = model.top(
+            &bottom.hidden,
+            &data.status,
+            &data.value,
+            &data.status_previous,
+            &data.value_previous,
+        )?;
         let loss = logits_cross_entropy(&logits, &data.targets, Some(&data.response))?;
         let grads = loss.backward()?;
         let m = model.memory.as_ref().expect("memory branch");
@@ -2269,6 +2649,9 @@ mod tests {
             ("status", &m.status),
             ("projection", &m.projection),
             ("scale", &m.copy_scale),
+            ("status_previous", &m.status_previous),
+            ("projection_previous", &m.projection_previous),
+            ("scale_previous", &m.copy_scale_previous),
         ] {
             let grad = grads.get(var.as_tensor()).expect("gradient");
             let norm = grad.sqr()?.sum_all()?.to_scalar::<f32>()?;

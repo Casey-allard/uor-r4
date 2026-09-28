@@ -1,0 +1,298 @@
+{
+ "schema": "uor-r4.lab2.g1-always-on-read-evidence/1",
+ "preregistration": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5876711862",
+ "code_commit": "d8a11080",
+ "executable_sha256": "71dbdd6de07a8715e706a507bc54d299ff2872668a49df59bb3aa8e87efb0b43",
+ "supervision": {
+  "receipt": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1.supervision.json",
+  "started_utc": "2026-09-28T19:27:54Z",
+  "finished_utc": "2026-09-28T22:53:41Z",
+  "wall_seconds": 12347,
+  "hard_caps": "",
+  "seeds": {
+   "1": {
+    "manifest_sha256": "8f918ac0502bdb63bcf8894470d99c886238db67f3d600aad50314128b3762cc",
+    "runs": [
+     "aerm-s1.json",
+     "control-s1.json"
+    ]
+   },
+   "2": {
+    "manifest_sha256": "9861149b83fb4391824b56790a13a475a62a6952f4f2293bb33574e0b32a837d",
+    "runs": [
+     "aerm-s2.json",
+     "control-s2.json"
+    ]
+   },
+   "3": {
+    "manifest_sha256": "55730477d9ca88e458f9d34038bc94452fbb987b641e0ede38062c1f5e90f328",
+    "runs": [
+     "aerm-s3.json",
+     "control-s3.json"
+    ]
+   }
+  }
+ },
+ "gate": {
+  "outcome": "FAIL",
+  "gates": {
+   "every_seed": true,
+   "held_out_updated_accuracy_at_least": 0.9,
+   "parameter_relative_tolerance": 0.0005,
+   "text_nll_delta_at_most": 0.05
+  },
+  "seeds": [
+   {
+    "aerm_text_nll": 2.3738267198204994,
+    "aerm_total_parameters": 1428816.0,
+    "complete": true,
+    "control_held_out_updated": 0.4652014652014652,
+    "control_text_nll": 2.390003204345703,
+    "control_total_parameters": 1428556.0,
+    "control_updated": 0.8979591836734694,
+    "held_out_first": 0.2152777777777778,
+    "held_out_pass": false,
+    "held_out_updated": 0.1575091575091575,
+    "in_distribution_updated": 1.0,
+    "margin": 0.10204081632653061,
+    "parameters_pass": true,
+    "pass": false,
+    "read_events": 2294,
+    "seed": 1,
+    "text_delta": -0.016176484525203705,
+    "text_pass": true,
+    "trace": {
+     "Emission": 1,
+     "NotSelected": 175,
+     "Unavailable": 460
+    }
+   },
+   {
+    "aerm_text_nll": 2.384031631052494,
+    "aerm_total_parameters": 1428816.0,
+    "complete": true,
+    "control_held_out_updated": 0.7728937728937729,
+    "control_text_nll": 2.3958400264382362,
+    "control_total_parameters": 1428556.0,
+    "control_updated": 0.8950437317784257,
+    "held_out_first": 0.1875,
+    "held_out_pass": false,
+    "held_out_updated": 0.07326007326007326,
+    "in_distribution_updated": 1.0,
+    "margin": 0.10495626822157433,
+    "parameters_pass": true,
+    "pass": false,
+    "read_events": 2574,
+    "seed": 2,
+    "text_delta": -0.011808395385742188,
+    "text_pass": true,
+    "trace": {
+     "Emission": 15,
+     "NotSelected": 172,
+     "Unavailable": 484
+    }
+   },
+   {
+    "aerm_text_nll": 2.3647860661149025,
+    "aerm_total_parameters": 1428816.0,
+    "complete": true,
+    "control_held_out_updated": 0.8131868131868132,
+    "control_text_nll": 2.3982851281762123,
+    "control_total_parameters": 1428556.0,
+    "control_updated": 0.8979591836734694,
+    "held_out_first": 0.3680555555555556,
+    "held_out_pass": false,
+    "held_out_updated": 0.029304029304029304,
+    "in_distribution_updated": 1.0,
+    "margin": 0.10204081632653061,
+    "parameters_pass": true,
+    "pass": false,
+    "read_events": 2706,
+    "seed": 3,
+    "text_delta": -0.033499062061309814,
+    "text_pass": true,
+    "trace": {
+     "Emission": 20,
+     "NotSelected": 59,
+     "Unavailable": 519
+    }
+   }
+  ]
+ },
+ "roots": [
+  {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1-s1",
+   "manifest_sha256": "8f918ac0502bdb63bcf8894470d99c886238db67f3d600aad50314128b3762cc",
+   "files": [
+    {
+     "blake3": "168113b9d397556ecd0e4d232f18efa1cd7967a8e2a731647f4639bcde2ef7de",
+     "bytes": 637,
+     "path": "attempt.json"
+    },
+    {
+     "blake3": "eb570a9a14b447521a578a4c9763214d69f4ea41f455c5a0e942b1730dfc9360",
+     "bytes": 46396,
+     "path": "runs/aerm-s1.json"
+    },
+    {
+     "blake3": "472f866d4e2babd35a94eb86b2f5cecd10ed61608a7e3f11ff0bc43b0c12cd11",
+     "bytes": 46361,
+     "path": "runs/control-s1.json"
+    },
+    {
+     "blake3": "3f311d73c600d416e1133ae5149f4a34e6bfc81531f5d6e807970787db1f1527",
+     "bytes": 8029,
+     "path": "summary.json"
+    }
+   ],
+   "runs": {
+    "aerm-s1": {
+     "parameters_total": 1428816,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 43,
+      "oracle_correct": 221,
+      "queries": 273,
+      "whole_answer_correct": 41
+     },
+     "held_out_trace": {
+      "Emission": 1,
+      "NotSelected": 175,
+      "Unavailable": 460
+     },
+     "read_events": 2294,
+     "text_dev_nll": 2.3738267198204994
+    },
+    "control-s1": {
+     "parameters_total": 1428556,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 127,
+      "oracle_correct": 0,
+      "queries": 273,
+      "whole_answer_correct": 99
+     },
+     "held_out_trace": {},
+     "read_events": 2692,
+     "text_dev_nll": 2.390003204345703
+    }
+   }
+  },
+  {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1-s2",
+   "manifest_sha256": "9861149b83fb4391824b56790a13a475a62a6952f4f2293bb33574e0b32a837d",
+   "files": [
+    {
+     "blake3": "9f59dcb4063271fce9d534286660294d7f04e7d4961f1315913d58d1d8d1fa90",
+     "bytes": 637,
+     "path": "attempt.json"
+    },
+    {
+     "blake3": "6a2eb4f32919d51c21ba7a73e58a5f033835c22d0acd06d79eababc538a64eb1",
+     "bytes": 46350,
+     "path": "runs/aerm-s2.json"
+    },
+    {
+     "blake3": "0a2e35e836a10dede85e10f2ad1571b1155ea5a250e7c4c738388885fc70449f",
+     "bytes": 46374,
+     "path": "runs/control-s2.json"
+    },
+    {
+     "blake3": "5aaa35e650665df5af7588b263a66fea9b5d819205218acf9bebfd9b6be1baf0",
+     "bytes": 8029,
+     "path": "summary.json"
+    }
+   ],
+   "runs": {
+    "aerm-s2": {
+     "parameters_total": 1428816,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 20,
+      "oracle_correct": 228,
+      "queries": 273,
+      "whole_answer_correct": 15
+     },
+     "held_out_trace": {
+      "Emission": 15,
+      "NotSelected": 172,
+      "Unavailable": 484
+     },
+     "read_events": 2574,
+     "text_dev_nll": 2.384031631052494
+    },
+    "control-s2": {
+     "parameters_total": 1428556,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 211,
+      "oracle_correct": 0,
+      "queries": 273,
+      "whole_answer_correct": 189
+     },
+     "held_out_trace": {},
+     "read_events": 3332,
+     "text_dev_nll": 2.3958400264382362
+    }
+   }
+  },
+  {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1-s3",
+   "manifest_sha256": "55730477d9ca88e458f9d34038bc94452fbb987b641e0ede38062c1f5e90f328",
+   "files": [
+    {
+     "blake3": "3c16e06489516d22f52895473897842d317e4e86eb91f7a327176de9b74f225c",
+     "bytes": 637,
+     "path": "attempt.json"
+    },
+    {
+     "blake3": "8882a755c79cf86a9ba91e13ae10bd8e4137f942e3691aa8f09a8781becacf31",
+     "bytes": 46388,
+     "path": "runs/aerm-s3.json"
+    },
+    {
+     "blake3": "3eb0043205f4254b9d8e2470b939c62ac66fe74877ff5432c18088ce580b54e4",
+     "bytes": 46376,
+     "path": "runs/control-s3.json"
+    },
+    {
+     "blake3": "2524cb4b2fbd7b4ffcd124d099ae585c2cbeb74091f6a17aa9927872e2521886",
+     "bytes": 8029,
+     "path": "summary.json"
+    }
+   ],
+   "runs": {
+    "aerm-s3": {
+     "parameters_total": 1428816,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 8,
+      "oracle_correct": 185,
+      "queries": 273,
+      "whole_answer_correct": 7
+     },
+     "held_out_trace": {
+      "Emission": 20,
+      "NotSelected": 59,
+      "Unavailable": 519
+     },
+     "read_events": 2706,
+     "text_dev_nll": 2.3647860661149025
+    },
+    "control-s3": {
+     "parameters_total": 1428556,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 222,
+      "oracle_correct": 0,
+      "queries": 273,
+      "whole_answer_correct": 144
+     },
+     "held_out_trace": {},
+     "read_events": 2866,
+     "text_dev_nll": 2.3982851281762123
+    }
+   }
+  }
+ ]
+}
