@@ -670,6 +670,12 @@ impl StackModel {
         time: usize,
         capture: &mut Capture<'_>,
     ) -> Result<Tensor> {
+        let x = self.embed(ids, batch, time)?;
+        self.layers_hooked(x, capture)
+    }
+
+    /// The token embeddings [batch, time, width] that the first layer reads.
+    pub fn embed(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
         if ids.len() != batch * time || time == 0 || time > self.config.context {
             return Err(invalid(
                 "stack forward needs batch * time ids within the context",
@@ -680,9 +686,31 @@ impl StackModel {
         }
         let embedding = self.weight("embedding.weight")?;
         let index = Tensor::from_vec(ids.to_vec(), batch * time, &self.device)?;
-        let mut x = embedding
+        Ok(embedding
             .index_select(&index, 0)?
-            .reshape((batch, time, self.config.width))?;
+            .reshape((batch, time, self.config.width))?)
+    }
+
+    /// The final normalized states [batch * time, width] from a first-layer
+    /// input [batch, time, width]: [`hidden`](Self::hidden) for callers that add
+    /// a side channel to the embeddings (`stack_tracking`).
+    pub fn hidden_from_input(&self, x: Tensor) -> Result<Tensor> {
+        let (_, time, width) = x.dims3()?;
+        if time == 0 || time > self.config.context || width != self.config.width {
+            return Err(invalid(
+                "stack input needs [batch, time, width] within the context",
+            ));
+        }
+        self.layers_hooked(x, &mut None)
+    }
+
+    /// Logits [rows, vocabulary] from final states, through the tied embedding.
+    pub fn head(&self, hidden: &Tensor) -> Result<Tensor> {
+        Ok(hidden.matmul(&self.weight("embedding.weight")?.t()?)?)
+    }
+
+    fn layers_hooked(&self, mut x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+        let (batch, time, _) = x.dims3()?;
         for layer in 0..self.config.layers() {
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
                 (StackArch::Transformer, _) => self.attention(layer, &x, capture)?,

@@ -41,6 +41,7 @@ pub mod reference_campaign;
 pub mod reference_eval;
 pub mod stack_dialogue;
 pub mod stack_export;
+pub mod stack_tracking;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;

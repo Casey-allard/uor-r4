@@ -1,0 +1,2126 @@
+{
+  "schema": "uor-r4.lab1.b1-finite-group-lanes.v1",
+  "lab": "Lab 1 (Claude)",
+  "track": "ROADMAP T1(b), B1",
+  "issues": [
+    973,
+    820
+  ],
+  "pull_request": 1442,
+  "source_commit": "09e537a46695f7e5b5515be16318e8a6d29c0784",
+  "binary": {
+    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/tracking-lanes",
+    "sha256": "cd38d51f059d8f21ead2b6989edf3b43cc1d35457d8553d955e72ac117555a08"
+  },
+  "machine": {
+    "cpu": "Apple M1",
+    "ram_bytes": 17179869184,
+    "threads": 2
+  },
+  "claims": {
+    "stage_a": "Synthetic A5 word problem; implementation gate, not a language result.",
+    "stage_b": "Stack trained on the #1017 token store plus A5 words; LM gate and in-context tracking gate as pre-registered in ROADMAP section 4.1(b)."
+  },
+  "stage_a": {
+    "summary": {
+      "quaternion": {
+        "runs": 9,
+        "exact_at_4096_snapped": 8,
+        "float_1_at_4096": 8,
+        "minimal_orders": [
+          60
+        ]
+      },
+      "reflection_pair": {
+        "runs": 9,
+        "exact_at_4096_snapped": 9,
+        "float_1_at_4096": 7,
+        "minimal_orders": [
+          60
+        ]
+      },
+      "phase": {
+        "runs": 9,
+        "exact_at_4096_snapped": 0,
+        "float_1_at_4096": 0,
+        "minimal_orders": []
+      },
+      "frozen": {
+        "runs": 9,
+        "exact_at_4096_snapped": 0,
+        "float_1_at_4096": 0,
+        "minimal_orders": []
+      }
+    },
+    "runs": [
+      {
+        "lr": 0.003,
+        "kind": "frozen",
+        "seed": 1,
+        "train_seconds": 18.98,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "3433e7fe3756da76bcc565782ba75c0bad36be6680a0ae3a1eb30e453291df16"
+      },
+      {
+        "lr": 0.003,
+        "kind": "frozen",
+        "seed": 2,
+        "train_seconds": 15.18,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "2ffc2c6ff4a30cc3dd4685ad8ed5fda5ab6c859f1988cf7d712bd62907ca8fb7"
+      },
+      {
+        "lr": 0.003,
+        "kind": "frozen",
+        "seed": 3,
+        "train_seconds": 13.13,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "379ca8e05c88cadf5d04172b594fce28cc3ba1950415f719179cca3ec13f4e45"
+      },
+      {
+        "lr": 0.003,
+        "kind": "phase",
+        "seed": 1,
+        "train_seconds": 18.06,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.00390625,
+          "256": 0.0078125,
+          "512": 0.02734375,
+          "1024": 0.02734375,
+          "2048": 0.03125,
+          "4096": 0.0234375
+        },
+        "served": {
+          "lane": 0,
+          "order": 9,
+          "minimal_order": 9,
+          "fit_accuracy": 0.0811767578125,
+          "max_trace_deviation": 0.130857,
+          "max_merge_distance": 0.105197,
+          "final": {
+            "32": 0.01953125,
+            "64": 0.01953125,
+            "128": 0.0234375,
+            "256": 0.01953125,
+            "512": 0.015625,
+            "1024": 0.015625,
+            "2048": 0.015625,
+            "4096": 0.015625
+          }
+        },
+        "run_sha256": "793c8cf23e1bcea7f9ef9e27b9b5177ecd614b8b506588e4bd09eb1414481087"
+      },
+      {
+        "lr": 0.003,
+        "kind": "phase",
+        "seed": 2,
+        "train_seconds": 19.44,
+        "float_final": {
+          "32": 0.01171875,
+          "64": 0.0234375,
+          "128": 0.0234375,
+          "256": 0.01953125,
+          "512": 0.015625,
+          "1024": 0.03125,
+          "2048": 0.0078125,
+          "4096": 0.0078125
+        },
+        "served": {
+          "lane": 0,
+          "order": 16,
+          "minimal_order": 16,
+          "fit_accuracy": 0.0977783203125,
+          "max_trace_deviation": 0.141846,
+          "max_merge_distance": 0.302985,
+          "final": {
+            "32": 0.03515625,
+            "64": 0.0234375,
+            "128": 0.015625,
+            "256": 0.02734375,
+            "512": 0.02734375,
+            "1024": 0.0078125,
+            "2048": 0.03125,
+            "4096": 0.01953125
+          }
+        },
+        "run_sha256": "a5e17c7568d58b021e299f21dfb6a00c92dd2b506e0b6980e02512aec8edc8c6"
+      },
+      {
+        "lr": 0.003,
+        "kind": "phase",
+        "seed": 3,
+        "train_seconds": 19.66,
+        "float_final": {
+          "32": 0.01953125,
+          "64": 0.015625,
+          "128": 0.03515625,
+          "256": 0.015625,
+          "512": 0.0234375,
+          "1024": 0.0234375,
+          "2048": 0.02734375,
+          "4096": 0.00390625
+        },
+        "served": {
+          "lane": 1,
+          "order": 14,
+          "minimal_order": 14,
+          "fit_accuracy": 0.09417724609375,
+          "max_trace_deviation": 0.148887,
+          "max_merge_distance": 0.235412,
+          "final": {
+            "32": 0.01171875,
+            "64": 0.01171875,
+            "128": 0.015625,
+            "256": 0.0234375,
+            "512": 0.01953125,
+            "1024": 0.02734375,
+            "2048": 0.01953125,
+            "4096": 0.02734375
+          }
+        },
+        "run_sha256": "a6dcfff8bfc0bc951c444262bf802f34bd4c12e4427815507c2012797d88db4f"
+      },
+      {
+        "lr": 0.003,
+        "kind": "quaternion",
+        "seed": 1,
+        "train_seconds": 17.44,
+        "float_final": {
+          "32": 0.015625,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.01171875,
+          "512": 0.01953125,
+          "1024": 0.015625,
+          "2048": 0.01953125,
+          "4096": 0.01171875
+        },
+        "served": {
+          "lane": 3,
+          "order": 1,
+          "minimal_order": 1,
+          "fit_accuracy": 0.03131103515625,
+          "max_trace_deviation": 0.0,
+          "max_merge_distance": 0.235761,
+          "final": {
+            "32": 0.01953125,
+            "64": 0.02734375,
+            "128": 0.015625,
+            "256": 0.0078125,
+            "512": 0.0234375,
+            "1024": 0.01171875,
+            "2048": 0.01171875,
+            "4096": 0.0234375
+          }
+        },
+        "run_sha256": "328cda1e2a3546269330f60ba5b6c8b18c645ff2f92c8c3c0c319661b7178003"
+      },
+      {
+        "lr": 0.003,
+        "kind": "quaternion",
+        "seed": 2,
+        "train_seconds": 18.68,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.015751,
+          "max_merge_distance": 0.046298,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "24d5e791c4fccb309d8789c13d5a6dac1acce4414ef8b81c037e06155a85ecd4"
+      },
+      {
+        "lr": 0.003,
+        "kind": "quaternion",
+        "seed": 3,
+        "train_seconds": 17.5,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.002905,
+          "max_merge_distance": 0.018727,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "3dc753768379fa2c87d6c69ec72c5490d8fe6de0e81a58f4e682afb6916fbb18"
+      },
+      {
+        "lr": 0.003,
+        "kind": "reflection_pair",
+        "seed": 1,
+        "train_seconds": 73.2,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154499,
+          "max_merge_distance": 0.017204,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "c320aabe589e0b156725de03c1cf64423d682de4694af9262653697b18e773f4"
+      },
+      {
+        "lr": 0.003,
+        "kind": "reflection_pair",
+        "seed": 2,
+        "train_seconds": 67.51,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154479,
+          "max_merge_distance": 0.015951,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "edcce8384bc6989a1af32939ddc70a6049ff1e3e016833fa092b1a83bf7febd8"
+      },
+      {
+        "lr": 0.003,
+        "kind": "reflection_pair",
+        "seed": 3,
+        "train_seconds": 68.54,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154457,
+          "max_merge_distance": 0.040636,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "9fbc656925f364dc878c6da39fbd1442c5e9ca7e44cb8c74ce7ca590feacb95c"
+      },
+      {
+        "lr": 0.01,
+        "kind": "frozen",
+        "seed": 1,
+        "train_seconds": 15.19,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "11c41c85a65ef6dd9e22138919c2fa20c509774f6f265e3f8053cc2357a4751b"
+      },
+      {
+        "lr": 0.01,
+        "kind": "frozen",
+        "seed": 2,
+        "train_seconds": 16.0,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "026f0796ef2a3a9a536e9812a740a9b32acf7e848878893c957f8add935b15cd"
+      },
+      {
+        "lr": 0.01,
+        "kind": "frozen",
+        "seed": 3,
+        "train_seconds": 16.47,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "353e62c6cf0c020666548b08f4ba1535275948f0e6ff33717cfc2694a30673bc"
+      },
+      {
+        "lr": 0.01,
+        "kind": "phase",
+        "seed": 1,
+        "train_seconds": 19.44,
+        "float_final": {
+          "32": 0.01171875,
+          "64": 0.0234375,
+          "128": 0.02734375,
+          "256": 0.015625,
+          "512": 0.01953125,
+          "1024": 0.01953125,
+          "2048": 0.0,
+          "4096": 0.01953125
+        },
+        "served": {
+          "lane": 0,
+          "order": 15,
+          "minimal_order": 15,
+          "fit_accuracy": 0.0882568359375,
+          "max_trace_deviation": 0.134045,
+          "max_merge_distance": 0.118224,
+          "final": {
+            "32": 0.02734375,
+            "64": 0.015625,
+            "128": 0.015625,
+            "256": 0.0234375,
+            "512": 0.01953125,
+            "1024": 0.01171875,
+            "2048": 0.0390625,
+            "4096": 0.015625
+          }
+        },
+        "run_sha256": "5b8dc138a71a817c889066e715a16bff8fb3889075b8550cbba77914a5792e8e"
+      },
+      {
+        "lr": 0.01,
+        "kind": "phase",
+        "seed": 2,
+        "train_seconds": 20.8,
+        "float_final": {
+          "32": 0.01171875,
+          "64": 0.00390625,
+          "128": 0.0078125,
+          "256": 0.0078125,
+          "512": 0.015625,
+          "1024": 0.01953125,
+          "2048": 0.01953125,
+          "4096": 0.015625
+        },
+        "served": {
+          "lane": 3,
+          "order": 15,
+          "minimal_order": 15,
+          "fit_accuracy": 0.0888671875,
+          "max_trace_deviation": 0.139363,
+          "max_merge_distance": 0.398441,
+          "final": {
+            "32": 0.03125,
+            "64": 0.00390625,
+            "128": 0.015625,
+            "256": 0.015625,
+            "512": 0.0234375,
+            "1024": 0.015625,
+            "2048": 0.0234375,
+            "4096": 0.015625
+          }
+        },
+        "run_sha256": "cd8bb908837ecf7e32aa867e9e4cb968899dec73aef453d016dd573d434f7497"
+      },
+      {
+        "lr": 0.01,
+        "kind": "phase",
+        "seed": 3,
+        "train_seconds": 27.45,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.015625,
+          "128": 0.0234375,
+          "256": 0.00390625,
+          "512": 0.015625,
+          "1024": 0.0234375,
+          "2048": 0.00390625,
+          "4096": 0.01171875
+        },
+        "served": {
+          "lane": 1,
+          "order": 14,
+          "minimal_order": 14,
+          "fit_accuracy": 0.0880126953125,
+          "max_trace_deviation": 0.149088,
+          "max_merge_distance": 0.465172,
+          "final": {
+            "32": 0.0234375,
+            "64": 0.00390625,
+            "128": 0.0234375,
+            "256": 0.015625,
+            "512": 0.015625,
+            "1024": 0.00390625,
+            "2048": 0.0234375,
+            "4096": 0.015625
+          }
+        },
+        "run_sha256": "8ec3eed21a293caca2e138a118fedc306b1a8405c164d34cb39aa460a51f9f62"
+      },
+      {
+        "lr": 0.01,
+        "kind": "quaternion",
+        "seed": 1,
+        "train_seconds": 18.51,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.000102,
+          "max_merge_distance": 0.00049,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "f472b5b6ed4ca81ff7903356214621ae431299b34561fbdc88118a04d7232269"
+      },
+      {
+        "lr": 0.01,
+        "kind": "quaternion",
+        "seed": 2,
+        "train_seconds": 17.02,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.000614,
+          "max_merge_distance": 0.003541,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "630d161b4d652fa3530fbe80ebfdf8a1894556312f092eef86a36af6e84cee6e"
+      },
+      {
+        "lr": 0.01,
+        "kind": "quaternion",
+        "seed": 3,
+        "train_seconds": 15.57,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.002,
+          "max_merge_distance": 0.011787,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "869a4cc53c53c570a72fa25a04eb4022ea696e00f28cd30e6993f4710ea3a6f9"
+      },
+      {
+        "lr": 0.01,
+        "kind": "reflection_pair",
+        "seed": 1,
+        "train_seconds": 79.03,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154503,
+          "max_merge_distance": 0.019409,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "6dba0bb73fd6b2ccae015bd5756329e151818267a88cbd38bb9dfa4d7c819498"
+      },
+      {
+        "lr": 0.01,
+        "kind": "reflection_pair",
+        "seed": 2,
+        "train_seconds": 73.76,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154504,
+          "max_merge_distance": 0.017712,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "fefa18d1cc6b60b61af1d76b2f434c468bb7cc7769754b430a35639d3d5cec96"
+      },
+      {
+        "lr": 0.01,
+        "kind": "reflection_pair",
+        "seed": 3,
+        "train_seconds": 73.49,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.15426,
+          "max_merge_distance": 0.013904,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "60c993f1c7db2dc9a8edb1c02353fc42859adc29e2dda66fd6f0937f58479524"
+      },
+      {
+        "lr": 0.03,
+        "kind": "frozen",
+        "seed": 1,
+        "train_seconds": 14.83,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "e6efc68f5114338277b80c4760aa19989dcf0ed498a5e0edddcdcaa3c053dfbb"
+      },
+      {
+        "lr": 0.03,
+        "kind": "frozen",
+        "seed": 2,
+        "train_seconds": 20.53,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "6915ac23686c7f5c8b08af6909b3e2e23fd0a73d84be26ceda38aaa20bbc47fb"
+      },
+      {
+        "lr": 0.03,
+        "kind": "frozen",
+        "seed": 3,
+        "train_seconds": 15.96,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.01171875,
+          "128": 0.01171875,
+          "256": 0.0390625,
+          "512": 0.03515625,
+          "1024": 0.0078125,
+          "2048": 0.00390625,
+          "4096": 0.015625
+        },
+        "served": null,
+        "run_sha256": "2497f69bf175690589cffa5890aa4799f8f66aef7cd4d9bba8fa8f4ce96ef805"
+      },
+      {
+        "lr": 0.03,
+        "kind": "phase",
+        "seed": 1,
+        "train_seconds": 21.33,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.0234375,
+          "128": 0.0078125,
+          "256": 0.015625,
+          "512": 0.02734375,
+          "1024": 0.01171875,
+          "2048": 0.02734375,
+          "4096": 0.015625
+        },
+        "served": {
+          "lane": 0,
+          "order": 15,
+          "minimal_order": 15,
+          "fit_accuracy": 0.0882568359375,
+          "max_trace_deviation": 0.143132,
+          "max_merge_distance": 0.425528,
+          "final": {
+            "32": 0.02734375,
+            "64": 0.015625,
+            "128": 0.015625,
+            "256": 0.0234375,
+            "512": 0.01953125,
+            "1024": 0.01171875,
+            "2048": 0.0390625,
+            "4096": 0.015625
+          }
+        },
+        "run_sha256": "b903f819c47f882250d50301d406488d8b5b3ca9f087a4c7b0105e1de866923f"
+      },
+      {
+        "lr": 0.03,
+        "kind": "phase",
+        "seed": 2,
+        "train_seconds": 25.69,
+        "float_final": {
+          "32": 0.02734375,
+          "64": 0.01171875,
+          "128": 0.02734375,
+          "256": 0.0234375,
+          "512": 0.015625,
+          "1024": 0.0078125,
+          "2048": 0.01171875,
+          "4096": 0.01171875
+        },
+        "served": {
+          "lane": 0,
+          "order": 8,
+          "minimal_order": 8,
+          "fit_accuracy": 0.0758056640625,
+          "max_trace_deviation": 0.144211,
+          "max_merge_distance": 0.373765,
+          "final": {
+            "32": 0.01171875,
+            "64": 0.0078125,
+            "128": 0.01953125,
+            "256": 0.01171875,
+            "512": 0.03125,
+            "1024": 0.015625,
+            "2048": 0.015625,
+            "4096": 0.015625
+          }
+        },
+        "run_sha256": "35c3d5c9fdff204d9090253771d5c7d38de4e620cda1aacfe0bd10df8088fa30"
+      },
+      {
+        "lr": 0.03,
+        "kind": "phase",
+        "seed": 3,
+        "train_seconds": 29.68,
+        "float_final": {
+          "32": 0.0234375,
+          "64": 0.0,
+          "128": 0.02734375,
+          "256": 0.05078125,
+          "512": 0.0078125,
+          "1024": 0.02734375,
+          "2048": 0.015625,
+          "4096": 0.00390625
+        },
+        "served": {
+          "lane": 7,
+          "order": 14,
+          "minimal_order": 14,
+          "fit_accuracy": 0.0848388671875,
+          "max_trace_deviation": 0.151442,
+          "max_merge_distance": 0.310464,
+          "final": {
+            "32": 0.015625,
+            "64": 0.01171875,
+            "128": 0.0078125,
+            "256": 0.015625,
+            "512": 0.03125,
+            "1024": 0.015625,
+            "2048": 0.015625,
+            "4096": 0.01953125
+          }
+        },
+        "run_sha256": "da0ff17c694f4582d424b13fce6bf1cd33b93f3a85f7d88cfa92326057604ad6"
+      },
+      {
+        "lr": 0.03,
+        "kind": "quaternion",
+        "seed": 1,
+        "train_seconds": 17.47,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.001559,
+          "max_merge_distance": 0.004571,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "77321ed0658b3d684a8c2471c6f41f8312d561ad3beb1beb93beacfb7150c7ee"
+      },
+      {
+        "lr": 0.03,
+        "kind": "quaternion",
+        "seed": 2,
+        "train_seconds": 18.96,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.002167,
+          "max_merge_distance": 0.014289,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "44f0c81dfb1b6368c2c7b79545c0babfbc9c264c27fbd3ca926a0a425c0712a6"
+      },
+      {
+        "lr": 0.03,
+        "kind": "quaternion",
+        "seed": 3,
+        "train_seconds": 21.74,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 1,
+          "order": 120,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.004937,
+          "max_merge_distance": 0.016532,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "146ccda2b35c2e7b8c5daf2ee7f934ac73b948c1192e78f6ab0aab4cfc76a6bd"
+      },
+      {
+        "lr": 0.03,
+        "kind": "reflection_pair",
+        "seed": 1,
+        "train_seconds": 81.32,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 0.98828125,
+          "512": 0.83984375,
+          "1024": 0.515625,
+          "2048": 0.1796875,
+          "4096": 0.0390625
+        },
+        "served": {
+          "lane": 1,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.153818,
+          "max_merge_distance": 0.394403,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "bdd14669221661d1cd401196bb6ae29e042063df0f588d14804f2e61fc5cfbe3"
+      },
+      {
+        "lr": 0.03,
+        "kind": "reflection_pair",
+        "seed": 2,
+        "train_seconds": 83.11,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 1.0
+        },
+        "served": {
+          "lane": 0,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154435,
+          "max_merge_distance": 0.004518,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "5c1325d38241f8504cd66f3463aeff4c605349cd501c9688bb17ab9a30acde22"
+      },
+      {
+        "lr": 0.03,
+        "kind": "reflection_pair",
+        "seed": 3,
+        "train_seconds": 78.29,
+        "float_final": {
+          "32": 1.0,
+          "64": 1.0,
+          "128": 1.0,
+          "256": 1.0,
+          "512": 1.0,
+          "1024": 1.0,
+          "2048": 1.0,
+          "4096": 0.99609375
+        },
+        "served": {
+          "lane": 0,
+          "order": 60,
+          "minimal_order": 60,
+          "fit_accuracy": 1.0,
+          "max_trace_deviation": 0.154375,
+          "max_merge_distance": 0.020587,
+          "final": {
+            "32": 1.0,
+            "64": 1.0,
+            "128": 1.0,
+            "256": 1.0,
+            "512": 1.0,
+            "1024": 1.0,
+            "2048": 1.0,
+            "4096": 1.0
+          }
+        },
+        "run_sha256": "29ca475669a0e6c01a6666e263762cee760eff19da002ce4e00da1a9436a3b04"
+      }
+    ]
+  },
+  "stage_b": {
+    "gates": {
+      "Phase": {
+        "seeds": [
+          1,
+          2,
+          3
+        ],
+        "dev_text_nll": [
+          2.754847727715969,
+          2.8234728500247,
+          2.734947480261326
+        ],
+        "paired_delta_vs_none": [
+          0.08881057798862457,
+          0.09444385766983032,
+          0.053823649883270264
+        ],
+        "mean_delta_vs_none": 0.07902602851390839,
+        "a5_at_position_128": [
+          0.015625,
+          0.34765625,
+          0.00390625
+        ],
+        "max_delta_vs_none": 0.09444385766983032,
+        "lm_gate_within_0_05": false,
+        "lm_gate_rule": "pre-committed in this assembler before Stage B results: every seed's paired delta <= 0.05 nats",
+        "a5_gate_ge_0_99": false,
+        "a5_gate_rule": "pre-committed: every seed's stack A5 accuracy at position 128 >= 0.99"
+      },
+      "Quaternion": {
+        "seeds": [
+          1,
+          2,
+          3
+        ],
+        "dev_text_nll": [
+          2.6780027970671654,
+          2.6768630668520927,
+          2.80220315605402
+        ],
+        "paired_delta_vs_none": [
+          0.011965647339820862,
+          -0.0521659255027771,
+          0.12107932567596436
+        ],
+        "mean_delta_vs_none": 0.02695968250433604,
+        "a5_at_position_128": [
+          1.0,
+          1.0,
+          0.0390625
+        ],
+        "max_delta_vs_none": 0.12107932567596436,
+        "lm_gate_within_0_05": false,
+        "lm_gate_rule": "pre-committed in this assembler before Stage B results: every seed's paired delta <= 0.05 nats",
+        "a5_gate_ge_0_99": false,
+        "a5_gate_rule": "pre-committed: every seed's stack A5 accuracy at position 128 >= 0.99"
+      },
+      "ReflectionPair": {
+        "seeds": [
+          1,
+          2,
+          3
+        ],
+        "dev_text_nll": [
+          2.7017310187220573,
+          2.678842954337597,
+          2.690422907471657
+        ],
+        "paired_delta_vs_none": [
+          0.03569386899471283,
+          -0.05018603801727295,
+          0.009299077093601227
+        ],
+        "mean_delta_vs_none": -0.0017310306429862976,
+        "a5_at_position_128": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "max_delta_vs_none": 0.03569386899471283,
+        "lm_gate_within_0_05": true,
+        "lm_gate_rule": "pre-committed in this assembler before Stage B results: every seed's paired delta <= 0.05 nats",
+        "a5_gate_ge_0_99": true,
+        "a5_gate_rule": "pre-committed: every seed's stack A5 accuracy at position 128 >= 0.99"
+      },
+      "none": {
+        "seeds": [
+          1,
+          2,
+          3
+        ],
+        "dev_text_nll": [
+          2.6660371497273445,
+          2.72902899235487,
+          2.6811238303780556
+        ],
+        "paired_delta_vs_none": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean_delta_vs_none": 0.0,
+        "a5_at_position_128": [
+          0.015625,
+          0.16015625,
+          0.0078125
+        ],
+        "max_delta_vs_none": 0.0,
+        "lm_gate_within_0_05": null,
+        "lm_gate_rule": "pre-committed in this assembler before Stage B results: every seed's paired delta <= 0.05 nats",
+        "a5_gate_ge_0_99": false,
+        "a5_gate_rule": "pre-committed: every seed's stack A5 accuracy at position 128 >= 0.99"
+      }
+    },
+    "runs": [
+      {
+        "arm": "none",
+        "seed": 1,
+        "train_seconds": 653.7,
+        "stack_parameters": 1393604,
+        "side_parameters": 7740,
+        "dev_text_nll": 2.6660371497273445,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            0.97265625
+          ],
+          [
+            16,
+            0.6015625
+          ],
+          [
+            32,
+            0.1015625
+          ],
+          [
+            64,
+            0.03125
+          ],
+          [
+            128,
+            0.015625
+          ]
+        ],
+        "a5_all_positions": 0.1646728515625,
+        "served": null,
+        "lanes_snapped": 0,
+        "lanes_total": 0,
+        "run_sha256": "42d74b34c3574e3b530066b6333a6db0ef912617ecb56e7ce328d83b32da84a8",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-grid"
+      },
+      {
+        "arm": "none",
+        "seed": 2,
+        "train_seconds": 633.5,
+        "stack_parameters": 1393604,
+        "side_parameters": 7740,
+        "dev_text_nll": 2.72902899235487,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            0.9375
+          ],
+          [
+            64,
+            0.68359375
+          ],
+          [
+            128,
+            0.16015625
+          ]
+        ],
+        "a5_all_positions": 0.64202880859375,
+        "served": null,
+        "lanes_snapped": 0,
+        "lanes_total": 0,
+        "run_sha256": "a0f6f69c3ef5a607ed2081ec00a74da51a64cbae655aeea94dd5bf89e6e99485",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-grid"
+      },
+      {
+        "arm": "none",
+        "seed": 3,
+        "train_seconds": 538.7,
+        "stack_parameters": 1393604,
+        "side_parameters": 7740,
+        "dev_text_nll": 2.6811238303780556,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            0.9921875
+          ],
+          [
+            16,
+            0.6796875
+          ],
+          [
+            32,
+            0.14453125
+          ],
+          [
+            64,
+            0.00390625
+          ],
+          [
+            128,
+            0.0078125
+          ]
+        ],
+        "a5_all_positions": 0.179931640625,
+        "served": null,
+        "lanes_snapped": 0,
+        "lanes_total": 0,
+        "run_sha256": "f8c840342596f35c500834bffa4631d643a9e2c94aa86fb41a321b7aa4760e17",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-grid"
+      },
+      {
+        "arm": "Quaternion",
+        "seed": 1,
+        "train_seconds": 554.3,
+        "stack_parameters": 1393604,
+        "side_parameters": 143004,
+        "dev_text_nll": 2.6780027970671654,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            1.0
+          ],
+          [
+            64,
+            1.0
+          ],
+          [
+            128,
+            1.0
+          ]
+        ],
+        "a5_all_positions": 1.0,
+        "served": {
+          "lane": 2,
+          "order": 120,
+          "minimal_order": 60,
+          "final": {
+            "128": 1.0,
+            "512": 1.0,
+            "4096": 1.0
+          },
+          "max_merge_distance": 0.06122792702902881
+        },
+        "lanes_snapped": 1,
+        "lanes_total": 8,
+        "run_sha256": "473d5785b1bf2106ee247a898d0b95fedcedad810923060540538c1752de624b",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-grid"
+      },
+      {
+        "arm": "Phase",
+        "seed": 1,
+        "train_seconds": 1186.7,
+        "stack_parameters": 1393604,
+        "side_parameters": 44628,
+        "dev_text_nll": 2.754847727715969,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            0.984375
+          ],
+          [
+            16,
+            0.484375
+          ],
+          [
+            32,
+            0.1015625
+          ],
+          [
+            64,
+            0.015625
+          ],
+          [
+            128,
+            0.015625
+          ]
+        ],
+        "a5_all_positions": 0.1607666015625,
+        "served": {
+          "lane": 0,
+          "order": 6,
+          "minimal_order": 6,
+          "final": {
+            "128": 0.0078125,
+            "512": 0.01171875,
+            "4096": 0.015625
+          },
+          "max_merge_distance": 0.022207495736640947
+        },
+        "lanes_snapped": 5,
+        "lanes_total": 8,
+        "run_sha256": "b45b55fd64b3903cddf59daa5a3db56f457ebc7a522b064c3a53dfab878dd074",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-phase"
+      },
+      {
+        "arm": "Phase",
+        "seed": 2,
+        "train_seconds": 948.5,
+        "stack_parameters": 1393604,
+        "side_parameters": 44628,
+        "dev_text_nll": 2.8234728500247,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            0.984375
+          ],
+          [
+            64,
+            0.84375
+          ],
+          [
+            128,
+            0.34765625
+          ]
+        ],
+        "a5_all_positions": 0.767059326171875,
+        "served": {
+          "lane": 6,
+          "order": 7,
+          "minimal_order": 7,
+          "final": {
+            "128": 0.01171875,
+            "512": 0.01953125,
+            "4096": 0.01171875
+          },
+          "max_merge_distance": 0.2990516475921394
+        },
+        "lanes_snapped": 4,
+        "lanes_total": 8,
+        "run_sha256": "687c44674cb19487c7cbb9b2a6988760b3359ad8daa23ab8893feec6d6393474",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-phase"
+      },
+      {
+        "arm": "Phase",
+        "seed": 3,
+        "train_seconds": 749.1,
+        "stack_parameters": 1393604,
+        "side_parameters": 44628,
+        "dev_text_nll": 2.734947480261326,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            0.8828125
+          ],
+          [
+            16,
+            0.1796875
+          ],
+          [
+            32,
+            0.015625
+          ],
+          [
+            64,
+            0.0234375
+          ],
+          [
+            128,
+            0.00390625
+          ]
+        ],
+        "a5_all_positions": 0.11199951171875,
+        "served": {
+          "lane": 6,
+          "order": 6,
+          "minimal_order": 6,
+          "final": {
+            "128": 0.0078125,
+            "512": 0.015625,
+            "4096": 0.0234375
+          },
+          "max_merge_distance": 0.05878643742993957
+        },
+        "lanes_snapped": 3,
+        "lanes_total": 8,
+        "run_sha256": "be0a9d3597a745aa6e49aebd8dc458da9b28fb4226bf59e974516bfa96a1c9d4",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-phase"
+      },
+      {
+        "arm": "Quaternion",
+        "seed": 2,
+        "train_seconds": 1184.6,
+        "stack_parameters": 1393604,
+        "side_parameters": 143004,
+        "dev_text_nll": 2.6768630668520927,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            1.0
+          ],
+          [
+            64,
+            1.0
+          ],
+          [
+            128,
+            1.0
+          ]
+        ],
+        "a5_all_positions": 1.0,
+        "served": {
+          "lane": 0,
+          "order": 120,
+          "minimal_order": 60,
+          "final": {
+            "128": 1.0,
+            "512": 1.0,
+            "4096": 1.0
+          },
+          "max_merge_distance": 0.08081559783176788
+        },
+        "lanes_snapped": 4,
+        "lanes_total": 8,
+        "run_sha256": "22929fdeede76b4c9059b4019c612c23ccf9f1324d0e442fa90b6747c270ac7d",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-quaternion23"
+      },
+      {
+        "arm": "Quaternion",
+        "seed": 3,
+        "train_seconds": 950.0,
+        "stack_parameters": 1393604,
+        "side_parameters": 143004,
+        "dev_text_nll": 2.80220315605402,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            0.984375
+          ],
+          [
+            32,
+            0.8046875
+          ],
+          [
+            64,
+            0.3203125
+          ],
+          [
+            128,
+            0.0390625
+          ]
+        ],
+        "a5_all_positions": 0.447174072265625,
+        "served": null,
+        "lanes_snapped": 0,
+        "lanes_total": 8,
+        "run_sha256": "3f16bb4ca9a9507a3095e2b827d752871b0b7e179c367732ea894f21d715447b",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-quaternion23"
+      },
+      {
+        "arm": "ReflectionPair",
+        "seed": 1,
+        "train_seconds": 1235.1,
+        "stack_parameters": 1393604,
+        "side_parameters": 274172,
+        "dev_text_nll": 2.7017310187220573,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            1.0
+          ],
+          [
+            64,
+            1.0
+          ],
+          [
+            128,
+            1.0
+          ]
+        ],
+        "a5_all_positions": 1.0,
+        "served": {
+          "lane": 0,
+          "order": 120,
+          "minimal_order": 60,
+          "final": {
+            "128": 1.0,
+            "512": 1.0,
+            "4096": 1.0
+          },
+          "max_merge_distance": 0.24507360091587543
+        },
+        "lanes_snapped": 4,
+        "lanes_total": 8,
+        "run_sha256": "6690a0567c33dfc6ed1883fbfedbf9082a917f95ca35db72a66700a8ac527227",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-reflection"
+      },
+      {
+        "arm": "ReflectionPair",
+        "seed": 2,
+        "train_seconds": 998.9,
+        "stack_parameters": 1393604,
+        "side_parameters": 274172,
+        "dev_text_nll": 2.678842954337597,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            1.0
+          ],
+          [
+            64,
+            1.0
+          ],
+          [
+            128,
+            1.0
+          ]
+        ],
+        "a5_all_positions": 1.0,
+        "served": {
+          "lane": 1,
+          "order": 60,
+          "minimal_order": 60,
+          "final": {
+            "128": 1.0,
+            "512": 1.0,
+            "4096": 1.0
+          },
+          "max_merge_distance": 0.12442442251222713
+        },
+        "lanes_snapped": 3,
+        "lanes_total": 8,
+        "run_sha256": "dfbc2f2107ad53bd2725dd3180244740b7bb5f371a3b2ca74f3e406e8495d9c0",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-reflection"
+      },
+      {
+        "arm": "ReflectionPair",
+        "seed": 3,
+        "train_seconds": 783.4,
+        "stack_parameters": 1393604,
+        "side_parameters": 274172,
+        "dev_text_nll": 2.690422907471657,
+        "a5_by_position": [
+          [
+            1,
+            1.0
+          ],
+          [
+            2,
+            1.0
+          ],
+          [
+            4,
+            1.0
+          ],
+          [
+            8,
+            1.0
+          ],
+          [
+            16,
+            1.0
+          ],
+          [
+            32,
+            1.0
+          ],
+          [
+            64,
+            1.0
+          ],
+          [
+            128,
+            1.0
+          ]
+        ],
+        "a5_all_positions": 1.0,
+        "served": {
+          "lane": 1,
+          "order": 60,
+          "minimal_order": 60,
+          "final": {
+            "128": 1.0,
+            "512": 1.0,
+            "4096": 1.0
+          },
+          "max_merge_distance": 0.1275499840069747
+        },
+        "lanes_snapped": 3,
+        "lanes_total": 8,
+        "run_sha256": "771b5a7e4dbb7dc8de04ee90f7f668e9c12fbbd83fdfc55e5ebf5a4dfa9e1b6b",
+        "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-reflection"
+      }
+    ],
+    "pre_registration": {
+      "subject": "quaternion (2I) lanes (ROADMAP 4.1(b))",
+      "subject_verdict": "FAIL (per-seed gates: seed 3 A5 0.039 at position 128, text dNLL +0.121)",
+      "transformer_control": "NOT_RUN",
+      "reflection_pair_arm": "added after Stage A; passes the same gates; exploratory, not a pre-registered pass",
+      "kill_rule": "review 9.3: keep the better ordinary lanes; retire the geometric (2I) claim from the serving path; keep geometry as codebook and addressing infrastructure",
+      "correction": "2026-09-28 independent review of #1442: an earlier record revision called Stage B complete as pre-registered and narrowed the kill rule to quaternion-specific; both withdrawn"
+    }
+  },
+  "report_roots": {
+    "final": [
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-a-lr0.003",
+        "files": 15,
+        "bytes": 127330,
+        "manifest_sha256": "0191194007da606588748c114cf914507f011afb7974787f18a46b6020090cc2",
+        "summary_sha256": "0a60cab0bd2f52aca8749764b0a918b5537b347a8468259eecac8df242fe7a20",
+        "attempt_sha256": "7e8eaf8777e9e8be309538e554d5b2ce3d24e42734796d48d91574bb88ac8ee0",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-a-lr0.01",
+        "files": 15,
+        "bytes": 127649,
+        "manifest_sha256": "fc75c32382a4603bb2877a9d1204cf1135e78b77b98995d84bc120184973bd71",
+        "summary_sha256": "234a741369354e026a30ac1b37f5ee44e29287df82d1c43336142962d2e5a27d",
+        "attempt_sha256": "20e5310860521f89ffce7ca60607ef079c0d4da559a4fc677845bbd4f2a27305",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-a-lr0.03",
+        "files": 15,
+        "bytes": 126726,
+        "manifest_sha256": "e7d79ccc5c2683ea04a2dcdd455f2a214114fd8ab2cc00b502d621166b26cbac",
+        "summary_sha256": "f46a527375e657e897fe9eac031bfb3c97a0bff585b7d8868299a97bd28046ff",
+        "attempt_sha256": "32d3fa1fb40ff668e22f055e8175fc2a47e9fc75257360d55ca14a6d4328a5c3",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-grid",
+        "files": 5,
+        "bytes": 31103,
+        "attempt_sha256": "6343d6a292eed4e912b3d8f9d381aa02b7ae2a17316dcc05695ca9e087d18ae7",
+        "sealed": false,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-phase",
+        "files": 6,
+        "bytes": 33601,
+        "manifest_sha256": "a3dc60b9aed8ba420443bb12870f6c7b7b23d9a7dd495d0ddffb8c53419c1a44",
+        "summary_sha256": "e932fa2ee205f78d0f958ca1ce00551b13da19831de7623f24c1be9bfdbe722b",
+        "attempt_sha256": "28f73374b52b79b72e1ef7094edb9f2c29d0c7bb944271f63ab7674af0c5d8e3",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-quaternion23",
+        "files": 5,
+        "bytes": 20583,
+        "manifest_sha256": "f05a55611d6f7c02ef27ca9adf174adff78e997d2f4c4f57f4cc36d15bf785ad",
+        "summary_sha256": "bf3e54057b62538c52b258134be8b07351bd11faa6c068f328e3b3b93aa47875",
+        "attempt_sha256": "48834e8e07a70fd38aec075aad6f1677cb40f0b700038dfd6c36f0711c48d85c",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/final-b-reflection",
+        "files": 6,
+        "bytes": 32176,
+        "manifest_sha256": "c61c1f4b6b3182565745ddf25dfee3d9c04eeba8617df19eaf887b2a3fa25572",
+        "summary_sha256": "413a6390116d8a8b6328501d94f1bf9b8fd66baa39c90c17391e5993cc686105",
+        "attempt_sha256": "bfd143dfb9be35f5a3de71be1631cb0edb61fc3e9a5250f83aeb3495e1db1440",
+        "sealed": true,
+        "error": false
+      }
+    ],
+    "earlier_superseded": [
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/grid-lr0.003",
+        "files": 15,
+        "bytes": 125993,
+        "manifest_sha256": "a07097cdfc570b12a0312b1b51ed46a8736456826a35b165b2d177488b151020",
+        "summary_sha256": "5f096867e54254240f9f6634a496f4edf5b0ff76194f2e4849625dcfe1da6efe",
+        "attempt_sha256": "0ce7df32e929d7391fd13c5d5349ecac49879c79d4546a2ddf002838c13c5ed7",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/grid-lr0.01",
+        "files": 15,
+        "bytes": 126101,
+        "manifest_sha256": "75634c42398ed01c77a0384aa0e1f8dcb8d7c4a4e3615d6327c40e4f108361e4",
+        "summary_sha256": "caaf6353af8d2cb9595876afb89c73c582de7245dd0bc9bd29e9a4e07e77d406",
+        "attempt_sha256": "1327b6fbdbe19cddd68e8cfda470ad897ed1a8493f94747aba2303a5182cacef",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/grid-lr0.03",
+        "files": 15,
+        "bytes": 125376,
+        "manifest_sha256": "d3ebd9e640ebc474e94168b8762c092ec1294dadb07bab4b18852850511f8bfb",
+        "summary_sha256": "8522267805007358190f2f770170fe2f10403e02c9cdf5d0aa566d96a389806e",
+        "attempt_sha256": "ddabf3425a9eff94796cd8bed59cc1a5dba2ec2319cd1668793c3ad6cb2e26e3",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/pilot-1",
+        "files": 5,
+        "bytes": 9018,
+        "manifest_sha256": "0cf59a9f1484ded60e6e9f43ddeca2c6541c945ad1386b388dfdb9a583c80f1c",
+        "summary_sha256": "aef92b180d5a5092d78c1a277f17112a4a556873262f4c43f19727cb5362b2de",
+        "attempt_sha256": "4f1f0988de432dbe2f3166e52981d97edc82fc6ba0bb1ad3491c1afcc3f2025f",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/probe-q-lr0.01",
+        "files": 6,
+        "bytes": 26241,
+        "manifest_sha256": "70e52034776df6d1bf93d6799ce93b2eba5db1e082c3ea6e295484049f4bf3fc",
+        "summary_sha256": "5d47b37eb6cc9174fc9fdd6bb2f513143e6cc89dbd0020899dc352ad4a7f4cf8",
+        "attempt_sha256": "2f595980f26b10c45fabf458ae80ba5f981166d9e3ce7708621859c3515025c9",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/probe-q-lr0.03",
+        "files": 6,
+        "bytes": 25657,
+        "manifest_sha256": "3d30fa8b259209498f97a19c5dfad79a9f58afc754b12a869a27435955a62da3",
+        "summary_sha256": "84024bace3fdd36d6ecb7cfdda57532e88349cafccf871fb040f5eaedb3ff609",
+        "attempt_sha256": "49af0615005d97e650eb5e698877952b522974db9a844c3a0c8a34d4df7841a9",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/stageb-pilot-1",
+        "files": 3,
+        "bytes": 1091,
+        "manifest_sha256": "a7c3676fa5eb20b869f84d343d7a0f7b255d1eb9d778ed51d0fb395c98f30d56",
+        "attempt_sha256": "c39dd13aa312fc26678d68c5f45b6164e75112903e263acad6f15c49a0fa5e4d",
+        "sealed": true,
+        "error": true
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/stageb-pilot-2",
+        "files": 5,
+        "bytes": 7234,
+        "manifest_sha256": "6da1a0eb31334e9b9906e521e0c44d50171a89dde42c462508ed1707d93bf276",
+        "summary_sha256": "1cbffb2225b0bf9ee52cebb54166702baf8fe73b5ccb80704a51ec93ada95e2e",
+        "attempt_sha256": "85663ab5fe08f70fdde457a75303332b416e860e558764bf94fd3bbdc04f9414",
+        "sealed": true,
+        "error": false
+      },
+      {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927/stageb-pilot-3",
+        "files": 5,
+        "bytes": 12518,
+        "manifest_sha256": "ea832d4d89bd7f8d5f51590cbca089e1c3b84bf7a0ebcaa02d116c58a35643c7",
+        "summary_sha256": "d2da0d5ddad09dd0833a0fc0efdeaab8cc457e255298d95887b4b8a7a3e389bf",
+        "attempt_sha256": "8ee16558cd8a3510c5e057a2b6fce82aea2f49d6ab3f522a1deda117d05ff877",
+        "sealed": true,
+        "error": false
+      }
+    ]
+  },
+  "storage_df_kib": [
+    [
+      "/dev/disk3s1",
+      "239362496",
+      "144256200",
+      "61807984",
+      "/System/Volumes/Data"
+    ],
+    [
+      "/dev/disk6s1",
+      "209715160",
+      "105582268",
+      "104001616",
+      "/Volumes/UOR-Workspace"
+    ]
+  ]
+}
