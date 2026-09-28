@@ -229,8 +229,8 @@ def format_summary(results, bundle_dir=None, checkpoint_dir=None, baseline_bin=N
         lines.append("=" * 80)
         return "\n".join(lines), {"provenance": provenance, "models": {}}
 
-    first_k_low = next(iter(results.values()))["k_low"] if results else 4096
-    first_k_high = next(iter(results.values()))["k_high"] if results else 16384
+    first_k_low = next(iter(results.values()))["k_low"] if results else 10240
+    first_k_high = next(iter(results.values()))["k_high"] if results else 32768
     first_delta_n = first_k_high - first_k_low
     lines.append(f"{'Model':<48} | {f'E({first_k_low}) Net J':<15} | {f'E({first_k_high}) Net J':<15} | {f'Marginal J/tok (ΔE/{first_delta_n})':<26}")
     lines.append("-" * 112)

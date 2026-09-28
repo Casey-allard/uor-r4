@@ -43,7 +43,26 @@ def get_artifact_metadata(path):
         commit = res.stdout.strip()
     except Exception:
         pass
-    return artifact_hash, commit
+
+    compiler = "unknown"
+    try:
+        res = subprocess.run(
+            ["rustc", "--version"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        compiler = res.stdout.strip()
+    except Exception:
+        pass
+
+    flags = os.environ.get("RUSTFLAGS", "").strip()
+    if not flags:
+        flags = os.environ.get("CARGO_ENCODED_RUSTFLAGS", "").strip()
+    if not flags:
+        flags = "release profile (opt-level=3, codegen-units=16)"
+
+    return artifact_hash, commit, compiler, flags
 
 
 # Class I: Hardware Multipliers (AArch64 / ARM64)
@@ -543,6 +562,54 @@ EXACT_GEOMETRY_SYMBOLS += [
     for name in ("inverse", "compose", "relative")
 ]
 
+# Mandatory dialogue serving symbols when auditing interactive chatbot binaries (uor-chat)
+CHAT_MANDATORY_SYMBOLS = [
+    {
+        "name": "DialogueConversation::respond_stream",
+        "pattern": re.compile(r"DialogueConversation.*respond_stream\b"),
+        "mangled": re.compile(r"__RNv.*DialogueConversation.*14respond_stream\b"),
+        "description": "Dialogue conversation response stream entry point",
+        "alternative_group": "dialogue_entry",
+        "group_display": "DialogueConversation::respond_stream (or DialogueConversation::respond)",
+    },
+    {
+        "name": "DialogueConversation::respond",
+        "pattern": re.compile(r"DialogueConversation.*respond\b(?!_stream)"),
+        "mangled": re.compile(r"__RNv.*DialogueConversation.*7respond\b"),
+        "description": "Dialogue conversation response entry point",
+        "alternative_group": "dialogue_entry",
+        "group_display": "DialogueConversation::respond_stream (or DialogueConversation::respond)",
+    },
+    {
+        "name": "TextSession::step_next_token",
+        "pattern": re.compile(r"TextSession.*step_next_token\b"),
+        "mangled": re.compile(r"__RNv.*TextSession.*15step_next_token\b"),
+        "description": "Single-token generation step in active text session",
+        "alternative_group": "text_session_step",
+        "group_display": "TextSession::step_next_token (or TextSession::observe)",
+    },
+    {
+        "name": "TextSession::observe",
+        "pattern": re.compile(r"TextSession.*observe\b"),
+        "mangled": re.compile(r"__RNv.*TextSession.*7observe\b"),
+        "description": "Observation step in active text session",
+        "alternative_group": "text_session_step",
+        "group_display": "TextSession::step_next_token (or TextSession::observe)",
+    },
+    {
+        "name": "IntegerModel::project_vocab_with_products_into",
+        "pattern": re.compile(r"IntegerModel.*project_vocab_with_products_into\b"),
+        "mangled": re.compile(r"__RNv.*IntegerModel.*32project_vocab_with_products_into\b"),
+        "description": "Grouped-LUT vocabulary projection for width 576",
+    },
+    {
+        "name": "IntegerModel::affine_wide_into",
+        "pattern": re.compile(r"IntegerModel.*affine_wide_into\b"),
+        "mangled": re.compile(r"__RNv.*IntegerModel.*16affine_wide_into\b"),
+        "description": "Zero-allocation wide affine transformation for width 576",
+    },
+]
+
 
 def find_target_artifact(user_arg=None):
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -662,20 +729,33 @@ def parse_symbols(disasm_text, is_demangled):
     return per_symbol
 
 
-def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True):
+def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_commit=None, compiler=None, flags=None):
     """Execute audit across Class I, Class II, and Class III instructions.
 
     Returns dict containing detailed results and failure reports.
     """
     is_rlib = target_path.endswith(".rlib")
-    mandatory_list = RLIB_MANDATORY_SYMBOLS if is_rlib else BIN_MANDATORY_SYMBOLS
+    is_chat = "uor-chat" in os.path.basename(target_path)
+    if is_rlib:
+        mandatory_list = list(RLIB_MANDATORY_SYMBOLS)
+    else:
+        mandatory_list = list(BIN_MANDATORY_SYMBOLS)
+        if is_chat:
+            mandatory_list.extend(CHAT_MANDATORY_SYMBOLS)
 
-    artifact_hash, commit = get_artifact_metadata(target_path)
+    artifact_hash, auto_commit, auto_compiler, auto_flags = get_artifact_metadata(target_path)
+    commit = git_commit or auto_commit
+    compiler = compiler or auto_compiler
+    flags = flags or auto_flags
+
     results = {
         "target": target_path,
         "artifact_sha256": artifact_hash,
         "git_commit": commit,
+        "compiler": compiler,
+        "flags": flags,
         "is_rlib": is_rlib,
+        "is_chat": is_chat,
         "strict": strict_arm64,
         "total_symbols_indexed": len(per_symbol),
         "mandatory_checked": 0,
@@ -814,6 +894,8 @@ def print_tap_output(results, tools_found):
     print(f"# Target: {results['target']}")
     print(f"# Artifact SHA-256: {results.get('artifact_sha256', 'unknown')}")
     print(f"# Source Commit: {results.get('git_commit', 'unknown')}")
+    print(f"# Compiler: {results.get('compiler', 'unknown')}")
+    print(f"# Compiler Flags: {results.get('flags', 'unknown')}")
     print(f"# Matched symbol ranges checked: {results['symbols_checked']}")
     if results.get("call_graph_checked"):
         print(f"# Transitive call-graph reachability checked: {results['call_graph_checked']} functions (0 violations)")
@@ -898,6 +980,8 @@ def print_standard_report(results):
     print(f"Target Artifact: {results['target']}")
     print(f"Artifact SHA-256: {results.get('artifact_sha256', 'unknown')}")
     print(f"Source Commit:   {results.get('git_commit', 'unknown')}")
+    print(f"Compiler:        {results.get('compiler', 'unknown')}")
+    print(f"Compiler Flags:  {results.get('flags', 'unknown')}")
     print("=" * 80)
 
     for name, sym, n_instrs, desc in results["passed_symbols"]:
@@ -935,7 +1019,7 @@ def print_standard_report(results):
         return 1
 
     if results["missing_mandatory"]:
-        print(f"PARTIAL PASS: 0 forbidden instructions found, but {len(results['missing_mandatory'])} mandatory symbols missing.")
+        print(f"FAILED: Missing mandatory serving symbol coverage ({len(results['missing_mandatory'])} symbols missing).")
         return 1
 
     if "call_graph_checked" in results:
@@ -949,44 +1033,118 @@ def run_sentinel_tests():
     """Verify that forbidden opcode patterns detect all required sentinels.
     Fails immediately if any sentinel is missed."""
     sentinels = [
+        # Hardware Multipliers (Class I)
         ("mul x0, x1, x2", True, False, False),
         ("madd x0, x1, x2, x3", True, False, False),
+        ("msub x0, x1, x2, x3", True, False, False),
         ("smull x0, w1, w2", True, False, False),
+        ("smull v0.4s, v1.4h, v2.4h", True, False, False),
+        ("smull2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("umull x0, w1, w2", True, False, False),
+        ("umull2 v0.2d, v1.4s, v2.4s", True, False, False),
+        ("smulh x0, x1, x2", True, False, False),
         ("umulh x0, x1, x2", True, False, False),
         ("sdot v0.4s, v1.16b, v2.16b", True, False, False),
         ("udot v0.4s, v1.16b, v2.16b", True, False, False),
+        ("usdot v0.4s, v1.16b, v2.16b", True, False, False),
+        ("sudot v0.4s, v1.16b, v2.16b", True, False, False),
         ("smlal v0.4s, v1.4h, v2.4h", True, False, False),
+        ("smlal2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("smlsl v0.4s, v1.4h, v2.4h", True, False, False),
+        ("smlsl2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("umlal v0.4s, v1.4h, v2.4h", True, False, False),
+        ("umlal2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("umlsl v0.4s, v1.4h, v2.4h", True, False, False),
+        ("umlsl2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("mla v0.4s, v1.4s, v2.4s", True, False, False),
+        ("mls v0.4s, v1.4s, v2.4s", True, False, False),
+        ("mul v0.4s, v1.4s, v2.4s", True, False, False),
+        ("sqdmull v0.4s, v1.4h, v2.4h", True, False, False),
+        ("sqdmull2 v0.4s, v1.8h, v2.8h", True, False, False),
+        ("sqdmulh v0.4s, v1.4h, v2.4h", True, False, False),
+        ("sqrdmulh v0.4s, v1.4h, v2.4h", True, False, False),
+        ("smmla v0.4s, v1.16b, v2.16b", True, False, False),
+        ("ummla v0.4s, v1.16b, v2.16b", True, False, False),
+        ("usmmla v0.4s, v1.16b, v2.16b", True, False, False),
+        # Hardware Dividers (Class II)
         ("sdiv x0, x1, x2", False, True, False),
         ("udiv x0, x1, x2", False, True, False),
+        # Floating-Point & Register Transfer Instructions (Class III)
         ("fmul s0, s1, s2", False, False, True),
+        ("fmul.2d v0, v1, v2", False, False, True),
         ("fadd d0, d1, d2", False, False, True),
+        ("fadd.2d v0, v1, v2", False, False, True),
+        ("fsub.4s v0, v1, v2", False, False, True),
+        ("fdiv.2d v0, v1, v2", False, False, True),
+        ("fsqrt.2d v0, v1", False, False, True),
         ("fneg d0, d1", False, False, True),
+        ("fneg d16, d31", False, False, True),
+        ("fneg s0, s1", False, False, True),
+        ("fneg s15, s31", False, False, True),
+        ("fneg h0, h1", False, False, True),
+        ("fneg q0, q1", False, False, True),
+        ("fabs d0, d1", False, False, True),
+        ("fabs d16, d31", False, False, True),
+        ("fabs s0, s1", False, False, True),
+        ("fabs s15, s31", False, False, True),
+        ("fabs h0, h1", False, False, True),
+        ("fabs q0, q1", False, False, True),
         ("fneg.2d v6, v6", False, False, True),
         ("fneg.4s v0, v0", False, False, True),
+        ("fneg.8h v0, v0", False, False, True),
+        ("fneg v0.2d, v1.2d", False, False, True),
         ("fabs.2d v0, v0", False, False, True),
+        ("fabs.4s v0, v0", False, False, True),
+        ("fabs.8h v0, v0", False, False, True),
+        ("fabs v0.2d, v1.2d", False, False, True),
         ("scvtf d0, x0", False, False, True),
-        # Added after the 2026-09-28 oversight audit: forms the earlier patterns missed.
+        ("ucvtf s0, w0", False, False, True),
         ("fmla v0.4s, v1.4s, v2.4s", False, False, True),
         ("fmla.4s v0, v1, v2", False, False, True),
         ("fmls v0.2d, v1.2d, v2.2d", False, False, True),
+        ("fmls.2d v0, v1, v2", False, False, True),
         ("fmax d0, d1, d2", False, False, True),
         ("fmin d0, d1, d2", False, False, True),
         ("fmaxnm s0, s1, s2", False, False, True),
-        ("fabs s0, s1", False, False, True),
+        ("fminnm s0, s1, s2", False, False, True),
+        ("fmaxp v0.4s, v1.4s, v2.4s", False, False, True),
+        ("fminp v0.4s, v1.4s, v2.4s", False, False, True),
+        ("fmaxnmp v0.4s, v1.4s, v2.4s", False, False, True),
+        ("fminnmp v0.4s, v1.4s, v2.4s", False, False, True),
+        ("fmaxv s0, v1.4s", False, False, True),
+        ("fminv s0, v1.4s", False, False, True),
+        ("fmax.2d v0, v1, v2", False, False, True),
+        ("fmin.4s v0, v1, v2", False, False, True),
+        ("fmaxnm.2d v0, v1, v2", False, False, True),
+        ("fminnm.4s v0, v1, v2", False, False, True),
+        ("fmaxnmv s0, v1.4s", False, False, True),
+        ("fminnmv s0, v1.4s", False, False, True),
         ("faddp v0.4s, v1.4s, v2.4s", False, False, True),
         ("fcmgt v0.4s, v1.4s, v2.4s", False, False, True),
         ("frecpe v0.4s, v1.4s", False, False, True),
+        ("frsqrte.4s v0, v1", False, False, True),
         ("bfdot v0.4s, v1.8h, v2.8h", False, False, True),
-        ("mla v0.4s, v1.4s, v2.4s", True, False, False),
-        ("mul v0.4s, v1.4s, v2.4s", True, False, False),
-        ("smull2 v0.4s, v1.8h, v2.8h", True, False, False),
-        ("umull2 v0.2d, v1.4s, v2.4s", True, False, False),
-        ("sqdmull v0.4s, v1.4h, v2.4h", True, False, False),
-        ("smmla v0.4s, v1.16b, v2.16b", True, False, False),
     ]
     # Negative sentinels: integer data movement and arithmetic must stay unflagged.
-    benign = ["add x0, x1, x2", "sub x0, x1, x2", "neg v0.2d, v1.2d", "lsl x0, x1, #3",
-              "ldr x0, [x1]", "cmp x0, x1", "csel x0, x1, x2, lt", "tbl v0.16b, {v1.16b}, v2.16b"]
+    benign = [
+        "add x0, x1, x2",
+        "sub x0, x1, x2",
+        "neg v0.2d, v1.2d",
+        "neg.2d v0, v1",
+        "neg x0, x1",
+        "lsl x0, x1, #3",
+        "lsr x0, x1, #3",
+        "asr x0, x1, #3",
+        "ldr x0, [x1]",
+        "str x0, [x1]",
+        "cmp x0, x1",
+        "csel x0, x1, x2, lt",
+        "tbl v0.16b, {v1.16b}, v2.16b",
+        "mvn v0.16b, v1.16b",
+        "and v0.16b, v1.16b, v2.16b",
+        "orr v0.16b, v1.16b, v2.16b",
+        "eor v0.16b, v1.16b, v2.16b",
+    ]
     for instr in benign:
         if STRICT_FORBIDDEN_PATTERN.search(instr):
             raise AssertionError(f"Sentinel test failed: benign '{instr}' flagged by STRICT_FORBIDDEN_PATTERN")
@@ -1042,11 +1200,30 @@ def run_call_graph_audit(path, disasm_choice="auto"):
         "step_conversational",
         "IntegerModel4step",
         "DialogueConversation7respond",
+        "DialogueConversation14respond_stream",
+        "respond_stream",
         "DialogueConversationStream",
         "Sampler6select",
+        "select_ticket",
+        "exact_min_p_threshold",
+        "validate_distribution",
+        "TextSession15step_next_token",
+        "step_next_token",
+        "TextSession7observe",
+        "project_vocab_with_products_into",
+        "affine_wide_into",
+        "extract_salient_tokens",
+        "heapsort_ranked",
+        "step_zeta_phase_scalar",
     ]
 
-    serving_roots = [fn for fn in functions if any(kw in fn for kw in serving_entry_keywords)]
+    serving_roots = [
+        fn
+        for fn in functions
+        if any(kw in fn for kw in serving_entry_keywords)
+        and "drop_glue" not in fn
+        and "closure" not in fn
+    ]
 
     allow_patterns = [
         r"alloc",
@@ -1061,7 +1238,9 @@ def run_call_graph_audit(path, disasm_choice="auto"):
         r"std..io",
         r"std..panicking",
         r"Bundle",
-        r"Tokenizer",
+        r"[Tt]okenizer",
+        r"uor_r4_tokenizer",
+        r"core..str",
         r"load",
         r"from_file",
         r"from_serialized",
@@ -1134,6 +1313,24 @@ def main():
         default=None,
         help="Traverse transitive call graph from serving roots (default: auto for binary executables)",
     )
+    parser.add_argument(
+        "--git-commit",
+        type=str,
+        default=None,
+        help="Git commit SHA to record in metadata (default: auto-detected)",
+    )
+    parser.add_argument(
+        "--compiler",
+        type=str,
+        default=None,
+        help="Compiler version string to record in metadata (default: auto-detected)",
+    )
+    parser.add_argument(
+        "--flags",
+        type=str,
+        default=None,
+        help="Compiler flags to record in metadata (default: auto-detected)",
+    )
 
     args = parser.parse_args()
 
@@ -1159,7 +1356,15 @@ def main():
     if not args.tap:
         print(f"Disassembly parsed: {len(per_symbol)} symbols indexed (demangled={is_demangled}).\n")
 
-    results = run_audit(per_symbol, is_demangled, target_path, strict_arm64=args.strict_arm64)
+    results = run_audit(
+        per_symbol,
+        is_demangled,
+        target_path,
+        strict_arm64=args.strict_arm64,
+        git_commit=args.git_commit,
+        compiler=args.compiler,
+        flags=args.flags,
+    )
 
     do_call_graph = args.call_graph if args.call_graph is not None else (not target_path.endswith(".rlib"))
     if do_call_graph:

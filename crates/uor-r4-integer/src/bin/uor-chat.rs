@@ -891,8 +891,22 @@ fn main() {
                 // Context capacity guard and auto-capping
                 let context_cap = bundle.model().config().context;
                 let active_len = conversation.len();
-                let user_prefix_tokens = bundle.tokenizer().encode(trimmed).len() + 3;
-                let prompt_total = active_len + user_prefix_tokens;
+                let has_history =
+                    conversation.previous_stop().is_some() || conversation.initial_has_history();
+                let prefix_tokens = match protocol.bind(bundle.tokenizer()) {
+                    Ok(bound) => bound.encode_user_prefix(trimmed, has_history).tokens.len(),
+                    Err(_) => bundle.tokenizer().encode(trimmed).len() + 3,
+                };
+                let initial_unobserved = if conversation.session().is_none() {
+                    conversation.initial_tokens().len()
+                } else {
+                    0
+                };
+                let caller_eos = match conversation.previous_stop() {
+                    Some(stop) if stop != Stop::Eos => 1,
+                    _ => 0,
+                };
+                let prompt_total = active_len + initial_unobserved + caller_eos + prefix_tokens;
                 if prompt_total >= context_cap {
                     eprintln!(
                         "{ANSI_RED_BOLD}[error]{ANSI_RESET} Context capacity reached ({} / {} tokens). Use /reset to clear history.",
@@ -943,7 +957,7 @@ fn main() {
                                 eprintln!(
                                     "{ANSI_RED_BOLD}[error]{ANSI_RESET} Generation failed: {error}"
                                 );
-                                process::exit(1);
+                                continue;
                             }
                         };
                         turn_count += 1;

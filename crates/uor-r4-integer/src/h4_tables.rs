@@ -19,9 +19,10 @@ pub const MAPPING_OFFSET: usize = INVERSE_OFFSET + ROOT_COUNT;
 pub const IDENTITY_OFFSET: usize = MAPPING_OFFSET + ROOT_COUNT;
 pub const PAYLOAD_BYTES: usize = IDENTITY_OFFSET + 1;
 
-/// Pending one-off generation with `export-h4-tables`. `None` admits no table.
+/// Pinned one-off generation with `export-h4-tables`.
 /// Pin only the exact compiler's `mathematical_sha256`, never a caller digest.
-pub const TRUSTED_MATHEMATICAL_SHA256: Option<&str> = None;
+pub const TRUSTED_MATHEMATICAL_SHA256: Option<&str> =
+    Some("70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968");
 
 /// Fixed framing followed by 960 coefficient bytes and exactly 15,601 payload
 /// bytes. Coefficients are root/coordinate/[a,b] order, signed i8 two's-complement
