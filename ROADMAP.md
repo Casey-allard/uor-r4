@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — multi-lab roadmap
 
-**Director:** Claude, Lab 1 window. **Updated:** 2026-09-28 01:47 UTC. This file owns lab
+**Director:** Claude, Lab 1 window. **Updated:** 2026-09-28 02:02 UTC. This file owns lab
 assignments, track status, the dead-path register and the cross-lab protocol. Measured
 results and retained artifacts live in [current state](docs/integration/current-state.md).
 Ordered responsibilities and acceptance live in the [canonical plan](docs/integration/project-track.md).
@@ -67,7 +67,7 @@ three-lab brief does not assign it work.
 
 | Track | Owner | Goal | Current hypothesis | Status | Next decision point |
 |---|---|---|---|---|---|
-| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) Full-exposure run in the cloud sandbox, ETA ≈07:00 UTC 09-28. (b) **Done:** Stage A PASS; Stage B **PASS for reflection-pair lanes** (#1442). Quaternion lanes FAIL on reliability. (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). | §4.1 |
+| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) Full-exposure run in the cloud sandbox, ETA ≈07:00 UTC 09-28. (b) Stage A PASS. Stage B: the **pre-registered 2I arm FAILS**, the transformer control is NOT_RUN, and reflection-pair lanes pass as an exploratory arm (#1442). Stage C (natural-text swap stories) is in progress (#1447). (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). | §4.1 |
 | **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | Never run (D5 names it; nobody has run it). | §4.2 |
 | **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)). No J/token has been measured in the repository. | §4.3 |
 | **T4 Native dialogue and conversion fidelity** | Lab 4 Codex | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | [#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433) at 231 of 512 updates. | §4.4 |
@@ -178,12 +178,15 @@ Each lab keeps its own subsection current: hypothesis, status, next decision and
   - Non-commutative lanes track A5 exactly to length 4,096 after snapping in 17 of 18 runs: quaternion 8/9, reflection pair 9/9. Phase and frozen lanes stay at chance.
   - Quaternion lanes land on 2I; reflection pairs land on the icosahedral rotation group of R³. Both minimise to the same 60-state automaton.
   - **The quaternion-specific serving claim is retired** by the kill rule below. The finite-group state claim survives at Stage A scope.
-- **Stage B (01:41 UTC 09-28): PASS for reflection-pair lanes.** The host is the recurrence-primary stack `rrar` (1.39M parameters, 1,500 updates on the #1017 token store plus A5 words, 3 seeds). The gates were pre-committed per seed.
-  - **Reflection pair:** text ΔNLL against the lane-free stack is +0.036, −0.050 and +0.009 (mean −0.002). A5 is 1.000 at position 128 in 3/3 seeds, and every lane snaps to an exact 60-state automaton that is perfect at 4,096.
-  - **Quaternion: FAIL.** Seed 3 did not learn A5 (0.039) and cost +0.121 nats.
-  - **Phase: FAIL,** at chance, costing +0.05 to +0.09 nats.
-  - **Lane-free stack:** 0.008–0.160 at position 128.
-  - **Result:** exact finite-group state coexists with text modelling at no measurable text cost. The parameterisation to use is the reflection pair.
+- **Stage B (01:41 UTC 09-28; corrected after an independent review of #1442).** The host is the recurrence-primary stack `rrar` (1.39M parameters, 1,500 updates on the #1017 token store plus A5 words, 3 seeds). The gates were pre-committed per seed.
+  - **Pre-registered subject, quaternion (2I) lanes: FAIL.** Seed 3 did not learn A5 (0.039) and cost +0.121 nats.
+  - **Pre-registered transformer control: NOT_RUN.** It will run beside Stage C.
+  - **Reflection pair, added after Stage A: exploratory pass.** Text ΔNLL is +0.036, −0.050 and +0.009 (mean −0.002). A5 is 1.000 at position 128 in 3/3 seeds, and 3–4 of 8 lanes per seed snap to an exact 60-state automaton that is perfect at 4,096.
+  - **Phase: FAIL,** at chance, costing +0.05 to +0.09 nats. **Lane-free stack:** 0.008–0.160 at position 128.
+  - **The kill rule applies as written** (review §9.3):
+    - keep the better ordinary lanes (reflection pairs, exploratory pending a fresh pre-registered replication);
+    - **retire the 2I geometric-state claim from the serving path;**
+    - keep geometry as codebook and addressing infrastructure (T2).
   - **Scope:** synthetic A5 only. State tracking in natural language is untested and is the next question.
   - **Serving:** the automaton (one byte of state, two table reads) is not yet wired into `uor-r4-integer`; that is part of the T3 port.
 
@@ -301,7 +304,7 @@ Each negative keeps its exact scope; a failed parameterisation does not retire a
 | `uor-r4-lut`/`lut-chat` with hardware multiplies on runtime values | **FROZEN comparator (R2)** | Integer stack gap 0.011–0.013 nats, measured under D10 only | [cycle 4 §8](docs/integration/geometric-stack-cycle4-2026-09-27.md) |
 | 2I relation lookup table for the parked read (`inverse(q)*k`) | **PARKED** | Its consumer, #1438, is parked | Ruling 3 |
 | Quaternion (2I) lanes as a serving advantage over ordinary non-commutative lanes | **RETIRED** (B1 kill rule) | A5 at length 4,096 after snapping: quaternion 8/9, reflection pair 9/9. Both minimise to a 60-state A5 automaton. The finite-group state mechanism itself survives. | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
-| Quaternion lanes as the tracking-lane parameterisation | **PARKED** | Stage B inside the stack: 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. Reflection pairs passed 3 of 3. | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
+| Quaternion (2I) tracking lanes: the pre-registered B1 Stage B subject | **FAILED; 2I serving claim RETIRED** (kill rule) | Inside the stack, 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. The ordinary reflection-pair lanes are kept as an exploratory result (3 of 3). | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
 
 ## 6. Shared machine protocol
 
@@ -424,7 +427,13 @@ savings all remain unqualified.
   - The reads-only `aaaaaa` stack is a transformer comparator, not a main-line candidate (ruling 8).
 - **The single decisive experiment still missing programme-wide** is D5's addressing contest. It is assigned to Lab 2 as T2.
 
-**2026-09-28 01:47 UTC, B1 complete and the owner decisions carried out.**
+**2026-09-28 02:02 UTC, correction.**
+- An independent review of #1442 found the 01:47 entry and T1(b) text overstated Stage B.
+- As pre-registered, the 2I arm fails and the transformer control is NOT_RUN. The reflection-pair pass is exploratory.
+- The kill rule is applied as written: the 2I serving claim is retired and the ordinary lanes are kept.
+- The earlier "B1 complete" and "quaternion-specific" wording is withdrawn. The measured numbers stand.
+
+**2026-09-28 01:47 UTC, B1 complete and the owner decisions carried out** (superseded in part by the correction above).
 - **B1.**
   - Stage B passes for reflection-pair finite-group lanes; quaternion lanes are parked on reliability (T1(b)).
   - A Stage A rerun on the committed code reproduced exactly.
