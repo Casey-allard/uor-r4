@@ -331,7 +331,17 @@ index does?
 - captured attention mass;
 - greedy decision equivalence;
 - NLL change when the read is restricted to the admitted set;
-- decode operations per query.
+- decode operations per query, with **inspected** events (every previous event is scored from
+  its codes: 128 candidates on average, 255 at most) and **retained** events (s values read)
+  reported separately; this configuration makes no sparse-index cost claim.
+
+**Status (2026-09-28, Lab 2).** Contest executed (draft PR #1456). Frozen gate **NOT
+QUALIFIED**: within 0.005 nats of the best ordinary arm but 1.17 pt recall behind it on the
+full comparison tail at s=16, and the decode is not cheaper. The geometric-versus-ordinary
+contrast is confounded by magnitude (H4/E8 decode to unit-norm roots, k-means to raw
+centroids; no gain channel in any arm), so the decision moves to a gain-controlled
+follow-up. Next: **D6** (evaluation-only information audit, synthesis §4) then **D3**'s
+gain-controlled follow-up, which must show **fewer inspected events**.
 
 **Populations:**
 - natural development text;

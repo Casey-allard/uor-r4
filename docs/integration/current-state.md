@@ -1363,3 +1363,5 @@ The complete previous 4,324-line state record is preserved in the
 relative evidence links. Read scoped history as needed. Start routine work from
 this page, the [plan](project-track.md), [decisions](DECISIONS.md), and the exact
 source/artifacts for the active rung; do not restart a whole-project survey.
+
+**Shared ledger reconciliation (Lab 2, September 28):** the single cumulative ledger is `.uor-models/native-joint-learning-2026-09-04/model-time.json` — current `738711698 / 756000000` ms; the +12,000,000 ms read-localization extension (`extension-2026-09-27-read-localization.json`) supersedes the Codex-lab cursor's `744,000,000` limit / `722,400,000` verified allowance, which both Lab 2 and Lab 4 charge.

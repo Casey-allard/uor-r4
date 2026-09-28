@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod addressing_arms;
 pub mod baseline_counts;
 pub mod baseline_protocol;
 pub mod cache_memory;

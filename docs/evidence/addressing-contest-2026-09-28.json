@@ -1,0 +1,117 @@
+{
+ "schema": "uor-r4.addressing-contest-evidence/1",
+ "recorded_utc": "2026-09-28T05:10:00Z",
+ "design": "docs/integration/addressing-contest-plan-2026-09-27.md",
+ "result": "docs/integration/addressing-contest-result-2026-09-28.md",
+ "source": {
+  "commit": "b0f70c63",
+  "branch": "lab/opencode/addressing-contest",
+  "executable_sha256": "d816420572baf531268b4f57fbff114b6de661b4d83d5f31d545124d0d2ecece",
+  "module": "crates/uor-r4-training/src/addressing_arms.rs",
+  "harness": "crates/uor-r4-training/examples/joint-addressing-contest.rs",
+  "restricted_cli": "joint-evaluate-addressing (in-crate, reuses evaluate_loaded)"
+ },
+ "parent": {
+  "path": "fit-quaternion-6/checkpoint-final",
+  "step": 15672,
+  "model_sha256": "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79",
+  "campaign_sha256": "6b34a04d49fa965dc20335002a1948a8253ef74e70890ba1e9484f63d2677f14",
+  "config": {
+   "context": 256,
+   "read_width": 64,
+   "vocab_size": 4096,
+   "width": 256,
+   "transport": "quaternion"
+  }
+ },
+ "report_roots": {
+  "one_pass": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-addressing-contest/full-2",
+  "restricted": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-addressing-contest/restricted-r2-*"
+ },
+ "outcome_a": {
+  "s16_comparison_tail": {
+   "full_read_nll": 1.99649,
+   "full_correct": 122864,
+   "oracle_qk": {
+    "recall_top1": 0.993,
+    "read_nll": 2.003056,
+    "dnll": 0.006566
+   },
+   "kmeans120_best_ordinary": {
+    "recall_top1": 0.9813,
+    "recall_top3": 0.9541,
+    "captured_mass": 0.8796,
+    "read_nll": 2.003692,
+    "dnll": 0.007201,
+    "correct": 122487
+   },
+   "h4_rht": {
+    "recall_top1": 0.9696,
+    "recall_top3": 0.9376,
+    "captured_mass": 0.8709,
+    "read_nll": 2.005804,
+    "dnll": 0.009313,
+    "correct": 122498
+   },
+   "e8_rht": {
+    "recall_top1": 0.945,
+    "read_nll": 2.008573,
+    "dnll": 0.012083,
+    "correct": 122408
+   },
+   "sign4_rht": {
+    "recall_top1": 0.8977,
+    "read_nll": 2.014547,
+    "dnll": 0.018056,
+    "correct": 122247
+   },
+   "recent16": {
+    "recall_top1": 0.4452,
+    "read_nll": 2.291023,
+    "dnll": 0.294533,
+    "correct": 113991
+   }
+  },
+  "long_range_s16": {
+   "h4_rht_recall_top1": 0.988,
+   "kmeans120_recall_top1": 0.994,
+   "positions": 75799
+  }
+ },
+ "outcome_b": {
+  "condition_a_5_rows": "entity dense_qk_rank = 1, dense_rank 2-3, dense_mass 0.130-0.272; admitted top-16 by h4/h4-rht/e8/e8-rht/sign4/sign4-rht/k-means, NOT by recent-s",
+  "oracle_rerank": {
+   "baseline": "0/5",
+   "S_swap_entity_distractor": "5/5",
+   "C_matched_control": "0/5",
+   "O_entity_only": "5/5"
+  },
+  "reading": "ranking evidence for the five exposed rows, not entity absence and not a learned general ranking repair"
+ },
+ "gate_outcome": {
+  "rule": "within 1 point recall@s AND 0.005 nats of the best ordinary arm at the same s, with a cheaper multiplier-free decode",
+  "nats_s16": "h4-rht - kmeans120 = +0.002112 (inside 0.005)",
+  "recall_s16": "h4-rht - kmeans120 = -0.0117 (outside 1 point on the full tail; inside on the >=32-token slice, 0.6 pt)",
+  "decode": "h4 and kmeans120 identical arithmetic (7936 reads, 6016 adds, 14 B/event) -> not cheaper",
+  "result": "NOT QUALIFIED - retire this index configuration for serving",
+  "magnitude_confound": "H4/E8 decode to unit-norm roots and k-means to raw centroids; no gain channel in any arm; the geometric-versus-ordinary contrast is confounded by magnitude; D3's decision moves to the gain-controlled follow-up (ruling 11)"
+ },
+ "cost": {
+  "model_compute_seconds": {
+   "tune": 2.7,
+   "comparison_full_pass": 43.8
+  },
+  "harness_seconds": {
+   "kmeans_fit": 16.5,
+   "arm_scoring": 88.8
+  },
+  "restricted_reads": "per-root attempt.json (small)",
+  "dense_remaining": "read/state/value projections and the 4096-vocab head remain per-token dense; every previous event is scored from its codes (compressed exhaustive scan: 128 candidates average, 255 max); only retained events' values are read (s); inspected and retained events reported separately; no sparse-index cost claimed; not D5 completion"
+ },
+ "coordination": {
+  "i4_interface": "AddressingArm::encode -> Codes, query_lut/score (PQ-ADC), admit and rank measured separately; multiplier-free (multiplies=0)",
+  "h4_classifier_owner": "#1435 (Codex exact signed H4 integer classifier) - reuse for serving decode; do not revive the parked finite-H4 read score",
+  "handoff_to": "T3 Anti-Gravity"
+ },
+ "blocking_question": "learnable relational ranking, not admission"
+}

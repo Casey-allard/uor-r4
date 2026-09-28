@@ -21,10 +21,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use crate::joint_admission::{AdmissionIndex, AdmissionPolicy, AdmissionWork};
+use crate::joint_admission::{AdmissionIndex, AdmissionPolicy, AdmissionWork, CONTEST_BUDGET};
 use crate::joint_quantization::{self, QuantizationSpec};
 use crate::{invalid, Result};
 
+use crate::addressing_arms::AddressingArm;
 use crate::geometric_read::{GeometricReadConfig, GeometricReadState};
 pub use uor_r4_integer::config::{ReadGeometry, LORENTZ_LOG_BETA, LORENTZ_OFFSET};
 
@@ -173,6 +174,11 @@ pub struct JointModel {
     interface_audit: Option<Arc<Mutex<BTreeMap<String, InterfaceAudit>>>>,
     admission: AdmissionPolicy,
     admission_audit: Option<Arc<Mutex<Value>>>,
+    // Optional in-memory PQ-ADC codebook for `AdmissionPolicy::Addressed`. It is
+    // an evaluation-only intervention and never a checkpoint or default field;
+    // `None` with the retained policies preserves every existing path exactly.
+    addressed_codebook: Option<Arc<AddressingArm>>,
+    addressed_budget: usize,
     // Optional finite geometric read kernel. `None` preserves every existing
     // parameter set, graph path and numerical contract exactly.
     geometric_read: Option<GeometricReadState>,
@@ -349,6 +355,15 @@ pub struct JointStep {
     pub read_masses: Tensor,
     pub copy_gate: Tensor,
     pub state: Tensor,
+    /// Query vector used for this step's read, `[batch, read_width]`. Zeros when
+    /// the step computed no read query (`NoRead` or `previous == 0`).
+    pub read_query: Tensor,
+    /// Dense key history this read scored against, `[batch, previous,
+    /// read_width]`. `None` when the read did not use dense history (`NoRead`,
+    /// `previous == 0`, or a non-`Full` admission policy).
+    pub read_keys: Option<Tensor>,
+    /// Key written at this step for the next read, `[batch, read_width]`.
+    pub written_key: Tensor,
     /// Column identities for the first lane; use the per-lane mapping for batches.
     pub read_occurrences: Vec<usize>,
     pub read_occurrences_by_lane: Vec<Vec<usize>>,
@@ -361,6 +376,9 @@ struct CoreStep {
     no_read_mass: Tensor,
     read_masses: Tensor,
     copy_gate: Tensor,
+    read_query: Tensor,
+    read_keys: Option<Tensor>,
+    written_key: Tensor,
 }
 
 impl JointModel {
@@ -543,6 +561,8 @@ impl JointModel {
             interface_audit: None,
             admission: AdmissionPolicy::Full,
             admission_audit: None,
+            addressed_codebook: None,
+            addressed_budget: 0,
             geometric_read: None,
         })
     }
@@ -557,6 +577,11 @@ impl JointModel {
         }
         if self.prepared_parameters.is_some() {
             return Err(invalid("admission cannot change inside a prepared graph"));
+        }
+        if policy == AdmissionPolicy::Addressed && self.addressed_codebook.is_none() {
+            return Err(invalid(
+                "Addressed admission requires a configured in-memory codebook",
+            ));
         }
         self.admission = policy;
         Ok(())
@@ -574,6 +599,29 @@ impl JointModel {
 
     pub fn read_intervention(&self) -> Option<ReadMassIntervention> {
         self.read_intervention
+    }
+
+    /// Configure the in-memory PQ-ADC codebook for `AdmissionPolicy::Addressed`.
+    ///
+    /// This is an evaluation-only intervention: it changes the admitted set, not
+    /// any parameter, and no serving default reads it.
+    pub fn set_addressed_codebook(&mut self, arm: Arc<AddressingArm>, budget: usize) -> Result<()> {
+        if self.prepared_parameters.is_some() {
+            return Err(invalid("admission cannot change inside a prepared graph"));
+        }
+        if budget == 0 || budget > crate::joint_admission::MAX_CANDIDATES {
+            return Err(invalid("addressed budget must be 1..=64"));
+        }
+        self.addressed_codebook = Some(arm);
+        self.addressed_budget = budget;
+        Ok(())
+    }
+
+    /// The configured in-memory codebook and its budget, for reporting.
+    pub fn addressed_codebook(&self) -> Option<(Arc<AddressingArm>, usize)> {
+        self.addressed_codebook
+            .clone()
+            .map(|arm| (arm, self.addressed_budget))
     }
 
     /// New offline optimizer starts from the actual packed code values. Parent
@@ -958,6 +1006,8 @@ impl JointModel {
         model.interface_audit = self.interface_audit.clone();
         model.admission = self.admission;
         model.admission_audit = self.admission_audit.clone();
+        model.addressed_codebook = self.addressed_codebook.clone();
+        model.addressed_budget = self.addressed_budget;
         model.geometric_read = self.geometric_read.clone();
         Ok(model)
     }
@@ -1136,18 +1186,57 @@ impl JointModel {
         if batch == 0 || batch > 64 {
             return Err(invalid("joint batch must be 1..64"));
         }
+        let mut indexes = Vec::with_capacity(batch);
+        for _ in 0..batch {
+            indexes.push(self.configured_admission_index()?);
+        }
         Ok(RecurrentState {
             state: Tensor::zeros((batch, self.config.width), DType::F32, &self.device)?,
             keys: None,
             values: None,
             events: Vec::new(),
-            indexes: (0..batch).map(|_| AdmissionIndex::new()).collect(),
+            indexes,
             key_events: Vec::new(),
             value_events: Vec::new(),
             dense_batch_history: false,
             kernel_key_codes: None,
             kernel_key_coords: None,
         })
+    }
+
+    /// Build one lane's admission index for the active policy. Every retained
+    /// policy returns a default index, so its storage and query path are
+    /// unchanged; only a contest codebook/oracle policy adds side storage.
+    fn configured_admission_index(&self) -> Result<AdmissionIndex> {
+        let mut index = AdmissionIndex::new();
+        match self.admission {
+            AdmissionPolicy::H4Cells16 => {
+                index.configure_codebook(Arc::new(AddressingArm::contest_h4()), CONTEST_BUDGET)?
+            }
+            AdmissionPolicy::H4Cells16Rht => index
+                .configure_codebook(Arc::new(AddressingArm::contest_h4_rht()), CONTEST_BUDGET)?,
+            AdmissionPolicy::E8Roots16Rht => index
+                .configure_codebook(Arc::new(AddressingArm::contest_e8_rht()), CONTEST_BUDGET)?,
+            AdmissionPolicy::Sign4Rht => index
+                .configure_codebook(Arc::new(AddressingArm::contest_sign4_rht()), CONTEST_BUDGET)?,
+            AdmissionPolicy::Sign8Rht => index
+                .configure_codebook(Arc::new(AddressingArm::contest_sign8_rht()), CONTEST_BUDGET)?,
+            AdmissionPolicy::Addressed => {
+                let arm = self
+                    .addressed_codebook
+                    .clone()
+                    .ok_or_else(|| invalid("Addressed admission has no configured codebook"))?;
+                index.configure_codebook(arm, self.addressed_budget)?;
+            }
+            AdmissionPolicy::Oracle16 => index.configure_oracle(CONTEST_BUDGET)?,
+            AdmissionPolicy::Full
+            | AdmissionPolicy::Recent64
+            | AdmissionPolicy::Recent32
+            | AdmissionPolicy::Orthant64
+            | AdmissionPolicy::ExactCache64
+            | AdmissionPolicy::Recent16 => {}
+        }
+        Ok(index)
     }
 
     /// Batch-major observed input IDs. No target or source-label input exists.
@@ -1340,6 +1429,9 @@ impl JointModel {
             read_masses: core.read_masses,
             copy_gate: core.copy_gate.squeeze(1)?,
             state: core.state,
+            read_query: core.read_query,
+            read_keys: core.read_keys,
+            written_key: core.written_key,
             read_occurrences: core.occurrences.first().cloned().unwrap_or_default(),
             read_occurrences_by_lane: core.occurrences,
             written_occurrence: occurrence,
@@ -1386,6 +1478,8 @@ impl JointModel {
         let normalized = self.normalized(&provisional, training)?;
         let mut occurrences = vec![Vec::new(); batch];
         let mut admission_work = Vec::new();
+        let mut captured_query: Option<Tensor> = None;
+        let mut captured_keys: Option<Tensor> = None;
         let (no_read_mass, read_masses, read) = if previous == 0 || mode == ReadMode::NoRead {
             if read_intervention.is_some() {
                 return Err(invalid(
@@ -1415,6 +1509,7 @@ impl JointModel {
                 ));
             }
             let query = self.linear(&normalized, "read.query", training)?;
+            captured_query = Some(query.clone());
             let observed_queries = query.detach().to_vec2::<f32>()?;
             for lane in 0..batch {
                 let selected = memory.indexes[lane].query(
@@ -1429,10 +1524,12 @@ impl JointModel {
         } else {
             occurrences = vec![(0..previous).collect(); batch];
             let query = self.linear(&normalized, "read.query", training)?;
+            captured_query = Some(query.clone());
             let keys = memory
                 .keys
                 .as_ref()
                 .ok_or_else(|| invalid("missing prior key history"))?;
+            captured_keys = Some(keys.clone());
             let values = memory
                 .values
                 .as_ref()
@@ -1465,6 +1562,10 @@ impl JointModel {
             let read = read_masses.unsqueeze(1)?.matmul(values)?.squeeze(1)?;
             let read = self.interface(&read, Interface::State, training)?;
             (no_read_mass, read_masses, read)
+        };
+        let read_query = match captured_query {
+            Some(query) => query,
+            None => Tensor::zeros((batch, self.config.read_width), DType::F32, &self.device)?,
         };
         if self.admission == AdmissionPolicy::Full && mode == ReadMode::NoRead {
             occurrences = vec![(0..previous).collect(); batch];
@@ -1568,6 +1669,9 @@ impl JointModel {
             no_read_mass,
             read_masses,
             copy_gate,
+            read_query,
+            read_keys: captured_keys,
+            written_key: key,
         })
     }
 
@@ -3471,6 +3575,54 @@ mod tests {
         fs::remove_dir_all(root)?;
         Ok(())
     }
+    #[test]
+    fn joint_step_exposes_read_inputs() -> Result<()> {
+        let config = small(Transport::Quaternion);
+        let model = JointModel::new(config.clone(), &Device::Cpu)?;
+        let ids: Vec<u32> = (0..config.context as u32)
+            .map(|index| (index * 7 + 3) % 4000 + 1)
+            .collect();
+        let mut first = model.new_session(1)?;
+        let mut second = model.new_session(1)?;
+        let mut no_read = model.new_session(1)?;
+        let mut read_rows = 0usize;
+        for (position, &token) in ids.iter().enumerate() {
+            let a = model.step(&mut first, &[token], ReadMode::Enabled)?;
+            let b = model.step(&mut second, &[token], ReadMode::Enabled)?;
+            assert_eq!(a.read_query.dims(), [1, config.read_width]);
+            assert_eq!(a.written_key.dims(), [1, config.read_width]);
+            assert!(same_bits(&a.probabilities, &b.probabilities)?);
+            assert!(same_bits(&a.read_masses, &b.read_masses)?);
+            assert!(same_bits(&a.no_read_mass, &b.no_read_mass)?);
+            if position == 0 {
+                assert!(
+                    a.read_keys.is_none(),
+                    "no dense history before the first write"
+                );
+            } else {
+                let keys = a
+                    .read_keys
+                    .as_ref()
+                    .ok_or_else(|| invalid("missing dense read keys"))?;
+                assert_eq!(keys.dims(), [1, position, config.read_width]);
+                assert_eq!(
+                    keys.dims3()?.1,
+                    a.read_masses.dims2()?.1,
+                    "read key rows must equal the step's read-row length"
+                );
+                read_rows += 1;
+            }
+            let suppressed = model.step(&mut no_read, &[token], ReadMode::NoRead)?;
+            assert!(suppressed.read_keys.is_none());
+            assert_eq!(suppressed.read_query.dims(), [1, config.read_width]);
+        }
+        assert!(
+            read_rows > 0,
+            "the read path must expose at least one key row"
+        );
+        Ok(())
+    }
+
     fn max_delta(a: &Tensor, b: &Tensor) -> Result<f32> {
         Ok(a.sub(b)?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?)
     }

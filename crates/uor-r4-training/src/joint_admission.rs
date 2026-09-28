@@ -43,7 +43,9 @@
 //! lanes would be an unmeasured naming claim, so they are called coordinates.
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
+use crate::addressing_arms::{AddressingArm, Codes};
 use crate::{invalid, Result};
 
 /// Exact token vocabulary of the joint model (`JointConfig::vocab_size`).
@@ -52,6 +54,10 @@ pub const VOCAB_SIZE: usize = 4096;
 pub const KEY_WIDTH: usize = 64;
 /// Recency window served by the `Recent64` policy.
 pub const RECENT_CAPACITY: usize = 64;
+/// Recency window served by the `Recent16` contest policy.
+pub const RECENT16_CAPACITY: usize = 16;
+/// Restricted-read contest budget (the plan's `s = 16`).
+pub const CONTEST_BUDGET: usize = 16;
 /// Recency window admitted by `Orthant64` and `ExactCache64`.
 pub const INDEXED_RECENT_WINDOW: usize = 32;
 /// Number of fixed partial sign tables.
@@ -79,9 +85,17 @@ const NONE: u32 = u32::MAX;
 /// Which candidate-access rule a query uses.
 ///
 /// `Full` is the retained full-context reference list and is diagnostic only.
-/// `Recent64`, `Orthant64` and `ExactCache64` are the bounded policies: they
-/// differ in storage and probe structure but all return at most
+/// `Recent64`, `Orthant64` and `ExactCache64` are the retained bounded policies:
+/// they differ in storage and probe structure but all return at most
 /// [`MAX_CANDIDATES`] scored candidates.
+///
+/// The contest variants (`Recent16`, `Oracle16`, the four fixed codebooks and
+/// `Addressed`) are the D5 addressing-contest restricted-read arms. Each returns
+/// the top-[`CONTEST_BUDGET`] occurrences under its own ranking. `Oracle16` is
+/// the top-16 by the exact dense query dot key and exists only as a diagnostic
+/// ceiling; `Addressed` resolves to an in-memory codebook configured by the
+/// caller (the fitted ordinary comparator). None of these change the default
+/// `Full` path.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AdmissionPolicy {
@@ -95,16 +109,40 @@ pub enum AdmissionPolicy {
     Orthant64,
     /// Most recent 32 occurrences plus exact observed-token followers.
     ExactCache64,
+    /// The most recent 16 occurrences (contest `recent-s`, s = 16).
+    Recent16,
+    /// The 120-root H4 codebook on 16 x 4-D blocks (contest `h4`, s = 16).
+    H4Cells16,
+    /// The same H4 codebook with the contest randomized Hadamard pre-rotation.
+    H4Cells16Rht,
+    /// The 240-root E8 codebook with the contest randomized Hadamard pre-rotation.
+    E8Roots16Rht,
+    /// 4-D sign codes at 7 bits/block with the contest pre-rotation.
+    Sign4Rht,
+    /// 8-D sign codes at 8 bits/block with the contest pre-rotation.
+    Sign8Rht,
+    /// Top-16 by the exact dense query dot key; diagnostic ceiling only.
+    Oracle16,
+    /// A caller-configured PQ-ADC codebook (the fitted k-means comparator).
+    Addressed,
 }
 
 impl AdmissionPolicy {
     /// Every declared policy, for matched-control reporting.
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 13] = [
         Self::Full,
         Self::Recent64,
         Self::Recent32,
         Self::Orthant64,
         Self::ExactCache64,
+        Self::Recent16,
+        Self::H4Cells16,
+        Self::H4Cells16Rht,
+        Self::E8Roots16Rht,
+        Self::Sign4Rht,
+        Self::Sign8Rht,
+        Self::Oracle16,
+        Self::Addressed,
     ];
 
     /// Strict parse of the serde `snake_case` names.
@@ -115,8 +153,18 @@ impl AdmissionPolicy {
             "recent32" => Ok(Self::Recent32),
             "orthant64" => Ok(Self::Orthant64),
             "exact_cache64" => Ok(Self::ExactCache64),
+            "recent16" => Ok(Self::Recent16),
+            "h4_cells16" => Ok(Self::H4Cells16),
+            "h4_cells16_rht" => Ok(Self::H4Cells16Rht),
+            "e8_roots16_rht" => Ok(Self::E8Roots16Rht),
+            "sign4_rht" => Ok(Self::Sign4Rht),
+            "sign8_rht" => Ok(Self::Sign8Rht),
+            "oracle16" => Ok(Self::Oracle16),
+            "addressed" => Ok(Self::Addressed),
             _ => Err(invalid(
-                "admission policy must be full, recent64, orthant64 or exact_cache64",
+                "admission policy must be full, recent64, recent32, orthant64, exact_cache64, \
+                 recent16, h4_cells16, h4_cells16_rht, e8_roots16_rht, sign4_rht, sign8_rht, \
+                 oracle16 or addressed",
             )),
         }
     }
@@ -129,7 +177,28 @@ impl AdmissionPolicy {
             Self::Recent32 => "recent32",
             Self::Orthant64 => "orthant64",
             Self::ExactCache64 => "exact_cache64",
+            Self::Recent16 => "recent16",
+            Self::H4Cells16 => "h4_cells16",
+            Self::H4Cells16Rht => "h4_cells16_rht",
+            Self::E8Roots16Rht => "e8_roots16_rht",
+            Self::Sign4Rht => "sign4_rht",
+            Self::Sign8Rht => "sign8_rht",
+            Self::Oracle16 => "oracle16",
+            Self::Addressed => "addressed",
         }
+    }
+
+    /// Whether this policy ranks candidates through a configured codebook.
+    pub const fn uses_codebook(self) -> bool {
+        matches!(
+            self,
+            Self::H4Cells16
+                | Self::H4Cells16Rht
+                | Self::E8Roots16Rht
+                | Self::Sign4Rht
+                | Self::Sign8Rht
+                | Self::Addressed
+        )
     }
 }
 
@@ -175,6 +244,61 @@ pub struct AdmissionWork {
     pub history_visits: usize,
     /// Candidate ids entering the pool before de-duplication.
     pub candidate_pool_entries: usize,
+    /// Query-LUT build table reads (`Addressed`/fixed contest codebooks only).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub addressed_lut_table_reads: usize,
+    /// Query-LUT build adds (contest codebooks only).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub addressed_lut_adds: usize,
+    /// Encoded events scored against the query LUT (contest codebooks only).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub addressed_events_scored: usize,
+    /// Exact key-tape events scored (`Oracle16` diagnostic only).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub oracle_events_scored: usize,
+    /// Diagnostic-oracle multiplies; zero for every deployable index.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub oracle_multiplies: usize,
+}
+
+/// Zero test used to omit contest-only counters from the serialized work of the
+/// retained policies, keeping their reports byte-identical.
+fn is_zero(value: &usize) -> bool {
+    *value == 0
+}
+
+/// An in-memory PQ-ADC codebook configured on an [`AdmissionIndex`].
+///
+/// The fieldless contest policies construct one of these from fixed roots or
+/// seeds; `AdmissionPolicy::Addressed` receives a fitted ordinary arm. It is not
+/// a learned gate: insertion encodes the exact observed key, and the query is
+/// the declared asymmetric key-code/query-table decode.
+#[derive(Clone, Debug)]
+pub struct AddressedCodebook {
+    arm: Arc<AddressingArm>,
+    budget: usize,
+}
+
+impl AddressedCodebook {
+    /// Build a codebook with a 1..=[`MAX_CANDIDATES`] admitted-event budget.
+    pub fn new(arm: Arc<AddressingArm>, budget: usize) -> Result<Self> {
+        if budget == 0 || budget > MAX_CANDIDATES {
+            return Err(invalid(format!(
+                "addressed budget must be 1..={MAX_CANDIDATES}"
+            )));
+        }
+        Ok(Self { arm, budget })
+    }
+
+    /// The fitted or fixed codebook.
+    pub fn arm(&self) -> &AddressingArm {
+        &self.arm
+    }
+
+    /// Admitted events per query.
+    pub fn budget(&self) -> usize {
+        self.budget
+    }
 }
 
 /// One query result: sorted unique prior occurrence ids plus the work done.
@@ -246,6 +370,12 @@ pub struct AdmissionFootprint {
     pub logical_slots: usize,
     /// Logical bytes of those slots plus one interior record.
     pub logical_bytes: usize,
+    /// Encoded keys stored (contest codebook policies only).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub addressed_codes_stored: usize,
+    /// Logical bytes of contest codebook/oracle side storage.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub addressed_index_bytes: usize,
 }
 
 /// One causal admission index per batch lane (per sequence).
@@ -269,6 +399,10 @@ pub struct AdmissionIndex {
     cache_followers_filed: usize,
     last_observed_token: Option<u32>,
     insert_work: AdmissionInsertWork,
+    codebook: Option<AddressedCodebook>,
+    codes: Vec<Codes>,
+    oracle_budget: Option<usize>,
+    oracle_keys: Vec<f32>,
 }
 
 impl AdmissionIndex {
@@ -290,6 +424,10 @@ impl AdmissionIndex {
             cache_followers_filed: 0,
             last_observed_token: None,
             insert_work: AdmissionInsertWork::default(),
+            codebook: None,
+            codes: Vec::new(),
+            oracle_budget: None,
+            oracle_keys: Vec::new(),
         }
     }
 
@@ -319,6 +457,12 @@ impl AdmissionIndex {
         let recent_bytes = self.recent.len() * slot;
         let head_bytes = self.cache_heads.len() * slot;
         let link_bytes = self.cache_links.len() * slot;
+        let addressed_bytes = self
+            .codes
+            .iter()
+            .map(|code| code.blocks.len() * std::mem::size_of::<u8>())
+            .sum::<usize>()
+            + self.oracle_keys.len() * std::mem::size_of::<f32>();
         AdmissionFootprint {
             occurrences: self.occurrences,
             recent_slots: self.recent.len(),
@@ -341,7 +485,47 @@ impl AdmissionIndex {
                 + head_bytes
                 + link_bytes
                 + std::mem::size_of::<Self>(),
+            addressed_codes_stored: self.codes.len(),
+            addressed_index_bytes: addressed_bytes,
         }
+    }
+
+    /// Configure the PQ-ADC codebook used by a codebook policy or `Addressed`.
+    ///
+    /// Must be called on a fresh index before any write; the code index is
+    /// appended per occurrence, so a late configuration would desynchronize it.
+    pub fn configure_codebook(&mut self, arm: Arc<AddressingArm>, budget: usize) -> Result<()> {
+        if !self.codes.is_empty() {
+            return Err(invalid(
+                "addressed codebook must be configured before any write",
+            ));
+        }
+        self.codebook = Some(AddressedCodebook::new(arm, budget)?);
+        Ok(())
+    }
+
+    /// Configure the exact key tape used by the diagnostic `Oracle16` policy.
+    pub fn configure_oracle(&mut self, budget: usize) -> Result<()> {
+        if self.oracle_budget.is_some() {
+            return Err(invalid("oracle budget is already configured"));
+        }
+        if budget == 0 || budget > MAX_CANDIDATES {
+            return Err(invalid(format!(
+                "oracle budget must be 1..={MAX_CANDIDATES}"
+            )));
+        }
+        self.oracle_budget = Some(budget);
+        Ok(())
+    }
+
+    /// The configured codebook budget, when one is present.
+    pub fn codebook_budget(&self) -> Option<usize> {
+        self.codebook.as_ref().map(AddressedCodebook::budget)
+    }
+
+    /// The configured diagnostic-oracle budget, when present.
+    pub fn oracle_budget(&self) -> Option<usize> {
+        self.oracle_budget
     }
 
     /// Query the fixed sign table bucket of a 64-D key (reporting/tests).
@@ -378,6 +562,14 @@ impl AdmissionIndex {
             return Err(invalid("admission index occurrence identity exhausted"));
         }
         let occurrence = self.occurrences as u32;
+
+        if let Some(codebook) = &self.codebook {
+            let codes = codebook.arm.encode(key)?;
+            self.codes.push(codes);
+        }
+        if self.oracle_budget.is_some() {
+            self.oracle_keys.extend_from_slice(key);
+        }
 
         // Recency window: FIFO, newest last when read.
         if self.recent_filled == RECENT_CAPACITY {
@@ -481,6 +673,21 @@ impl AdmissionIndex {
                 work.cache_head_probes = 1;
                 self.collect_cache_followers(input_token, CACHE_FOLLOWERS, &mut pool, &mut work);
             }
+            AdmissionPolicy::Recent16 => {
+                self.read_recent(RECENT16_CAPACITY, &mut pool, &mut work);
+                already_ordered = true;
+            }
+            AdmissionPolicy::H4Cells16
+            | AdmissionPolicy::H4Cells16Rht
+            | AdmissionPolicy::E8Roots16Rht
+            | AdmissionPolicy::Sign4Rht
+            | AdmissionPolicy::Sign8Rht
+            | AdmissionPolicy::Addressed => {
+                self.read_codebook(query_key, &mut pool, &mut work)?;
+            }
+            AdmissionPolicy::Oracle16 => {
+                self.read_oracle(query_key, &mut pool, &mut work)?;
+            }
         }
         work.candidate_pool_entries = pool.len();
         let occurrences = if already_ordered {
@@ -536,6 +743,102 @@ impl AdmissionIndex {
             taken += 1;
             link = self.cache_links[link as usize];
         }
+    }
+
+    /// PQ-ADC admission: score every stored code against the query LUT and take
+    /// the top-`budget`. Scores are descending with ties to the lower occurrence.
+    fn read_codebook(
+        &self,
+        query_key: &[f32],
+        pool: &mut Vec<usize>,
+        work: &mut AdmissionWork,
+    ) -> Result<()> {
+        if self.occurrences == 0 {
+            return Ok(());
+        }
+        let codebook = self
+            .codebook
+            .as_ref()
+            .ok_or_else(|| invalid("codebook policy is active but no codebook is configured"))?;
+        if self.codes.len() != self.occurrences {
+            return Err(invalid(
+                "addressed code index does not match the occurrence count",
+            ));
+        }
+        validate_key(query_key, "addressed query")?;
+        let lut = codebook.arm.query_lut(query_key)?;
+        let lut_work = codebook.arm.lut_build_work();
+        work.query_coordinates_read = KEY_WIDTH;
+        work.query_coordinates_checked = KEY_WIDTH;
+        work.addressed_lut_table_reads = lut_work.table_reads as usize;
+        work.addressed_lut_adds = lut_work.adds as usize;
+        let take = codebook.budget.min(self.occurrences);
+        let mut scored: Vec<(f32, usize)> = Vec::with_capacity(self.occurrences);
+        for (occurrence, code) in self.codes.iter().enumerate() {
+            scored.push((codebook.arm.score(code, &lut)?, occurrence));
+        }
+        work.addressed_events_scored = self.occurrences;
+        scored.sort_by(|a, b| {
+            b.0.partial_cmp(&a.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.1.cmp(&b.1))
+        });
+        pool.extend(
+            scored
+                .into_iter()
+                .take(take)
+                .map(|(_, occurrence)| occurrence),
+        );
+        Ok(())
+    }
+
+    /// Exact dense-key admission: score the stored key tape by `q . k` and take
+    /// the top-`budget`. Diagnostic ceiling only; it needs the full key tape.
+    fn read_oracle(
+        &self,
+        query_key: &[f32],
+        pool: &mut Vec<usize>,
+        work: &mut AdmissionWork,
+    ) -> Result<()> {
+        if self.occurrences == 0 {
+            return Ok(());
+        }
+        let budget = self
+            .oracle_budget
+            .ok_or_else(|| invalid("oracle16 is active but no key tape is configured"))?;
+        if self.oracle_keys.len() != self.occurrences * KEY_WIDTH {
+            return Err(invalid(
+                "oracle key tape does not match the occurrence count",
+            ));
+        }
+        validate_key(query_key, "oracle query")?;
+        work.query_coordinates_read = KEY_WIDTH;
+        work.query_coordinates_checked = KEY_WIDTH;
+        work.oracle_events_scored = self.occurrences;
+        let take = budget.min(self.occurrences);
+        let mut scored: Vec<(f64, usize)> = Vec::with_capacity(self.occurrences);
+        for occurrence in 0..self.occurrences {
+            let key = &self.oracle_keys[occurrence * KEY_WIDTH..(occurrence + 1) * KEY_WIDTH];
+            let score = query_key
+                .iter()
+                .zip(key)
+                .map(|(&q, &k)| f64::from(q) * f64::from(k))
+                .sum::<f64>();
+            work.oracle_multiplies += KEY_WIDTH;
+            scored.push((score, occurrence));
+        }
+        scored.sort_by(|a, b| {
+            b.0.partial_cmp(&a.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.1.cmp(&b.1))
+        });
+        pool.extend(
+            scored
+                .into_iter()
+                .take(take)
+                .map(|(_, occurrence)| occurrence),
+        );
+        Ok(())
     }
 }
 
@@ -1148,7 +1451,7 @@ mod tests {
     #[test]
     fn policy_names_parse_and_round_trip_serde() -> Result<()> {
         assert_eq!(AdmissionPolicy::default(), AdmissionPolicy::Full);
-        assert_eq!(AdmissionPolicy::ALL.len(), 5);
+        assert_eq!(AdmissionPolicy::ALL.len(), 13);
         for policy in AdmissionPolicy::ALL {
             assert_eq!(AdmissionPolicy::parse(policy.name())?, policy);
             let json = serde_json::to_string(&policy)?;
@@ -1166,6 +1469,122 @@ mod tests {
         let selection = AdmissionSelection::default();
         assert!(selection.occurrences.is_empty());
         assert_eq!(selection.work, work);
+        Ok(())
+    }
+
+    #[test]
+    fn retained_policy_work_serialization_is_unchanged() -> Result<()> {
+        let json = serde_json::to_string(&AdmissionWork::default())?;
+        assert!(!json.contains("addressed_"));
+        assert!(!json.contains("oracle_"));
+        let footprint = serde_json::to_string(&AdmissionIndex::new().footprint())?;
+        assert!(!footprint.contains("addressed_"));
+        Ok(())
+    }
+
+    #[test]
+    fn recent16_returns_only_the_last_16() -> Result<()> {
+        let mut index = AdmissionIndex::new();
+        for step in 0..50usize {
+            index.insert(&stream_key(step as u64 + 1), (step % VOCAB_SIZE) as u32)?;
+        }
+        let selection = index.query(AdmissionPolicy::Recent16, &[], 3)?;
+        assert_eq!(selection.occurrences, (34..50).collect::<Vec<_>>());
+        assert_eq!(selection.work.recent_visits, RECENT16_CAPACITY);
+        assert_eq!(selection.work.posting_visits, 0);
+        assert_eq!(selection.work.history_visits, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn codebook_admission_matches_brute_force_top_budget() -> Result<()> {
+        let arm = AddressingArm::contest_sign4();
+        let keys: Vec<Vec<f32>> = (0..24u64).map(stream_key).collect();
+        let query = stream_key(9999);
+        let mut index = AdmissionIndex::new();
+        index.configure_codebook(Arc::new(arm.clone()), 5)?;
+        for (step, key) in keys.iter().enumerate() {
+            index.insert(key, (step % VOCAB_SIZE) as u32)?;
+        }
+        assert_eq!(index.codebook_budget(), Some(5));
+        let selection = index.query(AdmissionPolicy::Addressed, &query, 3)?;
+
+        let lut = arm.query_lut(&query)?;
+        let mut scored: Vec<(f32, usize)> = keys
+            .iter()
+            .enumerate()
+            .map(|(occurrence, key)| Ok((arm.score(&arm.encode(key)?, &lut)?, occurrence)))
+            .collect::<std::result::Result<Vec<_>, crate::addressing_arms::AddressingError>>()?;
+        scored.sort_by(|a, b| {
+            b.0.partial_cmp(&a.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.1.cmp(&b.1))
+        });
+        let mut expected: Vec<usize> = scored.into_iter().take(5).map(|(_, i)| i).collect();
+        expected.sort_unstable();
+        assert_eq!(selection.occurrences, expected);
+        assert_eq!(selection.work.addressed_events_scored, keys.len());
+        assert_eq!(selection.work.candidate_pool_entries, 5);
+        assert!(selection.work.addressed_lut_table_reads > 0);
+        Ok(())
+    }
+
+    #[test]
+    fn oracle_admission_matches_brute_force_query_key() -> Result<()> {
+        let keys: Vec<Vec<f32>> = (0..20u64).map(stream_key).collect();
+        let query = stream_key(1234);
+        let mut index = AdmissionIndex::new();
+        index.configure_oracle(4)?;
+        for (step, key) in keys.iter().enumerate() {
+            index.insert(key, (step % VOCAB_SIZE) as u32)?;
+        }
+        assert_eq!(index.oracle_budget(), Some(4));
+        let selection = index.query(AdmissionPolicy::Oracle16, &query, 3)?;
+        let mut scored: Vec<(f64, usize)> = keys
+            .iter()
+            .enumerate()
+            .map(|(occurrence, key)| {
+                (
+                    query
+                        .iter()
+                        .zip(key)
+                        .map(|(&q, &k)| f64::from(q) * f64::from(k))
+                        .sum::<f64>(),
+                    occurrence,
+                )
+            })
+            .collect();
+        scored.sort_by(|a, b| {
+            b.0.partial_cmp(&a.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.1.cmp(&b.1))
+        });
+        let mut expected: Vec<usize> = scored.into_iter().take(4).map(|(_, i)| i).collect();
+        expected.sort_unstable();
+        assert_eq!(selection.occurrences, expected);
+        assert_eq!(selection.work.oracle_events_scored, keys.len());
+        assert_eq!(selection.work.oracle_multiplies, keys.len() * KEY_WIDTH);
+        Ok(())
+    }
+
+    #[test]
+    fn contest_policy_without_its_structure_is_refused_once_nonempty() -> Result<()> {
+        let mut index = AdmissionIndex::new();
+        index.insert(&stream_key(1), 5)?;
+        assert!(index
+            .query(AdmissionPolicy::Addressed, &stream_key(2), 3)
+            .is_err());
+        assert!(index
+            .query(AdmissionPolicy::Oracle16, &stream_key(2), 3)
+            .is_err());
+        // An empty index has no candidates for any policy, so it is not an error.
+        let empty = AdmissionIndex::new();
+        for policy in [AdmissionPolicy::Addressed, AdmissionPolicy::Oracle16] {
+            assert!(empty
+                .query(policy, &stream_key(2), 3)?
+                .occurrences
+                .is_empty());
+        }
         Ok(())
     }
 }

@@ -11,10 +11,12 @@ use sha2::{Digest, Sha256};
 use uor_r4_core::report_output;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 
+use crate::addressing_arms::AddressingArm;
 use crate::baseline_protocol::{
     device, load_evaluator, read_tokens, save_json, verify_identity, Evaluator,
 };
 use crate::geometric_read::GeometricReadConfig;
+use crate::joint_admission::AdmissionPolicy;
 use crate::joint_evaluation::{self, STORY_PROBE_SCOPE, STORY_STOP_POLICY};
 use crate::joint_model::{
     JointConfig, JointModel, PrecisionMode, ReadGeometry, ReadMode, LORENTZ_LOG_BETA,
@@ -1504,6 +1506,9 @@ pub fn run_cli(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("joint-evaluate-precision") {
         return evaluate_precision_cli(args);
     }
+    if args.first().map(String::as_str) == Some("joint-evaluate-addressing") {
+        return evaluate_addressing_cli(args);
+    }
     if args.first().is_some_and(|mode| {
         matches!(
             mode.as_str(),
@@ -1635,6 +1640,201 @@ fn evaluate_cli(args: &[String]) -> Result<()> {
             }
             Ok(())
         }
+    })();
+    finish_attempt(out, result)
+}
+
+/// One restricted-read arm selected by a `joint-evaluate-addressing` policy spec.
+struct AddressingReadSpec {
+    policy: AdmissionPolicy,
+    budget: usize,
+    /// A fixed contest arm implied by the spec name; no file is needed.
+    arm: Option<AddressingArm>,
+    /// A fitted codebook JSON to load (the ordinary comparator).
+    codebook: Option<PathBuf>,
+}
+
+/// Parse `NAME[:BUDGET][=CODEBOOK_JSON]`.
+///
+/// Names `full`, `recent`, `oracle`, `h4`, `h4-rht`, `e8`, `e8-rht`, `sign4`,
+/// `sign4-rht`, `sign8` and `sign8-rht` name fixed contest arms; `kmeans120`,
+/// `kmeans240`, `codebook` and `addressed` require `=PATH` and use the fitted
+/// serde codebook. The named H4/E8/sign fieldless variants are exact at the
+/// contest budget `s = 16`; any other budget routes the same arm through the
+/// generic `Addressed` policy.
+fn parse_addressing_spec(spec: &str) -> Result<AddressingReadSpec> {
+    let (head, codebook) = match spec.split_once('=') {
+        Some((head, path)) => (head, Some(PathBuf::from(path))),
+        None => (spec, None),
+    };
+    let (name, budget) = match head.split_once(':') {
+        Some((name, budget)) => (
+            name,
+            budget
+                .parse::<usize>()
+                .map_err(|_| invalid("addressing policy budget must be an integer"))?,
+        ),
+        None => (head, 0),
+    };
+    if name == "full" {
+        if budget != 0 || codebook.is_some() {
+            return Err(invalid("the full policy takes no budget or codebook"));
+        }
+        return Ok(AddressingReadSpec {
+            policy: AdmissionPolicy::Full,
+            budget: 0,
+            arm: None,
+            codebook: None,
+        });
+    }
+    if budget == 0 || budget > crate::joint_admission::MAX_CANDIDATES {
+        return Err(invalid("addressing policy budget must be 1..=64"));
+    }
+    let named = match name {
+        "recent" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::Recent16)
+        }
+        "oracle" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::Oracle16)
+        }
+        "h4" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::H4Cells16)
+        }
+        "h4-rht" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::H4Cells16Rht)
+        }
+        "e8-rht" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::E8Roots16Rht)
+        }
+        "sign4-rht" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::Sign4Rht)
+        }
+        "sign8-rht" if budget == crate::joint_admission::CONTEST_BUDGET => {
+            Some(AdmissionPolicy::Sign8Rht)
+        }
+        _ => None,
+    };
+    if let Some(policy) = named {
+        if codebook.is_some() {
+            return Err(invalid("a fixed contest arm takes no codebook file"));
+        }
+        return Ok(AddressingReadSpec {
+            policy,
+            budget,
+            arm: None,
+            codebook: None,
+        });
+    }
+    let fixed = match name {
+        "h4" => Some(AddressingArm::contest_h4()),
+        "h4-rht" => Some(AddressingArm::contest_h4_rht()),
+        "e8" => Some(AddressingArm::contest_e8()),
+        "e8-rht" => Some(AddressingArm::contest_e8_rht()),
+        "sign4" => Some(AddressingArm::contest_sign4()),
+        "sign4-rht" => Some(AddressingArm::contest_sign4_rht()),
+        "sign8" => Some(AddressingArm::contest_sign8()),
+        "sign8-rht" => Some(AddressingArm::contest_sign8_rht()),
+        _ => None,
+    };
+    if let Some(arm) = fixed {
+        return Ok(AddressingReadSpec {
+            policy: AdmissionPolicy::Addressed,
+            budget,
+            arm: Some(arm),
+            codebook,
+        });
+    }
+    match name {
+        "kmeans120" | "kmeans240" | "codebook" | "addressed" => {
+            let path =
+                codebook.ok_or_else(|| invalid("a fitted codebook arm requires =CODEBOOK_JSON"))?;
+            Ok(AddressingReadSpec {
+                policy: AdmissionPolicy::Addressed,
+                budget,
+                arm: None,
+                codebook: Some(path),
+            })
+        }
+        other => Err(invalid(format!(
+            "unknown addressing policy {other}; expected full, recent, oracle, h4, h4-rht, e8, \
+             e8-rht, sign4, sign4-rht, sign8, sign8-rht, kmeans120, kmeans240, codebook or addressed"
+        ))),
+    }
+}
+
+/// A same-weights policy intervention through the existing fixed-weight
+/// evaluation. It loads the continuous checkpoint exactly as `joint-evaluate`
+/// does and calls [`evaluate_loaded`]; no evaluator or criterion is reimplemented.
+fn evaluate_addressing_cli(args: &[String]) -> Result<()> {
+    if args.len() != 8 || args[4] != "cpu" {
+        return Err(invalid(
+            "usage: joint-evaluate-addressing CAMPAIGN_JSON SEALED_CHECKPOINT NEW_ROOT cpu \
+             {read|no-read} BATCH POLICY_SPEC",
+        ));
+    }
+    let mode = match args[5].as_str() {
+        "read" => ReadMode::Enabled,
+        "no-read" => ReadMode::NoRead,
+        _ => return Err(invalid("evaluation read mode read|no-read")),
+    };
+    let batch: usize = args[6].parse().map_err(|_| invalid("evaluation batch"))?;
+    if !(1..=joint_evaluation::MAX_EVALUATION_BATCH).contains(&batch) {
+        return Err(invalid("evaluation batch1..32"));
+    }
+    let out = Path::new(&args[3]);
+    report_output::claim(out)?;
+    let result = (|| {
+        let cfg = Campaign::load(Path::new(&args[1]))?;
+        let evaluator = load_evaluator(&cfg.evaluator_path)?;
+        let source = Path::new(&args[2]);
+        let mut input =
+            load_bound_checkpoint(source, &candle_core::Device::Cpu, &evaluator.sha256)?;
+        same_learning_configuration(&cfg, &input.campaign)?;
+        input.campaign = cfg;
+        if input.model.quantization().is_some() {
+            return Err(invalid(
+                "restricted-read addressing requires the continuous checkpoint",
+            ));
+        }
+        let spec = parse_addressing_spec(&args[7])?;
+        let stored = input.model.admission_policy();
+        if let Some(arm) = spec.arm {
+            input
+                .model
+                .set_addressed_codebook(std::sync::Arc::new(arm), spec.budget)?;
+        }
+        if let Some(path) = &spec.codebook {
+            let arm = AddressingArm::load(path)
+                .map_err(|error| invalid(format!("addressing codebook: {error}")))?;
+            input.artifact["addressing_codebook"] = json!({
+                "path": path,
+                "sha256": sha256_file(path)?,
+                "budget": spec.budget,
+                "family": arm.family().name(),
+                "blocks": arm.blocks(),
+                "block_dim": arm.block_dim(),
+                "codes_per_block": arm.codes_per_block(),
+                "pre_rotation": arm.pre_rotation_enabled(),
+                "fit_seed": arm.fit_seed(),
+                "index_bytes_per_event": arm.bytes_per_event()
+            });
+            input
+                .model
+                .set_addressed_codebook(std::sync::Arc::new(arm), spec.budget)?;
+        }
+        input.model.set_admission_policy(spec.policy)?;
+        input.model.enable_admission_audit();
+        input.artifact["admission_intervention"] = json!({
+            "stored": stored,
+            "executed": spec.policy,
+            "same_weights": true,
+            "policy_spec": args[7],
+            "budget": spec.budget,
+            "diagnostic_override": stored != spec.policy
+        });
+        evaluate_loaded(
+            &input, &evaluator, source, out, &args[0], "cpu", mode, batch,
+        )
     })();
     finish_attempt(out, result)
 }
