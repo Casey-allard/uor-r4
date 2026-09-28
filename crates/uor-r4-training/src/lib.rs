@@ -15,6 +15,8 @@ pub mod dialogue_child_artifact;
 pub mod dialogue_development;
 pub mod dialogue_episodes;
 pub mod dialogue_learning;
+pub mod dialogue_rounding;
+pub mod dialogue_rounding_artifact;
 pub mod geometric_read;
 pub mod geometric_stack;
 pub mod joint_admission;

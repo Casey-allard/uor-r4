@@ -93,11 +93,52 @@ This is a materially lossy development artifact, not an accepted model. The
 record 56.245 seconds of conversion/packaging/observation and 205,946,880 bytes
 peak child RSS. Same-input integer stepping takes 12.593 seconds versus FF
 2.823 in this instrumented pass; no speed or energy advantage is established.
-The next causal implementation is one response-aware choice of legal codes on
-the fixed child grids and complete-prefix population, with dose/resources still
-to be selected before fitting. Actual relation recovery and all-output retention
-govern that decision; the old width-256 rounding result warns that lower
-numerical loss alone does not preserve complete answers. No new alpha fit ran.
+That observation motivates response-aware choice of legal codes on the fixed
+child grids and complete-prefix population; the subsequent implementation and
+fixed fitting decision are recorded below. Actual relation recovery and
+all-output retention govern that decision; the old width-256 rounding result warns that lower
+numerical loss alone does not preserve complete answers. That observation
+introduced no new alpha updates.
+
+The [response-aware code-choice implementation](dialogue-code-choice-preparation-2026-09-27.md)
+is now validated at source `34964512`: seventeen focused checks pass and all
+three release binaries are frozen. One no-op negative-fixture mutation was
+corrected without changing production validation. Eight actual training-only
+normalization batches process 9,179 supervised targets with no optimizer updates,
+selecting coefficient 29.56681391929494; complete execution takes 61.107 seconds
+and peak child RSS is 6,919,520,256 bytes. The separately frozen 512-update alpha
+fit was interrupted at 190 updates by its frozen shared-storage guard. It
+processed 215,193 supervised targets and 778,240 padded positions, but reached
+neither its first scheduled checkpoint nor an export. The sealed curve and
+1,460.259 seconds of execution are retained; there is no alpha/Adam state to
+resume and no learned artifact to evaluate. This is unavailable execution, not
+a model-quality failure. The [interruption record](../evidence/dialogue-code-choice-interruption-2026-09-27.json)
+binds the resource failure and complete cost. The [sequential correction](dialogue-code-choice-sequential-preparation-2026-09-27.md)
+is now executed at source `b49a2810`: the changed-path objective comparison passes
+and three release binaries are frozen. Eight actual normalization batches retain
+exactly the saved schedule, loss, all recorded parameter-gradient norms and
+coefficient; peak RSS falls to 4,722,819,072 bytes while total time rises to
+154.612 seconds. The fresh fixed 512 restart **STOPPED_CHECKPOINTED at231**
+on September27 at17:43:21UTC. The frozen `b49a2810` process exited0 after
+5,209.335 seconds and260,430 supervised targets; the complete supervisor took
+5,210.049 seconds. Its storage soft guard fired below1GiB headroom. Checkpoints
+at32,128 and the final stop at231 are preserved with complete-file seals, along
+with the result and curve. No512 endpoint, learned-code export or native response
+evaluation has run. This is a resource interruption, not a quality result.
+The [checkpoint and resource record](../evidence/dialogue-code-choice-sequential-checkpoint-2026-09-27.json)
+binds exact lineage. Source review supports281 additional updates from the same
+alpha/Adam state, data counters1255–1535 and unchanged total512 schedule; it does
+not select another fresh fit or reset warmup. Resolve the shared model/storage
+slot and bind continuation/endpoints across both attempts before launch.
+Merging later source does not change or rebind the frozen executable.
+Measured batch costs support a 12,600-second soft fit limit and prospectively
+recorded owned allowance 75,600,000 ms; verified shared 722,400,000 ms is unchanged.
+The fixed 512 question, original 161-response panel and 58-turn endpoint remain;
+no new dose or quality-selection sweep is selected. The original
+[preparation evidence](../evidence/dialogue-code-choice-preparation-2026-09-27.json)
+remains dated; [sequential evidence](../evidence/dialogue-code-choice-sequential-preparation-2026-09-27.json)
+owns the new execution/resource bindings. No learned candidate or language
+qualification is established by this normalization.
 
 Parallel source preparation adds a standalone
 [exact signed H4 integer classifier](exact-h4-classifier-2026-09-27.md), with an
@@ -382,6 +423,19 @@ than held on our fixed grid. [Transfer assessment](finite-h4-learning-and-native
 Hardware multiply/divide serving and the empty designated local payload intake
 remain unresolved for this lab's target. These reports do not promote a model,
 alter the retained dialogue pair, or change the fixed 512-update child study.
+
+The [next Claude delta at `c22a97e6`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5856353989)
+now supplies trained GPTQ numerical-retention results. All 33 added/changed
+packet identities and five export/evaluation/parent/data joins match. Integer
+NLL gaps fall 40.5–54.3% relative to nearest, with 115.185 seconds of exports
+including 61.865 seconds of calibration across five models; the complete
+export/reference-evaluation stage spans 31 minutes. These are distinct nested
+costs. No new generated output binds the GPTQ artifacts; existing continuations
+still use nearest. New stack-dialogue source has no trained dialogue packet and
+its EOS/cap controller differs from the native study's short-cycle rule. The
+grouped codec, separate head, D10 arithmetic and unavailable local payloads
+remain distinct. Retain this useful alternative without changing the selected
+child's fixed-grid response-aware integration or choosing a dose from NLL alone.
 
 The separately owned termination-objective study has a
 [source-verified weighted-shard normalization/reporting defect](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5852801075)

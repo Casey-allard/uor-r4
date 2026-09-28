@@ -365,6 +365,15 @@ Owner: Casey · Drafted by: the lab lead · Date: 2026-09-26 · **Owner decision
 branch `claude/blissful-wozniak-girwwq`; it reaches `main` only through protected delivery.** Context:
 [lab phase 2](geometric-lab-phase2-2026-09-26.md) §6.
 
+**Scope clarification, September 27:** the owner subsequently answered the
+fourth lab's explicit D10 question: **“Keep the native, multiplier-free serving
+target.”** That lab does not adopt the converted transformer backbone or hardware
+serving-multiplier exceptions below; offline Rust learning remains permitted
+under D0-b. The numbered record below preserves the September 26 decision in the
+other lab session, not a global revocation or restatement of that session's
+instructions. See the [shared owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279)
+and [current execution direction](current-state.md#fourth-lab-shared-research-and-integration).
+
 1. **Backbone.** A converted open-weight instruct model (SmolLM2, Apache-2.0) is accepted as the chat backbone. The
    rule "no transformer backbone at serving" is restated as: **no floating point and no dense float matmul at serving,
    and learned weight maps execute without a multiplier instruction** (≤4-bit table, add, subtract and shift kernels,

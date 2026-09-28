@@ -1,0 +1,103 @@
+{
+  "schema": "uor-r4.dialogue-code-choice-sequential-checkpoint/1",
+  "status": "STOPPED_CHECKPOINTED",
+  "source_commit": "b49a2810a5238a16880f9cb726d96d1ba1f18624",
+  "executable": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-rounding-b49a2810a523",
+    "bytes": 6664576,
+    "sha256": "613e5a3fb2c5967ab9591059133b8bcfe6c2344e955151b5b4ec9d65cfb8b35b",
+    "source_commit": "b49a2810a5238a16880f9cb726d96d1ba1f18624",
+    "features": [
+      "cpu-accelerate"
+    ],
+    "profile": "release"
+  },
+  "execution_receipt": {
+    "filename": "dialogue-code-choice-sequential-fit-execution-2.json",
+    "bytes": 10580,
+    "sha256": "2eea7889fdbace0312ac43bf9fb0d0d1c0d68eaf09bb7ee91564dcc5ffdefd78"
+  },
+  "started_at": "2026-09-27T16:16:31.555971+00:00",
+  "finished_at": "2026-09-27T17:43:21.849799+00:00",
+  "supervisor_wall_seconds": 5210.049145415891,
+  "process_wall_seconds": 5209.335169374943,
+  "exit_code": 0,
+  "selected_total_updates": 512,
+  "completed_updates": 231,
+  "remaining_updates": 281,
+  "supervised_target_visits": 260430,
+  "eos_target_visits": 3696,
+  "padded_position_visits": 946176,
+  "executed_schedule_sha256": "3b615064cd93c5a1ffbe6f0bb5fdc0785209e4b98d119fa2f47e9479df810978",
+  "result": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1/result.json",
+    "bytes": 79074,
+    "sha256": "0064d17c0d1c5ede7fb18de46d55c480fdb9f1f74c61e007f3c156106df2dacc"
+  },
+  "checkpoint": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1/checkpoint-final/checkpoint.json",
+    "bytes": 34033,
+    "sha256": "1b2508fa51ab96e0cd0540deb2b5d7d158ddac4f8463c303631f00395f5dcc01"
+  },
+  "checkpoint_seal": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1/checkpoint-final/manifest.json",
+    "bytes": 1115,
+    "sha256": "f3f7c0acfa81e9eac9bbcca2d8d1afab6310cae969a5b7b958fc981f6d09a1bd"
+  },
+  "output_seal": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1/manifest.json",
+    "bytes": 4693,
+    "sha256": "e92e7d2417207a6717ca068aa7376f0224a3997f6d5d64d51a417fa2588b6caa"
+  },
+  "stop": {
+    "reason": "less than1GiB shared-internal-growth or physical-reserve headroom",
+    "requested_at": "2026-09-27T17:43:18.351785+00:00",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-sequential-fit-1.stop",
+    "storage_headroom_bytes": {
+      "internal_shared_growth": 432545792,
+      "physical_reserve": 312397824
+    },
+    "sampled_group_rss_bytes": 1379762176,
+    "free_memory_percent": 34
+  },
+  "last_storage": {
+    "physical_free_bytes": {
+      "/System/Volumes/Data": 26417754112,
+      "/Volumes/UOR-Workspace": 143650471936
+    },
+    "new_report_bytes": 196556216,
+    "internal_shared_growth_bytes": 6009896960,
+    "ssd_growth_bytes": 135176192
+  },
+  "peak_sampled_group_rss_bytes": 4933402624,
+  "maximum_child_rss_bytes": 6082723840,
+  "scope": "Clean resource stop and sealed recovery state. No completed512 endpoint, partial quality selection, learned-code export or native response evaluation. Previous190-update attempt remains separate cost.",
+  "resume_source_review": {
+    "status": "SOURCE_SUPPORTED_NOT_LAUNCHED",
+    "same_binary_required": true,
+    "total_horizon_must_remain": 512,
+    "completed_alpha_and_adam_step": 231,
+    "next_data_step": 1255,
+    "remaining_data_counters": [
+      1255,
+      1535
+    ],
+    "allowed_campaign_changes": [
+      "resume_from",
+      "max_process_seconds",
+      "stop_file"
+    ],
+    "unchanged": "Learning contract including normalization, optimizer, beta/warmup, data seed/start, grids, sequential execution and checkpoint schedule.",
+    "next": "Resolve shared model/storage pressure; finalize separate continuation supervision and cumulative endpoint-chain joins in fresh roots. No automatic restart or dose reset."
+  },
+  "accounting": {
+    "cursor_receipt": "ledger-dialogue-code-choice-sequential-fit-progress-4.json",
+    "charged_through": "2026-09-27T17:43:30.368209+00:00",
+    "owned_charged_ms": 61826353,
+    "owned_cap_ms": 75600000,
+    "shared_charged_ms": 709981933,
+    "verified_shared_cap_ms": 722400000,
+    "foreign_reported_limit_adopted": false,
+    "overlap": "Concurrent fit/build/research wall charged once; preparation, failed attempts, waiting and delivery included. Later tail remains charged prospectively through the same cursor."
+  }
+}

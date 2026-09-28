@@ -1,0 +1,229 @@
+{
+  "schema": "uor-r4.dialogue-code-choice-interruption/1",
+  "recorded_at": "2026-09-27T14:39:56.661665+00:00",
+  "classification": "EXECUTION_UNAVAILABLE_NO_LEARNED_ARTIFACT",
+  "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+  "execution": {
+    "schema": "uor-r4.dialogue-code-choice-fit-execution/1",
+    "status": "STOPPED_INCOMPLETE",
+    "started_at": "2026-09-27T14:10:09.515747+00:00",
+    "spec": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-spec-1.json",
+      "bytes": 4363,
+      "sha256": "629681918481cff3720400670d6868bfd6bfd2eb919bf54203152d6fe1eb6a6f"
+    },
+    "supervisor": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-code-choice-fit.py",
+      "bytes": 31824,
+      "sha256": "a37eb4bb54ff5b56f5e82e5b7894f291c04ecd0941e800f2e83abf2811632fed"
+    },
+    "projection": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-code-choice-fit-1.json",
+      "bytes": 2051,
+      "sha256": "1377bbb526538a1cf4e2c2842a13e81de3f75e6f1d4bf3c15ed8836bfeab1279"
+    },
+    "design": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/decision.json",
+      "bytes": 3448,
+      "sha256": "c8dbedebfc20d52d6c1734d6b80a9812968ce2cac5905efd1ecf3b3f94e0e952"
+    },
+    "binary": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-rounding-34964512fd09",
+      "bytes": 6665024,
+      "sha256": "c45b4d3ba874f920bbc6ef826d560e98b7fec4d64d8efcbc7375460c33eb1537",
+      "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+      "features": [
+        "cpu-accelerate"
+      ],
+      "profile": "release"
+    },
+    "campaign": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/campaign.json",
+      "bytes": 1935,
+      "sha256": "6c14181627191f37f3978f48f994ad6e2facd1fe283bba02b3e5d6f69d3a19f4"
+    },
+    "files": {
+      "prepared_manifest": {
+        "path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+        "bytes": 14939,
+        "sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5"
+      },
+      "tokenizer": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+        "bytes": 109457,
+        "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "normalization_report": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/normalization.json",
+        "bytes": 58632,
+        "sha256": "d26d43ecb485a001f2f3bd08d2f1b70a324383c8afd7f2d0db6c04a4d3691cde"
+      }
+    },
+    "input_seals": {
+      "child": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+        "manifest_sha256": "2b05b7d4a2700cbd8596abd37ce8523e4b58e03f90b3005c60c0635de0727a3f"
+      },
+      "nearest": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-conversion-1/packed",
+        "manifest_sha256": "548540e033c3474965790dbc0f8acbe0eec5a11afc44479ba477c73786214cdb"
+      },
+      "inputs": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1",
+        "manifest_sha256": "05abc9947222c2cec46fc7b56d6640cd52d141a5713fc275d7db86bbbb9745b1"
+      },
+      "normalization": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1",
+        "manifest_sha256": "f4b8aa762a5b6dfe2e9d28ee5c8d136506db86976aeb73af821da69a58091d96"
+      }
+    },
+    "guard": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/report-root-guard",
+      "bytes": 642752,
+      "sha256": "693218a10b2830b0c91e6a12daecd604d5c3134667e5dd0e1db7e779103625a4"
+    },
+    "build_receipt": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2.json",
+      "bytes": 10904,
+      "sha256": "9a087019459ef43d2a5c741ae9ef3318bd5dda80024c3a5fceb81e8003814002"
+    },
+    "normalization_execution": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-execution-1.json",
+      "bytes": 7335,
+      "sha256": "a77a1a1e0d2310396ab7cd05ab4e89dd76edc130df2438f0f5b6d6fd677b2b2f"
+    },
+    "thread_environment": {
+      "RAYON_NUM_THREADS": "2",
+      "VECLIB_MAXIMUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "GEMM_NUM_THREADS": "1"
+    },
+    "jobs": [
+      {
+        "label": "fit",
+        "command": [
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-rounding-34964512fd09",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/campaign.json",
+          "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1"
+        ],
+        "output_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1",
+        "started_at": "2026-09-27T14:10:09.699800+00:00",
+        "status": "INCOMPLETE",
+        "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1.log",
+        "pid": 82708,
+        "exit_code": -15,
+        "finished_at": "2026-09-27T14:34:29.756867+00:00",
+        "wall_seconds": 1460.0519484590002,
+        "log": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1.log",
+          "bytes": 669,
+          "sha256": "be64c398bcdb95066f6c77720933479bf75499b8104500770dedbf3884bb7de0"
+        },
+        "interrupted_output_seals": [
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1/manifest.json",
+            "bytes": 1123,
+            "sha256": "63de58bb8b8f008e96a1e3fb06b6b7029142abfd480372d88b7753e3015b47de"
+          }
+        ]
+      }
+    ],
+    "remaining_commands": [],
+    "peak_sampled_group_rss_bytes": 6936281088,
+    "scope": "One frozen FullPrefix alpha recipe. Parent weights/grid/model clock fixed; no evaluation, retry, resume, dose selection, ledger edit or language acceptance.",
+    "timing_scope": "Whole supervisor includes preflight, one fit process, native verification and closeout. Process wall includes poll/resource latency. Rust checks its campaign soft deadline/stop file before each update; external hard cap covers setup, batches, checkpoint and export.",
+    "recovery_receipt": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1-execution.json",
+      "bytes": 8654,
+      "sha256": "f28e8008471622f24592a1b84dd5b310d5bd16c8f72815f990d638713c563ed4"
+    },
+    "minimum_free_memory_percent": 33,
+    "last_budget_seconds": {
+      "owned": 14314.238128,
+      "shared": 23758.658128,
+      "fit_phase": 4259.015599
+    },
+    "last_free_memory_percent": 63,
+    "maximum_child_rss_bytes": 7070744576,
+    "wall_seconds": 1460.259496916,
+    "last_storage": {
+      "physical_free_bytes": {
+        "/System/Volumes/Data": 27440308224,
+        "/Volumes/UOR-Workspace": 172503805952
+      },
+      "new_report_bytes": 713454,
+      "internal_shared_growth_bytes": 4987342848,
+      "ssd_growth_bytes": 0
+    },
+    "error": "RuntimeError: storage/reserve limit",
+    "final_resource_error": "RuntimeError: storage/reserve limit",
+    "finished_at": "2026-09-27T14:34:29.780343+00:00"
+  },
+  "curve": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1/learning-curve.jsonl",
+    "bytes": 629458,
+    "sha256": "530abee0669ae1b46f563ffd01e115fbfd924cca8d6ebfcef0c46b6fc7a87350"
+  },
+  "curve_summary": {
+    "updates": 190,
+    "data_steps": [
+      1024,
+      1213
+    ],
+    "supervised_target_visits": 215193,
+    "response_and_eos_visits": 3040,
+    "padded_position_visits": 778240,
+    "complete_step_seconds_sum": 1412.523345418,
+    "missing_gradient_rows": 0
+  },
+  "checkpoint_and_export_presence": {
+    "checkpoint-00000256": false,
+    "checkpoint-final": false,
+    "packed-model": false,
+    "result.json": false
+  },
+  "failed_attempt_seal": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1/manifest.json",
+    "bytes": 1123,
+    "sha256": "63de58bb8b8f008e96a1e3fb06b6b7029142abfd480372d88b7753e3015b47de"
+  },
+  "accounting": {
+    "last_charged_at": "2026-09-27T14:37:55.773768+00:00",
+    "charged_elapsed_ms": 50691759,
+    "tail_ms": 1821813,
+    "before": {
+      "cumulative_ms": 697025526,
+      "limit_ms": 744000000
+    },
+    "after": {
+      "cumulative_ms": 698847339,
+      "limit_ms": 744000000
+    },
+    "foreign_increment_since_last_cursor_ms": 0,
+    "verified_cumulative_allowance_ms": 722400000,
+    "owned_elapsed_cap_ms": 64800000,
+    "foreign_reported_limit_adopted": false,
+    "scope": "Complete elapsed since normalization cursor: frozen fit preparation/execution, concurrent endpoint and blocked-kernel source work/review, protected draft delivery, storage interruption diagnosis. Overlap charged once; failed model work retained. No restart launched.",
+    "process_breakdown_not_additional_charges": {
+      "fit_supervisor_seconds": 1460.259496916,
+      "fit_process_seconds": 1460.0519484590002,
+      "completed_alpha_updates_without_checkpoint": 190,
+      "complete_step_seconds_sum": 1412.523345418,
+      "supervised_target_visits": 215193,
+      "padded_position_visits": 778240,
+      "retained_alpha_artifacts": 0
+    },
+    "physical_free_bytes": {
+      "/System/Volumes/Data": 29334491136,
+      "/Volumes/UOR-Workspace": 172503805952
+    },
+    "limitations": "Advisory lock plus compare-before replacement; foreign writers may not share lock. Subsequent work continues from cursor."
+  },
+  "diagnosis": {
+    "observed": "Shared physical growth exceeded the frozen4GiB cap while owned report material remained below1MiB. At failure internalfree27,440,308,224bytes; guardterminatedownedRustprocess. macOSswapusage was high and changed rapidly; exact causal ownership of all shared growth was not measured.",
+    "source": "The response reducer launches both full B8 sequence graphs concurrently with native scoped threads. Increasing shard count alone does not bound concurrency and is rejected by the inherited child contract.",
+    "correction_selected_for_implementation": "Evaluate the same two full-sequence B8 shards sequentially, immediately reduce detached named gradients, preserve global response target mean and one Adam update. Validate focused gradient equivalence and measure actual normalization peak before selecting any new512-update execution.",
+    "checkpoint_correction": "Use early periodic retained checkpoints and prospective graceful storage headroom for any later attempt. No retry is launched by this record."
+  },
+  "scope": "No learned alpha or Adam payload survived. The curve cannot supply a resumed artifact or final quality result. Original continuous/nearest artifacts and all failed cost are retained."
+}

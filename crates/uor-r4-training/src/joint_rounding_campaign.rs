@@ -15,7 +15,7 @@ use uor_r4_core::report_output;
 
 use crate::baseline_protocol::{load_evaluator, read_tokens, save_json};
 use crate::joint_campaign::{self, Campaign};
-use crate::joint_model::{JointModel, ReadMode};
+use crate::joint_model::ReadMode;
 use crate::joint_optimizer::{AdamConfig, NamedAdamW};
 use crate::joint_rounding::{LearnedRounding, RoundingConfig};
 use crate::{invalid, sha256_file, Result};
@@ -631,7 +631,7 @@ pub fn run_cli(args: &[String]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::joint_model::{JointConfig, Transport};
+    use crate::joint_model::{JointConfig, JointModel, Transport};
 
     fn config() -> RoundingConfig {
         RoundingConfig {

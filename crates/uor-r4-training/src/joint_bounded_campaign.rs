@@ -100,7 +100,7 @@ fn fit(cfg: &BoundedCampaign, out: &Path, resume: Option<&Path>) -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
     let mut sample_cfg = parent.campaign.clone();
     sample_cfg.cpu_gradient_shards = cfg.cpu_gradient_shards;
-    let (mut model, mut optimizer, begin, resume_binding) = if let Some(path) = resume {
+    let (model, mut optimizer, begin, resume_binding) = if let Some(path) = resume {
         report_output::verify(path)?;
         let old: BoundedCampaign =
             serde_json::from_slice(&fs::read(path.join("bounded-campaign.json"))?)?;

@@ -5,12 +5,15 @@
 //! is truncated. Named mean gradients are combined in shard order, before the
 //! caller performs one global clip and one optimizer update. F32 reductions
 //! differ from an unsplit batch; bitwise trajectory equivalence is not claimed.
+//! Dialogue alpha learning alone uses a sequential variant of the response
+//! reducer, releasing each shard graph before constructing the next one.
 //! With optional target weights, each shard normalizes by its own weight sum
 //! before batch-fraction combination. Unequal shard weight sums therefore change
 //! the objective relative to a global weighted mean, beyond reduction rounding.
 
 use candle_core::backprop::GradStore;
-use candle_core::{DType, Device};
+use candle_core::{DType, Device, Tensor};
+use std::collections::BTreeMap;
 
 use crate::joint_model::{JointModel, ReadMode};
 use crate::{invalid, Result, TrainingError};
@@ -31,9 +34,7 @@ pub struct ResponseGradients {
     pub gradients: GradStore,
 }
 
-/// Binary response masks preserve gradients through every observed prefix.
-/// Every row must contain supervision; empty shards are not silently skipped.
-pub fn response_batch_gradients(
+fn validate_response_batch(
     model: &JointModel,
     inputs: &[u32],
     targets: &[u32],
@@ -41,7 +42,7 @@ pub fn response_batch_gradients(
     batch: usize,
     time: usize,
     shards: usize,
-) -> Result<ResponseGradients> {
+) -> Result<usize> {
     if !matches!(shards, 1 | 2 | 4)
         || batch == 0
         || batch > 64
@@ -60,7 +61,22 @@ pub fn response_batch_gradients(
     {
         return Err(invalid("invalid complete-response gradient batch/mask"));
     }
-    let supervised_targets = weights.iter().filter(|&&w| w == 1.0).count();
+    Ok(weights.iter().filter(|&&w| w == 1.0).count())
+}
+
+/// Binary response masks preserve gradients through every observed prefix.
+/// Every row must contain supervision; empty shards are not silently skipped.
+pub fn response_batch_gradients(
+    model: &JointModel,
+    inputs: &[u32],
+    targets: &[u32],
+    weights: &[f32],
+    batch: usize,
+    time: usize,
+    shards: usize,
+) -> Result<ResponseGradients> {
+    let supervised_targets =
+        validate_response_batch(model, inputs, targets, weights, batch, time, shards)?;
     if shards == 1 {
         let result = shard_gradients(model, inputs, targets, Some(weights), batch, time)?;
         return Ok(ResponseGradients {
@@ -164,6 +180,103 @@ pub fn response_batch_gradients(
         mean_nll,
         supervised_targets,
         gradients: result.gradients,
+    })
+}
+
+/// Same ordered response-token reduction, with only one shard graph at a time.
+/// Used by dialogue alpha learning; other trainers retain their parallel path.
+/// The caller's prepared parameter graph is shared, but each complete recurrent
+/// forward/backward graph and nonfinal GradStore is released before the next
+/// shard starts. The accumulator contains only detached named gradients.
+pub(crate) fn sequential_response_batch_gradients(
+    model: &JointModel,
+    inputs: &[u32],
+    targets: &[u32],
+    weights: &[f32],
+    batch: usize,
+    time: usize,
+    shards: usize,
+) -> Result<ResponseGradients> {
+    let supervised_targets =
+        validate_response_batch(model, inputs, targets, weights, batch, time, shards)?;
+    if !matches!(model.device(), Device::Cpu) {
+        return Err(invalid("sequential response shards require CPU"));
+    }
+    let shard_batch = batch / shards;
+    let shard_tokens = shard_batch * time;
+    // Preserve the recurrent backward traversal's worker stack. Joining one
+    // worker after it finishes all shards does not launch concurrent graphs.
+    std::thread::scope(|scope| {
+        let handle = std::thread::Builder::new()
+            .name("dialogue-gradient-sequential".into())
+            .stack_size(WORKER_STACK_BYTES)
+            .spawn_scoped(scope, || -> Result<ResponseGradients> {
+                let mut combined = BTreeMap::<String, Tensor>::new();
+                let mut mean_nll = 0f64;
+                for shard in 0..shards {
+                    let start = shard * shard_tokens;
+                    let end = start + shard_tokens;
+                    let mask = &weights[start..end];
+                    let mass = mask.iter().filter(|&&w| w == 1.0).count() as f64
+                        / supervised_targets as f64;
+                    let mut result = shard_gradients(
+                        model,
+                        &inputs[start..end],
+                        &targets[start..end],
+                        Some(mask),
+                        shard_batch,
+                        time,
+                    )?;
+                    mean_nll += f64::from(result.mean_nll) * mass;
+                    for (name, variable) in model.variables() {
+                        let gradient =
+                            result
+                                .gradients
+                                .remove(variable.as_tensor())
+                                .ok_or_else(|| {
+                                    invalid(format!(
+                                        "sequential response shard{shard} missing {name}"
+                                    ))
+                                })?;
+                        if gradient.dtype() != DType::F32
+                            || gradient.dims() != variable.dims()
+                            || !gradient.device().same_device(variable.device())
+                        {
+                            return Err(invalid(format!(
+                                "sequential response gradient binding differs for {name}"
+                            )));
+                        }
+                        let weighted = gradient.detach().affine(mass, 0.0)?;
+                        let value = match combined.remove(name) {
+                            Some(previous) => previous.add(&weighted)?,
+                            None => weighted,
+                        };
+                        combined.insert(name.clone(), value.detach());
+                    }
+                    if shard + 1 == shards {
+                        // GradStore::new is private in Candle. Reuse only the
+                        // final store, after which no new shard graph is built.
+                        for (name, variable) in model.variables() {
+                            let gradient = combined.remove(name).ok_or_else(|| {
+                                invalid(format!("missing combined response gradient {name}"))
+                            })?;
+                            result.gradients.insert(variable.as_tensor(), gradient);
+                        }
+                        return Ok(ResponseGradients {
+                            mean_nll: mean_nll as f32,
+                            supervised_targets,
+                            gradients: result.gradients,
+                        });
+                    }
+                    // Drop all nonnamed entries too; retaining the first
+                    // store as the accumulator could retain its graph tensors.
+                    drop(result);
+                }
+                Err(invalid("sequential response shards returned no gradients"))
+            })?;
+        handle
+            .join()
+            .map_err(|_| invalid("sequential response gradient worker panicked"))?
     })
 }
 

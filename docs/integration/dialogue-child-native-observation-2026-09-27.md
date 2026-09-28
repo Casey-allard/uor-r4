@@ -167,9 +167,12 @@ project's complete-trajectory supervised response objective is a separate
 choice, not a demonstrated dialogue result from that paper.
 [GPTQ](https://arxiv.org/abs/2210.17323) supplies a one-shot approximate
 second-order alternative; its transformer/GPU results do not establish native
-recurrent dialogue retention. Claude's new GPTQ source has no trained result
-packet in the reviewed head, and its grouped codec/separate head differ from
-this path. Neither external method is adopted by reputation alone.
+recurrent dialogue retention. The initial Claude GPTQ source had no trained
+packet in that reviewed head. Its [subsequent trained delta at `c22a97e6`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5856353989)
+reduces five integer NLL gaps by 40.5–54.3%, with packet/data joins verified;
+generated GPTQ replies and local raw payloads remain unavailable. Its grouped
+codec, separate head and D10 arithmetic still differ from this path. This useful
+alternative does not supersede the same-child response-aware repair decision.
 
 References #973 and #820. Protected delivery remains separate from model
 promotion; the broader geometric attention, useful inference, prose, chat and

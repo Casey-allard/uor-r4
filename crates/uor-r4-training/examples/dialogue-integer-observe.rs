@@ -1,4 +1,4 @@
-//! Explicit historical R1d or selected-child observation:
+//! Explicit historical R1d, nearest-child or learned-code child observation:
 //! FF -> packed QF -> packed QQ -> integer.
 //! No calibration, optimization, new data selection or quality acceptance gate.
 //! Identical saved inputs localize numerical changes; actual dialogue retains
@@ -60,31 +60,49 @@ const PAIRS: [&str; 3] = ["FF_QF", "QF_QQ", "QQ_integer"];
 enum ObservationMode {
     HistoricalR1d,
     CompletePrefixChild,
+    RoundedCompletePrefixChild,
 }
 impl ObservationMode {
+    fn is_child(self) -> bool {
+        self != Self::HistoricalR1d
+    }
+    fn conversion_schema(self) -> &'static str {
+        match self {
+            Self::HistoricalR1d => "uor-r4.native-dialogue576-conversion/1",
+            Self::CompletePrefixChild => "uor-r4.native-dialogue576-child-conversion/1",
+            Self::RoundedCompletePrefixChild => "uor-r4.native-dialogue576-child-rounding/1",
+        }
+    }
+    fn preparation(self) -> QuantizationPreparation {
+        match self {
+            Self::RoundedCompletePrefixChild => QuantizationPreparation::CalibratedForRounding,
+            _ => QuantizationPreparation::CalibratedForExport,
+        }
+    }
     fn reference_sha(self) -> &'static str {
         match self {
             Self::HistoricalR1d => REPLAY_SHA,
-            Self::CompletePrefixChild => CHILD_RESPONSES_SHA,
+            Self::CompletePrefixChild | Self::RoundedCompletePrefixChild => CHILD_RESPONSES_SHA,
         }
     }
     /// (turns, prompt occurrences, selections, consumed trace positions).
     fn reference_counts(self) -> (usize, usize, usize, usize) {
         match self {
             Self::HistoricalR1d => (58, 2623, 1766, 4331),
-            Self::CompletePrefixChild => (58, 2464, 1508, 3914),
+            Self::CompletePrefixChild | Self::RoundedCompletePrefixChild => (58, 2464, 1508, 3914),
         }
     }
     fn model_step(self) -> usize {
         match self {
             Self::HistoricalR1d => 2237,
-            Self::CompletePrefixChild => 1024,
+            Self::CompletePrefixChild | Self::RoundedCompletePrefixChild => 1024,
         }
     }
     fn input_scope(self) -> &'static str {
         match self {
             Self::HistoricalR1d => "Historical R1d only; no current-study child. Legacy import hashes train AND heldout token/mask files for provenance; no corpus or heldout scoring, panel selection, calibration or optimizer updates.",
             Self::CompletePrefixChild => "Selected continuous complete-prefix child and its own sealed saved responses, not the historical R1d output. Typed import binds immediate child checkpoint and historical ancestry separately. Data identities are provenance only; no corpus or heldout scoring, calibration, alpha learning or optimizer/model updates.",
+            Self::RoundedCompletePrefixChild => "Selected continuous complete-prefix child remains FF and supplies the identical saved reference. QF/QQ/integer use separately bound learned legal codes on its frozen grids; prior alpha updates are distinct from the child model clock and from this forward-only observer. No corpus or heldout scoring, calibration, backward or optimizer updates occur here.",
         }
     }
 }
@@ -93,12 +111,18 @@ fn parse_args(mut args: Vec<PathBuf>) -> Result<(ObservationMode, Vec<PathBuf>)>
     let mode = if args.first().is_some_and(|p| p.as_os_str() == "--child") {
         args.remove(0);
         ObservationMode::CompletePrefixChild
+    } else if args
+        .first()
+        .is_some_and(|p| p.as_os_str() == "--child-rounded")
+    {
+        args.remove(0);
+        ObservationMode::RoundedCompletePrefixChild
     } else {
         ObservationMode::HistoricalR1d
     };
     ensure(
         args.len() == 8 && !args[0].as_os_str().to_string_lossy().starts_with("--"),
-        "usage: dialogue-integer-observe [--child] PARENT_REPORT_ROOT CORPUS_MANIFEST TOKENIZER PACKED_ROOT BUNDLE_ROOT REQUESTS RECORDED_RESPONSES NEW_REPORT_ROOT; omitted mode retains historical R1d",
+        "usage: dialogue-integer-observe [--child | --child-rounded] PARENT_REPORT_ROOT CORPUS_MANIFEST TOKENIZER PACKED_ROOT BUNDLE_ROOT REQUESTS RECORDED_RESPONSES NEW_REPORT_ROOT; omitted mode retains historical R1d",
     )?;
     Ok((mode, args))
 }
@@ -311,7 +335,7 @@ fn prepare_traces(
                     && turn.user == *user
                     && match &turn.appended_user_prefix_ids {
                         Some(recorded) => *recorded == suffix.tokens,
-                        None => mode == ObservationMode::CompletePrefixChild,
+                        None => mode.is_child(),
                     },
                 "saved user framing differs",
             )?;
@@ -1044,18 +1068,22 @@ fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> 
             ObservationMode::HistoricalR1d => ParentArtifact::Historical(
                 LegacyDialogueArtifact::load(&args[0], &args[1], &args[2], &Device::Cpu)?,
             ),
-            ObservationMode::CompletePrefixChild => ParentArtifact::Child(
-                DialogueChildArtifact::load(&args[0], &args[1], &args[2], &Device::Cpu)?,
-            ),
+            ObservationMode::CompletePrefixChild | ObservationMode::RoundedCompletePrefixChild => {
+                ParentArtifact::Child(DialogueChildArtifact::load(
+                    &args[0],
+                    &args[1],
+                    &args[2],
+                    &Device::Cpu,
+                )?)
+            }
         };
     let provenance = artifact.provenance()?;
     let saved = load_saved_reference(args, mode, &provenance)?;
-    let (parent_sha, conversion_schema) = match mode {
-        ObservationMode::HistoricalR1d => (PARENT_SHA, "uor-r4.native-dialogue576-conversion/1"),
-        ObservationMode::CompletePrefixChild => (
-            CHILD_MODEL_SHA,
-            "uor-r4.native-dialogue576-child-conversion/1",
-        ),
+    let parent_sha = match mode {
+        ObservationMode::HistoricalR1d => PARENT_SHA,
+        ObservationMode::CompletePrefixChild | ObservationMode::RoundedCompletePrefixChild => {
+            CHILD_MODEL_SHA
+        }
     };
     ensure(
         provenance["parameter_sha256"] == parent_sha
@@ -1063,12 +1091,21 @@ fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> 
             && provenance["protocol_identity"] == PROTOCOL_ID
             && saved.artifact == provenance
             && hard["conversion_provenance"]["parent"] == provenance
-            && hard["conversion_provenance"]["schema"] == conversion_schema
+            && hard["conversion_provenance"]["schema"] == mode.conversion_schema()
             && saved.protocol_identity == PROTOCOL_ID
             && serde_json::to_value(&saved.protocol)? == serde_json::to_value(artifact.protocol())?,
         "selected parent/conversion/reference mode, identity or protocol differs",
     )?;
     let bundle = Bundle::load(&args[4])?;
+    let observed_artifact_alpha_updates = if mode == ObservationMode::RoundedCompletePrefixChild {
+        let updates = hard["conversion_provenance"]["rounding_stage"]["completed_updates"]
+            .as_u64()
+            .ok_or_else(|| io::Error::other("learned child alpha clock missing"))?;
+        ensure(updates > 0, "learned child requires nonzero alpha updates")?;
+        updates
+    } else {
+        0
+    };
     ensure(
         bundle.model().serving_profile() == ServingProfile::Dialogue576
             && bundle.model().config() == &artifact.model().config
@@ -1096,7 +1133,7 @@ fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> 
             && quant.start_step == mode.model_step()
             && quant.completed_step == mode.model_step()
             && quant.ramp_steps == 1
-            && quant.preparation == Some(QuantizationPreparation::CalibratedForExport),
+            && quant.preparation == Some(mode.preparation()),
         "fixed FF/QF/QQ configuration or honest calibration clock differs",
     )?;
     let ff_parameters = parameter_bindings(ff)?;
@@ -1134,7 +1171,7 @@ fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> 
         args[4].join("tables/tables.bin"),
         args[4].join("tables/manifest.json"),
     ];
-    if mode == ObservationMode::CompletePrefixChild {
+    if mode.is_child() {
         input_files.extend([
             args[0].join("result.json"),
             args[0].join("checkpoint-final/manifest.json"),
@@ -1180,7 +1217,7 @@ fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> 
         &requests,
         "FF",
         out,
-        (mode == ObservationMode::CompletePrefixChild).then_some(&saved),
+        mode.is_child().then_some(&saved),
     )?;
     let qq_output = generate_float(
         &qq,
@@ -1217,13 +1254,14 @@ fn observe(args: &[PathBuf], source: &str, mode: ObservationMode) -> Result<()> 
     write_json(
         &out.join("result.json"),
         &json!({"schema":"uor-r4.native-dialogue576-observation/1","status":if reference_matches {"OBSERVATION_COMPLETE_REVIEW_PENDING"} else {"OBSERVATION_COMPLETE_REFERENCE_MISMATCH"},
-        "observation_mode":mode,"child_FF_saved_reference_match":if mode==ObservationMode::CompletePrefixChild {json!(reference_matches)} else {Value::Null},
+        "observation_mode":mode,"child_FF_saved_reference_match":if mode.is_child() {json!(reference_matches)} else {Value::Null},
         "source_commit":source,"executable_sha256":sha256_file(&std::env::current_exe()?)?,
         "input_binding":identity(&out.join("input-binding.json"))?,"trace_summary":identity(&out.join("trace-summary.json"))?,
         "outputs":[ff_output,qq_output,integer_output],"requests":38,"responses":174,
         "trace_model_step_calls":trace_summary["model_step_calls"],"generation_model_step_calls":generation_calls,
         "total_model_step_calls":trace_calls+generation_calls,"generated_selections_including_eos":selections,
         "new_optimizer_updates":0,"new_backward_calls":0,"new_calibrations":0,"parameters_unchanged_after_observation":true,
+        "observed_artifact_alpha_updates":observed_artifact_alpha_updates,
         "preparation_seconds":preparation_seconds,"elapsed_seconds_before_sealing":clock.elapsed().as_secs_f64(),
         "quality":"REVIEW_PENDING_NO_AUTOMATIC_PASS","energy_or_native_speed_advantage":"NOT_MEASURED",
         "scope":"Four-view numerical localization on identical saved weak-parent trajectories and actual fixed greedy dialogue outputs. Dense parameter access remains; whole-form histories may diverge. No model promotion, new dose/decoder/seed or categorical RNG parity claim."}),
@@ -1264,6 +1302,10 @@ fn source_hashes() -> BTreeMap<&'static str, String> {
         (
             "dialogue_child_artifact.rs",
             include_bytes!("../src/dialogue_child_artifact.rs").as_slice(),
+        ),
+        (
+            "dialogue_rounding_artifact.rs",
+            include_bytes!("../src/dialogue_rounding_artifact.rs").as_slice(),
         ),
         (
             "joint_model.rs",
@@ -1378,6 +1420,23 @@ mod tests {
         assert_eq!(child.reference_counts(), (58, 2464, 1508, 3914));
         assert_ne!(historical.reference_sha(), child.reference_sha());
         assert_eq!(child.model_step(), 1024);
+        let mut rounded_args = vec![PathBuf::from("--child-rounded")];
+        rounded_args.extend(paths.clone());
+        let (rounded, supplied) = parse_args(rounded_args)?;
+        assert_eq!(supplied, paths);
+        assert_eq!(rounded, ObservationMode::RoundedCompletePrefixChild);
+        assert_eq!(rounded.reference_sha(), child.reference_sha());
+        assert_eq!(rounded.reference_counts(), child.reference_counts());
+        assert_eq!(rounded.model_step(), child.model_step());
+        assert_ne!(rounded.conversion_schema(), child.conversion_schema());
+        assert_eq!(
+            rounded.preparation(),
+            QuantizationPreparation::CalibratedForRounding
+        );
+        assert_eq!(
+            child.preparation(),
+            QuantizationPreparation::CalibratedForExport
+        );
         assert_eq!(historical.model_step(), 2237);
         assert!(parse_args(vec![PathBuf::from("--child")]).is_err());
         let mut unknown = paths;

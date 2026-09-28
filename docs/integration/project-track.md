@@ -169,6 +169,24 @@ whole-response recovery and retained relations govern the decision, with prior
 width-256 numerical improvements and source-answer losses preserved. Deeper
 geometric state/read and general prose remain independent programme obligations.
 
+That [code-choice path is now implemented and normalized](dialogue-code-choice-preparation-2026-09-27.md).
+Seventeen focused checks pass. Eight training-only normalization batches use
+9,179 supervised targets with zero updates and select coefficient 29.56681391929494;
+the measured peak is 6.920 GB. One prospectively fixed 512-update alpha run is
+interrupted at190 updates by shared storage growth, before an alpha checkpoint
+or export. Retain its cost and curve as an execution failure, with final quality
+unavailable. The [sequential correction](dialogue-code-choice-sequential-preparation-2026-09-27.md)
+now passes the focused objective comparison and repeats the same normalization
+statistics at 4.723 GB peak RSS instead of 6.920 GB. Its slower measured batch cost
+is prospectively included in one fresh fixed 512 attempt with earlier checkpoints
+32/128/256/384 and final 512. Keep the original child/grid/context/decoder and
+coefficient. Complete
+cost includes both original 161-response QQ endpoints and the unchanged 58-turn
+native observation. Review all actual replies and source-level tradeoffs before
+retaining a candidate. This run neither introduces selected parameter access
+nor establishes a language or geometric-advantage result; no subsequent dose
+sweep is selected.
+
 The [completed termination-objective review](termination-objective-review-2026-09-27.md)
 parks the implemented weighting condition as INERT. Its three improvements on
 the original 20 failed source rows fall below the declared four, and actual
@@ -224,6 +242,14 @@ also differs from this native path; local payload intake remains unavailable.
 These results inform repair alternatives without changing the native target or
 the fixed child-specific response-aware study above. See the [source-level
 transfer assessment](finite-h4-learning-and-native-reuse-2026-09-27.md).
+
+The [trained GPTQ delta at `c22a97e6`](https://github.com/UOR-Foundation/uor-r4/pull/1414#issuecomment-5856353989)
+subsequently reduces those five integer NLL gaps by 40.5–54.3%. Packet and
+parent/data joins are verified, but generated GPTQ replies and local raw
+payloads remain unavailable. Use this as a data-aware conversion alternative,
+with its grouped grids, separate head and D10 arithmetic explicit. It does not
+supersede the native child's observed response losses or justify an additional
+automatic experimental arm.
 
 ## Active programme — learn the model, then harden its execution
 

@@ -149,7 +149,7 @@ fn digest<T: Serialize + ?Sized>(value: &T) -> Result<String> {
     Ok(hex::encode(Sha256::digest(serde_json::to_vec(value)?)))
 }
 
-fn advance_schedule(
+pub(crate) fn advance_schedule(
     previous: &str,
     step: usize,
     ids: &[usize],
@@ -169,13 +169,17 @@ fn count(v: &Value, field: &str) -> Result<usize> {
         .ok_or_else(|| invalid(format!("missing bounded count {field}")))
 }
 
-struct Corpus {
+pub(crate) struct Corpus {
     reader: MmapCorpusReader,
     masks: Vec<u8>,
     sources: Vec<SourceSpan>,
 }
 impl Corpus {
-    fn load(binding: &DatasetBinding, prepared: &Value, manifest_path: &Path) -> Result<Self> {
+    pub(crate) fn load(
+        binding: &DatasetBinding,
+        prepared: &Value,
+        manifest_path: &Path,
+    ) -> Result<Self> {
         let split = &prepared[&binding.split];
         let root = manifest_path
             .parent()
@@ -229,7 +233,7 @@ impl Corpus {
             sources,
         })
     }
-    fn index(&self, contract: EpisodeContract) -> Result<EpisodeIndex<'_>> {
+    pub(crate) fn index(&self, contract: EpisodeContract) -> Result<EpisodeIndex<'_>> {
         EpisodeIndex::new(self.reader.as_slice(), &self.masks, contract, &self.sources)
     }
 }

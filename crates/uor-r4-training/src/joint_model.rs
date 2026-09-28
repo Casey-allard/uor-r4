@@ -881,6 +881,35 @@ impl JointModel {
         Ok(())
     }
 
+    /// Attach an already exported child's exact grids to independent continuous
+    /// arrays. This deliberately performs no scale calibration or model update.
+    pub(crate) fn configure_frozen_dialogue_rounding(
+        &mut self,
+        frozen: &QuantizedTrainingState,
+        step: usize,
+    ) -> Result<()> {
+        self.config
+            .validate_for_profile(ServingProfile::Dialogue576)?;
+        if self.quantization.is_some()
+            || self.hard_only
+            || self.precision_mode.is_some()
+            || self.prepared_parameters.is_some()
+            || self.rounding_learning
+            || self.admission != AdmissionPolicy::Full
+            || frozen.preparation != Some(QuantizationPreparation::CalibratedForExport)
+            || frozen.start_step != step
+            || frozen.completed_step != step
+            || frozen.ramp_steps != 1
+        {
+            return Err(invalid("frozen dialogue rounding parent/state mismatch"));
+        }
+        frozen.spec.validate(&self.variables)?;
+        let mut state = frozen.clone();
+        state.preparation = Some(QuantizationPreparation::CalibratedForRounding);
+        self.quantization = Some(state);
+        Ok(())
+    }
+
     pub(crate) fn is_rounding_calibrated(&self) -> bool {
         self.quantization
             .as_ref()
@@ -2284,7 +2313,7 @@ impl JointModel {
         self.save_hard_profile(directory, ServingProfile::Dialogue576, Some(&provenance))
     }
 
-    fn save_hard_profile(
+    pub(crate) fn save_hard_profile(
         &self,
         directory: &Path,
         profile: ServingProfile,
@@ -2344,6 +2373,13 @@ impl JointModel {
         }
         if let Some(provenance) = conversion_provenance {
             manifest["conversion_provenance"] = provenance.clone();
+            if provenance["schema"] == crate::dialogue_rounding_artifact::LEARNED_SCHEMA {
+                // Bind actual codec output, never caller-asserted code hashes.
+                manifest["conversion_provenance"]["hard_payload_sha256"] =
+                    manifest["parameter_manifest"]["payload_sha256"].clone();
+                manifest["conversion_provenance"]["hard_parameter_manifest_sha256"] =
+                    manifest["parameter_manifest_sha256"].clone();
+            }
         }
         let mut file = File::create_new(directory.join("hard-model.json"))?;
         serde_json::to_writer_pretty(&mut file, &manifest)?;

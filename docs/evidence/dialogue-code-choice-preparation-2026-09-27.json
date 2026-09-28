@@ -1,0 +1,3407 @@
+{
+  "schema": "uor-r4.dialogue-code-choice-preparation/1",
+  "recorded_at": "2026-09-27T14:13:44.954600+00:00",
+  "status": "SOURCE_VALIDATED_NORMALIZED_FIXED_FIT_SELECTED",
+  "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+  "scope": "Executed source checks and eight training normalization presentations, plus prospectively fixed alpha recipe. No fitted quality outcome is asserted in this preparation packet. Fit/export/evaluation/actual replies are separate ongoing work.",
+  "validation_scope": "Five training tests passed atc626568f. Only subsequent source change was negative fixture shape[1] to[999], which production already rejects. Eight integer and four observer checks plus release builds pass at34964512. Original failed fixture and all elapsed retained.",
+  "records": {
+    "dialogue-child-code-choice-checks-1.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1.json",
+        "bytes": 7320,
+        "sha256": "6cd8ae56ea3bfdacf941ceabd4d7df965181d5e47baa145dd22b1ab4e56aaf7a"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-child-code-choice-checks/1",
+        "status": "STOPPED_INCOMPLETE",
+        "attempt": 1,
+        "source_commit": "c626568f072d6d2bc0d78d52ec35ca7d69cd34d9",
+        "worktree": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4",
+        "started_at": "2026-09-27T13:51:10.139208+00:00",
+        "scope": "Focused synthetic masked-alpha/lineage/export/observer checks and release compilation; no retained-artifact normalization or fitted campaign.",
+        "execution_spec": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-execution-spec-1.json",
+          "bytes": 4012,
+          "sha256": "66171561a98741dbd798d3260ac36c2c703e69feeba0bd775f2822adcd4466c0"
+        },
+        "projection": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-child-code-choice-checks-1.json",
+          "bytes": 1862,
+          "sha256": "ad87b7fbc1ec2e1936f949696b766cfd3321ef2e367765bd87c58eea99019630"
+        },
+        "supervisor": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/check-dialogue-child-code-choice.py",
+          "bytes": 20805,
+          "sha256": "4284c46d2f6c96e883fd5554d1b306ccd2777c0ac7cdc9cd8ebb523d48778881"
+        },
+        "source_files": {
+          "crates/uor-r4-integer/src/bundle.rs": {
+            "bytes": 49049,
+            "sha256": "64c664a72fdc26a65f8b60f0409341374900103c1054b624dc8cb01292257ac6"
+          },
+          "crates/uor-r4-training/examples/dialogue-child-rounding.rs": {
+            "bytes": 1854,
+            "sha256": "5571665ec78c0657016cc2b3a2fa7f37072c2dd4eb03839aeb90149ca971a22c"
+          },
+          "crates/uor-r4-training/examples/dialogue-integer-observe.rs": {
+            "bytes": 62696,
+            "sha256": "da6966e468be126fa7d88c4254ad2a88010e96ade70eb015bc380714d8cad828"
+          },
+          "crates/uor-r4-training/src/dialogue_artifact.rs": {
+            "bytes": 37633,
+            "sha256": "ec0257f240d7ebff386112d8f8fbfdb471c1bbfd666d478c846ab1b1d113a2ef"
+          },
+          "crates/uor-r4-training/src/dialogue_child_artifact.rs": {
+            "bytes": 30176,
+            "sha256": "6667360d18f4eafab62b9a58529f778a4499c8e580f7e5fa254784d40a7de411"
+          },
+          "crates/uor-r4-training/src/dialogue_learning.rs": {
+            "bytes": 32568,
+            "sha256": "93125665ea633046baa054b5780e191729f27c141f4cbec43881b687c47f59d8"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding.rs": {
+            "bytes": 51419,
+            "sha256": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding_artifact.rs": {
+            "bytes": 31074,
+            "sha256": "caefa920e21f404f42ca90eb64378d326480c7ceba0422656f46c446d5016dd5"
+          },
+          "crates/uor-r4-training/src/joint_model.rs": {
+            "bytes": 184087,
+            "sha256": "e4b6a38301828db72a14f5976c1e374b95db92ba7de226ac6d8b518f752865dd"
+          },
+          "crates/uor-r4-training/src/joint_optimizer.rs": {
+            "bytes": 35540,
+            "sha256": "d14b79ec86682d85239ce08d326053fa81ab51495b253932de6cd53b1659d444"
+          },
+          "crates/uor-r4-training/src/joint_parallel.rs": {
+            "bytes": 18663,
+            "sha256": "fab465c19285a6953adff5d96b807e9cee6cf7a0628e89f7defb362c7b392f2a"
+          },
+          "crates/uor-r4-training/src/joint_rounding.rs": {
+            "bytes": 58831,
+            "sha256": "b5c2a4f4c3ac82faa1077ce8f1932c35d872450b6f120efb9c14c3ba7f104a9e"
+          },
+          "crates/uor-r4-training/src/lib.rs": {
+            "bytes": 28624,
+            "sha256": "8cb1a4da96be269235e00dfb17dbf008e3c30415dfa56c76d1b1c4d195806352"
+          }
+        },
+        "features": [
+          "cpu-accelerate"
+        ],
+        "profile": "release",
+        "cargo_jobs": 1,
+        "jobs": [
+          {
+            "label": "training-rounding-tests",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--lib",
+              "dialogue_rounding_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T13:51:10.517449+00:00",
+            "status": "COMPLETE",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1-training-rounding-tests.log",
+            "pid": 80574,
+            "exit_code": 0,
+            "wall_seconds": 303.125577083,
+            "finished_at": "2026-09-27T13:56:13.638130+00:00",
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1-training-rounding-tests.log",
+              "bytes": 3157,
+              "sha256": "2e19a259769a6f9cb9edebf401130b4a814436abc4bcdb59878c79f3723e2acf"
+            }
+          },
+          {
+            "label": "integer-dialogue-tests",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--lib",
+              "dialogue576_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T13:56:13.890906+00:00",
+            "status": "FAILED",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1-integer-dialogue-tests.log",
+            "pid": 81255,
+            "exit_code": 101,
+            "wall_seconds": 16.249535083000012,
+            "finished_at": "2026-09-27T13:56:30.140216+00:00",
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1-integer-dialogue-tests.log",
+              "bytes": 2419,
+              "sha256": "c7cc732d4e0484a5e0237b4c724fa8b9a3a693831c631f706da0d04a76604e89"
+            }
+          }
+        ],
+        "maximum_sampled_group_rss_bytes": 2852798464,
+        "maximum_child_rss_bytes": 4099735552,
+        "thread_environment": {
+          "CARGO_BUILD_JOBS": "1",
+          "RAYON_NUM_THREADS": "2",
+          "VECLIB_MAXIMUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "GEMM_NUM_THREADS": "1"
+        },
+        "prior_attempts": [],
+        "recovery_receipt": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1-execution.json",
+          "bytes": 8654,
+          "sha256": "f28e8008471622f24592a1b84dd5b310d5bd16c8f72815f990d638713c563ed4"
+        },
+        "recovery_finished_at": "2026-09-27T11:56:31.777351+00:00",
+        "last_budget": {
+          "owned_seconds_remaining": 16593.857747,
+          "cumulative_seconds_remaining": 26038.277747,
+          "original_phase_seconds_remaining": 2027.106782,
+          "preparation_seconds_remaining": 2497.402725
+        },
+        "last_storage": {
+          "physical_free_bytes": {
+            "/System/Volumes/Data": 30136168448,
+            "/Volumes/UOR-Workspace": 172490743808
+          },
+          "own_preparation_bytes": 708615,
+          "internal_shared_growth_bytes": 2291482624,
+          "shared_ssd_growth_bytes": 491520
+        },
+        "last_free_memory_percent": 60,
+        "wall_seconds": 320.034686125,
+        "aggregate_code_choice_build_seconds": 320.034686417,
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "error": "RuntimeError: integer-dialogue-tests failed; no later command launched",
+        "finished_at": "2026-09-27T13:56:30.168589+00:00"
+      }
+    },
+    "dialogue-child-code-choice-checks-2.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2.json",
+        "bytes": 10904,
+        "sha256": "9a087019459ef43d2a5c741ae9ef3318bd5dda80024c3a5fceb81e8003814002"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-child-code-choice-checks/1",
+        "status": "COMPLETE",
+        "attempt": 2,
+        "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+        "worktree": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4",
+        "started_at": "2026-09-27T13:58:16.206068+00:00",
+        "scope": "Focused synthetic masked-alpha/lineage/export/observer checks and release compilation; no retained-artifact normalization or fitted campaign.",
+        "execution_spec": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-execution-spec-2.json",
+          "bytes": 4049,
+          "sha256": "8f0ea57211499e09077624d90fdb68648889af50ac8071dc884c43e93f557677"
+        },
+        "projection": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-child-code-choice-checks-1.json",
+          "bytes": 1862,
+          "sha256": "ad87b7fbc1ec2e1936f949696b766cfd3321ef2e367765bd87c58eea99019630"
+        },
+        "supervisor": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/check-dialogue-child-code-choice.py",
+          "bytes": 20805,
+          "sha256": "4284c46d2f6c96e883fd5554d1b306ccd2777c0ac7cdc9cd8ebb523d48778881"
+        },
+        "source_files": {
+          "crates/uor-r4-integer/src/bundle.rs": {
+            "bytes": 49051,
+            "sha256": "ac13f9b8c82e83ff3100b4e7e34ea2718c8dd12a0344983af7c124335a3986bd"
+          },
+          "crates/uor-r4-training/examples/dialogue-child-rounding.rs": {
+            "bytes": 1854,
+            "sha256": "5571665ec78c0657016cc2b3a2fa7f37072c2dd4eb03839aeb90149ca971a22c"
+          },
+          "crates/uor-r4-training/examples/dialogue-integer-observe.rs": {
+            "bytes": 62696,
+            "sha256": "da6966e468be126fa7d88c4254ad2a88010e96ade70eb015bc380714d8cad828"
+          },
+          "crates/uor-r4-training/src/dialogue_artifact.rs": {
+            "bytes": 37633,
+            "sha256": "ec0257f240d7ebff386112d8f8fbfdb471c1bbfd666d478c846ab1b1d113a2ef"
+          },
+          "crates/uor-r4-training/src/dialogue_child_artifact.rs": {
+            "bytes": 30176,
+            "sha256": "6667360d18f4eafab62b9a58529f778a4499c8e580f7e5fa254784d40a7de411"
+          },
+          "crates/uor-r4-training/src/dialogue_learning.rs": {
+            "bytes": 32568,
+            "sha256": "93125665ea633046baa054b5780e191729f27c141f4cbec43881b687c47f59d8"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding.rs": {
+            "bytes": 51419,
+            "sha256": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding_artifact.rs": {
+            "bytes": 31074,
+            "sha256": "caefa920e21f404f42ca90eb64378d326480c7ceba0422656f46c446d5016dd5"
+          },
+          "crates/uor-r4-training/src/joint_model.rs": {
+            "bytes": 184087,
+            "sha256": "e4b6a38301828db72a14f5976c1e374b95db92ba7de226ac6d8b518f752865dd"
+          },
+          "crates/uor-r4-training/src/joint_optimizer.rs": {
+            "bytes": 35540,
+            "sha256": "d14b79ec86682d85239ce08d326053fa81ab51495b253932de6cd53b1659d444"
+          },
+          "crates/uor-r4-training/src/joint_parallel.rs": {
+            "bytes": 18663,
+            "sha256": "fab465c19285a6953adff5d96b807e9cee6cf7a0628e89f7defb362c7b392f2a"
+          },
+          "crates/uor-r4-training/src/joint_rounding.rs": {
+            "bytes": 58831,
+            "sha256": "b5c2a4f4c3ac82faa1077ce8f1932c35d872450b6f120efb9c14c3ba7f104a9e"
+          },
+          "crates/uor-r4-training/src/lib.rs": {
+            "bytes": 28624,
+            "sha256": "8cb1a4da96be269235e00dfb17dbf008e3c30415dfa56c76d1b1c4d195806352"
+          }
+        },
+        "features": [
+          "cpu-accelerate"
+        ],
+        "profile": "release",
+        "cargo_jobs": 1,
+        "jobs": [
+          {
+            "label": "integer-dialogue-tests",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--lib",
+              "dialogue576_",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T13:58:16.561940+00:00",
+            "status": "COMPLETE",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-integer-dialogue-tests.log",
+            "pid": 81417,
+            "exit_code": 0,
+            "wall_seconds": 16.2484825,
+            "finished_at": "2026-09-27T13:58:32.810221+00:00",
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-integer-dialogue-tests.log",
+              "bytes": 1860,
+              "sha256": "403140508b7e07aee31ea3eead0143d11adb7a7c0d793aa2866bbbe607b304fd"
+            }
+          },
+          {
+            "label": "observer-tests",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--example",
+              "dialogue-integer-observe",
+              "--",
+              "--test-threads=1"
+            ],
+            "started_at": "2026-09-27T13:58:32.968002+00:00",
+            "status": "COMPLETE",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-observer-tests.log",
+            "pid": 81463,
+            "exit_code": 0,
+            "wall_seconds": 292.529667958,
+            "finished_at": "2026-09-27T14:03:25.492928+00:00",
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-observer-tests.log",
+              "bytes": 3301,
+              "sha256": "fe3bf6ceab6f56cc1ed99dd136e27de8d372a9d96bca0b328fe62e6a721c0ef3"
+            }
+          },
+          {
+            "label": "training-examples-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--example",
+              "dialogue-child-rounding",
+              "--example",
+              "dialogue-integer-observe"
+            ],
+            "started_at": "2026-09-27T14:03:25.654886+00:00",
+            "status": "COMPLETE",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-training-examples-build.log",
+            "pid": 82178,
+            "exit_code": 0,
+            "wall_seconds": 8.125017958,
+            "finished_at": "2026-09-27T14:03:33.779867+00:00",
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-training-examples-build.log",
+              "bytes": 2479,
+              "sha256": "88ef6ee4a30bbfbfb879d7f9908a2ed703ed2f40e956ddfee02610c59f1a9a69"
+            }
+          },
+          {
+            "label": "integer-build",
+            "command": [
+              "/usr/bin/time",
+              "-l",
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--bin",
+              "uor-r4-integer"
+            ],
+            "started_at": "2026-09-27T14:03:33.932177+00:00",
+            "status": "COMPLETE",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-integer-build.log",
+            "pid": 82205,
+            "exit_code": 0,
+            "wall_seconds": 14.218465958000024,
+            "finished_at": "2026-09-27T14:03:48.150504+00:00",
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-integer-build.log",
+              "bytes": 962,
+              "sha256": "89a7fe00f018ed5fef2cd020a2c17ebbc93a2980e2d08e177062ec82f279d0d1"
+            }
+          }
+        ],
+        "maximum_sampled_group_rss_bytes": 3163455488,
+        "maximum_child_rss_bytes": 3157377024,
+        "thread_environment": {
+          "CARGO_BUILD_JOBS": "1",
+          "RAYON_NUM_THREADS": "2",
+          "VECLIB_MAXIMUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "GEMM_NUM_THREADS": "1"
+        },
+        "prior_attempts": [
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1.json",
+            "bytes": 7320,
+            "sha256": "6cd8ae56ea3bfdacf941ceabd4d7df965181d5e47baa145dd22b1ab4e56aaf7a",
+            "wall_seconds": 320.034686125,
+            "status": "STOPPED_INCOMPLETE"
+          }
+        ],
+        "recovery_receipt": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1-execution.json",
+          "bytes": 8654,
+          "sha256": "f28e8008471622f24592a1b84dd5b310d5bd16c8f72815f990d638713c563ed4"
+        },
+        "recovery_finished_at": "2026-09-27T11:56:31.777351+00:00",
+        "last_budget": {
+          "owned_seconds_remaining": 16155.652911000001,
+          "cumulative_seconds_remaining": 25600.072911,
+          "original_phase_seconds_remaining": 1588.901946,
+          "preparation_seconds_remaining": 2059.197889
+        },
+        "last_storage": {
+          "physical_free_bytes": {
+            "/System/Volumes/Data": 30117797888,
+            "/Volumes/UOR-Workspace": 172482560000
+          },
+          "own_preparation_bytes": 15025126,
+          "internal_shared_growth_bytes": 2309853184,
+          "shared_ssd_growth_bytes": 8675328
+        },
+        "last_free_memory_percent": 68,
+        "wall_seconds": 332.165026167,
+        "aggregate_code_choice_build_seconds": 652.199712417,
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "artifacts": {
+          "rounding": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-rounding-34964512fd09",
+            "bytes": 6665024,
+            "sha256": "c45b4d3ba874f920bbc6ef826d560e98b7fec4d64d8efcbc7375460c33eb1537",
+            "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+            "features": [
+              "cpu-accelerate"
+            ],
+            "profile": "release"
+          },
+          "observer": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-observer-34964512fd09",
+            "bytes": 6172784,
+            "sha256": "7c756d358b01198bfc0a17c07d410d2f0ca550a2f1cd18409472748af7fe1177",
+            "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+            "features": [
+              "cpu-accelerate"
+            ],
+            "profile": "release"
+          },
+          "integer": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-integer-34964512fd09",
+            "bytes": 1456336,
+            "sha256": "bef905df9383864e5343c1b89d53ea8e0ff84390846ebf800acf900940f3c931",
+            "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+            "features": [],
+            "profile": "release"
+          }
+        },
+        "finished_at": "2026-09-27T14:03:48.365619+00:00"
+      }
+    },
+    "dialogue-child-code-choice-execution-spec-1.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-execution-spec-1.json",
+        "bytes": 4012,
+        "sha256": "66171561a98741dbd798d3260ac36c2c703e69feeba0bd775f2822adcd4466c0"
+      },
+      "value": {
+        "source_commit": "c626568f072d6d2bc0d78d52ec35ca7d69cd34d9",
+        "attempt": 1,
+        "source_files": {
+          "crates/uor-r4-integer/src/bundle.rs": {
+            "bytes": 49049,
+            "sha256": "64c664a72fdc26a65f8b60f0409341374900103c1054b624dc8cb01292257ac6"
+          },
+          "crates/uor-r4-training/examples/dialogue-child-rounding.rs": {
+            "bytes": 1854,
+            "sha256": "5571665ec78c0657016cc2b3a2fa7f37072c2dd4eb03839aeb90149ca971a22c"
+          },
+          "crates/uor-r4-training/examples/dialogue-integer-observe.rs": {
+            "bytes": 62696,
+            "sha256": "da6966e468be126fa7d88c4254ad2a88010e96ade70eb015bc380714d8cad828"
+          },
+          "crates/uor-r4-training/src/dialogue_artifact.rs": {
+            "bytes": 37633,
+            "sha256": "ec0257f240d7ebff386112d8f8fbfdb471c1bbfd666d478c846ab1b1d113a2ef"
+          },
+          "crates/uor-r4-training/src/dialogue_child_artifact.rs": {
+            "bytes": 30176,
+            "sha256": "6667360d18f4eafab62b9a58529f778a4499c8e580f7e5fa254784d40a7de411"
+          },
+          "crates/uor-r4-training/src/dialogue_learning.rs": {
+            "bytes": 32568,
+            "sha256": "93125665ea633046baa054b5780e191729f27c141f4cbec43881b687c47f59d8"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding.rs": {
+            "bytes": 51419,
+            "sha256": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding_artifact.rs": {
+            "bytes": 31074,
+            "sha256": "caefa920e21f404f42ca90eb64378d326480c7ceba0422656f46c446d5016dd5"
+          },
+          "crates/uor-r4-training/src/joint_model.rs": {
+            "bytes": 184087,
+            "sha256": "e4b6a38301828db72a14f5976c1e374b95db92ba7de226ac6d8b518f752865dd"
+          },
+          "crates/uor-r4-training/src/joint_optimizer.rs": {
+            "bytes": 35540,
+            "sha256": "d14b79ec86682d85239ce08d326053fa81ab51495b253932de6cd53b1659d444"
+          },
+          "crates/uor-r4-training/src/joint_parallel.rs": {
+            "bytes": 18663,
+            "sha256": "fab465c19285a6953adff5d96b807e9cee6cf7a0628e89f7defb362c7b392f2a"
+          },
+          "crates/uor-r4-training/src/joint_rounding.rs": {
+            "bytes": 58831,
+            "sha256": "b5c2a4f4c3ac82faa1077ce8f1932c35d872450b6f120efb9c14c3ba7f104a9e"
+          },
+          "crates/uor-r4-training/src/lib.rs": {
+            "bytes": 28624,
+            "sha256": "8cb1a4da96be269235e00dfb17dbf008e3c30415dfa56c76d1b1c4d195806352"
+          }
+        },
+        "commands": [
+          {
+            "label": "training-rounding-tests",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--lib",
+              "dialogue_rounding_",
+              "--",
+              "--test-threads=1"
+            ]
+          },
+          {
+            "label": "integer-dialogue-tests",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--lib",
+              "dialogue576_",
+              "--",
+              "--test-threads=1"
+            ]
+          },
+          {
+            "label": "observer-tests",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--example",
+              "dialogue-integer-observe",
+              "--",
+              "--test-threads=1"
+            ]
+          },
+          {
+            "label": "training-examples-build",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--example",
+              "dialogue-child-rounding",
+              "--example",
+              "dialogue-integer-observe"
+            ]
+          },
+          {
+            "label": "integer-build",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--bin",
+              "uor-r4-integer"
+            ]
+          }
+        ]
+      }
+    },
+    "dialogue-child-code-choice-execution-spec-2.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-execution-spec-2.json",
+        "bytes": 4049,
+        "sha256": "8f0ea57211499e09077624d90fdb68648889af50ac8071dc884c43e93f557677"
+      },
+      "value": {
+        "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+        "attempt": 2,
+        "source_files": {
+          "crates/uor-r4-integer/src/bundle.rs": {
+            "bytes": 49051,
+            "sha256": "ac13f9b8c82e83ff3100b4e7e34ea2718c8dd12a0344983af7c124335a3986bd"
+          },
+          "crates/uor-r4-training/examples/dialogue-child-rounding.rs": {
+            "bytes": 1854,
+            "sha256": "5571665ec78c0657016cc2b3a2fa7f37072c2dd4eb03839aeb90149ca971a22c"
+          },
+          "crates/uor-r4-training/examples/dialogue-integer-observe.rs": {
+            "bytes": 62696,
+            "sha256": "da6966e468be126fa7d88c4254ad2a88010e96ade70eb015bc380714d8cad828"
+          },
+          "crates/uor-r4-training/src/dialogue_artifact.rs": {
+            "bytes": 37633,
+            "sha256": "ec0257f240d7ebff386112d8f8fbfdb471c1bbfd666d478c846ab1b1d113a2ef"
+          },
+          "crates/uor-r4-training/src/dialogue_child_artifact.rs": {
+            "bytes": 30176,
+            "sha256": "6667360d18f4eafab62b9a58529f778a4499c8e580f7e5fa254784d40a7de411"
+          },
+          "crates/uor-r4-training/src/dialogue_learning.rs": {
+            "bytes": 32568,
+            "sha256": "93125665ea633046baa054b5780e191729f27c141f4cbec43881b687c47f59d8"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding.rs": {
+            "bytes": 51419,
+            "sha256": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c"
+          },
+          "crates/uor-r4-training/src/dialogue_rounding_artifact.rs": {
+            "bytes": 31074,
+            "sha256": "caefa920e21f404f42ca90eb64378d326480c7ceba0422656f46c446d5016dd5"
+          },
+          "crates/uor-r4-training/src/joint_model.rs": {
+            "bytes": 184087,
+            "sha256": "e4b6a38301828db72a14f5976c1e374b95db92ba7de226ac6d8b518f752865dd"
+          },
+          "crates/uor-r4-training/src/joint_optimizer.rs": {
+            "bytes": 35540,
+            "sha256": "d14b79ec86682d85239ce08d326053fa81ab51495b253932de6cd53b1659d444"
+          },
+          "crates/uor-r4-training/src/joint_parallel.rs": {
+            "bytes": 18663,
+            "sha256": "fab465c19285a6953adff5d96b807e9cee6cf7a0628e89f7defb362c7b392f2a"
+          },
+          "crates/uor-r4-training/src/joint_rounding.rs": {
+            "bytes": 58831,
+            "sha256": "b5c2a4f4c3ac82faa1077ce8f1932c35d872450b6f120efb9c14c3ba7f104a9e"
+          },
+          "crates/uor-r4-training/src/lib.rs": {
+            "bytes": 28624,
+            "sha256": "8cb1a4da96be269235e00dfb17dbf008e3c30415dfa56c76d1b1c4d195806352"
+          }
+        },
+        "commands": [
+          {
+            "label": "integer-dialogue-tests",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--lib",
+              "dialogue576_",
+              "--",
+              "--test-threads=1"
+            ]
+          },
+          {
+            "label": "observer-tests",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "test",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--example",
+              "dialogue-integer-observe",
+              "--",
+              "--test-threads=1"
+            ]
+          },
+          {
+            "label": "training-examples-build",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "-p",
+              "uor-r4-training",
+              "--release",
+              "--features",
+              "cpu-accelerate",
+              "--offline",
+              "--example",
+              "dialogue-child-rounding",
+              "--example",
+              "dialogue-integer-observe"
+            ]
+          },
+          {
+            "label": "integer-build",
+            "command": [
+              "/Users/casey.allard/.cargo/bin/cargo",
+              "build",
+              "-p",
+              "uor-r4-integer",
+              "--release",
+              "--offline",
+              "--bin",
+              "uor-r4-integer"
+            ]
+          }
+        ],
+        "reused_checks": {
+          "receipt": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1.json",
+          "source_commit": "c626568f072d6d2bc0d78d52ec35ca7d69cd34d9",
+          "scope": "Five passing training rounding/artifact checks; only subsequent edit is integer negative-fixture invalid shape [1] to [999], production source unchanged."
+        }
+      }
+    },
+    "dialogue-child-code-choice-objective-review.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-objective-review.json",
+        "bytes": 19127,
+        "sha256": "212ea003f0e566161ad3fa5a00221099133937435087a7984ec4ed1140f98dd4"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-child-code-choice-objective-review/1",
+        "recorded_at": "2026-09-27T13:48:49.740114+00:00",
+        "reviewer": "Independent geometry/learning objective reviewer",
+        "status": "FINAL_OBJECTIVE_AND_FIXED_ENDPOINT_SOURCE_CLEAR_EXECUTION_PENDING",
+        "source_base": "e5efafb8fadac7ab55258eff3dffd503833e48f0",
+        "source_branch": "codex/dialogue-child-code-choice-20260927",
+        "source_bindings": [
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/dialogue_rounding.rs",
+            "bytes": 51419,
+            "sha256": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/joint_parallel.rs",
+            "bytes": 18663,
+            "sha256": "fab465c19285a6953adff5d96b807e9cee6cf7a0628e89f7defb362c7b392f2a"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/joint_rounding.rs",
+            "bytes": 58831,
+            "sha256": "b5c2a4f4c3ac82faa1077ce8f1932c35d872450b6f120efb9c14c3ba7f104a9e"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/joint_model.rs",
+            "bytes": 184087,
+            "sha256": "e4b6a38301828db72a14f5976c1e374b95db92ba7de226ac6d8b518f752865dd"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/joint_optimizer.rs",
+            "bytes": 35540,
+            "sha256": "d14b79ec86682d85239ce08d326053fa81ab51495b253932de6cd53b1659d444"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/dialogue_learning.rs",
+            "bytes": 32568,
+            "sha256": "93125665ea633046baa054b5780e191729f27c141f4cbec43881b687c47f59d8"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/dialogue_episodes.rs",
+            "bytes": 26427,
+            "sha256": "beaf2649bdb751efa4ae2a25f154aa02324d63b554bbc505a01099cdddecedd7"
+          },
+          {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/dialogue_development.rs",
+            "bytes": 15180,
+            "sha256": "f5bacca42201d68490f2cd2c50e318e4f78cbbbfe948f0713c614468754488bc"
+          }
+        ],
+        "source_anchors": {
+          "crates/uor-r4-training/src/dialogue_rounding.rs": {
+            "fn normalization_contract": 123,
+            "fn load_parent": 177,
+            "fn corpus_split(": 209,
+            "fn add_penalty": 264,
+            "fn response_gradients": 289,
+            "fn checkpoint": 364,
+            "fn resume(": 402,
+            "fn fit(": 467,
+            "fn accumulate(": 585,
+            "fn normalize(": 607,
+            "fn validate_normalization": 706,
+            "fn evaluate_endpoint": 759,
+            "pub fn evaluate(": 831,
+            "fn run_operation(": 845,
+            "fn dialogue_rounding_response_alpha_global_objective": 969,
+            "fn dialogue_rounding_checkpoint_resume_recipe": 1105,
+            "fn dialogue_rounding_normalization_response_pool": 1216
+          },
+          "crates/uor-r4-training/src/joint_parallel.rs": {
+            "pub fn response_batch_gradients": 36,
+            "let masses:": 77,
+            "fn shard_gradients": 170
+          },
+          "crates/uor-r4-training/src/joint_rounding.rs": {
+            "pub fn penalty": 340,
+            "fn soft_values": 620,
+            "fn hard_values": 627
+          },
+          "crates/uor-r4-training/src/joint_model.rs": {
+            "pub fn weighted_loss": 194,
+            "pub(crate) fn rounding_learning_view": 605,
+            "pub fn forward(": 1010,
+            "memory.state = if training": 1362
+          },
+          "crates/uor-r4-training/src/joint_optimizer.rs": {
+            "let norm = Tensor::stack": 370
+          },
+          "crates/uor-r4-training/src/dialogue_learning.rs": {
+            "pub(crate) struct Corpus": 172,
+            "let inventory = json!": 501
+          },
+          "crates/uor-r4-training/src/dialogue_episodes.rs": {
+            "pub fn materialize": 388
+          }
+        },
+        "preparation_projection": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-child-code-choice-preparation-1.json",
+          "bytes": 2260,
+          "sha256": "1b377f5e15cc5b63e0f56220140f6296df643240699905867afc0d696c6ce2f8"
+        },
+        "scope": "Read-only final objective/source review. Inspected response loss, alpha graph, shard reducer, global penalty/clip order, strict train importer/index identity, normalization contract, clocks/resume and three focused test bodies. Artifact grid/export/portable provenance is separately owned by the adversarial reviewer. Only this receipt written; no Cargo, model, tests, calibration presentations, corpus scan, fit, dose selection, external cost or source modifications. Final small endpoint-only delta also reviewed: exact existing161-response panel QQ scoring through unchanged development helper, independent of training/normalization.",
+        "objective": {
+          "equation": "L(alpha)=sum_{b,t} m[b,t]*(-log p_alpha(target[b,t]|observed exact prefix))/M + lambda(u)*sum_i choice[i]*(1-|2d_i(alpha)-1|^beta(u))/N_choice; M=sum m; d=clamp(1.2*sigmoid(alpha)-0.1,0,1).",
+          "supervision": "Only selected complete response and genuine EOS targets have binary weight1; original user/system/prior-assistant prefixes are observed with loss0; right padding after real EOS has loss0. FullPrefix materialization is explicit and immutable for this stage.",
+          "reduction": "Each shard computes a mean over its own M_s supervised targets; response_batch_gradients combines means and named alpha gradient vectors with M_s/M. Therefore unequal-length responses do not receive equal shard weighting. Historical batch_gradients(Some(weights)) is not used.",
+          "penalty": "One global coordinate-weighted mean over nondegenerate choices, not per-tensor means or one term per shard/response. Added once after response reduction. Every alpha gradient is required, including explicit zeros for fixed codes and warmup.",
+          "optimizer": "One NamedAdamW step after the combined gradient; its existing global norm clip applies once. Alpha Adam moments are new/independent; weight decay0, alphaabs bound30 and no allowed-missing gradients are enforced. Learned model arrays and model clock remain fixed.",
+          "claim_boundary": "This is extra task-aware adaptation constrained to legal neighbor codes, not an equal-compute continuous comparison or a proof of pure information preservation."
+        },
+        "gradient_graph": {
+          "finding": "Connected by source structure. Each batch constructs a fresh rounding_learning_view from current learner.parameters(false) and shared alpha Var identities. Prepared soft tensors are used directly; no second parameter rounding/detachment is introduced. Forward(training=true) retains recurrent state, memory writes, reads and copy-path edges across the whole sequence.",
+          "prefix_mask_effect": "Zero local prefix loss does not detach history. Later supervised response loss can backpropagate through observed prefixes. Finite/nonzero fixture gradients, if executed, would demonstrate a connected signal on that fixture, not useful credit or learnability at adequate scale.",
+          "masked_log_zero": "Existing output_distribution adds its positive uniform mixture, so the valid F32 masked objective does not introduce log(0)*0 at unsupervised positions. No epsilon/sampler change is added here.",
+          "memory_lifetime": "Per-batch view is local to response_gradients; normalization accumulates only detached named alpha vectors weighted by M_b and drops the returned gradient store after each presentation. It does not intentionally retain eight recurrent graphs.",
+          "initial_hard_choice_binding": "Production now invokes DialogueRoundingParent::new_learner, which validates immutable preparation and actual learner.parameters(true) against frozen nearest quantization before any update; fixed-grid/export details remain separately reviewed."
+        },
+        "corpus_and_schedule": {
+          "train_only": "Uses strict existing Corpus::load on the retained train DatasetBinding: content SHA, per-split manifest equality, special-token absence, vocabulary, token/mask lengths and source ranges feed EpisodeIndex. No new tokenization or response/source reweighting.",
+          "inventory_binding": "Reconstructs the same child inventory object with episode/source/population metadata, protocol identity, prepared-manifest SHA and ancestor dataset bindings; digest must equal the selected child train_index_sha256. Including dev dataset metadata in that identity does not score dev or load its token stream in this learner.",
+          "fixed_parent_inputs": "Child parameter SHA, nearest hard manifest SHA, tokenizer/prepared-manifest SHA and train-index SHA are bound. Parent loader is separately reviewed for exact fixed grids and hard-code-invariant projection.",
+          "data_counter": "data_start_step must equal selected child completed_steps (1024 for this retained child); same child data seed, batch and CPU shard setting are required. Alpha begins at0 while deterministic data sampling continues at1024. This is new response exposure, not replay of the earlier0..1023fit schedule.",
+          "receipts": "Every update records exact episode IDs, selected-target hash, supervised/EOS counts, source visits, full padded model positions and alpha/data counters. Stage-specific schedule hash is separate from the parent executed schedule and parent provenance remains bound.",
+          "population_limit": "Unchanged eligible short-response population and episode-uniform source skew remain; no claim about full corpus or general chat."
+        },
+        "normalization": {
+          "equation": "g_pool=sum_b(M_b*g_b)/sum_b M_b; lambda=||g_pool||_2 / ||grad_alpha P_unit,beta2||_2 over the whole alpha inventory.",
+          "presentations": "Exactly8 initial-soft FullPrefix training batches from the declared data start/seed; no clipping, optimizer updates or development-based selection. Mean loss is pooled by the same supervised-target counts.",
+          "coefficient_contract": "Binds child/grid/prepared corpus/tokenizer/index/data start/seed/batch/shards and an explicit normalization-rule identity, plus saved source commit/executable equality during fitting. Excludes rounding schedule/dose, optimizer and checkpoint layout because they cannot affect the overridden initial-soft unit-beta2 probe. Full fit/resume contract still binds those choices.",
+          "dose_independence": "The process emits normalization.json only; no preselected resolved fit campaign is produced. Principal can project resource-informed dose and schedule before any update without rerunning the same coefficient probe.",
+          "failure_boundary": "Finite positive task and unit-penalty norms are required to define the ratio. Failure records an unresolved initialization; no arbitrary fallback coefficient or retry sweep.",
+          "interpretation": "Gradient-scale heuristic for the declared initial training presentation, not a theorem of optimal regularization, future per-update balance, causal loss recovery or equivalent task and penalty losses. Eight backward batches are charged separately from optimizer exposure.",
+          "F32_limit": "Named vector accumulation and within-tensor square reductions remain F32 with F64 scalar aggregation; bitwise split-vs-unsplit or backend reproducibility is not asserted.",
+          "computed_coefficient_validation": "Computed coefficient is placed into a cloned RoundingConfig and validated before writing normalization.json, including finite/F32 representability checks. No resolved fit campaign is emitted."
+        },
+        "resolved_findings": [
+          {
+            "issue": "Initial normalize receipt acceptance omitted source/executable equality.",
+            "risk": "A coefficient produced by a different implementation could pass equal schema/config/preparation checks.",
+            "resolution": "validate_normalization now requires source_commit and executable_sha256 match the current fit; inspected exact production call and validator.",
+            "status": "RESOLVED_BY_RUNTIME_AGENT"
+          },
+          {
+            "issue": "Initial normalization contract bound mathematically irrelevant schedule/optimizer/checkpoint fields and emitted a resolved-dose campaign.",
+            "resolution": "Final contract excludes only those choices while retaining actual normalization inputs and rule; fit/resume still binds full recipe. Normalization no longer emits resolved-campaign.json.",
+            "status": "RESOLVED_BY_RUNTIME_AGENT"
+          },
+          {
+            "issue": "Root-reported source_hashes Value/BTreeMap interface mismatch.",
+            "resolution": "Current helper returns BTreeMap<String,String>, matching save_learned_hard; compile confirmation remains root-owned.",
+            "status": "SOURCE_CORRECTED_EXECUTION_PENDING"
+          }
+        ],
+        "focused_tests_source_review": [
+          {
+            "name": "dialogue_rounding_response_alpha_global_objective",
+            "purpose": "Actual synthetic width576, two T8 rows with2and6 response targets. Compares direct masked CE+one penalty backward against2shard reduction+one penalty; checks Q/K/recurrent/embedding alpha signal, one Adam update and parent fingerprint/clock immutability.",
+            "scope": "Independent unsplit objective is the expectation; synthetic short trajectory is not retained child training or language evidence. No test execution by reviewer.",
+            "additional_penalty_assertion": "An aggregate squared residual compares (combined-task) against exactly one separately differentiated penalty, relative to penalty gradient norm; this catches a doubled global penalty that loose per-coordinate task tolerances could miss."
+          },
+          {
+            "name": "dialogue_rounding_checkpoint_resume_recipe",
+            "purpose": "Small penalty-only serialization fixture checks exact continued Adam/alpha state, rejects changed recipe/preparation, permits resource-only resume changes and checks schedule/exposure continuation.",
+            "scope": "Deliberately does not rerun a language fit; production full-response graph covered by the other fixture."
+          },
+          {
+            "name": "dialogue_rounding_normalization_response_pool",
+            "purpose": "Independent known answer: masses2and6 with gradients1and3 produce2.5, rather than the incorrect equal-batch result2; also checks coefficient-contract invariance under irrelevant recipe changes and rejection of changed seed.",
+            "scope": "Arithmetic/identity risk coverage, not proof of optimal lambda."
+          }
+        ],
+        "resource_review": {
+          "phase": "Source/build preparation only; no dose selected or alpha fit authorized by this receipt.",
+          "complete_cost_requirements": "Future projection must include fixed8backward normalization presentations, strict parent/grid/corpus preparation, train forward/backward and one penalty/Adam per update, checkpoints/resumes/export/seals, and complete same-child numerical/output observation. Source curve seconds alone are not whole-process cost.",
+          "known_bounds": "Current projection limits one root-owned process,8GiBRSS and one hour preparation; model-side stop is between batches/updates, while root supervisor owns hard RSS/storage/time safety.",
+          "unmeasured": "Width576 fullT256 response-aware alpha backward throughput/RAM has not been established by this review or by prior56second forward-only observation. Prior width256512step dose cannot justify the new workload.",
+          "fixed_accounting": "Normalization records supervised targets and8*B*256padded positions separately; fit tracks actual update exposures separately from prior model1024clock and normalization overhead. Numerical/actual-response evaluation and source preparation remain additional cumulative work."
+        },
+        "outstanding_blockers": [],
+        "remaining_limitations": [
+          "Focused tests/build and any model-backed witness remain NOT_RUN by this reviewer; root owns execution.",
+          "No normalization coefficient, dose, model quality, code-choice benefit, integer retention or serving efficiency is established.",
+          "The chosen legal-neighbor space cannot restore clipped endpoint magnitudes or unlearned behavior; it can only adapt remaining legal choices and compensate within those fixed grids.",
+          "The actual all174nearest-child result, continuous reference, grid identities and retained response criteria must remain the downstream decision context. No expanded control suite or automatic retry/dose sweep is requested."
+        ],
+        "conclusion": "Final inspected core objective, corpus, normalization and existing-panel endpoint source is coherent with one integrated fixed-grid response-aware repair. Accepted normalization identity findings are resolved. No material unresolved objective or endpoint defect found; build/focused execution and separately projected actual measurements remain principal-owned and are not implied by this source review.",
+        "fixed_endpoint_delta": {
+          "source_only": "No endpoint evaluation executed by this reviewer. No new metric population or cases selected.",
+          "input_metadata_checked": [
+            {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/campaign.json",
+              "bytes": 1925,
+              "sha256": "e8232dd3ecb97dc42f82e6aa91e86eded3ccaa43378e00a9c8ccdf352186bd9a"
+            },
+            {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/development-panel.json",
+              "bytes": 2247,
+              "sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc"
+            }
+          ],
+          "observed_actual_bound_metadata": {
+            "responses": 161,
+            "development_batch": 4,
+            "quota_per_source": 32,
+            "seed": 20260930,
+            "panel_sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+            "training_source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6"
+          },
+          "identity_checks": "Saved child panel SHA must match its original learning contract; panel source, train/dev indices, prepared manifest, tokenizer, protocol, ancestor parameter, seed, quota and response count must match. Existing validate rejects duplicate/out-of-range IDs and source-count mismatch. No select/reseed call.",
+          "artifact_boundary": "parent.load_scoring_hard admits exact nearest control or its typed learned hard child, checks decoded fingerprint/inventory and declared profile. Current response objective is not rerun; QQ uses F32 packed emulator. Native replies remain separate observer work. Loader/portable provenance final approval remains adversarial reviewer scope.",
+          "metric_boundary": "Calls unchanged dialogue_development::evaluate with original batch4 and original IDs under FullPrefix. Reports token-weighted response loss, first-four-target loss and per-source denominators. The heldout-named store is already-exposed development, not new final holdout.",
+          "cost_boundary": "Endpoint records41forward batches and161*256=41216padded positions for original161/batch4; no backward/update/generation. It remains a separate claimed/sealed attempt and later resource projection.",
+          "verdict": "No material mathematical, population or identity defect found in this endpoint delta."
+        }
+      }
+    },
+    "dialogue-child-code-choice-recipe-review.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-recipe-review.json",
+        "bytes": 13950,
+        "sha256": "d7113ffd089642bac9da944d6803a54031483db32530fe2d902ff6941fa3891b"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-child-code-choice-recipe-review/1",
+        "recorded_at": "2026-09-27T13:55:12.926562+00:00",
+        "status": "ONE_PROSPECTIVE_SCHEDULE_RECOMMENDED_DOSE_UNSELECTED",
+        "source_commit": "c626568f072d6d2bc0d78d52ec35ca7d69cd34d9",
+        "scope": "Read actual executed historical recipes and result record, retained child campaign, current reviewed alpha schedule and normalization implementation. No model, normalization presentations, build, tests, corpus scan, source edit, parameter search, dose selection or fit. Only this prospective review is written.",
+        "recommendation": {
+          "alpha_learning_rate": 0.01,
+          "learning_rate_schedule": "Constant for the selected run; no decay or alternative-rate arm.",
+          "alpha_optimizer": {
+            "beta1": 0.9,
+            "beta2": 0.999,
+            "epsilon": 1e-08,
+            "weight_decay": 0.0,
+            "parameter_abs_limit": 30.0,
+            "allowed_missing_gradients": [],
+            "global_clip_norm": 1.0,
+            "initial_moments": "fresh zero alpha moments, independent of the retained model optimizer"
+          },
+          "total_alpha_updates": "U: not selected until the fixed eight-batch normalization supplies actual width576 backward cost/RAM and principal projects the complete endpoint.",
+          "warmup_updates": "W=floor(0.2*U), preserving the historical convention.",
+          "penalty_schedule": "lambda(u)=0 for completed_updates u<W; lambda(u)=the single measured initial-gradient coefficient for W<=u<U. No later lambda changes or normalization reruns selected from development outcomes.",
+          "beta_start": 20.0,
+          "beta_end": 2.0,
+          "beta_schedule": "Existing RoundingConfig cosine: beta(u)=2+18*0.5*(1+cos(pi*(u-W)/(U-W))) for W<=u<=U; beta20 before W. Update u uses beta(u). Thus last optimized step uses beta(U-1), generally close to but not exactly2; detached hard materialization follows the Uth update.",
+          "unchanged": "Same selected child, exact nearest grids, signed4/signed16 code domains, tied embedding/output choice, interface/serving arithmetic, FullPrefix response/EOS objective and endpoint identities.",
+          "why_one_recipe": "This retains the implemented and previously executed alpha optimizer and annealing shape instead of importing the child's ordinary weight learning rate or searching new constants. Alpha is a dimensionless legal-neighbor decision with the same relaxation; it is not the F32 weight parameter. Width/task change justifies remeasuring task-gradient scale and cost, not an automatic learning-rate sweep. This is a reasonable starting recipe, not demonstrated optimality for576."
+        },
+        "historical_executed_evidence": {
+          "quaternion_recipe": {
+            "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-quaternion-rounding-3/rounding-campaign.json",
+            "bytes": 1704,
+            "sha256": "a5f5b62868966eac78a703054c3846c1b613507b7a93c4bacc14ac95da4505e8"
+          },
+          "ordinary_recipe": {
+            "path": "/Users/casey.allard/uor-r4-investigations/learned-rounding-20260925/fit-householder_pair-rounding-3/rounding-campaign.json",
+            "bytes": 1717,
+            "sha256": "ceb36bfd081fbced1cf5b1d34a9bc9fb69ab92a315f2bdad23d366f63515f0e8"
+          },
+          "actual_quaternion_rounding": {
+            "steps": 512,
+            "warmup_steps": 102,
+            "beta_start": 20.0,
+            "beta_end": 2.0,
+            "regularization": 8.404751140422356
+          },
+          "actual_ordinary_rounding": {
+            "steps": 512,
+            "warmup_steps": 102,
+            "beta_start": 20.0,
+            "beta_end": 2.0,
+            "regularization": 10.367127913552277
+          },
+          "actual_optimizer_both": {
+            "learning_rate": 0.01,
+            "weight_decay": 0.0,
+            "parameter_abs_limit": 30.0,
+            "allowed_missing_gradients": []
+          },
+          "executed_shape_and_exposure": {
+            "width": 256,
+            "batch": 16,
+            "time": 256,
+            "shards": 2,
+            "alpha_updates": 512,
+            "all_token_fit_targets_per_arm": 2097152,
+            "normalization_target_presentations_per_arm": 32768,
+            "data_start_step": 8348,
+            "data_seed": 240924
+          },
+          "result_record": {
+            "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/docs/integration/learned-rounding-result-2026-09-25.md",
+            "bytes": 10406,
+            "sha256": "16e533c1c2a49e6ffe2549332244543fb888f16f0594c7f0ae827919749b7ebb"
+          },
+          "scoped_outcome": "Historical nearest/projected hard NLL2.150319798\u21922.114226169 quaternion and2.147928712\u21922.110879800 ordinary; both still lost3 previously correct complete source answers. This establishes an exercised numerical recipe, not successful dialogue retention or permission to copy512updates.",
+          "reported_old_update_cost": "Retained prior source review derived5.487s/update quaternion atwidth256; historical arms ran concurrently. That is not a measured576 alpha rate."
+        },
+        "normalization_and_schedule_interpretation": {
+          "fixed_rule": "At initial soft parameters, take8 declared train batches, pool named alpha gradient vectors by actual response/EOS targets, and set lambda=||sum(M_b*g_b)/sumM_b||2 / ||grad P_unit,beta2||2. No clipping/Adam/heldout selection during this probe.",
+          "why_beta2_probe_can_coexist_with20_to2": "The unit-beta2 probe supplies one reproducible coefficient scale near the final commitment exponent. It does not assert equality of task and penalty gradients at beta20 or after learning. The20% penalty-free phase first permits joint task compensation; the subsequent high-to-low beta increases pressure on undecided choices. The time-dependent gradient balance is deliberate and must be described as a heuristic.",
+          "derivative_scope": "For interior relaxed decisions d, magnitude of d(1-|2d-1|^beta)/dd is2*beta*|2d-1|^(beta-1). At high beta, nearly half choices experience weak regularization while near-endpoint choices experience more; reducing beta broadens the commitment pressure. The final alpha gradient also includes the sigmoid/stretch/clamp derivative. At exact d=0.5 the penalty gradient remains zero for beta>1, so task gradients resolve ties; no universal rounding-convergence claim.",
+          "keep_lambda_fixed": "No coefficient borrowed from the old8.40475/10.36713 runs. Once the current probe yields a finite representable coefficient, keep it fixed after warmup; repeated normalization or schedule changes based on current dev/reply outcomes would change the intervention.",
+          "allowable_pre_fit_changes": "The source coefficient contract correctly permits final U, warmup/beta schedule, optimizer and recovery-checkpoint layout to be fixed after cost measurement; they do not affect the overridden initial-soft unit-beta2 computation. Parent/grid/data/seed/start/batch/shards and source/executable remain pinned. Once fit begins, its full recipe is immutable across resumes."
+        },
+        "current_child_exposure": {
+          "campaign": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/campaign.json",
+            "bytes": 1925,
+            "sha256": "e8232dd3ecb97dc42f82e6aa91e86eded3ccaa43378e00a9c8ccdf352186bd9a"
+          },
+          "parent_local_updates": 1024,
+          "parent_supervised_response_EOS_visits": 1165549,
+          "data_seed": 20260929,
+          "data_start_step": 1024,
+          "batch": 16,
+          "time": 256,
+          "cpu_gradient_shards": 2,
+          "training_policy": "FullPrefix; episode-uniform draws from the same14826eligible short responses.",
+          "new_fit_exposure": "16*U sampled response visits and4096*U full tensor-position visits. Actual supervised response/EOS visits are sum of saved M_u, not4096*U. Each sampled response contributes its whole response and real EOS; no cropping or source balancing is introduced.",
+          "normalization_exposure": "128additional response presentations and32768tensor positions at counters1024..1031, with actual supervised targets measured and separately reported. Those presentations may overlap the first fit batches, but perform no updates and remain extra charged work.",
+          "important_correction_to_old_deferred_design": "The earlier deferred design proposed replaying counters0..1023 and quoted8497normalization targets from that prefix. The implemented stage instead continues the child's deterministic data counter at1024. Neither8497nor the old1165549target dose is the new fit's known exposure. The current source and actual measured receipt own those counts.",
+          "claim_limit": "The new learner receives extra response adaptation while continuous and nearest controls remain fixed. It is not an equal-additional-compute comparison or a fresh heldout/generalization study. Existing episode/source skew and short-context eligibility remain."
+        },
+        "cost_and_dose": {
+          "decision_now": "No hard U recommended before the one fixed normalization workload is measured.",
+          "how_to_use_measurement": "Use the eight production-shaped forward/backward presentations and observed peak RAM as the actual576 cost anchor. Project U only once, including the extra global penalty/Adam work per update, corpus/preparation, normalization, checkpoint/resume and export costs, original161response development evaluation, and full same-child generated/native observations plus stop reserve. Do not equate the probe's setup/accumulation overhead with pure update time or the old56secondforward observer with training throughput.",
+          "resource_choice": "Choose a bounded horizon that leaves room to harden and observe the endpoint, then set W=floor(U/5) and the single schedule above. No narrow fixed gate, midpoint winner selection or automatic extension is proposed. If the workload does not fit, preserve the evidence and make a resource/implementation decision before updates rather than run a knowingly incomplete schedule.",
+          "not_a_new_budget": "Existing root preparation/measurement projections and cumulative allowance remain authority; this receipt adds no runtime/storage allowance and launches no work."
+        },
+        "final_outcome_decisions": [
+          {
+            "outcome": "Native learned hard replies materially recover lost response functions versus same-child nearest, preserve the child's demonstrated retained relations and avoid new material tradeoffs across the existing panel.",
+            "decision": "Retain as a scoped numerical/dialogue bridge candidate and move the programme to the next useful-language/native mechanism. State exactly which functions are recovered; do not promote general chat or geometry/efficiency advantage."
+          },
+          {
+            "outcome": "Partial recovery, such as Momo restored but green still absent, or recovery accompanied by new damage to Paris/Tokyo/blue-car or other meaningful relations.",
+            "decision": "Record a mixed result with explicit gains/losses. Do not cancel losses with gains, silently call full preservation, select an earlier checkpoint or automatically extend dose."
+          },
+          {
+            "outcome": "CE/NLL, calibration distance or token agreement improves but the actual whole replies do not recover the lost functions.",
+            "decision": "Retain a numerical-only negative at this exposure; stop this fixed recipe. A further change needs a new causal reason, not another learning-rate/lambda/dose sweep."
+          },
+          {
+            "outcome": "QQ hard-emulator replies recover functions but native integer output loses them.",
+            "decision": "The remaining problem is at the served numerical boundary; investigate the relevant arithmetic/history divergence rather than training another alpha dose on the same emulator."
+          },
+          {
+            "outcome": "No useful recovery or broad regression in the final hard/native endpoint.",
+            "decision": "Preserve the candidate and close this recipe with its actual scope. Reconsider the constrained code representation or another justified implementation; the failed recipe does not retire the overall geometry programme."
+          }
+        ],
+        "source_citations": [
+          {
+            "file": "crates/uor-r4-training/src/joint_rounding.rs",
+            "line": 172,
+            "url": "https://github.com/UOR-Foundation/uor-r4/blob/c626568f072d6d2bc0d78d52ec35ca7d69cd34d9/crates/uor-r4-training/src/joint_rounding.rs#L172"
+          },
+          {
+            "file": "crates/uor-r4-training/src/joint_rounding.rs",
+            "line": 340,
+            "url": "https://github.com/UOR-Foundation/uor-r4/blob/c626568f072d6d2bc0d78d52ec35ca7d69cd34d9/crates/uor-r4-training/src/joint_rounding.rs#L340"
+          },
+          {
+            "file": "crates/uor-r4-training/src/joint_optimizer.rs",
+            "line": 34,
+            "url": "https://github.com/UOR-Foundation/uor-r4/blob/c626568f072d6d2bc0d78d52ec35ca7d69cd34d9/crates/uor-r4-training/src/joint_optimizer.rs#L34"
+          }
+        ],
+        "prior_review_bindings": [
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-objective-review.json",
+            "bytes": 19127,
+            "sha256": "212ea003f0e566161ad3fa5a00221099133937435087a7984ec4ed1140f98dd4"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-output-independent-review.json",
+            "bytes": 206356,
+            "sha256": "3fbca1cf341372b933777e856161958418517c12da6404bc65d05dcb0bc3e848"
+          },
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-design.json",
+            "bytes": 35143,
+            "sha256": "dc190a006ad583b8498d15cdf83b64df07035ae3daa0475c9ccde97d85cb6f6f"
+          }
+        ],
+        "uncertainties": [
+          "The normalization result, actual576alpha backward cost/RAM, final dose and useful output effects remain unmeasured at this review.",
+          "Neighbor-code optimization can compensate within the existing grids but cannot recover out-of-range endpoint magnitude or add missing learned capabilities.",
+          "The historical recipe supplies precedent for constants, not evidence that this schedule is enough for the current child.",
+          "This recommendation adds no teacher objective, clipping remedy, scale search, extra control arm, decoder change or new probe panel."
+        ]
+      }
+    },
+    "dialogue-code-choice-normalization-execution-1.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-execution-1.json",
+        "bytes": 7335,
+        "sha256": "a77a1a1e0d2310396ab7cd05ab4e89dd76edc130df2438f0f5b6d6fd677b2b2f"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-code-choice-normalization-execution/1",
+        "status": "NORMALIZED_NO_UPDATES_REVIEW_PENDING",
+        "started_at": "2026-09-27T14:05:34.775648+00:00",
+        "spec": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-spec-1.json",
+          "bytes": 3603,
+          "sha256": "981e7abb1314084d98a44dd4457b893530e388f9bb38a77033a1fe5c1ebff349"
+        },
+        "supervisor": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/run-dialogue-code-choice-normalization.py",
+          "bytes": 22390,
+          "sha256": "c4d7120edf255d9255c18bf0cf963767449129f2b9908b84d9ca92a64b82bc47"
+        },
+        "projection": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-code-choice-normalization-1.json",
+          "bytes": 1779,
+          "sha256": "0c3a8a3426c7f75099b13f20c21e6fea981e0373809405584c4e3af023f9744f"
+        },
+        "design": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-repair-source-design.json",
+          "bytes": 27482,
+          "sha256": "76dd160ad0a5ebfcd771312f8ba2f92abf86d8661c1586b0cd09909cf325c95a"
+        },
+        "binary": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-rounding-34964512fd09",
+          "bytes": 6665024,
+          "sha256": "c45b4d3ba874f920bbc6ef826d560e98b7fec4d64d8efcbc7375460c33eb1537",
+          "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+          "features": [
+            "cpu-accelerate"
+          ],
+          "profile": "release"
+        },
+        "campaign": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-inputs-1/campaign.json",
+          "bytes": 1524,
+          "sha256": "5a2d51eceb00636dedb6b124db948b32ba2343992520b4f1d902a5e4040b5bd6"
+        },
+        "files": {
+          "prepared_manifest": {
+            "path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+            "bytes": 14939,
+            "sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5"
+          },
+          "tokenizer": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+            "bytes": 109457,
+            "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+          }
+        },
+        "input_seals": {
+          "child": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+            "manifest_sha256": "2b05b7d4a2700cbd8596abd37ce8523e4b58e03f90b3005c60c0635de0727a3f"
+          },
+          "nearest": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-conversion-1/packed",
+            "manifest_sha256": "548540e033c3474965790dbc0f8acbe0eec5a11afc44479ba477c73786214cdb"
+          },
+          "inputs": {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-inputs-1",
+            "manifest_sha256": "dbc394ecefedac9e7b3a659fbcbf884b9037aee8d48bd11dd6e9f123a8a13a0a"
+          }
+        },
+        "guard": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/report-root-guard",
+          "bytes": 642752,
+          "sha256": "693218a10b2830b0c91e6a12daecd604d5c3134667e5dd0e1db7e779103625a4"
+        },
+        "build_receipt": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2.json",
+          "bytes": 10904,
+          "sha256": "9a087019459ef43d2a5c741ae9ef3318bd5dda80024c3a5fceb81e8003814002"
+        },
+        "thread_environment": {
+          "RAYON_NUM_THREADS": "2",
+          "VECLIB_MAXIMUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "GEMM_NUM_THREADS": "1"
+        },
+        "jobs": [
+          {
+            "label": "normalize",
+            "command": [
+              "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-rounding-34964512fd09",
+              "--normalize",
+              "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-inputs-1/campaign.json",
+              "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1"
+            ],
+            "output_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1",
+            "started_at": "2026-09-27T14:05:34.959709+00:00",
+            "status": "COMPLETE",
+            "log_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1.log",
+            "pid": 82324,
+            "exit_code": 0,
+            "process_finished_at": "2026-09-27T14:06:35.826996+00:00",
+            "wall_seconds": 60.86831579099999,
+            "log": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1.log",
+              "bytes": 484,
+              "sha256": "9d4c12d9f92146965044b330a14de1fedc34d8be1f3a26252ef002e1da2f9128"
+            },
+            "result": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/normalization.json",
+              "bytes": 58632,
+              "sha256": "d26d43ecb485a001f2f3bd08d2f1b70a324383c8afd7f2d0db6c04a4d3691cde"
+            },
+            "output_seal": {
+              "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/manifest.json",
+              "bytes": 977,
+              "sha256": "f4b8aa762a5b6dfe2e9d28ee5c8d136506db86976aeb73af821da69a58091d96"
+            },
+            "supervised_target_visits": 9179,
+            "response_presentations": 128,
+            "padded_position_visits": 32768,
+            "optimizer_updates": 0
+          }
+        ],
+        "remaining_commands": [],
+        "peak_sampled_group_rss_bytes": 6852788224,
+        "scope": "Eight training-only initial-soft response-gradient presentations plus one unit-penalty backward, zero alpha/model updates. No fit, retries, dose selection, ledger edits or language acceptance.",
+        "timing_scope": "Whole supervisor includes preflight, one normalization process, native verification and closeout. Process wall includes poll/resource latency. Rust checks its240-second soft deadline before each batch; external300-second process cap also covers a batch/setup.",
+        "recovery_receipt": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-role_only-recovery-1-execution.json",
+          "bytes": 8654,
+          "sha256": "f28e8008471622f24592a1b84dd5b310d5bd16c8f72815f990d638713c563ed4"
+        },
+        "minimum_free_memory_percent": 34,
+        "last_budget_seconds": {
+          "owned": 15988.140061,
+          "shared": 25432.560061,
+          "normalization_phase": 291.83415
+        },
+        "last_free_memory_percent": 62,
+        "maximum_child_rss_bytes": 6919520256,
+        "wall_seconds": 61.107023083,
+        "last_storage": {
+          "physical_free_bytes": {
+            "/System/Volumes/Data": 30113738752,
+            "/Volumes/UOR-Workspace": 172482707456
+          },
+          "new_report_bytes": 127703,
+          "internal_shared_growth_bytes": 2313912320,
+          "ssd_growth_bytes": 0
+        },
+        "finished_at": "2026-09-27T14:06:35.881625+00:00"
+      }
+    },
+    "dialogue-code-choice-normalization-1/normalization.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/normalization.json",
+        "bytes": 58632,
+        "sha256": "d26d43ecb485a001f2f3bd08d2f1b70a324383c8afd7f2d0db6c04a4d3691cde"
+      },
+      "value": {
+        "by_parameter": {
+          "copy.gate.bias": {
+            "task_gradient_l2": 3.7294544515974644e-08,
+            "unit_penalty_gradient_l2": 1.0213978829035804e-07
+          },
+          "copy.gate.weight": {
+            "task_gradient_l2": 0.0011170149864716528,
+            "unit_penalty_gradient_l2": 2.707443305927397e-06
+          },
+          "embedding.weight": {
+            "task_gradient_l2": 0.0015951892808882227,
+            "unit_penalty_gradient_l2": 0.00012058642038271569
+          },
+          "output.bias": {
+            "task_gradient_l2": 7.611470756848768e-08,
+            "unit_penalty_gradient_l2": 5.085348574342322e-06
+          },
+          "output.norm.weight": {
+            "task_gradient_l2": 0.001123931683764807,
+            "unit_penalty_gradient_l2": 1.8854277625241532e-06
+          },
+          "read.age": {
+            "task_gradient_l2": 1.140259552510034e-07,
+            "unit_penalty_gradient_l2": 1.2287298777019039e-06
+          },
+          "read.key.bias": {
+            "task_gradient_l2": 4.850885982511396e-15,
+            "unit_penalty_gradient_l2": 6.399646196166446e-07
+          },
+          "read.key.weight": {
+            "task_gradient_l2": 0.0007075396617073907,
+            "unit_penalty_gradient_l2": 1.5095092339948906e-05
+          },
+          "read.no_read.bias": {
+            "task_gradient_l2": 6.655793421188841e-16,
+            "unit_penalty_gradient_l2": 1.0175165311074872e-07
+          },
+          "read.no_read.weight": {
+            "task_gradient_l2": 4.797879266497856e-10,
+            "unit_penalty_gradient_l2": 1.8848932992450933e-06
+          },
+          "read.query.bias": {
+            "task_gradient_l2": 3.6396746194663796e-09,
+            "unit_penalty_gradient_l2": 6.552388791670514e-07
+          },
+          "read.query.weight": {
+            "task_gradient_l2": 0.0007551256906660605,
+            "unit_penalty_gradient_l2": 1.5047708748709202e-05
+          },
+          "read.value.bias": {
+            "task_gradient_l2": 3.3388119086275866e-09,
+            "unit_penalty_gradient_l2": 1.8958985142439796e-06
+          },
+          "read.value.weight": {
+            "task_gradient_l2": 0.0005345865061799852,
+            "unit_penalty_gradient_l2": 4.542334925386201e-05
+          },
+          "recurrent.bias": {
+            "task_gradient_l2": 1.9327009053669266e-06,
+            "unit_penalty_gradient_l2": 3.3278202978018717e-06
+          },
+          "recurrent.input.weight": {
+            "task_gradient_l2": 0.00044949416144612593,
+            "unit_penalty_gradient_l2": 7.841874788794948e-05
+          },
+          "recurrent.state.weight": {
+            "task_gradient_l2": 0.0028721423237868496,
+            "unit_penalty_gradient_l2": 7.852341895431798e-05
+          },
+          "update.bias": {
+            "task_gradient_l2": 1.4752029631759646e-08,
+            "unit_penalty_gradient_l2": 1.8851206070000363e-06
+          },
+          "update.gate.bias": {
+            "task_gradient_l2": 3.1192035960699523e-07,
+            "unit_penalty_gradient_l2": 1.0292080279321625e-07
+          },
+          "update.gate.weight": {
+            "task_gradient_l2": 0.0037631664671086825,
+            "unit_penalty_gradient_l2": 2.551949104061959e-06
+          },
+          "update.weight": {
+            "task_gradient_l2": 0.0005647078051073284,
+            "unit_penalty_gradient_l2": 6.422645595700932e-05
+          }
+        },
+        "executable_sha256": "c45b4d3ba874f920bbc6ef826d560e98b7fec4d64d8efcbc7375460c33eb1537",
+        "executed_schedule_sha256": "6438f424421a3bcbc216973eaf8bed65bf412eb388204b2279e6c56afa710591",
+        "formula": "L2(sum(M_b * g_b) / sum(M_b)) / L2(global unit-coefficient beta2 penalty gradient), eight initial-soft training batches, no clipping or updates",
+        "normalization_contract": {
+          "batch": 16,
+          "child_parameter_sha256": "98aca5ab14a9edab58dcd2d74d71e74d3904c27e1ce3c126fb66b670cc2baa1c",
+          "child_report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+          "cpu_gradient_shards": 2,
+          "data_seed": 20260929,
+          "data_start_step": 1024,
+          "nearest_hard_manifest_sha256": "eb975d2b0b6349852af8841fd5fc10f9336a1ea39023e09e618658ff94204682",
+          "nearest_packed_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-conversion-1/packed",
+          "normalization_rule": "eight-training-batches/response-pooled-gradient-l2/unit-beta2/v1",
+          "prepared_manifest": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+          "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+          "schema": "uor-r4.dialogue-rounding-campaign/1",
+          "tokenizer_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+          "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+          "train_index_sha256": "3cceb18a5e1febfd9516c3d7730a2a5498c2fbb896b5d34552526dff88f16ce5"
+        },
+        "optimizer_updates": 0,
+        "padded_position_visits": 32768,
+        "preparation": {
+          "child_parameter_fingerprint": "1eef006a29767f06fd07d29e03f4e9cdf254a6a8a0562c5c8a019b8c0e6bb1d6",
+          "child_parameter_sha256": "98aca5ab14a9edab58dcd2d74d71e74d3904c27e1ce3c126fb66b670cc2baa1c",
+          "child_steps_completed": 1024,
+          "frozen_spec_sha256": "378971c460a92367ce49df3ed4b79e3870ec0c4072a7e8f80031f2d19804c64d",
+          "initial_hard_arrays_equal_nearest": true,
+          "nearest_conversion": {
+            "admission": "full",
+            "calibration": "Frozen immediate-child signed4 row reconstruction MSE and additive16 ceiling; no new forward, generation or optimizer/model updates. start_step=completed_step is the child's local training clock, not ancestor exposure or QAT.",
+            "conversion_executable_sha256": "ea82c9a5685b0f973c7091a6b2efb59496e84a4189f95372d93d0f1632cc4e10",
+            "conversion_source_commit": "03bfaaf5f3bbd71827433966651bdc117b469114",
+            "new_forward_calls": 0,
+            "new_generation_calls": 0,
+            "new_model_updates": 0,
+            "new_optimizer_updates": 0,
+            "parent": {
+              "admission": "full",
+              "ancestor": {
+                "admission": "full",
+                "compatibility_scope": "Current-source continuous Dot/Full quaternion replay of the retained R1d cell. Historical source label is not an assertion of clean-tree training or bitwise backend reproduction. Tokenizer/protocol and mask bindings are retrospective through the prepared corpus manifest; only token hashes were recorded by the fit. No optimizer resume, fit, integer export, serving or capability qualification.",
+                "current_model": {
+                  "context": 256,
+                  "read_width": 64,
+                  "seed": 20260926,
+                  "transport": "quaternion",
+                  "vocab_size": 4096,
+                  "width": 576
+                },
+                "datasets": [
+                  {
+                    "mask_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/response_mask.u8",
+                    "mask_sha256": "09dc0fe5d0e2de7b5072e4586b5cb9ef3379856600ff90061c561a48826e75e7",
+                    "response_tokens": 56650286,
+                    "split": "train",
+                    "tokens": 82529690,
+                    "tokens_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/tokens.u16",
+                    "tokens_sha256": "4a554b0ef8be12344f21f1bd6bdc9faeeeddcef212a138a8772a8bf42604c4fa"
+                  },
+                  {
+                    "mask_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/response_mask.u8",
+                    "mask_sha256": "ed43a9eade79d84dc73be608fb788f1e7566021fbdbba35ce3e5eddbc4fce8b4",
+                    "response_tokens": 3942347,
+                    "split": "heldout",
+                    "tokens": 6215400,
+                    "tokens_path": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/tokens.u16",
+                    "tokens_sha256": "ca5ccf0722d9dcdc5294b612f2c25536fe49192be7bedbc3007a1fcfc0940225"
+                  }
+                ],
+                "fit_report_sha256": "a192916c17d8d124e9a32c21c3b31ef6b622890b148d37549eb219d11cd641fa",
+                "fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+                "fit_seal_sha256": "28bb1f475b2ec12ed0c2cee4de1102f0c46274bcc21261d931991f5b21719c4b",
+                "historical_configuration": {
+                  "batch": 16,
+                  "checkpoint_steps": [
+                    500,
+                    1000,
+                    1500,
+                    2000,
+                    2500,
+                    3000,
+                    3500,
+                    4000
+                  ],
+                  "context": 256,
+                  "count_report": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1b/count-3/dialogue-count.json",
+                  "cpu_gradient_shards": 2,
+                  "data_seed": 20260926,
+                  "eval_batch": 8,
+                  "eval_every": 50,
+                  "eval_max_windows": 512,
+                  "eval_stride": 4,
+                  "heldout_mask": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/response_mask.u8",
+                  "heldout_tokens": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/tokens.u16",
+                  "max_process_seconds": 21600,
+                  "model": {
+                    "context": 256,
+                    "read_width": 64,
+                    "seed": 20260926,
+                    "transport": "quaternion",
+                    "vocab_size": 4096,
+                    "width": 576
+                  },
+                  "optimizer": {
+                    "allowed_missing_gradients": [],
+                    "learning_rate": 0.001,
+                    "parameter_abs_limit": 1000000.0,
+                    "weight_decay": 0.01
+                  },
+                  "schema": "uor-r4.dialogue-campaign/1",
+                  "stop_file": null,
+                  "total_steps": 100000,
+                  "train_mask": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/response_mask.u8",
+                  "train_tokens": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/train/tokens.u16",
+                  "trial_scope": "R1d bounded curve: <=6h (21600 s update deadline) response-masked fit at width 576 (5,429,826 params), batch 16 / context 256 = 4096 sampled targets/step, cpu_gradient_shards 2, chat-v0 train split, held-out evaluation on the matched 512-window population (stride 4) every 50 steps, checkpoints every 500 steps. Development curve only; not a passing R1 claim.",
+                  "tune_windows": 64
+                },
+                "historical_executable_sha256": "84ec4ebe5d95b28346501129394e3cb211483c9bf2b471caa8abbc4313463e4b",
+                "historical_source_commit": "5109861c93dee0e39d3aa189c325b3a13c4ededc",
+                "parameter_bytes": 21719304,
+                "parameter_count": 5429826,
+                "parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+                "parameters": [
+                  {
+                    "name": "copy.gate.bias",
+                    "sha256_le_f32": "7f24dc2e07f365a63fffad77171cbdd523b913d9cf849e0283e10355fd6eea6a",
+                    "shape": [
+                      1
+                    ]
+                  },
+                  {
+                    "name": "copy.gate.weight",
+                    "sha256_le_f32": "146f2f4097410b01b717bae3265632d12fc24d4fc080798bc0e3042ff8b2e1f4",
+                    "shape": [
+                      1,
+                      1152
+                    ]
+                  },
+                  {
+                    "name": "embedding.weight",
+                    "sha256_le_f32": "c5ef3aa948802b49822c248d678d0fa5bfe0a90badc478da2b74ee8ee36e2dea",
+                    "shape": [
+                      4096,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "output.bias",
+                    "sha256_le_f32": "b8f9228c6378a2426e7202df83f3f9fed493f555a7ec8bc29d21af6e9b7f79be",
+                    "shape": [
+                      4096
+                    ]
+                  },
+                  {
+                    "name": "output.norm.weight",
+                    "sha256_le_f32": "18d26c9c5b4483f20edfaf950e1c926ea957292d59ee73f8252c586766468ec7",
+                    "shape": [
+                      576
+                    ]
+                  },
+                  {
+                    "name": "read.age",
+                    "sha256_le_f32": "56f98660565753f731e99a2ee5fca80e334cccb3bf8fae41ad01b57fcba776c6",
+                    "shape": [
+                      255
+                    ]
+                  },
+                  {
+                    "name": "read.key.bias",
+                    "sha256_le_f32": "e41ea5498e8293e38bc3b6b05fd3005d29c0b5c07e59be8e38a17b7767d6fb2a",
+                    "shape": [
+                      64
+                    ]
+                  },
+                  {
+                    "name": "read.key.weight",
+                    "sha256_le_f32": "79f5304d74f8e0fd62ff809290cd71b64c178e34b0eee934def3f8813f627598",
+                    "shape": [
+                      64,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "read.no_read.bias",
+                    "sha256_le_f32": "192914a60d968b28a2fe5ea59c9da0aa789d52e593cc8049263eb059ec92c8d2",
+                    "shape": [
+                      1
+                    ]
+                  },
+                  {
+                    "name": "read.no_read.weight",
+                    "sha256_le_f32": "bf882568b5331921c23ffd04c47eec1c2ba8ac326220d8db84ed04fc6beff1a9",
+                    "shape": [
+                      1,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "read.query.bias",
+                    "sha256_le_f32": "25fffbc826a819133016fc584f08cc0c5cd951555a58d202a571bbd17cfdeba1",
+                    "shape": [
+                      64
+                    ]
+                  },
+                  {
+                    "name": "read.query.weight",
+                    "sha256_le_f32": "162f2d314e5d6ae00b10edd6a4b8ae94c58e657fb5c81117c02dd9b35a63e4a4",
+                    "shape": [
+                      64,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "read.value.bias",
+                    "sha256_le_f32": "2111d76198e2321ca9da6b406c834d7c9b0dc14e3bfb1f792c190d4e0376c912",
+                    "shape": [
+                      576
+                    ]
+                  },
+                  {
+                    "name": "read.value.weight",
+                    "sha256_le_f32": "13ceeab3a0a96de9e38b62111f65fea530efbf73e571831fdebdb0ee53747e5a",
+                    "shape": [
+                      576,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "recurrent.bias",
+                    "sha256_le_f32": "a961b992fe7f4653b9a133b14e3212a3e670a5ade5a19209af5a9c3b43600474",
+                    "shape": [
+                      1728
+                    ]
+                  },
+                  {
+                    "name": "recurrent.input.weight",
+                    "sha256_le_f32": "69efd7807fec17ff46d679a445b864fd77b43583bb91702530a9c0b058246f9d",
+                    "shape": [
+                      1728,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "recurrent.state.weight",
+                    "sha256_le_f32": "a1f446f0cb005bb96ea4e5d7cd3e19ca00d8e7f427211837ff16ce23fdc0c887",
+                    "shape": [
+                      1728,
+                      576
+                    ]
+                  },
+                  {
+                    "name": "update.bias",
+                    "sha256_le_f32": "78d6a37f8e9ac6bb70e17f4a60393d130c15284a6461df75004fa3b9ad8349e1",
+                    "shape": [
+                      576
+                    ]
+                  },
+                  {
+                    "name": "update.gate.bias",
+                    "sha256_le_f32": "b5e56a3fd160bf3b6aab0d0ac3c9b13c654b58f4678d6dc655969c0a26c04142",
+                    "shape": [
+                      1
+                    ]
+                  },
+                  {
+                    "name": "update.gate.weight",
+                    "sha256_le_f32": "f09e85eb7e04730925141432f4625e1159aa6ff6365a780869f559217f437ecd",
+                    "shape": [
+                      1,
+                      1152
+                    ]
+                  },
+                  {
+                    "name": "update.weight",
+                    "sha256_le_f32": "9e06d0a912bc216505dcddfc77852d26cac10971ec44e929771f14bf48ae9ceb",
+                    "shape": [
+                      576,
+                      1152
+                    ]
+                  }
+                ],
+                "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+                "protocol": {
+                  "bos_id": 0,
+                  "eos_id": 1,
+                  "schema": "uor-r4.literal-role-dialogue/1",
+                  "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+                  "unk_id": 2
+                },
+                "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+                "read_geometry": "dot",
+                "sampled_targets": 9162752,
+                "schema": "uor-r4.offline-dialogue-artifact/1",
+                "steps_completed": 2237,
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "campaign_sha256": "e8232dd3ecb97dc42f82e6aa91e86eded3ccaa43378e00a9c8ccdf352186bd9a",
+              "checkpoint_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1/checkpoint-final",
+              "checkpoint_seal_sha256": "f83d4c3e6015f9bf8954cda6fbd69d3823936c85d5991f3d0c541b91b6d1d5a1",
+              "checkpoint_sha256": "5bf82bfc855e1e0dc06f0387fefa3f7bb02535220679937bc2d6298d8b48244b",
+              "configuration_sha256": "93606286d7985984f1b5863db91df5504cfccce46ca7f7effe5ace3c9443885e",
+              "current_model": {
+                "context": 256,
+                "read_width": 64,
+                "seed": 20260926,
+                "transport": "quaternion",
+                "vocab_size": 4096,
+                "width": 576
+              },
+              "executed_schedule_sha256": "e5e0b82247c97028e25035e5956e369f11ed8c16668b642d2bfba70f0b342a5b",
+              "learning_contract": {
+                "batch": 16,
+                "checkpoint_every_steps": 512,
+                "cpu_gradient_shards": 2,
+                "data_seed": 20260929,
+                "development_batch": 4,
+                "development_episodes": 161,
+                "development_every_steps": 256,
+                "development_panel_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-panel-1/development-panel.json",
+                "development_panel_sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+                "development_per_source": 32,
+                "development_seed": 20260930,
+                "expected_eligible_train_responses": 14826,
+                "expected_train_response_runs": 129486,
+                "max_new_tokens": 32,
+                "optimizer": {
+                  "allowed_missing_gradients": [],
+                  "learning_rate": 0.0001,
+                  "parameter_abs_limit": 1000000.0,
+                  "weight_decay": 0.01
+                },
+                "parent_fit_root": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/r1d/curve-2",
+                "parent_parameter_sha256": "95e3fbb06cb39b4354bd40c722873dac088d47554707777b291e588922a1a822",
+                "policy": "full_prefix",
+                "prepared_manifest": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+                "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+                "requests_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-artifact-replay-1/development-requests.json",
+                "requests_sha256": "81268b51ef98d8d8e525a40e572538249ef845e321571ee55dec30fb8ef75484",
+                "schema": "uor-r4.dialogue-prefix-campaign/1",
+                "tokenizer_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+                "total_steps": 1024
+              },
+              "parameter_count": 5429826,
+              "parameter_fingerprint": "1eef006a29767f06fd07d29e03f4e9cdf254a6a8a0562c5c8a019b8c0e6bb1d6",
+              "parameter_sha256": "98aca5ab14a9edab58dcd2d74d71e74d3904c27e1ce3c126fb66b670cc2baa1c",
+              "parameters": [
+                {
+                  "name": "copy.gate.bias",
+                  "sha256_le_f32": "5db122e6878ac6a8c279afcc1a517ca3861586df3c2aaa16f4f374f8ccafd3b5",
+                  "shape": [
+                    1
+                  ]
+                },
+                {
+                  "name": "copy.gate.weight",
+                  "sha256_le_f32": "59a201d36cd2f7d502a4a2c0f53ff53f4e472eb0d0393c2268dc89987de949b9",
+                  "shape": [
+                    1,
+                    1152
+                  ]
+                },
+                {
+                  "name": "embedding.weight",
+                  "sha256_le_f32": "06feba1be12c885606501ddda39fb18473fb8c6c130d3a9b69229b250da10a91",
+                  "shape": [
+                    4096,
+                    576
+                  ]
+                },
+                {
+                  "name": "output.bias",
+                  "sha256_le_f32": "2be3d67f21e3f4a51ec163c60f7810854d500ec595d991e5cfc52f8fdf699dcb",
+                  "shape": [
+                    4096
+                  ]
+                },
+                {
+                  "name": "output.norm.weight",
+                  "sha256_le_f32": "e13cc83bd451e9c64029248142340db31bd14c4273270613c0770f666d14eb76",
+                  "shape": [
+                    576
+                  ]
+                },
+                {
+                  "name": "read.age",
+                  "sha256_le_f32": "4b17942759a68ecbc364ede9ca5aa7ab610501c61c6eb517f9f3bf8337032de6",
+                  "shape": [
+                    255
+                  ]
+                },
+                {
+                  "name": "read.key.bias",
+                  "sha256_le_f32": "dd6da6a2c90181d8bb351d8eea3716d1fd32cb0374f845a8e26f1e7332f828ad",
+                  "shape": [
+                    64
+                  ]
+                },
+                {
+                  "name": "read.key.weight",
+                  "sha256_le_f32": "3dce76d04ed640e3567b6a3fe01261064f094933094c0b12d5efa4c56fc4870d",
+                  "shape": [
+                    64,
+                    576
+                  ]
+                },
+                {
+                  "name": "read.no_read.bias",
+                  "sha256_le_f32": "cd0e1647a1c0350222d82d5875bf112a7373d7f32a08f87d1a572e9ee62a6ef4",
+                  "shape": [
+                    1
+                  ]
+                },
+                {
+                  "name": "read.no_read.weight",
+                  "sha256_le_f32": "999f13db56e39f32a8a0a98d8270f1cd2e8bae8ac7b021cd5950c48c131a80b2",
+                  "shape": [
+                    1,
+                    576
+                  ]
+                },
+                {
+                  "name": "read.query.bias",
+                  "sha256_le_f32": "09de00e8368f7feff8cf87c461ef3f0412bb6dc1290cb6db372d2d83fd17bcd6",
+                  "shape": [
+                    64
+                  ]
+                },
+                {
+                  "name": "read.query.weight",
+                  "sha256_le_f32": "eb1b06dbfbfcecf3e20db26b479aa9def3dba6bd1730735e2047251aeb449539",
+                  "shape": [
+                    64,
+                    576
+                  ]
+                },
+                {
+                  "name": "read.value.bias",
+                  "sha256_le_f32": "adee16d4792a9b6a2dd8b5325a44b3627514ebcd728a13c18c1c0db6dec29ef1",
+                  "shape": [
+                    576
+                  ]
+                },
+                {
+                  "name": "read.value.weight",
+                  "sha256_le_f32": "1085caeb52921b120926750bc3d55ecdfa81909370c87c88b1dc294863d4cf51",
+                  "shape": [
+                    576,
+                    576
+                  ]
+                },
+                {
+                  "name": "recurrent.bias",
+                  "sha256_le_f32": "7a6ee40423dc97754a818599341e7a8ac54cf4a4f8c38d7f8186185062111787",
+                  "shape": [
+                    1728
+                  ]
+                },
+                {
+                  "name": "recurrent.input.weight",
+                  "sha256_le_f32": "149acbee472ea78dcc5a4a12798209149f23660e0377f71d7958d5b540a0f1c1",
+                  "shape": [
+                    1728,
+                    576
+                  ]
+                },
+                {
+                  "name": "recurrent.state.weight",
+                  "sha256_le_f32": "dfe2c1dfb1a96468044f4962c42eadd69b1174690cfe13c6c933e0a96ee82d8e",
+                  "shape": [
+                    1728,
+                    576
+                  ]
+                },
+                {
+                  "name": "update.bias",
+                  "sha256_le_f32": "9f6c8577eb162d972f77e21825df14504347d2b74aad0ad77b48bb763b39580f",
+                  "shape": [
+                    576
+                  ]
+                },
+                {
+                  "name": "update.gate.bias",
+                  "sha256_le_f32": "b8a9423cf692cea148bb960910808e8c1bd86a8f84c51f789ee137ea7f630665",
+                  "shape": [
+                    1
+                  ]
+                },
+                {
+                  "name": "update.gate.weight",
+                  "sha256_le_f32": "3cde53ca4f6fc9b5beaea0330535580d665512dad7558411929e83b961a3316e",
+                  "shape": [
+                    1,
+                    1152
+                  ]
+                },
+                {
+                  "name": "update.weight",
+                  "sha256_le_f32": "92efe34da6512250adad8270991b99598fb50ab4e5751226609bbff231f6b0b5",
+                  "shape": [
+                    576,
+                    1152
+                  ]
+                }
+              ],
+              "policy": "full_prefix",
+              "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+              "protocol": {
+                "bos_id": 0,
+                "eos_id": 1,
+                "schema": "uor-r4.literal-role-dialogue/1",
+                "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+                "unk_id": 2
+              },
+              "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+              "read_geometry": "dot",
+              "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+              "report_seal_sha256": "2b05b7d4a2700cbd8596abd37ce8523e4b58e03f90b3005c60c0635de0727a3f",
+              "report_sha256": "fb49d94c6d3a10e72457cfa12b81c3b3a06ff0986c3f111db04ecf01173facb6",
+              "sampler": "uor-r4.dialogue-response-uniform/splitmix64-counter-rejection-v1",
+              "schedule_chain": "uor-r4.dialogue-response-schedule-chain/1",
+              "schema": "uor-r4.dialogue-child-artifact/1",
+              "scope": "Verified immediate continuous FullPrefix checkpoint and saved training lineage. Local child clocks exclude historical ancestor updates. Corpus identities join the sealed fit to the prepared manifest; no corpus rescan or training replay. Historical retrospective bindings remain in ancestor. No capability or conversion-quality claim.",
+              "steps_completed": 1024,
+              "supervised_target_visits": 1165549,
+              "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+              "train_index_sha256": "3cceb18a5e1febfd9516c3d7730a2a5498c2fbb896b5d34552526dff88f16ce5",
+              "training_executable_sha256": "c283aec4d733493ba9bfe9d2e5409abd0a8db88fa24641433168e70c4f810e8c",
+              "training_source_commit": "3c43c6aa21631c5f335f74c287ac19a7000f32a6"
+            },
+            "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+            "schema": "uor-r4.native-dialogue576-child-conversion/1",
+            "scope": "Development nearest-hard child conversion. Actual numerical/output retention requires separate observation; historical ancestor limitations remain explicit.",
+            "serving_profile": "dialogue576",
+            "source_sha256": {
+              "dialogue_artifact.rs": "ec0257f240d7ebff386112d8f8fbfdb471c1bbfd666d478c846ab1b1d113a2ef",
+              "dialogue_child_artifact.rs": "cc0ec7ea3f462e9d0b7aa69acc30504b37a2f7021e3db473cf83623d2a2521f4",
+              "example.rs": "bfeeb625d34ebd0837ce77a35de30bb5ad0393ca0e6c716a486b387622027282",
+              "integer/config.rs": "f9adc4ddbd4eb5f69608ae48e4275d98d52db717fabed58057b313b8e9629750",
+              "integer/format.rs": "d0c3a98ced8aa3845cacbeff8670eded0252433730ac9cc98fd4492f83c85b3d",
+              "integer/math.rs": "886430f6f57bcef213872e093eae9f8d547912a55cdce260a90ea25aabe86457",
+              "integer/model.rs": "9b91bcde1866dbaff6286ac2e69b79363fe50f9c508fd992b81d219dcf1581c7",
+              "integer/packed_rows.rs": "d757d6ac46c270444dbfaff3b69097ee85b2b0eae22654a53842342676c1c6f8",
+              "integer/tables.rs": "4b1d50210a62688be51ff55d05b2a592c9425c4a3d2fa6e10bbbde42d04764fd",
+              "joint_model.rs": "97cca646285a3132d8f73b250478fd630bb1bce5059ce8348d03a531cec3b92d",
+              "joint_quantization.rs": "acee2284a8ca96634ddf9a71bd2ce10970b04856be22d7e1865c6f5a8b275116"
+            },
+            "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+          },
+          "nearest_manifest_sha256": "eb975d2b0b6349852af8841fd5fc10f9336a1ea39023e09e618658ff94204682",
+          "nearest_payload_sha256": "245a6fd1b5cbbbaa16ca3e6dbfa2837909216a0a4044ab9cc8edd9957a05510b",
+          "nearest_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-conversion-1/packed",
+          "nearest_seal_sha256": "548540e033c3474965790dbc0f8acbe0eec5a11afc44479ba477c73786214cdb",
+          "projected_parameter_fingerprint": "0d729170832a6fbc8952f39a0be194f09b7b604a879cb04a8c736371fd7fd06e",
+          "projected_parameters": [
+            {
+              "name": "copy.gate.bias",
+              "sha256_le_f32": "5db122e6878ac6a8c279afcc1a517ca3861586df3c2aaa16f4f374f8ccafd3b5",
+              "shape": [
+                1
+              ]
+            },
+            {
+              "name": "copy.gate.weight",
+              "sha256_le_f32": "d883faf4226f50e561ab1ca2362459fdcbd9f0526b475d970f57044849b3f922",
+              "shape": [
+                1,
+                1152
+              ]
+            },
+            {
+              "name": "embedding.weight",
+              "sha256_le_f32": "95e25d4f5c7648f41e0b0137133fcc7b4d9a82f60e1e798dea7a0ced289f376b",
+              "shape": [
+                4096,
+                576
+              ]
+            },
+            {
+              "name": "output.bias",
+              "sha256_le_f32": "2be3d67f21e3f4a51ec163c60f7810854d500ec595d991e5cfc52f8fdf699dcb",
+              "shape": [
+                4096
+              ]
+            },
+            {
+              "name": "output.norm.weight",
+              "sha256_le_f32": "2ffd644554bea7498cb44495cd8cab53f8f9edf46f9d24e146706e9742da5297",
+              "shape": [
+                576
+              ]
+            },
+            {
+              "name": "read.age",
+              "sha256_le_f32": "4b17942759a68ecbc364ede9ca5aa7ab610501c61c6eb517f9f3bf8337032de6",
+              "shape": [
+                255
+              ]
+            },
+            {
+              "name": "read.key.bias",
+              "sha256_le_f32": "dd6da6a2c90181d8bb351d8eea3716d1fd32cb0374f845a8e26f1e7332f828ad",
+              "shape": [
+                64
+              ]
+            },
+            {
+              "name": "read.key.weight",
+              "sha256_le_f32": "30faab72dea64f573e3fdfa22506f823b810eaedcb166e3b75ac449c5e671fc0",
+              "shape": [
+                64,
+                576
+              ]
+            },
+            {
+              "name": "read.no_read.bias",
+              "sha256_le_f32": "cd0e1647a1c0350222d82d5875bf112a7373d7f32a08f87d1a572e9ee62a6ef4",
+              "shape": [
+                1
+              ]
+            },
+            {
+              "name": "read.no_read.weight",
+              "sha256_le_f32": "725262583d4284aef4bf659c77ee61c1799992ae39f0a9a65a1a0337e8825f23",
+              "shape": [
+                1,
+                576
+              ]
+            },
+            {
+              "name": "read.query.bias",
+              "sha256_le_f32": "09de00e8368f7feff8cf87c461ef3f0412bb6dc1290cb6db372d2d83fd17bcd6",
+              "shape": [
+                64
+              ]
+            },
+            {
+              "name": "read.query.weight",
+              "sha256_le_f32": "a1129ca5a1734aa1f951154a0e5de4f322ffb19548f694a4ba1afebc176373b5",
+              "shape": [
+                64,
+                576
+              ]
+            },
+            {
+              "name": "read.value.bias",
+              "sha256_le_f32": "adee16d4792a9b6a2dd8b5325a44b3627514ebcd728a13c18c1c0db6dec29ef1",
+              "shape": [
+                576
+              ]
+            },
+            {
+              "name": "read.value.weight",
+              "sha256_le_f32": "8dce47eca8d427663a5c084dbeb292bfd197c17b2fcd8688aa5422f78465591c",
+              "shape": [
+                576,
+                576
+              ]
+            },
+            {
+              "name": "recurrent.bias",
+              "sha256_le_f32": "7a6ee40423dc97754a818599341e7a8ac54cf4a4f8c38d7f8186185062111787",
+              "shape": [
+                1728
+              ]
+            },
+            {
+              "name": "recurrent.input.weight",
+              "sha256_le_f32": "db71a0aa36dc5555dd02500dc95918358c1c26d782a28df28dd623765f274c7c",
+              "shape": [
+                1728,
+                576
+              ]
+            },
+            {
+              "name": "recurrent.state.weight",
+              "sha256_le_f32": "d3666b9fbaad3c712b4c2b5c9e53f540917551b5f1e20f50aa110277612e5121",
+              "shape": [
+                1728,
+                576
+              ]
+            },
+            {
+              "name": "update.bias",
+              "sha256_le_f32": "9f6c8577eb162d972f77e21825df14504347d2b74aad0ad77b48bb763b39580f",
+              "shape": [
+                576
+              ]
+            },
+            {
+              "name": "update.gate.bias",
+              "sha256_le_f32": "b8a9423cf692cea148bb960910808e8c1bd86a8f84c51f789ee137ea7f630665",
+              "shape": [
+                1
+              ]
+            },
+            {
+              "name": "update.gate.weight",
+              "sha256_le_f32": "085666a90e549035581f6478a2e7c47fc5167dd54ba7f4c7171385a1b3794f07",
+              "shape": [
+                1,
+                1152
+              ]
+            },
+            {
+              "name": "update.weight",
+              "sha256_le_f32": "94249ef92d4f89829741332d490b38b408fdf588b4d7a17a9cddd55e6a58baa4",
+              "shape": [
+                576,
+                1152
+              ]
+            }
+          ],
+          "projection": {
+            "maximum_absolute_correction": 0.6289119720458984,
+            "projected_coordinates": 86539,
+            "total_coordinates": 5429826
+          },
+          "schema": "uor-r4.dialogue-rounding-preparation/1",
+          "scope": "Independent continuous-child fractions projected only to the existing nearest grid range; all initial legal hard codes equal the retained nearest artifact. No new calibration, model forward, optimizer update or language claim."
+        },
+        "presentations": [
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 756,
+              "prefix_positions": 1791,
+              "real_input_positions": 3340,
+              "response_visits": 16,
+              "supervised_target_count": 1565
+            },
+            "data_step": 1024,
+            "mean_nll": 3.0177695751190186,
+            "response_ids": [
+              5029,
+              6110,
+              11798,
+              8292,
+              1686,
+              6339,
+              361,
+              11543,
+              5103,
+              13972,
+              4930,
+              336,
+              14806,
+              12657,
+              705,
+              3912
+            ],
+            "seconds": 7.879345792,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 2,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 12,
+                  "prefix_positions": 148,
+                  "real_input_positions": 500,
+                  "response_visits": 2,
+                  "supervised_target_count": 354
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 8,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 367,
+                  "prefix_positions": 748,
+                  "real_input_positions": 1681,
+                  "response_visits": 8,
+                  "supervised_target_count": 941
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 6,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 377,
+                  "prefix_positions": 895,
+                  "real_input_positions": 1159,
+                  "response_visits": 6,
+                  "supervised_target_count": 270
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "519b781298152e6d88a3a3d18c4dcc8d444f2b154420369225284dec88f664ad"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 1544,
+              "prefix_positions": 1460,
+              "real_input_positions": 2552,
+              "response_visits": 16,
+              "supervised_target_count": 1108
+            },
+            "data_step": 1025,
+            "mean_nll": 2.704583168029785,
+            "response_ids": [
+              3388,
+              926,
+              13904,
+              8142,
+              9300,
+              6071,
+              12024,
+              2165,
+              7538,
+              4266,
+              11279,
+              264,
+              5151,
+              3970,
+              13456,
+              5843
+            ],
+            "seconds": 6.533522416,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 91,
+                  "prefix_positions": 55,
+                  "real_input_positions": 165,
+                  "response_visits": 1,
+                  "supervised_target_count": 111
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 8,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 504,
+                  "prefix_positions": 839,
+                  "real_input_positions": 1544,
+                  "response_visits": 8,
+                  "supervised_target_count": 713
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 21,
+                  "prefix_positions": 152,
+                  "real_input_positions": 235,
+                  "response_visits": 1,
+                  "supervised_target_count": 84
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 6,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 928,
+                  "prefix_positions": 414,
+                  "real_input_positions": 608,
+                  "response_visits": 6,
+                  "supervised_target_count": 200
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "15921fe7df304bc55d6eac6c184f99e8c9828e4abc539928c726bf5ccf47cb15"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 2171,
+              "prefix_positions": 912,
+              "real_input_positions": 1925,
+              "response_visits": 16,
+              "supervised_target_count": 1029
+            },
+            "data_step": 1026,
+            "mean_nll": 2.6463096141815186,
+            "response_ids": [
+              5030,
+              8796,
+              14674,
+              3708,
+              7746,
+              10501,
+              8418,
+              1965,
+              9712,
+              10983,
+              12974,
+              2732,
+              13980,
+              4914,
+              5546,
+              14207
+            ],
+            "seconds": 6.328962209,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 6,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 220,
+                  "prefix_positions": 591,
+                  "real_input_positions": 1316,
+                  "response_visits": 6,
+                  "supervised_target_count": 731
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 10,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 1951,
+                  "prefix_positions": 321,
+                  "real_input_positions": 609,
+                  "response_visits": 10,
+                  "supervised_target_count": 298
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "95db22d4ebb07c8d3dd946c65bbb8b0a55e9bf4042851ec71688b4923424d959"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 1614,
+              "prefix_positions": 1431,
+              "real_input_positions": 2482,
+              "response_visits": 16,
+              "supervised_target_count": 1067
+            },
+            "data_step": 1027,
+            "mean_nll": 2.8606598377227783,
+            "response_ids": [
+              9409,
+              7221,
+              2076,
+              5434,
+              14455,
+              13016,
+              5475,
+              4088,
+              13579,
+              1947,
+              2217,
+              5009,
+              5787,
+              227,
+              5809,
+              6771
+            ],
+            "seconds": 7.147670834,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 41,
+                  "prefix_positions": 117,
+                  "real_input_positions": 215,
+                  "response_visits": 1,
+                  "supervised_target_count": 99
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 9,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 582,
+                  "prefix_positions": 869,
+                  "real_input_positions": 1722,
+                  "response_visits": 9,
+                  "supervised_target_count": 862
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 24,
+                  "prefix_positions": 205,
+                  "real_input_positions": 232,
+                  "response_visits": 1,
+                  "supervised_target_count": 28
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 32,
+                  "prefix_positions": 187,
+                  "real_input_positions": 224,
+                  "response_visits": 1,
+                  "supervised_target_count": 38
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 4,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 935,
+                  "prefix_positions": 53,
+                  "real_input_positions": 89,
+                  "response_visits": 4,
+                  "supervised_target_count": 40
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "60e669f54f49d82d4add7068f3c29fce7eaef7a786dd7b50d7763862be72a14c"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 1913,
+              "prefix_positions": 1297,
+              "real_input_positions": 2183,
+              "response_visits": 16,
+              "supervised_target_count": 902
+            },
+            "data_step": 1028,
+            "mean_nll": 2.711188316345215,
+            "response_ids": [
+              13520,
+              8427,
+              2611,
+              8228,
+              8020,
+              5601,
+              11164,
+              9216,
+              4722,
+              11417,
+              7858,
+              11280,
+              12919,
+              2833,
+              8126,
+              11018
+            ],
+            "seconds": 6.513319708,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 4,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 108,
+                  "prefix_positions": 452,
+                  "real_input_positions": 916,
+                  "response_visits": 4,
+                  "supervised_target_count": 468
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 12,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 1805,
+                  "prefix_positions": 845,
+                  "real_input_positions": 1267,
+                  "response_visits": 12,
+                  "supervised_target_count": 434
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "8e4f69e9d7f03d14a77cdb81e424039bd597edfd6230cb4da75c100d9ace2654"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 850,
+              "prefix_positions": 1933,
+              "real_input_positions": 3246,
+              "response_visits": 16,
+              "supervised_target_count": 1329
+            },
+            "data_step": 1029,
+            "mean_nll": 2.652937173843384,
+            "response_ids": [
+              14308,
+              5803,
+              1839,
+              46,
+              1095,
+              3747,
+              7893,
+              10777,
+              9217,
+              9080,
+              4537,
+              14343,
+              5828,
+              3668,
+              1414,
+              12042
+            ],
+            "seconds": 6.92229525,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 58,
+                  "prefix_positions": 72,
+                  "real_input_positions": 198,
+                  "response_visits": 1,
+                  "supervised_target_count": 127
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 8,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 266,
+                  "prefix_positions": 933,
+                  "real_input_positions": 1782,
+                  "response_visits": 8,
+                  "supervised_target_count": 857
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 7,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 526,
+                  "prefix_positions": 928,
+                  "real_input_positions": 1266,
+                  "response_visits": 7,
+                  "supervised_target_count": 345
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "2df4af4e8215871e55f2d2c6528d2223ec9ac9a7a7e69df8c2a2e2a2ffac892c"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 1918,
+              "prefix_positions": 1204,
+              "real_input_positions": 2178,
+              "response_visits": 16,
+              "supervised_target_count": 990
+            },
+            "data_step": 1030,
+            "mean_nll": 2.4144818782806396,
+            "response_ids": [
+              8913,
+              1051,
+              14737,
+              14382,
+              11167,
+              11640,
+              2830,
+              4674,
+              8933,
+              13635,
+              10122,
+              2280,
+              1609,
+              8529,
+              1059,
+              9892
+            ],
+            "seconds": 7.213838208,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 6,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 238,
+                  "prefix_positions": 595,
+                  "real_input_positions": 1298,
+                  "response_visits": 6,
+                  "supervised_target_count": 709
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 10,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 1680,
+                  "prefix_positions": 609,
+                  "real_input_positions": 880,
+                  "response_visits": 10,
+                  "supervised_target_count": 281
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "21ee5b0df19839a114d4c0153459e1d44124ed61aba689b859840f2f58270930"
+          },
+          {
+            "counts": {
+              "eos_targets": 16,
+              "identical_prefix_visits": 0,
+              "padded_positions": 1435,
+              "prefix_positions": 1488,
+              "real_input_positions": 2661,
+              "response_visits": 16,
+              "supervised_target_count": 1189
+            },
+            "data_step": 1031,
+            "mean_nll": 2.997060775756836,
+            "response_ids": [
+              6379,
+              3768,
+              2168,
+              13209,
+              9841,
+              3593,
+              16,
+              11537,
+              6368,
+              7842,
+              6507,
+              229,
+              12909,
+              7997,
+              87,
+              14177
+            ],
+            "seconds": 6.941435667,
+            "source_visits": [
+              {
+                "counts": {
+                  "eos_targets": 3,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 260,
+                  "prefix_positions": 193,
+                  "real_input_positions": 508,
+                  "response_visits": 3,
+                  "supervised_target_count": 318
+                },
+                "label": "smoltalk_smol-magpie-ultra.train",
+                "source_index": 0
+              },
+              {
+                "counts": {
+                  "eos_targets": 5,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 311,
+                  "prefix_positions": 412,
+                  "real_input_positions": 969,
+                  "response_visits": 5,
+                  "supervised_target_count": 562
+                },
+                "label": "smoltalk_smol-constraints.train",
+                "source_index": 1
+              },
+              {
+                "counts": {
+                  "eos_targets": 1,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 20,
+                  "prefix_positions": 161,
+                  "real_input_positions": 236,
+                  "response_visits": 1,
+                  "supervised_target_count": 76
+                },
+                "label": "smoltalk_smol-rewrite.train",
+                "source_index": 2
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "smoltalk_smol-summarize.train",
+                "source_index": 3
+              },
+              {
+                "counts": {
+                  "eos_targets": 0,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 0,
+                  "prefix_positions": 0,
+                  "real_input_positions": 0,
+                  "response_visits": 0,
+                  "supervised_target_count": 0
+                },
+                "label": "ultrachat_200k.default.train_sft",
+                "source_index": 4
+              },
+              {
+                "counts": {
+                  "eos_targets": 7,
+                  "identical_prefix_visits": 0,
+                  "padded_positions": 844,
+                  "prefix_positions": 722,
+                  "real_input_positions": 948,
+                  "response_visits": 7,
+                  "supervised_target_count": 233
+                },
+                "label": "everyday-conversations-llama3.1-2k.default.train_sft",
+                "source_index": 5
+              }
+            ],
+            "target_sha256_le_u32": "6e0a9e12afd039d960733a54d7a1417f91f24e6b595dccbe885838c4356dcc51"
+          }
+        ],
+        "regularization": 29.56681391929494,
+        "response_mean_nll": 2.769359610233708,
+        "schema": "uor-r4.dialogue-rounding-normalization/1",
+        "scope": "Initial gradient heuristic, not optimal regularization or future per-update gradient balance. These backward presentations are extra work, not optimizer exposure.",
+        "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+        "status": "NORMALIZED_NO_UPDATES",
+        "supervised_target_visits": 9179,
+        "task_gradient_l2": 0.005416987244996414,
+        "unit_beta2_penalty_gradient_l2": 0.00018321173393191865,
+        "used_evaluation_data": false,
+        "wall_seconds": 60.255993833
+      }
+    },
+    "dialogue-code-choice-normalization-1/manifest.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/manifest.json",
+        "bytes": 977,
+        "sha256": "f4b8aa762a5b6dfe2e9d28ee5c8d136506db86976aeb73af821da69a58091d96"
+      },
+      "value": {
+        "files": [
+          {
+            "blake3": "916a5266147a086825f38dc32eae383b353c34556b804f6013aa675a061fcc6e",
+            "bytes": 613,
+            "path": "attempt.json"
+          },
+          {
+            "blake3": "775172abaa0d6750cd56cca316937ff27d9ec40ace4a6e51273fab0b1b86fa50",
+            "bytes": 1524,
+            "path": "campaign.json"
+          },
+          {
+            "blake3": "6c59ef9f6af2c64c2ce01ac4c1cad6166780b88ff82b20e390066169f848932d",
+            "bytes": 856,
+            "path": "execution-binding.json"
+          },
+          {
+            "blake3": "90b024e762c11c985d47f5c5cd9607dc8f4c7d3d5b5ad76f2d03d7ec6fa5d4bc",
+            "bytes": 58632,
+            "path": "normalization.json"
+          },
+          {
+            "blake3": "e6b34c1edcd7db2e6ddf59cd58f2d94eb530533e5eda654e19e4fc7ee9809594",
+            "bytes": 26592,
+            "path": "preparation.json"
+          }
+        ],
+        "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1",
+        "schema": "uor-r4.report-manifest/1",
+        "sealed_at": "1790517995"
+      }
+    },
+    "dialogue-code-choice-normalization-1/execution-binding.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/execution-binding.json",
+        "bytes": 856,
+        "sha256": "cf5a1c14b0075b5041719698661bbadbefef8e14d9330d2f7ed75324d3d86c1c"
+      },
+      "value": {
+        "cpu_accelerate_compiled": true,
+        "evaluation_packed": null,
+        "executable_sha256": "c45b4d3ba874f920bbc6ef826d560e98b7fec4d64d8efcbc7375460c33eb1537",
+        "normalization_only": true,
+        "saved_campaign_sha256": "e6ced1d099f128ea202de37168d45d82ba913008deacdadd6530443f77a40096",
+        "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+        "source_sha256": {
+          "dialogue_rounding.rs": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c",
+          "dialogue_rounding_artifact.rs": "caefa920e21f404f42ca90eb64378d326480c7ceba0422656f46c446d5016dd5",
+          "joint_parallel.rs": "fab465c19285a6953adff5d96b807e9cee6cf7a0628e89f7defb362c7b392f2a",
+          "joint_rounding.rs": "b5c2a4f4c3ac82faa1077ce8f1932c35d872450b6f120efb9c14c3ba7f104a9e"
+        },
+        "supplied_campaign_sha256": "5a2d51eceb00636dedb6b124db948b32ba2343992520b4f1d902a5e4040b5bd6"
+      }
+    },
+    "dialogue-code-choice-fit-inputs-1/campaign.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/campaign.json",
+        "bytes": 1935,
+        "sha256": "6c14181627191f37f3978f48f994ad6e2facd1fe283bba02b3e5d6f69d3a19f4"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-rounding-campaign/1",
+        "child_report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-study-full_prefix-1",
+        "prepared_manifest": "/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/manifest.json",
+        "tokenizer_path": "/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1/tokenizer.json",
+        "nearest_packed_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-conversion-1/packed",
+        "child_parameter_sha256": "98aca5ab14a9edab58dcd2d74d71e74d3904c27e1ce3c126fb66b670cc2baa1c",
+        "prepared_manifest_sha256": "a66d52473cac24b28cc09a751ede7b680c40e7b56218e9074e246cf4fd1a99a5",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+        "nearest_hard_manifest_sha256": "eb975d2b0b6349852af8841fd5fc10f9336a1ea39023e09e618658ff94204682",
+        "train_index_sha256": "3cceb18a5e1febfd9516c3d7730a2a5498c2fbb896b5d34552526dff88f16ce5",
+        "rounding": {
+          "steps": 512,
+          "warmup_steps": 102,
+          "beta_start": 20.0,
+          "beta_end": 2.0,
+          "regularization": 29.56681391929494
+        },
+        "optimizer": {
+          "learning_rate": 0.01,
+          "weight_decay": 0.0,
+          "parameter_abs_limit": 30.0,
+          "allowed_missing_gradients": []
+        },
+        "data_seed": 20260929,
+        "data_start_step": 1024,
+        "batch": 16,
+        "cpu_gradient_shards": 2,
+        "checkpoint_steps": [
+          256
+        ],
+        "max_process_seconds": 5400.0,
+        "stop_file": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-1.stop",
+        "resume_from": null,
+        "normalization_report": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/normalization.json",
+        "normalization_report_sha256": "d26d43ecb485a001f2f3bd08d2f1b70a324383c8afd7f2d0db6c04a4d3691cde"
+      }
+    },
+    "dialogue-code-choice-fit-inputs-1/decision.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/decision.json",
+        "bytes": 3448,
+        "sha256": "c8dbedebfc20d52d6c1734d6b80a9812968ce2cac5905efd1ecf3b3f94e0e952"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-code-choice-fit-decision/1",
+        "recorded_at": "2026-09-27T14:09:28.792243+00:00",
+        "source_commit": "34964512fd092a639000f8c4061bc0b8f41b862a",
+        "selected_updates": 512,
+        "normalization": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-1/normalization.json",
+          "bytes": 58632,
+          "sha256": "d26d43ecb485a001f2f3bd08d2f1b70a324383c8afd7f2d0db6c04a4d3691cde"
+        },
+        "recipe_review": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-recipe-review.json",
+          "bytes": 13950,
+          "sha256": "d7113ffd089642bac9da944d6803a54031483db32530fe2d902ff6941fa3891b"
+        },
+        "causal_design": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-repair-source-design.json",
+          "bytes": 27482,
+          "sha256": "76dd160ad0a5ebfcd771312f8ba2f92abf86d8661c1586b0cd09909cf325c95a"
+        },
+        "fixed": "Original full-prefix child and nearest exported grids, alpha-only choices, B16/shards2/full256, sampler seed20260929/counters1024\u20131535, tokenizer/protocol and unchanged observer/evaluator identities. Parent weights and model clock unchanged.",
+        "cost_basis": {
+          "measured8batch_mean_seconds": 6.9350487605,
+          "measured8batch_max_seconds": 7.879345792,
+          "arithmetic512_at_mean_seconds": 3550.744965376,
+          "arithmetic512_at_max_seconds": 4034.225045504,
+          "actual_normalization_peak_child_rss_bytes": 6919520256,
+          "limitations": "Initial-soft normalization excludes Adam and changing beta penalties. These arithmetic references are not bounds or a promised runtime. 5400s soft allocation allows overhead; hard5520/phase5760 includes checkpoint and closeout.",
+          "expected_checkpoint_bytes": 130400000,
+          "new_alpha_update_response_visits": 8192,
+          "new_alpha_update_padded_positions": 2097152,
+          "supervised_targets": "measure actual, not infer from normalization",
+          "normalization_additional_targets": 9179
+        },
+        "complete_forward_work_plan": {
+          "fit_phase_seconds": 5760,
+          "subsequent_endpoints_pack_observation_seconds": 600,
+          "subsequent_review_delivery_seconds": 1800,
+          "future_complete_elapsed_envelope_seconds": 8160,
+          "endpoint_work": "Nearest and learned QQ161 fixed responses each, batch4/41batches each, then native pack/reload and identical58turn observer, 174whole replies with original FF and unchanged greedy controller. No fresh final holdout."
+        },
+        "outcome_decisions": {
+          "useful_recovery": "Inspect complete replies versus same-child nearest and continuous; preserve demonstrated relations and report every other improvement/regression. Retain a promising candidate at this exact development scope only.",
+          "nll_only_or_mixed": "Preserve candidate and negative/tradeoffs; no automatic longer run, seed/scale/decoder sweep or accepted-model overwrite. Use next independent causal implementation for useful native inference.",
+          "incomplete_or_runtime_disagreement": "Preserve checkpoint/failed artifacts; diagnose only a concrete execution or identity error invalidating this deliverable; unavailable execution is not model quality."
+        },
+        "authorization": "Principal selects one fixed recipe within broad owner goal and standing local authority. No paid/external compute, destructive deletion or increased globaltime/storage allowance."
+      }
+    },
+    "dialogue-code-choice-fit-inputs-1/manifest.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/manifest.json",
+        "bytes": 660,
+        "sha256": "05abc9947222c2cec46fc7b56d6640cd52d141a5713fc275d7db86bbbb9745b1"
+      },
+      "value": {
+        "files": [
+          {
+            "blake3": "917705d51e9eee60c3dde582d54ae419064032098b7569b05321dab253c77b97",
+            "bytes": 425,
+            "path": "attempt.json"
+          },
+          {
+            "blake3": "a7fd6c0613c6cbdb52d76c7a414efb183f8071352945239b700de4543d50e691",
+            "bytes": 1935,
+            "path": "campaign.json"
+          },
+          {
+            "blake3": "0b1c5338efbe1db42b30f29eb597a52f1aa79d605ab5cec29bbbbcd6633ca05e",
+            "bytes": 3448,
+            "path": "decision.json"
+          }
+        ],
+        "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1",
+        "schema": "uor-r4.report-manifest/1",
+        "sealed_at": "1790518168"
+      }
+    },
+    "projection-dialogue-code-choice-fit-1.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-code-choice-fit-1.json",
+        "bytes": 2051,
+        "sha256": "1377bbb526538a1cf4e2c2842a13e81de3f75e6f1d4bf3c15ed8836bfeab1279"
+      },
+      "value": {
+        "schema": "uor-r4.dialogue-code-choice-fit-projection/1",
+        "recorded_at": "2026-09-27T14:09:28.792243+00:00",
+        "phase_ends_at": "2026-09-27T15:45:28.792243+00:00",
+        "wall_cap_seconds": 5760,
+        "fit_soft_seconds": 5400,
+        "fit_wall_cap_seconds": 5520,
+        "closeout_seconds": 120,
+        "expected_updates": 512,
+        "owned_elapsed_cap_ms": 64800000,
+        "verified_cumulative_allowance_ms": 722400000,
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 30117740544,
+          "/Volumes/UOR-Workspace": 172482707456
+        },
+        "resources": {
+          "model_rss_cap_bytes": 8589934592,
+          "new_report_bytes": 536870912,
+          "launch_free_memory_percent": 25,
+          "minimum_free_memory_percent": 10,
+          "internal_original_baseline_bytes": 32427651072,
+          "internal_shared_growth_limit_bytes": 4294967296,
+          "physical_reserve_bytes": 25971130368,
+          "stop_margin_bytes": 134217728,
+          "shared_ssd_growth_bytes": 536870912
+        },
+        "decision": {
+          "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-inputs-1/decision.json",
+          "bytes": 3448,
+          "sha256": "c8dbedebfc20d52d6c1734d6b80a9812968ce2cac5905efd1ecf3b3f94e0e952"
+        },
+        "complete_cost": {
+          "fit_phase_seconds": 5760,
+          "subsequent_endpoints_pack_observation_seconds": 600,
+          "subsequent_review_delivery_seconds": 1800,
+          "future_complete_elapsed_envelope_seconds": 8160,
+          "endpoint_work": "Nearest and learned QQ161 fixed responses each, batch4/41batches each, then native pack/reload and identical58turn observer, 174whole replies with original FF and unchanged greedy controller. No fresh final holdout."
+        },
+        "preparation_cost": "Prior source/check/normalization wall already charged in ledger-dialogue-code-choice-normalization.json; all subsequent elapsed continues, with overlapping work charged once.",
+        "normalization_peak_plus_headroom": "6.920GB measured child peak;8GiB allows alpha Adam/penalty and saved-state overhead without raising prior model RSS ceiling. External sampled pressure guard remains active."
+      }
+    },
+    "ledger-dialogue-code-choice-normalization.json": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/ledger-dialogue-code-choice-normalization.json",
+        "bytes": 1305,
+        "sha256": "ca1145b583ebc42d9abbab185dc5de550f1a826c0aa6155d188a4a628c385f95"
+      },
+      "value": {
+        "last_charged_at": "2026-09-27T14:07:33.960772+00:00",
+        "charged_elapsed_ms": 48869946,
+        "tail_ms": 2481866,
+        "before": {
+          "cumulative_ms": 694543660,
+          "limit_ms": 744000000
+        },
+        "after": {
+          "cumulative_ms": 697025526,
+          "limit_ms": 744000000
+        },
+        "foreign_increment_since_last_cursor_ms": 0,
+        "verified_cumulative_allowance_ms": 722400000,
+        "owned_elapsed_cap_ms": 64800000,
+        "foreign_reported_limit_adopted": false,
+        "scope": "Complete elapsed since prior delivery: response-aware code-choice implementation, source and cross-lab review, two build attempts, focused checks, normalization preparation/execution and fit selection. Overlapping work charged once. Fit not launched.",
+        "process_breakdown_not_additional_charges": {
+          "build_all_attempts_seconds": 652.199712417,
+          "normalization_supervisor_seconds": 61.107023083,
+          "normalization_model_seconds": 60.255993833,
+          "normalization_response_batches": 8,
+          "normalization_supervised_targets": 9179,
+          "new_retained_model_optimizer_updates": 0
+        },
+        "physical_free_bytes": {
+          "/System/Volumes/Data": 30117130240,
+          "/Volumes/UOR-Workspace": 172482707456
+        },
+        "limitations": "Advisory lock plus compare-before replacement; foreign writers may not share lock. Subsequent work continues from cursor."
+      }
+    }
+  },
+  "logs": {
+    "dialogue-child-code-choice-checks-1-integer-dialogue-tests.log": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1-integer-dialogue-tests.log",
+        "bytes": 2419,
+        "sha256": "c7cc732d4e0484a5e0237b4c724fa8b9a3a693831c631f706da0d04a76604e89"
+      },
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 14.24s\n     Running unittests src/lib.rs (/Users/casey.allard/uor-r4/target/release/deps/uor_r4_integer-bea720be477d0689)\n\nrunning 8 tests\ntest bundle::tests::dialogue576_bundle_rejects_tokenizer_lineage_and_clock_changes ... ok\ntest bundle::tests::dialogue576_bundle_requires_explicit_development_profile ... ok\ntest bundle::tests::dialogue576_bundle_seals_failed_packaging_without_overwrite ... ok\ntest bundle::tests::dialogue576_child_bundle_keeps_immediate_lineage_and_local_clock ... ok\ntest bundle::tests::dialogue576_rounding_bundle_binds_separate_alpha_clock_and_codes ... FAILED\ntest model::tests::dialogue576_full_value_memory_and_step ... ok\ntest model::tests::dialogue576_normalization_matches_rational_reference ... ok\ntest model::tests::dialogue576_profile_manifest_is_explicit_and_separate ... ok\n\nfailures:\n\n---- bundle::tests::dialogue576_rounding_bundle_binds_separate_alpha_clock_and_codes stdout ----\n\nthread 'bundle::tests::dialogue576_rounding_bundle_binds_separate_alpha_clock_and_codes' (38939291) panicked at crates/uor-r4-integer/src/bundle.rs:1067:13:\n/conversion_provenance/learned_parameters/0/shape\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    bundle::tests::dialogue576_rounding_bundle_binds_separate_alpha_clock_and_codes\n\ntest result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.03s\n\nerror: test failed, to rerun pass `-p uor-r4-integer --lib`\n       14.32 real        13.64 user         0.28 sys\n           373473280  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               63491  page reclaims\n                3607  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                 978  voluntary context switches\n                2519  involuntary context switches\n          1073521985  instructions retired\n           366803730  cycles elapsed\n            40059504  peak memory footprint\n"
+    },
+    "dialogue-child-code-choice-checks-1-training-rounding-tests.log": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-1-training-rounding-tests.log",
+        "bytes": 3157,
+        "sha256": "2e19a259769a6f9cb9edebf401130b4a814436abc4bcdb59878c79f3723e2acf"
+      },
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-core)\nwarning: method `position` is never used\n   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8\n    |\n168 | impl ObservedSpan {\n    | ----------------- method in this implementation\n...\n175 |     fn position(&self) -> (u32, u32, usize) {\n    |        ^^^^^^^^\n    |\n    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default\n\nwarning: method `example` is never used\n    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8\n     |\n1405 | impl TlTrainer {\n     | -------------- method in this implementation\n...\n1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {\n     |        ^^^^^^^\n\nwarning: `uor-r4-core` (lib) generated 2 warnings\n   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training)\nwarning: variable does not need to be mutable\n   --> crates/uor-r4-training/src/joint_bounded_campaign.rs:103:10\n    |\n103 |     let (mut model, mut optimizer, begin, resume_binding) = if let Some(path) = resume {\n    |          ----^^^^^\n    |          |\n    |          help: remove this `mut`\n    |\n    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default\n\nwarning: `uor-r4-training` (lib test) generated 1 warning (run `cargo fix --lib -p uor-r4-training --tests` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 4m 50s\n     Running unittests src/lib.rs (/Users/casey.allard/uor-r4/target/release/deps/uor_r4_training-c934a4d9e18f8fdf)\n\nrunning 5 tests\ntest dialogue_rounding::tests::dialogue_rounding_checkpoint_resume_recipe ... ok\ntest dialogue_rounding::tests::dialogue_rounding_normalization_response_pool ... ok\ntest dialogue_rounding::tests::dialogue_rounding_response_alpha_global_objective ... ok\ntest dialogue_rounding_artifact::tests::dialogue_rounding_artifact_exports_saved_alpha_and_rejects_relabeling ... ok\ntest dialogue_rounding_artifact::tests::dialogue_rounding_artifact_keeps_fractions_and_independent_parent ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 146 filtered out; finished in 11.85s\n\n      302.68 real       291.90 user         7.07 sys\n          4099735552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n             1462590  page reclaims\n               19704  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   7  signals received\n                2725  voluntary context switches\n               47878  involuntary context switches\n          1708364522  instructions retired\n           662661032  cycles elapsed\n            48562824  peak memory footprint\n"
+    },
+    "dialogue-child-code-choice-checks-2-integer-build.log": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-integer-build.log",
+        "bytes": 962,
+        "sha256": "89a7fe00f018ed5fef2cd020a2c17ebbc93a2980e2d08e177062ec82f279d0d1"
+      },
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 12.75s\n       12.78 real        12.44 user         0.28 sys\n           337854464  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               74399  page reclaims\n                 857  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   5  signals received\n                 108  voluntary context switches\n                1559  involuntary context switches\n          1025646815  instructions retired\n           331306831  cycles elapsed\n            40059504  peak memory footprint\n"
+    },
+    "dialogue-child-code-choice-checks-2-integer-dialogue-tests.log": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-integer-dialogue-tests.log",
+        "bytes": 1860,
+        "sha256": "403140508b7e07aee31ea3eead0143d11adb7a7c0d793aa2866bbbe607b304fd"
+      },
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n    Finished `release` profile [optimized] target(s) in 14.26s\n     Running unittests src/lib.rs (/Users/casey.allard/uor-r4/target/release/deps/uor_r4_integer-bea720be477d0689)\n\nrunning 8 tests\ntest bundle::tests::dialogue576_bundle_rejects_tokenizer_lineage_and_clock_changes ... ok\ntest bundle::tests::dialogue576_bundle_requires_explicit_development_profile ... ok\ntest bundle::tests::dialogue576_bundle_seals_failed_packaging_without_overwrite ... ok\ntest bundle::tests::dialogue576_child_bundle_keeps_immediate_lineage_and_local_clock ... ok\ntest bundle::tests::dialogue576_rounding_bundle_binds_separate_alpha_clock_and_codes ... ok\ntest model::tests::dialogue576_full_value_memory_and_step ... ok\ntest model::tests::dialogue576_normalization_matches_rational_reference ... ok\ntest model::tests::dialogue576_profile_manifest_is_explicit_and_separate ... ok\n\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.03s\n\n       14.32 real        13.88 user         0.28 sys\n           374013952  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               66513  page reclaims\n                 104  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   3  signals received\n                  25  voluntary context switches\n                3190  involuntary context switches\n          1010952172  instructions retired\n           320747540  cycles elapsed\n            39617160  peak memory footprint\n"
+    },
+    "dialogue-child-code-choice-checks-2-observer-tests.log": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-observer-tests.log",
+        "bytes": 3301,
+        "sha256": "fe3bf6ceab6f56cc1ed99dd136e27de8d372a9d96bca0b328fe62e6a721c0ef3"
+      },
+      "text": "   Compiling uor-r4-integer v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer)\n   Compiling uor-r4-core v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-core)\nwarning: method `position` is never used\n   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8\n    |\n168 | impl ObservedSpan {\n    | ----------------- method in this implementation\n...\n175 |     fn position(&self) -> (u32, u32, usize) {\n    |        ^^^^^^^^\n    |\n    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default\n\nwarning: method `example` is never used\n    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8\n     |\n1405 | impl TlTrainer {\n     | -------------- method in this implementation\n...\n1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {\n     |        ^^^^^^^\n\nwarning: `uor-r4-core` (lib) generated 2 warnings\n   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training)\nwarning: unused import: `JointModel`\n  --> crates/uor-r4-training/src/joint_rounding_campaign.rs:18:26\n   |\n18 | use crate::joint_model::{JointModel, ReadMode};\n   |                          ^^^^^^^^^^\n   |\n   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\nwarning: variable does not need to be mutable\n   --> crates/uor-r4-training/src/joint_bounded_campaign.rs:103:10\n    |\n103 |     let (mut model, mut optimizer, begin, resume_binding) = if let Some(path) = resume {\n    |          ----^^^^^\n    |          |\n    |          help: remove this `mut`\n    |\n    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default\n\nwarning: `uor-r4-training` (lib) generated 2 warnings (run `cargo fix --lib -p uor-r4-training` to apply 2 suggestions)\n    Finished `release` profile [optimized] target(s) in 4m 52s\n     Running unittests examples/dialogue-integer-observe.rs (/Users/casey.allard/uor-r4/target/release/examples/dialogue_integer_observe-ef3b56c2cf3e16ba)\n\nrunning 4 tests\ntest tests::child_mode_is_explicit_and_keeps_distinct_reference_identity_and_counts ... ok\ntest tests::closure_adds_caller_eos_only_for_an_interrupted_previous_turn ... ok\ntest tests::common_trace_scores_final_eos_without_consuming_it ... ok\ntest tests::target_reduction_preserves_denominators_and_true_zero ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n      292.17 real       285.07 user         4.03 sys\n          3157377024  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n              889629  page reclaims\n                6041  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   9  signals received\n                1516  voluntary context switches\n               36077  involuntary context switches\n          1610453137  instructions retired\n           576302533  cycles elapsed\n            48661128  peak memory footprint\n"
+    },
+    "dialogue-child-code-choice-checks-2-training-examples-build.log": {
+      "identity": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-2-training-examples-build.log",
+        "bytes": 2479,
+        "sha256": "88ef6ee4a30bbfbfb879d7f9908a2ed703ed2f40e956ddfee02610c59f1a9a69"
+      },
+      "text": "warning: method `position` is never used\n   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8\n    |\n168 | impl ObservedSpan {\n    | ----------------- method in this implementation\n...\n175 |     fn position(&self) -> (u32, u32, usize) {\n    |        ^^^^^^^^\n    |\n    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default\n\nwarning: method `example` is never used\n    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8\n     |\n1405 | impl TlTrainer {\n     | -------------- method in this implementation\n...\n1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {\n     |        ^^^^^^^\n\nwarning: `uor-r4-core` (lib) generated 2 warnings\nwarning: unused import: `JointModel`\n  --> crates/uor-r4-training/src/joint_rounding_campaign.rs:18:26\n   |\n18 | use crate::joint_model::{JointModel, ReadMode};\n   |                          ^^^^^^^^^^\n   |\n   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\nwarning: variable does not need to be mutable\n   --> crates/uor-r4-training/src/joint_bounded_campaign.rs:103:10\n    |\n103 |     let (mut model, mut optimizer, begin, resume_binding) = if let Some(path) = resume {\n    |          ----^^^^^\n    |          |\n    |          help: remove this `mut`\n    |\n    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default\n\nwarning: `uor-r4-training` (lib) generated 2 warnings (run `cargo fix --lib -p uor-r4-training` to apply 2 suggestions)\n   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training)\n    Finished `release` profile [optimized] target(s) in 7.72s\n        7.77 real         7.52 user         0.39 sys\n           299679744  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               91144  page reclaims\n                 587  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   5  signals received\n                1603  voluntary context switches\n                2441  involuntary context switches\n          1572205169  instructions retired\n           528605059  cycles elapsed\n            48841328  peak memory footprint\n"
+    }
+  },
+  "source_files": {
+    "crates/uor-r4-training/src/dialogue_rounding.rs": {
+      "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/dialogue_rounding.rs",
+      "bytes": 51419,
+      "sha256": "13e983586f71d96d398192691f72476d31a0dc08df9522e3cbde1b3eb4a46b8c"
+    },
+    "crates/uor-r4-training/src/dialogue_rounding_artifact.rs": {
+      "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/src/dialogue_rounding_artifact.rs",
+      "bytes": 31074,
+      "sha256": "caefa920e21f404f42ca90eb64378d326480c7ceba0422656f46c446d5016dd5"
+    },
+    "crates/uor-r4-training/examples/dialogue-child-rounding.rs": {
+      "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/examples/dialogue-child-rounding.rs",
+      "bytes": 1854,
+      "sha256": "5571665ec78c0657016cc2b3a2fa7f37072c2dd4eb03839aeb90149ca971a22c"
+    },
+    "crates/uor-r4-training/examples/dialogue-integer-observe.rs": {
+      "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-training/examples/dialogue-integer-observe.rs",
+      "bytes": 62696,
+      "sha256": "da6966e468be126fa7d88c4254ad2a88010e96ade70eb015bc380714d8cad828"
+    },
+    "crates/uor-r4-integer/src/bundle.rs": {
+      "path": "/Users/casey.allard/.codex/worktrees/chat-stream-errors/uor-r4/crates/uor-r4-integer/src/bundle.rs",
+      "bytes": 49051,
+      "sha256": "ac13f9b8c82e83ff3100b4e7e34ea2718c8dd12a0344983af7c124335a3986bd"
+    }
+  },
+  "limit": "Open development only; no useful general prose/chat/reasoning, geometric advantage, selected parameter access, speed advantage or energy result follows."
+}

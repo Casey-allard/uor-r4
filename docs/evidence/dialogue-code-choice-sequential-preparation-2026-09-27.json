@@ -1,0 +1,122 @@
+{
+  "schema": "uor-r4.dialogue-code-choice-sequential-preparation/1",
+  "recorded_at": "2026-09-27T16:13:05.038107+00:00",
+  "status": "FIXED_512_SELECTED_NOT_YET_LAUNCHED",
+  "source_commit": "b49a2810a5238a16880f9cb726d96d1ba1f18624",
+  "documentation_base": "88b4d825a5a4ced0ade603d8ac07f0154e4ba8e1",
+  "scope": "Operational memory correction, objective equivalence and fixed-dose restart selection; no candidate or language qualification.",
+  "normalization_fields_exactly_equal": [
+    "executed_schedule_sha256",
+    "normalization_contract",
+    "preparation",
+    "by_parameter",
+    "regularization",
+    "response_mean_nll",
+    "optimizer_updates",
+    "padded_position_visits",
+    "supervised_target_visits",
+    "task_gradient_l2",
+    "unit_beta2_penalty_gradient_l2",
+    "used_evaluation_data"
+  ],
+  "recorded_statistics_equality_is_not_full_gradient_tensor_equality": true,
+  "records": {
+    "dialogue-child-code-choice-checks-9.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-child-code-choice-checks-9.json",
+      "bytes": 14780,
+      "sha256": "3f768a0d88475811de2216491ea054edc5c2442ffe47146ec388b81ba9cf66dc"
+    },
+    "dialogue-code-choice-normalization-execution-1.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-normalization-execution-1.json",
+      "bytes": 7335,
+      "sha256": "a77a1a1e0d2310396ab7cd05ab4e89dd76edc130df2438f0f5b6d6fd677b2b2f"
+    },
+    "dialogue-code-choice-sequential-normalization-execution-1.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-sequential-normalization-execution-1.json",
+      "bytes": 8329,
+      "sha256": "79619d97e7379c997ca2884bd81cebfdcf76c70e61528067a1d29b4febb12e71"
+    },
+    "dialogue-code-choice-sequential-normalization-1/normalization.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-sequential-normalization-1/normalization.json",
+      "bytes": 58642,
+      "sha256": "b2cbbebd958276afa8046429a8877af70d62bc3621e7141b672a94df080ba895"
+    },
+    "dialogue-code-choice-fit-execution-1.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/dialogue-code-choice-fit-execution-1.json",
+      "bytes": 7693,
+      "sha256": "15ab467be85faac6ebb0b05a2a61ca140534bba1f5e0f398538df24da4b43bad"
+    },
+    "projection-dialogue-code-choice-memory-correction-6.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/projection-dialogue-code-choice-memory-correction-6.json",
+      "bytes": 5019,
+      "sha256": "0879514214fe83720a7f674ebdfdda2e40b74650516a151995bfd5a8f39c4c8b"
+    },
+    "resource-extension-dialogue-code-choice-memory-4.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/resource-extension-dialogue-code-choice-memory-4.json",
+      "bytes": 3433,
+      "sha256": "270ae060ad596857f61c5493177d631d86edf6eb46f2fe1abb5013c5904041e5"
+    },
+    "resource-extension-dialogue-code-choice-time-1.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/resource-extension-dialogue-code-choice-time-1.json",
+      "bytes": 2088,
+      "sha256": "883a22ebdfa42df9ce771c6ffa722927261df1fec3795019f143d16daf5a4271"
+    },
+    "google-debug-cache-relocation-3.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/google-debug-cache-relocation-3.json",
+      "bytes": 7111000,
+      "sha256": "8b20b9d8561c4a4e9740b66a9a47d7178b89f11ccd3093a7aecb7cec2b8be57e"
+    },
+    "ledger-dialogue-code-choice-sequential-normalization.json": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926/ledger-dialogue-code-choice-sequential-normalization.json",
+      "bytes": 1324,
+      "sha256": "60d111e442682b86f56096a7ae86d37f2824e6f4923317a1a88fea089590f0d8"
+    }
+  },
+  "normalization": {
+    "old_peak_rss_bytes": 6919520256,
+    "new_peak_rss_bytes": 4722819072,
+    "old_wall_seconds": 61.107023083,
+    "new_wall_seconds": 154.61156849982217,
+    "optimizer_updates": 0,
+    "supervised_target_visits": 9179,
+    "regularization": 29.56681391929494
+  },
+  "prospective_restart": {
+    "updates": 512,
+    "fresh_alpha": true,
+    "checkpoints": [
+      32,
+      128,
+      256,
+      384
+    ],
+    "data_counters": [
+      1024,
+      1535
+    ],
+    "data_seed": 20260929,
+    "batch": 16,
+    "full_sequence_shards": 2,
+    "context": 256,
+    "model_width": 576,
+    "read_width": 64,
+    "fit_soft_seconds": 12600,
+    "fit_hard_seconds": 12720,
+    "phase_seconds": 12960,
+    "endpoints_seconds": 600,
+    "review_delivery_seconds": 1800,
+    "rss_soft_stop_bytes": 5905580032,
+    "rss_hard_cap_bytes": 6442450944,
+    "own_report_bytes": 536870912,
+    "owned_elapsed_cap_ms": 75600000,
+    "verified_shared_allowance_ms": 722400000
+  },
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5857550927",
+  "limitations": [
+    "Original190updates left no alpha/Adam checkpoint and cannot be resumed.",
+    "Peak and runtime of later512updates remain unmeasured.",
+    "Recorded normalization consistency and focused objective fixture do not establish language recovery.",
+    "Sourceb49binaries remain actualexecutionidentity despite later unrelatedPRfix88b4.",
+    "Native multiplier-free servingtarget remains; denseparameteraccess is unchanged."
+  ]
+}

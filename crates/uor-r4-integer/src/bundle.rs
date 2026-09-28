@@ -433,7 +433,10 @@ fn valid_hash(value: &Value, length: usize) -> bool {
 
 /// Historical conversion is intentionally not widened to accept learned
 /// children. Each schema has its own immediate-parent and clock contract.
-fn validate_dialogue_conversion_schema(
+/// Validate portable dialogue lineage metadata against a bound tokenizer.
+/// Callers must independently verify seals and load/validate the actual codec;
+/// this metadata check neither opens historical paths nor attests capability.
+pub fn validate_dialogue_conversion_schema(
     manifest: &Value,
     tokenizer_sha: &Value,
     tokenizer: &ByteBpeTokenizer,
@@ -445,10 +448,164 @@ fn validate_dialogue_conversion_schema(
         Some("uor-r4.native-dialogue576-child-conversion/1") => {
             validate_dialogue_child_conversion(manifest, tokenizer_sha, tokenizer)
         }
+        Some("uor-r4.native-dialogue576-child-rounding/1") => {
+            validate_dialogue_child_rounding(manifest, tokenizer_sha, tokenizer)
+        }
         _ => Err(invalid(
             "unsupported dialogue576 conversion provenance schema",
         )),
     }
+}
+
+/// A learned-code stage has its own nonzero alpha clock. Its saved nearest
+/// conversion retains the strict zero-update child lineage, and all portable
+/// checks use bundle bytes only; no original training path is opened.
+fn validate_dialogue_child_rounding(
+    manifest: &Value,
+    tokenizer_sha: &Value,
+    tokenizer: &ByteBpeTokenizer,
+) -> Result<()> {
+    use sha2::{Digest, Sha256};
+    let p = &manifest["conversion_provenance"];
+    let prep = &p["preparation"];
+    let stage = &p["rounding_stage"];
+    let recipe = &stage["recipe"];
+    let child = &p["parent"];
+    let q = &manifest["quantization"];
+    let n = stage["completed_updates"].as_u64();
+    let batch = recipe["batch"].as_u64();
+    let eos = n.zip(batch).and_then(|(n, b)| n.checked_mul(b));
+    let positions = eos.and_then(|n| n.checked_mul(256));
+    let targets = stage["supervised_target_visits"].as_u64();
+    let digest = |value: &Value| -> Result<String> {
+        Ok(hex::encode(Sha256::digest(serde_json::to_vec(value)?)))
+    };
+    let portable = |value: &Value| {
+        let mut value = value.clone();
+        if let Some(object) = value.as_object_mut() {
+            object.remove("report_root");
+            object.remove("checkpoint_root");
+        }
+        value
+    };
+    if p["schema"] != "uor-r4.native-dialogue576-child-rounding/1"
+        || p["serving_profile"] != "dialogue576"
+        || p["admission"] != "full"
+        || p["tokenizer_sha256"] != *tokenizer_sha
+        || p["protocol_identity"] != child["protocol_identity"]
+        || p["new_model_optimizer_updates"] != 0
+        || prep["schema"] != "uor-r4.dialogue-rounding-preparation/1"
+        || prep["initial_hard_arrays_equal_nearest"] != true
+        || prep["child_parameter_sha256"] != child["parameter_sha256"]
+        || prep["child_parameter_fingerprint"] != child["parameter_fingerprint"]
+        || prep["child_steps_completed"] != child["steps_completed"]
+        || portable(&prep["nearest_conversion"]["parent"]) != portable(child)
+        || p["preparation_sha256"] != digest(prep)?
+        || stage["preparation_sha256"] != p["preparation_sha256"]
+        || prep["frozen_spec_sha256"] != digest(&q["spec"])?
+        || q["preparation"] != "calibrated_for_rounding"
+        || q["start_step"] != child["steps_completed"]
+        || q["completed_step"] != child["steps_completed"]
+        || q["ramp_steps"] != 1
+        || stage["schema"] != "uor-r4.dialogue-rounding-stage/1"
+        || n.is_none_or(|v| v == 0)
+        || recipe["schema"] != "uor-r4.dialogue-rounding-campaign/1"
+        || recipe["rounding"]["steps"] != stage["completed_updates"]
+        || recipe["data_start_step"] != child["steps_completed"]
+        || stage["data_start_step"] != child["steps_completed"]
+        || stage["next_data_step"].as_u64()
+            != child["steps_completed"]
+                .as_u64()
+                .zip(n)
+                .and_then(|(a, b)| a.checked_add(b))
+        || stage["optimizer_step"] != stage["completed_updates"]
+        || recipe["data_seed"] != child["learning_contract"]["data_seed"]
+        || recipe["data_seed"].as_u64().is_none()
+        || recipe["child_parameter_sha256"] != child["parameter_sha256"]
+        || recipe["prepared_manifest_sha256"] != child["prepared_manifest_sha256"]
+        || recipe["tokenizer_sha256"] != *tokenizer_sha
+        || recipe["nearest_hard_manifest_sha256"] != prep["nearest_manifest_sha256"]
+        || recipe["train_index_sha256"] != child["train_index_sha256"]
+        || batch.is_none_or(|b| !(1..=64).contains(&b))
+        || stage["eos_target_visits"].as_u64() != eos
+        || stage["padded_position_visits"].as_u64() != positions
+        || targets.zip(eos).is_none_or(|(t, e)| t < e)
+        || targets.zip(positions).is_none_or(|(t, p)| t > p)
+        || p["hard_payload_sha256"] != manifest["parameter_manifest"]["payload_sha256"]
+        || p["hard_parameter_manifest_sha256"] != manifest["parameter_manifest_sha256"]
+        || !valid_hash(&p["hard_payload_sha256"], 64)
+        || !valid_hash(&p["hard_parameter_manifest_sha256"], 64)
+        || !valid_hash(&p["learned_parameter_fingerprint"], 64)
+        || !valid_hash(&p["conversion_source_commit"], 40)
+        || !valid_hash(&p["conversion_executable_sha256"], 64)
+        || p["source_sha256"]
+            .as_object()
+            .is_none_or(|h| h.is_empty() || h.values().any(|v| !valid_hash(v, 64)))
+        || [
+            "nearest_manifest_sha256",
+            "nearest_seal_sha256",
+            "nearest_payload_sha256",
+            "frozen_spec_sha256",
+            "projected_parameter_fingerprint",
+        ]
+        .iter()
+        .any(|k| !valid_hash(&prep[*k], 64))
+        || [
+            "checkpoint_sha256",
+            "checkpoint_seal_sha256",
+            "campaign_sha256",
+            "variables_sha256",
+            "optimizer_metadata_sha256",
+            "optimizer_moments_sha256",
+            "executed_schedule_sha256",
+            "executable_sha256",
+        ]
+        .iter()
+        .any(|k| !valid_hash(&stage[*k], 64))
+        || !valid_hash(&stage["source_commit"], 40)
+    {
+        return Err(invalid(
+            "dialogue576 learned-code lineage/recipe/clock mismatch",
+        ));
+    }
+    // Validate the original nearest receipt under the original strict rules.
+    // This temporary metadata view is not served, exported or reported as the
+    // learned model's zero-update provenance.
+    let mut nearest = manifest.clone();
+    nearest["conversion_provenance"] = prep["nearest_conversion"].clone();
+    nearest["quantization"]["preparation"] = json!("calibrated_for_export");
+    validate_dialogue_child_conversion(&nearest, tokenizer_sha, tokenizer)?;
+    let config: crate::config::JointConfig = serde_json::from_value(manifest["model"].clone())?;
+    let shapes = config.shapes();
+    for field in ["learned_parameters", "projected_parameters"] {
+        let inventory = if field == "learned_parameters" {
+            &p[field]
+        } else {
+            &prep[field]
+        };
+        let entries = inventory
+            .as_array()
+            .ok_or_else(|| invalid("learned parameter inventory"))?;
+        let mut names = std::collections::BTreeSet::new();
+        if entries.len() != shapes.len() {
+            return Err(invalid("learned parameter inventory length"));
+        }
+        for entry in entries {
+            let name = entry["name"]
+                .as_str()
+                .ok_or_else(|| invalid("learned parameter name"))?;
+            let shape = shapes
+                .get(name)
+                .ok_or_else(|| invalid("unknown learned parameter"))?;
+            if !names.insert(name)
+                || entry["shape"] != serde_json::to_value(shape)?
+                || !valid_hash(&entry["sha256_le_f32"], 64)
+            {
+                return Err(invalid("learned parameter binding"));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Portable consistency of the converter's verified immediate-child receipt.
@@ -734,8 +891,7 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn dialogue576_child_bundle_keeps_immediate_lineage_and_local_clock() -> Result<()> {
+    fn dialogue_child_metadata_fixture() -> Result<(Value, ByteBpeTokenizer, String)> {
         let hash = "a".repeat(64);
         let tokenizer = Bundle::create_test_bundle_with_byte_vocab().tokenizer;
         let protocol =
@@ -767,7 +923,7 @@ mod tests {
             "ancestor":ancestor,"training_source_commit":"b".repeat(40),"training_executable_sha256":hash,
             "sampler":"uor-r4.dialogue-response-uniform/splitmix64-counter-rejection-v1",
             "schedule_chain":"uor-r4.dialogue-response-schedule-chain/1",
-            "learning_contract":{"policy":"full_prefix","total_steps":1024,"tokenizer_sha256":hash,
+            "learning_contract":{"policy":"full_prefix","total_steps":1024,"data_seed":7,"tokenizer_sha256":hash,
                 "prepared_manifest_sha256":hash,"parent_parameter_sha256":hash},
             "parameters":parameters,"parameter_count":count});
         for key in [
@@ -791,6 +947,12 @@ mod tests {
                 "serving_profile":"dialogue576","admission":"full","tokenizer_sha256":hash,"protocol_identity":identity,
                 "conversion_source_commit":"c".repeat(40),"conversion_executable_sha256":hash,"source_sha256":{"bridge.rs":hash},
                 "new_forward_calls":0,"new_generation_calls":0,"new_optimizer_updates":0,"new_model_updates":0}});
+        Ok((manifest, tokenizer, hash))
+    }
+
+    #[test]
+    fn dialogue576_child_bundle_keeps_immediate_lineage_and_local_clock() -> Result<()> {
+        let (manifest, tokenizer, hash) = dialogue_child_metadata_fixture()?;
         validate_dialogue_conversion_schema(&manifest, &json!(hash), &tokenizer)?;
         // The old schema's historical validator is not an alias for a child.
         assert!(validate_dialogue_conversion(&manifest, &json!(hash), &tokenizer).is_err());
@@ -816,6 +978,100 @@ mod tests {
             *changed
                 .pointer_mut(path)
                 .ok_or_else(|| invalid("child fixture pointer"))? = value;
+            assert!(
+                validate_dialogue_conversion_schema(&changed, &json!(hash), &tokenizer).is_err(),
+                "{path}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue576_rounding_bundle_binds_separate_alpha_clock_and_codes() -> Result<()> {
+        use sha2::{Digest, Sha256};
+        let (mut manifest, tokenizer, hash) = dialogue_child_metadata_fixture()?;
+        let nearest = manifest["conversion_provenance"].clone();
+        let child = nearest["parent"].clone();
+        let digest = |value: &Value| -> Result<String> {
+            Ok(hex::encode(Sha256::digest(serde_json::to_vec(value)?)))
+        };
+        // This is a portable metadata test. Real codec reload is exercised by
+        // the training artifact fixture; no synthetic language claim is made.
+        manifest["quantization"]["spec"] = json!({"fixture":"fixed grid identity"});
+        manifest["quantization"]["preparation"] = json!("calibrated_for_rounding");
+        manifest["parameter_manifest"] = json!({"payload_sha256":hash});
+        manifest["parameter_manifest_sha256"] = json!(hash);
+        let prep = json!({"schema":"uor-r4.dialogue-rounding-preparation/1",
+            "child_parameter_sha256":child["parameter_sha256"],"child_parameter_fingerprint":child["parameter_fingerprint"],
+            "child_steps_completed":1024,"nearest_manifest_sha256":hash,"nearest_seal_sha256":hash,
+            "nearest_payload_sha256":hash,"frozen_spec_sha256":digest(&manifest["quantization"]["spec"] )?,
+            "nearest_conversion":nearest,"projected_parameter_fingerprint":hash,
+            "projected_parameters":child["parameters"],"initial_hard_arrays_equal_nearest":true});
+        let prep_sha = digest(&prep)?;
+        let recipe = json!({"schema":"uor-r4.dialogue-rounding-campaign/1","rounding":{"steps":2},
+            "data_start_step":1024,"data_seed":child["learning_contract"]["data_seed"],"batch":16,
+            "child_parameter_sha256":child["parameter_sha256"],"prepared_manifest_sha256":child["prepared_manifest_sha256"],
+            "tokenizer_sha256":hash,"nearest_hard_manifest_sha256":hash,"train_index_sha256":child["train_index_sha256"]});
+        let mut stage = json!({"schema":"uor-r4.dialogue-rounding-stage/1","recipe":recipe,
+            "completed_updates":2,"data_start_step":1024,"next_data_step":1026,"optimizer_step":2,
+            "eos_target_visits":32,"supervised_target_visits":93,"padded_position_visits":8192,
+            "preparation_sha256":prep_sha,"source_commit":"d".repeat(40)});
+        for key in [
+            "checkpoint_sha256",
+            "checkpoint_seal_sha256",
+            "campaign_sha256",
+            "variables_sha256",
+            "optimizer_metadata_sha256",
+            "optimizer_moments_sha256",
+            "executed_schedule_sha256",
+            "executable_sha256",
+        ] {
+            stage[key] = json!(hash);
+        }
+        manifest["conversion_provenance"] = json!({"schema":"uor-r4.native-dialogue576-child-rounding/1",
+            "parent":child,"preparation":prep,"preparation_sha256":prep_sha,"rounding_stage":stage,
+            "serving_profile":"dialogue576","admission":"full","tokenizer_sha256":hash,
+            "protocol_identity":child["protocol_identity"],"new_model_optimizer_updates":0,
+            "conversion_source_commit":"e".repeat(40),"conversion_executable_sha256":hash,"source_sha256":{"fixture.rs":hash},
+            "hard_payload_sha256":hash,"hard_parameter_manifest_sha256":hash,
+            "learned_parameter_fingerprint":hash,"learned_parameters":child["parameters"]});
+        validate_dialogue_conversion_schema(&manifest, &json!(hash), &tokenizer)?;
+        assert!(validate_dialogue_child_conversion(&manifest, &json!(hash), &tokenizer).is_err());
+        for (path, value) in [
+            (
+                "/conversion_provenance/rounding_stage/completed_updates",
+                json!(0),
+            ),
+            (
+                "/conversion_provenance/rounding_stage/next_data_step",
+                json!(2),
+            ),
+            (
+                "/conversion_provenance/rounding_stage/variables_sha256",
+                json!("invalid"),
+            ),
+            (
+                "/conversion_provenance/rounding_stage/supervised_target_visits",
+                json!(0),
+            ),
+            (
+                "/conversion_provenance/preparation/child_parameter_sha256",
+                json!("f".repeat(64)),
+            ),
+            (
+                "/conversion_provenance/hard_payload_sha256",
+                json!("f".repeat(64)),
+            ),
+            (
+                "/conversion_provenance/learned_parameters/0/shape",
+                json!([999]),
+            ),
+            ("/quantization/completed_step", json!(1026)),
+        ] {
+            let mut changed = manifest.clone();
+            *changed
+                .pointer_mut(path)
+                .ok_or_else(|| invalid("rounding fixture pointer"))? = value;
             assert!(
                 validate_dialogue_conversion_schema(&changed, &json!(hash), &tokenizer).is_err(),
                 "{path}"

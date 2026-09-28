@@ -397,10 +397,16 @@ impl DialogueChildArtifact {
         self.provenance.validate_parameters(&self.model)?;
         Ok((self.model, self.provenance))
     }
+    pub(crate) fn into_rounding_parts(
+        self,
+    ) -> Result<(JointModel, ByteBpeTokenizer, DialogueChildProvenance)> {
+        self.provenance.validate_parameters(&self.model)?;
+        Ok((self.model, self.tokenizer, self.provenance))
+    }
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use serde_json::json;
     use std::collections::BTreeMap;
@@ -409,7 +415,13 @@ mod tests {
         fs::write(path, serde_json::to_vec_pretty(value)?)?;
         Ok(())
     }
-    fn fixture() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf)> {
+    pub(crate) fn fixture() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf)> {
+        fixture_values(false)
+    }
+    pub(crate) fn fixture_with_fractions() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf)> {
+        fixture_values(true)
+    }
+    fn fixture_values(fractions: bool) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf)> {
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| invalid(e.to_string()))?
@@ -431,6 +443,9 @@ mod tests {
             .map(|(name, shape)| {
                 let mut values = vec![0f32; shape.iter().product()];
                 values[0] = 0.375;
+                if fractions && values.len() > 1 {
+                    values[1] = 0.12345;
+                }
                 (name, values)
             })
             .collect();
