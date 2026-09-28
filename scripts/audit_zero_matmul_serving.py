@@ -8,7 +8,12 @@ Verifies the D0-b and Milestone M1/M2 architectural invariants:
 in compiled numerical serving symbols of `libuor_r4_integer.rlib` and release binaries.
 
 Usage:
-    python3 scripts/audit_zero_matmul_serving.py [path_to_binary_or_rlib] [--strict-arm64] [--tap]
+    python3 scripts/audit_zero_matmul_serving.py [path_to_binary_or_rlib] [--strict-arm64] [--tap] [--stack]
+
+`--stack` (implied for a binary named `uor-r4-stack*`) audits the D11 geometric
+stack engine (`uor_r4_integer::stack`): its step and kernels become the mandatory
+symbols and the call-graph roots, in place of the retained IntegerModel set.
+Other targets audit exactly as before.
 """
 
 import argparse
@@ -611,6 +616,111 @@ CHAT_MANDATORY_SYMBOLS = [
 ]
 
 
+def _stack_kernel(name, module, description):
+    """A `uor_r4_integer::stack` function: demangled `stack::<module>::<name>`,
+    v0-mangled `...<len><name>` (identifiers are length-prefixed)."""
+    return {
+        "name": f"stack::{module}::{name}",
+        "pattern": re.compile(r"stack::" + module + r"::" + re.escape(name) + r"\b"),
+        "mangled": re.compile(r"__RNv.*5stack.*" + str(len(name)) + re.escape(name) + r"\b"),
+        "description": description,
+    }
+
+
+# Mandatory symbols of the D11 geometric-stack engine (`uor_r4_integer::stack`),
+# selected only by `--stack` or a `uor-r4-stack*` binary. Every kernel is
+# `#[inline(never)]` so that each has its own emitted range.
+STACK_MANDATORY_SYMBOLS = [
+    {
+        "name": "IntegerStackSession::step",
+        # The session type may carry an erased lifetime (`<'_>`, v0 `L_E`).
+        "pattern": re.compile(r"IntegerStackSession(?:<[^>]*>)?>::step\b"),
+        "mangled": re.compile(r"__RNv.*19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step\b"),
+        "description": "D11 stack step: embedding, mixers, MLPs, final norm and head",
+    },
+    _stack_kernel("stack_recurrence", "session", "Quaternion transport recurrence mixer"),
+    _stack_kernel("stack_rotation", "session", "Unit rotation quaternion by long division"),
+    _stack_kernel("stack_read", "session", "Dot/Lorentz read mixer with NoRead softmax"),
+    _stack_kernel("stack_swiglu", "session", "SwiGLU gating products by digit tables"),
+    _stack_kernel("stack_gemv", "kernels", "4-bit weight map by activation-table reads and adds"),
+    _stack_kernel("stack_gemv_pairs", "kernels", "4-bit weight map by pair-table reads and adds"),
+    _stack_kernel("stack_pair_tables", "kernels", "Weight-byte pair tables by additions"),
+    _stack_kernel("stack_activation_tables", "kernels", "Per-column nibble product tables by shifts and adds"),
+    _stack_kernel("stack_dequant_row", "kernels", "Embedding row by shift-add group scales"),
+    _stack_kernel("stack_rms_norm", "kernels", "RMSNorm by digit-table squares, long division and isqrt"),
+    _stack_kernel("stack_quantize16", "kernels", "16-bit requantization by shifts"),
+    _stack_kernel("stack_max_abs_i32", "kernels", "Scalar largest magnitude (i32)"),
+    _stack_kernel("stack_max_abs_i64", "kernels", "Scalar largest magnitude (i64)"),
+    _stack_kernel("stack_exp_neg", "kernels", "Sealed exp table with digit-table interpolation"),
+    _stack_kernel("stack_sigmoid_q31", "kernels", "Sigmoid from the exp table and long division"),
+    _stack_kernel("stack_activation", "kernels", "SiLU/GELU sealed-table interpolation"),
+    _stack_kernel("stack_arcosh1p_q24", "kernels", "Sealed arcosh table with octave interpolation"),
+    _stack_kernel("stack_lift", "kernels", "Hyperboloid lift by digit-table squares and isqrt"),
+    _stack_kernel("stack_lorentz_distance", "kernels", "Lorentz distance from lifts and inner product"),
+    _stack_kernel("stack_query_tables", "kernels", "Per-coordinate query multiple tables"),
+    _stack_kernel("stack_dot", "kernels", "Exact query-key inner product by digit tables"),
+    _stack_kernel("stack_mix_row", "kernels", "Exact weighted value accumulation by digit tables"),
+    _stack_kernel("stack_hamilton", "kernels", "Exact Hamilton product of quaternions"),
+    _stack_kernel("stack_mul_u128", "kernels", "Radix-16 multiple-table product modulo 2^128"),
+    _stack_kernel("stack_mul_u64", "kernels", "Radix-16 multiple-table product modulo 2^64"),
+    _stack_kernel("stack_square", "kernels", "Radix-16 multiple-table square"),
+    _stack_kernel("stack_div_u64", "kernels", "Restoring long division (u64)"),
+    _stack_kernel("stack_div_u128", "kernels", "Restoring long division (u128)"),
+    _stack_kernel("stack_isqrt", "kernels", "Digit-by-digit integer square root"),
+    _stack_kernel("stack_argmax", "kernels", "Greedy integer argmax over logits"),
+]
+
+# Call-graph roots of the stack engine (v0-mangled names, as `otool -tvV`
+# prints them): its step and the greedy selection.
+STACK_CALL_GRAPH_ROOTS = [
+    re.compile(r"19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step$"),
+    re.compile(r"12stack_argmax$"),
+]
+
+
+def run_stack_pattern_tests():
+    """The stack patterns must match their demangled and v0-mangled names and
+    must not confuse kernels that share a prefix."""
+    for entry in STACK_MANDATORY_SYMBOLS:
+        name = entry["name"].split("::")[-1]
+        if entry["name"].startswith("stack::"):
+            module = entry["name"].split("::")[1]
+            demangled = f"uor_r4_integer::stack::{module}::{name}"
+            mangled = (
+                f"__RNvNtNtCs1a2b3c_14uor_r4_integer5stack{len(module)}{module}{len(name)}{name}"
+            )
+        else:
+            demangled = "<uor_r4_integer::stack::session::IntegerStackSession<'_>>::step"
+            mangled = "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionINtB5_19IntegerStackSessionL_E4step"
+        if not entry["pattern"].search(demangled):
+            raise AssertionError(f"Stack pattern test failed: {entry['name']} misses {demangled}")
+        if not entry["mangled"].search(mangled):
+            raise AssertionError(f"Stack pattern test failed: {entry['name']} misses {mangled}")
+    step_names = [
+        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_19IntegerStackSession4step",
+        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionINtB5_19IntegerStackSessionL_E4step",
+        "__RNvNtNtCs1a2b3c_14uor_r4_integer5stack7kernels12stack_argmax",
+    ]
+    for root_name in step_names:
+        if not any(p.search(root_name) for p in STACK_CALL_GRAPH_ROOTS):
+            raise AssertionError(f"Stack pattern test failed: no call-graph root matches {root_name}")
+    for other in [
+        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_19IntegerStackSession5reset",
+        "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_17IntegerStackModel7session",
+    ]:
+        if any(p.search(other) for p in STACK_CALL_GRAPH_ROOTS):
+            raise AssertionError(f"Stack pattern test failed: {other} is not a serving root")
+    for longer, shorter in [
+        ("stack_activation_tables", "stack_activation"),
+        ("stack_gemv_pairs", "stack_gemv"),
+        ("stack_div_u128", "stack_div_u64"),
+        ("stack_mul_u128", "stack_mul_u64"),
+    ]:
+        entry = next(e for e in STACK_MANDATORY_SYMBOLS if e["name"].endswith("::" + shorter))
+        if entry["pattern"].search(f"uor_r4_integer::stack::kernels::{longer}"):
+            raise AssertionError(f"Stack pattern test failed: {shorter} matches {longer}")
+
+
 def find_target_artifact(user_arg=None):
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     target_dirs = []
@@ -729,14 +839,17 @@ def parse_symbols(disasm_text, is_demangled):
     return per_symbol
 
 
-def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_commit=None, compiler=None, flags=None):
+def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_commit=None, compiler=None, flags=None, stack=False):
     """Execute audit across Class I, Class II, and Class III instructions.
 
+    With `stack`, the D11 geometric-stack symbols are the mandatory set.
     Returns dict containing detailed results and failure reports.
     """
     is_rlib = target_path.endswith(".rlib")
     is_chat = "uor-chat" in os.path.basename(target_path)
-    if is_rlib:
+    if stack:
+        mandatory_list = list(STACK_MANDATORY_SYMBOLS)
+    elif is_rlib:
         mandatory_list = list(RLIB_MANDATORY_SYMBOLS)
     else:
         mandatory_list = list(BIN_MANDATORY_SYMBOLS)
@@ -756,6 +869,7 @@ def run_audit(per_symbol, is_demangled, target_path, strict_arm64=True, git_comm
         "flags": flags,
         "is_rlib": is_rlib,
         "is_chat": is_chat,
+        "is_stack": stack,
         "strict": strict_arm64,
         "total_symbols_indexed": len(per_symbol),
         "mandatory_checked": 0,
@@ -1165,9 +1279,10 @@ def run_sentinel_tests():
             raise AssertionError(f"Sentinel test failed: '{instr}' not detected by STRICT_FORBIDDEN_PATTERN")
 
 
-def run_call_graph_audit(path, disasm_choice="auto"):
+def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
     """Transitive call-graph reachability traversal from serving roots.
-    Checks 100% of reachable numerical serving functions in compiled binaries."""
+    Checks 100% of reachable numerical serving functions in compiled binaries.
+    `extra_roots` are compiled patterns naming further roots (the stack set)."""
     try:
         output = subprocess.check_output(["otool", "-tvV", path]).decode("utf-8", errors="ignore")
     except Exception as e:
@@ -1220,7 +1335,10 @@ def run_call_graph_audit(path, disasm_choice="auto"):
     serving_roots = [
         fn
         for fn in functions
-        if any(kw in fn for kw in serving_entry_keywords)
+        if (
+            any(kw in fn for kw in serving_entry_keywords)
+            or any(p.search(fn) for p in extra_roots)
+        )
         and "drop_glue" not in fn
         and "closure" not in fn
     ]
@@ -1331,6 +1449,12 @@ def main():
         default=None,
         help="Compiler flags to record in metadata (default: auto-detected)",
     )
+    parser.add_argument(
+        "--stack",
+        action="store_true",
+        help="Audit the D11 geometric-stack engine: its step and kernels are the mandatory "
+        "symbols and call-graph roots (implied for a binary named uor-r4-stack*)",
+    )
 
     args = parser.parse_args()
 
@@ -1348,8 +1472,13 @@ def main():
         return 1
 
     target_path = find_target_artifact(chosen_target)
+    stack = args.stack or os.path.basename(target_path).startswith("uor-r4-stack")
+    if stack:
+        run_stack_pattern_tests()
     if not args.tap:
         print(f"Disassembling target artifact: {target_path} (using {args.disassembler})")
+        if stack:
+            print("Symbol set: D11 geometric stack (STACK_MANDATORY_SYMBOLS and stack call-graph roots)")
 
     disasm, is_demangled = disassemble_artifact(target_path, args.disassembler)
     per_symbol = parse_symbols(disasm, is_demangled)
@@ -1364,11 +1493,16 @@ def main():
         git_commit=args.git_commit,
         compiler=args.compiler,
         flags=args.flags,
+        stack=stack,
     )
 
     do_call_graph = args.call_graph if args.call_graph is not None else (not target_path.endswith(".rlib"))
     if do_call_graph:
-        cg_visited, cg_violations = run_call_graph_audit(target_path, args.disassembler)
+        cg_visited, cg_violations = run_call_graph_audit(
+            target_path,
+            args.disassembler,
+            extra_roots=STACK_CALL_GRAPH_ROOTS if stack else (),
+        )
         results["call_graph_checked"] = cg_visited
         results["call_graph_violations"] = cg_violations
         if cg_violations:

@@ -26,6 +26,8 @@
 //! geometric-stack lut-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
 //!   [model=ROOT/model] [windows=64] [blocks=false] [tune_blocks=64] [threads=1] [lens=LENS.u16] \
 //!   [reference=false]
+//! geometric-stack d11-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
+//!   [windows=8] [threads=1] [lens=LENS.u16]
 //! geometric-stack snap-evaluate model=ROOT/model valid=VALID.u16 out=NEW_REPORT_ROOT [windows=512]
 //!   (roadmap S1.0b: development NLL with every transport quaternion snapped to the nearest of the
 //!   120 unit icosians, against the unsnapped model on the same windows; evaluation only)
@@ -97,6 +99,12 @@
 //! float model's on the same windows when `model=` is given, their top-1
 //! agreement and the engine's tokens per second; `blocks=true` uses
 //! `evaluate`'s consecutive blocks and tune/comparison split instead.
+//! `d11-evaluate` runs a stack artifact through the multiplier-free D11
+//! engine (`uor_r4_integer::stack`) and the frozen D10 engine side by side
+//! on the same evenly spaced windows, and reports both NLLs, the largest
+//! absolute difference between their integer logits (zero for a bit-identical
+//! port), each engine's tokens per second and the dense per-token weight
+//! reads.
 //! `lut-sample` writes greedy and sampled continuations from the integer
 //! engine (the integer sampler of `uor_r4_lut::sampling`). Token files may
 //! also be UORT stores, the prepared dialogue corpus's format.
@@ -2274,6 +2282,145 @@ fn lut_evaluate_mode(arguments: &[String]) -> Result<()> {
     finish(&out, result)
 }
 
+/// The multiplier-free (D11) stack engine, `uor_r4_integer::stack`, beside the
+/// frozen D10 engine, `uor_r4_lut::stack`, on the same evenly spaced
+/// development windows (`train`'s rule), each in a fresh session of both,
+/// position by position: both engines' NLL, the largest absolute difference
+/// between their logits (zero when the port is bit-identical), the positions
+/// where any logit differs, their top-1 agreement and each engine's step time.
+fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
+    use uor_r4_integer::stack::IntegerStackModel;
+    let args = Args::parse(
+        arguments,
+        &["artifact", "valid", "out", "windows", "threads", "lens"],
+    )?;
+    let artifact_path = PathBuf::from(args.required("artifact")?);
+    let valid_path = PathBuf::from(args.required("valid")?);
+    let lens_path = args.optional("lens").map(PathBuf::from);
+    let windows: usize = args.number("windows", 8)?;
+    let threads: usize = args.number("threads", 1)?;
+    let out = PathBuf::from(args.required("out")?);
+    report_output::claim(&out)?;
+    let result = (|| -> Result<()> {
+        let bytes = fs::read(&artifact_path)?;
+        let clock = Instant::now();
+        let d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
+        let d11_load_seconds = clock.elapsed().as_secs_f64();
+        let mut d10 = uor_r4_lut::stack::StackModel::from_artifact(
+            uor_r4_lut::format::StackArtifact::parse(bytes).map_err(lut)?,
+        )
+        .map_err(lut)?;
+        d10.set_threads(threads).map_err(lut)?;
+        if d10.artifact_sha256() != d11.artifact_sha256() {
+            return Err(invalid("the engines loaded different artifact bytes"));
+        }
+        let (vocab, time) = (d11.shape().vocab, d11.shape().context);
+        let valid = read_tokens(&valid_path, vocab)?;
+        let lens = lens_path
+            .as_ref()
+            .map(|path| read_tokens(path, u16::MAX as usize + 1))
+            .transpose()?;
+        if windows == 0 || valid.len() <= time + windows {
+            return Err(invalid("too few development tokens for the windows"));
+        }
+        let stride = (valid.len() - time - 1) / windows;
+        let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
+        let (mut s10, mut s11) = (d10.session(), d11.session());
+        let (mut d10_seconds, mut d11_seconds) = (0f64, 0f64);
+        let (mut max_difference, mut differing, mut agree) = (0i64, 0usize, 0usize);
+        let mut first_difference: Option<Value> = None;
+        // Per window: D11 NLL, D10 NLL and target bytes (sums over targets).
+        let mut sums: Vec<(f64, f64, f64)> = Vec::with_capacity(starts.len());
+        for &start in &starts {
+            let ids = &valid[start..start + time];
+            let next = &valid[start + 1..start + time + 1];
+            s10.reset();
+            s11.reset();
+            let (mut nll11, mut nll10) = (0f64, 0f64);
+            for (t, &id) in ids.iter().enumerate() {
+                let clock = Instant::now();
+                let logits11 = s11.step(id).map_err(|e| invalid(e.to_string()))?;
+                d11_seconds += clock.elapsed().as_secs_f64();
+                let clock = Instant::now();
+                let logits10 = s10.step(id).map_err(lut)?;
+                d10_seconds += clock.elapsed().as_secs_f64();
+                let mut position_max = 0i64;
+                for (a, b) in logits11.iter().zip(logits10) {
+                    position_max = position_max.max((i64::from(*a) - i64::from(*b)).abs());
+                }
+                if position_max > 0 {
+                    differing += 1;
+                    if first_difference.is_none() {
+                        first_difference = Some(json!({
+                            "window_start": start, "position": t, "max_abs_difference": position_max,
+                        }));
+                    }
+                }
+                max_difference = max_difference.max(position_max);
+                let target = next[t] as usize;
+                let (n11, top11) =
+                    score_row(logits11.iter().map(|&v| f64::from(v) / 65536.0), target);
+                let (n10, top10) =
+                    score_row(logits10.iter().map(|&v| f64::from(v) / 65536.0), target);
+                nll11 += n11;
+                nll10 += n10;
+                agree += usize::from(top11 == top10);
+            }
+            let bytes = lens.as_ref().map_or(0.0, |lens| {
+                next.iter()
+                    .map(|&id| f64::from(lens[id as usize]))
+                    .sum::<f64>()
+            });
+            sums.push((nll11, nll10, bytes));
+        }
+        let targets = starts.len() * time;
+        let (nll11, nll10, target_bytes) = sums
+            .iter()
+            .fold((0.0, 0.0, 0.0), |a, s| (a.0 + s.0, a.1 + s.1, a.2 + s.2));
+        let bits = |nll: f64| {
+            lens.as_ref()
+                .map(|_| nll / std::f64::consts::LN_2 / target_bytes)
+        };
+        let record = json!({
+            "schema": "uor-r4.geometric-stack-d11-evaluation/1",
+            "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh session of each engine per window, position by position; logits compared as integers",
+            "artifact": identity(&artifact_path)?,
+            "artifact_sha256": d11.artifact_sha256(),
+            "valid": identity(&valid_path)?,
+            "windows": starts.len(),
+            "targets": targets,
+            "d11": {"nll": nll11 / targets as f64, "bits_per_byte": bits(nll11)},
+            "d10": {"nll": nll10 / targets as f64, "bits_per_byte": bits(nll10)},
+            "d11_minus_d10_nll": (nll11 - nll10) / targets as f64,
+            "max_abs_logit_difference": max_difference,
+            "positions_with_a_difference": differing,
+            "first_difference": first_difference,
+            "top1_agreement": agree as f64 / targets as f64,
+            "weights_read_per_token": d11.weights_per_token(),
+            "engine": {
+                "d11_step_seconds": d11_seconds,
+                "d11_tokens_per_second": targets as f64 / d11_seconds,
+                "d11_threads": 1,
+                "d11_load_seconds": d11_load_seconds,
+                "d10_step_seconds": d10_seconds,
+                "d10_tokens_per_second": targets as f64 / d10_seconds,
+                "d10_threads": threads,
+                "d10_backend": d10.backend().name(),
+                "scope": "each engine's step calls only, timed separately and interleaved per position",
+            },
+            "per_window": starts.iter().zip(&sums).map(|(start, s)| json!({
+                "start": start, "d11_nll": s.0 / time as f64, "d10_nll": s.1 / time as f64,
+            })).collect::<Vec<_>>(),
+        });
+        fs::write(
+            out.join("evaluation.json"),
+            serde_json::to_vec_pretty(&record)?,
+        )?;
+        Ok(())
+    })();
+    finish(&out, result)
+}
+
 /// Continuations generated by an integer engine, greedy and sampled, from
 /// evenly spaced development prompts or from `prompt=` text.
 fn lut_sample_mode(arguments: &[String]) -> Result<()> {
@@ -3039,7 +3186,7 @@ fn main() -> Result<()> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     let Some((mode, rest)) = arguments.split_first() else {
         return Err(invalid(
-            "usage: geometric-stack train|sample|evaluate|encode|corpus|export|lut-evaluate|lut-sample|dialogue-train|lut-chat key=value ...",
+            "usage: geometric-stack train|sample|evaluate|encode|corpus|export|lut-evaluate|d11-evaluate|lut-sample|dialogue-train|lut-chat key=value ...",
         ));
     };
     match mode.as_str() {
@@ -3102,6 +3249,7 @@ fn main() -> Result<()> {
         "corpus" => corpus_mode(rest),
         "export" => export_mode(rest),
         "lut-evaluate" => lut_evaluate_mode(rest),
+        "d11-evaluate" => d11_evaluate_mode(rest),
         "snap-evaluate" => snap_evaluate_mode(rest),
         "rounding-attribution" => rounding_attribution_mode(rest),
         "lut-sample" => lut_sample_mode(rest),

@@ -20,6 +20,7 @@ mod packed_rows;
 pub mod report_output;
 pub mod sampling;
 pub mod session;
+pub mod stack;
 pub mod tables;
 
 pub use bundle::{create_test_bundle_with_byte_vocab, Bundle};

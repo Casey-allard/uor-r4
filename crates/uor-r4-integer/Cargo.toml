@@ -25,3 +25,7 @@ path = "src/bin/uor-r4-integer.rs"
 [[bin]]
 name = "verify-integer"
 path = "src/bin/verify-integer.rs"
+
+[[bin]]
+name = "uor-r4-stack"
+path = "src/bin/uor-r4-stack.rs"
