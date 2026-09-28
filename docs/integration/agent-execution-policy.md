@@ -6,6 +6,95 @@ The owner-directed mode is `native_geometric_ai`. The
 The [machine policy](agent-execution-policy.json) captures stable invariants,
 not a hardcoded stage order or copies of roadmap prose.
 
+## Three-lab organization and shared operating policy (owner charter, 2026-09-28)
+
+This section is the **single shared operating policy for every lab**. The labs' standing prompts restate it; they do not replace it. Where a prompt and this file disagree, this file on `main` wins until a protected PR changes it.
+
+### Organization
+
+| Party | Owns | Does not own |
+|---|---|---|
+| **Owner (Casey)** | The mission, hard constraints (D11 and the invariants in this file), spending and destructive-action authority | — |
+| **Lab 1, Claude main** (lead research lab) | The roadmap, the architecture, difficult mathematical decisions, shared interfaces and promotion. The integrated artifact contract (ROADMAP §2b). The learner, dialogue conditioning, learning objectives, persistent memory and the complete response path. The stack writer, loader and integer forward, absorbed from the retired cloud track | Promotion of its own work without non-author review |
+| **Lab 2, OpenCode** | Geometric read/address research and its integration-ready implementation behind the stack's read interface: query formation, candidate admission, ranking, NoRead, value use and language-to-address generalization | The learner, tokenizer, memory semantics, training policy and serving contract. It proposes changes to these; Lab 1 decides |
+| **Lab 3, Anti-Gravity** | Numerical fidelity, codecs and training-aware discretization, kernels, execution audits and measured local cost, coordinated with Lab 1's bundle and session | A second engine, format, frontend or deployment path |
+
+**Retired, with no future assignments.** Their records are preserved:
+- **The Claude cloud track**, stood down on 2026-09-28. Lab 1 absorbed its work and obligations; see ROADMAP §9, 2026-09-28.
+- **The Codex lab (Lab 4).** Its allowance is exhausted, and its T4 study transferred to Lab 1 on 2026-09-28.
+
+### Standing operation
+
+- **An ongoing goal, not one ticket.** Continue through investigation, implementation, testing, review, publication, integration and the next justified task. A blocked dependency blocks that task, not the lab: tell its owner and advance independent authorized work.
+- **`main` is canonical** for accepted source, decisions and knowledge. Issues and PRs carry live activity and proposals, not automatic acceptance.
+  - The latest explicit owner instruction overrides stale scheduling.
+  - Verify consequential claims even when they are on `main`.
+- **At startup or resumption:**
+  - fetch `origin/main`;
+  - read `AGENTS.md`, `ROADMAP.md`, `project-track.md`, `current-state.md`, `DECISIONS.md` and recent #820 and #973 activity (recent pages, not only the first);
+  - inspect the task's source, artifacts, jobs and reservations. Reuse prior work.
+- **Choose the highest-value unblocked task** in your lane and the roadmap. Record it in the existing issue with the progress-control work card below.
+  - Routine work and bounded research inside a lane need no new owner approval.
+  - Shared architecture and interface changes need Lab 1's documented decision.
+- **Check the other labs' relevant changes** at startup, before decision-bearing runs, after important results or interface changes, and before merge or handoff. Never silently change a frozen experiment, or restart a valid job because `main` moved.
+- **Give each relevant external or cross-lab finding one recorded disposition,** and name who acts. The dispositions are:
+  - adopt;
+  - run a bounded discriminating test;
+  - defer, with a reason;
+  - reject at a stated scope.
+
+### Evidence integrity
+
+- **Measurements come from actual runs**, written by the run itself into sealed report roots.
+  - Readers of result files fail on a missing key; defaults never stand in for measurements.
+  - Tests assert on measured values, and fail rather than skip when their fixture is missing.
+- **Keep kinds of evidence separate:** proof, finite computation, synthetic fixtures, measured behavior and hypothesis.
+  - A missing artifact means "unavailable" or "not run".
+  - Expected unit-test constants are legitimate; invented model metrics are not.
+  - Sealing establishes identity, not validity.
+- **Before a decision-bearing experiment:**
+  - declare its controls, splits, seeds, metrics, budget and consequences;
+  - keep development separate from held-out qualification;
+  - save recoverable checkpoints, and usable exports when the model will be needed;
+  - preserve negatives;
+  - retry only with a specific causal change.
+
+### Standing merge and review criteria
+
+Every PR names its lab and its class. Once its class's conditions hold, the approved merge path needs no further owner approval:
+1. run `gh pr merge` into the queue once `mergeStateStatus` is CLEAN;
+2. check that `main`'s tree equals the branch's tree;
+3. notify the consumer.
+
+| Class | Covers | Merge when |
+|---|---|---|
+| **A. Lane work** | Code, tests, tooling and documents inside the lab's owned paths, with no result claim and no shared-interface change | The required checks pass, the PR lists the focused local checks run (commands and outcomes), and one non-author technical review approves |
+| **B. Results** | Any measured number, fidelity or capability statement, or artifact promotion | Class A, plus sealed roots on disk and the headline numbers re-read from those roots by a non-author. **Lab 3 results also need Lab 1 to re-run the gating measurement** from the committed code into a fresh root (owner, 2026-09-28 17:11 UTC). A failed gate merges as a negative; promotion is a separate step |
+| **C. Shared interfaces and architecture** | The artifact contract (ROADMAP §2b), checkpoint, bundle and session formats, the read interface, cross-lab trainer and export hooks, `DECISIONS.md`, this policy and the serving contract | Class A (and B if it carries results), plus Lab 1's documented decision in ROADMAP or `DECISIONS.md`. Owner-level constraints change only with the owner |
+
+- **A non-author review** is a written review, linked from the PR, by another lab or by an independent reviewer pass that did not write the change. Lab 1's own class B and C changes get one too.
+- **Never** push directly to `main`, bypass protection, use an admin merge or force-push shared work. A blocked merge names its cause and owner.
+- **Safe, inactive research and negative evidence** may merge without model promotion.
+
+### Knowledge and resources
+
+- **Keep knowledge linked,** recording scope, confidence, dependencies and consumer at each step:
+  1. mission;
+  2. blocker;
+  3. mechanism or decision;
+  4. source or artifact;
+  5. experiment;
+  6. adversarial finding;
+  7. integration consequence;
+  8. next action.
+
+  Keep summaries compact and evidence immutable. Preserve superseded history.
+- **Large payloads** live in approved storage (the owner SSD), with hashes and verified retrieval instructions.
+- **Follow the shared machine protocol** (ROADMAP §6: one heavy job at a time through the model slot; light jobs at ≤ 2 threads) and charge the cumulative ledger.
+  - No unapproved spending, provider changes or destructive cleanup.
+  - Never force-interrupt another lab's job.
+- **At a host, context or quota boundary,** publish a restartable handoff: the commit, artifact paths, live job ownership and the exact next action. Do not claim that execution continues without an authorized runner.
+
 ## Architecture and scope
 
 Prepare data, train, construct artifacts and run inference in Rust. Training may

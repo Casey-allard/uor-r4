@@ -6,6 +6,13 @@ The owner-directed mode is `native_geometric_ai`. Build a learned local language
 
 **September 24 learning correction:** [D8](docs/integration/DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) makes the canonical plan's reference/joint-learning/discretization ladder active. A1–A4 are retained scaffolds and negative language evidence; do not resume local selector tuning as the default next step. Use the offline Rust autodiff training tool, verify the actual language-to-context gradient and hard/relaxed bridge, preserve the #1017 language reference and fixed evaluator identities, and complete the declared rung before changing mechanism. A library, integrity check or small fixture is not a language result. Report actual training/evaluation/accelerator work separately from orchestration while retaining the cumulative ledger. The owner retains strategic authority; no transformer serving or new Python model dependency is adopted.
 
+**Owner charter, September 28: three labs.** **Lab 1 (Claude main)** leads the programme and integrates the work. It owns:
+- the architecture, shared interfaces and promotion;
+- the learner, dialogue conditioning, persistent memory and the complete response path;
+- the stack writer, loader and integer forward, absorbed from the retired cloud track.
+
+**Lab 2 (OpenCode)** owns geometric read/address research and its implementation behind the read interface. **Lab 3 (Anti-Gravity)** owns numerical fidelity, codecs, kernels, execution audits and measured local cost. The Claude cloud track and the Codex lab are retired, with no future assignments. The single shared operating policy, including the standing merge and review criteria, is in [agent-execution-policy.md](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
+
 ## Authority and recovery
 
 Read [README](README.md) → [canonical plan](docs/integration/project-track.md) → [current state](docs/integration/current-state.md) → [direction and capability assessment](docs/integration/model-direction-2026-09.md) → [project map](docs/PROJECT_MAP.md). Live GitHub owns issue status; #820 is the programme tracker. Current owner instructions and the stable policy override dated experiment scheduling. Historical negatives retain their exact technical scope.
@@ -127,9 +134,10 @@ Bounded inference and contextual/copy attention exist. General prose, general re
 
 ## Specialist routing and research cadence
 
-**Owner direction, September 26:** the fourth Codex lab operates alongside
+**Owner direction, September 26 (historical since September 28):** the fourth Codex lab operated alongside
 Google, OpenCode/DeepSeek/Kimi and Claude, using shared GitHub issues and isolated
-worktrees. Read [.codex-lab/README.md](.codex-lab/README.md) for its expert bench,
+worktrees. Its allowance is exhausted, its T4 study transferred to Lab 1, and the three-lab charter above
+assigns it no future work. The paragraph and `.codex-lab/` are kept as its record. Read [.codex-lab/README.md](.codex-lab/README.md) for its expert bench,
 complete-context task packet, recursive evidence review and cross-lab ownership
 protocol. Its whole-project authorization covers successive necessary research
 and implementation; old one-milestone stop instructions do not limit that goal.

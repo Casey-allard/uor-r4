@@ -5,6 +5,15 @@ frontier, geometric-advantage or full-path energy qualification.**
 
 ## September 28: base decided, track approved, #1433 result
 
+- **Organization (owner charter, 17:25 UTC).** There are now three labs:
+  - **Lab 1, Claude main:** lead, integration, learner, dialogue, memory, the complete response path and the stack serving port.
+  - **Lab 2, OpenCode:** geometric read and addressing.
+  - **Lab 3, Anti-Gravity:** fidelity, codecs, kernels, audits and cost.
+
+  The retired cloud track's obligations are absorbed (ROADMAP §9), and the Codex lab is retired.
+  - **Pinned baselines:** native dialogue `98aca5ab…` (development response NLL 2.773887) and code stack `3eb1ebbb…` (1.998113).
+  - **The first missing learned behavior:** no dialogue-trained stack exists. Lab 1's S2 produces one on chat-v0 with the #1017 tokenizer.
+  - **Shared policy and merge criteria:** [execution policy](agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
 - **Base model (D0).** The recurrence-primary geometric stack is the main line.
   - It scored 1.998113 against its transformer control's 2.011149 at full exposure (#1437; one seed per arm; code BPE).
   - The 1.68M native model is the retained baseline.

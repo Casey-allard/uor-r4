@@ -7,7 +7,7 @@ fn check(root: &Path) -> Result<(), String> {
     let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let policy: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     for (pointer, expected) in [
-        ("/schema", Value::from("uor-r4.agent-execution-policy/4")),
+        ("/schema", Value::from("uor-r4.agent-execution-policy/5")),
         ("/mode", Value::from("native_geometric_ai")),
         ("/architecture/implementation_language", Value::from("rust")),
         (

@@ -34,7 +34,9 @@
     "geometric_routing_priority": true,
     "serving_floating_point_allowed": false,
     "serving_transcendentals_allowed": false,
-    "offline_autodiff_training_allowed": true
+    "offline_autodiff_training_allowed": true,
+    "serving_contract_current": "docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded",
+    "serving_kernel_integer_divider_instructions_allowed": false
   },
   "delivery": {
     "direct_push_to_main": false,
@@ -188,5 +190,64 @@
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,
     "type": "isolated_full_git_worktree"
+  },
+  "organization": {
+    "authority": "docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28",
+    "owner": "mission_hard_constraints_spending_destructive_actions",
+    "labs": {
+      "lab1_claude_main": [
+        "roadmap",
+        "architecture",
+        "mathematical_decisions",
+        "shared_interfaces",
+        "promotion",
+        "integrated_artifact_contract",
+        "learner_dialogue_conditioning_learning_objectives",
+        "persistent_memory",
+        "complete_response_path",
+        "stack_writer_loader_integer_forward"
+      ],
+      "lab2_opencode": [
+        "geometric_read_address_research",
+        "integration_ready_read_implementation_behind_read_interface"
+      ],
+      "lab3_anti_gravity": [
+        "numerical_fidelity",
+        "codecs_and_training_aware_discretization",
+        "kernels",
+        "execution_audits",
+        "measured_local_cost"
+      ]
+    },
+    "retired_no_future_assignments": [
+      "claude_cloud_track_2026-09-28",
+      "codex_lab4_2026-09-28"
+    ],
+    "single_shared_policy_on_main": true
+  },
+  "merge_review": {
+    "classes": {
+      "A_lane_work": [
+        "required_checks_pass",
+        "focused_local_checks_listed",
+        "one_non_author_technical_review"
+      ],
+      "B_results": [
+        "class_A",
+        "sealed_report_roots_on_disk",
+        "headline_numbers_reread_from_roots_by_non_author",
+        "lab3_gating_measurement_rerun_by_lab1"
+      ],
+      "C_shared_interfaces_architecture": [
+        "class_A",
+        "lab1_documented_decision_in_roadmap_or_decisions",
+        "owner_for_owner_level_constraints"
+      ]
+    },
+    "lab1_own_consequential_changes_need_non_author_review": true,
+    "owner_approval_per_merge_required": false,
+    "merge_path": "merge_queue_when_clean_then_verify_tree_equality_and_notify_consumer",
+    "failed_gate_merges_as_negative_without_promotion": true,
+    "result_readers_fail_on_missing_keys": true
   }
 }
