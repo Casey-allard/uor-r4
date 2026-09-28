@@ -2759,6 +2759,38 @@ impl candle_core::CustomOp1 for CrossEntropy {
     }
 }
 
+/// Mean (or weighted mean) cross-entropy of `[rows, classes]` logits against
+/// `targets`, with the fused forward and backward of
+/// [`StackModel::weighted_loss`]: for callers that adjust the logits first, or
+/// score a small auxiliary head. Weights, when given, are finite and
+/// nonnegative with a positive sum.
+pub fn logits_cross_entropy(
+    logits: &Tensor,
+    targets: &[u32],
+    weights: Option<&[f32]>,
+) -> Result<Tensor> {
+    let (rows, classes) = logits.dims2()?;
+    if targets.len() != rows || weights.is_some_and(|w| w.len() != rows) {
+        return Err(invalid("one target and one weight per logit row"));
+    }
+    if targets.iter().any(|&t| t as usize >= classes) {
+        return Err(invalid("target outside the logit classes"));
+    }
+    if let Some(weights) = weights {
+        if weights.iter().any(|w| !w.is_finite() || *w < 0.0)
+            || weights.iter().map(|&w| f64::from(w)).sum::<f64>() <= 0.0
+        {
+            return Err(invalid(
+                "loss weights must be finite, nonnegative and not all zero",
+            ));
+        }
+    }
+    Ok(logits.contiguous()?.apply_op1(CrossEntropy {
+        targets: targets.to_vec(),
+        weights: weights.map(<[f32]>::to_vec),
+    })?)
+}
+
 /// Per-row negative log-likelihood of `targets`, without a backward graph.
 fn row_nll(logits: &Tensor, targets: &[u32]) -> Result<Vec<f64>> {
     let (rows, vocabulary) = logits.dims2()?;

@@ -81,8 +81,8 @@ three-lab brief does not assign it work.
 
 | Track | Owner | Goal | Current hypothesis | Status | Next decision point |
 |---|---|---|---|---|---|
-| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) **Decided, 05:50 UTC 09-28:** the stack scored 1.998113 against its control's 2.011149 at full exposure, so **the stack is the main line** (D0). Weights are on the SSD, SHA-256-verified. (b) **Closed** (#1447): no lane type is retained in the stack, and Stage C is parked. (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). **Next:** D2, the AERM probe ([synthesis](docs/integration/whole-project-synthesis-2026-09-28.md) §4). | §4.1 |
-| **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | The frozen contest is complete on Lab 2's **unpublished** branch. **Ruling 11:** it is a compression-fidelity screen, because it scores every event; its decode cost is relabelled, and its geometric arms are confounded by magnitude. **Next:** publish it, then run D6 (the information audit), then D3's gain-controlled follow-up. | §4.2 |
+| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) **Decided, 05:50 UTC 09-28:** the stack scored 1.998113 against its control's 2.011149 at full exposure, so **the stack is the main line** (D0). Weights are on the SSD, SHA-256-verified. (b) **Closed** (#1447): no lane type is retained in the stack, and Stage C is parked. (c) Implemented and held, NOT_RUN (#1437, merged). **D1: keep the transport. D2: frozen gate FAIL on the margin; the store works, the learned read does not generalise** ([result](docs/integration/d2-aerm-probe-result-2026-09-28.md)). **Next:** checkpoint save and reload for the stack plus store (§2b), then G's design after D6. | §4.1 |
+| **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | The frozen contest is published: **NOT QUALIFIED** at its scope (#1456, with the ruling-11 corrections). It is a compression-fidelity screen, because it scores every event, and its geometric arms are confounded by magnitude. **Next:** D6 (evidence, not a veto), then D3's gain-controlled follow-up. | §4.2 |
 | **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)); width-576 `uor-chat` ([#1450](https://github.com/UOR-Foundation/uor-r4/pull/1450)). **The auditor is repaired** ([#1451](https://github.com/UOR-Foundation/uor-r4/pull/1451)), with failing and benign sentinels. **First J/token measured** (owner run, 2026-09-28): the integer path is 0.00413 J/token against 0.00096 for its float parent, whole-system marginal: about 4.3× the energy and about 2.6× slower ([note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)). Capability API, WASM and M1 cost: [#1452](https://github.com/UOR-Foundation/uor-r4/pull/1452), which needs `main` merged. **Next:** D4, after #1433's result. | §4.3 |
 | **T4 Native dialogue and conversion fidelity** | **Lab 1 Claude** (owner transfer from Lab 4 Codex, whose allowance is exhausted; the study is unchanged) | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | **#1433 executed and FAILS its retention rule** ([result](docs/integration/dialogue-code-choice-result-2026-09-28.md)): response NLL 2.796 against nearest's 2.849, but relation answers at the question turn fall to 2 of 10 (nearest 4, continuous 9), with 962 flips against 909. Nearest-hard stays the baseline. **Next:** D4 (Lab 3) with a fidelity objective; the T4 question passes to D4 and D5. | §4.4 |
 
@@ -107,33 +107,50 @@ three-lab brief does not assign it work.
   - D0 selected the stack *architecture*. The two tokenizers are different token identities even at the same vocabulary size, so no weights or panels transfer between them.
   - It is decided at the product milestone's first step (§8), after the frozen studies. The D2 core already uses the #1017 token store.
 
-### 2a. The approved track (owner, 2026-09-28: "Approve, start with D2")
+### 2a. The approved track (owner, 2026-09-28: "Approve, start with D2"; amended 15:27 UTC)
 
 The [whole-project synthesis](docs/integration/whole-project-synthesis-2026-09-28.md) (#1453) owns the design.
 
 **The track:**
-- a 10–30M recurrent core, the stack (D0);
-- **M1 AERM**, architectural exact relational memory:
-  - prime-sized multi-head hash addresses;
-  - learned write and read gates, with pointer heads;
-  - version order decides "current";
-  - typed Hit, Absent and Evicted statuses;
+- a 10–30M recurrent core: the stack (D0), keeping its quaternion transport (D1);
+- **M1**, the exact version-ordered store with typed statuses. D2 found that it works when addressed correctly, and that its learned trigger-gated read does not generalise;
+- **G, the geometric read/address operator: on the main path** (owner, 15:27 UTC):
+  - an always-on learned addressed read into the exact store and the context;
+  - built behind I4, with the stack's dense read as fallback;
+  - D6 and D3 shape its representation and cost claims;
+  - it replaces the fallback only if it wins at equal cost;
 - **M2**, conditioned anti-echo response training;
-- **M3**, a geometry-coded D11 artifact: Hadamard, E8 or grouped codes, QAT and LUT accumulation;
+- **M3**, a geometry-coded D11 artifact (D4);
 - **M4**, event-gated state, deferred.
 
-Geometry moves out of dense scores into four places: exact identity, exact automata, weight coding, and (conditionally, D7) score-to-address compilation.
+Geometry sits in five places: the core's transport (D1), exact identity, exact automata, weight coding (D4), and the addressed read (G).
 
 | ID | Question | Owner | Status |
 |---|---|---|---|
 | D0 | Which core? | Cloud | **Decided:** the stack |
-| D1 | Is the stack's transport load-bearing at matched width? | Cloud | Queued |
-| D2 | Does AERM give small models updated relations? | Lab 1 | Next, after #1433's endpoints |
-| D3 | Is a geometric index as good as an ordinary one, at equal bits and fewer inspected events? | Lab 2 | Frozen run complete; gain-controlled follow-up decides |
-| D4 | Does geometry-coded QAT fix the hard artifact? Fidelity objective | Lab 3 | **Unblocked:** #1433's legal codes failed retention |
-| D6 | Does the 2I read representation discard what the reader uses? Evaluation only | Lab 2 | Next for Lab 2 |
-| D7 | A geometric address channel for AERM | Labs 1 and 2 | Only if D6 = GAIN and D3 passes |
-| D5 | The milestone candidate (§8) | All | After D0–D4 and D6 |
+| D1 | Is the transport load-bearing at matched width? | Cloud | **Decided: keep.** Identity costs +0.0711 and +0.0774 nats (2 seeds). The record waits for its branch push |
+| D2 | Does exact memory give small models updated relations? | Lab 1 | **Frozen gate FAIL (margin)**. The store is perfect in distribution (1.000 on every class). Held out, the learned read trigger fails ([result](docs/integration/d2-aerm-probe-result-2026-09-28.md)) |
+| D3 | Geometric against ordinary index, at equal bits and fewer inspected events? | Lab 2 | Frozen run **NOT QUALIFIED** at its scope (#1456). The gain-controlled follow-up decides |
+| D4 | Does geometry-coded coding fix the hard artifact? | Lab 3 | [#1458](https://github.com/UOR-Foundation/uor-r4/pull/1458) reports that H+G4 passes. **Under director verification** |
+| D6 | What does the 2I read representation discard? Evaluation only | Lab 2 | Next. **Evidence, not a veto** (owner, 15:27 UTC) |
+| G | The geometric read/address operator | Labs 1 and 2 | **Main path** (owner, 15:27 UTC): designed after D6, built behind I4 |
+| D5 | The milestone candidate (§8) | All | The fit waits for G's first comparison and D4. Integration engineering proceeds now (ruling 12) |
+
+### 2b. The artifact contract
+
+This is the single integration target. Unknown fields are marked, never filled from an older artifact.
+
+| Field | State, 2026-09-28 15:40 UTC |
+|---|---|
+| Model family and configuration | Geometric stack `rrarra`, quaternion transport (D0, D1). Milestone width and depth (10–30M): **UNRESOLVED** |
+| Tokenizer and dialogue protocol | Protocol `uor-r4.literal-role-dialogue/1` (`blake3:0099a613…`). Tokenizer: **UNRESOLVED** (I5; recommended #1017, `d36d3e87…`) |
+| Retained checkpoint | **None for the milestone.** References only: cycle-4 `geometric_s1` (code BPE, `3eb1ebbb…`) and the continuous dialogue child (`98aca5ab…`, D4's fidelity reference) |
+| Memory semantics and persistence | The D2 probe keeps the current and previous distinct value, fresh per sequence. For the product: **UNRESOLVED**, a choice among current, previous record, previous distinct and initial (the scoped-memory contract), plus session persistence with save and reload |
+| Reader and addressing | Fallback: the stack's dense `a` read. G: **design UNRESOLVED** (after D6) |
+| Codec and serving profile | D11. Codec candidate H+G4, and a stack integer runtime with `uor-r4.stack-bundle/1` (#1458, **under verification**) |
+| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export into the integer bundle: #1458 (under verification). Store serialization in the session: **NOT IMPLEMENTED** |
+| Complete-response acceptance | The §8 milestone panel (40/30/30), sealed before the candidate's final fit: **NOT AUTHORED** |
+| Producer → consumer → next missing artifact | Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: the stack integer bundle and codec (#1458). Lab 2 → Lab 1: D6 evidence for G |
 
 ## 3. Deconfliction rulings, 2026-09-27
 
@@ -211,6 +228,19 @@ Geometry moves out of dense scores into four places: exact identity, exact autom
     - **Not adopted:**
       - margin certificates as a pruning mechanism (0/192 certified at coarse precision);
       - orbit-expanded codebooks or new relation-kernel fits before D6.
+
+12. **Delivery discipline, 2026-09-28.** This follows an external review the owner shared. The owner decided the last two items at 15:27 UTC.
+    - **One target.** The §2b artifact contract is the integration target. Every lab's next output must be something another lab can load or use. No new status documents.
+    - **Separate gates.** A probe pass supports only its scoped hypothesis. The §8 milestone decides the product, on the same saved artifact.
+    - **Engineering proceeds now; promotion waits for evidence.** Serialization, loaders, session state, tokenizer binding and the stack's integer port do not wait for research.
+    - **No fit without:**
+      - a named decision;
+      - bounded resources;
+      - saved, reloadable weights wherever the result could be used;
+      - a named consumer.
+    - **Every handoff states four facts:** what was selected or rejected; which artifact exists (path and identity); who consumes it; what they do next.
+    - **D6 is evidence, not a veto** (owner). Its outcomes describe the representation tested. The next reader experiment must target the failure D6 shows.
+    - **G is on the main path** (owner). It is designed after D6, built behind I4 with the dense read as fallback, and promoted only if it wins at equal cost.
 
 ### Engine consolidation map
 
@@ -567,6 +597,20 @@ This reporting adds no threshold. Thresholds change only with the owner, before 
 - The #1432 outputs echo relations ("The name is Alex is Alex.") instead of responding.
 
 ## 9. Director log
+
+**2026-09-28 15:40 UTC, D1 and D2 decided; owner decisions on D6 and G; delivery discipline (ruling 12).**
+- **D1 (cloud): keep the quaternion transport.** Identity costs +0.0711 and +0.0774 nats at matched MLP width, in 2 seeds.
+- **D2 (Lab 1): frozen gate FAIL on the margin** (0.146 / 0.122 / 0.102).
+  - The memory arm scores 1.000 on every class in distribution. The equal-parameter control has 0.51 on First and ≤ 0.07 on Absent.
+  - Held out, the learned read trigger never fires on the unseen query phrasing, and accuracy drops to 0.00–0.035. The gold register would give 1.000.
+  - No weights were saved (a reports-only runner). Save and reload are now a prerequisite for the next fit.
+- **External review (shared by the owner).** Verified and acted on:
+  - stale board rows, corrected at 08:20;
+  - Lab 3 waiting on the rejected #1433 child, answered by a four-fact handoff at 08:21;
+  - D2 saving no weights;
+  - the over-restrictive D6→D7 logic.
+- **Owner, 15:27 UTC:** D6 is evidence, not a veto; G is on the main path.
+- **Merged or queued:** #1437 (cycle-4 result and cycle-5 code) and #1454 (runtime reconciliation) merged; #1456 (T2, with the corrections) is queued; #1458 (D4) is under verification.
 
 **2026-09-28 06:36 UTC, #1433 executed (Lab 1 by owner transfer).**
 - The fit completed 512/512 updates (3,841 s, peak 4.69 GB). The fixed endpoints ran in 164 s, and every step exited 0.

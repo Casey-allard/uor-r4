@@ -1,0 +1,3911 @@
+{
+ "schema": "uor-r4.lab1.d2-aerm-result/1",
+ "plan": "docs/integration/d2-aerm-probe-plan-2026-09-28.md",
+ "commit": "fb57c4eeebf91a9aadd308de9af0acd6d827356e",
+ "supervision": {
+  "schema": "uor-r4.lab1.d2-supervision/3",
+  "attempt": 2,
+  "plan": "docs/integration/d2-aerm-probe-plan-2026-09-28.md",
+  "commit": "fb57c4eeebf91a9aadd308de9af0acd6d827356e",
+  "executable_sha256": "78a73702027659365d2f9790f79fbfc125a435736cc575a18dfc2e7b962746ef",
+  "thread_environment": {
+   "RAYON_NUM_THREADS": 2,
+   "processes": 3
+  },
+  "started_utc": "2026-09-28T07:22:28Z",
+  "finished_utc": "2026-09-28T09:00:35Z",
+  "wall_seconds": 5887,
+  "seeds": {
+   "1": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 1787840
+   },
+   "2": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 1810256
+   },
+   "3": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 1714144
+   }
+  },
+  "summary_root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-summary",
+  "summary_exit": 0,
+  "hard_caps": ""
+ },
+ "gate_summary": {
+  "gates": {
+   "aerm_updated_accuracy_at_least": 0.9,
+   "every_seed": true,
+   "margin_over_control_at_least": 0.3,
+   "text_nll_delta_at_most": 0.05
+  },
+  "outcome": "FAIL",
+  "roots": [
+   {
+    "manifest_sha256": "145592736207e726da6a1c812f4760b1c6b7d80d130faeb7c91201cc3eb1c612",
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-s1"
+   },
+   {
+    "manifest_sha256": "0a439f7a0410186df4b917c5ad2fefeb44a810fcdab4593723d429cf23030fba",
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-s2"
+   },
+   {
+    "manifest_sha256": "bbf9e714db9c78d9e0c5c47dd684372f20e8819a69f67275bd04fbeeef6d84cf",
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-s3"
+   }
+  ],
+  "schema": "uor-r4.d2-aerm-probe-summary/1",
+  "seeds": [
+   {
+    "accuracy_pass": true,
+    "aerm_text_nll": 2.3598508313298225,
+    "aerm_updated": 1.0,
+    "complete": true,
+    "control_text_nll": 2.387000598013401,
+    "control_updated": 0.8542274052478134,
+    "margin": 0.14577259475218662,
+    "margin_pass": false,
+    "pass": false,
+    "seed": 1,
+    "text_delta": -0.02714976668357849,
+    "text_pass": true
+   },
+   {
+    "accuracy_pass": true,
+    "aerm_text_nll": 2.3583062142133713,
+    "aerm_updated": 1.0,
+    "complete": true,
+    "control_text_nll": 2.396983988583088,
+    "control_updated": 0.8775510204081632,
+    "margin": 0.12244897959183676,
+    "margin_pass": false,
+    "pass": false,
+    "seed": 2,
+    "text_delta": -0.038677774369716644,
+    "text_pass": true
+   },
+   {
+    "accuracy_pass": true,
+    "aerm_text_nll": 2.3653397634625435,
+    "aerm_updated": 1.0,
+    "complete": true,
+    "control_text_nll": 2.403412565588951,
+    "control_updated": 0.8979591836734694,
+    "margin": 0.10204081632653061,
+    "margin_pass": false,
+    "pass": false,
+    "seed": 3,
+    "text_delta": -0.03807280212640762,
+    "text_pass": true
+   }
+  ]
+ },
+ "protocol_check": {
+  "episodes": 256,
+  "identical_tokens_and_response_masks": true,
+  "protocol": {
+   "bos_id": 0,
+   "eos_id": 1,
+   "schema": "uor-r4.literal-role-dialogue/1",
+   "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+   "unk_id": 2
+  },
+  "protocol_identity": "blake3:0099a613c8fcffc78210ed7b7387841917472d976f307a33526c8424ecf5d327",
+  "tokens": 58112
+ },
+ "vocabulary": {
+  "held_out_names": [
+   [
+    " Molly",
+    2408
+   ],
+   [
+    " Leo",
+    2278
+   ],
+   [
+    " Emma",
+    2031
+   ],
+   [
+    " Rose",
+    3474
+   ]
+  ],
+  "names": [
+   [
+    " Bob",
+    698
+   ],
+   [
+    " Sam",
+    551
+   ],
+   [
+    " Mia",
+    655
+   ],
+   [
+    " Tom",
+    417
+   ],
+   [
+    " Lily",
+    407
+   ],
+   [
+    " Ben",
+    546
+   ],
+   [
+    " Max",
+    513
+   ],
+   [
+    " Anna",
+    894
+   ],
+   [
+    " Jack",
+    1176
+   ],
+   [
+    " Lucy",
+    685
+   ],
+   [
+    " Tim",
+    344
+   ],
+   [
+    " Sue",
+    510
+   ],
+   [
+    " Sara",
+    946
+   ],
+   [
+    " Amy",
+    830
+   ],
+   [
+    " Jane",
+    1367
+   ],
+   [
+    " John",
+    1653
+   ]
+  ],
+  "relations": [
+   {
+    "article": " a",
+    "values": [
+     [
+      " cat",
+      462
+     ],
+     [
+      " dog",
+      466
+     ],
+     [
+      " bird",
+      422
+     ],
+     [
+      " fish",
+      793
+     ],
+     [
+      " frog",
+      989
+     ],
+     [
+      " bunny",
+      1128
+     ],
+     [
+      " duck",
+      1212
+     ],
+     [
+      " mouse",
+      1033
+     ],
+     [
+      " fox",
+      1710
+     ],
+     [
+      " puppy",
+      2040
+     ],
+     [
+      " kitten",
+      2157
+     ]
+    ],
+    "word": [
+     " pet",
+     1760
+    ]
+   },
+   {
+    "article": null,
+    "values": [
+     [
+      " red",
+      677
+     ],
+     [
+      " blue",
+      924
+     ],
+     [
+      " green",
+      1074
+     ],
+     [
+      " yellow",
+      1344
+     ],
+     [
+      " pink",
+      1481
+     ],
+     [
+      " purple",
+      1765
+     ],
+     [
+      " orange",
+      1728
+     ],
+     [
+      " brown",
+      1730
+     ],
+     [
+      " black",
+      1588
+     ],
+     [
+      " white",
+      1605
+     ]
+    ],
+    "word": [
+     " color",
+     931
+    ]
+   },
+   {
+    "article": " a",
+    "values": [
+     [
+      " ball",
+      481
+     ],
+     [
+      " doll",
+      1068
+     ],
+     [
+      " kite",
+      1999
+     ],
+     [
+      " car",
+      526
+     ],
+     [
+      " train",
+      1504
+     ],
+     [
+      " drum",
+      2495
+     ],
+     [
+      " boat",
+      1027
+     ],
+     [
+      " robot",
+      2214
+     ],
+     [
+      " truck",
+      1043
+     ],
+     [
+      " puzzle",
+      2327
+     ],
+     [
+      " teddy",
+      1902
+     ]
+    ],
+    "word": [
+     " toy",
+     448
+    ]
+   },
+   {
+    "article": " a",
+    "values": [
+     [
+      " doctor",
+      1785
+     ],
+     [
+      " teacher",
+      2054
+     ],
+     [
+      " farmer",
+      1895
+     ],
+     [
+      " cook",
+      1114
+     ],
+     [
+      " nurse",
+      3660
+     ],
+     [
+      " king",
+      1687
+     ],
+     [
+      " queen",
+      2326
+     ],
+     [
+      " driver",
+      2141
+     ]
+    ],
+    "word": [
+     " job",
+     1541
+    ]
+   },
+   {
+    "article": " the",
+    "values": [
+     [
+      " park",
+      524
+     ],
+     [
+      " zoo",
+      2311
+     ],
+     [
+      " beach",
+      1699
+     ],
+     [
+      " farm",
+      1285
+     ],
+     [
+      " forest",
+      973
+     ],
+     [
+      " garden",
+      914
+     ],
+     [
+      " store",
+      1123
+     ],
+     [
+      " lake",
+      1808
+     ],
+     [
+      " river",
+      1768
+     ],
+     [
+      " castle",
+      1608
+     ],
+     [
+      " village",
+      2034
+     ]
+    ],
+    "word": [
+     " place",
+     964
+    ]
+   },
+   {
+    "article": null,
+    "values": [
+     [
+      " Bob",
+      698
+     ],
+     [
+      " Sam",
+      551
+     ],
+     [
+      " Mia",
+      655
+     ],
+     [
+      " Tom",
+      417
+     ],
+     [
+      " Lily",
+      407
+     ],
+     [
+      " Ben",
+      546
+     ],
+     [
+      " Max",
+      513
+     ],
+     [
+      " Anna",
+      894
+     ],
+     [
+      " Jack",
+      1176
+     ],
+     [
+      " Lucy",
+      685
+     ],
+     [
+      " Tim",
+      344
+     ],
+     [
+      " Sue",
+      510
+     ],
+     [
+      " Sara",
+      946
+     ],
+     [
+      " Amy",
+      830
+     ],
+     [
+      " Jane",
+      1367
+     ],
+     [
+      " John",
+      1653
+     ]
+    ],
+    "word": [
+     " friend",
+     360
+    ]
+   }
+  ]
+ },
+ "stack_template": {
+  "arch": "geometric",
+  "context": 256,
+  "heads": 4,
+  "mlp_hidden": 384,
+  "pattern": "rrar",
+  "read": "dot",
+  "rotation": true,
+  "seed": 0,
+  "vocab_size": 4096,
+  "width": 128
+ },
+ "train_template": {
+  "batch": 16,
+  "clip": 1.0,
+  "context": 256,
+  "data_seed": 0,
+  "learning_rate": 0.003,
+  "steps": 1500,
+  "tag_weight": 1.0,
+  "trigger_positive_weight": 5.0,
+  "trigger_weight": 1.0,
+  "warmup": 100,
+  "weight_decay": 0.1
+ },
+ "split": 2,
+ "control_extra_mlp_units": 11,
+ "memory_branch_parameters": 17026,
+ "data": {
+  "dev": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokens/dev.u16",
+  "dev_sha256": "74f7d85fa7670355f65805a9ffe06c2fb9db150b9f4cae8029e0d2f35e8993b6",
+  "dev_tokens": 249000,
+  "text": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokens/train.u16",
+  "text_sha256": "7b12a8b0cad32689584d5b14e10aa60d449859dcb735c57cdec26bcddd2d4873",
+  "tokenizer": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokenizer/tokenizer.json",
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "train_tokens": 16777216
+ },
+ "evaluation_seeds": {
+  "dialogues": 9001,
+  "free_running": 9003,
+  "held_out": 9002,
+  "protocol": 9004
+ },
+ "roots": {
+  "1": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-s1",
+   "manifest_sha256": "145592736207e726da6a1c812f4760b1c6b7d80d130faeb7c91201cc3eb1c612",
+   "error": false
+  },
+  "2": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-s2",
+   "manifest_sha256": "0a439f7a0410186df4b917c5ad2fefeb44a810fcdab4593723d429cf23030fba",
+   "error": false
+  },
+  "3": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-d2-aerm/d2-2-s3",
+   "manifest_sha256": "bbf9e714db9c78d9e0c5c47dd684372f20e8819a69f67275bd04fbeeef6d84cf",
+   "error": false
+  }
+ },
+ "runs": {
+  "aerm-s1": {
+   "parameters": {
+    "control_extra_mlp_units": 0,
+    "heads": 1032,
+    "memory_branch": 17026,
+    "stack": 1393732,
+    "total": 1411790
+   },
+   "train_seconds": 3581.7491685,
+   "eval_seconds": 43.686497833,
+   "final_record": {
+    "dialogue_loss": 0.11291448026895523,
+    "gradient_norm": 0.6980224657835412,
+    "seconds": 3581.738812333,
+    "step": 1499,
+    "tag_loss": 3.4712265915004537e-06,
+    "text_loss": 2.2206826210021973,
+    "trigger_loss": 1.3830193665853585e-06
+   },
+   "text": {
+    "context": 256,
+    "dev_nll": 2.3598508313298225,
+    "dev_windows": 512,
+    "non_none_triggers_per_thousand_tokens": 0.0
+   },
+   "dialogues": {
+    "classes": {
+     "First": {
+      "queries": 138,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Updated": {
+      "queries": 343,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Reasserted": {
+      "queries": 26,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Previous": {
+      "queries": 159,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "PreviousAbsent": {
+      "queries": 168,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Absent": {
+      "queries": 355,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 36,
+     "accuracy": 1.0,
+     "whole_answer": 1.0,
+     "oracle_register": 1.0
+    },
+    "tag_accuracy": 1.0,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112184,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2537,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      862,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      327
+     ]
+    ],
+    "trace": {}
+   },
+   "held_out": {
+    "classes": {
+     "First": {
+      "queries": 144,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 1.0
+     },
+     "Updated": {
+      "queries": 273,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 1.0
+     },
+     "Reasserted": {
+      "queries": 31,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 1.0
+     },
+     "Previous": {
+      "queries": 195,
+      "accuracy": 0.07179487179487179,
+      "whole_answer": 0.07179487179487179,
+      "oracle_register": 1.0
+     },
+     "PreviousAbsent": {
+      "queries": 157,
+      "accuracy": 0.21019108280254778,
+      "whole_answer": 0.21019108280254778,
+      "oracle_register": 1.0
+     },
+     "Absent": {
+      "queries": 378,
+      "accuracy": 0.015873015873015872,
+      "whole_answer": 0.015873015873015872,
+      "oracle_register": 1.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 24,
+     "accuracy": 0.0,
+     "whole_answer": 0.0,
+     "oracle_register": 1.0
+    },
+    "tag_accuracy": 0.970569202495276,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112107,
+      0,
+      0,
+      0
+     ],
+     [
+      89,
+      2525,
+      0,
+      0
+     ],
+     [
+      826,
+      0,
+      0,
+      0
+     ],
+     [
+      286,
+      0,
+      0,
+      66
+     ]
+    ],
+    "trace": {
+     "NotSelected": 527,
+     "Unavailable": 598
+    }
+   },
+   "free_running": {
+    "episodes": 32,
+    "exact": 32,
+    "rows": [
+     {
+      "exact": true,
+      "generated": "It is a nurse.<|eos|>",
+      "gold": "It is a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It was a nurse.<|eos|>",
+      "gold": "It was a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Sara.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a king.<|eos|>",
+      "gold": "It is a king.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the store.<|eos|>",
+      "gold": "It is the store.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a duck.<|eos|>",
+      "gold": "It is a duck.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a ball.<|eos|>",
+      "gold": "It is a ball.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a queen.<|eos|>",
+      "gold": "It is a queen.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is orange.<|eos|>",
+      "gold": "It is orange.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the forest.<|eos|>",
+      "gold": "It is the forest.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the village.<|eos|>",
+      "gold": "It is the village.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a kitten.<|eos|>",
+      "gold": "It is a kitten.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a dog.<|eos|>",
+      "gold": "It is a dog.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is black.<|eos|>",
+      "gold": "It is black.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Mia.<|eos|>",
+      "gold": "It is Mia.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the lake.<|eos|>",
+      "gold": "It is the lake.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     }
+    ]
+   },
+   "dialogue_examples": [
+    {
+     "class": "Reasserted",
+     "gold_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1481
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1481
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1728
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1728
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Previous",
+     "gold_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1074
+     ],
+     "predicted_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1074
+     ]
+    },
+    {
+     "class": "First",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1768
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1768
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      973
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      973
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      655
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      655
+     ]
+    }
+   ]
+  },
+  "control-s1": {
+   "parameters": {
+    "control_extra_mlp_units": 11,
+    "heads": 1032,
+    "memory_branch": 0,
+    "stack": 1410628,
+    "total": 1411660
+   },
+   "train_seconds": 2228.34644725,
+   "eval_seconds": 22.158573083,
+   "final_record": {
+    "dialogue_loss": 0.19089768826961517,
+    "gradient_norm": 0.7340374616907004,
+    "seconds": 2228.346367208,
+    "step": 1499,
+    "tag_loss": 2.2110200006864034e-05,
+    "text_loss": 2.243823766708374,
+    "trigger_loss": 1.5360154748123023e-06
+   },
+   "text": {
+    "context": 256,
+    "dev_nll": 2.387000598013401,
+    "dev_windows": 512,
+    "non_none_triggers_per_thousand_tokens": 0.0
+   },
+   "dialogues": {
+    "classes": {
+     "First": {
+      "queries": 138,
+      "accuracy": 0.5072463768115942,
+      "whole_answer": 0.5072463768115942,
+      "oracle_register": 0.0
+     },
+     "Updated": {
+      "queries": 343,
+      "accuracy": 0.8542274052478134,
+      "whole_answer": 0.8542274052478134,
+      "oracle_register": 0.0
+     },
+     "Reasserted": {
+      "queries": 26,
+      "accuracy": 0.7692307692307693,
+      "whole_answer": 0.7692307692307693,
+      "oracle_register": 0.0
+     },
+     "Previous": {
+      "queries": 159,
+      "accuracy": 0.5974842767295597,
+      "whole_answer": 0.34591194968553457,
+      "oracle_register": 0.0
+     },
+     "PreviousAbsent": {
+      "queries": 168,
+      "accuracy": 0.5119047619047619,
+      "whole_answer": 0.5119047619047619,
+      "oracle_register": 0.0
+     },
+     "Absent": {
+      "queries": 355,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 0.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 36,
+     "accuracy": 0.25,
+     "whole_answer": 0.25,
+     "oracle_register": 0.0
+    },
+    "tag_accuracy": 1.0,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112184,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2537,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      862,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      327
+     ]
+    ],
+    "trace": {}
+   },
+   "held_out": {
+    "classes": {
+     "First": {
+      "queries": 144,
+      "accuracy": 0.2569444444444444,
+      "whole_answer": 0.125,
+      "oracle_register": 0.0
+     },
+     "Updated": {
+      "queries": 273,
+      "accuracy": 0.4139194139194139,
+      "whole_answer": 0.28205128205128205,
+      "oracle_register": 0.0
+     },
+     "Reasserted": {
+      "queries": 31,
+      "accuracy": 0.45161290322580644,
+      "whole_answer": 0.2903225806451613,
+      "oracle_register": 0.0
+     },
+     "Previous": {
+      "queries": 195,
+      "accuracy": 0.07179487179487179,
+      "whole_answer": 0.005128205128205128,
+      "oracle_register": 0.0
+     },
+     "PreviousAbsent": {
+      "queries": 157,
+      "accuracy": 0.14012738853503184,
+      "whole_answer": 0.14012738853503184,
+      "oracle_register": 0.0
+     },
+     "Absent": {
+      "queries": 378,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 0.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 24,
+     "accuracy": 0.16666666666666666,
+     "whole_answer": 0.16666666666666666,
+     "oracle_register": 0.0
+    },
+    "tag_accuracy": 0.9842017618788773,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112107,
+      0,
+      0,
+      0
+     ],
+     [
+      5,
+      2609,
+      0,
+      0
+     ],
+     [
+      364,
+      0,
+      462,
+      0
+     ],
+     [
+      210,
+      0,
+      0,
+      142
+     ]
+    ],
+    "trace": {}
+   },
+   "free_running": {
+    "episodes": 32,
+    "exact": 20,
+    "rows": [
+     {
+      "exact": true,
+      "generated": "It is a nurse.<|eos|>",
+      "gold": "It is a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It was a nurse.<|eos|>",
+      "gold": "It was a nurse.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a cat.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a boat.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Sara.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was a doctor.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a king.<|eos|>",
+      "gold": "It is a king.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the store.<|eos|>",
+      "gold": "It is the store.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was red.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a duck.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a ball.<|eos|>",
+      "gold": "It is a ball.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a queen.<|eos|>",
+      "gold": "It is a queen.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was red.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is orange.<|eos|>",
+      "gold": "It is orange.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a farmer.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the forest.<|eos|>",
+      "gold": "It is the forest.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the village.<|eos|>",
+      "gold": "It is the village.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is Ben.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a kitten.<|eos|>",
+      "gold": "It is a kitten.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a dog.<|eos|>",
+      "gold": "It is a dog.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is black.<|eos|>",
+      "gold": "It is black.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was the village.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Mia.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the lake.<|eos|>",
+      "gold": "It is the lake.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was the park.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     }
+    ]
+   },
+   "dialogue_examples": [
+    {
+     "class": "Reasserted",
+     "gold_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1481
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1481
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1728
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1728
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      1020,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Previous",
+     "gold_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1074
+     ],
+     "predicted_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1074
+     ]
+    },
+    {
+     "class": "First",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1768
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      1808,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1768
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      1020,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      973
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      914,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      973
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      655
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      685,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      655
+     ]
+    }
+   ]
+  },
+  "aerm-s2": {
+   "parameters": {
+    "control_extra_mlp_units": 0,
+    "heads": 1032,
+    "memory_branch": 17026,
+    "stack": 1393732,
+    "total": 1411790
+   },
+   "train_seconds": 3580.360160625,
+   "eval_seconds": 44.577264208,
+   "final_record": {
+    "dialogue_loss": 0.11084026098251343,
+    "gradient_norm": 0.7161041690614831,
+    "seconds": 3580.3543385,
+    "step": 1499,
+    "tag_loss": 5.5950113164726645e-06,
+    "text_loss": 2.454671621322632,
+    "trigger_loss": 1.7831184777605813e-06
+   },
+   "text": {
+    "context": 256,
+    "dev_nll": 2.3583062142133713,
+    "dev_windows": 512,
+    "non_none_triggers_per_thousand_tokens": 0.0
+   },
+   "dialogues": {
+    "classes": {
+     "First": {
+      "queries": 138,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Updated": {
+      "queries": 343,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Reasserted": {
+      "queries": 26,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Previous": {
+      "queries": 159,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "PreviousAbsent": {
+      "queries": 168,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Absent": {
+      "queries": 355,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 36,
+     "accuracy": 1.0,
+     "whole_answer": 1.0,
+     "oracle_register": 1.0
+    },
+    "tag_accuracy": 1.0,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112184,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2537,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      862,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      327
+     ]
+    ],
+    "trace": {}
+   },
+   "held_out": {
+    "classes": {
+     "First": {
+      "queries": 144,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 1.0
+     },
+     "Updated": {
+      "queries": 273,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 1.0
+     },
+     "Reasserted": {
+      "queries": 31,
+      "accuracy": 0.0,
+      "whole_answer": 0.0,
+      "oracle_register": 1.0
+     },
+     "Previous": {
+      "queries": 195,
+      "accuracy": 0.2358974358974359,
+      "whole_answer": 0.2358974358974359,
+      "oracle_register": 1.0
+     },
+     "PreviousAbsent": {
+      "queries": 157,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Absent": {
+      "queries": 378,
+      "accuracy": 0.48677248677248675,
+      "whole_answer": 0.48677248677248675,
+      "oracle_register": 1.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 24,
+     "accuracy": 0.0,
+     "whole_answer": 0.0,
+     "oracle_register": 1.0
+    },
+    "tag_accuracy": 0.9732870861698548,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112107,
+      0,
+      0,
+      0
+     ],
+     [
+      2,
+      2612,
+      0,
+      0
+     ],
+     [
+      826,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      352
+     ]
+    ],
+    "trace": {
+     "NotSelected": 362,
+     "Unavailable": 429
+    }
+   },
+   "free_running": {
+    "episodes": 32,
+    "exact": 32,
+    "rows": [
+     {
+      "exact": true,
+      "generated": "It is a nurse.<|eos|>",
+      "gold": "It is a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It was a nurse.<|eos|>",
+      "gold": "It was a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Sara.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a king.<|eos|>",
+      "gold": "It is a king.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the store.<|eos|>",
+      "gold": "It is the store.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a duck.<|eos|>",
+      "gold": "It is a duck.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a ball.<|eos|>",
+      "gold": "It is a ball.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a queen.<|eos|>",
+      "gold": "It is a queen.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is orange.<|eos|>",
+      "gold": "It is orange.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the forest.<|eos|>",
+      "gold": "It is the forest.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the village.<|eos|>",
+      "gold": "It is the village.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a kitten.<|eos|>",
+      "gold": "It is a kitten.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a dog.<|eos|>",
+      "gold": "It is a dog.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is black.<|eos|>",
+      "gold": "It is black.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Mia.<|eos|>",
+      "gold": "It is Mia.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the lake.<|eos|>",
+      "gold": "It is the lake.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     }
+    ]
+   },
+   "dialogue_examples": [
+    {
+     "class": "Reasserted",
+     "gold_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1481
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1481
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1728
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1728
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Previous",
+     "gold_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1074
+     ],
+     "predicted_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1074
+     ]
+    },
+    {
+     "class": "First",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1768
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1768
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      973
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      973
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      655
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      655
+     ]
+    }
+   ]
+  },
+  "control-s2": {
+   "parameters": {
+    "control_extra_mlp_units": 11,
+    "heads": 1032,
+    "memory_branch": 0,
+    "stack": 1410628,
+    "total": 1411660
+   },
+   "train_seconds": 2225.891257333,
+   "eval_seconds": 23.6631505,
+   "final_record": {
+    "dialogue_loss": 0.17744120955467224,
+    "gradient_norm": 0.7835848603964909,
+    "seconds": 2225.891176667,
+    "step": 1499,
+    "tag_loss": 2.559790482337121e-05,
+    "text_loss": 2.5230822563171387,
+    "trigger_loss": 1.5262440911101294e-06
+   },
+   "text": {
+    "context": 256,
+    "dev_nll": 2.396983988583088,
+    "dev_windows": 512,
+    "non_none_triggers_per_thousand_tokens": 0.0
+   },
+   "dialogues": {
+    "classes": {
+     "First": {
+      "queries": 138,
+      "accuracy": 0.5072463768115942,
+      "whole_answer": 0.4927536231884058,
+      "oracle_register": 0.0
+     },
+     "Updated": {
+      "queries": 343,
+      "accuracy": 0.8775510204081632,
+      "whole_answer": 0.8600583090379009,
+      "oracle_register": 0.0
+     },
+     "Reasserted": {
+      "queries": 26,
+      "accuracy": 0.7307692307692307,
+      "whole_answer": 0.6538461538461539,
+      "oracle_register": 0.0
+     },
+     "Previous": {
+      "queries": 159,
+      "accuracy": 0.6289308176100629,
+      "whole_answer": 0.4339622641509434,
+      "oracle_register": 0.0
+     },
+     "PreviousAbsent": {
+      "queries": 168,
+      "accuracy": 0.36904761904761907,
+      "whole_answer": 0.36904761904761907,
+      "oracle_register": 0.0
+     },
+     "Absent": {
+      "queries": 355,
+      "accuracy": 0.01971830985915493,
+      "whole_answer": 0.01971830985915493,
+      "oracle_register": 0.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 36,
+     "accuracy": 0.25,
+     "whole_answer": 0.25,
+     "oracle_register": 0.0
+    },
+    "tag_accuracy": 1.0,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112184,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2537,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      862,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      327
+     ]
+    ],
+    "trace": {}
+   },
+   "held_out": {
+    "classes": {
+     "First": {
+      "queries": 144,
+      "accuracy": 0.3055555555555556,
+      "whole_answer": 0.020833333333333332,
+      "oracle_register": 0.0
+     },
+     "Updated": {
+      "queries": 273,
+      "accuracy": 0.38461538461538464,
+      "whole_answer": 0.06227106227106227,
+      "oracle_register": 0.0
+     },
+     "Reasserted": {
+      "queries": 31,
+      "accuracy": 0.7419354838709677,
+      "whole_answer": 0.06451612903225806,
+      "oracle_register": 0.0
+     },
+     "Previous": {
+      "queries": 195,
+      "accuracy": 0.24615384615384617,
+      "whole_answer": 0.11282051282051282,
+      "oracle_register": 0.0
+     },
+     "PreviousAbsent": {
+      "queries": 157,
+      "accuracy": 0.47770700636942676,
+      "whole_answer": 0.47770700636942676,
+      "oracle_register": 0.0
+     },
+     "Absent": {
+      "queries": 378,
+      "accuracy": 0.3888888888888889,
+      "whole_answer": 0.3888888888888889,
+      "oracle_register": 0.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 24,
+     "accuracy": 0.25,
+     "whole_answer": 0.041666666666666664,
+     "oracle_register": 0.0
+    },
+    "tag_accuracy": 0.9634940767392298,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112107,
+      0,
+      0,
+      0
+     ],
+     [
+      77,
+      2537,
+      0,
+      0
+     ],
+     [
+      696,
+      0,
+      94,
+      36
+     ],
+     [
+      126,
+      0,
+      0,
+      226
+     ]
+    ],
+    "trace": {}
+   },
+   "free_running": {
+    "episodes": 32,
+    "exact": 16,
+    "rows": [
+     {
+      "exact": false,
+      "generated": "It is a farmer.<|eos|>",
+      "gold": "It is a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It was a nurse.<|eos|>",
+      "gold": "It was a nurse.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a puppy.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a boat.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Sara.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was a doctor.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was the river.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a king.<|eos|>",
+      "gold": "It is a king.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the store.<|eos|>",
+      "gold": "It is the store.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was blue.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a duck.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a ball.<|eos|>",
+      "gold": "It is a ball.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a queen.<|eos|>",
+      "gold": "It is a queen.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was blue.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is orange.<|eos|>",
+      "gold": "It is orange.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was blue.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a farmer.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the forest.<|eos|>",
+      "gold": "It is the forest.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the village.<|eos|>",
+      "gold": "It is the village.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is Ben.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a kitten.<|eos|>",
+      "gold": "It is a kitten.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a dog.<|eos|>",
+      "gold": "It is a dog.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is blue.<|eos|>",
+      "gold": "It is black.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was the village.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Mia.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the lake.<|eos|>",
+      "gold": "It is the lake.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was the garden.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a driver.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     }
+    ]
+   },
+   "dialogue_examples": [
+    {
+     "class": "Reasserted",
+     "gold_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1481
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1481
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1728
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1728
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      1020,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Previous",
+     "gold_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1074
+     ],
+     "predicted_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1074
+     ]
+    },
+    {
+     "class": "First",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1768
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      1808,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1768
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      1020,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      973
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      973
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      655
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      685,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      655
+     ]
+    }
+   ]
+  },
+  "aerm-s3": {
+   "parameters": {
+    "control_extra_mlp_units": 0,
+    "heads": 1032,
+    "memory_branch": 17026,
+    "stack": 1393732,
+    "total": 1411790
+   },
+   "train_seconds": 3582.985943,
+   "eval_seconds": 43.43968025,
+   "final_record": {
+    "dialogue_loss": 0.10986364632844925,
+    "gradient_norm": 0.7886349574137376,
+    "seconds": 3582.975753833,
+    "step": 1499,
+    "tag_loss": 3.904919594788225e-06,
+    "text_loss": 2.401123046875,
+    "trigger_loss": 6.99454858477111e-07
+   },
+   "text": {
+    "context": 256,
+    "dev_nll": 2.3653397634625435,
+    "dev_windows": 512,
+    "non_none_triggers_per_thousand_tokens": 0.0
+   },
+   "dialogues": {
+    "classes": {
+     "First": {
+      "queries": 138,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Updated": {
+      "queries": 343,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Reasserted": {
+      "queries": 26,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Previous": {
+      "queries": 159,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "PreviousAbsent": {
+      "queries": 168,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     },
+     "Absent": {
+      "queries": 355,
+      "accuracy": 1.0,
+      "whole_answer": 1.0,
+      "oracle_register": 1.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 36,
+     "accuracy": 1.0,
+     "whole_answer": 1.0,
+     "oracle_register": 1.0
+    },
+    "tag_accuracy": 1.0,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112184,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2537,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      862,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      327
+     ]
+    ],
+    "trace": {}
+   },
+   "held_out": {
+    "classes": {
+     "First": {
+      "queries": 144,
+      "accuracy": 0.034722222222222224,
+      "whole_answer": 0.034722222222222224,
+      "oracle_register": 1.0
+     },
+     "Updated": {
+      "queries": 273,
+      "accuracy": 0.014652014652014652,
+      "whole_answer": 0.014652014652014652,
+      "oracle_register": 1.0
+     },
+     "Reasserted": {
+      "queries": 31,
+      "accuracy": 0.06451612903225806,
+      "whole_answer": 0.06451612903225806,
+      "oracle_register": 1.0
+     },
+     "Previous": {
+      "queries": 195,
+      "accuracy": 0.07179487179487179,
+      "whole_answer": 0.07179487179487179,
+      "oracle_register": 1.0
+     },
+     "PreviousAbsent": {
+      "queries": 157,
+      "accuracy": 0.9808917197452229,
+      "whole_answer": 0.9808917197452229,
+      "oracle_register": 1.0
+     },
+     "Absent": {
+      "queries": 378,
+      "accuracy": 0.9788359788359788,
+      "whole_answer": 0.9788359788359788,
+      "oracle_register": 1.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 24,
+     "accuracy": 0.0,
+     "whole_answer": 0.0,
+     "oracle_register": 1.0
+    },
+    "tag_accuracy": 0.9712767150708806,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112107,
+      0,
+      0,
+      0
+     ],
+     [
+      45,
+      2569,
+      0,
+      0
+     ],
+     [
+      668,
+      0,
+      158,
+      0
+     ],
+     [
+      208,
+      0,
+      0,
+      144
+     ]
+    ],
+    "trace": {
+     "NotSelected": 159,
+     "Unavailable": 470
+    }
+   },
+   "free_running": {
+    "episodes": 32,
+    "exact": 32,
+    "rows": [
+     {
+      "exact": true,
+      "generated": "It is a nurse.<|eos|>",
+      "gold": "It is a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It was a nurse.<|eos|>",
+      "gold": "It was a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Sara.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a king.<|eos|>",
+      "gold": "It is a king.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the store.<|eos|>",
+      "gold": "It is the store.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a duck.<|eos|>",
+      "gold": "It is a duck.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a ball.<|eos|>",
+      "gold": "It is a ball.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a queen.<|eos|>",
+      "gold": "It is a queen.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is orange.<|eos|>",
+      "gold": "It is orange.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the forest.<|eos|>",
+      "gold": "It is the forest.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the village.<|eos|>",
+      "gold": "It is the village.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a kitten.<|eos|>",
+      "gold": "It is a kitten.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a dog.<|eos|>",
+      "gold": "It is a dog.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is black.<|eos|>",
+      "gold": "It is black.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Mia.<|eos|>",
+      "gold": "It is Mia.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the lake.<|eos|>",
+      "gold": "It is the lake.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     }
+    ]
+   },
+   "dialogue_examples": [
+    {
+     "class": "Reasserted",
+     "gold_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1481
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1481
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1728
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1728
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Previous",
+     "gold_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1074
+     ],
+     "predicted_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1074
+     ]
+    },
+    {
+     "class": "First",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1768
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1768
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      973
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      973
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      655
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      655
+     ]
+    }
+   ]
+  },
+  "control-s3": {
+   "parameters": {
+    "control_extra_mlp_units": 11,
+    "heads": 1032,
+    "memory_branch": 0,
+    "stack": 1410628,
+    "total": 1411660
+   },
+   "train_seconds": 2226.595206625,
+   "eval_seconds": 22.52473775,
+   "final_record": {
+    "dialogue_loss": 0.19423232972621918,
+    "gradient_norm": 0.8191995331664834,
+    "seconds": 2226.595082959,
+    "step": 1499,
+    "tag_loss": 8.0366779002361e-05,
+    "text_loss": 2.4348337650299072,
+    "trigger_loss": 2.6330000764573924e-05
+   },
+   "text": {
+    "context": 256,
+    "dev_nll": 2.403412565588951,
+    "dev_windows": 512,
+    "non_none_triggers_per_thousand_tokens": 0.0
+   },
+   "dialogues": {
+    "classes": {
+     "First": {
+      "queries": 138,
+      "accuracy": 0.5434782608695652,
+      "whole_answer": 0.4782608695652174,
+      "oracle_register": 0.0
+     },
+     "Updated": {
+      "queries": 343,
+      "accuracy": 0.8979591836734694,
+      "whole_answer": 0.8746355685131195,
+      "oracle_register": 0.0
+     },
+     "Reasserted": {
+      "queries": 26,
+      "accuracy": 0.6923076923076923,
+      "whole_answer": 0.5769230769230769,
+      "oracle_register": 0.0
+     },
+     "Previous": {
+      "queries": 159,
+      "accuracy": 0.5786163522012578,
+      "whole_answer": 0.3522012578616352,
+      "oracle_register": 0.0
+     },
+     "PreviousAbsent": {
+      "queries": 168,
+      "accuracy": 0.44642857142857145,
+      "whole_answer": 0.44642857142857145,
+      "oracle_register": 0.0
+     },
+     "Absent": {
+      "queries": 355,
+      "accuracy": 0.07042253521126761,
+      "whole_answer": 0.07042253521126761,
+      "oracle_register": 0.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 36,
+     "accuracy": 0.4166666666666667,
+     "whole_answer": 0.4166666666666667,
+     "oracle_register": 0.0
+    },
+    "tag_accuracy": 1.0,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112184,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2537,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      862,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      327
+     ]
+    ],
+    "trace": {}
+   },
+   "held_out": {
+    "classes": {
+     "First": {
+      "queries": 144,
+      "accuracy": 0.2777777777777778,
+      "whole_answer": 0.1527777777777778,
+      "oracle_register": 0.0
+     },
+     "Updated": {
+      "queries": 273,
+      "accuracy": 0.4725274725274725,
+      "whole_answer": 0.31868131868131866,
+      "oracle_register": 0.0
+     },
+     "Reasserted": {
+      "queries": 31,
+      "accuracy": 0.3225806451612903,
+      "whole_answer": 0.22580645161290322,
+      "oracle_register": 0.0
+     },
+     "Previous": {
+      "queries": 195,
+      "accuracy": 0.13333333333333333,
+      "whole_answer": 0.07692307692307693,
+      "oracle_register": 0.0
+     },
+     "PreviousAbsent": {
+      "queries": 157,
+      "accuracy": 0.1337579617834395,
+      "whole_answer": 0.1337579617834395,
+      "oracle_register": 0.0
+     },
+     "Absent": {
+      "queries": 378,
+      "accuracy": 0.05555555555555555,
+      "whole_answer": 0.05555555555555555,
+      "oracle_register": 0.0
+     }
+    },
+    "updated_recency_trap": {
+     "queries": 24,
+     "accuracy": 0.3333333333333333,
+     "whole_answer": 0.2916666666666667,
+     "oracle_register": 0.0
+    },
+    "tag_accuracy": 0.9793181994667771,
+    "trigger_confusion_gold_by_predicted": [
+     [
+      112107,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      2614,
+      0,
+      0
+     ],
+     [
+      115,
+      0,
+      711,
+      0
+     ],
+     [
+      62,
+      0,
+      0,
+      290
+     ]
+    ],
+    "trace": {}
+   },
+   "free_running": {
+    "episodes": 32,
+    "exact": 23,
+    "rows": [
+     {
+      "exact": true,
+      "generated": "It is a nurse.<|eos|>",
+      "gold": "It is a nurse.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It was a nurse.<|eos|>",
+      "gold": "It was a nurse.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a puzzle.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a boat.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Sara.<|eos|>",
+      "gold": "It is Sara.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was the river.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a king.<|eos|>",
+      "gold": "It is a king.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the store.<|eos|>",
+      "gold": "It is the store.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was black.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a duck.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a ball.<|eos|>",
+      "gold": "It is a ball.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a queen.<|eos|>",
+      "gold": "It is a queen.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is orange.<|eos|>",
+      "gold": "It is orange.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It was white.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a farmer.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the forest.<|eos|>",
+      "gold": "It is the forest.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the village.<|eos|>",
+      "gold": "It is the village.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is Ben.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a kitten.<|eos|>",
+      "gold": "It is a kitten.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a dog.<|eos|>",
+      "gold": "It is a dog.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is black.<|eos|>",
+      "gold": "It is black.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is Mia.<|eos|>",
+      "gold": "It is Mia.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a bird.<|eos|>",
+      "gold": "It is a bird.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is the lake.<|eos|>",
+      "gold": "It is the lake.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "I do not know.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": false,
+      "generated": "It is a cook.<|eos|>",
+      "gold": "I do not know.<|eos|>"
+     },
+     {
+      "exact": true,
+      "generated": "It is a teacher.<|eos|>",
+      "gold": "It is a teacher.<|eos|>"
+     }
+    ]
+   },
+   "dialogue_examples": [
+    {
+     "class": "Reasserted",
+     "gold_answer": [
+      1020,
+      435,
+      1481,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1481
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1481
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1728
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      1728,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1728
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Previous",
+     "gold_answer": [
+      1020,
+      285,
+      1074,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1074
+     ],
+     "predicted_answer": [
+      1020,
+      285,
+      1588,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1074
+     ]
+    },
+    {
+     "class": "First",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      1768,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      1768
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      1808,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      1768
+     ]
+    },
+    {
+     "class": "PreviousAbsent",
+     "gold_answer": [
+      43,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "gold_register": [
+      2,
+      0
+     ],
+     "predicted_answer": [
+      1020,
+      377,
+      367,
+      657,
+      16,
+      1
+     ],
+     "register": [
+      2,
+      0
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      265,
+      973,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      973
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      265,
+      914,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      973
+     ]
+    },
+    {
+     "class": "Updated",
+     "gold_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "gold_register": [
+      1,
+      655
+     ],
+     "predicted_answer": [
+      1020,
+      435,
+      655,
+      16,
+      1
+     ],
+     "register": [
+      1,
+      655
+     ]
+    }
+   ]
+  }
+ },
+ "attempt_1": {
+  "status": "VOID (instrument failure: generator consistency check after ~3,000 episodes)",
+  "cause": "second placement mix nearly constant for small token ids; two-choice placement degenerated; facts evicted each other",
+  "fix_commit": "fb57c4eeebf91a9aadd308de9af0acd6d827356e",
+  "roots_preserved": [
+   "d2-1-s1",
+   "d2-1-s2",
+   "d2-1-s3",
+   "d2-1-summary",
+   "d2-1-summary-2"
+  ]
+ }
+}

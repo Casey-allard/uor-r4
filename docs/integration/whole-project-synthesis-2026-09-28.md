@@ -5,7 +5,9 @@
 **Status.**
 - The track (§2) is **owner-approved**: "Approve, start with D2", 2026-09-28.
 - Its measurements (§4) are pre-registered here, and **D0 is decided**: the stack is the core.
-- An external Codex audit was verified and integrated on 2026-09-28 (§7). It corrects the scope of three claims, corrects D3's cost accounting, and adds D6, an evaluation-only information audit. It also adds D7, a conditional geometric address channel.
+- An external Codex audit was verified and integrated on 2026-09-28 (§7). It corrects the scope of three claims, corrects D3's cost accounting, and adds D6, an evaluation-only information audit. It also adds D7, a geometric address channel.
+- **Owner decisions, 2026-09-28 15:27 UTC:** D6's outcomes are evidence, not a veto; and the geometric read/address operator (**G**, formerly D7) is on the main path.
+- **Decided so far:** D0 (the stack), D1 (keep the quaternion transport), and D2 (frozen gate FAIL on the margin; the store works, the learned read does not generalise).
 
 **Labels:**
 - **Measured:** a project record, cited.
@@ -92,7 +94,7 @@ Their ledgers cite about 150 records under `docs/integration/` and `docs/evidenc
 - **D3:** the T2 index contest. As coded it is a compression-fidelity screen; its index decision moves to a gain-controlled follow-up with real inspected cost (§7).
 - **D4:** geometry-coded quantization of the existing dialogue child against #1433's legal-code result.
 - **D6 (new, from the audit):** an evaluation-only audit of what the 2I read representation discards. No fit.
-- **D7 (conditional):** a geometric address channel for AERM. It is built only if D6 and D3 both clear their gates.
+- **G (formerly D7; on the main path since 15:27 UTC, owner):** the geometric read/address operator. D6 and D3 shape it rather than gate it.
 
 **What stops** (§5):
 - geometry as a drop-in score or mixer;
@@ -290,10 +292,10 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 
 **Geometry.**
 - Prime-sized multi-head tables give exact identity (Literature: Engram's design).
-- **Optional geometric address channel (D7, §7.3).** It replaces the earlier "fixed 600-cell/E8 fuzzy index":
+- **Geometric address channel (G, §7.3; on the main path since 15:27 UTC).** It replaces the earlier "fixed 600-cell/E8 fuzzy index":
   - records also carry a learned 2I key code with a quantized gain;
   - a query visits the cells `g_q·d` for d in a small support S, then follows exact postings to records;
-  - it is built only if D6 and D3's gain-controlled follow-up clear their gates;
+  - D6 and D3's gain-controlled follow-up shape its representation and cost claims;
   - the exact hash channel above stays canonical either way.
 
 **Novelty relative to KVAR.**
@@ -349,13 +351,13 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 | ID | Question | Arms and controls | Gate and decision | Cost, owner |
 |---|---|---|---|---|
 | **D0** | Which core? | Cycle-4 main comparison (frozen, published by the cloud session) | ROADMAP §2 rule: stack within 0.03 nats → the stack is the core; otherwise the native learner stays, and the stack goes to ablations. **Decided 05:50 UTC:** 1.998113 against 2.011149 (−0.013), at 789.3 against 788.1 tok/s. **The stack family is the core**, and the 1.68M native model is frozen as the baseline. The decision selects an architecture; the code-BPE weights do not transfer to the dialogue tokenizer (§7.1) | 0 local; cloud. Weights copied and verified on the SSD |
-| **D1** | Is the geometric transport in the core load-bearing? | `rrarra` quaternion vs identity transport at **matched MLP width**, 2 seeds, 1,000 updates, cycle-4 data | Quaternion better by ≥0.02 in both seeds → keep. Within 0.02 → drop rotation (simpler serving). Worse → drop | About 2 h cloud; cloud track |
-| **D2** | Does architectural exact memory give small models updated relations? | Core = B1's `rrar` (1.39M) with M1 AERM vs the same core with in-window reads only, at equal parameters (widened) and tokens. 3 seeds, plus #1017 text. Synthetic relation dialogues cover: assert, update, same-value reassertion, owner swap, role reversal, absent relation, prior-version query and intervening distractor turns (§7.2) | Updated-relation query accuracy ≥0.90 with AERM **and** ≥0.30 above dense-only in every seed; text ΔNLL ≤0.05. The gate is on the update-then-query-current class; the other classes are reported. Every failure is classified by the four-class trace (§7.2). Fail → AERM parked at this scale, and the track falls back to A plus the milestone's narrowed scope | About 1 day implementation, about 3 h slot; Lab 1 |
-| **D3** | Is a geometric index as good as a learned one at equal cost? | **Frozen T2 contest (complete locally):** stands as a **compression-fidelity screen** at its scope. Its decode cost is relabelled, because the harness scores every event (§7.1). **Deciding follow-up:** every arm gets the same charged gain channel, or none; equal total bits; a real cell index whose cost counts inspected events, cells, postings and LUT builds; correct-source admission reported beside fidelity to the dense ranking | Within 1 point of recall@s and 0.005 nats of the best ordinary index at equal bits, with **fewer inspected events** and a multiplier-free decode → D7 may use it. Otherwise ordinary indexing is adopted for AERM's approximate channel | Lab 2 |
+| **D1** | Is the geometric transport in the core load-bearing? | `rrarra` quaternion vs identity transport at **matched MLP width**, 2 seeds, 1,000 updates, cycle-4 data | Quaternion better by ≥0.02 in both seeds → keep. Within 0.02 → drop rotation (simpler serving). Worse → drop. **Decided 09:36 UTC: keep.** Identity transport costs +0.0711 and +0.0774 nats (2.599845 → 2.670985; 2.580265 → 2.657687) | About 3.4 h cloud; cloud track |
+| **D2** | Does architectural exact memory give small models updated relations? | Core = B1's `rrar` (1.39M) with M1 AERM vs the same core with in-window reads only, at equal parameters (widened) and tokens. 3 seeds, plus #1017 text. Synthetic relation dialogues cover: assert, update, same-value reassertion, owner swap, role reversal, absent relation, prior-version query and intervening distractor turns (§7.2) | Updated-relation query accuracy ≥0.90 with AERM **and** ≥0.30 above dense-only in every seed; text ΔNLL ≤0.05. The gate is on the update-then-query-current class; the other classes are reported. Every failure is classified by the four-class trace (§7.2). Fail → AERM parked at this scale, and the track falls back to A plus the milestone's narrowed scope. **Result: the frozen gate FAILS on the margin** (0.146 / 0.122 / 0.102). The memory arm scores 1.000 on every class in distribution, where the control has 0.51 on First and ≤ 0.07 on Absent. **Held out, its learned read trigger does not fire**, so accuracy drops to 0.00–0.035, while the gold register would give 1.000 ([result](d2-aerm-probe-result-2026-09-28.md)) | About 1 day implementation, 1.6 h slot; Lab 1 |
+| **D3** | Is a geometric index as good as a learned one at equal cost? | **Frozen T2 contest (complete locally):** stands as a **compression-fidelity screen** at its scope. Its decode cost is relabelled, because the harness scores every event (§7.1). **Deciding follow-up:** every arm gets the same charged gain channel, or none; equal total bits; a real cell index whose cost counts inspected events, cells, postings and LUT builds; correct-source admission reported beside fidelity to the dense ranking | Within 1 point of recall@s and 0.005 nats of the best ordinary index at equal bits, with **fewer inspected events** and a multiplier-free decode → G may use it. Otherwise G uses ordinary indexing. **Frozen run: NOT QUALIFIED at its scope** (#1456) | Lab 2 |
 | **D4** | Does geometry-coded QAT fix the hard artifact? | The existing dialogue child: Hadamard + E8 (2-bit) vs Hadamard + grouped 4-bit vs nearest per-row. The #1433 legal-code arm is **measured: it fails** (2/10 relation answers against nearest's 4/10; 962 flips against 909; [result](dialogue-code-choice-result-2026-09-28.md)). The QAT objective is **fidelity to the continuous child**: distillation from it on its own complete-prefix trajectories, since #1433 shows corpus cross-entropy drifts away from the parent | Decision flips ≤5% (nearest: 909/3,914 = 23%), and the ten question-turn relations kept at least at nearest's 4/10, with Momo and green among them. The winner becomes the bundle coding for the milestone | Lab 3 (now unblocked) |
-| **D6** | Does the 2I read representation discard what the reader uses, and does a gain channel restore it? | **Evaluation only, no fit** (§7.2). See the D6 notes below | Four named outcomes, defined below. **GAIN** → D7 admissible. **RESOLUTION**, **ORDINARY-BETTER** or **REPRESENTATION-ADEQUATE** → the stop on geometric read scores stands, and the finding is recorded at its scope | Light job (≤2 threads, ≤1.5 GB, no model slot); Lab 2 |
-| D7 | Does a geometric address channel find what AERM's exact hash misses, at lower inspected cost? | **Only if D6 = GAIN and D3's follow-up passes.** AERM plus the geometric channel vs AERM plus an equal-bit ordinary channel (K), inside the D2 core. Queries with paraphrased or misspelled entities and relations | Pre-registered when admitted, before any fit | Labs 1 and 2 |
-| D5 | The milestone candidate | Core (D0/D1) + AERM (D2, plus D7 if admitted) + M2 data + M3 coding, 10–30M parameters, within an M1-week | ROADMAP §8 milestone (frozen) | After D0–D4 and D6 |
+| **D6** | Does the 2I read representation discard what the reader uses, and does a gain channel restore it? | **Evaluation only, no fit** (§7.2). See the D6 notes below | Four named outcomes, defined below. **Amended by the owner, 15:27 UTC: the outcomes are evidence about the representation tested, not permission or prohibition for geometric reads.** Each constrains the design of G (below). The next reader experiment must target the failure D6 shows | Light job (≤2 threads, ≤1.5 GB, no model slot); Lab 2 |
+| **G** (was D7) | The geometric read/address operator | **On the main path (owner, 15:27 UTC).** An always-on learned addressed read into the exact store and the context, built behind I4 with the stack's dense read as fallback. D2 names its first job: its trigger-gated read did not generalise, while its writes did. D6 and D3 shape its representation and cost claims. It is compared with an equal-bit ordinary channel (K) | Pre-registered before its first fit; replaces the fallback only if it wins at equal cost | Labs 1 and 2 |
+| D5 | The milestone candidate | Core (D0/D1) + the exact store + G (or the dense fallback) + M2 data + M3 coding, 10–30M parameters, within an M1-week | ROADMAP §8 milestone (frozen) | The candidate fit waits for G's first comparison and D4. **Integration engineering proceeds now** (ROADMAP ruling 12) |
 
 **D6 arms, population and metric.**
 - **Parent:** #1438's same-dose, kernel-off checkpoint. Its anchor: read NLL 1.984753 ± 1e-3 and 27/32 complete answers. If that checkpoint is unavailable, use the step-15,672 parent with its own recorded anchor.
@@ -368,7 +370,8 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 - **Population:** the parent's selected read positions on development text (T2's protocol), plus the 32-row source panel.
 - **Metric:** Δ(arm) is the fraction of positions whose top-1 read event differs from O's.
 
-**D6 outcomes.**
+**D6 outcomes** (their reading amended by the owner, 15:27 UTC: evidence about the tested representation, not a veto).
+- **Reported beside top-1:** the change in attention mass, NoRead mass, the read-out value vector (η and ε_v of §7.2) and the effect on complete answers. Top-1 agreement does not preserve these.
 - **Magnitude is load-bearing** iff Δ(D) ≥ 0.05 and Δ(U) ≥ ½Δ(D).
 - **The gain restores it** iff Δ(G) ≤ ½Δ(D) and Δ(G) ≤ Δ(K) + 0.01.
 
@@ -377,7 +380,7 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 | **GAIN** | Magnitude is load-bearing, and the gain restores it |
 | **RESOLUTION** | Δ(D) ≥ 0.05 and Δ(U) < ½Δ(D): the snap loses the information, not the norm |
 | **ORDINARY-BETTER** | Magnitude is load-bearing, and G fails either restoration criterion |
-| **REPRESENTATION-ADEQUATE** | Δ(D) < 0.05: #1438's harm came from its learned scorer or its training |
+| **REPRESENTATION-ADEQUATE** | Δ(D) < 0.05: the coding keeps the top-1 read event. On its own this does **not** show where #1438's harm came from; the mass, value and answer effects below decide what else the coding changed |
 
 - **Reported, not gated:**
   - the panel's correct-source top-1 and complete answers per arm, with one temperature per arm calibrated on a disjoint slice;
@@ -387,12 +390,12 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 
 **Order.**
 - **D0 is decided.**
-- **Lab 2:** D3's frozen run is complete locally. Lab 2 publishes it with the cost relabel, then runs D6, then D3's gain-controlled follow-up.
-- **Cloud:** D1 runs in parallel.
-- **Lab 1:** D2 is its next unit, after #1433's endpoints. It needs no dialogue data beyond its synthetic generator.
-- **Lab 3:** D4 is unblocked: #1433's result landed at 06:36 UTC, and the legal-code arm is negative.
-- **D7** is decided after D6 and D3.
-- **D5** starts only when D0–D4 and D6 are decided.
+- **Lab 2:** D3's frozen run is published (#1456). Next are D6, then D3's gain-controlled follow-up.
+- **Cloud:** D1 is decided (keep).
+- **Lab 1:** D2 is decided (frozen FAIL on the margin). Next are checkpoint save and reload for the stack plus store, and G's design once D6 reports.
+- **Lab 3:** D4 is reported in #1458 and is under director verification.
+- **G** is designed after D6, then pre-registered and compared with the dense fallback at equal cost.
+- **D5:** the candidate fit waits for G's first comparison and D4. Integration engineering proceeds now (ROADMAP ruling 12).
 
 ---
 
@@ -400,7 +403,7 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 
 - Geometry as a drop-in attention score or mixer: Lorentz, 2I, H4 reads and curvature (§1.3). No new score family without new causal evidence (D9).
   - **D6 is that causal test** for the read representation.
-  - Only its GAIN outcome re-admits a geometric read, and then only as D7: an addressed channel with an equal-bit ordinary control, not a drop-in dense score.
+  - **Amended (owner, 15:27 UTC):** D6 shapes the geometric read/address operator G, which is on the main path. It neither permits nor forbids geometric reads as a family. A drop-in dense score replacement stays stopped.
 - Exposure-only continuation of the 1.68M native model (already CLOSED).
 - Finite-group lanes in the language path. The verified automata stay available as tools, and M4 is deferred.
 - Per-product-table kernels (FAILED on energy).
@@ -415,7 +418,7 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 - **Lattice QAT at this scale is unproven.** The literature is at 0.7B and above. D4 measures it.
 - **The `unsafe` lookup-table kernels are an owner decision** (M3).
 
-- **D6 may show that the representation was never the problem** (REPRESENTATION-ADEQUATE). That is a useful result: it closes the geometric-read question at this scale without another fit.
+- **D6 may show that the coding keeps the top-1 read** (REPRESENTATION-ADEQUATE). That narrows where the loss lies, but it does not close the geometric-read question: mass, value and answer effects are reported beside it.
 
 **Open questions:**
 - **The tokenizer and corpus for D5:** one tokenizer for dialogue and stories (I5).
@@ -467,7 +470,7 @@ served as [M3 geometry-coded bundle: Hadamard incoherence + lattice/grouped 2–
 - **Error accounting for any selected read** (ledger row 11). The one-step bound `‖o−ô‖ ≤ 2Rη + R·min{2, e^{2ε}−1} + ε_v` separates three losses: omitted mass η (admission), score error ε (coding) and value error ε_v. D3's follow-up and D7 report η, ε and ε_v separately.
 - **Whole-path cost** (Lab 3). Event sparsity does not remove dense projection or vocabulary-head reads. Every serving report keeps per-token parameter bytes beside event reads (R3, R5).
 
-### 7.3 The mechanism it contributes: score-to-address compilation (D7, conditional)
+### 7.3 The mechanism it contributes: score-to-address compilation (G; on the main path since 15:27 UTC)
 
 **Exact algebra** (ledger rows 7 and 10, reproduced). For a relation kernel κ on a finite group G with support S, records sharing a key cell and coefficient aggregate exactly:
 - `N(q) = Σ_{d∈S} κ(d)·ρ(d)·M(q·d)`
@@ -488,7 +491,7 @@ NoRead applies when Z=0.
 
 **Occupancy caveat** (ledger row 13). With 120 cells, 8 probes and 256 uniform keys, a query sees about 17 candidates. With 120² cells it sees 0.14, and most queries are empty. Resolution is not free. Trained keys cluster, and the worst case (a full-scan fallback) is reported, never averaged away.
 
-**Relation to the approved track.** D7 is AERM's optional approximate channel, replacing the earlier "fixed 600-cell/E8 fuzzy index". It is not a new learner or a new score family. Its gate is written when D6 and D3 admit it.
+**Relation to the approved track.** This was first adopted as D7, AERM's optional approximate channel, replacing the earlier "fixed 600-cell/E8 fuzzy index". **The owner moved it to the main path at 15:27 UTC** as G, the geometric read/address operator. It is not a new learner. Its first fit is pre-registered before it runs, against an equal-bit ordinary channel.
 
 ### 7.4 Adjusted or not adopted
 
