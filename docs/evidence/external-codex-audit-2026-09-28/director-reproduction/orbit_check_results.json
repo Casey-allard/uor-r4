@@ -1,0 +1,21 @@
+{
+ "elements": 120,
+ "closure": true,
+ "counterexample_2I": {
+  "dots": [
+   0.25,
+   1.0
+  ],
+  "unit_dots": [
+   1.0,
+   0.5
+  ],
+  "reversed": true,
+  "kB_direction_in_2I": true
+ },
+ "orbit_codes_distinct": 480,
+ "pairs_checked": 230400,
+ "table_entries": 1920,
+ "max_abs_discrepancy": 1.177946629127291e-13,
+ "script": "orbit_check.py (director re-derivation, float64, numpy 2.0.2)"
+}

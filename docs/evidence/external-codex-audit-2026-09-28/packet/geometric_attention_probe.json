@@ -1,0 +1,138 @@
+{
+  "schema": "uor-r4-geometric-attention-research-probe/1",
+  "source_repo_pin": "15d2ce3fac9f66ddcc945a8097e5c6216352c453",
+  "observed_utc": "2026-09-28T05:16:03Z",
+  "seed": 20260928,
+  "scope": "Exact independent group construction and synthetic numerical diagnostic, NOT learned language or serving/performance evidence",
+  "exact_group_checks": {
+    "roots": 120,
+    "coordinate_domain": "(Z + Z*phi)/2; phi^2=phi+1",
+    "multiplication_pairs_checked": 14400,
+    "associative_triples_checked": 1728000,
+    "associative": true,
+    "left_frame_triples_checked": 1728000,
+    "left_frame_invariance": true,
+    "distinct_scalar_parts": 9,
+    "distinct_two_factor_products": 120,
+    "distinct_n_factor_products_for_n_ge_1": "120 by closure and identity (deduction)",
+    "scalar_relative_equals_dot_max_float_residual": 1.1102230246251565e-16,
+    "normalization_rank_reversal": {
+      "q": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "k_A": [
+        1.618033988749895,
+        1,
+        0.6180339887498949,
+        0
+      ],
+      "k_B": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "dot_A": 1.618033988749895,
+      "dot_B": 1,
+      "unit_dot_A": 0.8090169943749475,
+      "unit_dot_B": 1,
+      "key_A_norm": 2,
+      "key_B_norm": 1
+    },
+    "zero_tie_limitation": "Zero->identity cannot be equivariant for the transitive left G action: Q(h*0)=identity != h*identity for h!=identity."
+  },
+  "synthetic_shape": {
+    "queries": 192,
+    "keys": 128,
+    "dimensions": 64,
+    "lanes": 16
+  },
+  "synthetic_quantization": [
+    {
+      "method": "unit_2I",
+      "representation": "7 bits/block; norms discarded",
+      "top1_matches": 25,
+      "queries": 192,
+      "top1_fraction": 0.13020833333333334,
+      "score_rmse": 18.29783238229126
+    },
+    {
+      "method": "2I_with_exact_gain_oracle",
+      "representation": "7 bits/block plus exact real gain; not deployable finite-bit comparison",
+      "top1_matches": 121,
+      "queries": 192,
+      "top1_fraction": 0.6302083333333334,
+      "score_rmse": 6.9948805875952305
+    },
+    {
+      "method": "2I_with_4bit_dyadic_gain",
+      "representation": "11 bits/block; dyadic exponent -6..9",
+      "top1_matches": 112,
+      "queries": 192,
+      "top1_fraction": 0.5833333333333334,
+      "score_rmse": 9.104541449765806
+    }
+  ],
+  "score_bound_certificates": [
+    {
+      "method": "coarse_gain_shape",
+      "certified_queries": 0,
+      "queries": 192,
+      "wrong_certificates": 0,
+      "top1_matches": 112,
+      "max_error_minus_bound": -24.95963115594801
+    },
+    {
+      "method": "residual_grid_2^-0",
+      "certified_queries": 0,
+      "queries": 192,
+      "wrong_certificates": 0,
+      "top1_matches": 143,
+      "max_error_minus_bound": -21.186704969964683,
+      "precision_note": "extra residual integers per coordinate; no fixed residual-bit cap; NOT equal storage"
+    },
+    {
+      "method": "residual_grid_2^-2",
+      "certified_queries": 22,
+      "queries": 192,
+      "wrong_certificates": 0,
+      "top1_matches": 181,
+      "max_error_minus_bound": -5.682046518851395,
+      "precision_note": "extra residual integers per coordinate; no fixed residual-bit cap; NOT equal storage"
+    },
+    {
+      "method": "residual_grid_2^-4",
+      "certified_queries": 105,
+      "queries": 192,
+      "wrong_certificates": 0,
+      "top1_matches": 190,
+      "max_error_minus_bound": -1.473354623671964,
+      "precision_note": "extra residual integers per coordinate; no fixed residual-bit cap; NOT equal storage"
+    },
+    {
+      "method": "residual_grid_2^-6",
+      "certified_queries": 164,
+      "queries": 192,
+      "wrong_certificates": 0,
+      "top1_matches": 192,
+      "max_error_minus_bound": -0.3276832597959526,
+      "precision_note": "extra residual integers per coordinate; no fixed residual-bit cap; NOT equal storage"
+    }
+  ],
+  "limitations": [
+    "No repository checkpoint or real Q/K distribution used.",
+    "Exact gains and residual levels consume different storage.",
+    "All 128 candidates scored and bounded; no sparse-search speed claim.",
+    "NumPy uses floating-point matmul for offline research; no numerical-kernel certification.",
+    "Certificate guarantees ranking of the specified dot scorer, not truth, attention mass, or final generated token.",
+    "Continuous-frame quantization ties/zero do not inherit exact group-code equivariance."
+  ],
+  "runtime_seconds": 0.07595219899999961,
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "numpy": "2.3.5",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "script_sha256": "174ab53e6818767065247562a18bd41cbaf356c4b5e2ef586ce155ee2f67985b"
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "uor-r4-local-source-observation/1",
+  "observed_window_utc": "2026-09-28T05:20:09Z through approximately 05:23Z",
+  "method": "Remote Desktop Commander read-only source inspection and JSON summarization; no model run, mutation, fit or cost benchmark",
+  "source_commit": "b0f70c637290cc694f78218bc53b7c336f671fa2",
+  "git_status_short": "",
+  "github_visibility": "GitHub fetch returned No commit found for this ref at observation; source is local-only evidence",
+  "source_path": "/Users/casey.allard/uor-r4/.worktrees/addressing-contest-20260927/crates/uor-r4-training/examples/joint-addressing-contest.rs",
+  "source_sha256": "6d3e9546ef7af3e82812d3477eb6444b622cc469f0c867cee953e11d9282e3dd",
+  "report_path": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-addressing-contest/full-2/addressing-contest.json",
+  "report_sha256": "e277fb7d198308472e19d32e1278002c14a3112baa167c148374e88b4e6398fa",
+  "reported_executable_sha256": "6f50f43b2073e52a3fd2b07d8935ae58e398a389d004124f86f109af46675310",
+  "report_status": "COMPLETE",
+  "populations": {
+    "blocks": 912,
+    "all_event_positions": 232560,
+    "selected_read_positions": 51680,
+    "excluded_no_read": 180880
+  },
+  "reported_diagnostic_rows": [
+    {
+      "arm": "h4",
+      "all_positions_recall_at_16": 0.968141554867561,
+      "selected_read_recall_at_16": 0.9835526315789473
+    },
+    {
+      "arm": "h4-rht",
+      "all_positions_recall_at_16": 0.9695820433436533,
+      "selected_read_recall_at_16": 0.989047987616099
+    },
+    {
+      "arm": "kmeans120-seed1",
+      "all_positions_recall_at_16": 0.9812693498452012,
+      "selected_read_recall_at_16": 0.9962074303405573
+    }
+  ],
+  "source_findings": [
+    {
+      "lines": "338-344",
+      "finding": "arm_ranking scores every supplied code and sorts the resulting scores",
+      "excerpt": "let scores: Vec<f64> = codes.iter().map(|code| Ok(f64::from(arm.score(code, &lut)?))).collect::<Result<_>>()?;"
+    },
+    {
+      "lines": "831-833",
+      "finding": "caller supplies the full previous-event code slice",
+      "excerpt": "arm_ranking(&arms[index].arm, &code_cache[index][..previous], &query)"
+    },
+    {
+      "lines": "366-395",
+      "finding": "decode_spec charges per-event work times retained s, plus LUT construction",
+      "excerpt": "\"table_reads\":per_event.table_reads * s as u64 + lut.table_reads"
+    }
+  ],
+  "report_definition": "arm per-event decode work times s plus the arm query-LUT build; every geometric family declares zero multiplies; oracle-qk is the dense multiplier ceiling and recent-s is an address-only control",
+  "interpretation": "Current implementation is a compressed all-candidate scan. Selected-set decoding estimate is not actual end-to-end search cost. Compression/recall diagnostics may remain useful.",
+  "limits": [
+    "Not an independent rerun of the model or report.",
+    "Report file identities were observed; the complete sealed root was not reverified.",
+    "No final adoption or numerical-kernel compliance inference.",
+    "All-event and selected-read denominators must not be mixed."
+  ]
+}

@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — multi-lab roadmap
 
-**Director:** Claude, Lab 1 window. **Updated:** 2026-09-28 02:02 UTC. This file owns lab
+**Director:** Claude, Lab 1 window. **Updated:** 2026-09-28 06:20 UTC. This file owns lab
 assignments, track status, the dead-path register and the cross-lab protocol. Measured
 results and retained artifacts live in [current state](docs/integration/current-state.md).
 Ordered responsibilities and acceptance live in the [canonical plan](docs/integration/project-track.md).
@@ -33,17 +33,25 @@ the mission path.
 
 *This is a working hypothesis synthesised from the evidence in §5, not a measured claim.*
 
-Geometry has failed as a **continuous score or mixer**. Every matched test of that role inside
-a language model is null or negative (§5):
+Every parameterisation of geometry tested as a **continuous score or mixer** inside a language
+model is null or negative (§5):
 - quaternion transport against Householder or diagonal decay;
 - Lorentz reads against Dot, across seeds and transfers;
 - the 2I read score;
 - snapped rotation codebooks;
 - prime and CRT hashing.
 
-The native model's prose deficit follows capacity and exposure, not geometry:
+**Scope** (ruling 11):
+- These negatives retire the parameterisations tested, not geometric reads as a family.
+- The 2I read dropped per-lane magnitude, snapped to 120 roots and swapped in a learned MLP all at once. Its norm control never ran, so its cause is unresolved until D6.
+
+*Working hypothesis:* the native model's prose deficit follows capacity and exposure rather than
+geometry. The measured facts:
 - It has 1.68M parameters and scores 0.41 nats behind the 7.16M #1017 transformer.
 - Another 30M targets of exposure left prose at 0/5.
+- At matched capacity, the stack (with geometric transport) beat its transformer control on code, 1.998113 against 2.011149 (D0).
+
+That capacity and exposure are *sufficient* to explain the deficit is untested; D5 tests it.
 
 Geometry's defensible jobs are discrete and table-servable, which is also what R1–R3 demand:
 1. **Exact non-abelian state (B1).**
@@ -51,9 +59,15 @@ Geometry's defensible jobs are discrete and table-servable, which is also what R
    - Snapped to 2I, a lane serves as a 120-state automaton: one byte of state and two table reads per token, with no drift.
    - Out-of-repository toy result: 100% accuracy to length 4,096, where float lanes drifted to 0.62–0.74 ([review §6.2](docs/integration/first-principles-review-2026-09-25.md)).
    - Reproduced in repository Rust (#1442), with one correction: the capability is the finite group, not the quaternion parameterisation. Ordinary reflection-pair lanes learn the same icosahedral group and minimise to the same 60-state automaton.
-2. **Fixed geometric addressing (D5).**
-   - Optimal spherical codes (the 600-cell, the E8 roots) can act as sparse indexes.
-   - They need no learned keys, decode with adds and compares, and give sparse parameter or event access.
+   - **B1 is closed** (#1447). No lane type is retained in the language path:
+     - the fresh reflection-pair replication tracks A5 exactly, but fails its text gate by +0.069 nats in one seed;
+     - Stage C (natural-text swap stories) is parked.
+
+     The exhaustively verified automata stay available as tools.
+2. **Geometric addressing (D5).**
+   - Optimal spherical codes (the 600-cell, the E8 roots) can act as sparse indexes, decoded with adds and compares.
+   - A group-relative score can **compile to addresses**: visit the cells `g_q·d` for a small support S, and follow exact postings to records. Geometry then reduces what is read (ruling 11; synthesis §7.3).
+   - Both are conditional on D6 and D3's gain-controlled follow-up.
 3. **Exact identity and versioned memory.** This is already load-bearing.
 
 The tracks below put geometry in those three places, scale the learner, and serve it without
@@ -67,12 +81,12 @@ three-lab brief does not assign it work.
 
 | Track | Owner | Goal | Current hypothesis | Status | Next decision point |
 |---|---|---|---|---|---|
-| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) Full-exposure run in the cloud sandbox (estimated ≈07:00 UTC 09-28). Its result is **unpublished**, and it is the base decision's only dependency ([director plan](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5863390710) §1). (b) Stage A PASS. Stage B: the **pre-registered 2I arm FAILS**, the transformer control is NOT_RUN, and reflection-pair lanes pass as an exploratory arm (#1442). Stage C (natural-text swap stories) is **parked** at this scale on pilot evidence. The B1 closure (a fresh reflection-pair replication, the transformer control, Stage A with `verify_exact`) is running (#1447). (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). | §4.1 |
-| **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | In progress on Lab 2's unpublished branch. Admission, relational ranking and dense-reader imitation are reported separately. | §4.2 |
-| **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)). **The auditor's matcher is incomplete:** it misses `fneg`, `fabs`, `fmla`, `fmax`, `fmin` and `fneg.2d`, so "audit FULL PASS" is withdrawn until it is repaired. `uor-chat` sessions serve only width 256. **First J/token measured** (owner run, 2026-09-28): the integer path is 0.00413 J/token against 0.00096 for its float parent, whole-system marginal: about 4.3× the energy and about 2.6× slower ([note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)). | §4.3 |
-| **T4 Native dialogue and conversion fidelity** | Lab 4 Codex | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | [#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433) at 231 of 512 updates. Its frozen resume is queued, then the fixed 161-response and 58-turn evaluations. | §4.4 |
+| **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) **Decided, 05:50 UTC 09-28:** the stack scored 1.998113 against its control's 2.011149 at full exposure, so **the stack is the main line** (D0). Weights are on the SSD, SHA-256-verified. (b) **Closed** (#1447): no lane type is retained in the stack, and Stage C is parked. (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). **Next:** D2, the AERM probe ([synthesis](docs/integration/whole-project-synthesis-2026-09-28.md) §4). | §4.1 |
+| **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | The frozen contest is complete on Lab 2's **unpublished** branch. **Ruling 11:** it is a compression-fidelity screen, because it scores every event; its decode cost is relabelled, and its geometric arms are confounded by magnitude. **Next:** publish it, then run D6 (the information audit), then D3's gain-controlled follow-up. | §4.2 |
+| **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)); width-576 `uor-chat` ([#1450](https://github.com/UOR-Foundation/uor-r4/pull/1450)). **The auditor is repaired** ([#1451](https://github.com/UOR-Foundation/uor-r4/pull/1451)), with failing and benign sentinels. **First J/token measured** (owner run, 2026-09-28): the integer path is 0.00413 J/token against 0.00096 for its float parent, whole-system marginal: about 4.3× the energy and about 2.6× slower ([note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)). Capability API, WASM and M1 cost: [#1452](https://github.com/UOR-Foundation/uor-r4/pull/1452), which needs `main` merged. **Next:** D4, after #1433's result. | §4.3 |
+| **T4 Native dialogue and conversion fidelity** | **Lab 1 Claude** (owner transfer from Lab 4 Codex, whose allowance is exhausted; the study is unchanged) | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | [#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433) merged. Its frozen resume is running under supervision; the fit ends at about 06:50 UTC. The posted endpoints follow: `--evaluate` for learned and nearest, the pack, and the observer ([#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5863711869)). | §4.4 |
 
-**Main-line consolidation rule (director, pending T1(a)):**
+**Main-line consolidation rule (director; decided 2026-09-28 05:50 UTC: the stack passed):**
 - **If the stack comes within 0.03 nats of its transformer control at full exposure:**
   - it becomes the single main-line learner;
   - dialogue learning (T4), read and addressing work (T2) and serving (T3) retarget it;
@@ -90,7 +104,36 @@ three-lab brief does not assign it work.
 - **I4, addressed reads** (T2): `admit` and `rank`, measured separately, with bytes touched per token and decode cost.
 - **I5, dialogue data and panels** (T4): sealed and versioned.
   - The tokenizer is still open: code BPE for the cycle-4 base, the #1017 tokenizer for the dialogue line.
-  - It is decided at the product milestone's first step (§8), after the frozen studies.
+  - D0 selected the stack *architecture*. The two tokenizers are different token identities even at the same vocabulary size, so no weights or panels transfer between them.
+  - It is decided at the product milestone's first step (§8), after the frozen studies. The D2 core already uses the #1017 token store.
+
+### 2a. The approved track (owner, 2026-09-28: "Approve, start with D2")
+
+The [whole-project synthesis](docs/integration/whole-project-synthesis-2026-09-28.md) (#1453) owns the design.
+
+**The track:**
+- a 10–30M recurrent core, the stack (D0);
+- **M1 AERM**, architectural exact relational memory:
+  - prime-sized multi-head hash addresses;
+  - learned write and read gates, with pointer heads;
+  - version order decides "current";
+  - typed Hit, Absent and Evicted statuses;
+- **M2**, conditioned anti-echo response training;
+- **M3**, a geometry-coded D11 artifact: Hadamard, E8 or grouped codes, QAT and LUT accumulation;
+- **M4**, event-gated state, deferred.
+
+Geometry moves out of dense scores into four places: exact identity, exact automata, weight coding, and (conditionally, D7) score-to-address compilation.
+
+| ID | Question | Owner | Status |
+|---|---|---|---|
+| D0 | Which core? | Cloud | **Decided:** the stack |
+| D1 | Is the stack's transport load-bearing at matched width? | Cloud | Queued |
+| D2 | Does AERM give small models updated relations? | Lab 1 | Next, after #1433's endpoints |
+| D3 | Is a geometric index as good as an ordinary one, at equal bits and fewer inspected events? | Lab 2 | Frozen run complete; gain-controlled follow-up decides |
+| D4 | Does geometry-coded QAT fix the hard artifact? | Lab 3 | After #1433's result |
+| D6 | Does the 2I read representation discard what the reader uses? Evaluation only | Lab 2 | Next for Lab 2 |
+| D7 | A geometric address channel for AERM | Labs 1 and 2 | Only if D6 = GAIN and D3 passes |
+| D5 | The milestone candidate (§8) | All | After D0–D4 and D6 |
 
 ## 3. Deconfliction rulings, 2026-09-27
 
@@ -99,12 +142,13 @@ three-lab brief does not assign it work.
    - Each lab edits only its own §4 subsection, through its own PR.
    - No lab rewrites the whole file. This version supersedes the rewrite in [#1439](https://github.com/UOR-Foundation/uor-r4/pull/1439).
    - #1439 should drop its `ROADMAP.md` change and stop re-carrying #1434 and #1436. Each PR merges on its own.
-2. **The dialogue-child fit checkpoint belongs to Codex.**
+2. **The dialogue-child fit checkpoint belongs to the #1433 study.**
    - Path: `/Volumes/UOR-Workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1` ([#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433)).
+   - **Owner transfer, 2026-09-28:** Codex's allowance is exhausted, so Lab 1 executes the unchanged frozen study. Its resume reads that checkpoint and writes a new root.
    - No other lab evaluates, resumes or modifies it.
    - #1439's proposed observation at step 231 is not authorized. The pre-registered plan finishes all 512 updates, then compares.
 3. **The 120-root H4/2I geometry is repointed.**
-   - The dense read-score use is dead ([#1438](https://github.com/UOR-Foundation/uor-r4/pull/1438), HARM).
+   - The dense read-score use is dead at its tested parameterisation ([#1438](https://github.com/UOR-Foundation/uor-r4/pull/1438), HARM). Its cause is unresolved until D6 (ruling 11).
    - Codex's exact integer H4 classifier ([#1435](https://github.com/UOR-Foundation/uor-r4/pull/1435)) becomes the multiplier-free decoder for fixed-geometry addressing: T2's event index and T1(c)'s fixed-H4 memory index.
    - Its unpushed `inverse(q)*k` read-lookup table has lost its consumer and is parked.
 4. **There is one mission runtime and one front-end.**
@@ -144,14 +188,38 @@ three-lab brief does not assign it work.
     - **The director may remove other labs' idle worktrees.** Eligible worktrees have 0 dirty files, 0 unpushed commits and no process using them. Removal follows a 2-hour notice on #820, and the branch stays on GitHub.
     - **#1441 merges now.**
 
+11. **External audit corrections, 2026-09-28.**
+    - **Source:** a Codex research packet. It is imported verbatim with a claim ledger at [`docs/evidence/external-codex-audit-2026-09-28/`](docs/evidence/external-codex-audit-2026-09-28/README.md), and integrated in [synthesis §7](docs/integration/whole-project-synthesis-2026-09-28.md#7-external-audit-integration-codex-2026-09-28).
+    - **Verification:** the director checked every source claim below against the named lines, reran the supplied probes and re-derived the mathematics.
+    - **T2 cost scope.**
+      - `arm_ranking` scores every previous event, but `decode_spec` charges only the s retained events (`joint-addressing-contest.rs` lines 338–345, 832 and 366–392 at `b0f70c63`).
+      - The frozen contest therefore measures **compression fidelity under an exhaustive scan**. Its results stand at that scope.
+      - Its decode-cost column must be relabelled. Every T2 report gives inspected and retained events separately.
+      - No arm claims a sparse-index cost from this run.
+    - **T2 magnitude confound.**
+      - The H4 and E8 arms decode to unit roots; k-means decodes to raw centroids (`addressing_arms.rs` lines 713–725).
+      - The geometric-versus-ordinary verdict is therefore decided by a **gain-controlled follow-up**: every arm gets the same charged gain channel or none, at equal total bits, with a real cell index whose cost counts inspected events.
+      - Lab 2 updates §4.2 to match.
+    - **Correct-source admission.** T2 and D3 report correct-source admission beside fidelity to the dense ranking, because the dense reader's favourite events include its mistakes.
+    - **#1438's scope.**
+      - HARM stands at its parameterisation. It dropped per-lane magnitude, snapped to 120 roots and swapped the dot for a learned MLP together, and its norm control never ran. The cause is **unresolved**.
+      - **D6** settles it without a fit. D6 is an information audit (arms O/U/D/G/K; four named outcomes; synthesis §4), assigned to **Lab 2**, which owns #1438's reader and evaluator and T2's accessor.
+    - **Design rule.**
+      - Group actions are invertible, so they cannot overwrite.
+      - Geometry supplies compatibility, transport and addresses. Explicit writes supply record lifecycles.
+      - Cells hold exact postings, never summaries in place of records, because sums erase bindings.
+    - **Not adopted:**
+      - margin certificates as a pruning mechanism (0/192 certified at coarse precision);
+      - orbit-expanded codebooks or new relation-kernel fits before D6.
+
 ### Engine consolidation map
 
 Fourteen engine paths exist. Only the ones listed as main line or active may receive new features.
 
 | Engine | Disposition | Reason |
 |---|---|---|
-| Native joint model on `uor-r4-integer` (full256; width-256/576) | **Main line until T1(a)**, then the retained baseline if the stack passes | The only trained path that serves text end-to-end under R1–R2 with no transformer block. Dense access (R3 interim). Language 0/5. |
-| Geometric stack (`geometric_stack.rs`) | **Main-line candidate** (T1(a)) | Best quality. Its serving must move from `uor-r4-lut` to R2 kernels (T3). |
+| Native joint model on `uor-r4-integer` (full256; width-256/576) | **Retained baseline** (the stack passed T1(a) on 2026-09-28) | The only trained path that serves text end-to-end under R1–R2 with no transformer block. Dense access (R3 interim). Language 0/5. |
+| Geometric stack (`geometric_stack.rs`) | **Main line** (D0, 2026-09-28) | Best quality: 1.998113 against its control's 2.011149. Its serving must move from `uor-r4-lut` to R2 kernels (T3). |
 | `uor-chat` and the integer conversation adapter | **Active: the single mission front-end** | Its zeta, Hopf and prime state is telemetry only and never enters scoring; do not claim it as geometry. It is width-256 only. |
 | `uor-r4-lut`, `lut-chat`, `uor-r4-simd`, D10 LUT export | **Frozen comparator** | Hardware multiplies; transformer blocks (R2, R4). |
 | TinyStories GeometricProse `.rgm` | **Frozen reference** | The only measured positive geometric ablation (JEPA +0.374 BPB, S2 read-out +0.338 BPB), but n-gram-class quality. Its float sampling and VSA multiplies break R1–R2. |
@@ -183,8 +251,21 @@ Each lab keeps its own subsection current: hypothesis, status, next decision and
   - within 0.03 nats of the control → viable, with integer serving next;
   - more than 0.03 nats behind → ablations;
   - more than 2× slower → kernel work.
+- **Result, 2026-09-28 05:50 UTC** (#1437): after 7,324 updates, on 512 development windows (131,072 targets):
+  - stack **1.998113** nats (0.803432 bits/byte) against control **2.011149** (0.808673);
+  - 789.3 against 788.1 tok/s.
+- **Viable: the stack is the main line (D0).**
+  - Both final models and their step-7,300 checkpoints are on the SSD at `uor-r4-models/investigations/cycle4-main-20260928/`, 24/24 SHA-256 verified.
+  - Scope: code BPE; one seed per arm; a Cascade Lake host.
 
-**(b) B1: finite-group tracking lanes in the stack** (this window; [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442), [record](https://github.com/UOR-Foundation/uor-r4/blob/lab/claude/b1-tracking-lanes/docs/integration/b1-finite-group-lanes-2026-09-27.md)).
+**(b) B1: finite-group tracking lanes in the stack** (this window; [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442), [record](docs/integration/b1-finite-group-lanes-2026-09-27.md)).
+
+- **Closed, 2026-09-28** ([#1447](https://github.com/UOR-Foundation/uor-r4/pull/1447); record §8; `docs/evidence/b1-closure-2026-09-28.json`).
+  - The fresh, pre-registered reflection-pair replication tracks A5 exactly, but **fails the per-seed text gate** (+0.069 nats in one seed against 0.05).
+  - **No lane type is retained in the stack.**
+  - Stage C (natural-text swap stories) is **parked**; its transport witness rotates at almost every token.
+  - The exhaustively verified automata (`LaneAutomaton::verify_exact`) remain a tool. M4 (event-gated state) is deferred.
+  - The history below is kept as written.
 
 - **Status at 23:43 UTC 09-27: Stage A PASS.** 36 runs.
   - Non-commutative lanes track A5 exactly to length 4,096 after snapping in 17 of 18 runs: quaternion 8/9, reflection pair 9/9. Phase and frozen lanes stay at chance.
@@ -295,8 +376,9 @@ Gate:
 
 **Ongoing.** `uor-chat` stays the single front-end.
 
-### 4.4 T4 Native dialogue and conversion fidelity (Lab 4 Codex)
+### 4.4 T4 Native dialogue and conversion fidelity (Lab 4 Codex → Lab 1 by owner transfer, 2026-09-28)
 
+- **Execution transferred to Lab 1** because Codex's allowance is exhausted. The study, its gates and its checkpoint are unchanged. The resume uses a hash-checked campaign whose only edits are `resume_from`, the process time cap and the stop file.
 - Finish #1433 to 512 updates.
 - Then run the 161-response comparison and the 58-turn observation, as pre-registered.
 - After T1(a), retarget dialogue learning to the main-line base, or record why the native path stays.
@@ -311,7 +393,7 @@ Each negative keeps its exact scope; a failed parameterisation does not retire a
 | Path | Verdict | Scope and numbers | Source |
 |---|---|---|---|
 | Lorentz score in dense reads ("hyperbolic attention") | **DEAD as a score** | Transferred Lorentz and Affine readers are +0.0464 and +0.0133 nats against Dot. Inside the default stack, Lorentz−Dot averages −0.0001 over 2 seeds. The cycle-3 win at reduced scale did not transfer. | [radial result](docs/integration/radial-adaptation-result-2026-09-27.md), [cycle 4 §7](docs/integration/geometric-stack-cycle4-2026-09-27.md) |
-| Finite 2I read score | **DEAD (HARM)** | Read NLL +0.019719; complete answers 27→17 of 32; 1.84× cost | [#1438](https://github.com/UOR-Foundation/uor-r4/pull/1438) |
+| Finite 2I read score | **DEAD at its tested parameterisation (HARM)** | Read NLL +0.019719; complete answers 27→17 of 32; 1.84× cost. It dropped per-lane magnitude, snapped to 120 roots and swapped in a learned MLP together, and its norm control (arm C) never ran. **The cause is unresolved**; D6, evaluation only, settles it (ruling 11) | [#1438](https://github.com/UOR-Foundation/uor-r4/pull/1438) |
 | Quaternion rotation as a general content mixer | **PARKED** | −0.025 nats against Householder (1 seed); diagonal decay 1.871 against quaternion 1.880 bits/byte (2 seeds); snapping every lane to 2I +0.16–0.18 bits/byte | [review §6.3](docs/integration/first-principles-review-2026-09-25.md) |
 | Count-prior blend | **DEAD** | +0.004928 [−0.026, +0.041] against the `(prev,cur)` table | [count-blend result](docs/integration/ordinary-lexical-count-blend-result-2026-09-23.md) |
 | Exposure-only continuation of the 1.68M native model | **CLOSED** | Step 15,672: continuous prose 0/5 and 0/5; integer 0/5 and 1/5 | [continuation result](docs/integration/language-continuation-result-2026-09-26.md) |
@@ -327,7 +409,9 @@ Each negative keeps its exact scope; a failed parameterisation does not retire a
 | `uor-r4-lut`/`lut-chat` with hardware multiplies on runtime values | **FROZEN comparator (R2)** | Integer stack gap 0.011–0.013 nats, measured under D10 only | [cycle 4 §8](docs/integration/geometric-stack-cycle4-2026-09-27.md) |
 | 2I relation lookup table for the parked read (`inverse(q)*k`) | **PARKED** | Its consumer, #1438, is parked | Ruling 3 |
 | Quaternion (2I) lanes as a serving advantage over ordinary non-commutative lanes | **RETIRED** (B1 kill rule) | A5 at length 4,096 after snapping: quaternion 8/9, reflection pair 9/9. Both minimise to a 60-state A5 automaton. The finite-group state mechanism itself survives. | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
-| Quaternion (2I) tracking lanes: the pre-registered B1 Stage B subject | **FAILED; 2I serving claim RETIRED** (kill rule) | Inside the stack, 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. The ordinary reflection-pair lanes are kept as an exploratory result (3 of 3). | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
+| Quaternion (2I) tracking lanes: the pre-registered B1 Stage B subject | **FAILED; 2I serving claim RETIRED** (kill rule) | Inside the stack, 2 of 3 seeds learned A5; seed 3 did not (0.039) and cost +0.121 nats. The ordinary reflection-pair lanes were kept as an exploratory result (3 of 3), then failed their replication (next row). | [#1442](https://github.com/UOR-Foundation/uor-r4/pull/1442) |
+| Reflection-pair tracking lanes in the stack (B1 closure replication) | **FAILED the text gate; no lane type retained** | A fresh pre-registered 3-seed replication tracks A5 exactly (1.000; 60-state automata, `verify_exact` true), but seed 4 costs +0.0688 nats against the 0.05 gate. Six-seed mean +0.018. The automata stay available as tools. | [B1 record §8](docs/integration/b1-finite-group-lanes-2026-09-27.md), [#1447](https://github.com/UOR-Foundation/uor-r4/pull/1447) |
+| Context-conditioned lanes on natural-text swap stories (B1 Stage C) | **PARKED at this scale** | The pilots learned no tracking. The transport witness rotates at almost every token (no event gating). Re-entry requires M4's event gate and new causal evidence (D9). | [Stage C record](docs/integration/b1c-context-lanes-swap-stories-2026-09-28.md) |
 | Per-product table emulation as a lower-energy serving kernel | **FAILED on energy** (measured) | Integer bundle 0.00413 J/token against 0.00096 for its F32 parent on the M1 (about 4.3×), and about 2.6× slower. Whole-system marginal; SoC CPU counters unavailable. The multiplier-free contract stands; the kernel moves to grouped LUT accumulation (§4.3). | [#820 note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224) |
 
 ## 6. Shared machine protocol
@@ -455,7 +539,11 @@ This applies only to candidates built after the frozen studies: B1 closure, #143
 - 100% identical greedy streams across the reload;
 - a cost report: tokens/s, RSS, and whole-system J/token.
 
-**Always reported:** the float parent and the current dialogue child on the same panel. Thresholds change only with the owner, before any candidate exists.
+**Always reported:**
+- the float parent and the current dialogue child on the same panel;
+- every failed turn classified by the four-class decision trace ([synthesis §7.2](docs/integration/whole-project-synthesis-2026-09-28.md)): record unavailable, available but not selected, selected but wrong value or action, or right latent result but wrong emission.
+
+This reporting adds no threshold. Thresholds change only with the owner, before any candidate exists.
 
 **Baseline, descriptive only:**
 - `uor-chat` cannot serve `dialogue-child-bundle-1` (width 576).
@@ -463,6 +551,24 @@ This applies only to candidates built after the frozen studies: B1 closure, #143
 - The #1432 outputs echo relations ("The name is Alex is Alex.") instead of responding.
 
 ## 9. Director log
+
+**2026-09-28 06:20 UTC, base decided, track approved, external audit integrated.**
+- **D0 decided** (05:50 UTC, #1437): the stack scored 1.998113 against its control's 2.011149, so **the stack is the main line** and the native model is the retained baseline.
+  - Both final models and their checkpoints were copied from the temporary transfer branch to the SSD.
+  - 24/24 SHA-256 verified; the model hashes equal the reports; the branch was deleted as approved.
+- **PR backlog cleared** on the owner's instruction: #1447, #1449, #1450, #1435, #1440, #1451 and #1433 merged. #1437 and #1452 need `main` merged first.
+- **Track approved** (owner: "Approve, start with D2"): §2a and the [synthesis](docs/integration/whole-project-synthesis-2026-09-28.md).
+- **External Codex audit** (ruling 11): verified line by line and imported with a claim ledger.
+  - **Accepted:** T2 is a compression-fidelity screen; T2's geometric arms are confounded by magnitude; #1438's cause is unresolved; the capacity reading is a hypothesis; D0 selects an architecture, not dialogue readiness.
+  - **Added:** D6 (Lab 2, evaluation only), the four-class failure trace, and counterfactual coverage for D2.
+  - **Added conditionally:** D7, score-to-address compilation.
+  - **Not adopted:** certificate pruning.
+- **Queue** (the slot lock is the only reservation):
+  1. the #1433 resume, until about 06:50;
+  2. #1433's endpoints (Lab 1);
+  3. D2 fits (Lab 1).
+
+  Beside it, as light jobs: D6 (Lab 2) and D4 preparation (Lab 3).
 
 **2026-09-28 04:30 UTC, the owner-commissioned oversight audit was verified and reconciled** ([plan](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5863390710)).
 - **Verified:** the auditor's matcher misses six float forms on main, #1446 and #1444. The energy labels were stale; Lab 3 fixed them. Unpublished branches: Lab 2 (7 commits), Lab 4 (`852c1c67`), `geometric-lm-goal` (13 dirty files).

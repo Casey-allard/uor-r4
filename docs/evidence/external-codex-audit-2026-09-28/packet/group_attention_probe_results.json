@@ -1,0 +1,150 @@
+{
+  "schema": "uor-r4.geometric-attention-algebra-probe.v2",
+  "observed_utc": "2026-09-28T05:24:27.041959+00:00",
+  "source_context": "Roadmap inspected at 15d2ce3fac9f66ddcc945a8097e5c6216352c453",
+  "group": "SL(2,F_5), independently enumerated; no repository group-ID binding",
+  "arithmetic": "exact finite-field group; bounded signed int64 synthetic values and accumulators",
+  "checks": {
+    "order": 120,
+    "identity_inverse": true,
+    "associativity_triples": 1728000,
+    "associativity_pass": true,
+    "representation_composition_scalar_equalities": 1728000,
+    "representation_pass": true,
+    "common_left_frame_triples": 1728000,
+    "common_left_frame_pass": true,
+    "ordered_noncommuting_pairs": 13320,
+    "Q8_signed_subgroup": true,
+    "corrupted_identity_negative_control_detected": true,
+    "direct_vs_grouped_attention_queries": 1200,
+    "zero_mass_queries": 485,
+    "rolling_window_insert_evictions": 256
+  },
+  "attention_cases": [
+    {
+      "seed": 20260928,
+      "events": 0,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 1,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 32,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 256,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 1024,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 0,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 1,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 32,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 256,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 1024,
+      "queries": 120,
+      "support": 8,
+      "numerator_and_denominator_exact": true
+    }
+  ],
+  "binding_obstruction": {
+    "history_A": {
+      "Alice": "blue",
+      "Bob": "green"
+    },
+    "history_B": {
+      "Alice": "green",
+      "Bob": "blue"
+    },
+    "same_bucket_sum_count": true,
+    "different_Alice_answer": true
+  },
+  "normalization_counterexample": {
+    "q": [
+      1,
+      0
+    ],
+    "key_A": [
+      4,
+      3
+    ],
+    "key_B": [
+      6,
+      8
+    ],
+    "dots": [
+      4,
+      6
+    ],
+    "unit_dots": [
+      0.8,
+      0.6
+    ]
+  },
+  "illustrative_one_head_storage_bytes": {
+    "int32_summary_120_by_120": 57600,
+    "int32_counts": 480,
+    "unpadded_u8_group_table": 14400
+  },
+  "limits": [
+    "Not a trained model; no corpus, checkpoint, learned encoder or generated language tested.",
+    "Sparse equality concerns the defined compact-support operator, not an existing softmax language model.",
+    "Exact output numerator/denominator; normalization and overflow-safe native implementation remain separate.",
+    "Regular permutation values have dimension 120; not a four-coordinate quaternion implementation.",
+    "Frame test is a common left action on discrete codes, not independent local gauges or quantizer equivariance.",
+    "No throughput, energy, whole-process opcode, novelty or semantic-advantage claim.",
+    "Counts and vector sums lose owner-specific bindings unless those records/keys are retained separately."
+  ],
+  "runtime_seconds": 0.35854649899999913,
+  "software": {
+    "python": "3.13.5",
+    "numpy": "2.3.5",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41"
+  },
+  "script_sha256": "22c895f899a4c927f5dbe4cf38f882ed2b833902efe9277b9fa34dfc87dff57e"
+}

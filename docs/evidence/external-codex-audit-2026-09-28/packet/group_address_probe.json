@@ -1,0 +1,56 @@
+{
+  "schema": "uor-r4-group-address-research-probe/1",
+  "source_repo_pin": "15d2ce3fac9f66ddcc945a8097e5c6216352c453",
+  "observed_utc": "2026-09-28T05:24:20Z",
+  "exact_inversion": {
+    "queries": 120,
+    "candidate_codes_per_query": 120,
+    "pair_orderings_checked": 14400,
+    "all_orderings_equal": true,
+    "identity": "s(q,k)=F(q^-1*k); ordered k codes are q times ordered relative offsets",
+    "restriction": "one factor, fixed gain/context condition, distinct scores; no language or query-encoding-cost claim"
+  },
+  "factorwise_shortlist_counterexample": {
+    "scores": [
+      [
+        6,
+        6
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        0,
+        10
+      ]
+    ],
+    "best_total_item": 0,
+    "union_of_factor_top1": [
+      1,
+      2
+    ],
+    "conclusion": "independent fixed factor shortlists do not certify the best additive score"
+  },
+  "soft_attention_tail_bound": {
+    "cases": 128,
+    "keys": 64,
+    "retained": 8,
+    "value_norm_bound": 1,
+    "violations": 0,
+    "max_actual_error_minus_bound": -0.23276443849592454,
+    "theorem": "omitted weights <= m*exp(U); ||read_full-read_kept|| <= 2 Vmax*m*exp(U)/(Z_kept+m*exp(U))",
+    "restriction": "requires valid upper bounds on all omitted scores; actual scores used to obtain U here; not a sparse-search measurement"
+  },
+  "runtime_seconds": 0.05561017500008347,
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "numpy": "2.3.5",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "script_sha256": "c5e86b92744a97bcd160ba07f80a8cb1c001c2e61b80b81e14e38b75d4a7b0be",
+  "limitations": [
+    "No model was trained or evaluated.",
+    "Group relation scoring and threshold search have established antecedents.",
+    "Multi-lane access and gain/residual conditions add cost; worst case may inspect all events.",
+    "Attention-vector bounds do not prove final-token identity or semantic correctness."
+  ]
+}

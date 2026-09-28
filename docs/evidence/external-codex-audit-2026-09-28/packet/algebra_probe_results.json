@@ -1,0 +1,173 @@
+{
+  "schema": "uor.geometric-attention.algebra-probe.v1",
+  "timestamp_utc": "2026-09-28T05:28:51.889393+00:00",
+  "repo_context_pin": "15d2ce3fac9f66ddcc945a8097e5c6216352c453",
+  "group": "SL(2,F5); independent IDs, no claimed mapping to repository 2I IDs",
+  "checks": {
+    "elements": 120,
+    "products": 14400,
+    "associativity_all_triples": true,
+    "associativity_triples": 1728000,
+    "permutation_representation_all_cases": true,
+    "representation_cases": 1728000,
+    "common_left_frame_all_triples": true,
+    "left_frame_triples": 1728000,
+    "noncommuting_ordered_pairs": 13320,
+    "sparse_direct_read_comparisons": 1200,
+    "no_read_zero_denominators": 485,
+    "insert_evict_checks": 256
+  },
+  "runs": [
+    {
+      "seed": 20260928,
+      "events": 0,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 1,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 32,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 256,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260928,
+      "events": 1024,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 0,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 1,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 32,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 256,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    },
+    {
+      "seed": 20260929,
+      "events": 1024,
+      "queries": 120,
+      "support": 8,
+      "numerators_exact": true,
+      "denominators_exact": true
+    }
+  ],
+  "counterexamples": {
+    "binding": {
+      "A": {
+        "Alice": "blue",
+        "Bob": "green"
+      },
+      "B": {
+        "Alice": "green",
+        "Bob": "blue"
+      },
+      "bucket_summaries_identical": true,
+      "correct_Alice_answers_differ": true
+    },
+    "norm_removal": {
+      "query": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "A": [
+        4,
+        3,
+        0,
+        0
+      ],
+      "B": [
+        6,
+        8,
+        0,
+        0
+      ],
+      "dot_scores": [
+        4,
+        6
+      ],
+      "cosine_scores": [
+        0.8,
+        0.6
+      ],
+      "rank_reversed": true
+    },
+    "overwrite_not_group_action": {
+      "map": {
+        "0": 0,
+        "1": 0
+      },
+      "injective": false
+    }
+  },
+  "illustrative_storage": {
+    "G120_D120_int32_sums_bytes": 57600,
+    "int32_counts_bytes": 480,
+    "unpadded_u8_group_table_bytes": 14400,
+    "S8_D120_coordinates_read": 960,
+    "excludes": "encoders, identity/version records, index postings, type/gain bins, output head"
+  },
+  "limitations": [
+    "No learned model, natural text or repository checkpoint used.",
+    "Direct/sparse equality is for the defined finite kernel, not preservation of an existing LM.",
+    "Exact numerator and denominator only; normalization and native execution are not implemented.",
+    "Sparse equivalence requires identical weights within each eligible key bucket and linear transport.",
+    "Global common-left-frame invariance is not independent local gauge invariance or semantic equivariance.",
+    "No native instruction, throughput, energy or priority/novelty certification.",
+    "int64 bounds adequate for these finite cases only."
+  ],
+  "runtime_seconds": 0.24864203099991755,
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "numpy": "2.3.5",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "script_sha256": "e1cf69612e0859f8f6f60064bba957266283b90f8d132edc232b197c3e3f770b"
+}
