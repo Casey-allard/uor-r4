@@ -12,7 +12,12 @@ frontier, geometric-advantage or full-path energy qualification.**
 
   The retired cloud track's obligations are absorbed (ROADMAP §9), and the Codex lab is retired.
   - **Pinned baselines:** native dialogue `98aca5ab…` (development response NLL 2.773887) and code stack `3eb1ebbb…` (1.998113).
-  - **The first missing learned behavior:** no dialogue-trained stack exists. Lab 1's S2 produces one on chat-v0 with the #1017 tokenizer.
+  - **S2, the first dialogue-trained stack** (`8cb11d8f…`, [result](s2-dialogue-stack-baseline-2026-09-28.md)):
+    - development response NLL 2.520916, against the native child's 2.773887 on the same panel, making it the loss-level dialogue baseline;
+    - but only 2 of 38 final replies answer, with 0 of 10 memory recalls;
+    - D10 integer replies match float on 14 of 58 turns.
+
+    The next steps are the memory store with G, and QAT.
   - **Shared policy and merge criteria:** [execution policy](agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
 - **Base model (D0).** The recurrence-primary geometric stack is the main line.
   - It scored 1.998113 against its transformer control's 2.011149 at full exposure (#1437; one seed per arm; code BPE).
