@@ -1184,6 +1184,172 @@ fn fit_block_centroids(points: &[Vec<f64>], k: usize, rng: &mut SplitMix64) -> V
     centroids
 }
 
+/// Number of 4-D lanes in a read query/key for the D6 information audit.
+pub const D6_LANES: usize = H4_LAYOUT.0;
+/// Dimension of one D6 lane.
+pub const D6_LANE_DIM: usize = H4_LAYOUT.1;
+/// Centroids per lane for the D6 ordinary equal-bit control (10 stored bits).
+pub const D6_LANE_CENTROIDS: usize = 1024;
+/// Gain levels for the D6 3-bit dyadic gain channel.
+pub const D6_GAIN_LEVELS: u32 = 8;
+
+fn lane_squared_distance(a: &[f64; 4], b: &[f64; 4]) -> f64 {
+    let mut total = 0.0;
+    for dim in 0..4 {
+        let delta = a[dim] - b[dim];
+        total += delta * delta;
+    }
+    total
+}
+
+/// Fit one 1,024-centroid k-means codebook on 4-D lane vectors.
+///
+/// Seeded k-means++ initialization (D^2 sampling), then Lloyd reassignment and
+/// mean recomputation with empty-cluster reseeding to the farthest point, using
+/// the module's iteration cap and convergence tolerance. `lanes` is row-major;
+/// identical lanes and seed give identical centroids. This is the D6 ordinary
+/// control's single declared fit: no codebook-size sweep and no seed sweep.
+pub fn fit_lane_kmeans_1024(lanes: &[[f64; 4]], seed: u64) -> Result<Vec<[f64; 4]>> {
+    if lanes.is_empty() {
+        return Err(AddressingError::EmptyTuneKeys);
+    }
+    let count = lanes.len();
+    let k = D6_LANE_CENTROIDS;
+    let mut rng = SplitMix64::new(seed ^ 0x9E37_79B9_7F4A_7C15);
+
+    let mut centroids: Vec<[f64; 4]> = Vec::with_capacity(k);
+    centroids.push(lanes[rng.next_index(count)]);
+    let mut min_dist2 = vec![f64::INFINITY; count];
+    while centroids.len() < k {
+        let last = centroids[centroids.len() - 1];
+        for index in 0..count {
+            let distance = lane_squared_distance(&lanes[index], &last);
+            if distance < min_dist2[index] {
+                min_dist2[index] = distance;
+            }
+        }
+        let total: f64 = min_dist2.iter().sum();
+        let next = if total <= f64::MIN_POSITIVE {
+            rng.next_index(count)
+        } else {
+            let mut threshold = rng.next_f64() * total;
+            let mut chosen = count - 1;
+            for index in 0..count {
+                threshold -= min_dist2[index];
+                if threshold <= 0.0 {
+                    chosen = index;
+                    break;
+                }
+            }
+            chosen
+        };
+        centroids.push(lanes[next]);
+    }
+
+    let mut assignment = vec![0u32; count];
+    for _ in 0..KMEANS_MAX_ITERS {
+        let mut changed = false;
+        for index in 0..count {
+            let point = lanes[index];
+            let mut best = 0usize;
+            let mut best_distance = f64::INFINITY;
+            for code in 0..k {
+                let distance = lane_squared_distance(&point, &centroids[code]);
+                if distance < best_distance {
+                    best_distance = distance;
+                    best = code;
+                }
+            }
+            if assignment[index] as usize != best {
+                assignment[index] = best as u32;
+                changed = true;
+            }
+        }
+
+        let mut sums = vec![[0.0f64; 4]; k];
+        let mut counts = vec![0u32; k];
+        for index in 0..count {
+            let code = assignment[index] as usize;
+            counts[code] += 1;
+            for dim in 0..4 {
+                sums[code][dim] += lanes[index][dim];
+            }
+        }
+
+        let mut max_shift = 0.0f64;
+        for code in 0..k {
+            let next = if counts[code] == 0 {
+                let mut farthest = 0usize;
+                let mut farthest_distance = -1.0f64;
+                for index in 0..count {
+                    let distance = lane_squared_distance(&lanes[index], &centroids[code]);
+                    if distance > farthest_distance {
+                        farthest_distance = distance;
+                        farthest = index;
+                    }
+                }
+                lanes[farthest]
+            } else {
+                let inverse = 1.0 / f64::from(counts[code]);
+                [
+                    sums[code][0] * inverse,
+                    sums[code][1] * inverse,
+                    sums[code][2] * inverse,
+                    sums[code][3] * inverse,
+                ]
+            };
+            let shift = lane_squared_distance(&centroids[code], &next).sqrt();
+            if shift > max_shift {
+                max_shift = shift;
+            }
+            centroids[code] = next;
+        }
+
+        if !changed && max_shift < KMEANS_TOLERANCE {
+            break;
+        }
+    }
+    Ok(centroids)
+}
+
+/// Nearest centroid of `lane` under squared L2, with the decoded centroid.
+pub fn nearest_lane_centroid(centroids: &[[f64; 4]], lane: &[f64; 4]) -> (u16, [f64; 4]) {
+    let mut best = 0usize;
+    let mut best_distance = f64::INFINITY;
+    for (index, centroid) in centroids.iter().enumerate() {
+        let distance = lane_squared_distance(lane, centroid);
+        if distance < best_distance {
+            best_distance = distance;
+            best = index;
+        }
+    }
+    (best as u16, centroids[best])
+}
+
+/// Quantize a lane L2 norm to a 3-bit dyadic gain `2^(min_exponent + code)`.
+///
+/// The exponent is `round(log2(norm))` clamped into the eight consecutive
+/// exponents `min_exponent..=min_exponent + 7`; the third value is `-1` when the
+/// rounded exponent clipped low, `1` when it clipped high and `0` when it fell
+/// inside the declared range. A non-positive or non-finite norm maps to the
+/// lowest code and reports low clipping.
+pub fn quantize_dyadic_gain(norm: f64, min_exponent: i32) -> (u8, f64, i8) {
+    let max_exponent = min_exponent + D6_GAIN_LEVELS as i32 - 1;
+    if !(norm > 0.0) || !norm.is_finite() {
+        return (0, 2f64.powi(min_exponent), -1);
+    }
+    let raw = norm.log2().round() as i32;
+    let clipped = raw.clamp(min_exponent, max_exponent);
+    let flag = if raw < min_exponent {
+        -1
+    } else if raw > max_exponent {
+        1
+    } else {
+        0
+    };
+    ((clipped - min_exponent) as u8, 2f64.powi(clipped), flag)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1512,5 +1678,66 @@ mod tests {
             AddressingArm::contest_sign8().fit_seed(),
             CONTEST_SIGN8_SEED
         );
+    }
+
+    #[test]
+    fn d6_dyadic_gain_is_power_of_two_and_clips() {
+        let min_exponent = -4;
+        let (code, gain, flag) = quantize_dyadic_gain(1.0, min_exponent);
+        assert_eq!((code, flag), (4, 0));
+        assert_eq!(gain, 1.0);
+
+        let (code_low, gain_low, flag_low) = quantize_dyadic_gain(1e-6, min_exponent);
+        assert_eq!((code_low, flag_low), (0, -1));
+        assert_eq!(gain_low, 2f64.powi(min_exponent));
+
+        let (code_high, gain_high, flag_high) = quantize_dyadic_gain(1e6, min_exponent);
+        assert_eq!((code_high, flag_high), (7, 1));
+        assert_eq!(gain_high, 2f64.powi(3));
+
+        let (code_zero, _, flag_zero) = quantize_dyadic_gain(0.0, min_exponent);
+        assert_eq!((code_zero, flag_zero), (0, -1));
+
+        for code in 0..D6_GAIN_LEVELS {
+            let exponent = min_exponent + code as i32;
+            let (decoded_code, decoded_gain, flag) =
+                quantize_dyadic_gain(2f64.powi(exponent), min_exponent);
+            assert_eq!(decoded_code as u32, code);
+            assert_eq!(flag, 0);
+            assert!((decoded_gain.log2() - f64::from(exponent)).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn d6_nearest_lane_centroid_selects_the_closest() {
+        let centroids = vec![
+            [0.0, 0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 2.0, 0.0, 0.0],
+        ];
+        let (code, decoded) = nearest_lane_centroid(&centroids, &[0.9, 0.0, 0.0, 0.0]);
+        assert_eq!(code, 1);
+        assert_eq!(decoded, [1.0, 0.0, 0.0, 0.0]);
+        let (code, _) = nearest_lane_centroid(&centroids, &[0.0, 1.8, 0.0, 0.0]);
+        assert_eq!(code, 2);
+    }
+
+    #[test]
+    fn d6_lane_kmeans_is_deterministic_and_clusters_are_recovered() {
+        let mut lanes: Vec<[f64; 4]> = Vec::with_capacity(512);
+        for index in 0..256 {
+            let jitter = (index as f64) * 1e-4;
+            lanes.push([jitter, jitter, jitter, jitter]);
+            lanes.push([1.0 + jitter, -1.0 - jitter, 0.5 + jitter, 0.0]);
+        }
+        let first = fit_lane_kmeans_1024(&lanes, 0xD6D6).expect("fit");
+        let second = fit_lane_kmeans_1024(&lanes, 0xD6D6).expect("refit");
+        assert_eq!(first.len(), D6_LANE_CENTROIDS);
+        assert_eq!(first, second, "identical lanes and seed must be identical");
+
+        let (_, near_a) = nearest_lane_centroid(&first, &[0.0, 0.0, 0.0, 0.0]);
+        let (_, near_b) = nearest_lane_centroid(&first, &[1.0, -1.0, 0.5, 0.0]);
+        assert!(lane_squared_distance(&near_a, &[0.0, 0.0, 0.0, 0.0]) < 0.05);
+        assert!(lane_squared_distance(&near_b, &[1.0, -1.0, 0.5, 0.0]) < 0.05);
     }
 }

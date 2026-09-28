@@ -1,0 +1,293 @@
+{
+ "schema": "uor-r4.lab2.d6-information-audit-evidence/1",
+ "pr": "https://github.com/UOR-Foundation/uor-r4/pull/1464",
+ "code_commit": "67942bfb",
+ "assembled_by": "Lab 1 (director), from the sealed roots; numbers read, never typed",
+ "roots": {
+  "full-2": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-d6-information-audit/full-2",
+   "manifest_sha256": "f9d7d0d4b6b22dc1d7fabd5d2957c0cef8d09deff3ccac1a79b3ef0bebdb1e63",
+   "status": "COMPLETE",
+   "outcome": "ORDINARY-BETTER",
+   "outcome_logic": {
+    "criteria": {
+     "gain_restores": "delta(G) <= delta(D)/2 and delta(G) <= delta(K) + 0.01",
+     "magnitude_load_bearing": "delta(D) >= 0.05 and delta(U) >= delta(D)/2"
+    },
+    "gain_restores": false,
+    "magnitude_load_bearing": true,
+    "table": {
+     "GAIN": "magnitude load-bearing and the gain restores it",
+     "ORDINARY-BETTER": "magnitude load-bearing and G fails either restoration criterion",
+     "REPRESENTATION-ADEQUATE": "delta(D) < 0.05",
+     "RESOLUTION": "delta(D) >= 0.05 and delta(U) < delta(D)/2"
+    }
+   },
+   "delta": [
+    {
+     "arm": "O",
+     "delta": 0.0,
+     "kind": "dot/sqrt(read_width); the parent's own read (anchor)",
+     "positions": 48412,
+     "top1_differs_from_O": 0
+    },
+    {
+     "arm": "U",
+     "delta": 0.41343055440799803,
+     "kind": "per-lane unit dot, unquantized; 16 x 4-D lanes L2-normalized",
+     "positions": 48412,
+     "top1_differs_from_O": 20015
+    },
+    {
+     "arm": "D",
+     "delta": 0.4643683384284888,
+     "kind": "2I direction only; each unit lane snapped to its nearest of 120 H4 roots",
+     "positions": 48412,
+     "top1_differs_from_O": 22481
+    },
+    {
+     "arm": "G",
+     "delta": 0.414938445013633,
+     "kind": "2I direction plus 3-bit dyadic gain; 7 direction bits + 3 gain bits = 10 bits/lane",
+     "positions": 48412,
+     "top1_differs_from_O": 20088
+    },
+    {
+     "arm": "K",
+     "delta": 0.3473312401883831,
+     "kind": "per-lane raw k-means with 1024 centroids = 10 bits/lane",
+     "positions": 48412,
+     "top1_differs_from_O": 16815
+    }
+   ],
+   "population": {
+    "comparison_blocks": 912,
+    "excluded_by_no_read": 184148,
+    "no_read_mass_maximum": 1.0,
+    "no_read_mass_mean": 0.7447637242105483,
+    "positions_total": 232560,
+    "selected_read_definition": "comparison-tail positions with previous >= 1 and NoRead mass < 0.5; NoRead mass = 1 - sum(read masses)",
+    "selected_read_positions": 48412,
+    "top1_definition": "argmax over candidate events of (arm score + that event's learned age bias from read.age)"
+   },
+   "anchor": {
+    "comparison_blocks": 912,
+    "comparison_mean_nll_nats": 1.9847528054565418,
+    "comparison_scored_targets": 233472,
+    "comparison_top1_accuracy": 0.5292583264802632,
+    "declared_comparison_nll_nats": 1.984752805,
+    "declared_panel_complete": 27,
+    "panel_complete_source": "retained evaluate-quaternion-2i-off-read-8a6d story-probes.json (32/32 rows, 16 source-edit pairs)",
+    "reproduced": true,
+    "retained_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-2i-off-read-8a6d",
+    "smoke": false,
+    "tolerance": 0.001,
+    "tune_mean_nll_nats": 2.08794097484298
+   },
+   "parent": {
+    "admission": "full",
+    "campaign_sha256": "04befaf49a51d795693b4c437f7dd1e7d414f5dd66dc569d6722cd791408be66",
+    "checkpoint_sha256": "46dedcb3f2de72a9e6a009def5402ff1833f1a0d0fec46cb555062a94b72de43",
+    "config_sha256": "8a543dc28b9c65c714df6e23a3ced01bc09c60f06d537d43ac6f83e7153aaed4",
+    "model_config": {
+     "context": 256,
+     "read_width": 64,
+     "seed": 240924,
+     "transport": "quaternion",
+     "vocab_size": 4096,
+     "width": 256
+    },
+    "model_sha256": "29378878c9c426afa6f5700782b52ccaafc5e0b8ab6671894ddc6d5976284363",
+    "optimizer_step": 16696,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/language-continuation-20260925/fit-quaternion-2i-screen-off-8a6d/checkpoint-final",
+    "quantization": null,
+    "read_geometry": "dot",
+    "sealed_file_set_verified": true,
+    "source_commit": "b7fd254ad4d9376c51dc6ce0eeac7b336087b786"
+   },
+   "reported_not_gated": {
+    "gain_distribution": {
+     "definition": "raw query (selected-read positions) and key (all comparison positions) lane norms encoded during the comparison pass; clipping is the fraction of lanes outside the eight declared dyadic exponents",
+     "high_clip": 0,
+     "high_clip_fraction": 0.0,
+     "histogram_code_0_to_7": [
+      6121,
+      80150,
+      724200,
+      2519525,
+      1167634,
+      12514,
+      0,
+      0
+     ],
+     "low_clip": 396,
+     "low_clip_fraction": 8.780207461225185e-05,
+     "total": 4510144
+    },
+    "o_top1_vs_model_read_consistency": {
+     "definition": "selected-read positions where the computed dot-score argmax differs from the model's own read-mass argmax",
+     "mismatches": 0,
+     "positions": 48412
+    },
+    "top2_code_collisions": {
+     "D": 8.262414277451872e-05,
+     "G": 8.262414277451872e-05,
+     "K": 0.000578368999421631,
+     "definition": "fraction of selected-read positions where the arm's top-1 and top-2 ranked events share an identical lane-code tuple; undefined for O and U (no lane code)",
+     "eligible_positions": 48412
+    }
+   },
+   "elapsed_seconds": 77.778204417,
+   "executable_sha256": "19aaf17d20da4fd658bd5a26566322b51501545cbb7e01cfd3350f962faef1b1",
+   "source_binding_to_pr_commit": {
+    "addressing_arms": "equals 67942bfb",
+    "example": "equals 67942bfb",
+    "joint_evaluation": "equals 67942bfb",
+    "joint_model": "equals 67942bfb"
+   }
+  },
+  "full-1": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-d6-information-audit/full-1",
+   "manifest_sha256": "812ea32c7daf1d2a41f76e7df31d7d89738477e2fb599030fea317f9c53850c3",
+   "status": "COMPLETE",
+   "outcome": "ORDINARY-BETTER",
+   "outcome_logic": {
+    "criteria": {
+     "gain_restores": "delta(G) <= delta(D)/2 and delta(G) <= delta(K) + 0.01",
+     "magnitude_load_bearing": "delta(D) >= 0.05 and delta(U) >= delta(D)/2"
+    },
+    "gain_restores": false,
+    "magnitude_load_bearing": true,
+    "table": {
+     "GAIN": "magnitude load-bearing and the gain restores it",
+     "ORDINARY-BETTER": "magnitude load-bearing and G fails either restoration criterion",
+     "REPRESENTATION-ADEQUATE": "delta(D) < 0.05",
+     "RESOLUTION": "delta(D) >= 0.05 and delta(U) < delta(D)/2"
+    }
+   },
+   "delta": [
+    {
+     "arm": "O",
+     "delta": 0.0,
+     "kind": "dot/sqrt(read_width); the parent's own read (anchor)",
+     "positions": 48412,
+     "top1_differs_from_O": 0
+    },
+    {
+     "arm": "U",
+     "delta": 0.41343055440799803,
+     "kind": "per-lane unit dot, unquantized; 16 x 4-D lanes L2-normalized",
+     "positions": 48412,
+     "top1_differs_from_O": 20015
+    },
+    {
+     "arm": "D",
+     "delta": 0.4643683384284888,
+     "kind": "2I direction only; each unit lane snapped to its nearest of 120 H4 roots",
+     "positions": 48412,
+     "top1_differs_from_O": 22481
+    },
+    {
+     "arm": "G",
+     "delta": 0.414938445013633,
+     "kind": "2I direction plus 3-bit dyadic gain; 7 direction bits + 3 gain bits = 10 bits/lane",
+     "positions": 48412,
+     "top1_differs_from_O": 20088
+    },
+    {
+     "arm": "K",
+     "delta": 0.3473312401883831,
+     "kind": "per-lane raw k-means with 1024 centroids = 10 bits/lane",
+     "positions": 48412,
+     "top1_differs_from_O": 16815
+    }
+   ],
+   "population": {
+    "comparison_blocks": 912,
+    "excluded_by_no_read": 184148,
+    "no_read_mass_maximum": 1.0,
+    "no_read_mass_mean": 0.7447637242105483,
+    "positions_total": 232560,
+    "selected_read_definition": "comparison-tail positions with previous >= 1 and NoRead mass < 0.5; NoRead mass = 1 - sum(read masses)",
+    "selected_read_positions": 48412,
+    "top1_definition": "argmax over candidate events of (arm score + that event's learned age bias from read.age)"
+   },
+   "anchor": {
+    "comparison_blocks": 912,
+    "comparison_mean_nll_nats": 1.9847528054565418,
+    "comparison_scored_targets": 233472,
+    "comparison_top1_accuracy": 0.5292583264802632,
+    "declared_comparison_nll_nats": 1.984752805,
+    "declared_panel_complete": 27,
+    "panel_complete_source": "retained evaluate-quaternion-2i-off-read-8a6d story-probes.json (32/32 rows, 16 source-edit pairs)",
+    "reproduced": true,
+    "retained_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/evaluate-quaternion-2i-off-read-8a6d",
+    "smoke": false,
+    "tolerance": 0.001,
+    "tune_mean_nll_nats": 2.08794097484298
+   },
+   "parent": {
+    "admission": "full",
+    "campaign_sha256": "04befaf49a51d795693b4c437f7dd1e7d414f5dd66dc569d6722cd791408be66",
+    "checkpoint_sha256": "46dedcb3f2de72a9e6a009def5402ff1833f1a0d0fec46cb555062a94b72de43",
+    "config_sha256": "8a543dc28b9c65c714df6e23a3ced01bc09c60f06d537d43ac6f83e7153aaed4",
+    "model_config": {
+     "context": 256,
+     "read_width": 64,
+     "seed": 240924,
+     "transport": "quaternion",
+     "vocab_size": 4096,
+     "width": 256
+    },
+    "model_sha256": "29378878c9c426afa6f5700782b52ccaafc5e0b8ab6671894ddc6d5976284363",
+    "optimizer_step": 16696,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/language-continuation-20260925/fit-quaternion-2i-screen-off-8a6d/checkpoint-final",
+    "quantization": null,
+    "read_geometry": "dot",
+    "sealed_file_set_verified": true,
+    "source_commit": "b7fd254ad4d9376c51dc6ce0eeac7b336087b786"
+   },
+   "reported_not_gated": {
+    "gain_distribution": {
+     "definition": "raw query (selected-read positions) and key (all comparison positions) lane norms encoded during the comparison pass; clipping is the fraction of lanes outside the eight declared dyadic exponents",
+     "high_clip": 0,
+     "high_clip_fraction": 0.0,
+     "histogram_code_0_to_7": [
+      6121,
+      80150,
+      724200,
+      2519525,
+      1167634,
+      12514,
+      0,
+      0
+     ],
+     "low_clip": 396,
+     "low_clip_fraction": 8.780207461225185e-05,
+     "total": 4510144
+    },
+    "o_top1_vs_model_read_consistency": {
+     "definition": "selected-read positions where the computed dot-score argmax differs from the model's own read-mass argmax",
+     "mismatches": 0,
+     "positions": 48412
+    },
+    "top2_code_collisions": {
+     "D": 8.262414277451872e-05,
+     "G": 8.262414277451872e-05,
+     "K": 0.000578368999421631,
+     "definition": "fraction of selected-read positions where the arm's top-1 and top-2 ranked events share an identical lane-code tuple; undefined for O and U (no lane code)",
+     "eligible_positions": 48412
+    }
+   },
+   "elapsed_seconds": 83.518421959,
+   "executable_sha256": "49d7557c0abb820afe97ac088c2f27f4cb5707dc46424ac9cca61e132d54c147",
+   "source_binding_to_pr_commit": {
+    "addressing_arms": "equals 67942bfb",
+    "example": "differs from 67942bfb (0892fa40f5c5)",
+    "joint_evaluation": "equals 67942bfb",
+    "joint_model": "equals 67942bfb"
+   }
+  }
+ },
+ "reproduction": "full-1 and full-2 give identical deltas"
+}
