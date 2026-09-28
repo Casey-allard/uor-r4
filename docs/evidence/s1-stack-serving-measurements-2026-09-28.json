@@ -1,0 +1,1323 @@
+{
+ "schema": "uor-r4.lab1.s1-measurements/1",
+ "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5874321776",
+ "model": "cycle-4 geometric_s1 (rrarra, Lorentz, rotation; 7,153,860 parameters), sha256 3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a",
+ "s1_0_round_to_nearest": {
+  "export": {
+   "artifact": {
+    "bytes": 4969732,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1/model.lut",
+    "sha256": "9ad3313303df3d521344c4a021d17020aa92334290ad314b683401afdcacc920"
+   },
+   "calibration_seconds": 0.060028625,
+   "schema": "uor-r4.geometric-stack-export/1",
+   "seconds": 0.302489292,
+   "source": {
+    "config": {
+     "arch": "geometric",
+     "context": 256,
+     "heads": 6,
+     "mlp_hidden": 749,
+     "pattern": "rrarra",
+     "read": "lorentz",
+     "rotation": true,
+     "seed": 1,
+     "vocab_size": 4096,
+     "width": 288
+    },
+    "executable": {
+     "bytes": 6682000,
+     "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
+     "sha256": "2038237c95be2c3fd71575508abc81925981d64429bf5b8fdf9a0881112f3e20"
+    },
+    "exporter": "geometric-stack export",
+    "model": {
+     "bytes": 28622728,
+     "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+     "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+    },
+    "quantizer": {
+     "method": "round_to_nearest"
+    }
+   },
+   "quantization": {
+    "method": {
+     "mlp_padded_from": 749,
+     "mlp_padded_to": 768,
+     "quantizer": "round_to_nearest"
+    },
+    "grid_code_worst_relative_error": {
+     "l0.conv_taps": 0.030037863260733672,
+     "l0.decay_rate": 0.028141884426633863,
+     "l1.conv_taps": 0.030040244036750898,
+     "l1.decay_rate": 0.026315097986081667,
+     "l2.beta": 0.024861340760495794,
+     "l3.conv_taps": 0.030228818428478778,
+     "l3.decay_rate": 0.02629676394510113,
+     "l4.conv_taps": 0.0301717990155636,
+     "l4.decay_rate": 0.029114625200172946,
+     "l5.beta": 0.02164736472683407
+    },
+    "relative_output_error": {}
+   },
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1",
+    "manifest_sha256": "68c2091375603ce5f8d02e99e1ccf87cb313069ae43f190ab4fb0e064d89c49a",
+    "error": false
+   }
+  },
+  "evaluation": {
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/lut-eval-rtn-1",
+    "manifest_sha256": "7f93ff0191217c21b306d3c35c31ec3fc2f8aeb0d3bcb5504b047027d3b4038f",
+    "error": false
+   },
+   "artifact": {
+    "bytes": 4969732,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1/model.lut",
+    "sha256": "9ad3313303df3d521344c4a021d17020aa92334290ad314b683401afdcacc920"
+   },
+   "float_model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+   },
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "targets": 131072,
+   "all": {
+    "float": {
+     "bits_per_byte": 0.8034315046894616,
+     "nll": 1.9981126916470238
+    },
+    "integer": {
+     "bits_per_byte": 0.8179990614882006,
+     "nll": 2.034341816290449
+    },
+    "integer_arithmetic_nll": -4.0431721348710425e-07,
+    "integer_minus_float_nll": 0.0362291246434252,
+    "reference": {
+     "bits_per_byte": 0.8179992240622078,
+     "nll": 2.0343422206076625
+    },
+    "targets": 131072,
+    "weight_rounding_nll": 0.03622952896063869,
+    "windows": 512
+   },
+   "top1_agreement": 0.906524658203125,
+   "decision_flip_rate": 0.093475341796875,
+   "engine": {
+    "backend": "neon",
+    "loop_seconds": 139.73039727500017,
+    "loop_tokens_per_second": 938.0349770425415,
+    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
+    "step_seconds": 137.22174395999994,
+    "threads": 2,
+    "tokens_per_second": 955.183895915267
+   },
+   "reference": "the artifact's dequantized matrices, grid-code scalars and integer biases with unit norm gains and its own head, in f32 (the float model's kernels)"
+  }
+ },
+ "s1_0_gptq": {
+  "export": {
+   "artifact": {
+    "bytes": 4970052,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1/model.lut",
+    "sha256": "43e97b054a370f75b7068375d1fd78a43b4920a505d5a656ea611a0f93f575a9"
+   },
+   "calibration_seconds": 4.982123042,
+   "schema": "uor-r4.geometric-stack-export/1",
+   "seconds": 10.732471,
+   "source": {
+    "config": {
+     "arch": "geometric",
+     "context": 256,
+     "heads": 6,
+     "mlp_hidden": 749,
+     "pattern": "rrarra",
+     "read": "lorentz",
+     "rotation": true,
+     "seed": 1,
+     "vocab_size": 4096,
+     "width": 288
+    },
+    "executable": {
+     "bytes": 7098256,
+     "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
+     "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
+    },
+    "exporter": "geometric-stack export",
+    "model": {
+     "bytes": 28622728,
+     "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+     "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+    },
+    "quantizer": {
+     "calibration": {
+      "bytes": 14001984,
+      "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cloud-data-20260928/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     },
+     "calibration_time": 256,
+     "calibration_windows": 64,
+     "damp": 0.01,
+     "method": "gptq"
+    }
+   },
+   "quantization": {
+    "method": {
+     "calibration_positions": 16384,
+     "damp": 0.01,
+     "mlp_padded_from": 749,
+     "mlp_padded_to": 768,
+     "quantizer": "gptq"
+    },
+    "grid_code_worst_relative_error": {
+     "l0.conv_taps": 0.030037863260733672,
+     "l0.decay_rate": 0.028141884426633863,
+     "l1.conv_taps": 0.030040244036750898,
+     "l1.decay_rate": 0.026315097986081667,
+     "l2.beta": 0.024861340760495794,
+     "l3.conv_taps": 0.030228818428478778,
+     "l3.decay_rate": 0.02629676394510113,
+     "l4.conv_taps": 0.0301717990155636,
+     "l4.decay_rate": 0.029114625200172946,
+     "l5.beta": 0.02164736472683407
+    },
+    "relative_output_error": {
+     "head": {
+      "gptq": 0.06618356466928875,
+      "round_to_nearest": 0.07658402628951723
+     },
+     "l0.down": {
+      "gptq": 0.04546606255803082,
+      "round_to_nearest": 0.058874702776743906
+     },
+     "l0.gate": {
+      "gptq": 0.05363767188832986,
+      "round_to_nearest": 0.06482181688797682
+     },
+     "l0.rec_gate": {
+      "gptq": 0.035931962921525486,
+      "round_to_nearest": 0.046725967069565895
+     },
+     "l0.rec_in": {
+      "gptq": 0.05635346255905097,
+      "round_to_nearest": 0.07330808174758427
+     },
+     "l0.rec_out": {
+      "gptq": 0.06813895889225383,
+      "round_to_nearest": 0.07854980444868934
+     },
+     "l0.up": {
+      "gptq": 0.07188749940347995,
+      "round_to_nearest": 0.08669920957081619
+     },
+     "l1.down": {
+      "gptq": 0.04889863406809318,
+      "round_to_nearest": 0.0648532395246546
+     },
+     "l1.gate": {
+      "gptq": 0.037334508450041055,
+      "round_to_nearest": 0.05956668239380246
+     },
+     "l1.rec_gate": {
+      "gptq": 0.03101162406752097,
+      "round_to_nearest": 0.04823389124105785
+     },
+     "l1.rec_in": {
+      "gptq": 0.03296526112438329,
+      "round_to_nearest": 0.0532714236705367
+     },
+     "l1.rec_out": {
+      "gptq": 0.07675948819079328,
+      "round_to_nearest": 0.08261918980256595
+     },
+     "l1.up": {
+      "gptq": 0.05149077750050841,
+      "round_to_nearest": 0.08137093409985346
+     },
+     "l2.down": {
+      "gptq": 0.06759296115751423,
+      "round_to_nearest": 0.07624849509831408
+     },
+     "l2.gate": {
+      "gptq": 0.03892359527148587,
+      "round_to_nearest": 0.05702108800470707
+     },
+     "l2.key": {
+      "gptq": 0.028238210185361285,
+      "round_to_nearest": 0.043924619971758436
+     },
+     "l2.null": {
+      "gptq": 0.022648448316485534,
+      "round_to_nearest": 0.03518312919966504
+     },
+     "l2.out": {
+      "gptq": 0.01881111836744887,
+      "round_to_nearest": 0.043065464585188465
+     },
+     "l2.query": {
+      "gptq": 0.030128969591872553,
+      "round_to_nearest": 0.04646179197474585
+     },
+     "l2.up": {
+      "gptq": 0.04949802655202202,
+      "round_to_nearest": 0.07208241503194862
+     },
+     "l2.value": {
+      "gptq": 0.0367068830534391,
+      "round_to_nearest": 0.05757918844603847
+     },
+     "l3.down": {
+      "gptq": 0.07173658363312868,
+      "round_to_nearest": 0.07970357956767743
+     },
+     "l3.gate": {
+      "gptq": 0.042546746880279436,
+      "round_to_nearest": 0.057742346465905016
+     },
+     "l3.rec_gate": {
+      "gptq": 0.03475718746746511,
+      "round_to_nearest": 0.04938105337819112
+     },
+     "l3.rec_in": {
+      "gptq": 0.03952339021539143,
+      "round_to_nearest": 0.05604612260662507
+     },
+     "l3.rec_out": {
+      "gptq": 0.08328658462980658,
+      "round_to_nearest": 0.08648532104462953
+     },
+     "l3.up": {
+      "gptq": 0.056688222631807034,
+      "round_to_nearest": 0.07726797645504836
+     },
+     "l4.down": {
+      "gptq": 0.06865365345298222,
+      "round_to_nearest": 0.07900685381482764
+     },
+     "l4.gate": {
+      "gptq": 0.04041078573759625,
+      "round_to_nearest": 0.052884380978755155
+     },
+     "l4.rec_gate": {
+      "gptq": 0.037996228736180214,
+      "round_to_nearest": 0.04977599078456129
+     },
+     "l4.rec_in": {
+      "gptq": 0.044047834555570174,
+      "round_to_nearest": 0.05803727714666307
+     },
+     "l4.rec_out": {
+      "gptq": 0.08293931918983696,
+      "round_to_nearest": 0.08734357416142342
+     },
+     "l4.up": {
+      "gptq": 0.0578237033134248,
+      "round_to_nearest": 0.07563027442032498
+     },
+     "l5.down": {
+      "gptq": 0.05700627774964906,
+      "round_to_nearest": 0.07105498777963638
+     },
+     "l5.gate": {
+      "gptq": 0.05215192455103755,
+      "round_to_nearest": 0.06494920499237822
+     },
+     "l5.key": {
+      "gptq": 0.04231583848373263,
+      "round_to_nearest": 0.05514132066930722
+     },
+     "l5.null": {
+      "gptq": 0.02277420931191908,
+      "round_to_nearest": 0.028246826176701413
+     },
+     "l5.out": {
+      "gptq": 0.04310857856734221,
+      "round_to_nearest": 0.058955493051874176
+     },
+     "l5.query": {
+      "gptq": 0.043291482848013416,
+      "round_to_nearest": 0.0559413534753597
+     },
+     "l5.up": {
+      "gptq": 0.05503850838967204,
+      "round_to_nearest": 0.06856467762936966
+     },
+     "l5.value": {
+      "gptq": 0.06469192373274141,
+      "round_to_nearest": 0.08375741528932533
+     }
+    }
+   },
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1",
+    "manifest_sha256": "2a0996a21a89a9a6317c0f427e0c26d4a5e8ccdf6ff91839c73a2a12592a6e47",
+    "error": false
+   }
+  },
+  "evaluation": {
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/lut-eval-gptq-1",
+    "manifest_sha256": "e72b3c4e9404ef3f7f1add94d80a157cbcad4b94c387508bf3183edf4a22f63f",
+    "error": false
+   },
+   "artifact": {
+    "bytes": 4970052,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1/model.lut",
+    "sha256": "43e97b054a370f75b7068375d1fd78a43b4920a505d5a656ea611a0f93f575a9"
+   },
+   "float_model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+   },
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "targets": 131072,
+   "all": {
+    "float": {
+     "bits_per_byte": 0.8034315046894616,
+     "nll": 1.9981126916470238
+    },
+    "integer": {
+     "bits_per_byte": 0.813784243423427,
+     "nll": 2.02385967634566
+    },
+    "integer_arithmetic_nll": 6.816914588370082e-07,
+    "integer_minus_float_nll": 0.025746984698636455,
+    "reference": {
+     "bits_per_byte": 0.8137839693185696,
+     "nll": 2.0238589946542014
+    },
+    "targets": 131072,
+    "weight_rounding_nll": 0.025746303007177618,
+    "windows": 512
+   },
+   "top1_agreement": 0.9183349609375,
+   "decision_flip_rate": 0.0816650390625,
+   "engine": {
+    "backend": "neon",
+    "loop_seconds": 143.46897833600005,
+    "loop_tokens_per_second": 913.5912273176805,
+    "scope": "step: the engine's steps only; loop: the steps plus scoring each position's logits in f64",
+    "step_seconds": 140.70474997299996,
+    "threads": 2,
+    "tokens_per_second": 931.5392694642618
+   },
+   "reference": "the artifact's dequantized matrices, grid-code scalars and integer biases with unit norm gains and its own head, in f32 (the float model's kernels)"
+  }
+ },
+ "s1_0b_snap": {
+  "final": {
+   "composed_minus_fused_max_abs_logit_first_group": 0.0003088712692260742,
+   "executable": {
+    "bytes": 7098256,
+    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
+    "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
+   },
+   "fused_nll": 1.9981126822531223,
+   "model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+   },
+   "roadmap": "S1.0b (evaluation-only diagnostic)",
+   "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
+   "schema": "uor-r4.stack-transport-snap/1",
+   "seconds": 44.570129334,
+   "snapped_minus_fused_nats": 0.026150591671466827,
+   "snapped_nll": 2.024263273924589,
+   "targets": 131072,
+   "top1_agreement": 0.9170379638671875,
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/snap-final-1",
+    "manifest_sha256": "6f4ca0b6c281d4a4bcf1c9a3e4fbc2e760278562e3efdf101132ba6a2b5cfba9",
+    "error": false
+   }
+  },
+  "rot_s1": {
+   "composed_minus_fused_max_abs_logit_first_group": 0.00010919570922851562,
+   "executable": {
+    "bytes": 7098256,
+    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
+    "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
+   },
+   "fused_nll": 2.599844664335251,
+   "model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/rot_s1/model/model.safetensors",
+    "sha256": "898893924c4f9b6a49b31f7d18eed8ef38d246971505227544a0b712292aa4a6"
+   },
+   "roadmap": "S1.0b (evaluation-only diagnostic)",
+   "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
+   "schema": "uor-r4.stack-transport-snap/1",
+   "seconds": 45.579982292,
+   "snapped_minus_fused_nats": 0.025598950684070587,
+   "snapped_nll": 2.6254436150193214,
+   "targets": 131072,
+   "top1_agreement": 0.893585205078125,
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/snap-rot_s1-1",
+    "manifest_sha256": "583e0d2412a2158ea611e1ea1b44074af56c6f4cd50e6c0dfe0f2dc4f4281e2d",
+    "error": false
+   }
+  },
+  "rot_s2": {
+   "composed_minus_fused_max_abs_logit_first_group": 0.00013625621795654297,
+   "executable": {
+    "bytes": 7098256,
+    "path": "/Volumes/UOR-Workspace/BuildCaches/claude/release/examples/geometric-stack",
+    "sha256": "4125f51b35dd41fbc82cdfc374ea6fbc12d9cbb8d42c340399c1f56624bc2959"
+   },
+   "fused_nll": 2.580264873802662,
+   "model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/rot_s2/model/model.safetensors",
+    "sha256": "deb422e442cd6274ca71605f4e22639be73c3196f699ef5471f788531e607c25"
+   },
+   "roadmap": "S1.0b (evaluation-only diagnostic)",
+   "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
+   "schema": "uor-r4.stack-transport-snap/1",
+   "seconds": 49.128726083,
+   "snapped_minus_fused_nats": 0.025965213775634766,
+   "snapped_nll": 2.6062300875782967,
+   "targets": 131072,
+   "top1_agreement": 0.8966140747070312,
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/d1-transport-attribution-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/snap-rot_s2-1",
+    "manifest_sha256": "da670b00039ab542deb619599afcfd57b53684b49ec9062a96ab3f4927a8ae34",
+    "error": false
+   }
+  }
+ },
+ "s1_0c_attribution": {
+  "gptq": {
+   "artifact": {
+    "bytes": 4970052,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-gptq-1/model.lut",
+    "sha256": "43e97b054a370f75b7068375d1fd78a43b4920a505d5a656ea611a0f93f575a9"
+   },
+   "executable": {
+    "bytes": 7135968,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/bin/geometric-stack-52a20eeb5a25",
+    "sha256": "52a20eeb5a2561a1a2b765f67d0b2c9421e25bb1f66cb4e832f4c8f44d27b370"
+   },
+   "float_nll": 1.9981126822531223,
+   "groups": {
+    "embed": [
+     "embedding.weight"
+    ],
+    "head": [
+     "final_norm.weight"
+    ],
+    "l0.mixer_maps": [
+     "layers.00.rec.gate.weight",
+     "layers.00.rec.in.weight",
+     "layers.00.rec.out.weight",
+     "layers.00.rec_norm.weight"
+    ],
+    "l0.mixer_scalars": [
+     "layers.00.rec.conv.bias",
+     "layers.00.rec.conv.weight",
+     "layers.00.rec.decay",
+     "layers.00.rec.gate.bias"
+    ],
+    "l0.mlp": [
+     "layers.00.mlp.down.weight",
+     "layers.00.mlp.gate.weight",
+     "layers.00.mlp.up.weight",
+     "layers.00.mlp_norm.weight"
+    ],
+    "l1.mixer_maps": [
+     "layers.01.rec.gate.weight",
+     "layers.01.rec.in.weight",
+     "layers.01.rec.out.weight",
+     "layers.01.rec_norm.weight"
+    ],
+    "l1.mixer_scalars": [
+     "layers.01.rec.conv.bias",
+     "layers.01.rec.conv.weight",
+     "layers.01.rec.decay",
+     "layers.01.rec.gate.bias"
+    ],
+    "l1.mlp": [
+     "layers.01.mlp.down.weight",
+     "layers.01.mlp.gate.weight",
+     "layers.01.mlp.up.weight",
+     "layers.01.mlp_norm.weight"
+    ],
+    "l2.mixer_maps": [
+     "layers.02.read.key.weight",
+     "layers.02.read.null.weight",
+     "layers.02.read.out.weight",
+     "layers.02.read.query.weight",
+     "layers.02.read.value.weight",
+     "layers.02.read_norm.weight"
+    ],
+    "l2.mixer_scalars": [
+     "layers.02.read.age",
+     "layers.02.read.log_beta",
+     "layers.02.read.null.bias",
+     "layers.02.read.offset"
+    ],
+    "l2.mlp": [
+     "layers.02.mlp.down.weight",
+     "layers.02.mlp.gate.weight",
+     "layers.02.mlp.up.weight",
+     "layers.02.mlp_norm.weight"
+    ],
+    "l3.mixer_maps": [
+     "layers.03.rec.gate.weight",
+     "layers.03.rec.in.weight",
+     "layers.03.rec.out.weight",
+     "layers.03.rec_norm.weight"
+    ],
+    "l3.mixer_scalars": [
+     "layers.03.rec.conv.bias",
+     "layers.03.rec.conv.weight",
+     "layers.03.rec.decay",
+     "layers.03.rec.gate.bias"
+    ],
+    "l3.mlp": [
+     "layers.03.mlp.down.weight",
+     "layers.03.mlp.gate.weight",
+     "layers.03.mlp.up.weight",
+     "layers.03.mlp_norm.weight"
+    ],
+    "l4.mixer_maps": [
+     "layers.04.rec.gate.weight",
+     "layers.04.rec.in.weight",
+     "layers.04.rec.out.weight",
+     "layers.04.rec_norm.weight"
+    ],
+    "l4.mixer_scalars": [
+     "layers.04.rec.conv.bias",
+     "layers.04.rec.conv.weight",
+     "layers.04.rec.decay",
+     "layers.04.rec.gate.bias"
+    ],
+    "l4.mlp": [
+     "layers.04.mlp.down.weight",
+     "layers.04.mlp.gate.weight",
+     "layers.04.mlp.up.weight",
+     "layers.04.mlp_norm.weight"
+    ],
+    "l5.mixer_maps": [
+     "layers.05.read.key.weight",
+     "layers.05.read.null.weight",
+     "layers.05.read.out.weight",
+     "layers.05.read.query.weight",
+     "layers.05.read.value.weight",
+     "layers.05.read_norm.weight"
+    ],
+    "l5.mixer_scalars": [
+     "layers.05.read.age",
+     "layers.05.read.log_beta",
+     "layers.05.read.null.bias",
+     "layers.05.read.offset"
+    ],
+    "l5.mlp": [
+     "layers.05.mlp.down.weight",
+     "layers.05.mlp.gate.weight",
+     "layers.05.mlp.up.weight",
+     "layers.05.mlp_norm.weight"
+    ]
+   },
+   "model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+   },
+   "reading": "each row: the float model with only the listed groups from the artifact; maps are the 4-bit matrices (with the normalization whose gain they carry), scalars the grid-code and fixed-point per-channel values",
+   "roadmap": "S1.0c (evaluation-only diagnostic)",
+   "rows": [
+    {
+     "group": "embed",
+     "members": [
+      "embed"
+     ],
+     "minus_float_nats": 0.0026054494082927704,
+     "nll": 2.000718131661415,
+     "top1_agreement": 0.9742279052734375
+    },
+    {
+     "group": "head",
+     "members": [
+      "head"
+     ],
+     "minus_float_nats": 0.011897433549165726,
+     "nll": 2.010010115802288,
+     "top1_agreement": 0.946685791015625
+    },
+    {
+     "group": "l0.mixer_maps",
+     "members": [
+      "l0.mixer_maps"
+     ],
+     "minus_float_nats": 0.00038475170731544495,
+     "nll": 1.9984974339604378,
+     "top1_agreement": 0.9910354614257812
+    },
+    {
+     "group": "l0.mixer_scalars",
+     "members": [
+      "l0.mixer_scalars"
+     ],
+     "minus_float_nats": 0.00011837109923362732,
+     "nll": 1.998231053352356,
+     "top1_agreement": 0.9988250732421875
+    },
+    {
+     "group": "l0.mlp",
+     "members": [
+      "l0.mlp"
+     ],
+     "minus_float_nats": 0.002704136073589325,
+     "nll": 2.0008168183267117,
+     "top1_agreement": 0.9772109985351562
+    },
+    {
+     "group": "l1.mixer_maps",
+     "members": [
+      "l1.mixer_maps"
+     ],
+     "minus_float_nats": 0.00040687620639801025,
+     "nll": 1.9985195584595203,
+     "top1_agreement": 0.9887237548828125
+    },
+    {
+     "group": "l1.mixer_scalars",
+     "members": [
+      "l1.mixer_scalars"
+     ],
+     "minus_float_nats": 2.7194619178771973e-06,
+     "nll": 1.9981154017150402,
+     "top1_agreement": 0.9978408813476562
+    },
+    {
+     "group": "l1.mlp",
+     "members": [
+      "l1.mlp"
+     ],
+     "minus_float_nats": 0.0003049485385417938,
+     "nll": 1.9984176307916641,
+     "top1_agreement": 0.994354248046875
+    },
+    {
+     "group": "l2.mixer_maps",
+     "members": [
+      "l2.mixer_maps"
+     ],
+     "minus_float_nats": 9.498372673988342e-05,
+     "nll": 1.9982076659798622,
+     "top1_agreement": 0.9916458129882812
+    },
+    {
+     "group": "l2.mixer_scalars",
+     "members": [
+      "l2.mixer_scalars"
+     ],
+     "minus_float_nats": 0.00023507699370384216,
+     "nll": 1.9983477592468262,
+     "top1_agreement": 0.995452880859375
+    },
+    {
+     "group": "l2.mlp",
+     "members": [
+      "l2.mlp"
+     ],
+     "minus_float_nats": 0.00043813884258270264,
+     "nll": 1.998550821095705,
+     "top1_agreement": 0.9870986938476562
+    },
+    {
+     "group": "l3.mixer_maps",
+     "members": [
+      "l3.mixer_maps"
+     ],
+     "minus_float_nats": 0.000419076532125473,
+     "nll": 1.9985317587852478,
+     "top1_agreement": 0.9898834228515625
+    },
+    {
+     "group": "l3.mixer_scalars",
+     "members": [
+      "l3.mixer_scalars"
+     ],
+     "minus_float_nats": 8.46274197101593e-05,
+     "nll": 1.9981973096728325,
+     "top1_agreement": 0.9984664916992188
+    },
+    {
+     "group": "l3.mlp",
+     "members": [
+      "l3.mlp"
+     ],
+     "minus_float_nats": 0.00036440417170524597,
+     "nll": 1.9984770864248276,
+     "top1_agreement": 0.9857177734375
+    },
+    {
+     "group": "l4.mixer_maps",
+     "members": [
+      "l4.mixer_maps"
+     ],
+     "minus_float_nats": 0.0003330335021018982,
+     "nll": 1.9984457157552242,
+     "top1_agreement": 0.987396240234375
+    },
+    {
+     "group": "l4.mixer_scalars",
+     "members": [
+      "l4.mixer_scalars"
+     ],
+     "minus_float_nats": 4.4889748096466064e-05,
+     "nll": 1.9981575720012188,
+     "top1_agreement": 0.9983901977539062
+    },
+    {
+     "group": "l4.mlp",
+     "members": [
+      "l4.mlp"
+     ],
+     "minus_float_nats": 0.00025318562984466553,
+     "nll": 1.998365867882967,
+     "top1_agreement": 0.9860687255859375
+    },
+    {
+     "group": "l5.mixer_maps",
+     "members": [
+      "l5.mixer_maps"
+     ],
+     "minus_float_nats": 0.0018067508935928345,
+     "nll": 1.9999194331467152,
+     "top1_agreement": 0.9817123413085938
+    },
+    {
+     "group": "l5.mixer_scalars",
+     "members": [
+      "l5.mixer_scalars"
+     ],
+     "minus_float_nats": 0.0007682628929615021,
+     "nll": 1.9988809451460838,
+     "top1_agreement": 0.9949417114257812
+    },
+    {
+     "group": "l5.mlp",
+     "members": [
+      "l5.mlp"
+     ],
+     "minus_float_nats": 0.0020849481225013733,
+     "nll": 2.0001976303756237,
+     "top1_agreement": 0.9744873046875
+    },
+    {
+     "group": "all_maps",
+     "members": [
+      "l0.mixer_maps",
+      "l1.mixer_maps",
+      "l2.mixer_maps",
+      "l3.mixer_maps",
+      "l4.mixer_maps",
+      "l5.mixer_maps",
+      "l0.mlp",
+      "l1.mlp",
+      "l2.mlp",
+      "l3.mlp",
+      "l4.mlp",
+      "l5.mlp",
+      "embed",
+      "head"
+     ],
+     "minus_float_nats": 0.0242951437830925,
+     "nll": 2.022407826036215,
+     "top1_agreement": 0.9193115234375
+    },
+    {
+     "group": "all_scalars",
+     "members": [
+      "l0.mixer_scalars",
+      "l1.mixer_scalars",
+      "l2.mixer_scalars",
+      "l3.mixer_scalars",
+      "l4.mixer_scalars",
+      "l5.mixer_scalars"
+     ],
+     "minus_float_nats": 0.0012818649411201477,
+     "nll": 1.9993945471942425,
+     "top1_agreement": 0.9918746948242188
+    },
+    {
+     "group": "all",
+     "members": [
+      "embed",
+      "head",
+      "l0.mixer_maps",
+      "l0.mixer_scalars",
+      "l0.mlp",
+      "l1.mixer_maps",
+      "l1.mixer_scalars",
+      "l1.mlp",
+      "l2.mixer_maps",
+      "l2.mixer_scalars",
+      "l2.mlp",
+      "l3.mixer_maps",
+      "l3.mixer_scalars",
+      "l3.mlp",
+      "l4.mixer_maps",
+      "l4.mixer_scalars",
+      "l4.mlp",
+      "l5.mixer_maps",
+      "l5.mixer_scalars",
+      "l5.mlp"
+     ],
+     "minus_float_nats": 0.025746315717697144,
+     "nll": 2.0238589979708195,
+     "top1_agreement": 0.9183731079101562
+    }
+   ],
+   "schema": "uor-r4.stack-rounding-attribution/1",
+   "seconds": 433.646821334,
+   "targets": 131072,
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/attribution-gptq-1",
+    "manifest_sha256": "1a321dcea8bb4343f076926087be30070c51fc2f2fd8f1d5271183e98eb0cb2d",
+    "error": false
+   }
+  },
+  "rtn": {
+   "artifact": {
+    "bytes": 4969732,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/export-rtn-1/model.lut",
+    "sha256": "9ad3313303df3d521344c4a021d17020aa92334290ad314b683401afdcacc920"
+   },
+   "executable": {
+    "bytes": 7135968,
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/bin/geometric-stack-52a20eeb5a25",
+    "sha256": "52a20eeb5a2561a1a2b765f67d0b2c9421e25bb1f66cb4e832f4c8f44d27b370"
+   },
+   "float_nll": 1.9981126822531223,
+   "groups": {
+    "embed": [
+     "embedding.weight"
+    ],
+    "head": [
+     "final_norm.weight"
+    ],
+    "l0.mixer_maps": [
+     "layers.00.rec.gate.weight",
+     "layers.00.rec.in.weight",
+     "layers.00.rec.out.weight",
+     "layers.00.rec_norm.weight"
+    ],
+    "l0.mixer_scalars": [
+     "layers.00.rec.conv.bias",
+     "layers.00.rec.conv.weight",
+     "layers.00.rec.decay",
+     "layers.00.rec.gate.bias"
+    ],
+    "l0.mlp": [
+     "layers.00.mlp.down.weight",
+     "layers.00.mlp.gate.weight",
+     "layers.00.mlp.up.weight",
+     "layers.00.mlp_norm.weight"
+    ],
+    "l1.mixer_maps": [
+     "layers.01.rec.gate.weight",
+     "layers.01.rec.in.weight",
+     "layers.01.rec.out.weight",
+     "layers.01.rec_norm.weight"
+    ],
+    "l1.mixer_scalars": [
+     "layers.01.rec.conv.bias",
+     "layers.01.rec.conv.weight",
+     "layers.01.rec.decay",
+     "layers.01.rec.gate.bias"
+    ],
+    "l1.mlp": [
+     "layers.01.mlp.down.weight",
+     "layers.01.mlp.gate.weight",
+     "layers.01.mlp.up.weight",
+     "layers.01.mlp_norm.weight"
+    ],
+    "l2.mixer_maps": [
+     "layers.02.read.key.weight",
+     "layers.02.read.null.weight",
+     "layers.02.read.out.weight",
+     "layers.02.read.query.weight",
+     "layers.02.read.value.weight",
+     "layers.02.read_norm.weight"
+    ],
+    "l2.mixer_scalars": [
+     "layers.02.read.age",
+     "layers.02.read.log_beta",
+     "layers.02.read.null.bias",
+     "layers.02.read.offset"
+    ],
+    "l2.mlp": [
+     "layers.02.mlp.down.weight",
+     "layers.02.mlp.gate.weight",
+     "layers.02.mlp.up.weight",
+     "layers.02.mlp_norm.weight"
+    ],
+    "l3.mixer_maps": [
+     "layers.03.rec.gate.weight",
+     "layers.03.rec.in.weight",
+     "layers.03.rec.out.weight",
+     "layers.03.rec_norm.weight"
+    ],
+    "l3.mixer_scalars": [
+     "layers.03.rec.conv.bias",
+     "layers.03.rec.conv.weight",
+     "layers.03.rec.decay",
+     "layers.03.rec.gate.bias"
+    ],
+    "l3.mlp": [
+     "layers.03.mlp.down.weight",
+     "layers.03.mlp.gate.weight",
+     "layers.03.mlp.up.weight",
+     "layers.03.mlp_norm.weight"
+    ],
+    "l4.mixer_maps": [
+     "layers.04.rec.gate.weight",
+     "layers.04.rec.in.weight",
+     "layers.04.rec.out.weight",
+     "layers.04.rec_norm.weight"
+    ],
+    "l4.mixer_scalars": [
+     "layers.04.rec.conv.bias",
+     "layers.04.rec.conv.weight",
+     "layers.04.rec.decay",
+     "layers.04.rec.gate.bias"
+    ],
+    "l4.mlp": [
+     "layers.04.mlp.down.weight",
+     "layers.04.mlp.gate.weight",
+     "layers.04.mlp.up.weight",
+     "layers.04.mlp_norm.weight"
+    ],
+    "l5.mixer_maps": [
+     "layers.05.read.key.weight",
+     "layers.05.read.null.weight",
+     "layers.05.read.out.weight",
+     "layers.05.read.query.weight",
+     "layers.05.read.value.weight",
+     "layers.05.read_norm.weight"
+    ],
+    "l5.mixer_scalars": [
+     "layers.05.read.age",
+     "layers.05.read.log_beta",
+     "layers.05.read.null.bias",
+     "layers.05.read.offset"
+    ],
+    "l5.mlp": [
+     "layers.05.mlp.down.weight",
+     "layers.05.mlp.gate.weight",
+     "layers.05.mlp.up.weight",
+     "layers.05.mlp_norm.weight"
+    ]
+   },
+   "model": {
+    "bytes": 28622728,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model/model.safetensors",
+    "sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+   },
+   "reading": "each row: the float model with only the listed groups from the artifact; maps are the 4-bit matrices (with the normalization whose gain they carry), scalars the grid-code and fixed-point per-channel values",
+   "roadmap": "S1.0c (evaluation-only diagnostic)",
+   "rows": [
+    {
+     "group": "embed",
+     "members": [
+      "embed"
+     ],
+     "minus_float_nats": 0.0026054494082927704,
+     "nll": 2.000718131661415,
+     "top1_agreement": 0.9742279052734375
+    },
+    {
+     "group": "head",
+     "members": [
+      "head"
+     ],
+     "minus_float_nats": 0.014914330095052719,
+     "nll": 2.013027012348175,
+     "top1_agreement": 0.9394912719726562
+    },
+    {
+     "group": "l0.mixer_maps",
+     "members": [
+      "l0.mixer_maps"
+     ],
+     "minus_float_nats": 0.0007337592542171478,
+     "nll": 1.9988464415073395,
+     "top1_agreement": 0.9880905151367188
+    },
+    {
+     "group": "l0.mixer_scalars",
+     "members": [
+      "l0.mixer_scalars"
+     ],
+     "minus_float_nats": 0.00011837109923362732,
+     "nll": 1.998231053352356,
+     "top1_agreement": 0.9988250732421875
+    },
+    {
+     "group": "l0.mlp",
+     "members": [
+      "l0.mlp"
+     ],
+     "minus_float_nats": 0.004291541874408722,
+     "nll": 2.002404224127531,
+     "top1_agreement": 0.971771240234375
+    },
+    {
+     "group": "l1.mixer_maps",
+     "members": [
+      "l1.mixer_maps"
+     ],
+     "minus_float_nats": 0.0005873292684555054,
+     "nll": 1.9987000115215778,
+     "top1_agreement": 0.98553466796875
+    },
+    {
+     "group": "l1.mixer_scalars",
+     "members": [
+      "l1.mixer_scalars"
+     ],
+     "minus_float_nats": 2.7194619178771973e-06,
+     "nll": 1.9981154017150402,
+     "top1_agreement": 0.9978408813476562
+    },
+    {
+     "group": "l1.mlp",
+     "members": [
+      "l1.mlp"
+     ],
+     "minus_float_nats": 0.000867847353219986,
+     "nll": 1.9989805296063423,
+     "top1_agreement": 0.9923019409179688
+    },
+    {
+     "group": "l2.mixer_maps",
+     "members": [
+      "l2.mixer_maps"
+     ],
+     "minus_float_nats": 0.0003450661897659302,
+     "nll": 1.9984577484428883,
+     "top1_agreement": 0.9842453002929688
+    },
+    {
+     "group": "l2.mixer_scalars",
+     "members": [
+      "l2.mixer_scalars"
+     ],
+     "minus_float_nats": 0.00023507699370384216,
+     "nll": 1.9983477592468262,
+     "top1_agreement": 0.995452880859375
+    },
+    {
+     "group": "l2.mlp",
+     "members": [
+      "l2.mlp"
+     ],
+     "minus_float_nats": 0.000941697508096695,
+     "nll": 1.999054379761219,
+     "top1_agreement": 0.9838638305664062
+    },
+    {
+     "group": "l3.mixer_maps",
+     "members": [
+      "l3.mixer_maps"
+     ],
+     "minus_float_nats": 0.00037318095564842224,
+     "nll": 1.9984858632087708,
+     "top1_agreement": 0.9875946044921875
+    },
+    {
+     "group": "l3.mixer_scalars",
+     "members": [
+      "l3.mixer_scalars"
+     ],
+     "minus_float_nats": 8.46274197101593e-05,
+     "nll": 1.9981973096728325,
+     "top1_agreement": 0.9984664916992188
+    },
+    {
+     "group": "l3.mlp",
+     "members": [
+      "l3.mlp"
+     ],
+     "minus_float_nats": 0.0009110681712627411,
+     "nll": 1.999023750424385,
+     "top1_agreement": 0.9833450317382812
+    },
+    {
+     "group": "l4.mixer_maps",
+     "members": [
+      "l4.mixer_maps"
+     ],
+     "minus_float_nats": 0.0006630755960941315,
+     "nll": 1.9987757578492165,
+     "top1_agreement": 0.985321044921875
+    },
+    {
+     "group": "l4.mixer_scalars",
+     "members": [
+      "l4.mixer_scalars"
+     ],
+     "minus_float_nats": 4.4889748096466064e-05,
+     "nll": 1.9981575720012188,
+     "top1_agreement": 0.9983901977539062
+    },
+    {
+     "group": "l4.mlp",
+     "members": [
+      "l4.mlp"
+     ],
+     "minus_float_nats": 0.0005390197038650513,
+     "nll": 1.9986517019569874,
+     "top1_agreement": 0.9833755493164062
+    },
+    {
+     "group": "l5.mixer_maps",
+     "members": [
+      "l5.mixer_maps"
+     ],
+     "minus_float_nats": 0.0032243654131889343,
+     "nll": 2.0013370476663113,
+     "top1_agreement": 0.9743881225585938
+    },
+    {
+     "group": "l5.mixer_scalars",
+     "members": [
+      "l5.mixer_scalars"
+     ],
+     "minus_float_nats": 0.0007682628929615021,
+     "nll": 1.9988809451460838,
+     "top1_agreement": 0.9949417114257812
+    },
+    {
+     "group": "l5.mlp",
+     "members": [
+      "l5.mlp"
+     ],
+     "minus_float_nats": 0.0037305913865566254,
+     "nll": 2.001843273639679,
+     "top1_agreement": 0.9695205688476562
+    },
+    {
+     "group": "all_maps",
+     "members": [
+      "l0.mixer_maps",
+      "l1.mixer_maps",
+      "l2.mixer_maps",
+      "l3.mixer_maps",
+      "l4.mixer_maps",
+      "l5.mixer_maps",
+      "l0.mlp",
+      "l1.mlp",
+      "l2.mlp",
+      "l3.mlp",
+      "l4.mlp",
+      "l5.mlp",
+      "embed",
+      "head"
+     ],
+     "minus_float_nats": 0.0347767099738121,
+     "nll": 2.0328893922269344,
+     "top1_agreement": 0.9070892333984375
+    },
+    {
+     "group": "all_scalars",
+     "members": [
+      "l0.mixer_scalars",
+      "l1.mixer_scalars",
+      "l2.mixer_scalars",
+      "l3.mixer_scalars",
+      "l4.mixer_scalars",
+      "l5.mixer_scalars"
+     ],
+     "minus_float_nats": 0.0012818649411201477,
+     "nll": 1.9993945471942425,
+     "top1_agreement": 0.9918746948242188
+    },
+    {
+     "group": "all",
+     "members": [
+      "embed",
+      "head",
+      "l0.mixer_maps",
+      "l0.mixer_scalars",
+      "l0.mlp",
+      "l1.mixer_maps",
+      "l1.mixer_scalars",
+      "l1.mlp",
+      "l2.mixer_maps",
+      "l2.mixer_scalars",
+      "l2.mlp",
+      "l3.mixer_maps",
+      "l3.mixer_scalars",
+      "l3.mlp",
+      "l4.mixer_maps",
+      "l4.mixer_scalars",
+      "l4.mlp",
+      "l5.mixer_maps",
+      "l5.mixer_scalars",
+      "l5.mlp"
+     ],
+     "minus_float_nats": 0.03622955083847046,
+     "nll": 2.034342233091593,
+     "top1_agreement": 0.9065093994140625
+    }
+   ],
+   "schema": "uor-r4.stack-rounding-attribution/1",
+   "seconds": 447.788871375,
+   "targets": 131072,
+   "valid": {
+    "bytes": 413688,
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+    "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+   },
+   "windows": 512,
+   "root": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-s1/attribution-rtn-1",
+    "manifest_sha256": "69bae23ea020e98586f41d234014e3e9281deafaf567f450088197def8670ece",
+    "error": false
+   }
+  }
+ }
+}

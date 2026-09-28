@@ -11,10 +11,15 @@ frontier, geometric-advantage or full-path energy qualification.**
   - Both final models are on the owner SSD, SHA-256 verified.
   - D0 selects an architecture; it does not qualify dialogue.
 - **Track.** Approved by the owner: [synthesis](whole-project-synthesis-2026-09-28.md) §2–§4 and ROADMAP §2a.
-  - The core is the stack.
-  - Architectural exact relational memory (AERM, D2) is next for Lab 1.
-  - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2).
+  - The core is the stack, keeping its quaternion transport (D1, #1460).
+  - D2 (architectural exact relational memory) ran: **frozen FAIL on the margin**. The store is perfect in distribution; the learned read does not generalise ([result](d2-aerm-probe-result-2026-09-28.md)).
+  - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2). It is evidence, not a veto; the geometric read/address operator G is on the main path (owner, 15:27 UTC).
   - D4 is geometry-coded QAT with a fidelity objective (Lab 3).
+- **S1, the stack's D11 serving port (Lab 1): measured, not yet qualified** ([record](s1-stack-serving-measurements-2026-09-28.md)).
+  - The 4-bit export misses the 0.02-nat fidelity gate: +0.0362 nats (round to nearest), +0.0257 (GPTQ). The integer arithmetic costs ≤ 10⁻⁶ nats.
+  - The head is about half of the gap.
+  - Snapping the transport to the 120 icosians costs +0.026 at evaluation; not adopted.
+  - **Owner, 17:00 UTC:** Lab 1 adds QAT, and D4 targets the same gap. The D11 port, bundle and audit continue.
 - **External audit.** Codex's geometric-attention review was verified line by line and imported with a claim ledger ([evidence](../evidence/external-codex-audit-2026-09-28/README.md); synthesis §7; ROADMAP ruling 11).
   - T2 as coded is a compression-fidelity screen, and its geometric arms are confounded by magnitude.
   - #1438's cause is unresolved.

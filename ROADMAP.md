@@ -140,17 +140,17 @@ Geometry sits in five places: the core's transport (D1), exact identity, exact a
 
 This is the single integration target. Unknown fields are marked, never filled from an older artifact.
 
-| Field | State, 2026-09-28 15:33 UTC; the D4 rows corrected at 15:45 |
+| Field | State, 2026-09-28 15:33 UTC; the D4 rows corrected at 15:45; the S1 rows at 17:00 |
 |---|---|
 | Model family and configuration | Geometric stack `rrarra`, quaternion transport (D0, D1). Milestone width and depth (10–30M): **UNRESOLVED** |
 | Tokenizer and dialogue protocol | Protocol `uor-r4.literal-role-dialogue/1` (`blake3:0099a613…`). Tokenizer: **UNRESOLVED** (I5; recommended #1017, `d36d3e87…`) |
 | Retained checkpoint | **None for the milestone.** References only: cycle-4 `geometric_s1` (code BPE, `3eb1ebbb…`) and the continuous dialogue child (`98aca5ab…`, D4's fidelity reference) |
 | Memory semantics and persistence | The D2 probe keeps the current and previous distinct value, fresh per sequence. For the product: **UNRESOLVED**, a choice among current, previous record, previous distinct and initial (the scoped-memory contract), plus session persistence with save and reload |
 | Reader and addressing | Fallback: the stack's dense `a` read. G: **design UNRESOLVED** (after D6) |
-| Codec and serving profile | D11. Codec: **UNRESOLVED** (D4 open, Lab 3). **Stack integer serving: S1, Lab 1 locally** (owner, 16:08 UTC; it moved from the cloud track, which never started it): a `stack` profile of I2 with writer, loader and integer forward, a reload-equality test, and fidelity ≤ 0.02 nats against float, with an evaluation-only 2I-snap diagnostic. Lab 1 runs the ARM64 audit on the M1. #1458's runtime is not accepted |
-| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export and loader: **S1, Lab 1 locally, starting**. Store serialization in the session: **NOT IMPLEMENTED** |
+| Codec and serving profile | D11. Codec: **UNRESOLVED** (D4 open, Lab 3). **Stack integer serving: S1, Lab 1 locally** (owner, 16:08 UTC): a `stack` profile of I2 with writer, loader and integer forward, a reload-equality test, fidelity ≤ 0.02 nats against float, and the ARM64 audit on the M1. **Measured (S1.0, [record](docs/integration/s1-stack-serving-measurements-2026-09-28.md)):** the 4-bit export costs **+0.0362** nats (round to nearest) and **+0.0257** (GPTQ), with the integer arithmetic ≤ 10⁻⁶. Both miss 0.02. The head is +0.012 of it. The evaluation-only 2I snap costs +0.026 on three models: not adopted. **Owner, 17:00 UTC:** Lab 1 adds quantization-aware training (QAT), and D4 targets the same measured gap at 4.25 bits per weight. #1458's runtime is not accepted |
+| Exporter, loader, session | I2 bundle and I3 `uor-chat`. Stack export: the D10 container, measured (S1.0). D11 integer forward (S1.1, bit-identical to D10): **in progress**. I2 `stack` bundle and loader (S1.2): **next**. Store serialization in the session: **NOT IMPLEMENTED** |
 | Complete-response acceptance | The §8 milestone panel (40/30/30), sealed before the candidate's final fit: **NOT AUTHORED** |
-| Producer → consumer → next missing artifact | Lab 1 → Lab 3 and the milestone: the stack I2 bundle and integer runtime (S1), **starting**. Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: a measured D4 codec, **missing**. Lab 2 → Lab 1: D6 evidence for G |
+| Producer → consumer → next missing artifact | Lab 1 → Lab 3 and the milestone: the stack I2 bundle and integer runtime (S1), **in progress**; QAT for the milestone fit, **next**. Lab 1 → Lab 3: a saved, reloadable stack-plus-store checkpoint (I1), **missing**. Lab 3 → all: a measured D4 codec, **missing**. Lab 2 → Lab 1: D6 evidence for G |
 
 ## 3. Deconfliction rulings, 2026-09-27
 
@@ -242,6 +242,10 @@ This is the single integration target. Unknown fields are marked, never filled f
     - **D6 is evidence, not a veto** (owner). Its outcomes describe the representation tested. The next reader experiment must target the failure D6 shows.
     - **G is on the main path** (owner). It is designed after D6, built behind I4 with the dense read as fallback, and promoted only if it wins at equal cost.
     - **Results need measurements** (added 15:45, after #1458). A result merges only with its sealed report roots on disk, and the director re-reads or reproduces its headline numbers from those roots before merging. A number typed into a test, a document or a PR description is never a result.
+    - **Lab 3 results are re-run by the director** (owner, 17:11 UTC, after #1452's figures proved to be packager fallback defaults). Lab 3 keeps D4 and its salvage work.
+      - A Lab 3 number is accepted only after the director re-runs its gating measurement from Lab 3's committed code, into a fresh sealed root.
+      - Every reader of a result file must fail on a missing key. Defaults are never used.
+      - Tests must fail, not pass, when their fixture is missing.
 
 ### Engine consolidation map
 
@@ -598,6 +602,27 @@ This reporting adds no threshold. Thresholds change only with the owner, before 
 - The #1432 outputs echo relations ("The name is Alex is Alex.") instead of responding.
 
 ## 9. Director log
+
+**2026-09-28 17:00 UTC, S1.0 measured; the owner chooses QAT plus a D4 target for S1's fidelity; #1452 not accepted.**
+- **S1.0 (Lab 1, evaluation only; [record](docs/integration/s1-stack-serving-measurements-2026-09-28.md)).** The cycle-4 `geometric_s1` exported to the D11 interim format (4-bit maps in groups of 32) misses S1.2's 0.02-nat fidelity gate:
+  - **+0.0362** nats with round to nearest;
+  - **+0.0257** with GPTQ (top-1 agreement 0.918);
+  - the integer arithmetic costs ≤ 10⁻⁶ nats, so the gap is all weight representation.
+- **S1.0c attribution.** With one group of tensors from the export at a time:
+  - the head alone costs +0.012;
+  - the MLPs about +0.006, the embedding +0.003 and the mixer maps about +0.003;
+  - the per-channel scalars (conv taps, decay rates, β) cost +0.001.
+- **S1.0b.** Snapping every transport quaternion to the nearest unit icosian at evaluation costs +0.026 on each of three models. That is above the 0.02 option threshold, so it is not adopted.
+- **Owner, 17:00 UTC: QAT (Lab 1) plus a D4 target.**
+  - Lab 1 adds quantization-aware training, with the served 4-bit maps and grid scalars in the loop, and validates it with a pre-registered short fine-tune.
+  - D4 (Lab 3) gets the same measured gap as its codec target at 4.25 bits per weight.
+  - The milestone fit uses whichever reaches ≤ 0.02 first.
+  - S1.1–S1.3 (the D11 port, the bundle and the audit) continue meanwhile.
+- **#1452 not accepted.** Its M1 figures (3.16 ms per step, 304 tok/s, 67 ms cold load) were packager fallback defaults. Its own committed harness run shows 7.3 ms, 130.6 tok/s and 1,530 ms. It is back in draft with a [review](https://github.com/UOR-Foundation/uor-r4/pull/1452#issuecomment-5874859825).
+  - **Owner, 17:11 UTC:** Lab 3 keeps D4, and the director re-runs every Lab 3 gating measurement before acceptance (ruling 12).
+- **Cloud data transfer:** copied and verified (14/14), with the branch deleted.
+  - Its README corrects an earlier one: `lens.u16` holds per-token byte lengths, not document lengths.
+  - The erratum is recorded in the cycle-4 and D1 receipts on the SSD.
 
 **2026-09-28 16:28 UTC, cloud handoff received; S1 moves to Lab 1 locally (owner).**
 - **The cloud track stood down and started nothing new.** S1 had never started, so the owner moved it to Lab 1, locally.

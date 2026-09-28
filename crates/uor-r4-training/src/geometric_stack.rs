@@ -975,11 +975,48 @@ impl StackModel {
     }
 }
 
-#[cfg(test)]
 impl StackModel {
+    /// Evaluation-only diagnostic (roadmap S1.0b): next-token logits
+    /// `[batch * time, vocabulary]` with every transport quaternion replaced,
+    /// before its scaling by lambda, by the nearest of `snap` (for example the
+    /// 120 unit icosians of 2I). The recurrences run through their composed
+    /// Candle reference; with `snap = None` this equals the fused forward
+    /// within float tolerance. Not a training or serving path.
+    pub fn logits_with_transport(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        snap: Option<&[[f32; 4]]>,
+    ) -> Result<Tensor> {
+        if self.config.arch != StackArch::Geometric {
+            return Err(invalid("transport snapping needs a geometric stack"));
+        }
+        if snap.is_some() && !self.config.rotation {
+            return Err(invalid("transport snapping needs a rotating stack"));
+        }
+        let mut x = self.embed(ids, batch, time)?;
+        for layer in 0..self.config.layers() {
+            let mixed = match self.config.layer_kind(layer) {
+                'r' => self.composed_recurrence(layer, &x, snap)?,
+                _ => self.geometric_read(layer, &x, &mut None)?,
+            };
+            x = x.add(&mixed)?;
+            x = x.add(&self.mlp(layer, &x, &mut None)?)?;
+        }
+        let hidden = self.finish_hooked(x, &mut None)?;
+        self.head(&hidden)
+    }
+
     /// The recurrence mixer composed from Candle operations: the reference
-    /// for the fused core.
-    pub(super) fn composed_recurrence(&self, layer: usize, x: &Tensor) -> Result<Tensor> {
+    /// for the fused core. `snap` replaces each unit transport quaternion by
+    /// its nearest root (see [`Self::logits_with_transport`]).
+    pub(crate) fn composed_recurrence(
+        &self,
+        layer: usize,
+        x: &Tensor,
+        snap: Option<&[[f32; 4]]>,
+    ) -> Result<Tensor> {
         let (batch, time, width) = x.dims3()?;
         let lanes = width / 4;
         let u = self.rms_norm(x, self.layer_weight(layer, "rec_norm.weight")?)?;
@@ -1029,7 +1066,12 @@ impl StackModel {
                 .narrow(2, lanes, width)?
                 .reshape((batch, time, lanes, 4))?;
             let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
-            raw.broadcast_div(&norm)?.broadcast_mul(&lambda)?
+            let unit = raw.broadcast_div(&norm)?;
+            let unit = match snap {
+                None => unit,
+                Some(roots) => snap_to_roots(&unit, roots)?,
+            };
+            unit.broadcast_mul(&lambda)?
         } else {
             let zeros = Tensor::zeros((batch, time, lanes, 3), DType::F32, &self.device)?;
             Tensor::cat(&[&lambda, &zeros], 3)?
@@ -1044,6 +1086,36 @@ impl StackModel {
             self.layer_weight(layer, "rec.out.weight")?,
         )
     }
+}
+
+/// Each quaternion of a `[.., 4]` tensor replaced by the root with the
+/// largest dot product: the nearest root, as every root is a unit.
+fn snap_to_roots(unit: &Tensor, roots: &[[f32; 4]]) -> Result<Tensor> {
+    if roots.is_empty() {
+        return Err(invalid("snapping needs at least one root"));
+    }
+    let shape = unit.shape().clone();
+    let values = unit.flatten_all()?.to_vec1::<f32>()?;
+    let snapped: Vec<[f32; 4]> = values
+        .par_chunks(4)
+        .map(|q| {
+            let mut best = roots[0];
+            let mut best_dot = f32::NEG_INFINITY;
+            for root in roots {
+                let dot = q[0] * root[0] + q[1] * root[1] + q[2] * root[2] + q[3] * root[3];
+                if dot > best_dot {
+                    best_dot = dot;
+                    best = *root;
+                }
+            }
+            best
+        })
+        .collect();
+    Ok(Tensor::from_vec(
+        snapped.into_iter().flatten().collect::<Vec<f32>>(),
+        shape,
+        unit.device(),
+    )?)
 }
 
 /// Matrices take weight decay; norms, biases, decays, age tables, the
@@ -3262,6 +3334,42 @@ mod tests {
     }
 
     #[test]
+    fn transport_logits_equal_the_forward_until_snapped() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "rar", ReadScore::Lorentz, true);
+        config.seed = 59;
+        let model = StackModel::new(config, &cpu())?;
+        for name in ["layers.00.rec.gate.weight", "layers.02.rec.gate.weight"] {
+            let var = &model.variables()[name];
+            var.set(&random(&mut Initializer(61), var.dims(), 0.5))?;
+        }
+        let vocab = model.config.vocab_size as u32;
+        let ids: Vec<u32> = (0..18).map(|i| (i * 7 + 3) % vocab).collect();
+        let fused = model.forward(&ids, 2, 9)?;
+        let composed = model.logits_with_transport(&ids, 2, 9, None)?;
+        let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
+        assert!(gap < 1e-4, "the composed transport differs by {gap}");
+        // Snapping to the identity alone removes every rotation, and snapping
+        // to the 2I roots changes the logits but keeps them finite.
+        let identity = [[1f32, 0.0, 0.0, 0.0]];
+        let still = model.logits_with_transport(&ids, 2, 9, Some(&identity))?;
+        assert!(still.sub(&fused)?.abs()?.max_all()?.to_scalar::<f32>()? > 1e-6);
+        let roots: Vec<[f32; 4]> =
+            uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots()
+                .iter()
+                .map(|r| {
+                    let a = r.to_array();
+                    [a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32]
+                })
+                .collect();
+        let snapped = model
+            .logits_with_transport(&ids, 2, 9, Some(&roots))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(snapped.iter().all(|v| v.is_finite()));
+        Ok(())
+    }
+
+    #[test]
     fn fused_recurrence_matches_the_composed_mixer() -> Result<()> {
         for rotation in [true, false] {
             let mut config = tiny(StackArch::Geometric, "r", ReadScore::Lorentz, rotation);
@@ -3275,7 +3383,7 @@ mod tests {
             }
             let x = random(&mut Initializer(47), &[2, 9, 16], 1.0);
             let fused = model.recurrence(0, &x, &mut None)?;
-            let composed = model.composed_recurrence(0, &x)?;
+            let composed = model.composed_recurrence(0, &x, None)?;
             let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
             assert!(
                 gap < 1e-5,
@@ -3298,7 +3406,10 @@ mod tests {
                 .recurrence(0, &x, &mut None)?
                 .mul(&weights)?
                 .sum_all()?;
-            let composed_loss = model.composed_recurrence(0, &x)?.mul(&weights)?.sum_all()?;
+            let composed_loss = model
+                .composed_recurrence(0, &x, None)?
+                .mul(&weights)?
+                .sum_all()?;
             let (a, b) = (fused_loss.backward()?, composed_loss.backward()?);
             for (name, var) in names.iter().zip(&vars) {
                 let ga = a

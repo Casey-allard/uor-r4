@@ -25,6 +25,12 @@
 //! geometric-stack lut-evaluate artifact=ROOT/model.lut valid=VALID.u16 out=NEW_REPORT_ROOT \
 //!   [model=ROOT/model] [windows=64] [blocks=false] [tune_blocks=64] [threads=1] [lens=LENS.u16] \
 //!   [reference=false]
+//! geometric-stack snap-evaluate model=ROOT/model valid=VALID.u16 out=NEW_REPORT_ROOT [windows=512]
+//!   (roadmap S1.0b: development NLL with every transport quaternion snapped to the nearest of the
+//!   120 unit icosians, against the unsnapped model on the same windows; evaluation only)
+//! geometric-stack rounding-attribution artifact=ROOT/model.lut model=ROOT/model valid=VALID.u16 \
+//!   out=NEW_REPORT_ROOT [windows=512]
+//!   (roadmap S1.0c: the float model with one tensor group at a time from the artifact; evaluation only)
 //! geometric-stack lut-sample artifact=ROOT/model.lut out=NEW_REPORT_ROOT (valid=VALID.u16 | prompt=TEXT) \
 //!   [merges=MERGES.txt | tokenizer=TOKENIZER.json] [prompts=3] [prompt_tokens=64] [sample_tokens=128] \
 //!   [temperature=0.8] [top_k=40] [top_p=1] [seed=1] [threads=1]
@@ -103,10 +109,13 @@ use std::time::Instant;
 
 use candle_core::Device;
 use serde_json::{json, Value};
+use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_core::report_output;
 use uor_r4_training::dialogue_development;
 use uor_r4_training::dialogue_episodes::{PrefixPolicy, EPISODE_CONTEXT};
-use uor_r4_training::geometric_stack::{ReadScore, StackAdamW, StackArch, StackConfig, StackModel};
+use uor_r4_training::geometric_stack::{
+    logits_cross_entropy, ReadScore, StackAdamW, StackArch, StackConfig, StackModel,
+};
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
     check_panel, development, episode_contract, greedy_reply, load_requests, reply_panel, trim,
@@ -1516,6 +1525,261 @@ fn score_row(logits: impl Iterator<Item = f64> + Clone, target: usize) -> (f64, 
     (max + total.ln() - at, best)
 }
 
+/// S1.0b: the development NLL cost of serving every transport quaternion as
+/// the nearest of the 120 unit icosians (2I), on the windows `evaluate` uses.
+/// Evaluation only: no training, no serving path.
+fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
+    let args = Args::parse(arguments, &["model", "valid", "windows", "out"])?;
+    let model_dir = PathBuf::from(args.required("model")?);
+    let valid_path = PathBuf::from(args.required("valid")?);
+    let windows: usize = args.number("windows", 512)?;
+    let out = PathBuf::from(args.required("out")?);
+    if windows == 0 {
+        return Err(invalid("windows must be positive"));
+    }
+    report_output::claim(&out)?;
+    let result = (|| -> Result<()> {
+        let started = Instant::now();
+        let model = StackModel::load(&model_dir, &Device::Cpu)?;
+        let valid = read_tokens(&valid_path, model.config.vocab_size)?;
+        let time = model.config.context;
+        if valid.len() <= time + windows {
+            return Err(invalid("too few development tokens for the windows"));
+        }
+        let roots: Vec<[f32; 4]> = canonical_h4_roots()
+            .iter()
+            .map(|root| {
+                let a = root.to_array();
+                [a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32]
+            })
+            .collect();
+        let stride = (valid.len() - time - 1) / windows;
+        let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
+        let (mut fused_nll, mut snapped_nll, mut agree, mut seen) = (0f64, 0f64, 0usize, 0usize);
+        let mut composed_max_abs = 0f64;
+        for (index, group) in starts.chunks(16).enumerate() {
+            let mut ids = Vec::with_capacity(group.len() * time);
+            let mut targets = Vec::with_capacity(group.len() * time);
+            for &start in group {
+                ids.extend_from_slice(&valid[start..start + time]);
+                targets.extend_from_slice(&valid[start + 1..start + time + 1]);
+            }
+            let rows = targets.len();
+            let fused = model.forward(&ids, group.len(), time)?;
+            let snapped = model.logits_with_transport(&ids, group.len(), time, Some(&roots))?;
+            if index == 0 {
+                // The composed reference must equal the fused forward, so the
+                // snapped delta is due to snapping alone.
+                let composed = model.logits_with_transport(&ids, group.len(), time, None)?;
+                composed_max_abs = f64::from(
+                    composed
+                        .sub(&fused)?
+                        .abs()?
+                        .max_keepdim(1)?
+                        .max(0)?
+                        .to_vec1::<f32>()?[0],
+                );
+            }
+            fused_nll +=
+                f64::from(logits_cross_entropy(&fused, &targets, None)?.to_scalar::<f32>()?)
+                    * rows as f64;
+            snapped_nll +=
+                f64::from(logits_cross_entropy(&snapped, &targets, None)?.to_scalar::<f32>()?)
+                    * rows as f64;
+            let fused_top = fused.argmax(1)?.to_vec1::<u32>()?;
+            let snapped_top = snapped.argmax(1)?.to_vec1::<u32>()?;
+            agree += fused_top
+                .iter()
+                .zip(&snapped_top)
+                .filter(|(a, b)| a == b)
+                .count();
+            seen += rows;
+        }
+        let fused_mean = fused_nll / seen as f64;
+        let snapped_mean = snapped_nll / seen as f64;
+        let report = json!({
+            "schema": "uor-r4.stack-transport-snap/1",
+            "roadmap": "S1.0b (evaluation-only diagnostic)",
+            "model": identity(&model_dir.join("model.safetensors"))?,
+            "config": model.config,
+            "valid": identity(&valid_path)?,
+            "windows": windows,
+            "targets": seen,
+            "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
+            "fused_nll": fused_mean,
+            "snapped_nll": snapped_mean,
+            "snapped_minus_fused_nats": snapped_mean - fused_mean,
+            "top1_agreement": agree as f64 / seen as f64,
+            "composed_minus_fused_max_abs_logit_first_group": composed_max_abs,
+            "executable": identity(&std::env::current_exe()?)?,
+            "seconds": started.elapsed().as_secs_f64(),
+        });
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        fs::write(out.join("snap.json"), serde_json::to_vec_pretty(&report)?)?;
+        Ok(())
+    })();
+    finish(&out, result)
+}
+
+/// S1.0c: where a stack artifact's representation gap comes from. The float
+/// model with one group of tensors at a time replaced by the artifact's own
+/// values (in f32, the float kernels), on the windows `evaluate` uses. Groups
+/// keep a normalization with the matrices its gain is folded into. Evaluation
+/// only.
+fn rounding_attribution_mode(arguments: &[String]) -> Result<()> {
+    let args = Args::parse(arguments, &["artifact", "model", "valid", "windows", "out"])?;
+    let artifact_path = PathBuf::from(args.required("artifact")?);
+    let model_dir = PathBuf::from(args.required("model")?);
+    let valid_path = PathBuf::from(args.required("valid")?);
+    let windows: usize = args.number("windows", 512)?;
+    let out = PathBuf::from(args.required("out")?);
+    if windows == 0 {
+        return Err(invalid("windows must be positive"));
+    }
+    report_output::claim(&out)?;
+    let result = (|| -> Result<()> {
+        let started = Instant::now();
+        let float = StackModel::load(&model_dir, &Device::Cpu)?;
+        let artifact =
+            uor_r4_lut::format::StackArtifact::parse(fs::read(&artifact_path)?).map_err(lut)?;
+        let reference = stack_grid_reference(&float, &artifact)?;
+        let valid = read_tokens(&valid_path, float.config.vocab_size)?;
+        let time = float.config.context;
+        if valid.len() <= time + windows {
+            return Err(invalid("too few development tokens for the windows"));
+        }
+        // Every float tensor belongs to exactly one group.
+        let group_of = |name: &str| -> Result<String> {
+            if name == "embedding.weight" {
+                return Ok("embed".into());
+            }
+            if name == "final_norm.weight" {
+                return Ok("head".into());
+            }
+            let rest = name
+                .strip_prefix("layers.")
+                .ok_or_else(|| invalid(format!("no attribution group for {name}")))?;
+            let (layer, part) = rest
+                .split_once('.')
+                .ok_or_else(|| invalid(format!("no attribution group for {name}")))?;
+            let layer: usize = layer
+                .parse()
+                .map_err(|_| invalid(format!("no attribution group for {name}")))?;
+            let kind = match part {
+                "rec_norm.weight" | "rec.in.weight" | "rec.gate.weight" | "rec.out.weight"
+                | "read_norm.weight" | "read.query.weight" | "read.key.weight"
+                | "read.value.weight" | "read.null.weight" | "read.out.weight" => "mixer_maps",
+                "rec.conv.weight" | "rec.conv.bias" | "rec.gate.bias" | "rec.decay"
+                | "read.null.bias" | "read.age" | "read.log_beta" | "read.offset" => {
+                    "mixer_scalars"
+                }
+                "mlp_norm.weight" | "mlp.gate.weight" | "mlp.up.weight" | "mlp.down.weight" => {
+                    "mlp"
+                }
+                _ => return Err(invalid(format!("no attribution group for {name}"))),
+            };
+            Ok(format!("l{layer}.{kind}"))
+        };
+        let mut groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for name in float.variables().keys() {
+            groups
+                .entry(group_of(name)?)
+                .or_default()
+                .push(name.clone());
+        }
+        let float_head = float.variables()["embedding.weight"].as_tensor().clone();
+        let stride = (valid.len() - time - 1) / windows;
+        let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
+        // The float model with the tensors of `selected` groups from the artifact.
+        let score = |selected: &[&str]| -> Result<(f64, Vec<u32>)> {
+            let hybrid = StackModel::load(&model_dir, &Device::Cpu)?;
+            for group in selected {
+                let names = groups
+                    .get(*group)
+                    .ok_or_else(|| invalid(format!("unknown group {group}")))?;
+                for name in names {
+                    hybrid.variables()[name].set(reference.model.variables()[name].as_tensor())?;
+                }
+            }
+            let head = if selected.contains(&"head") {
+                &reference.head
+            } else {
+                &float_head
+            };
+            let (mut nll, mut top) = (0f64, Vec::new());
+            for group in starts.chunks(16) {
+                let mut ids = Vec::with_capacity(group.len() * time);
+                let mut targets = Vec::with_capacity(group.len() * time);
+                for &start in group {
+                    ids.extend_from_slice(&valid[start..start + time]);
+                    targets.extend_from_slice(&valid[start + 1..start + time + 1]);
+                }
+                let logits = hybrid.hidden(&ids, group.len(), time)?.matmul(&head.t()?)?;
+                nll +=
+                    f64::from(logits_cross_entropy(&logits, &targets, None)?.to_scalar::<f32>()?)
+                        * targets.len() as f64;
+                top.extend(logits.argmax(1)?.to_vec1::<u32>()?);
+            }
+            Ok((nll / top.len() as f64, top))
+        };
+        let (float_nll, float_top) = score(&[])?;
+        let names: Vec<String> = groups.keys().cloned().collect();
+        let mut rows = Vec::new();
+        let mut evaluate = |label: String, selected: Vec<&str>| -> Result<()> {
+            let (nll, top) = score(&selected)?;
+            let agree = top.iter().zip(&float_top).filter(|(a, b)| a == b).count();
+            let row = json!({
+                "group": label,
+                "members": selected,
+                "nll": nll,
+                "minus_float_nats": nll - float_nll,
+                "top1_agreement": agree as f64 / top.len() as f64,
+            });
+            eprintln!("{row}");
+            rows.push(row);
+            Ok(())
+        };
+        for name in &names {
+            evaluate(name.clone(), vec![name.as_str()])?;
+        }
+        let of_kind = |suffix: &str| -> Vec<&str> {
+            names
+                .iter()
+                .filter(|n| n.ends_with(suffix))
+                .map(String::as_str)
+                .collect()
+        };
+        let mut maps = of_kind(".mixer_maps");
+        maps.extend(of_kind(".mlp"));
+        maps.extend(["embed", "head"]);
+        evaluate("all_maps".into(), maps)?;
+        evaluate("all_scalars".into(), of_kind(".mixer_scalars"))?;
+        evaluate("all".into(), names.iter().map(String::as_str).collect())?;
+        let report = json!({
+            "schema": "uor-r4.stack-rounding-attribution/1",
+            "roadmap": "S1.0c (evaluation-only diagnostic)",
+            "artifact": identity(&artifact_path)?,
+            "model": identity(&model_dir.join("model.safetensors"))?,
+            "config": float.config,
+            "valid": identity(&valid_path)?,
+            "windows": windows,
+            "targets": float_top.len(),
+            "float_nll": float_nll,
+            "groups": groups,
+            "rows": rows,
+            "reading": "each row: the float model with only the listed groups from the artifact; maps are the 4-bit matrices (with the normalization whose gain they carry), scalars the grid-code and fixed-point per-channel values",
+            "executable": identity(&std::env::current_exe()?)?,
+            "seconds": started.elapsed().as_secs_f64(),
+        });
+        fs::write(
+            out.join("attribution.json"),
+            serde_json::to_vec_pretty(&report)?,
+        )?;
+        Ok(())
+    })();
+    finish(&out, result)
+}
+
 /// Integer serving on development windows, beside the float model on the same
 /// windows when `model=` is given: evenly spaced windows (`train`'s rule), or
 /// with `blocks=true` the retained evaluator's consecutive blocks with its
@@ -2528,6 +2792,8 @@ fn main() -> Result<()> {
         "corpus" => corpus_mode(rest),
         "export" => export_mode(rest),
         "lut-evaluate" => lut_evaluate_mode(rest),
+        "snap-evaluate" => snap_evaluate_mode(rest),
+        "rounding-attribution" => rounding_attribution_mode(rest),
         "lut-sample" => lut_sample_mode(rest),
         "dialogue-train" => dialogue_train_mode(rest),
         "lut-chat" => lut_chat_mode(rest),
