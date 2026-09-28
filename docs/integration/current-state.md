@@ -952,6 +952,31 @@ separate obligations. One paired seed remains exploratory for geometry claims.
   re-parameterisation of this score.
 - **Stop:** this packet is closed. #973 and #820 remain open at their wider scope.
 
+### Executed: read-side localization (September 27)
+
+- **Executed** read-only on the frozen step-15,672 quaternion parent from the
+  [predeclared plan](read-localization-plan-2026-09-27.md) and
+  [result](read-localization-result-2026-09-27.md): decision-0 read-mass attribution on
+  the 32-row source panel under five declared conditions (baseline; entity-final;
+  matched final control; near-query entity mention; near-query matched control).
+  Baseline parity with the retained parent is `PARITY_EXACT` on all 32 rows, including
+  decision-0 read fields; the full run is 1.29 s and no weight or serving path changed.
+- **Witnessed result:** the predeclared rule returns **MIXED** (the frozen
+  READ_ACCESS_LIMITED thresholds were not met: the entity was present at read rank 2–3
+  with 16–32% share, and the entity-share metric did not separate the entity mention
+  from its matched control). Post-hoc at the same scope, a clean **READ_RANKING**
+  signature: in 5/5 distractor rows the emitted token equals the read top-1 (` clouds`),
+  the near-query entity mention completes 5/5 while the matched non-entity control
+  completes 0/5 and emits the inserted noun (` carrot`) 5/5. The extra-phrase class is
+  not entity-specific (D 3/5 vs control 4/5), consistent with the termination INERT
+  result; the single morphology row emits the correct noun at rank 1 and fails only the
+  completion.
+- **Decision:** the distractor failures are localized to the read's ranking (learned
+  age/recency prior) rather than entity absence or emission. Recommended bounded
+  successor: an oracle read re-rank intervention (clamp decision-0 mass onto the entity
+  occurrence) to confirm the ranking as the sole bottleneck before any mechanism change.
+  No promotion; the instrument is retained.
+
 ## Retained result: paired learned-code retention accepted
 
 The [completed fixed-recipe learning](learned-rounding-result-2026-09-25.md)

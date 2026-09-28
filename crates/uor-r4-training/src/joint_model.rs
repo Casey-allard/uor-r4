@@ -85,6 +85,73 @@ impl PrecisionMode {
     }
 }
 
+/// Opt-in, in-memory evaluation intervention on the dense Full-admission read
+/// masses. It is applied after the read masses are computed and before the
+/// value mixing and state update, only when reads are enabled, the prior
+/// history is nonempty, admission is `Full` and `batch == 1`; any other step
+/// with an intervention set returns an error. The NoRead mass is never changed
+/// and the non-NoRead total is preserved. Following the [`PrecisionMode`]
+/// precedent this is a diagnostic field, never serialized into a checkpoint,
+/// and its default `None` preserves byte-identical behavior.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum ReadMassIntervention {
+    /// Exchange the read masses of occurrence columns `a` and `b`.
+    Swap { a: usize, b: usize },
+    /// Move the entire non-NoRead read mass onto occurrence column `target`.
+    Focus { target: usize },
+}
+
+impl ReadMassIntervention {
+    /// Stable report label for this intervention.
+    pub fn name(self) -> String {
+        match self {
+            Self::Swap { a, b } => format!("Swap{{a:{a},b:{b}}}"),
+            Self::Focus { target } => format!("Focus{{target:{target}}}"),
+        }
+    }
+
+    /// Pure application to one lane's non-NoRead read-mass row. Indices are
+    /// occurrence columns; the row sum is preserved and NoRead is not part of
+    /// this row, so neither intervention changes it.
+    fn apply_values(self, masses: &mut [f32]) -> Result<()> {
+        let len = masses.len();
+        match self {
+            Self::Swap { a, b } => {
+                if a >= len || b >= len {
+                    return Err(invalid("read-mass swap index outside the read row"));
+                }
+                masses.swap(a, b);
+            }
+            Self::Focus { target } => {
+                if target >= len {
+                    return Err(invalid("read-mass focus index outside the read row"));
+                }
+                let total: f32 = masses.iter().sum();
+                masses.fill(0.0);
+                masses[target] = total;
+            }
+        }
+        Ok(())
+    }
+
+    /// Apply to a `[batch, previous]` read-mass tensor. Only the dense
+    /// Full-admission batch-1 path is supported.
+    fn apply_tensor(self, masses: &Tensor, batch: usize) -> Result<Tensor> {
+        if batch != 1 {
+            return Err(invalid(
+                "read-mass intervention requires the dense Full-admission read path at batch 1",
+            ));
+        }
+        let mut values = masses.flatten_all()?.to_vec1::<f32>()?;
+        self.apply_values(&mut values)?;
+        Ok(Tensor::from_vec(
+            values,
+            (batch, masses.dim(1)?),
+            masses.device(),
+        )?)
+    }
+}
+
 pub struct JointModel {
     pub config: JointConfig,
     variables: BTreeMap<String, Var>,
@@ -94,6 +161,9 @@ pub struct JointModel {
     // An in-memory evaluation intervention, never a checkpoint field. None
     // preserves the original continuous/QAT/packed behavior without changes.
     precision_mode: Option<PrecisionMode>,
+    // An in-memory read-mass intervention, never a checkpoint field. None
+    // preserves the original read behavior without changes.
+    read_intervention: Option<ReadMassIntervention>,
     // Prepared once per full-window forward (or incremental session). The STE
     // tensors retain the original Var IDs, and never survive an optimizer step.
     prepared_parameters: Option<BTreeMap<String, Tensor>>,
@@ -466,6 +536,7 @@ impl JointModel {
             age_order,
             quantization: None,
             precision_mode: None,
+            read_intervention: None,
             prepared_parameters: None,
             hard_only: false,
             rounding_learning: false,
@@ -489,6 +560,20 @@ impl JointModel {
         }
         self.admission = policy;
         Ok(())
+    }
+
+    /// Select an in-memory read-mass intervention for this model instance. No
+    /// parameter, clock or checkpoint field is touched, and `None` restores the
+    /// untouched behavior. See [`ReadMassIntervention`] for the exact scope: it
+    /// applies only to a dense Full-admission read with enabled reads over a
+    /// nonempty prior history at `batch == 1`; any other step with an
+    /// intervention set returns an error.
+    pub fn set_read_intervention(&mut self, value: Option<ReadMassIntervention>) {
+        self.read_intervention = value;
+    }
+
+    pub fn read_intervention(&self) -> Option<ReadMassIntervention> {
+        self.read_intervention
     }
 
     /// New offline optimizer starts from the actual packed code values. Parent
@@ -838,6 +923,7 @@ impl JointModel {
             Self::from_variables(self.config.clone(), self.variables.clone(), &self.device)?;
         model.quantization = self.quantization.clone();
         model.precision_mode = self.precision_mode;
+        model.read_intervention = self.read_intervention;
         model.hard_only = self.hard_only;
         model.rounding_learning = self.rounding_learning;
         model.interface_audit = self.interface_audit.clone();
@@ -1094,7 +1180,14 @@ impl JointModel {
                 .narrow(1, position, 1)?
                 .squeeze(1)?
                 .contiguous()?;
-            let step = self.core_step(&mut memory, &input, &affine, mode, training)?;
+            let step = self.core_step(
+                &mut memory,
+                &input,
+                &affine,
+                mode,
+                training,
+                self.read_intervention,
+            )?;
             states.push(step.state);
             no_reads.push(step.no_read_mass.squeeze(1)?);
             gates.push(step.copy_gate.squeeze(1)?);
@@ -1183,7 +1276,14 @@ impl JointModel {
             .weight("embedding.weight", false)?
             .index_select(&index, 0)?
             .matmul(&model.weight("recurrent.input.weight", false)?.t()?)?;
-        let core = model.core_step(&mut session.memory, input_tokens, &affine, mode, false)?;
+        let core = model.core_step(
+            &mut session.memory,
+            input_tokens,
+            &affine,
+            mode,
+            false,
+            self.read_intervention,
+        )?;
         let copy = if self.admission == AdmissionPolicy::Full {
             self.incremental_copy(
                 &core.read_masses,
@@ -1224,6 +1324,7 @@ impl JointModel {
         token_affine: &Tensor,
         mode: ReadMode,
         training: bool,
+        read_intervention: Option<ReadMassIntervention>,
     ) -> Result<CoreStep> {
         let batch = input.len();
         let d = self.config.width;
@@ -1257,6 +1358,11 @@ impl JointModel {
         let mut occurrences = vec![Vec::new(); batch];
         let mut admission_work = Vec::new();
         let (no_read_mass, read_masses, read) = if previous == 0 || mode == ReadMode::NoRead {
+            if read_intervention.is_some() {
+                return Err(invalid(
+                    "read-mass intervention requires enabled reads over a nonempty prior history",
+                ));
+            }
             (
                 Tensor::ones((batch, 1), DType::F32, &self.device)?,
                 Tensor::zeros(
@@ -1274,6 +1380,11 @@ impl JointModel {
                 Tensor::zeros((batch, d), DType::F32, &self.device)?,
             )
         } else if self.admission != AdmissionPolicy::Full {
+            if read_intervention.is_some() {
+                return Err(invalid(
+                    "read-mass intervention requires dense Full admission",
+                ));
+            }
             let query = self.linear(&normalized, "read.query", training)?;
             let observed_queries = query.detach().to_vec2::<f32>()?;
             for lane in 0..batch {
@@ -1318,6 +1429,10 @@ impl JointModel {
             let mass = candle_nn::ops::softmax(&Tensor::cat(&[&null, &scores], 1)?, 1)?;
             let no_read_mass = mass.narrow(1, 0, 1)?;
             let read_masses = mass.narrow(1, 1, previous)?.contiguous()?;
+            let read_masses = match read_intervention {
+                Some(intervention) => intervention.apply_tensor(&read_masses, batch)?,
+                None => read_masses,
+            };
             let read = read_masses.unsqueeze(1)?.matmul(values)?.squeeze(1)?;
             let read = self.interface(&read, Interface::State, training)?;
             (no_read_mass, read_masses, read)
@@ -3038,6 +3153,155 @@ mod tests {
             seed: 7,
             ..JointConfig::default()
         }
+    }
+
+    fn run_session(
+        model: &JointModel,
+        ids: &[u32],
+        intervention: Option<ReadMassIntervention>,
+    ) -> Result<JointStep> {
+        let mut view = model.detached_view()?;
+        let mut session = view.new_session(1)?;
+        let last = ids.len() - 1;
+        let mut current = None;
+        for (index, &token) in ids.iter().enumerate() {
+            if index == last {
+                view.set_read_intervention(intervention);
+            }
+            current = Some(view.step(&mut session, &[token], ReadMode::Enabled)?);
+            if index == last {
+                view.set_read_intervention(None);
+            }
+        }
+        current.ok_or_else(|| invalid("read intervention test produced no step"))
+    }
+
+    #[test]
+    fn read_intervention_default_off_is_unchanged() -> Result<()> {
+        let config = small(Transport::Quaternion);
+        let ids: Vec<u32> = vec![3, 17, 4, 9, 2, 10];
+        let untouched = JointModel::new(config.clone(), &Device::Cpu)?;
+        let mut toggled = JointModel::new(config, &Device::Cpu)?;
+        toggled.set_read_intervention(None);
+        toggled.set_read_intervention(Some(ReadMassIntervention::Focus { target: 2 }));
+        toggled.set_read_intervention(None);
+        let mut left = untouched.new_session(1)?;
+        let mut right = toggled.new_session(1)?;
+        for &token in &ids {
+            let a = untouched.step(&mut left, &[token], ReadMode::Enabled)?;
+            let b = toggled.step(&mut right, &[token], ReadMode::Enabled)?;
+            assert!(same_bits(&a.probabilities, &b.probabilities)?);
+            assert!(same_bits(&a.read_masses, &b.read_masses)?);
+            assert!(same_bits(&a.no_read_mass, &b.no_read_mass)?);
+        }
+        assert_eq!(untouched.read_intervention(), None);
+        assert_eq!(toggled.read_intervention(), None);
+        Ok(())
+    }
+
+    #[test]
+    fn read_intervention_swap_and_focus_apply() -> Result<()> {
+        let before = [0.1f32, 0.5, 0.2, 0.05, 0.15];
+        let total: f32 = before.iter().sum();
+        let mut swapped = before;
+        ReadMassIntervention::Swap { a: 1, b: 4 }.apply_values(&mut swapped)?;
+        let mut expected = before;
+        expected.swap(1, 4);
+        assert_eq!(swapped, expected);
+        assert!((swapped.iter().sum::<f32>() - total).abs() < 1e-6);
+        let mut focused = before;
+        ReadMassIntervention::Focus { target: 2 }.apply_values(&mut focused)?;
+        assert_eq!(focused[2], total);
+        assert!(focused
+            .iter()
+            .enumerate()
+            .all(|(index, &value)| index == 2 || value == 0.0));
+        assert!((focused.iter().sum::<f32>() - total).abs() < 1e-6);
+        assert!(ReadMassIntervention::Swap { a: 0, b: 5 }
+            .apply_values(&mut swapped)
+            .is_err());
+        assert!(ReadMassIntervention::Focus { target: 5 }
+            .apply_values(&mut focused)
+            .is_err());
+        let two_lane = Tensor::from_vec(vec![0.2f32, 0.8], (2, 1), &Device::Cpu)?;
+        assert!(ReadMassIntervention::Focus { target: 0 }
+            .apply_tensor(&two_lane, 2)
+            .is_err());
+
+        let config = small(Transport::Quaternion);
+        let ids: Vec<u32> = vec![3, 17, 4, 9, 2, 10];
+        let baseline = run_session(&JointModel::new(config.clone(), &Device::Cpu)?, &ids, None)?;
+        let baseline_masses = baseline.read_masses.flatten_all()?.to_vec1::<f32>()?;
+        let baseline_no_read = baseline.no_read_mass.flatten_all()?.to_vec1::<f32>()?;
+
+        let swap_model = JointModel::new(config.clone(), &Device::Cpu)?;
+        let mut swap_view = swap_model.detached_view()?;
+        let mut session = swap_view.new_session(1)?;
+        let mut swapped_step = None;
+        for (index, &token) in ids.iter().enumerate() {
+            if index == ids.len() - 1 {
+                swap_view.set_read_intervention(Some(ReadMassIntervention::Swap { a: 1, b: 4 }));
+            }
+            swapped_step = Some(swap_view.step(&mut session, &[token], ReadMode::Enabled)?);
+            if index == ids.len() - 1 {
+                swap_view.set_read_intervention(None);
+            }
+        }
+        let swapped_step = swapped_step.ok_or_else(|| invalid("swap step"))?;
+        let mut expected_swap = baseline_masses.clone();
+        expected_swap.swap(1, 4);
+        assert_eq!(
+            swapped_step.read_masses.flatten_all()?.to_vec1::<f32>()?,
+            expected_swap
+        );
+        assert_eq!(
+            swapped_step.no_read_mass.flatten_all()?.to_vec1::<f32>()?,
+            baseline_no_read
+        );
+
+        let focus_model = JointModel::new(config, &Device::Cpu)?;
+        let mut focus_view = focus_model.detached_view()?;
+        let mut session = focus_view.new_session(1)?;
+        let mut focus_step = None;
+        for (index, &token) in ids.iter().enumerate() {
+            if index == ids.len() - 1 {
+                focus_view.set_read_intervention(Some(ReadMassIntervention::Focus { target: 1 }));
+            }
+            focus_step = Some(focus_view.step(&mut session, &[token], ReadMode::Enabled)?);
+            if index == ids.len() - 1 {
+                focus_view.set_read_intervention(None);
+            }
+        }
+        let focus_step = focus_step.ok_or_else(|| invalid("focus step"))?;
+        let focused = focus_step.read_masses.flatten_all()?.to_vec1::<f32>()?;
+        assert_eq!(focused[1], total_mass(&baseline_masses));
+        assert!(focused
+            .iter()
+            .enumerate()
+            .all(|(index, &value)| index == 1 || value == 0.0));
+        assert_eq!(
+            focus_step.no_read_mass.flatten_all()?.to_vec1::<f32>()?,
+            baseline_no_read
+        );
+
+        let mut bounded = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
+        bounded.set_admission_policy(AdmissionPolicy::Recent64)?;
+        let mut session = bounded.new_session(1)?;
+        bounded.step(&mut session, &[3], ReadMode::Enabled)?;
+        bounded.set_read_intervention(Some(ReadMassIntervention::Focus { target: 0 }));
+        assert!(bounded
+            .step(&mut session, &[17], ReadMode::Enabled)
+            .is_err());
+        let mut no_read = JointModel::new(small(Transport::Quaternion), &Device::Cpu)?;
+        let mut session = no_read.new_session(1)?;
+        no_read.step(&mut session, &[3], ReadMode::Enabled)?;
+        no_read.set_read_intervention(Some(ReadMassIntervention::Focus { target: 0 }));
+        assert!(no_read.step(&mut session, &[17], ReadMode::NoRead).is_err());
+        Ok(())
+    }
+
+    fn total_mass(values: &[f32]) -> f32 {
+        values.iter().sum()
     }
 
     #[test]

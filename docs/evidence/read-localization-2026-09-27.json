@@ -1,0 +1,950 @@
+{
+ "schema": "uor-r4.read-localization-evidence/1",
+ "design": "docs/integration/read-localization-plan-2026-09-27.md",
+ "source": {
+  "commit": "621635926573dfcca6d6a6e3fd462fae6722d8f7",
+  "binary_sha256": "1c1c589d5f61d560add1f2f86c429aa593fd1688370fc34f7a3c01b6ae86c8a9",
+  "parent_checkpoint": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/fit-quaternion-6/checkpoint-final",
+  "evaluator_sha256": "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62",
+  "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+  "read_mode": "enabled"
+ },
+ "report_root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/read-localization-opencode-2",
+ "report_files": [
+  "attempt.json",
+  "baseline-parity.json",
+  "manifest.json",
+  "read-localization.json",
+  "run-provenance.json"
+ ],
+ "guardrails": {
+  "baseline_parity_status": "PARITY_EXACT",
+  "d_dprime_length_mismatched_rows": [
+   "story-source-edit-15|edited"
+  ],
+  "masses_normalize_all": true,
+  "mutation_decoded_text_mismatches": [],
+  "no_future_reads_enforced": true,
+  "rows_ambiguous_span": [],
+  "rows_unresolved_span": []
+ },
+ "baseline_parity": {
+  "mismatch_count": 0,
+  "mismatches": [],
+  "rows_compared": 32,
+  "status": "PARITY_EXACT"
+ },
+ "class_summary": {
+  "distractor": {
+   "per_condition": {
+    "A": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 5
+    },
+    "B": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 5
+    },
+    "C": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 5
+    },
+    "D": {
+     "complete": 5,
+     "first_noun": 5,
+     "rows": 5
+    },
+    "DP": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 5
+    }
+   },
+   "rows": [
+    "story-source-edit-04|original",
+    "story-source-edit-04|edited",
+    "story-source-edit-08|original",
+    "story-source-edit-12|original",
+    "story-source-edit-12|edited"
+   ]
+  },
+  "extra_phrase": {
+   "per_condition": {
+    "A": {
+     "complete": 0,
+     "first_noun": 5,
+     "rows": 5
+    },
+    "B": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 5
+    },
+    "C": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 5
+    },
+    "D": {
+     "complete": 3,
+     "first_noun": 5,
+     "rows": 5
+    },
+    "DP": {
+     "complete": 4,
+     "first_noun": 5,
+     "rows": 5
+    }
+   },
+   "rows": [
+    "story-source-edit-03|original",
+    "story-source-edit-07|original",
+    "story-source-edit-07|edited",
+    "story-source-edit-11|edited",
+    "story-source-edit-15|edited"
+   ]
+  },
+  "morphology": {
+   "per_condition": {
+    "A": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 1
+    },
+    "B": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 1
+    },
+    "C": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 1
+    },
+    "D": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 1
+    },
+    "DP": {
+     "complete": 0,
+     "first_noun": 0,
+     "rows": 1
+    }
+   },
+   "rows": [
+    "story-source-edit-00|edited"
+   ]
+  }
+ },
+ "predeclared_rule_inputs": {
+  "a_emitted_wrong_noun_equals_top_read_token_count": 5,
+  "a_entity_share_ge_10pct_or_rank_le_3_and_output_wrong_count": 5,
+  "a_entity_share_lt_5pct_and_rank_gt_5_count": 0,
+  "d_entity_share_ge_15pct_or_rank_le_3_count": 5,
+  "d_or_dprime_changes_verdict_count": 5,
+  "decision": "NOT_ADJUDICATED_BY_INSTRUMENT",
+  "declared_sets_match_derived": {
+   "distractor": true,
+   "extra_phrase": true,
+   "morphology": true
+  },
+  "distractor_rows": [
+   "story-source-edit-04|original",
+   "story-source-edit-04|edited",
+   "story-source-edit-08|original",
+   "story-source-edit-12|original",
+   "story-source-edit-12|edited"
+  ],
+  "dprime_entity_share_ge_15pct_or_rank_le_3_count": 5,
+  "entity_share_definition": "entity occurrence mass sum / (1 - NoRead mass), condition A"
+ },
+ "per_row": {
+  "distractor": {
+   "story-source-edit-04|original": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " clouds",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " clouds",
+     "entity_rank": 2,
+     "entity_share": 0.3013493351391641,
+     "no_read_mass": 0.1863170713186264,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " into",
+     "entity_rank": 18,
+     "entity_share": 0.011663736163580489,
+     "no_read_mass": 0.9927679300308228,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 5,
+     "entity_share": 0.041473601319554416,
+     "no_read_mass": 0.9917197227478027,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " doll",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " doll",
+     "entity_rank": 1,
+     "entity_share": 0.641754241687929,
+     "no_read_mass": 0.12016739696264267,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " carrot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " carrot",
+     "entity_rank": 3,
+     "entity_share": 0.04180501500851922,
+     "no_read_mass": 0.03510301932692528,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-04|edited": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " clouds",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " clouds",
+     "entity_rank": 3,
+     "entity_share": 0.16379705921401794,
+     "no_read_mass": 0.20783695578575134,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": "s",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " into",
+     "entity_rank": 11,
+     "entity_share": 0.022530158735952825,
+     "no_read_mass": 0.9969064593315125,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 24,
+     "entity_share": 0.007773632719410883,
+     "no_read_mass": 0.9929342269897461,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " bear",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " clouds",
+     "entity_rank": 2,
+     "entity_share": 0.3910636875898989,
+     "no_read_mass": 0.1753082573413849,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " carrot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " carrot",
+     "entity_rank": 3,
+     "entity_share": 0.026595518990636297,
+     "no_read_mass": 0.04132277891039848,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-08|original": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " clouds",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " clouds",
+     "entity_rank": 2,
+     "entity_share": 0.3170612855896892,
+     "no_read_mass": 0.14352640509605408,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " into",
+     "entity_rank": 40,
+     "entity_share": 0.0021072171680448872,
+     "no_read_mass": 0.9814071655273438,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 3,
+     "entity_share": 0.10833055569170093,
+     "no_read_mass": 0.9915632009506226,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " brush",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " brush",
+     "entity_rank": 1,
+     "entity_share": 0.5836933701852436,
+     "no_read_mass": 0.10274185240268707,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " carrot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " carrot",
+     "entity_rank": 3,
+     "entity_share": 0.037709105194431915,
+     "no_read_mass": 0.032061655074357986,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-12|original": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " clouds",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " clouds",
+     "entity_rank": 2,
+     "entity_share": 0.17106399983542747,
+     "no_read_mass": 0.18799568712711334,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " into",
+     "entity_rank": 34,
+     "entity_share": 0.002777237673375539,
+     "no_read_mass": 0.9909619688987732,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 25,
+     "entity_share": 0.006766334831104906,
+     "no_read_mass": 0.9931011199951172,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " box",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " box",
+     "entity_rank": 1,
+     "entity_share": 0.5733453664999879,
+     "no_read_mass": 0.1164851188659668,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " carrot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " carrot",
+     "entity_rank": 3,
+     "entity_share": 0.01382811782337727,
+     "no_read_mass": 0.027685493230819702,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-12|edited": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " clouds",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " clouds",
+     "entity_rank": 2,
+     "entity_share": 0.18260831660090965,
+     "no_read_mass": 0.18060679733753204,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " was",
+     "entity_rank": 46,
+     "entity_share": 0.0006235365414935744,
+     "no_read_mass": 0.9918140172958374,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 13,
+     "entity_share": 0.015213805384241165,
+     "no_read_mass": 0.9927865862846375,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " bag",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " bag",
+     "entity_rank": 1,
+     "entity_share": 0.6191388452506319,
+     "no_read_mass": 0.10644381493330002,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " carrot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " carrot",
+     "entity_rank": 3,
+     "entity_share": 0.015886000544487567,
+     "no_read_mass": 0.03075927495956421,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   }
+  },
+  "extra_phrase": {
+   "story-source-edit-03|original": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " bell",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " bell",
+     "entity_rank": 1,
+     "entity_share": 0.8933295659663003,
+     "no_read_mass": 0.08428951352834702,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": "s",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " and",
+     "entity_rank": 38,
+     "entity_share": 0.0017077046151563302,
+     "no_read_mass": 0.9398597478866577,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " inside",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 14,
+     "entity_share": 0.014701260819075601,
+     "no_read_mass": 0.9592748284339905,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " bell",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " bell",
+     "entity_rank": 1,
+     "entity_share": 0.8784860186051812,
+     "no_read_mass": 0.110012486577034,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " bell",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " bell",
+     "entity_rank": 1,
+     "entity_share": 0.7017050881038319,
+     "no_read_mass": 0.09003572911024094,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-07|original": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " shoe",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " shoe",
+     "entity_rank": 1,
+     "entity_share": 0.9028622333116619,
+     "no_read_mass": 0.07752358913421631,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " to",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 27,
+     "entity_share": 0.006852307642928599,
+     "no_read_mass": 0.9790719151496887,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " inside",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 10,
+     "entity_share": 0.021154981699280276,
+     "no_read_mass": 0.9591302871704102,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " shoe",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " shoe",
+     "entity_rank": 1,
+     "entity_share": 0.8962633640109384,
+     "no_read_mass": 0.08183126151561737,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " shoe",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " shoe",
+     "entity_rank": 1,
+     "entity_share": 0.7733648279438856,
+     "no_read_mass": 0.07600776106119156,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-07|edited": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " boot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " boot",
+     "entity_rank": 1,
+     "entity_share": 0.9512380699925209,
+     "no_read_mass": 0.03620859608054161,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " to",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 30,
+     "entity_share": 0.005474388817005125,
+     "no_read_mass": 0.9713313579559326,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " inside",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 6,
+     "entity_share": 0.030105266445994074,
+     "no_read_mass": 0.9591984748840332,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " boot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " boot",
+     "entity_rank": 1,
+     "entity_share": 0.9461803880163022,
+     "no_read_mass": 0.040792644023895264,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " boot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " boot",
+     "entity_rank": 1,
+     "entity_share": 0.8700215347963876,
+     "no_read_mass": 0.040357183665037155,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-11|edited": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " coin",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " coin",
+     "entity_rank": 1,
+     "entity_share": 0.9587846483086266,
+     "no_read_mass": 0.033652305603027344,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " to",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 15,
+     "entity_share": 0.017016581610841304,
+     "no_read_mass": 0.9668871164321899,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " inside",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 5,
+     "entity_share": 0.03663967665336239,
+     "no_read_mass": 0.958454430103302,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " coin",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " coin",
+     "entity_rank": 1,
+     "entity_share": 0.9582461275016437,
+     "no_read_mass": 0.033765826374292374,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " coin",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " coin",
+     "entity_rank": 1,
+     "entity_share": 0.9021482357702344,
+     "no_read_mass": 0.03427627682685852,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   },
+   "story-source-edit-15|edited": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " ribb",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " ribb",
+     "entity_rank": 1,
+     "entity_share": 0.783827203661447,
+     "no_read_mass": 0.1800600290298462,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " to",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " and",
+     "entity_rank": 2,
+     "entity_share": 0.04225714023120594,
+     "no_read_mass": 0.9580265879631042,
+     "length_change": 1,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " inside",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " on",
+     "entity_rank": 5,
+     "entity_share": 0.04508897571797868,
+     "no_read_mass": 0.9560298919677734,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": false,
+     "first_noun_correct": true,
+     "emitted_token_text": " ribb",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " ribb",
+     "entity_rank": 1,
+     "entity_share": 0.8110704197455689,
+     "no_read_mass": 0.1840137392282486,
+     "length_change": 6,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": true,
+     "first_noun_correct": true,
+     "emitted_token_text": " ribb",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " ribb",
+     "entity_rank": 1,
+     "entity_share": 0.5388010160857769,
+     "no_read_mass": 0.13822831213474274,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   }
+  },
+  "morphology": {
+   "story-source-edit-00|edited": {
+    "A": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " pear",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " pear",
+     "entity_rank": 1,
+     "entity_share": 0.793558229508063,
+     "no_read_mass": 0.08326881378889084,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "B": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": "s",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " into",
+     "entity_rank": 2,
+     "entity_share": 0.11011993863048403,
+     "no_read_mass": 0.9930534958839417,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "C": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": ".",
+     "emitted_matches_top_read_token": false,
+     "top_read_token_text": " into",
+     "entity_rank": 2,
+     "entity_share": 0.16747902202495882,
+     "no_read_mass": 0.9861393570899963,
+     "length_change": 0,
+     "decoded_matches_intended": true
+    },
+    "D": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " pear",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " pear",
+     "entity_rank": 1,
+     "entity_share": 0.9120219810897959,
+     "no_read_mass": 0.04784538224339485,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    },
+    "DP": {
+     "complete_correct": false,
+     "first_noun_correct": false,
+     "emitted_token_text": " carrot",
+     "emitted_matches_top_read_token": true,
+     "top_read_token_text": " carrot",
+     "entity_rank": 2,
+     "entity_share": 0.29311758381846614,
+     "no_read_mass": 0.03677250072360039,
+     "length_change": 5,
+     "decoded_matches_intended": true
+    }
+   }
+  }
+ },
+ "predeclared_outcome": {
+  "value": "MIXED",
+  "reason": "Clause 1 of READ_ACCESS_LIMITED failed (entity share <5% with rank>5 in 0 of 5 rows; the entity was present at rank 2-3 with 16-32% share). Clause 3 failed (condition D raised the entity share/rank in 5 of 5, but the matched control D-prime also did so in 5 of 5; the entity-share metric is non-discriminative). STATE_EMISSION failed (D changed the verdict in 5 of 5). The rule therefore returns MIXED per the frozen thresholds; it is not relaxed."
+ },
+ "post_hoc_refinement": {
+  "label": "POST-HOC_NOT_THE_PREDECLARED_VERDICT",
+  "signature": "READ_RANKING: in the five condition-A distractor rows the emitted token equals the read top-1 token (5/5) (emitted \" clouds\"); the correct entity is present in the read at rank 2-3 with 16-32% share; the entity-specific near-query mention (D) yields 5/5 complete with the entity at rank 1-2 (share 0.39-0.64), while the matched non-entity control (D-prime) yields 0/5 and the model emits the inserted control noun (\" carrot\") in 5/5. The emission is a faithful readout of the read ranking; the distractor failures are read-ranking (recency/age prior), not entity absence and not emission.",
+  "extra_phrase_class": "A 0/5, D 3/5, D-prime 4/5: no entity specificity; the clause insertion itself fixes most of this class, which is a termination/structure phenomenon consistent with the earlier termination-weighting INERT result.",
+  "morphology_class": "The single row emits the correct singular noun at rank 1 (share 0.79) but fails the completion; unaffected by every condition. Separate emission/morphology issue.",
+  "aggregation_caveat": "The copy path aggregates per-token read mass into the vocabulary row, so emissions are not per-occurrence top-1 readouts in general; the top-read-equals-emitted identity is asserted only for the five condition-A distractor rows. Counterexample: under D, row 04|edited emitted ` bear` while the top single occurrence was ` clouds`.",
+  "rule_wording_correction": "The frozen READ_ACCESS_LIMITED disjunction was \"entity share >= 15% (or rank <= 3)\"; D share was 39-64% and D-prime share 1.4-4.2%, so the SHARE alone separated, but the disjunction did not because the sparse D-prime read row attained rank 3. The result therefore says the share-or-rank clause is non-discriminative, not the share metric."
+ },
+ "conditions": {
+  "A": "baseline frozen prompt",
+  "B": "entity-final (state/candidate path; entity not readable by construction)",
+  "C": "matched non-entity final control",
+  "D": "near-query entity mention (primary read-access probe)",
+  "DP": "near-query matched non-entity mention (D control)"
+ },
+ "cost": {
+  "in_process_elapsed_seconds": 1.291491958,
+  "note": "Smoke 1 row 0.2 s; full 32 rows x 5 conditions 1.29 s in-process. Charged once with the milestone at delivery."
+ },
+ "limits": {
+  "scope": "Exposed 32-row development panel, one parent, one deterministic greedy policy; no training and no weight change. D makes the entity the most recent noun, so the flip demonstrates recency/ranking sensitivity but does not show that a long-range ranking repair is learnable.",
+  "no_promotion": true,
+  "audit_caveat": "The D intervention changes recency, duplication and local context together; the flip demonstrates ranking sensitivity but not that a long-range ranking repair is learnable, and it is consistent with local clause continuation."
+ },
+ "executed_artifact": {
+  "binary_kind": "cargo example `joint-read-localize` (release)",
+  "binary_sha256": "1c1c589d5f61d560add1f2f86c429aa593fd1688370fc34f7a3c01b6ae86c8a9",
+  "cache_path": "/Volumes/UOR-Workspace/BuildCaches/uor-r4-emission-20260926-1/release/examples/joint-read-localize",
+  "preserved_copy": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/binaries/joint-read-localize-1c1c589d",
+  "embedded_source_commit": "621635926573dfcca6d6a6e3fd462fae6722d8f7",
+  "verified_source_hashes": {
+   "module_sha256": "c0536b14a1a83ebe60b37bd128e26b60fe672dad036230d583eb07b5fcacdab1",
+   "example_sha256": "82c0cf82ecddd5c3e01cf9dfe8c8d92090d94f9ae7f8966fe4ac53c9cbb8fdea",
+   "retained_story_probes_sha256": "0b58b65b647bc217f3b7fea54f26c677f6e3781b72f297f878709a28655c02ca"
+  },
+  "note": "The executed binary is the example, not the crate's lib binary; it was built from the working tree whose two new source files have the verified hashes above (the delivered commits are 62163592 plan, aac22690 instrument, 604b0e16 docs). The example binary is preserved at the recorded path; hashing it reproduces the recorded sha exactly. The lib binary at the shared cache path was separately preserved (1dfea84e) before a rebuild check; it is not the executed artifact."
+ },
+ "attempts": [
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/read-localization-opencode-1",
+   "note": "Superseded first full attempt (earlier binary, before the D/D-prime length flag). Preserved, not deleted; its numbers are identical apart from the flagged length row."
+  },
+  {
+   "root": "/Users/casey.allard/uor-r4/.uor-models/investigations/language-continuation-20260925/read-localization-smoke-opencode-1",
+   "note": "Superseded first smoke attempt; preserved."
+  }
+ ],
+ "guardrail_notes": {
+  "causality": "The report carries a static `no_future_reads_enforced: true` declaration; causality is enforced by construction (read occurrences are validated against `written_occurrence`) and the `positions_are_causal` helper is unit-tested, but the report does not carry a measured per-row causality flag. Recorded as a declaration, not a measurement.",
+  "mutations": "Condition clause/control strings are tokenized and spliced by token id; each row records `decoded_matches_intended` and `length_change`, and one row (15|edited) is declared length-mismatched between D and D-prime. This differs from a literal \"never re-tokenize a string\" reading of the plan; the per-row decoded-text check is the mitigation."
+ },
+ "audit": {
+  "performed": true,
+  "verdicts": {
+   "baseline_parity": "CONFIRMED (comparator covers all 32 rows and all required fields; spot-checked rows incl. morphology and two distractor rows; retained decision-0 fields present)",
+   "class_counts": "CONFIRMED",
+   "predeclared_MIXED": "CONFIRMED clause-by-clause; rule not relaxed",
+   "post_hoc_READ_RANKING": "CONFIRMED (a-f) with two corrections applied here: restrict \"emitted = read top-1\" to the five condition-A distractor rows, and note the copy path aggregates per-token mass so D-row emissions are not per-occurrence top-1 (counterexample D p4|edited emitted ` bear` while the top single occurrence was ` clouds`)",
+   "identities": "module/example/retained shas verified by the lead; executed example binary preserved"
+  },
+  "most_likely_wrong": "The D/D-prime flip may reflect local recency/bigram copy (the entity becomes the most recent and repeated noun) rather than proving the long-range read ranking is the bottleneck; the instrument cannot separate \"recency prior over the whole read\" from \"continue the local clause\". The predeclared MIXED outcome and the labeled post-hoc signature stand at this scope."
+ },
+ "oracle_rerank": {
+  "spec_source": "Director work unit (Step 1), ROADMAP.md \u00a74.2",
+  "instrument": "opt-in in-memory read-mass intervention (Swap/Focus) in joint_model.rs + examples/joint-oracle-rerank.rs; default None byte-identical; dense Full admission, reads enabled, batch 1 only",
+  "report_root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-read-localization/oracle-rerank-1",
+  "rows": [
+   "story-source-edit-04|original",
+   "story-source-edit-04|edited",
+   "story-source-edit-08|original",
+   "story-source-edit-12|original",
+   "story-source-edit-12|edited"
+  ],
+  "counts": {
+   "baseline_complete": 0,
+   "S_complete": 5,
+   "C_complete": 0,
+   "O_complete": 5
+  },
+  "frozen_reading": "S >= 4/5 AND C <= 1/5 -> ranking sufficient for this class; S <= 1/5 -> read not the bottleneck; else inconclusive",
+  "outcome": "RANKING_SUFFICIENT",
+  "reported_to": "T1 (Lab 1 Claude) - learned age prior vs content",
+  "guardrails": {
+   "baseline_parity": "PARITY_EXACT on the 5 rows",
+   "intervention_applied_exactly_all": true,
+   "no_read_mass_unchanged": true,
+   "normalization_ok_all": true
+  },
+  "elapsed_seconds": 0.498244709,
+  "limits": "Five authored distractor rows, one parent, greedy, decision 0 only; no follow-up panel per the director."
+ }
+}
