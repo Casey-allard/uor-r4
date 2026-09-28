@@ -1,0 +1,428 @@
+{
+ "schema": "uor-r4.transport-attribution-d1-packet/1",
+ "question": "Is the geometric (quaternion) transport in the main-line rrarra core load-bearing at matched MLP width?",
+ "source_commit": "4eef03e6a6505fae8dcbf0dce6728a7e74c5a256",
+ "build": "cargo build --release --example geometric-stack with RUSTFLAGS=-C target-cpu=x86-64-v3 on the lab sandbox's Cascade Lake host (Intel Xeon @ 2.80GHz, 4 cores)",
+ "runs": [
+  {
+   "run": "rot_s1",
+   "rotation": true,
+   "seed": 1,
+   "root": "d1/runs/rot_s1",
+   "resumed_from": null,
+   "pattern": "rrarra",
+   "read": "lorentz",
+   "mlp_hidden": 749,
+   "parameters": 7153860,
+   "completed_steps": 1000,
+   "target_visits": 4096000,
+   "final": {
+    "bits_per_byte": 1.0453850344733733,
+    "nll": 2.5998446573817886,
+    "targets": 131072
+   },
+   "curve": [
+    {
+     "step": 250,
+     "dev_nll": 3.746328106631575
+    },
+    {
+     "step": 500,
+     "dev_nll": 3.218726083254579
+    },
+    {
+     "step": 750,
+     "dev_nll": 2.8608689059356616
+    },
+    {
+     "step": 1000,
+     "dev_nll": 2.6820301262422763
+    }
+   ],
+   "train_seconds": 5770.323619641993,
+   "tokens_per_second": 709.8388703984209,
+   "threads": "2",
+   "model_sha256": "898893924c4f9b6a49b31f7d18eed8ef38d246971505227544a0b712292aa4a6",
+   "model_bytes": 28622728,
+   "model_retained_outside": "scratchpad/d1/runs/rot_s1/model/model.safetensors",
+   "executable": {
+    "bytes": 10362512,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/d1/bin/geometric-stack-4eef03e6-v3",
+    "sha256": "c90c7346aa9920b82fcd82b27dbc27f0bb59515bb90f58933a5e0603b39f38aa"
+   },
+   "inputs": {
+    "lens": {
+     "bytes": 8192,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+     "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "merges": {
+     "bytes": 30792,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+     "sha256": "7453bfa086a18d36948d23fd060d2a74bc3ba8d87882d457cb397396dde84405"
+    },
+    "tokenizer": null,
+    "train": [
+     {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     }
+    ],
+    "valid": {
+     "bytes": 413688,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+     "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+   }
+  },
+  {
+   "run": "id_s1",
+   "rotation": false,
+   "seed": 1,
+   "root": "d1/runs/id_s1",
+   "resumed_from": null,
+   "pattern": "rrarra",
+   "read": "lorentz",
+   "mlp_hidden": 749,
+   "parameters": 6820932,
+   "completed_steps": 1000,
+   "target_visits": 4096000,
+   "final": {
+    "bits_per_byte": 1.07399018538866,
+    "nll": 2.670984903633901,
+    "targets": 131072
+   },
+   "curve": [
+    {
+     "step": 250,
+     "dev_nll": 3.7849944318638915
+    },
+    {
+     "step": 500,
+     "dev_nll": 3.2478831606303613
+    },
+    {
+     "step": 750,
+     "dev_nll": 2.907349281049905
+    },
+    {
+     "step": 1000,
+     "dev_nll": 2.7378675075639722
+    }
+   ],
+   "train_seconds": 5184.124274085998,
+   "tokens_per_second": 790.1045159111578,
+   "threads": "2",
+   "model_sha256": "879da99addeaebbc111b74af79fb3883306772e93f4d1646e68b274681a22679",
+   "model_bytes": 27291008,
+   "model_retained_outside": "scratchpad/d1/runs/id_s1/model/model.safetensors",
+   "executable": {
+    "bytes": 10362512,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/d1/bin/geometric-stack-4eef03e6-v3",
+    "sha256": "c90c7346aa9920b82fcd82b27dbc27f0bb59515bb90f58933a5e0603b39f38aa"
+   },
+   "inputs": {
+    "lens": {
+     "bytes": 8192,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+     "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "merges": {
+     "bytes": 30792,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+     "sha256": "7453bfa086a18d36948d23fd060d2a74bc3ba8d87882d457cb397396dde84405"
+    },
+    "tokenizer": null,
+    "train": [
+     {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     }
+    ],
+    "valid": {
+     "bytes": 413688,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+     "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+   }
+  },
+  {
+   "run": "rot_s2",
+   "rotation": true,
+   "seed": 2,
+   "root": "d1/runs/rot_s2",
+   "resumed_from": null,
+   "pattern": "rrarra",
+   "read": "lorentz",
+   "mlp_hidden": 749,
+   "parameters": 7153860,
+   "completed_steps": 1000,
+   "target_visits": 4096000,
+   "final": {
+    "bits_per_byte": 1.0375120976459018,
+    "nll": 2.5802648737864393,
+    "targets": 131072
+   },
+   "curve": [
+    {
+     "step": 250,
+     "dev_nll": 3.772928492953805
+    },
+    {
+     "step": 500,
+     "dev_nll": 3.215561479619307
+    },
+    {
+     "step": 750,
+     "dev_nll": 2.8492457882554936
+    },
+    {
+     "step": 1000,
+     "dev_nll": 2.6512519191783652
+    }
+   ],
+   "train_seconds": 6063.997250519006,
+   "tokens_per_second": 675.4620476863558,
+   "threads": "2",
+   "model_sha256": "deb422e442cd6274ca71605f4e22639be73c3196f699ef5471f788531e607c25",
+   "model_bytes": 28622728,
+   "model_retained_outside": "scratchpad/d1/runs/rot_s2/model/model.safetensors",
+   "executable": {
+    "bytes": 10362512,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/d1/bin/geometric-stack-4eef03e6-v3",
+    "sha256": "c90c7346aa9920b82fcd82b27dbc27f0bb59515bb90f58933a5e0603b39f38aa"
+   },
+   "inputs": {
+    "lens": {
+     "bytes": 8192,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+     "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "merges": {
+     "bytes": 30792,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+     "sha256": "7453bfa086a18d36948d23fd060d2a74bc3ba8d87882d457cb397396dde84405"
+    },
+    "tokenizer": null,
+    "train": [
+     {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     }
+    ],
+    "valid": {
+     "bytes": 413688,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+     "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+   }
+  },
+  {
+   "run": "id_s2",
+   "rotation": false,
+   "seed": 2,
+   "root": "d1/runs/id_s2",
+   "resumed_from": null,
+   "pattern": "rrarra",
+   "read": "lorentz",
+   "mlp_hidden": 749,
+   "parameters": 6820932,
+   "completed_steps": 1000,
+   "target_visits": 4096000,
+   "final": {
+    "bits_per_byte": 1.068643149157715,
+    "nll": 2.657686967352603,
+    "targets": 131072
+   },
+   "curve": [
+    {
+     "step": 250,
+     "dev_nll": 3.800826242405434
+    },
+    {
+     "step": 500,
+     "dev_nll": 3.229187137867348
+    },
+    {
+     "step": 750,
+     "dev_nll": 2.9095847722016965
+    },
+    {
+     "step": 1000,
+     "dev_nll": 2.7368346718964602
+    }
+   ],
+   "train_seconds": 5609.090021760993,
+   "tokens_per_second": 730.2432273522411,
+   "threads": "2",
+   "model_sha256": "59d5d3c30e912bf383dd99006ecc4408e25f6d5158b5ec24ccc9a528856e02b7",
+   "model_bytes": 27291008,
+   "model_retained_outside": "scratchpad/d1/runs/id_s2/model/model.safetensors",
+   "executable": {
+    "bytes": 10362512,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/d1/bin/geometric-stack-4eef03e6-v3",
+    "sha256": "c90c7346aa9920b82fcd82b27dbc27f0bb59515bb90f58933a5e0603b39f38aa"
+   },
+   "inputs": {
+    "lens": {
+     "bytes": 8192,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+     "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "merges": {
+     "bytes": 30792,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+     "sha256": "7453bfa086a18d36948d23fd060d2a74bc3ba8d87882d457cb397396dde84405"
+    },
+    "tokenizer": null,
+    "train": [
+     {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     }
+    ],
+    "valid": {
+     "bytes": 413688,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+     "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+   }
+  }
+ ],
+ "decision": {
+  "rule": "keep quaternion transport only if it is at least 0.02 nats better than identity in both seeds; any other outcome drops rotation (#1453 \u00a74, work card #973 comment 5864504193)",
+  "threshold_nats": 0.02,
+  "per_seed": {
+   "1": {
+    "identity_minus_quaternion_nats": 0.07114024625211224,
+    "quaternion_better_by_threshold": true
+   },
+   "2": {
+    "identity_minus_quaternion_nats": 0.07742209356616359,
+    "quaternion_better_by_threshold": true
+   }
+  },
+  "outcome": "keep quaternion transport"
+ },
+ "files": [
+  {
+   "path": "README.md",
+   "bytes": 2818,
+   "sha256": "464dd561c5ed56f4bd644ef74b94de354545ac7179f139a5ce92f5f305413bd5"
+  },
+  {
+   "path": "chain.log",
+   "bytes": 1845,
+   "sha256": "55a31d4d48e8ba143ddc9ea02b0555023b1c0e094ba43ad7ed7371c7b9ac8889"
+  },
+  {
+   "path": "id_s1/attempt.json",
+   "bytes": 1194,
+   "sha256": "fe32590934996c5aa71260d37a114de78346e727db9df8be740297c08e865f06"
+  },
+  {
+   "path": "id_s1/manifest.json",
+   "bytes": 802,
+   "sha256": "0c3f5d7237eb3b3b71d957952fbee18de27e025e9b6af0ee26637ea5fa5ca4d1"
+  },
+  {
+   "path": "id_s1/model/config.json",
+   "bytes": 194,
+   "sha256": "004bf0a0c70cebd94121972f493f20b52d90ac365de184a566034bd91cfc7324"
+  },
+  {
+   "path": "id_s1/report.json",
+   "bytes": 16257,
+   "sha256": "c9de394d08ca61999befecf44ef82ee3c6ad4ace14aba10ba2701cd526489c69"
+  },
+  {
+   "path": "id_s1/train.log",
+   "bytes": 1292,
+   "sha256": "945c8e3962b04c9e73b2771f19a01c72283c1236f37130088270b9f2f8dcbca1"
+  },
+  {
+   "path": "id_s2/attempt.json",
+   "bytes": 1194,
+   "sha256": "7651a903234badd9d9b8acfcea78ab9861d0f9ec52291d59081e786e46117b94"
+  },
+  {
+   "path": "id_s2/manifest.json",
+   "bytes": 802,
+   "sha256": "03713c015ef76d21f6bc8fe8695da099de2f55bfea5a08e7bcb3a69d0fcfa513"
+  },
+  {
+   "path": "id_s2/model/config.json",
+   "bytes": 194,
+   "sha256": "3b71a1f2cec6c0df1020f34ed45d0ac17a02c0e500251d8e4a981eb4c7b7f2f1"
+  },
+  {
+   "path": "id_s2/report.json",
+   "bytes": 16563,
+   "sha256": "942a0041ff1446d157b4a5c39a4268e2d53c08b3c1f2a522024e49658230ed95"
+  },
+  {
+   "path": "id_s2/train.log",
+   "bytes": 1291,
+   "sha256": "7c244b4fd164582925e1542b9158d4a7c6a4743dde893ce7687827b1e1f55160"
+  },
+  {
+   "path": "rot_s1/attempt.json",
+   "bytes": 1194,
+   "sha256": "cc8cad59890358c5dd8fa52ca5ce1d6bb124f65fb991b95f7b3b75d152b3e08a"
+  },
+  {
+   "path": "rot_s1/manifest.json",
+   "bytes": 803,
+   "sha256": "c0418e9936ce8d34165079152202a7137da2063099eb4904bd1dd22cad8ad960"
+  },
+  {
+   "path": "rot_s1/model/config.json",
+   "bytes": 193,
+   "sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c"
+  },
+  {
+   "path": "rot_s1/report.json",
+   "bytes": 17044,
+   "sha256": "abe636f0b648be300590b0dc2294ddde397cbff0006c7d22ba89e84ad47847ca"
+  },
+  {
+   "path": "rot_s1/train.log",
+   "bytes": 1293,
+   "sha256": "fc28e5422a50dc8d2f6948292768ab234f9f6efeb11300a6be6e61b03ad1c5a4"
+  },
+  {
+   "path": "rot_s2/attempt.json",
+   "bytes": 1194,
+   "sha256": "5d774145b5c827376ae04a0f0448ed6e67198428faad44a39dfb64cbf4215110"
+  },
+  {
+   "path": "rot_s2/manifest.json",
+   "bytes": 803,
+   "sha256": "00a57d743cdf8b92ff34194d88205293cd023cc3c1be4e6332ed32395ad5ecf1"
+  },
+  {
+   "path": "rot_s2/model/config.json",
+   "bytes": 193,
+   "sha256": "a36c925220967a05ebfd46ea747fc0c86e1d18a406d5798cafb576a41f973719"
+  },
+  {
+   "path": "rot_s2/report.json",
+   "bytes": 16533,
+   "sha256": "f483436421ff1e5ad4df39b9b48748c7cfba48b0a8575eeb313f5a553fb0bce6"
+  },
+  {
+   "path": "rot_s2/train.log",
+   "bytes": 1291,
+   "sha256": "6c7ee83585948a9a9870ad18c7d8221f48273735910171a53abbc3d40b22eb8b"
+  },
+  {
+   "path": "sources/run-d1.sh",
+   "bytes": 2576,
+   "sha256": "f3edc01e398458aa93cd8ec661a4ca2e743546d07f54a166e1fa9f05868f2504"
+  }
+ ]
+}

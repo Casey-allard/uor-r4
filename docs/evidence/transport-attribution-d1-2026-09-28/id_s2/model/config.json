@@ -1,0 +1,12 @@
+{
+  "arch": "geometric",
+  "vocab_size": 4096,
+  "width": 288,
+  "heads": 6,
+  "mlp_hidden": 749,
+  "context": 256,
+  "pattern": "rrarra",
+  "read": "lorentz",
+  "rotation": false,
+  "seed": 2
+}

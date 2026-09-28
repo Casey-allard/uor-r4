@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "blake3": "bb4d0327e344eda343d3a93d8e3c90e25d5d77daf3f4e9f395951e79abb7e03d",
+      "bytes": 1194,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "caa732f90e74434593fb1f8742126f41591c72c3cd10f73af8f90f1292acc1da",
+      "bytes": 194,
+      "path": "model/config.json"
+    },
+    {
+      "blake3": "7567ad41967a30c3be746a3c7fb34a5ece8dee2682370859a56c844f4c236318",
+      "bytes": 27291008,
+      "path": "model/model.safetensors"
+    },
+    {
+      "blake3": "39802b13818595d523fcb36711d50e1cb10ccecd1589ab2b4f854cdab52240b3",
+      "bytes": 16257,
+      "path": "report.json"
+    }
+  ],
+  "root": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/d1/runs/id_s1",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1790581387"
+}

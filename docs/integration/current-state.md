@@ -606,6 +606,13 @@ track does not change the work card below.
     the stack is viable, and the director's D0 decision (#820) adopted it as the
     main-line core; its next step is the native D11 export. The 0.013 difference is within seed
     spread, so this is parity, not an advantage.
+  - **D1, transport attribution** ([note](transport-attribution-d1-2026-09-28.md),
+    September 28). At matched MLP width (749), 1,000 updates and two seeds, the
+    quaternion transport beats identity transport by 0.0711 and 0.0774 nats
+    (512-window development NLL). By the pre-registered rule (at least 0.02 in both
+    seeds) the main-line core **keeps** its quaternion transport. The transport
+    costs 332,928 parameters and 8–10% of training throughput, and its D11 export
+    needs table-served quaternion products.
   - A dialogue path (`dialogue-train`, `lut-chat`) follows the retained study's
     episodes, stop rules and panel limits. It is checked on synthetic data only.
 - **Owner-runnable M1 scripts.**
