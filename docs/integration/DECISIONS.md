@@ -359,6 +359,8 @@ not override it.
 
 ## D10 — A converted open-weight backbone is the interim chat vehicle; serving arithmetic restated
 
+**Superseded by [D11](#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) on 2026-09-27.** The text below is the historical record.
+
 Owner: Casey · Drafted by: the lab lead · Date: 2026-09-26 · **Owner decision in the 2026-09-26 lab session, recorded on
 branch `claude/blissful-wozniak-girwwq`; it reaches `main` only through protected delivery.** Context:
 [lab phase 2](geometric-lab-phase2-2026-09-26.md) §6.
@@ -380,3 +382,32 @@ branch `claude/blissful-wozniak-girwwq`; it reaches `main` only through protecte
    roadmap.
 5. **Paid compute is not yet authorized.** The owner asked for its size and cost; the answer is in the phase-2 note §6.
 6. The frozen R4G1/TLA runtime contract is unaffected.
+
+## D11 — Native, multiplier-free, transformerless serving for every lab; D10 superseded
+
+Owner: Casey · Drafted by: the director (Claude, Lab 1) · Date: 2026-09-27 · **Owner decision in the
+2026-09-27 director session, accepted as prompted ("Supersede D10").**
+
+Context:
+- the owner's geometric-intelligence brief: no transformer, no matrix multiplication and no floating point in the runtime;
+- the owner clarification of 2026-09-27, "Keep the native, multiplier-free serving target" ([#820](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279));
+- the operational rules R1–R5 in [ROADMAP.md](../../ROADMAP.md) §0.
+
+1. **One serving contract for every lab.**
+   - **R1:** served computation has no floating point and no `libm`.
+   - **R2:** no integer multiply or divide instruction in any served kernel, as D0-b is written. Products of runtime values use product or quarter-square tables, or exact geometric structure (signed permutations, ℤ[φ] shift-add).
+   - **R3:** dense per-token access to a learned weight store is not the end state (D5). ≤4-bit additive maps remain labelled interim stepping stones, reported with their per-token parameter reads.
+   - **R4:** no transformer backbone. A model whose token mixing is mostly dense all-pairs reads counts as a transformer.
+   - **R5:** energy is claimed only when measured.
+2. **D10 is superseded.**
+   - Its converted open-weight backbone (SmolLM2) is not a served model for any lab. Converted transformers are comparators or offline teachers only.
+   - Its hardware-multiplier exception for runtime values is withdrawn.
+   - `uor-r4-lut`, `lut-chat` and the D10 export are frozen as non-mission comparators. The audited `unsafe` in `uor-r4-simd` stays confined to that comparator code.
+3. **Preserved.**
+   - D10-era results keep their exact scope, for example the cycle-4 integer-retention reports measured under D10.
+   - The frozen R4G1/TLA contract is unaffected.
+   - Offline training may still use floating point and matrix products (D0-b, D3).
+4. **Enforcement.**
+   - Every mission serving change carries the R1–R2 instruction audit of its release binary and reports per-token parameter reads (R3).
+   - The runtime track (T3) extends the audit to every served symbol, including the Lorentz and sampling paths (ROADMAP ruling 9).
+
