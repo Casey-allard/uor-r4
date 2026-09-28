@@ -169,7 +169,7 @@ fn capability_api_lifecycle_on_dialogue576_bundle() -> Result<()> {
 }
 
 #[test]
-#[ignore = "known failure: uor-r4.integer-session/1 omits the width-576 value stores (persistent_values_576, dialogue_values_576, l2_pages_576), so a restored width-576 session diverges at its first step; also requires the local dialogue-child-bundle-1 fixture"]
+#[ignore = "known failure, tracked in #1476: uor-r4.integer-session/1 omits the width-576 value stores (persistent_values_576, dialogue_values_576, l2_pages_576), so a restored width-576 session diverges at its first step; also requires the local dialogue-child-bundle-1 fixture"]
 fn restored_dialogue576_session_continues_identically() -> Result<()> {
     let (api, session_id) = dialogue576_session()?;
     assert_restore_continues_identically(&api, session_id)

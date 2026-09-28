@@ -228,6 +228,9 @@ def build_manifest(args):
             f"ARM64 instruction audit failed (exit {arm64_audit['exit_code']}); no manifest written"
         )
     print("Running the WebAssembly instruction audit (call graph followed)...")
+    # The WASM audit's exit code is recorded, not gated: the WASM helper
+    # module is documented as not D11-clean (#1474), so a failing WASM audit
+    # is the expected, honestly recorded state rather than a packaging error.
     wasm_audit = run_audit(
         "audit_zero_matmul_wasm.py",
         [wasm_bin, "--tap", "--call-graph", "--build-commit", args.wasm_build_commit],
