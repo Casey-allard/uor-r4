@@ -7,15 +7,41 @@ use crate::{
     SamplePolicy, Sampler, PROBABILITY_TOTAL,
 };
 pub use conversation::{
-    ConversationError, ConversationRequest, ConversationTurn, DialogueConversation, TurnBoundary,
-    TurnClosure,
+    ConversationError, ConversationRequest, ConversationTurn, DialogueConversation,
+    DialogueConversationStream, TurnBoundary, TurnClosure,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{fmt, time::Instant};
 use uor_r4_tokenizer::dialogue::{DialogueError, DialogueProtocol, Message};
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[inline(always)]
+pub(crate) fn duration_nanos_exact(d: std::time::Duration) -> u128 {
+    let secs = d.as_secs();
+    if secs == 0 {
+        return d.subsec_nanos() as u128;
+    }
+    let mut sec_nanos: u128 = 0;
+    let mut bits = 1_000_000_000u64;
+    while bits != 0 {
+        let shift = std::hint::black_box(bits.trailing_zeros());
+        sec_nanos = sec_nanos.wrapping_add((std::hint::black_box(secs) as u128) << shift);
+        bits &= bits - 1;
+    }
+    sec_nanos + d.subsec_nanos() as u128
+}
+
+#[inline(always)]
+pub(crate) fn bytes_contain_byte(bytes: &[u8], target: u8) -> bool {
+    for &b in bytes {
+        if b == target {
+            return true;
+        }
+    }
+    false
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Selection {
     #[default]
@@ -194,7 +220,7 @@ impl Bundle {
         result.prompt = request.prompt.clone();
         result.incremental_step_calls = session.calls;
         result.model_step_nanoseconds = session.model_ns;
-        result.whole_generation_nanoseconds = clock.elapsed().as_nanos();
+        result.whole_generation_nanoseconds = duration_nanos_exact(clock.elapsed());
         Ok(result)
     }
 
@@ -231,7 +257,7 @@ impl Bundle {
         let mut generation = session.generate(max_new_tokens, selection, first_sentence)?;
         generation.incremental_step_calls = session.calls;
         generation.model_step_nanoseconds = session.model_ns;
-        generation.whole_generation_nanoseconds = clock.elapsed().as_nanos();
+        generation.whole_generation_nanoseconds = duration_nanos_exact(clock.elapsed());
         Ok(DialogueGeneration {
             protocol: protocol.clone(),
             protocol_identity,
@@ -281,7 +307,7 @@ impl<'a> TextSession<'a> {
             .bundle
             .model()
             .step(&mut self.state, token, self.mode)?;
-        self.model_ns += clock.elapsed().as_nanos();
+        self.model_ns += duration_nanos_exact(clock.elapsed());
         let total = step
             .probabilities
             .iter()
@@ -321,6 +347,9 @@ impl<'a> TextSession<'a> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+    pub fn observed(&self) -> &[u32] {
+        &self.observed
+    }
 
     /// The explicit protocol binding for sessions constructed by `dialogue_session`.
     /// It describes input/termination semantics, not the model's training history.
@@ -345,6 +374,39 @@ impl<'a> TextSession<'a> {
         }
         Ok(tokens.len())
     }
+    pub(crate) fn stop_reason(&self, token: u32) -> Option<Stop> {
+        self.stop_tokens.reason(token)
+    }
+
+    pub(crate) fn step_next_token(
+        &mut self,
+        sampler: &mut Sampler,
+        policy: SamplePolicy,
+    ) -> Result<(u32, Decision)> {
+        self.consume_pending()?;
+        let step = self
+            .current
+            .as_ref()
+            .ok_or_else(|| invalid("missing session prediction"))?;
+        let selected = sampler
+            .select(&step.probabilities, policy)
+            .map_err(|e| invalid(format!("integer sampling: {e}")))?;
+        let mut hash = Sha256::new();
+        for mass in &step.probabilities {
+            hash.update(mass.to_le_bytes());
+        }
+        let decision = Decision {
+            selected_token: selected as u32,
+            probability_q48: step.probabilities[selected],
+            probability_sum_q48: PROBABILITY_TOTAL,
+            probability_sha256_le_u64: hex::encode(hash.finalize()),
+            exposed_causal_slots: step.read_masses.len(),
+            no_read_mass_q48: step.no_read_mass,
+        };
+        self.pending = Some(selected as u32);
+        Ok((selected as u32, decision))
+    }
+
     /// The seed is explicit per call; use sampler_state_after to continue its stream.
     pub fn generate(
         &mut self,
@@ -371,38 +433,15 @@ impl<'a> TextSession<'a> {
         let mut decisions = Vec::new();
         let mut stop = Stop::MaximumNewTokens;
         for position in 0..max_new_tokens {
-            self.consume_pending()?;
-            let step = self
-                .current
-                .as_ref()
-                .ok_or_else(|| invalid("missing session prediction"))?;
-            let selected = sampler
-                .select(&step.probabilities, policy)
-                .map_err(|e| invalid(format!("integer sampling: {e}")))?;
-            let mut hash = Sha256::new();
-            for mass in &step.probabilities {
-                hash.update(mass.to_le_bytes());
-            }
-            decisions.push(Decision {
-                selected_token: selected as u32,
-                probability_q48: step.probabilities[selected],
-                probability_sum_q48: PROBABILITY_TOTAL,
-                probability_sha256_le_u64: hex::encode(hash.finalize()),
-                exposed_causal_slots: step.read_masses.len(),
-                no_read_mass_q48: step.no_read_mass,
-            });
-            generated.push(selected as u32);
-            self.pending = Some(selected as u32);
-            if let Some(reason) = self.stop_tokens.reason(selected as u32) {
+            let (selected, decision) = self.step_next_token(&mut sampler, policy)?;
+            decisions.push(decision);
+            generated.push(selected);
+            if let Some(reason) = self.stop_tokens.reason(selected) {
                 stop = reason;
                 break;
             }
             if first_sentence
-                && self
-                    .bundle
-                    .tokenizer()
-                    .decode_bytes(&generated)
-                    .contains(&b'.')
+                && bytes_contain_byte(&self.bundle.tokenizer().decode_bytes(&generated), b'.')
             {
                 stop = Stop::FirstSentenceBoundary;
                 break;
@@ -436,7 +475,7 @@ impl<'a> TextSession<'a> {
             session_tokens_including_pending: self.len(),
             incremental_step_calls: self.calls - calls_at_entry,
             model_step_nanoseconds: self.model_ns - model_ns_at_entry,
-            whole_generation_nanoseconds: clock.elapsed().as_nanos(),
+            whole_generation_nanoseconds: duration_nanos_exact(clock.elapsed()),
             bundle_sha256: self.bundle.identity().to_owned(),
             tokenizer_cid: self.bundle.tokenizer().address(),
             sampler_state_after: sampler.state(),
@@ -482,7 +521,7 @@ fn validate_generation_budget(existing: usize, generate: usize, capacity: usize)
     }
     Ok(())
 }
-fn short_cycle(tokens: &[u32]) -> Option<usize> {
+pub(crate) fn short_cycle(tokens: &[u32]) -> Option<usize> {
     for period in 1..=4 {
         let twice = period << 1;
         let span = twice + period;

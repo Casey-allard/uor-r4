@@ -2,16 +2,22 @@
 //!
 //! Real-time streaming terminal REPL powered by the native UOR-R4 Geometric Language Model.
 //! Executes with strictly zero transformers and zero hardware matrix multiplication in the served runtime.
+//! Persistent dialogue continuity via exact-token history and literal-role protocol.
 
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use uor_r4_integer::bundle::{create_test_bundle_with_byte_vocab, Bundle};
 use uor_r4_integer::config::ReadMode;
+use uor_r4_integer::generation::conversation::{
+    ConversationError, ConversationRequest, DialogueConversation, DialogueConversationStream,
+    TurnClosure,
+};
+use uor_r4_integer::generation::Stop;
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::sampling::SamplePolicy;
-use uor_r4_integer::session::{ChatSession, ChatTokenStream, StreamStopReason};
 use uor_r4_integer::{IntegerError, Result};
+use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 
 const VERSION: &str = "0.1.0";
 
@@ -55,7 +61,7 @@ fn print_usage() {
     eprintln!(
         "  -b, --bundle <PATH>         Path to model bundle directory containing bundle.json"
     );
-    eprintln!("  -s, --system <PROMPT>       Initial persistent system persona (slots 0..31)");
+    eprintln!("  -s, --system <PROMPT>       Initial persistent system persona");
     eprintln!(
         "  -t, --temperature <FLOAT>   Sampling temperature (0.0 = greedy, >0.0 = categorical)"
     );
@@ -231,7 +237,12 @@ fn get_process_rss_mb() -> Option<f64> {
     Some(rss_kib / 1024.0)
 }
 
-fn print_welcome_banner(bundle: &Bundle, policy: SamplePolicy, read_mode: ReadMode) {
+fn print_welcome_banner(
+    bundle: &Bundle,
+    protocol: &DialogueProtocol,
+    policy: SamplePolicy,
+    read_mode: ReadMode,
+) {
     let id = bundle.identity();
     let id_short = if id.len() > 16 { &id[..16] } else { id };
     println!("================================================================================");
@@ -240,10 +251,26 @@ fn print_welcome_banner(bundle: &Bundle, policy: SamplePolicy, read_mode: ReadMo
     println!("================================================================================");
     println!("  Bundle Identity : {}...", id_short);
     println!(
+        "  Dialogue Protocol: {} ({})",
+        protocol.schema,
+        if protocol.tokenizer_cid.len() > 24 {
+            &protocol.tokenizer_cid[..24]
+        } else {
+            &protocol.tokenizer_cid
+        }
+    );
+    println!(
         "  Vocabulary Size : {} tokens",
         bundle.model().config().vocab_size
     );
-    println!("  Memory Capacity : 256 tokens (32 Persistent Persona, 224 Dialogue Slots)");
+    println!(
+        "  State Dimension : {} dimensions",
+        bundle.model().config().width
+    );
+    println!(
+        "  Context Capacity: {} tokens (exact-token persistent history)",
+        bundle.model().config().context
+    );
     println!("  Sampling Policy : {:?}", policy);
     println!("  Memory Read Mode: {:?}", read_mode);
     println!("  Type /help for slash commands, /quit to exit.");
@@ -252,81 +279,88 @@ fn print_welcome_banner(bundle: &Bundle, policy: SamplePolicy, read_mode: ReadMo
 
 fn print_help() {
     println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Available Slash Commands:");
-    println!("  /persona [PROMPT]     Set or inspect persistent system persona (slots 0..31)");
-    println!(
-        "  /reset                Clear dialogue slots (32..255) and retain persistent persona"
-    );
+    println!("  /persona [PROMPT]     Set or inspect persistent system persona");
+    println!("  /reset, /clear        Reset dialogue history and start a fresh conversation");
     println!("  /verify               Execute self-test verifying Zero-MatMul kernel retention");
-    println!("  /save <path>          Save current session state to JSON file (uor-r4.integer-session/1)");
-    println!("  /load <path>          Load session state from JSON file with bundle checksum verification");
-    println!(
-        "  /stats                Display session telemetry, geometric coordinates, and process RSS"
-    );
+    println!("  /stats                Display session telemetry, active context, and process RSS");
+    println!("  /history              Display conversation turns and token counts");
     println!("  /read-mode <on|off>   Toggle prime-addressed memory reading (Enabled vs NoRead)");
     println!("  /quit, /exit          Exit uor-chat cleanly");
     println!("  /help                 Display this command help menu");
 }
 
-fn print_stats(session: &ChatSession) {
-    let t = session.telemetry();
+fn print_stats(conversation: &DialogueConversation<'_>, turn_count: usize) {
     let rss_str = match get_process_rss_mb() {
         Some(rss) => format!("{:.2} MB (Invariant: < 35.0 MB - PASS)", rss),
         None => "Unavailable".to_string(),
     };
+    let context_cap = conversation.bundle().model().config().context;
+    let active_tokens = conversation.len();
+    let step_calls = conversation.step_calls();
+    let sampler_state = conversation.sampler_state().unwrap_or(0);
 
     println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
-    println!("{ANSI_MAGENTA_BOLD}|                          Chat Session Telemetry                            |{ANSI_RESET}");
+    println!("{ANSI_MAGENTA_BOLD}|                          Dialogue Conversation Telemetry                    |{ANSI_RESET}");
     println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
-    println!("| Turn Count             : {:<50}|", t.current_turn_id);
+    println!("| Turn Count             : {:<50}|", turn_count);
     println!(
-        "| Active Tokens          : {:<50}|",
-        format!(
-            "{} / 256 (Persistent: {}/32, Dialogue: {}/224)",
-            t.persistent_slots_used + t.dialogue_slots_used,
-            t.persistent_slots_used,
-            t.dialogue_slots_used
-        )
+        "| Active Context Tokens  : {:<50}|",
+        format!("{} / {}", active_tokens, context_cap)
     );
-    println!("| Dialogue Tokens Seen   : {:<50}|", t.dialogue_tokens_seen);
-    println!(
-        "| L2 Prime Pages         : {:<50}|",
-        format!("{}/{}", t.l2_pages_used, t.l2_capacity)
-    );
-    println!("| Persona Sealed         : {:<50}|", t.persistent_sealed);
+    println!("| Model Steps Executed   : {:<50}|", step_calls);
+    println!("| Sampler PRNG State     : {:<50}|", sampler_state);
     println!(
         "| Memory Read Mode       : {:<50}|",
-        format!("{:?}", session.read_mode())
+        format!("{:?}", conversation.read_mode())
     );
     println!(
-        "| Sampling Policy        : {:<50}|",
-        format!("{:?}", session.policy())
+        "| Poisoned State         : {:<50}|",
+        format!("{}", conversation.is_poisoned())
     );
     println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
-    println!("{ANSI_MAGENTA_BOLD}| Geometric State Coordinates:                                               |{ANSI_RESET}");
+    println!("{ANSI_MAGENTA_BOLD}| Protocol & Architecture:                                                   |{ANSI_RESET}");
     println!(
-        "| Hopf Holonomy DeltaPsi : {:<50}|",
-        format!("Q30: {}, S1 winding != 0", t.cumulative_holonomy_q30)
+        "| Protocol Schema        : {:<50}|",
+        conversation.protocol().schema
     );
-    let zeta_sample = format!(
-        "[{}, {}, {}, {}, {}, {}, {}, {}]",
-        t.zeta_phases[0],
-        t.zeta_phases[1],
-        t.zeta_phases[2],
-        t.zeta_phases[3],
-        t.zeta_phases[4],
-        t.zeta_phases[5],
-        t.zeta_phases[6],
-        t.zeta_phases[7]
+    println!(
+        "| Protocol Identity      : {:<50}|",
+        conversation.protocol_identity()
     );
-    println!("| Zeta T^8 Phase Vector  : {:<50}|", zeta_sample);
+    println!("| Numerical Engine       : Pure Integer Shift-Add / Lookup (D11 contract)    |");
     println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
     println!("{ANSI_MAGENTA_BOLD}| Apple Silicon Host Resources:                                              |{ANSI_RESET}");
     println!("| Process RSS            : {:<50}|", rss_str);
-    println!("| Hardware Multipliers   : 0 (Static Audit Certified - PASS)                 |");
     println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
 }
 
-fn handle_slash_command<'a>(line: &str, session: &mut ChatSession<'a>, bundle: &'a Bundle) -> bool {
+fn create_conversation<'a>(
+    bundle: &'a Bundle,
+    protocol: &DialogueProtocol,
+    system_prompt: Option<&str>,
+    seed: u64,
+    read_mode: ReadMode,
+) -> std::result::Result<DialogueConversation<'a>, ConversationError> {
+    let history = match system_prompt {
+        Some(prompt) if !prompt.trim().is_empty() => vec![Message {
+            role: "system",
+            content: prompt.trim(),
+        }],
+        _ => vec![],
+    };
+    bundle.dialogue_conversation(protocol, &history, seed, read_mode)
+}
+
+fn handle_slash_command<'a>(
+    line: &str,
+    conversation: &mut DialogueConversation<'a>,
+    bundle: &'a Bundle,
+    protocol: &DialogueProtocol,
+    current_system_prompt: &mut Option<String>,
+    current_read_mode: &mut ReadMode,
+    current_seed: u64,
+    turn_count: &mut usize,
+) -> bool {
     let parts: Vec<&str> = line.split_whitespace().collect();
     if parts.is_empty() {
         return true;
@@ -344,26 +378,33 @@ fn handle_slash_command<'a>(line: &str, session: &mut ChatSession<'a>, bundle: &
         "/persona" => {
             let prompt = line["/persona".len()..].trim();
             if prompt.is_empty() {
-                let p_tokens = &session.state().persistent_tokens;
-                if p_tokens.is_empty() {
+                if let Some(ref p) = current_system_prompt {
                     println!(
-                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} No persistent persona is currently set (0 slots used)."
+                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Current Persona ({} initial tokens):\n\"{}\"",
+                        conversation.initial_tokens().len(),
+                        p
                     );
                 } else {
-                    let decoded = bundle.tokenizer().decode(p_tokens);
                     println!(
-                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Current Persona ({} tokens, sealed: {}):\n\"{}\"",
-                        p_tokens.len(),
-                        session.telemetry().persistent_sealed,
-                        decoded
+                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} No persistent persona is currently set."
                     );
                 }
             } else {
-                match session.ingest_system_prompt(prompt) {
-                    Ok(count) => {
+                let candidate_persona = Some(prompt.to_string());
+                match create_conversation(
+                    bundle,
+                    protocol,
+                    candidate_persona.as_deref(),
+                    current_seed,
+                    *current_read_mode,
+                ) {
+                    Ok(new_conv) => {
+                        *current_system_prompt = candidate_persona;
+                        *conversation = new_conv;
+                        *turn_count = 0;
                         println!(
-                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} System persona set and sealed ({} tokens).",
-                            count
+                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} System persona set and session reset ({} initial tokens).",
+                            conversation.initial_tokens().len()
                         );
                     }
                     Err(err) => {
@@ -374,64 +415,48 @@ fn handle_slash_command<'a>(line: &str, session: &mut ChatSession<'a>, bundle: &
                 }
             }
         }
-        "/reset" => {
-            session.reset_dialogue();
-            let used = session.telemetry().persistent_slots_used;
-            println!(
-                "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Dialogue partition reset. Persistent persona retained ({used} tokens)."
-            );
+        "/reset" | "/clear" => {
+            match create_conversation(
+                bundle,
+                protocol,
+                current_system_prompt.as_deref(),
+                current_seed,
+                *current_read_mode,
+            ) {
+                Ok(new_conv) => {
+                    *conversation = new_conv;
+                    *turn_count = 0;
+                    println!(
+                        "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Dialogue history reset cleanly."
+                    );
+                }
+                Err(err) => {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}[error]{ANSI_RESET} Failed to reset conversation: {err}"
+                    );
+                }
+            }
         }
         "/verify" | "/verify-kernel" => {
             if let Err(err) = run_kernel_verification(bundle) {
                 eprintln!("{ANSI_RED_BOLD}[error]{ANSI_RESET} Kernel verification failed: {err}");
             }
         }
-        "/save" => {
-            if parts.len() < 2 {
-                eprintln!("{ANSI_RED_BOLD}[error]{ANSI_RESET} Usage: /save <path>");
-            } else {
-                let path = Path::new(parts[1]);
-                match session.save_session(path, bundle.identity()) {
-                    Ok(()) => {
-                        println!(
-                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Session serialized successfully to '{}'.",
-                            path.display()
-                        );
-                    }
-                    Err(err) => {
-                        eprintln!(
-                            "{ANSI_RED_BOLD}[error]{ANSI_RESET} Failed to save session: {err}"
-                        );
-                    }
-                }
-            }
-        }
-        "/load" => {
-            if parts.len() < 2 {
-                eprintln!("{ANSI_RED_BOLD}[error]{ANSI_RESET} Usage: /load <path>");
-            } else {
-                let path = Path::new(parts[1]);
-                match ChatSession::load_session(bundle, path, bundle.identity()) {
-                    Ok(loaded) => {
-                        *session = loaded;
-                        let t = session.telemetry();
-                        println!(
-                            "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Session loaded from '{}'. Turn count: {}, Active tokens: {}.",
-                            path.display(),
-                            t.current_turn_id,
-                            t.persistent_slots_used + t.dialogue_slots_used
-                        );
-                    }
-                    Err(err) => {
-                        eprintln!(
-                            "{ANSI_RED_BOLD}[error]{ANSI_RESET} Failed to load session: {err}"
-                        );
-                    }
-                }
-            }
-        }
         "/stats" => {
-            print_stats(session);
+            print_stats(conversation, *turn_count);
+        }
+        "/history" => {
+            println!(
+                "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Dialogue history: {} completed turns, {} active tokens in context (capacity {}).",
+                *turn_count,
+                conversation.len(),
+                bundle.model().config().context
+            );
+        }
+        "/save" | "/load" => {
+            println!(
+                "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} /save and /load are unsupported for DialogueConversation streaming sessions (use /stats or /history to view dialogue state)."
+            );
         }
         "/read-mode" => {
             if parts.len() < 2 {
@@ -441,12 +466,52 @@ fn handle_slash_command<'a>(line: &str, session: &mut ChatSession<'a>, bundle: &
             } else {
                 match parts[1].to_lowercase().as_str() {
                     "on" | "enabled" => {
-                        session.set_read_mode(ReadMode::Enabled);
-                        println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Memory read mode set to Enabled.");
+                        let candidate_mode = ReadMode::Enabled;
+                        match create_conversation(
+                            bundle,
+                            protocol,
+                            current_system_prompt.as_deref(),
+                            current_seed,
+                            candidate_mode,
+                        ) {
+                            Ok(new_conv) => {
+                                *current_read_mode = candidate_mode;
+                                *conversation = new_conv;
+                                *turn_count = 0;
+                                println!(
+                                    "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Memory read mode set to Enabled (session reset)."
+                                );
+                            }
+                            Err(err) => {
+                                eprintln!(
+                                    "{ANSI_RED_BOLD}[error]{ANSI_RESET} Failed to update read mode: {err}"
+                                );
+                            }
+                        }
                     }
                     "off" | "no_read" | "noread" => {
-                        session.set_read_mode(ReadMode::NoRead);
-                        println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Memory read mode set to NoRead.");
+                        let candidate_mode = ReadMode::NoRead;
+                        match create_conversation(
+                            bundle,
+                            protocol,
+                            current_system_prompt.as_deref(),
+                            current_seed,
+                            candidate_mode,
+                        ) {
+                            Ok(new_conv) => {
+                                *current_read_mode = candidate_mode;
+                                *conversation = new_conv;
+                                *turn_count = 0;
+                                println!(
+                                    "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Memory read mode set to NoRead (session reset)."
+                                );
+                            }
+                            Err(err) => {
+                                eprintln!(
+                                    "{ANSI_RED_BOLD}[error]{ANSI_RESET} Failed to update read mode: {err}"
+                                );
+                            }
+                        }
                     }
                     other => {
                         eprintln!(
@@ -484,7 +549,17 @@ fn run_kernel_verification(bundle: &Bundle) -> Result<()> {
     let mut session = model.new_session();
     let step = model.step(&mut session, 0, ReadMode::Enabled)?;
     std::hint::black_box(&step);
-    println!("{ANSI_GREEN_BOLD}[PASS]{ANSI_RESET} Zero-MatMul numerical serving kernel verified (IntegerModel::step retained).");
+
+    let mut conv_session = model.new_conversational_session();
+    let conv_step = model.step_conversational(
+        &mut conv_session,
+        0,
+        uor_r4_integer::model::SlotTarget::Dialogue,
+        ReadMode::Enabled,
+    )?;
+    std::hint::black_box(&conv_step);
+
+    println!("{ANSI_GREEN_BOLD}[PASS]{ANSI_RESET} Zero-MatMul numerical serving kernel verified (IntegerModel::step and step_conversational retained).");
     Ok(())
 }
 
@@ -520,6 +595,7 @@ fn resolve_bundle_path(path: &Path) -> PathBuf {
     let default_bases = [
         "/Users/casey.allard/uor-r4-investigations/integer-serving-20260925",
         "/Users/casey.allard/uor-r4-investigations/language-continuation-20260925",
+        "/Users/casey.allard/uor-r4/.uor-models/investigations/fourth-research-lab-20260926",
     ];
     for base in &default_bases {
         let candidate = Path::new(base).join(path);
@@ -530,9 +606,26 @@ fn resolve_bundle_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
+/// Determine terminal stop reason for a completed dialogue stream.
+/// Terminal execution errors fail the operation rather than silently reporting completion.
+fn completed_dialogue_stream_stop(stream: &DialogueConversationStream<'_, '_>) -> Result<Stop> {
+    if let Some(error) = stream.error() {
+        return Err(IntegerError::Invalid(format!(
+            "dialogue stream stopped with error after {} generated tokens: {error}",
+            stream.tokens_generated()
+        )));
+    }
+    stream.stop_reason().ok_or_else(|| {
+        IntegerError::Invalid("stream exhausted without a terminal stop reason".into())
+    })
+}
+
 /// Iterator exhaustion alone is not success: terminal model errors may arrive
 /// after the last visible text chunk, including while committing a stop token.
-fn completed_stream_stop(stream: &ChatTokenStream<'_, '_>) -> Result<StreamStopReason> {
+#[cfg(test)]
+fn completed_stream_stop(
+    stream: &uor_r4_integer::session::ChatTokenStream<'_, '_>,
+) -> Result<uor_r4_integer::session::StreamStopReason> {
     if let Some(error) = stream.error() {
         return Err(IntegerError::Invalid(format!(
             "stream stopped with {:?} after {} generated tokens: {error}",
@@ -548,6 +641,7 @@ fn completed_stream_stop(stream: &ChatTokenStream<'_, '_>) -> Result<StreamStopR
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uor_r4_integer::session::{ChatSession, ChatTokenStream, StreamStopReason};
 
     #[test]
     fn chat_stream_cli_distinguishes_failed_and_successful_exhaustion() -> Result<()> {
@@ -568,6 +662,90 @@ mod tests {
             completed_stream_stop(&stream)?,
             StreamStopReason::MaxTokens { count: 0 }
         );
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue_stream_cli_distinguishes_failed_and_successful_exhaustion() -> Result<()> {
+        let bundle = create_test_bundle_with_byte_vocab();
+        let protocol = DialogueProtocol::literal_roles_v1(bundle.tokenizer()).unwrap();
+        let mut conv = bundle
+            .dialogue_conversation(&protocol, &[], 42, ReadMode::Enabled)
+            .unwrap();
+
+        let req = ConversationRequest {
+            user: "Hello",
+            max_new_tokens: 4,
+            policy: SamplePolicy::Greedy,
+            first_sentence: false,
+            closure: TurnClosure::InterruptAssistant,
+        };
+        let mut stream = conv.respond_stream(req).unwrap();
+        while let Some(_chunk) = stream.next() {}
+        let stop = completed_dialogue_stream_stop(&stream)?;
+        assert_eq!(stop, Stop::ShortCycle { period: 1 });
+        assert_eq!(stream.tokens_generated(), 3);
+        drop(stream);
+
+        // Preflight rejection does not poison conversation
+        let oversized = ConversationRequest {
+            user: "Invalid budget",
+            max_new_tokens: 256,
+            policy: SamplePolicy::Greedy,
+            first_sentence: false,
+            closure: TurnClosure::InterruptAssistant,
+        };
+        assert!(conv.respond_stream(oversized).is_err());
+        assert!(!conv.is_poisoned());
+
+        Ok(())
+    }
+
+    #[test]
+    fn dialogue_stream_cli_multi_turn_continuity() -> Result<()> {
+        let bundle = create_test_bundle_with_byte_vocab();
+        let protocol = DialogueProtocol::literal_roles_v1(bundle.tokenizer()).unwrap();
+        let mut conv = bundle
+            .dialogue_conversation(&protocol, &[], 2026, ReadMode::Enabled)
+            .unwrap();
+
+        // Turn 1: 2 tokens (does not trigger short cycle)
+        let req1 = ConversationRequest {
+            user: "Hi",
+            max_new_tokens: 2,
+            policy: SamplePolicy::Greedy,
+            first_sentence: false,
+            closure: TurnClosure::InterruptAssistant,
+        };
+        let mut stream1 = conv.respond_stream(req1).unwrap();
+        let mut output1 = String::new();
+        while let Some(chunk) = stream1.next() {
+            output1.push_str(&chunk);
+        }
+        let stop1 = completed_dialogue_stream_stop(&stream1)?;
+        assert_eq!(stop1, Stop::MaximumNewTokens);
+        assert_eq!(stream1.tokens_generated(), 2);
+        drop(stream1);
+
+        // Turn 2: continuity with exact ID retention
+        let req2 = ConversationRequest {
+            user: "Tell me more",
+            max_new_tokens: 2,
+            policy: SamplePolicy::Greedy,
+            first_sentence: false,
+            closure: TurnClosure::InterruptAssistant,
+        };
+        let mut stream2 = conv.respond_stream(req2).unwrap();
+        let mut output2 = String::new();
+        while let Some(chunk) = stream2.next() {
+            output2.push_str(&chunk);
+        }
+        let stop2 = completed_dialogue_stream_stop(&stream2)?;
+        assert_eq!(stop2, Stop::MaximumNewTokens);
+        assert_eq!(stream2.tokens_generated(), 2);
+        drop(stream2);
+        assert!(!conv.is_poisoned());
+
         Ok(())
     }
 }
@@ -626,25 +804,45 @@ fn main() {
         }
     };
 
+    let protocol = match DialogueProtocol::literal_roles_v1(bundle.tokenizer()) {
+        Ok(p) => p,
+        Err(err) => {
+            eprintln!(
+                "{ANSI_RED_BOLD}error:{ANSI_RESET} failed to bind dialogue protocol to tokenizer: {err}"
+            );
+            process::exit(1);
+        }
+    };
+
     let policy = if cli.temperature <= 0.0 {
         SamplePolicy::Greedy
     } else {
         SamplePolicy::Categorical { top_k: cli.top_k }
     };
 
-    let mut session = match ChatSession::new(&bundle, cli.system_prompt.as_deref(), cli.seed) {
-        Ok(mut s) => {
-            s.set_read_mode(cli.read_mode);
-            s.set_policy(policy);
-            s
-        }
+    let mut current_system_prompt = cli.system_prompt.clone();
+    let mut current_read_mode = cli.read_mode;
+    let current_seed = cli.seed;
+    let current_policy = policy;
+    let mut turn_count: usize = 0;
+
+    let mut conversation = match create_conversation(
+        &bundle,
+        &protocol,
+        current_system_prompt.as_deref(),
+        current_seed,
+        current_read_mode,
+    ) {
+        Ok(conv) => conv,
         Err(err) => {
-            eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} failed to initialize chat session: {err}");
+            eprintln!(
+                "{ANSI_RED_BOLD}error:{ANSI_RESET} failed to initialize dialogue conversation: {err}"
+            );
             process::exit(1);
         }
     };
 
-    print_welcome_banner(&bundle, policy, cli.read_mode);
+    print_welcome_banner(&bundle, &protocol, policy, cli.read_mode);
 
     let stdin = io::stdin();
     let mut reader = stdin.lock();
@@ -670,16 +868,68 @@ fn main() {
                 }
 
                 if trimmed.starts_with('/') {
-                    handle_slash_command(trimmed, &mut session, &bundle);
+                    handle_slash_command(
+                        trimmed,
+                        &mut conversation,
+                        &bundle,
+                        &protocol,
+                        &mut current_system_prompt,
+                        &mut current_read_mode,
+                        current_seed,
+                        &mut turn_count,
+                    );
                     continue;
                 }
 
-                // Assistant streaming generation
+                if conversation.is_poisoned() {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}[error]{ANSI_RESET} Conversation is poisoned due to an execution error. Please use /reset to start a fresh conversation."
+                    );
+                    continue;
+                }
+
+                // Context capacity guard and auto-capping
+                let context_cap = bundle.model().config().context;
+                let active_len = conversation.len();
+                let user_prefix_tokens = bundle.tokenizer().encode(trimmed).len() + 3;
+                let prompt_total = active_len + user_prefix_tokens;
+                if prompt_total >= context_cap {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}[error]{ANSI_RESET} Context capacity reached ({} / {} tokens). Use /reset to clear history.",
+                        prompt_total, context_cap
+                    );
+                    continue;
+                }
+                let remaining_room = context_cap - prompt_total;
+                let effective_max_tokens = cli.max_tokens.min(remaining_room);
+                if effective_max_tokens == 0 {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}[error]{ANSI_RESET} Context capacity exhausted ({} / {} tokens). Use /reset to start fresh.",
+                        prompt_total, context_cap
+                    );
+                    continue;
+                }
+                if effective_max_tokens < cli.max_tokens {
+                    println!(
+                        "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} Capping response to {} tokens (remaining context window room: {} tokens).",
+                        effective_max_tokens, remaining_room
+                    );
+                }
+
+                // Assistant streaming generation with persistent exact-token dialogue continuity
                 print!("{ANSI_GREEN_BOLD}Assistant>{ANSI_RESET} ");
                 io::stdout().flush().ok();
 
                 let start_time = std::time::Instant::now();
-                match session.generate_stream(trimmed, cli.max_tokens, &[]) {
+                let request = ConversationRequest {
+                    user: trimmed,
+                    max_new_tokens: effective_max_tokens,
+                    policy: current_policy,
+                    first_sentence: false,
+                    closure: TurnClosure::InterruptAssistant,
+                };
+
+                match conversation.respond_stream(request) {
                     Ok(mut stream) => {
                         while let Some(chunk) = stream.next() {
                             print!("{}", chunk);
@@ -687,7 +937,7 @@ fn main() {
                         }
                         println!();
 
-                        let stop = match completed_stream_stop(&stream) {
+                        let stop = match completed_dialogue_stream_stop(&stream) {
                             Ok(stop) => stop,
                             Err(error) => {
                                 eprintln!(
@@ -696,6 +946,7 @@ fn main() {
                                 process::exit(1);
                             }
                         };
+                        turn_count += 1;
                         let elapsed = start_time.elapsed();
                         let tok_count = stream.tokens_generated();
                         let elapsed_secs = elapsed.as_secs_f64();

@@ -5,8 +5,8 @@
 //! Full context is bounded; this layer never evicts, truncates or replays it.
 
 use super::{
-    validate_append_tokens, validate_generation_budget, DialogueGeneration, Selection, Stop,
-    StopTokens, TextSession,
+    validate_append_tokens, validate_generation_budget, Decision, DialogueGeneration, Generation,
+    IncrementalUtf8Decoder, Selection, Stop, StopTokens, TextSession,
 };
 use crate::{invalid, Bundle, IntegerError, ReadMode, SamplePolicy, Sampler};
 use serde::Serialize;
@@ -168,7 +168,7 @@ impl Bundle {
     }
 }
 
-impl DialogueConversation<'_> {
+impl<'a> DialogueConversation<'a> {
     pub fn protocol(&self) -> &DialogueProtocol {
         &self.protocol
     }
@@ -190,6 +190,24 @@ impl DialogueConversation<'_> {
     pub fn is_poisoned(&self) -> bool {
         self.poisoned
     }
+    pub fn bundle(&self) -> &'a Bundle {
+        self.bundle
+    }
+    pub fn read_mode(&self) -> ReadMode {
+        self.mode
+    }
+    pub fn previous_stop(&self) -> Option<Stop> {
+        self.previous_stop
+    }
+    pub fn initial_tokens(&self) -> &[u32] {
+        &self.initial_tokens
+    }
+    pub fn initial_has_history(&self) -> bool {
+        self.initial_has_history
+    }
+    pub fn session(&self) -> Option<&TextSession<'a>> {
+        self.session.as_ref()
+    }
     /// Cursor for the next categorical selection, including across greedy turns.
     pub fn sampler_state(&self) -> Result<u64> {
         if self.poisoned {
@@ -199,16 +217,16 @@ impl DialogueConversation<'_> {
         }
     }
 
-    pub fn respond(&mut self, request: ConversationRequest<'_>) -> Result<ConversationTurn> {
+    pub fn respond_stream<'s>(
+        &'s mut self,
+        request: ConversationRequest<'_>,
+    ) -> Result<DialogueConversationStream<'s, 'a>> {
         if self.poisoned {
             return Err(ConversationError::Poisoned);
         }
-        let selection = match request.policy {
-            SamplePolicy::Greedy => Selection::Greedy,
-            SamplePolicy::Categorical { top_k } => Selection::Categorical {
-                top_k,
-                seed: self.sampler_state,
-            },
+        let policy = match request.policy {
+            SamplePolicy::Greedy => SamplePolicy::Greedy,
+            SamplePolicy::Categorical { top_k } => SamplePolicy::Categorical { top_k },
             other => return Err(ConversationError::UnsupportedPolicy(other)),
         };
         let boundary = match self.previous_stop {
@@ -261,56 +279,25 @@ impl DialogueConversation<'_> {
             .session
             .as_ref()
             .map_or((0, 0), |s| (s.calls, s.model_ns));
-        let result = self.execute(
-            &appended,
-            request.max_new_tokens,
-            selection,
-            request.first_sentence,
-        );
-        let mut generation = match result {
-            Ok(value) => value,
-            Err(error) => {
-                self.poisoned = true;
-                return Err(ConversationError::Execution(error));
-            }
-        };
-        if let Some(session) = &self.session {
-            generation.incremental_step_calls = session.calls - calls_before;
-            generation.model_step_nanoseconds = session.model_ns - ns_before;
-        }
-        generation.whole_generation_nanoseconds = clock.elapsed().as_nanos();
-        if matches!(request.policy, SamplePolicy::Categorical { .. }) {
-            self.sampler_state = generation.sampler_state_after;
-        }
-        // The wrapper's receipt exposes its authoritative continuation cursor,
-        // including on greedy turns which do not advance that cursor.
-        generation.sampler_state_after = self.sampler_state;
-        self.previous_stop = Some(generation.stop);
-        Ok(ConversationTurn {
-            boundary,
-            appended_token_ids: appended,
-            raw_generated_bytes: self
-                .bundle
-                .tokenizer()
-                .decode_bytes(&generation.generated_token_ids),
-            dialogue: DialogueGeneration {
-                protocol: self.protocol.clone(),
-                protocol_identity: self.protocol_identity.clone(),
-                generation,
-            },
-        })
-    }
 
-    fn execute(
-        &mut self,
-        appended: &[u32],
-        max_new_tokens: usize,
-        selection: Selection,
-        first_sentence: bool,
-    ) -> crate::Result<super::Generation> {
+        let starting_selection = match policy {
+            SamplePolicy::Greedy => Selection::Greedy,
+            SamplePolicy::Categorical { top_k } => Selection::Categorical {
+                top_k,
+                seed: self.sampler_state,
+            },
+            other => return Err(ConversationError::UnsupportedPolicy(other)),
+        };
+
         let first = self.session.is_none();
         if first {
-            let mut session = self.bundle.text_session(self.mode)?;
+            let mut session = match self.bundle.text_session(self.mode) {
+                Ok(s) => s,
+                Err(error) => {
+                    self.poisoned = true;
+                    return Err(ConversationError::Execution(error));
+                }
+            };
             session.stop_tokens = StopTokens {
                 eos: self.protocol.eos_id,
                 turn_end: None,
@@ -322,13 +309,288 @@ impl DialogueConversation<'_> {
             .session
             .as_mut()
             .ok_or_else(|| invalid("conversation session missing"))?;
-        // text_session consumed exactly the first BOS. No later literal BOS is
-        // stripped, and append_tokens consumes the previous pending ID once.
-        let suffix = if first { &appended[1..] } else { appended };
+        let suffix = if first { &appended[1..] } else { &appended };
         if !suffix.is_empty() {
-            session.append_tokens(suffix)?;
+            if let Err(error) = session.append_tokens(suffix) {
+                self.poisoned = true;
+                return Err(ConversationError::Execution(error));
+            }
         }
-        session.generate(max_new_tokens, selection, first_sentence)
+        let prompt_token_ids = session.observed.clone();
+        let sampler = match policy {
+            SamplePolicy::Greedy => Sampler::new(0),
+            SamplePolicy::Categorical { .. } => Sampler::new(self.sampler_state),
+            other => return Err(ConversationError::UnsupportedPolicy(other)),
+        };
+
+        Ok(DialogueConversationStream {
+            conversation: self,
+            boundary,
+            appended,
+            prompt_token_ids,
+            max_new_tokens: request.max_new_tokens,
+            policy,
+            starting_selection,
+            first_sentence: request.first_sentence,
+            tokens_generated: 0,
+            generated_tokens: Vec::new(),
+            decisions: Vec::new(),
+            sampler,
+            decoder: IncrementalUtf8Decoder::new(),
+            stopped: false,
+            stop_reason: None,
+            error: None,
+            clock,
+            calls_before,
+            ns_before,
+        })
+    }
+
+    pub fn respond(&mut self, request: ConversationRequest<'_>) -> Result<ConversationTurn> {
+        let stream = self.respond_stream(request)?;
+        stream.into_turn()
+    }
+}
+
+/// Active streaming token iterator for a dialogue conversation.
+pub struct DialogueConversationStream<'s, 'a> {
+    conversation: &'s mut DialogueConversation<'a>,
+    boundary: TurnBoundary,
+    appended: Vec<u32>,
+    prompt_token_ids: Vec<u32>,
+    max_new_tokens: usize,
+    policy: SamplePolicy,
+    starting_selection: Selection,
+    first_sentence: bool,
+    tokens_generated: usize,
+    generated_tokens: Vec<u32>,
+    decisions: Vec<Decision>,
+    sampler: Sampler,
+    decoder: IncrementalUtf8Decoder,
+    stopped: bool,
+    stop_reason: Option<Stop>,
+    error: Option<ConversationError>,
+    clock: Instant,
+    calls_before: usize,
+    ns_before: u128,
+}
+
+impl<'s, 'a> DialogueConversationStream<'s, 'a> {
+    pub fn tokens_generated(&self) -> usize {
+        self.tokens_generated
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        self.stopped
+    }
+
+    pub fn stop_reason(&self) -> Option<Stop> {
+        self.stop_reason
+    }
+
+    pub fn error(&self) -> Option<&ConversationError> {
+        self.error.as_ref()
+    }
+
+    pub fn generated_tokens(&self) -> &[u32] {
+        &self.generated_tokens
+    }
+
+    pub fn boundary(&self) -> TurnBoundary {
+        self.boundary
+    }
+
+    fn finish_with_error(&mut self, error: ConversationError) {
+        self.stopped = true;
+        self.conversation.poisoned = true;
+        self.error = Some(error);
+    }
+
+    fn finish_turn(&mut self, stop: Stop) {
+        self.stopped = true;
+        self.stop_reason = Some(stop);
+        self.conversation.previous_stop = Some(stop);
+        if matches!(self.policy, SamplePolicy::Categorical { .. }) {
+            self.conversation.sampler_state = self.sampler.state();
+        }
+    }
+
+    pub fn into_turn(mut self) -> Result<ConversationTurn> {
+        if let Some(err) = self.error.take() {
+            return Err(err);
+        }
+        if !self.stopped {
+            while self.next().is_some() {}
+            if let Some(err) = self.error.take() {
+                return Err(err);
+            }
+        }
+        let stop = self.stop_reason.unwrap_or(Stop::MaximumNewTokens);
+        let end = self
+            .generated_tokens
+            .iter()
+            .position(|&token| {
+                self.conversation
+                    .session
+                    .as_ref()
+                    .and_then(|s| s.stop_reason(token))
+                    .is_some()
+            })
+            .unwrap_or(self.generated_tokens.len());
+        let raw = self
+            .conversation
+            .bundle
+            .tokenizer()
+            .decode_bytes(&self.generated_tokens);
+        let bytes = self
+            .conversation
+            .bundle
+            .tokenizer()
+            .decode_bytes(&self.generated_tokens[..end]);
+        let (calls_after, ns_after) = self
+            .conversation
+            .session
+            .as_ref()
+            .map_or((0, 0), |s| (s.calls, s.model_ns));
+        let incremental_step_calls = calls_after - self.calls_before;
+        let model_step_nanoseconds = ns_after - self.ns_before;
+        let whole_generation_nanoseconds = super::duration_nanos_exact(self.clock.elapsed());
+
+        let selection = self.starting_selection;
+
+        let generation = Generation {
+            prompt: String::new(),
+            prompt_token_ids: std::mem::take(&mut self.prompt_token_ids),
+            generated_token_ids: std::mem::take(&mut self.generated_tokens),
+            response_text: String::from_utf8_lossy(&bytes).trim().to_owned(),
+            raw_decoded: String::from_utf8_lossy(&raw).into_owned(),
+            utf8_decodable: std::str::from_utf8(&bytes).is_ok(),
+            stop,
+            decisions: std::mem::take(&mut self.decisions),
+            selection,
+            read_mode: self.conversation.mode,
+            context_capacity: self.conversation.bundle.model().config().context,
+            session_tokens_including_pending: self.conversation.len(),
+            incremental_step_calls,
+            model_step_nanoseconds,
+            whole_generation_nanoseconds,
+            bundle_sha256: self.conversation.bundle.identity().to_owned(),
+            tokenizer_cid: self.conversation.bundle.tokenizer().address(),
+            sampler_state_after: self.conversation.sampler_state,
+        };
+
+        Ok(ConversationTurn {
+            boundary: self.boundary,
+            appended_token_ids: std::mem::take(&mut self.appended),
+            raw_generated_bytes: raw,
+            dialogue: DialogueGeneration {
+                protocol: self.conversation.protocol.clone(),
+                protocol_identity: self.conversation.protocol_identity.clone(),
+                generation,
+            },
+        })
+    }
+}
+
+impl<'s, 'a> Iterator for DialogueConversationStream<'s, 'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.stopped {
+            return None;
+        }
+
+        while self.tokens_generated < self.max_new_tokens {
+            let session = match self.conversation.session.as_mut() {
+                Some(s) => s,
+                None => {
+                    self.finish_with_error(ConversationError::Execution(invalid(
+                        "missing conversation session",
+                    )));
+                    return self.decoder.flush();
+                }
+            };
+
+            let step_res = session.step_next_token(&mut self.sampler, self.policy);
+            let (token, decision) = match step_res {
+                Ok(pair) => pair,
+                Err(err) => {
+                    self.finish_with_error(ConversationError::Execution(err));
+                    return self.decoder.flush();
+                }
+            };
+
+            self.decisions.push(decision);
+            self.generated_tokens.push(token);
+            self.tokens_generated += 1;
+
+            if let Some(reason) = session.stop_reason(token) {
+                self.finish_turn(reason);
+                return self.decoder.flush();
+            }
+
+            let token_bytes = self.conversation.bundle.tokenizer().decode_bytes(&[token]);
+            let chunk = self.decoder.push_bytes(&token_bytes);
+
+            if self.first_sentence
+                && super::bytes_contain_byte(
+                    &self
+                        .conversation
+                        .bundle
+                        .tokenizer()
+                        .decode_bytes(&self.generated_tokens),
+                    b'.',
+                )
+            {
+                self.finish_turn(Stop::FirstSentenceBoundary);
+                let flushed = self.decoder.flush();
+                return match (chunk, flushed) {
+                    (Some(c), Some(f)) => Some(format!("{c}{f}")),
+                    (Some(c), None) => Some(c),
+                    (None, Some(f)) => Some(f),
+                    (None, None) => None,
+                };
+            }
+
+            if let Some(period) = super::short_cycle(&self.generated_tokens) {
+                self.finish_turn(Stop::ShortCycle { period });
+                let flushed = self.decoder.flush();
+                return match (chunk, flushed) {
+                    (Some(c), Some(f)) => Some(format!("{c}{f}")),
+                    (Some(c), None) => Some(c),
+                    (None, Some(f)) => Some(f),
+                    (None, None) => None,
+                };
+            }
+
+            if self.tokens_generated == self.max_new_tokens {
+                self.finish_turn(Stop::MaximumNewTokens);
+                let flushed = self.decoder.flush();
+                return match (chunk, flushed) {
+                    (Some(c), Some(f)) => Some(format!("{c}{f}")),
+                    (Some(c), None) => Some(c),
+                    (None, Some(f)) => Some(f),
+                    (None, None) => None,
+                };
+            }
+
+            if let Some(c) = chunk {
+                return Some(c);
+            }
+        }
+
+        self.finish_turn(Stop::MaximumNewTokens);
+        self.decoder.flush()
+    }
+}
+
+impl<'s, 'a> Drop for DialogueConversationStream<'s, 'a> {
+    fn drop(&mut self) {
+        if !self.stopped {
+            self.finish_with_error(ConversationError::Execution(invalid(
+                "dialogue conversation stream dropped before terminal stop token",
+            )));
+        }
     }
 }
 
@@ -536,6 +798,7 @@ mod tests {
             let expected = reference.generate(2, selection, false).unwrap();
             let turn = conversation.respond(request(user, policy)).unwrap();
             let actual = turn.dialogue.generation;
+            assert_eq!(actual.selection, expected.selection);
             assert_eq!(actual.prompt_token_ids, expected.prompt_token_ids);
             assert_eq!(actual.generated_token_ids, expected.generated_token_ids);
             assert_eq!(
@@ -582,5 +845,141 @@ mod tests {
             Err(ConversationError::Poisoned)
         ));
         assert_eq!(conversation.step_calls(), calls);
+    }
+
+    #[test]
+    fn conversation_streaming_produces_identical_turn_to_batch() {
+        let bundle = Bundle::create_test_bundle_with_byte_vocab();
+        let protocol = DialogueProtocol::literal_roles_v1(bundle.tokenizer()).unwrap();
+        let seed = 101;
+        let mut conv_batch = bundle
+            .dialogue_conversation(&protocol, &[], seed, ReadMode::Enabled)
+            .unwrap();
+        let mut conv_stream = bundle
+            .dialogue_conversation(&protocol, &[], seed, ReadMode::Enabled)
+            .unwrap();
+
+        for (user, policy) in [
+            ("Hello world", SamplePolicy::Categorical { top_k: 32 }),
+            ("Continue here", SamplePolicy::Greedy),
+            ("Final message", SamplePolicy::Categorical { top_k: 16 }),
+        ] {
+            let req_batch = ConversationRequest {
+                user,
+                max_new_tokens: 3,
+                policy,
+                first_sentence: false,
+                closure: TurnClosure::InterruptAssistant,
+            };
+            let req_stream = ConversationRequest {
+                user,
+                max_new_tokens: 3,
+                policy,
+                first_sentence: false,
+                closure: TurnClosure::InterruptAssistant,
+            };
+
+            let turn_batch = conv_batch.respond(req_batch).unwrap();
+            let mut stream = conv_stream.respond_stream(req_stream).unwrap();
+            let mut streamed_text = String::new();
+            while let Some(chunk) = stream.next() {
+                assert!(std::str::from_utf8(chunk.as_bytes()).is_ok());
+                streamed_text.push_str(&chunk);
+            }
+            let turn_stream = stream.into_turn().unwrap();
+
+            assert_eq!(turn_stream.boundary, turn_batch.boundary);
+            assert_eq!(
+                turn_stream.appended_token_ids,
+                turn_batch.appended_token_ids
+            );
+            assert_eq!(
+                turn_stream.dialogue.generation.prompt_token_ids,
+                turn_batch.dialogue.generation.prompt_token_ids
+            );
+            assert_eq!(
+                turn_stream.dialogue.generation.generated_token_ids,
+                turn_batch.dialogue.generation.generated_token_ids
+            );
+            assert_eq!(
+                turn_stream.dialogue.generation.response_text,
+                turn_batch.dialogue.generation.response_text
+            );
+            assert_eq!(streamed_text, turn_batch.dialogue.generation.response_text);
+            assert_eq!(
+                turn_stream.dialogue.generation.stop,
+                turn_batch.dialogue.generation.stop
+            );
+            assert_eq!(
+                turn_stream.dialogue.generation.sampler_state_after,
+                turn_batch.dialogue.generation.sampler_state_after
+            );
+            assert_eq!(
+                conv_stream.sampler_state().unwrap(),
+                conv_batch.sampler_state().unwrap()
+            );
+            assert_eq!(conv_stream.len(), conv_batch.len());
+            assert_eq!(conv_stream.step_calls(), conv_batch.step_calls());
+        }
+    }
+
+    #[test]
+    fn conversation_stream_execution_error_poisons_session() {
+        let bundle = Bundle::create_test_bundle_with_byte_vocab();
+        let protocol = DialogueProtocol::literal_roles_v1(bundle.tokenizer()).unwrap();
+        let mut conversation = bundle
+            .dialogue_conversation(&protocol, &[], 42, ReadMode::Enabled)
+            .unwrap();
+        let mut stream = conversation
+            .respond_stream(request("Hi", SamplePolicy::Greedy))
+            .unwrap();
+        let _ = stream.next();
+        stream.conversation.session.as_mut().unwrap().pending = Some(4096);
+        let _ = stream.next();
+        assert!(stream.error().is_some());
+        assert!(stream.conversation.is_poisoned());
+        assert!(matches!(
+            stream.into_turn(),
+            Err(ConversationError::Execution(_))
+        ));
+        assert!(matches!(
+            conversation.sampler_state(),
+            Err(ConversationError::Poisoned)
+        ));
+    }
+
+    #[test]
+    fn conversation_stream_early_drop_poisons_session() {
+        let bundle = Bundle::create_test_bundle_with_byte_vocab();
+        let protocol = DialogueProtocol::literal_roles_v1(bundle.tokenizer()).unwrap();
+        let mut conversation = bundle
+            .dialogue_conversation(&protocol, &[], 42, ReadMode::Enabled)
+            .unwrap();
+        {
+            let req = ConversationRequest {
+                user: "Hello",
+                max_new_tokens: 16,
+                policy: SamplePolicy::Greedy,
+                first_sentence: false,
+                closure: TurnClosure::InterruptAssistant,
+            };
+            let mut stream = conversation.respond_stream(req).unwrap();
+            let chunk = stream.next();
+            assert!(chunk.is_some());
+            assert!(!stream.is_stopped());
+            // stream is dropped here before terminal stop token
+        }
+        assert!(conversation.is_poisoned());
+        let next_req = ConversationRequest {
+            user: "Second message",
+            max_new_tokens: 4,
+            policy: SamplePolicy::Greedy,
+            first_sentence: false,
+            closure: TurnClosure::InterruptAssistant,
+        };
+        assert!(matches!(
+            conversation.respond(next_req),
+            Err(ConversationError::Poisoned)
+        ));
     }
 }

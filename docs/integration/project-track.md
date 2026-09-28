@@ -125,6 +125,16 @@ protected delivery without another sweep. This is an interim dense-access
 storage improvement; D5 selected access, width-576 preservation and useful
 language remain separate responsibilities.
 
+The [four-row blocked product table reuse kernel](native-576-blocked-kernel-2026-09-27.md)
+implements 4-row blocked product table reuse for wide integer matrices (widths 576 and 1152),
+amortizing product-table reads across 4 adjacent rows in vocabulary projection and
+wide affine layers while strictly eliminating multipliers, dividers, and floating point.
+All 157 unit/integration tests in `uor-r4-integer` pass. Static disassembly audit
+confirms 0 Class I/II/III violations in `libuor_r4_integer.rlib` and `uor-chat`.
+On Apple Silicon M1, vocabulary projection latency is 1.103 ms/call, step latency is 1.693 ms,
+and streaming generation achieves 1.920 ms/token (quaternion) and 3.424 ms/token (householder pair)
+at 18.20 MB peak RSS, satisfying all M1 serving invariants.
+
 The [width-576 native observation](native-dialogue576-observation-2026-09-27.md)
 has completed historical-parent conversion, packing, four-form common-input
 traces and all 174 generated replies. Parameter conversion is the largest

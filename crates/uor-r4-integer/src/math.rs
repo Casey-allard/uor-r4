@@ -521,6 +521,38 @@ impl T8ZetaState {
         }
     }
 
+    #[inline(never)]
+    fn step_zeta_phase_scalar(phase: &mut i32, freq_val: i32, token: u32, j: usize) {
+        let freq = freq_val as i64;
+        let k = 1i64 + (((token as i64) + (j as i64)) & 0x07);
+
+        // 4-bit unrolled shift-add multiplication: k in [1, 8]
+        let mut prod = 0i64;
+        if k & 1 != 0 {
+            prod += freq;
+        }
+        if k & 2 != 0 {
+            prod += freq << 1;
+        }
+        if k & 4 != 0 {
+            prod += freq << 2;
+        }
+        if k & 8 != 0 {
+            prod += freq << 3;
+        }
+        let delta = prod >> 3;
+
+        let next = (*phase as i64) + delta;
+        let mut wrapped = next;
+        while wrapped >= (1i64 << 30) {
+            wrapped -= 2i64 << 30;
+        }
+        while wrapped < -(1i64 << 30) {
+            wrapped += 2i64 << 30;
+        }
+        *phase = wrapped as i32;
+    }
+
     /// Advance T^8 phase coordinates coupled to token prime identity.
     /// Zero hardware multipliers, zero floats.
     pub fn step(&mut self, token: u32) {
@@ -530,34 +562,7 @@ impl T8ZetaState {
             .zip(ZETA_FREQUENCIES_Q30.iter())
             .enumerate()
         {
-            let freq = freq_val as i64;
-            let k = 1i64 + (((token as i64) + (j as i64)) & 0x07);
-
-            // 4-bit unrolled shift-add multiplication: k in [1, 8]
-            let mut prod = 0i64;
-            if k & 1 != 0 {
-                prod += freq;
-            }
-            if k & 2 != 0 {
-                prod += freq << 1;
-            }
-            if k & 4 != 0 {
-                prod += freq << 2;
-            }
-            if k & 8 != 0 {
-                prod += freq << 3;
-            }
-            let delta = prod >> 3;
-
-            let next = (*phase as i64) + delta;
-            let mut wrapped = next;
-            while wrapped >= (1i64 << 30) {
-                wrapped -= 2i64 << 30;
-            }
-            while wrapped < -(1i64 << 30) {
-                wrapped += 2i64 << 30;
-            }
-            *phase = wrapped as i32;
+            Self::step_zeta_phase_scalar(phase, freq_val, token, j);
         }
     }
 }

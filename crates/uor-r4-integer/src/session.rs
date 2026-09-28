@@ -3,8 +3,8 @@
 use crate::bundle::Bundle;
 use crate::math::{HopfFiberPointQ30, T8ZetaState};
 use crate::model::{
-    L2PrimePage, SessionState, SlotTarget, DIALOGUE_CAPACITY, KEY_DIM, L2_PAGE_CAPACITY,
-    PERSISTENT_CAPACITY, TOTAL_MEMORY_CANDIDATES, VAL_DIM,
+    DialogueSlotValue576, L2PrimePage, L2PrimePage576, SessionState, SlotTarget, DIALOGUE_CAPACITY,
+    KEY_DIM, L2_PAGE_CAPACITY, PERSISTENT_CAPACITY, TOTAL_MEMORY_CANDIDATES, VAL_DIM,
 };
 use crate::sampling::{SamplePolicy, Sampler};
 use crate::{invalid, IntegerError, IntegerStep, ReadMode, Result};
@@ -940,10 +940,11 @@ impl<'a> ChatSession<'a> {
         }
 
         let s_state = serialized.session_state;
-        if s_state.state.len() != 256 {
+        let width = s_state.state.len();
+        if width != 256 && width != 576 {
             return Err(invalid(format!(
-                "corrupted session state: expected recurrent state dimension 256, found {}",
-                s_state.state.len()
+                "corrupted session state: expected recurrent state dimension 256 or 576, found {}",
+                width
             )));
         }
         if s_state.persistent_capacity != PERSISTENT_CAPACITY {
@@ -1176,11 +1177,19 @@ impl<'a> ChatSession<'a> {
             state: s_state.state,
             persistent_keys,
             persistent_values,
+            persistent_values_576: Vec::new(),
             persistent_tokens: s_state.persistent_tokens,
             persistent_capacity: s_state.persistent_capacity,
             persistent_sealed: s_state.persistent_sealed,
             dialogue_keys,
             dialogue_values,
+            dialogue_values_576: if width == 576 {
+                Some(Box::new(
+                    [DialogueSlotValue576::default(); DIALOGUE_CAPACITY],
+                ))
+            } else {
+                None
+            },
             dialogue_tokens: s_state.dialogue_tokens,
             dialogue_sequences: s_state.dialogue_sequences,
             dialogue_turn_ids: s_state.dialogue_turn_ids,
@@ -1190,6 +1199,11 @@ impl<'a> ChatSession<'a> {
             dialogue_seen: s_state.dialogue_seen,
             current_turn_id: s_state.current_turn_id,
             l2_pages,
+            l2_pages_576: if width == 576 {
+                Some(Box::new([L2PrimePage576::default(); L2_PAGE_CAPACITY]))
+            } else {
+                None
+            },
             l2_cursor: s_state.l2_cursor,
             l2_len: s_state.l2_len,
             l2_seen: s_state.l2_seen,
@@ -1202,7 +1216,7 @@ impl<'a> ChatSession<'a> {
             dialogue_key_norms,
             l2_page_norms,
             allow_hyperbolic_cache,
-            scratch_products: vec![[0i64; 16]; 512],
+            scratch_products: vec![[0i64; 16]; 2 * width],
             copy_scratch: vec![0u64; 4096],
             last_probabilities: vec![0u64; 4096]
                 .into_boxed_slice()

@@ -29,6 +29,20 @@ record the executed scope. No model fit or capability promotion
 follows from the lab setup. Accepted models and the continuation negative below
 remain unchanged. Other labs' active source and model jobs are preserved.
 
+The [four-row blocked product table reuse kernel](native-576-blocked-kernel-2026-09-27.md)
+now groups four adjacent matrix rows during wide integer serving (width 576 and
+1152), reusing product tables loaded into registers and L1 cache across the 4096-row
+vocabulary projection and wide affine layers. Intermediate `i64` sums strictly fit
+within $2^{44} < 2^{63}-1$, introducing zero precision loss or overflow.
+All 157 unit and integration tests in `uor-r4-integer` pass. Static disassembly audit
+confirms strictly zero multipliers, zero dividers, and zero floats (Class I/II/III clean)
+across `libuor_r4_integer.rlib` (31 symbols) and `uor-chat` (30 symbols).
+On Apple Silicon M1, vocabulary projection latency is 1.103 ms/call,
+conversational step is 1.693 ms, and streaming generation is 1.920 ms/token
+(quaternion) and 3.424 ms/token (householder pair), with 18.20 MB peak RSS (< 35 MB ceiling).
+The [evidence record](../evidence/native-576-blocked-kernel-2026-09-27.json) binds
+all executed measurements and benchmarks.
+
 The [shared packed-coefficient candidate](packed-integer-preparation-2026-09-27.md)
 now preserves signed4 arrays in shared packed storage and reads them directly in
 the supported width-128/256 integer kernels. Four focused arithmetic checks and

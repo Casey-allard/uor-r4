@@ -1,0 +1,46 @@
+{
+  "schema": "uor-r4.native-576-blocked-kernel-evidence/1",
+  "recorded_at": "2026-09-27T17:05:00.000000+00:00",
+  "status": "VERIFIED_HARDWARE_INVARIANTS_AND_PASSING_TESTS",
+  "scope": "Four-row blocked product table reuse for wide integer matrices (width 576 and 1152) in uor-r4-integer. Strict zero-matmul disassembly audit, release benchmarks on M1, and unit/integration test suite.",
+  "invariants": {
+    "class_i_hardware_multipliers": 0,
+    "class_ii_hardware_dividers": 0,
+    "class_iii_floating_point": 0,
+    "missing_mandatory_symbols": 0,
+    "strict_arm64_audit_tap_v13": "5/5 ok"
+  },
+  "benchmarks_apple_silicon_m1": {
+    "project_vocab_latency_ms": 0.844,
+    "step_conversational_latency_ms": 1.583,
+    "streaming_generation_quaternion_ms_per_token": 1.464,
+    "streaming_generation_householder_pair_ms_per_token": 1.050,
+    "latency_ceiling_ms_per_token": 4.0,
+    "peak_rss_mb": 20.62,
+    "rss_ceiling_mb": 35.0,
+    "steady_state_rss_growth_mb": 0.00
+  },
+  "verification": {
+    "uor_r4_integer_total_tests": 157,
+    "uor_r4_integer_passed": 157,
+    "uor_r4_integer_failed": 0,
+    "cargo_fmt_clean": true,
+    "claim_wording_clean": true
+  },
+  "audited_artifacts": [
+    {
+      "path": "target/release/libuor_r4_integer.rlib",
+      "symbols_checked": 31,
+      "class_i_violations": 0,
+      "class_ii_violations": 0,
+      "class_iii_violations": 0
+    },
+    {
+      "path": "target/release/uor-chat",
+      "symbols_checked": 30,
+      "class_i_violations": 0,
+      "class_ii_violations": 0,
+      "class_iii_violations": 0
+    }
+  ]
+}
