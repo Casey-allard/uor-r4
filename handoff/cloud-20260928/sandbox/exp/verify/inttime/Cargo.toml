@@ -1,0 +1,25 @@
+[package]
+name = "inttime"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+uor-r4-integer = { path = "/home/user/uor-r4/crates/uor-r4-integer" }
+# Scratch copy (outside the repo) whose `product`/`divide` use native hardware ops.
+uor-r4-integer-hw = { path = "../hwcopy/crates/uor-r4-integer" }
+uor-r4-integer-hw2 = { path = "../hwcopy2/crates/uor-r4-integer" }
+uor-r4-integer-swprof = { path = "../swprof/crates/uor-r4-integer" }
+uor-r4-integer-hwprof = { path = "../hwprof/crates/uor-r4-integer" }
+serde_json = "1.0"
+sha2 = "0.10.8"
+hex = "0.4.3"
+
+[patch.crates-io]
+# The repo vendors arrayref 0.3.9 because crates.io yanked it; blake3 =1.5.0 needs it.
+arrayref = { path = "/home/user/uor-r4/third_party/arrayref" }
+
+[profile.release]
+debug = 1

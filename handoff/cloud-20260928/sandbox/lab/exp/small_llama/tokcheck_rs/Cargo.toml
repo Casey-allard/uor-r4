@@ -1,0 +1,18 @@
+[package]
+name = "small-llama-tokcheck"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Scratch check outside the repo: the repo's own byte-level BPE engine
+# (uor-r4-tokenizer, wrapped 1:1 by HfBpeTokenizer) on the small_llama tokenizer.json.
+[workspace]
+
+[dependencies]
+uor-r4-tokenizer = { path = "/home/user/uor-r4/crates/uor-r4-tokenizer" }
+
+[patch.crates-io]
+arrayref = { path = "/home/user/uor-r4/third_party/arrayref" }
+
+[profile.release]
+debug = 0

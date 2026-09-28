@@ -1,0 +1,15 @@
+[package]
+name = "stack-bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+uor-r4-training = { path = "/home/user/uor-r4/crates/uor-r4-training" }
+candle-core = { version = "=0.9.2", default-features = false }
+candle-nn = { version = "=0.9.2", default-features = false }
+
+[patch.crates-io]
+candle-core = { path = "/home/user/uor-r4/third_party/candle-core-0.9.2" }
+
+[profile.release]
+debug = 1

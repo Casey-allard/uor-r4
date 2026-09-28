@@ -1,0 +1,14 @@
+cycle,charged_wall_ms(source closeout json),model_wall_s_low,model_wall_s_high,notes
+A1 selector,4227466,16,16,fits 4x~2.7s + replays (integrated-attention-a1-closeout)
+A2 selector,4008466,60,210,fits 47-60 s/arm (a2 result json elapsed_ms)
+A3 selector,2381314,54,108,~54 s/arm (a3 result json)
+Stuck-point review + A4,3740411,186,219,a4_joint_fit_wall_ms 185945
+Rung0 reference/baselines,2306986,85,85,model_process_wall_seconds_sum 85.48
+Rung1 joint recurrent,26125616,15434,19293,final fit supervisor 15433.9 s; summed fit process 38586 s / 2 arms
+Rung2a quantized (rejected),11037456,4444,7582,QAT 4444 s + continuous 3138 s per arm (concurrency unknown)
+Rung2b projected (rejected),5309506,2329,2329,fit supervisor unique 2167.6 + postfit 161.6
+Precision factorial,3165745,183,183,sum_nonoverlapping_model_pair_wall_seconds
+Learned rounding (accepted),5950038,2889,2889,sum_nonoverlapping_paired_fit_wall_seconds
+Bounded admission (failed),4400994,1480,1480,sum_nonoverlapping_paired_fit_wall_seconds
+Integer execution,2175931,112,224,comparisons ~112 s each
+Integer serving,2142324,117,117,paired_model_phase_seconds
