@@ -84,7 +84,7 @@ three-lab brief does not assign it work.
 | **T1 Learner and exact state** | Lab 1 Claude: this window, plus the cloud lab track on `claude/blissful-wozniak-girwwq` | A single main-line learner at #1017 scale, with geometric state where it earns it | (a) The capacity-matched stack closes the native gap. (b) Exact 2I tracking lanes add A5-class tracking at ≤0.05 nats LM cost. (c) Fixed H4/E8 codebooks address sparse parameter memory as well as learned keys do. | (a) **Decided, 05:50 UTC 09-28:** the stack scored 1.998113 against its control's 2.011149 at full exposure, so **the stack is the main line** (D0). Weights are on the SSD, SHA-256-verified. (b) **Closed** (#1447): no lane type is retained in the stack, and Stage C is parked. (c) Implemented, NOT_RUN ([#1437](https://github.com/UOR-Foundation/uor-r4/pull/1437)). **Next:** D2, the AERM probe ([synthesis](docs/integration/whole-project-synthesis-2026-09-28.md) §4). | §4.1 |
 | **T2 Geometric addressing (D5×D6)** | Lab 2 OpenCode | Decide whether geometry can be the sparse index for event memory | A fixed 600-cell/E8 cell index retrieves the dense read's top events as well as LSH, IVF/k-means, PQ and learned kNN at equal bytes touched, with a cheaper multiplier-free decode. | The frozen contest is complete on Lab 2's **unpublished** branch. **Ruling 11:** it is a compression-fidelity screen, because it scores every event; its decode cost is relabelled, and its geometric arms are confounded by magnitude. **Next:** publish it, then run D6 (the information audit), then D3's gain-controlled follow-up. | §4.2 |
 | **T3 Mission runtime and measured efficiency** | Lab 3 Anti-Gravity | Serve the main-line model under R1–R4, and measure its real cost on the M1 | LUT-accumulation kernels, exact 2I lanes and table products serve the stack without D10 exceptions, losing ≤0.02 nats. J/token is set by bytes touched. | `uor-chat`, blocked kernels and streaming delivered ([#1434](https://github.com/UOR-Foundation/uor-r4/pull/1434), [#1436](https://github.com/UOR-Foundation/uor-r4/pull/1436)); width-576 `uor-chat` ([#1450](https://github.com/UOR-Foundation/uor-r4/pull/1450)). **The auditor is repaired** ([#1451](https://github.com/UOR-Foundation/uor-r4/pull/1451)), with failing and benign sentinels. **First J/token measured** (owner run, 2026-09-28): the integer path is 0.00413 J/token against 0.00096 for its float parent, whole-system marginal: about 4.3× the energy and about 2.6× slower ([note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224)). Capability API, WASM and M1 cost: [#1452](https://github.com/UOR-Foundation/uor-r4/pull/1452), which needs `main` merged. **Next:** D4, after #1433's result. | §4.3 |
-| **T4 Native dialogue and conversion fidelity** | **Lab 1 Claude** (owner transfer from Lab 4 Codex, whose allowance is exhausted; the study is unchanged) | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | [#1433](https://github.com/UOR-Foundation/uor-r4/pull/1433) merged. Its frozen resume is running under supervision; the fit ends at about 06:50 UTC. The posted endpoints follow: `--evaluate` for learned and nearest, the pack, and the observer ([#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5863711869)). | §4.4 |
+| **T4 Native dialogue and conversion fidelity** | **Lab 1 Claude** (owner transfer from Lab 4 Codex, whose allowance is exhausted; the study is unchanged) | Recover learned relations through integer conversion, and dialogue learning on the native path | Response-aware legal-code choice recovers relations lost at conversion; conversion changed 909 of 3,914 greedy decisions. | **#1433 executed and FAILS its retention rule** ([result](docs/integration/dialogue-code-choice-result-2026-09-28.md)): response NLL 2.796 against nearest's 2.849, but relation answers at the question turn fall to 2 of 10 (nearest 4, continuous 9), with 962 flips against 909. Nearest-hard stays the baseline. **Next:** D4 (Lab 3) with a fidelity objective; the T4 question passes to D4 and D5. | §4.4 |
 
 **Main-line consolidation rule (director; decided 2026-09-28 05:50 UTC: the stack passed):**
 - **If the stack comes within 0.03 nats of its transformer control at full exposure:**
@@ -130,7 +130,7 @@ Geometry moves out of dense scores into four places: exact identity, exact autom
 | D1 | Is the stack's transport load-bearing at matched width? | Cloud | Queued |
 | D2 | Does AERM give small models updated relations? | Lab 1 | Next, after #1433's endpoints |
 | D3 | Is a geometric index as good as an ordinary one, at equal bits and fewer inspected events? | Lab 2 | Frozen run complete; gain-controlled follow-up decides |
-| D4 | Does geometry-coded QAT fix the hard artifact? | Lab 3 | After #1433's result |
+| D4 | Does geometry-coded QAT fix the hard artifact? Fidelity objective | Lab 3 | **Unblocked:** #1433's legal codes failed retention |
 | D6 | Does the 2I read representation discard what the reader uses? Evaluation only | Lab 2 | Next for Lab 2 |
 | D7 | A geometric address channel for AERM | Labs 1 and 2 | Only if D6 = GAIN and D3 passes |
 | D5 | The milestone candidate (§8) | All | After D0–D4 and D6 |
@@ -379,9 +379,14 @@ Gate:
 ### 4.4 T4 Native dialogue and conversion fidelity (Lab 4 Codex → Lab 1 by owner transfer, 2026-09-28)
 
 - **Execution transferred to Lab 1** because Codex's allowance is exhausted. The study, its gates and its checkpoint are unchanged. The resume uses a hash-checked campaign whose only edits are `resume_from`, the process time cap and the stop file.
-- Finish #1433 to 512 updates.
-- Then run the 161-response comparison and the 58-turn observation, as pre-registered.
-- After T1(a), retarget dialogue learning to the main-line base, or record why the native path stays.
+- ~~Finish #1433 to 512 updates, then run the 161-response comparison and the 58-turn observation, as pre-registered.~~ **Done, 2026-09-28 06:36 UTC** ([result](docs/integration/dialogue-code-choice-result-2026-09-28.md)).
+  - **Outcome: FAILS retention.** Panel NLL −0.053; question-turn relations 2/10 against nearest's 4/10 and the continuous child's 9/10.
+  - Momo and green are not recovered; Tokyo and pizza are lost.
+  - Learned answers 5 of 10 "What is my …?" questions with "Yes, I can help with that."
+  - 6.4% of codes moved.
+  - Nearest-hard stays the baseline, and the candidate is preserved.
+- **Reading:** corpus cross-entropy pulled the artifact toward the corpus and away from its parent. D4 therefore uses a fidelity objective, distillation from the continuous child, and a different weight representation.
+- T1(a) is decided (the stack), so dialogue learning retargets the main-line base in D5, on one tokenizer (I5).
 - #1435 repoints to the addressing decoder, per ruling 3.
 
 ## 5. Dead and parked paths
@@ -413,6 +418,7 @@ Each negative keeps its exact scope; a failed parameterisation does not retire a
 | Reflection-pair tracking lanes in the stack (B1 closure replication) | **FAILED the text gate; no lane type retained** | A fresh pre-registered 3-seed replication tracks A5 exactly (1.000; 60-state automata, `verify_exact` true), but seed 4 costs +0.0688 nats against the 0.05 gate. Six-seed mean +0.018. The automata stay available as tools. | [B1 record §8](docs/integration/b1-finite-group-lanes-2026-09-27.md), [#1447](https://github.com/UOR-Foundation/uor-r4/pull/1447) |
 | Context-conditioned lanes on natural-text swap stories (B1 Stage C) | **PARKED at this scale** | The pilots learned no tracking. The transport witness rotates at almost every token (no event gating). Re-entry requires M4's event gate and new causal evidence (D9). | [Stage C record](docs/integration/b1c-context-lanes-swap-stories-2026-09-28.md) |
 | Per-product table emulation as a lower-energy serving kernel | **FAILED on energy** (measured) | Integer bundle 0.00413 J/token against 0.00096 for its F32 parent on the M1 (about 4.3×), and about 2.6× slower. Whole-system marginal; SoC CPU counters unavailable. The multiplier-free contract stands; the kernel moves to grouped LUT accumulation (§4.3). | [#820 note](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5862960224) |
+| Response-aware legal-code choice with corpus cross-entropy (width-576 dialogue child, #1433) | **FAILED retention** | Panel NLL 2.849→2.796, but question-turn relation answers 4→2 of 10 (continuous 9). Greedy flips against the parent 909→962; 6.4% of codes moved; a generic "Yes, I can help with that." on 5 of 10 questions. The objective, not the dose, is the lesson: D4 uses fidelity to the continuous child | [result](docs/integration/dialogue-code-choice-result-2026-09-28.md) |
 
 ## 6. Shared machine protocol
 
@@ -551,6 +557,13 @@ This reporting adds no threshold. Thresholds change only with the owner, before 
 - The #1432 outputs echo relations ("The name is Alex is Alex.") instead of responding.
 
 ## 9. Director log
+
+**2026-09-28 06:36 UTC, #1433 executed (Lab 1 by owner transfer).**
+- The fit completed 512/512 updates (3,841 s, peak 4.69 GB). The fixed endpoints ran in 164 s, and every step exited 0.
+- The same-binary nearest re-observation reproduces Codex's original exactly.
+- **Outcome: FAILS the retention rule.** Lower panel NLL, but 2 of 10 relation answers against nearest's 4 of 10. No follow-up sweep.
+- **Consequence:** D4 is unblocked, with a fidelity objective.
+- **Slot:** free since 06:36. Next for Lab 1 is D2 (AERM).
 
 **2026-09-28 06:20 UTC, base decided, track approved, external audit integrated.**
 - **D0 decided** (05:50 UTC, #1437): the stack scored 1.998113 against its control's 2.011149, so **the stack is the main line** and the native model is the retained baseline.

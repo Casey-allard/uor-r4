@@ -1,7 +1,28 @@
 # Current UOR-R4 research state
 
-Updated September 27, 2026. **Pre-alpha; no useful general-language, coding,
+Updated September 28, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
+
+## September 28: base decided, track approved, #1433 result
+
+- **Base model (D0).** The recurrence-primary geometric stack is the main line.
+  - It scored 1.998113 against its transformer control's 2.011149 at full exposure (#1437; one seed per arm; code BPE).
+  - The 1.68M native model is the retained baseline.
+  - Both final models are on the owner SSD, SHA-256 verified.
+  - D0 selects an architecture; it does not qualify dialogue.
+- **Track.** Approved by the owner: [synthesis](whole-project-synthesis-2026-09-28.md) §2–§4 and ROADMAP §2a.
+  - The core is the stack.
+  - Architectural exact relational memory (AERM, D2) is next for Lab 1.
+  - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2).
+  - D4 is geometry-coded QAT with a fidelity objective (Lab 3).
+- **External audit.** Codex's geometric-attention review was verified line by line and imported with a claim ledger ([evidence](../evidence/external-codex-audit-2026-09-28/README.md); synthesis §7; ROADMAP ruling 11).
+  - T2 as coded is a compression-fidelity screen, and its geometric arms are confounded by magnitude.
+  - #1438's cause is unresolved.
+- **#1433 (response-aware legal codes, width-576 dialogue child): FAILS its retention rule** ([result](dialogue-code-choice-result-2026-09-28.md)).
+  - Development-panel NLL is 2.796064 against nearest's 2.849148.
+  - Question-turn relation answers fall to 2 of 10 (nearest 4, continuous child 9), with 962 greedy flips against the parent's 909.
+  - Nearest-hard remains the same-child baseline. The learned artifact is preserved at `/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/`.
+- **Unchanged:** no useful general chat, prose, instruction following, geometric advantage, selected parameter access or energy saving is established.
 
 ## Fourth lab: shared research and integration
 

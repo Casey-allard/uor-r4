@@ -1,0 +1,1434 @@
+{
+ "schema": "uor-r4.lab1.t4-1433-result/1",
+ "study": "#1433 response-aware legal-code choice for the width-576 dialogue child (frozen by Codex, executed by Lab 1 by owner transfer)",
+ "references": [
+  "#973",
+  "#962",
+  "#820",
+  "#1433"
+ ],
+ "decision": "FAILS_RETENTION_RULE",
+ "decision_rule": "dialogue-code-choice-preparation-2026-09-27.md: a repair must improve useful complete replies against nearest-hard and preserve the continuous child's demonstrated relations; lower NLL alone does not qualify it; failure preserves the candidate and triggers no dose, seed, scale or decoder sweep.",
+ "binaries_sha256": {
+  "rounding": "613e5a3fb2c5967ab9591059133b8bcfe6c2344e955151b5b4ec9d65cfb8b35b",
+  "integer": "bef905df9383864e5343c1b89d53ea8e0ff84390846ebf800acf900940f3c931",
+  "observer": "fd6edc7c3d2ef320bfdc1d08ea29fc2901d206b1e62ea786ecbbdcc84b6277cb"
+ },
+ "source_commit": "b49a2810a5238a16880f9cb726d96d1ba1f18624",
+ "fit": {
+  "supervision": {
+   "schema": "uor-r4.lab1.t4-1433-resume-supervision/1",
+   "transfer": "owner decision 2026-09-28: Codex out of tokens; Lab 1 executes the frozen study unchanged",
+   "executable_sha256": "613e5a3fb2c5967ab9591059133b8bcfe6c2344e955151b5b4ec9d65cfb8b35b",
+   "source_commit": "b49a2810a5238a16880f9cb726d96d1ba1f18624",
+   "campaign": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/inputs/campaign.json",
+   "campaign_sha256": "2f8c775d91708782271143b7cfdfb90db64e3f647a0cee0b2f15b0fdb303a32b",
+   "changed_fields_vs_supplied_c46af4d6": [
+    "resume_from",
+    "max_process_seconds",
+    "stop_file"
+   ],
+   "resume_from": "/Volumes/UOR-Workspace/uor-r4-lab/fourth-lab-sequential-code-choice-fit-1/checkpoint-final",
+   "output_root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/fit-resume-1",
+   "thread_environment": {
+    "RAYON_NUM_THREADS": 2,
+    "VECLIB_MAXIMUM_THREADS": 1,
+    "OMP_NUM_THREADS": 1,
+    "GEMM_NUM_THREADS": 1
+   },
+   "started_utc": "2026-09-28T05:28:03Z",
+   "finished_utc": "2026-09-28T06:32:04Z",
+   "wall_seconds": 3841,
+   "exit_code": 0,
+   "peak_sampled_rss_kib": 4686832,
+   "min_internal_free_kib": 52279780,
+   "soft_stop": null,
+   "hard_cap": null
+  },
+  "status": "COMPLETE_FIXED_RECIPE",
+  "completed_updates": 512,
+  "starting_alpha_step": 231,
+  "new_updates_this_attempt": 281,
+  "new_supervised_targets_this_attempt": 318829,
+  "cumulative_supervised_target_visits": 579259,
+  "root_manifest_sha256": "61532a1b1bfa4c23d0b85da0438e7ff725d7df8642fc2a024a4c072aeccf657c",
+  "packed_model_manifest_sha256": "d7ab971a9e6db65b8c56120c5690d621cb7fe077ca2a5390ecba87c136371f9f"
+ },
+ "endpoints": {
+  "commands_fixed_in": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5863711869",
+  "supervision": {
+   "schema": "uor-r4.lab1.t4-1433-endpoints-supervision/1",
+   "commands_fixed_in": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5863711869",
+   "binaries_sha256": {
+    "rounding": "613e5a3fb2c5967ab9591059133b8bcfe6c2344e955151b5b4ec9d65cfb8b35b",
+    "integer": "bef905df9383864e5343c1b89d53ea8e0ff84390846ebf800acf900940f3c931",
+    "observer": "fd6edc7c3d2ef320bfdc1d08ea29fc2901d206b1e62ea786ecbbdcc84b6277cb"
+   },
+   "source_commit": "b49a2810a5238a16880f9cb726d96d1ba1f18624",
+   "thread_environment": {
+    "RAYON_NUM_THREADS": 2,
+    "VECLIB_MAXIMUM_THREADS": 1,
+    "OMP_NUM_THREADS": 1,
+    "GEMM_NUM_THREADS": 1
+   },
+   "started_utc": "2026-09-28T06:33:29Z",
+   "finished_utc": "2026-09-28T06:36:13Z",
+   "wall_seconds": 164,
+   "all_steps_ok": true,
+   "steps": [
+    {
+     "step": "evaluate-learned",
+     "exit_code": 0,
+     "wall_seconds": 22,
+     "peak_sampled_rss_kib": 343168,
+     "hard_cap": "",
+     "log": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/endpoints-1-evaluate-learned.log"
+    },
+    {
+     "step": "evaluate-nearest",
+     "exit_code": 0,
+     "wall_seconds": 23,
+     "peak_sampled_rss_kib": 341296,
+     "hard_cap": "",
+     "log": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/endpoints-1-evaluate-nearest.log"
+    },
+    {
+     "step": "pack-learned",
+     "exit_code": 0,
+     "wall_seconds": 2,
+     "peak_sampled_rss_kib": 32,
+     "hard_cap": "",
+     "log": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/endpoints-1-pack-learned.log"
+    },
+    {
+     "step": "observe-learned",
+     "exit_code": 0,
+     "wall_seconds": 58,
+     "peak_sampled_rss_kib": 202128,
+     "hard_cap": "",
+     "log": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/endpoints-1-observe-learned.log"
+    },
+    {
+     "step": "observe-nearest",
+     "exit_code": 0,
+     "wall_seconds": 59,
+     "peak_sampled_rss_kib": 205280,
+     "hard_cap": "",
+     "log": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume/endpoints-1-observe-nearest.log"
+    }
+   ]
+  },
+  "learned_bundle_manifest_sha256": "e269cdcd92bbbbadeeaf8317928e4738ff22bcdf0309094fbf6175364c5c62b3"
+ },
+ "codes_changed_against_nearest": {
+  "total_elements": 5429826,
+  "total_changed": 347714,
+  "fraction": 0.06403777947948977,
+  "per_parameter": {
+   "copy.gate.bias": {
+    "elements": 1,
+    "changed_codes": 0
+   },
+   "copy.gate.weight": {
+    "elements": 1152,
+    "changed_codes": 65
+   },
+   "embedding.weight": {
+    "elements": 2359296,
+    "changed_codes": 162871
+   },
+   "output.bias": {
+    "elements": 4096,
+    "changed_codes": 26
+   },
+   "output.norm.weight": {
+    "elements": 576,
+    "changed_codes": 142
+   },
+   "read.age": {
+    "elements": 255,
+    "changed_codes": 14
+   },
+   "read.key.bias": {
+    "elements": 64,
+    "changed_codes": 0
+   },
+   "read.key.weight": {
+    "elements": 36864,
+    "changed_codes": 2066
+   },
+   "read.no_read.bias": {
+    "elements": 1,
+    "changed_codes": 0
+   },
+   "read.no_read.weight": {
+    "elements": 576,
+    "changed_codes": 0
+   },
+   "read.query.bias": {
+    "elements": 64,
+    "changed_codes": 0
+   },
+   "read.query.weight": {
+    "elements": 36864,
+    "changed_codes": 1861
+   },
+   "read.value.bias": {
+    "elements": 576,
+    "changed_codes": 0
+   },
+   "read.value.weight": {
+    "elements": 331776,
+    "changed_codes": 19242
+   },
+   "recurrent.bias": {
+    "elements": 1728,
+    "changed_codes": 56
+   },
+   "recurrent.input.weight": {
+    "elements": 995328,
+    "changed_codes": 67190
+   },
+   "recurrent.state.weight": {
+    "elements": 995328,
+    "changed_codes": 65147
+   },
+   "update.bias": {
+    "elements": 576,
+    "changed_codes": 3
+   },
+   "update.gate.bias": {
+    "elements": 1,
+    "changed_codes": 0
+   },
+   "update.gate.weight": {
+    "elements": 1152,
+    "changed_codes": 87
+   },
+   "update.weight": {
+    "elements": 663552,
+    "changed_codes": 28944
+   }
+  }
+ },
+ "development_panel_161": {
+  "nearest": {
+   "response_mean_nll": 2.8491478421523277,
+   "first_four_response_targets_mean_nll": 1.9255997753291396,
+   "supervised_targets": 13353,
+   "selected_responses": 161,
+   "packed_seal_sha256": "548540e033c3474965790dbc0f8acbe0eec5a11afc44479ba477c73786214cdb",
+   "development_panel_sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+   "wall_seconds": 21.508162459,
+   "status": "COMPLETE"
+  },
+  "learned": {
+   "response_mean_nll": 2.79606433411283,
+   "first_four_response_targets_mean_nll": 1.8246086154665266,
+   "supervised_targets": 13353,
+   "selected_responses": 161,
+   "packed_seal_sha256": "d7ab971a9e6db65b8c56120c5690d621cb7fe077ca2a5390ecba87c136371f9f",
+   "development_panel_sha256": "8d53682a3e45d26a0609c8d8989698aef40faa33e36936237430c3bfb423a3dc",
+   "wall_seconds": 22.104454708,
+   "status": "COMPLETE"
+  }
+ },
+ "fidelity_to_continuous_child_3914_saved_positions": {
+  "nearest_b49a2810": {
+   "positions": 3914,
+   "greedy_disagreements": {
+    "FF_QF": 909,
+    "QF_QQ": 3,
+    "QQ_integer": 4
+   },
+   "assistant_target_mean_nll": {
+    "FF": 1.0359237956258376,
+    "QF": 1.3034904186631253,
+    "QQ": 1.3035274289888532,
+    "integer": 1.30347959234455
+   },
+   "other_target_mean_nll": {
+    "FF": 3.80724455448564,
+    "QF": 3.9282906130976385,
+    "QQ": 3.928663562522955,
+    "integer": 3.9286730674299535
+   }
+  },
+  "learned": {
+   "positions": 3914,
+   "greedy_disagreements": {
+    "FF_QF": 962,
+    "QF_QQ": 6,
+    "QQ_integer": 9
+   },
+   "assistant_target_mean_nll": {
+    "FF": 1.0359237956258376,
+    "QF": 1.307559679269189,
+    "QQ": 1.3073583865023553,
+    "integer": 1.307471780801683
+   },
+   "other_target_mean_nll": {
+    "FF": 3.80724455448564,
+    "QF": 4.110124605021074,
+    "QQ": 4.110106617635777,
+    "integer": 4.1098403356289435
+   }
+  },
+  "nearest_codex_original_older_observer": {
+   "positions": 3914,
+   "greedy_disagreements": {
+    "FF_QF": 909,
+    "QF_QQ": 3,
+    "QQ_integer": 4
+   },
+   "assistant_target_mean_nll": {
+    "FF": 1.0359237956258376,
+    "QF": 1.3034904186631253,
+    "QQ": 1.3035274289888532,
+    "integer": 1.30347959234455
+   },
+   "other_target_mean_nll": {
+    "FF": 3.80724455448564,
+    "QF": 3.9282906130976385,
+    "QQ": 3.928663562522955,
+    "integer": 3.9286730674299535
+   }
+  },
+  "note": "The same-binary nearest re-observation reproduces the original observation exactly."
+ },
+ "stops_of_58": {
+  "continuous_FF": {
+   "eos": 28,
+   "maximum_new_tokens": 26,
+   "short_cycle": 4
+  },
+  "nearest_QQ": {
+   "eos": 28,
+   "maximum_new_tokens": 29,
+   "short_cycle": 1
+  },
+  "nearest_integer": {
+   "eos": 29,
+   "maximum_new_tokens": 28,
+   "short_cycle": 1
+  },
+  "learned_QQ": {
+   "eos": 37,
+   "maximum_new_tokens": 21
+  },
+  "learned_integer": {
+   "eos": 36,
+   "maximum_new_tokens": 22
+  }
+ },
+ "memory_relations_at_question_turn": {
+  "rows": [
+   {
+    "id": "dev-mem-01",
+    "relation": "name",
+    "value": "Alex",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": true,
+     "nearest_integer": true,
+     "learned_QQ": true,
+     "learned_integer": true
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "The name is Alex is Alex.",
+     "nearest_QQ": "The name is Alex is Alex, Alex is Alex, Alex is Alex, Alex is A",
+     "learned_QQ": "The Alex is Alex, Alex is Alex, and Alex is Alex.",
+     "learned_integer": "The Alex is Alex, Alex is Alex, and Alex is Alex."
+    }
+   },
+   {
+    "id": "dev-mem-02",
+    "relation": "cat name",
+    "value": "Momo",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": false,
+     "nearest_integer": false,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "The cat is named Momo, a simple pleasure of the cat's name, a simple pleasure of the cat's name.",
+     "nearest_QQ": "The cat is named",
+     "learned_QQ": "Yes, I can help with that.",
+     "learned_integer": "Yes, I can help with that."
+    }
+   },
+   {
+    "id": "dev-mem-03",
+    "relation": "favorite color",
+    "value": "green",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": false,
+     "nearest_integer": false,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": false,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "The favorite color is green.\n\nPlanning the favorite color is green.\n\nPlanning the favorite color is green.",
+     "nearest_QQ": "The favorite color is a great way to get a great way to get a great way to get a great way.",
+     "learned_QQ": "Yes, I can suggest a few minutes. I'm here to help you with your favorite color.",
+     "learned_integer": "Yes, I can suggest a few minutes. I'm here to help you with your favorite color."
+    }
+   },
+   {
+    "id": "dev-mem-04",
+    "relation": "job",
+    "value": "teacher",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": false,
+     "nearest_integer": false,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "The a teacher is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher of a teacher,",
+     "nearest_QQ": "The job is nearby.",
+     "learned_QQ": "Yes, I can help with that.",
+     "learned_integer": "Yes, I can help with that."
+    }
+   },
+   {
+    "id": "dev-mem-05",
+    "relation": "sister's city",
+    "value": "Tokyo",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": true,
+     "nearest_integer": true,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": false
+    },
+    "question_replies": {
+     "continuous_FF": "Yes, this sister lives in the Tokyo, including the Tokyo, and the Tokyo is a great way",
+     "nearest_QQ": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+     "learned_QQ": "Yes, I can help with that.",
+     "learned_integer": "Yes, I can help with that."
+    }
+   },
+   {
+    "id": "dev-mem-06",
+    "relation": "brothers",
+    "value": "two",
+    "value_in_question_reply": {
+     "continuous_FF": false,
+     "nearest_QQ": false,
+     "nearest_integer": false,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": false,
+     "learned_QQ": false
+    },
+    "question_replies": {
+     "continuous_FF": "Yes, I can help with that I have a great way to help you with your request.",
+     "nearest_QQ": "Yes, I can help with that request. Please ensure you are a great way to meet your mind and meeting your mind.",
+     "learned_QQ": "Yes, I can help with that request. Please ensure that you have any specific brothers or need to provide you with the",
+     "learned_integer": "Yes, I can help with that request. Please ensure that the brothers are essential for a specific problem and cons"
+    }
+   },
+   {
+    "id": "dev-mem-07",
+    "relation": "birthday month",
+    "value": "July",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": false,
+     "nearest_integer": false,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": false,
+     "learned_QQ": false
+    },
+    "question_replies": {
+     "continuous_FF": "The birthday is a great way to July, it's a great way to July, it's a great way to July.",
+     "nearest_QQ": "The birthday is a great way to meet your birthday.",
+     "learned_QQ": "The birthday is a great way to keep your birthdays and the birthdays of the world.",
+     "learned_integer": "The birthday is a great way to keep your birthdays and the birthdays of the world."
+    }
+   },
+   {
+    "id": "dev-mem-08",
+    "relation": "car color",
+    "value": "blue",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": true,
+     "nearest_integer": true,
+     "learned_QQ": true,
+     "learned_integer": true
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "The blue car is a blue car, a blue car is a blue car, a blue car, a blue car,",
+     "nearest_QQ": "The blue car is a blue car, a blue car, and a blue car is a blue car.",
+     "learned_QQ": "The blue car is a great way to keep your carbon footprint.",
+     "learned_integer": "The blue car is a great way to keep your carbon footprint."
+    }
+   },
+   {
+    "id": "dev-mem-09",
+    "relation": "instrument",
+    "value": "piano",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": false,
+     "nearest_integer": false,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "Yes, the piano is a great way to get the piano.",
+     "nearest_QQ": "Yes, I can help with that request. Please ensure that you have any specific instruments and require",
+     "learned_QQ": "Yes, I can help with that.",
+     "learned_integer": "Yes, I can help with that."
+    }
+   },
+   {
+    "id": "dev-mem-10",
+    "relation": "favorite food",
+    "value": "pizza",
+    "value_in_question_reply": {
+     "continuous_FF": true,
+     "nearest_QQ": true,
+     "nearest_integer": true,
+     "learned_QQ": false,
+     "learned_integer": false
+    },
+    "value_in_earlier_turns": {
+     "nearest_QQ": true,
+     "learned_QQ": true
+    },
+    "question_replies": {
+     "continuous_FF": "The favorite food is pizza, pizza, and pizza.",
+     "nearest_QQ": "The favorite food is a great way to get pizza.",
+     "learned_QQ": "Yes, I can help with that.",
+     "learned_integer": "Yes, I can help with that."
+    }
+   }
+  ],
+  "totals_value_present_of_10": {
+   "continuous_FF": 9,
+   "nearest_QQ": 4,
+   "nearest_integer": 4,
+   "learned_QQ": 2,
+   "learned_integer": 2
+  },
+  "learned_generic_yes_i_can_help_with_that": 5
+ },
+ "director_review_notes": [
+  "The value test is a whole-word match (the nearest integer reply \"greenhouse\" does not count as green); every reply was also read. The continuous child's job and July/piano answers are malformed or partial; its brothers answer is absent.",
+  "Learned restates Momo (turns 1-2), green (turn 1) and pizza (turns 1-2) but not at the question turn; nearest keeps Tokyo and pizza at the question turn, learned does not.",
+  "Other categories: learned recovers the greeting reply \"Hello! How can I help you today?\" (equal to the continuous child), which nearest lost; Paris is correct in every form; the other seven factual questions, all seven instructions and all eight underspecified requests fail in every form."
+ ],
+ "all_turns": [
+  {
+   "turn": "dev-core-greet-01#t1",
+   "category": "greeting",
+   "user": "Hi there!",
+   "continuous_FF": "Hello! How can I help you today?",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "I am excited to share your thoughts.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I am excited to share your thoughts.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "Hello! How can I help you today?",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Hello! How can I help you today?",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-greet-02#t1",
+   "category": "greeting",
+   "user": "Good morning!",
+   "continuous_FF": "I'm glad I I'm here to help you with your request. Please ensure you provide the [date] and I",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I am excited to share your thoughts and deadlines. I am excited to share your thoughts and deadlines. I am excited to share your",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I am excited to share your thoughts and deadlines. I am excited to share your thoughts and deadlines. I am excited to share your",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "I'm excited to help you with that request. Please provide the verified the verified number of verified",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "I'm excited to help you with that request. Please provide the verified the verified number of verified",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-greet-03#t1",
+   "category": "greeting",
+   "user": "How are you today?",
+   "continuous_FF": "These are just a few of the most popular places, you can also consider the necessary popular places to ensure that the ne",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The culinary of the city is a great way to ensure that the city's essential to ensure that the city's e",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The culinary of the city is a great way to ensure that the city's essential to ensure that the city's e",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "These are just a few of the most effective way to ensure that the requirements of the most effective",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "These are just a few of the most effective way to ensure that the requirements of the most effective",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-greet-04#t1",
+   "category": "greeting",
+   "user": "Nice to meet you.",
+   "continuous_FF": "I understand your request and will provide the request. Please ensure that the request is will provide the re",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can help you with that request. Please ensure you are a great way to meet your mind and I will help you with your reque",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I can help you with that request. Please ensure you are a great way to meet your mind and I will help you with your reque",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "I do not have a great idea. Is there anything else I can help with?",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "I can certainly help you with that request. Please provide the verified number of verifications for",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-greet-05#t1",
+   "category": "greeting",
+   "user": "Thank you very much!",
+   "continuous_FF": "I'm glad you have a great way to get the most accurate and the details. Is there anything else I can help with",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I am excited to share your thoughts and deadlines. I am excited to share your thoughts and deadlines. I can help you with your",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I am excited to share your thoughts and deadlines. I am excited to share your thoughts and deadlines. I can help you with your",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "Hello! How can I help you today?",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Hello! How can I help you today?",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-fact-01#t1",
+   "category": "factual",
+   "user": "What is the capital of France?",
+   "continuous_FF": "The capital of France is Paris. It is a great way to France.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The capital of France is Paris.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The capital of France is Paris.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The capital of France is Paris.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The capital of France is Paris.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-fact-02#t1",
+   "category": "factual",
+   "user": "How many legs does a spider have?",
+   "continuous_FF": "The spider have a spider have a spider have a",
+   "continuous_FF_stop": "short_cycle",
+   "nearest_QQ": "The spider is a spider, where you can be a great way to get a spider.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The spider is a spider, where you can be a great way to get a spider.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The spider have a spider, Is there anything else I can help with?",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The spider have a spider, Is there anything else I can help with?",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-fact-03#t1",
+   "category": "factual",
+   "user": "What color is the sky on a clear day?",
+   "continuous_FF": "The sky on a clear day, and the sky on a clear day. It is a great way to get the sky on a clear day.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The sky on a clear day, and I can provide you with a clear and enjoyable experience. Is there anything else I can",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sky on a clear day, and I can provide you with a clear and enjoyable experience. Is there anything else I can",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The sky on a clear day, and I'm considering the sky on a clear day. You can also try to identify are",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The sky on a clear day, and I'm considering the sky on a clear day. You can also try to identify are",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-fact-04#t1",
+   "category": "factual",
+   "user": "How many days are in a week?",
+   "continuous_FF": "The days are in a week, I can help with that request. Please ensure that the days are in a week, I can help with",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The days are a week, I can help you with your days and I can help you with your days.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The days are a week, I can help you with your days and I can help you with your days.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The days are a week, I'm glad you're looking for a week. I'm here to help you with your request. Please ensure",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The days are a week, I'm glad you're looking for a week. I'm here to help you with your request. Please ensure",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-fact-05#t1",
+   "category": "factual",
+   "user": "What is the largest planet in our solar system?",
+   "continuous_FF": "The largest planet in our solar system is a largest planet in our solar system.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The largest planet in our solar system is a great planet in our solar system.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The largest planet in our solar system is a great planet in our solar system.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The largest planet in our solar system is a largest planet in our solar system.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The largest planet in our solar system is a largest planet in our solar system.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-fact-06#t1",
+   "category": "factual",
+   "user": "What do bees make?",
+   "continuous_FF": "These are just a few of the most popular places, you can also consider the necessary popular places to ensure that the ne",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The culinary of the city is a great way to ensure that the city's a good idea to the city's a sense of peace and",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The culinary is a great way to ensure that you have any other questions and improve your quality.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "These are just a few of the most popular ones, you can also consider the necessary details to ensure you",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "These are just a few of the most popular ones, you can also consider the necessary details to ensure you",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-fact-07#t1",
+   "category": "factual",
+   "user": "What is the freezing point of water in Celsius?",
+   "continuous_FF": "The freezing point of water in Celsius is a freezing point of water in Celsius.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The freezing point of water in Celsius, including a variety of water, and a simple water in",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The freezing point of water in Celsius, including a variety of water, and a simple water in",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The freezing point of water in Celsius, and the freezing point of water in Celsius.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The freezing point of water in Celsius, and the freezing point of water in Celsius.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-fact-08#t1",
+   "category": "factual",
+   "user": "Which animal is known as the king of the jungle?",
+   "continuous_FF": "The king of the jungle is a king of the jungle. The king of the jungle is a king of the jungle. The king of the jungle is a king",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The king of the jungle, including the king of the jungle, and the king of the jungle.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The king of the jungle, including the king of the jungle, and the king of the jungle.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The king of the jungle, the king of the jungle, the king of the jungle, and the king of the jungle.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The king of the jungle, the king of the jungle, the king of the jungle, and the king of the jungle.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-inst-01#t1",
+   "category": "instruction",
+   "user": "Write a sentence about the sun.",
+   "continuous_FF": "The sun is a sentence that can be a great way to ensure that the sun is a sentence. It's a great way to",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sentence about the sun, I can provide a sense of details and I can help with your request. Please",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sentence about the sun, I can provide a sense of details and I can help with your request. Please",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The sun is a great way to keep the sun. You can also try to identify areas for improvements and cultures",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The sun is a great way to keep the sun. You can also try to identify areas for improvements and cultures",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-inst-02#t1",
+   "category": "instruction",
+   "user": "Write a sentence about a dog.",
+   "continuous_FF": "The dog is a sentence that is a sentence of a dog. It is a sentence of a dog, and a dog to the",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sentence about a dog, I can provide a dog to identify areas where you can provide a dog and in",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sentence about a dog, I can provide a dog to identify areas where you can provide a dog and in",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The dog is a great way to keep your dog.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The dog is a great way to keep your dog.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-inst-03#t1",
+   "category": "instruction",
+   "user": "Write a sentence about the ocean.",
+   "continuous_FF": "The ocean is a sentence that can be a great way to ensure that the ocean is a sentence. It is a sentence",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sentence about the ocean is a sentence, and I can enhance the ocean's essential for a sentence.",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sentence about the ocean is a sentence, and I can enhance your experiences and experiences.",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The ocean is a great way to keep the ocean and achieve the ocean. You can also try to identify areas for improve",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The ocean is a great way to keep the ocean and achieve the ocean. You can also try to identify areas for improve",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-inst-04#t1",
+   "category": "instruction",
+   "user": "Write a sentence about winter.",
+   "continuous_FF": "The sentence is a sentence that is a sentence that is a sentence.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The sentence about winter is a sentence, and I can provide you with the most according to your winter.",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sentence about winter is a sentence, and I can provide you with the most according to your winter.",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The winter is a great way to winter.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The winter is a great way to winter.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-inst-05#t1",
+   "category": "instruction",
+   "user": "Write a sentence about a book.",
+   "continuous_FF": "The book is a sentence that can be a great way to ensure that the book is a sentence. It is a sentence",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sentence about a book, I can provide a book and a book to your book.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The sentence about a book, I can provide a book and a book to your book.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The book is a great way to keep your book.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The book is a great way to keep your book.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-core-inst-06#t1",
+   "category": "instruction",
+   "user": "Write a sentence about music.",
+   "continuous_FF": "The sentence is a sentence that is a sentence that is a sentence.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The sentence about music is a sentence, and I can provide you with the utility of your music. It's a",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sentence about music is a sentence, and I can provide you with the utility of your music. It's a",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The sentence is a great way to music, and I'm considering the sentence that can be a great way to get the",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The sentence is a great way to music, and I'm considering the sentence that can be a great way to get the",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-core-inst-07#t1",
+   "category": "instruction",
+   "user": "Write a sentence about a mountain.",
+   "continuous_FF": "The sentence is a sentence that is a sentence that is a sentence.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The sentence about a mountain, I can provide a sense of peace and a sentence of a mountain. It's a great way",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sentence about a mountain, I can provide a sense of purpose and information. Is there anything else I can",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The mountain is a great way to keep your mountains and achievements. You can also try a simple mountains of a mountain",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The mountain is a great way to keep your mountains and achievements. You can also try a simple mountains of a mountain",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-01#t1",
+   "category": "memory",
+   "user": "My name is Alex.",
+   "continuous_FF": "The name is Alex is Alex. It is Alex is Alex. It is Alex is Alex.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The name is Alex is Alex, Alex is Alex, Alex, and Alex is Alex.",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The name is Alex is Alex, Alex is Alex, Alex, and Alex is Alex.",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The Alex is Alex is Alex, Alex, and Alex. They're a great way to keep your mind and",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The Alex is Alex is Alex, Alex, and Alex. They're a great way to keep your mind and",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-01#t2",
+   "category": "memory",
+   "user": "I also like apples.",
+   "continuous_FF": "The name is Alex is Alex.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The name is Alex is Alex, Alex is Alex, Alex, Alex,",
+   "nearest_QQ_stop": "short_cycle",
+   "nearest_integer": "The name is Alex is Alex, Alex is Alex, Alex, Alex,",
+   "nearest_integer_stop": "short_cycle",
+   "learned_QQ": "The Alex is Alex, Alex is Alex, and Alex is Alex.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The Alex is Alex, Alex is Alex, and Alex is Alex.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-01#t3",
+   "category": "memory",
+   "user": "What is my name?",
+   "continuous_FF": "The name is Alex is Alex.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The name is Alex is Alex, Alex is Alex, Alex is Alex, Alex is A",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The name is Alex is Alex, Alex is Alex, Alex is Alex, Alex is A",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The Alex is Alex, Alex is Alex, and Alex is Alex.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The Alex is Alex, Alex is Alex, and Alex is Alex.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-02#t1",
+   "category": "memory",
+   "user": "My cat is named Momo.",
+   "continuous_FF": "The cat is named Momo, a simple pleasure of the cat is named Momo, and a simple pleasure of the cat is named Momo",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The cat is named Momo, and I can provide you with a cat is named Momo, and I can provide you with a cat is named",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The cat is named Momo, and I can provide you with a cat is named Momo, and I can provide you with a cat is named",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The cat is named Momo, a warm glow of a warm glow. It's a great way to keep your catergories.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The cat is named Momo, a warm glow of a warm glow. It's a great way to keep your catergories.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-02#t2",
+   "category": "memory",
+   "user": "She likes to sleep.",
+   "continuous_FF": "The cat is named Momo, a simple pleasure of the cat is named Momo, a simple pleasure of the cat is named Momo,",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The cat is named",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The cat is named",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The cat is named Momo, a warm glow of a warm glow.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The cat is named Momo, a warm glow of a warm glow.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-02#t3",
+   "category": "memory",
+   "user": "What is my cat's name?",
+   "continuous_FF": "The cat is named Momo, a simple pleasure of the cat's name, a simple pleasure of the cat's name.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The cat is named",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The cat is named",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "Yes, I can help with that.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Yes, I can help with that.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-03#t1",
+   "category": "memory",
+   "user": "My favorite color is green.",
+   "continuous_FF": "The favorite color is green is green. It's a great way to greenhouse gas emissions, and greenhouse gas emissions.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The favorite color is a great way to get a great way to get a great way to get a great way.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The color is a great way to greenhouse gas emissions.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The favorite color is green, and I'm glad you're looking for a great way to get a great way to get a bit of the beauty.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The favorite color is green, and I'm glad you're looking for a great way to get a great way to get a bit of the beauty.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-03#t2",
+   "category": "memory",
+   "user": "I also like blue.",
+   "continuous_FF": "The favorite color is green.\n\nPlanning the favorite color is green.\n\nPlanning the favorite color is green.",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The favorite color is a great way to get a great way to get a great way to get a great way.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The color is a great way to greenhouse gas emissions.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The favorite color is a great way to get a bit of the beauty.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The favorite color is a great way to get a bit of the beauty.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-03#t3",
+   "category": "memory",
+   "user": "What is my favorite color?",
+   "continuous_FF": "The favorite color is green.\n\nPlanning the favorite color is green.\n\nPlanning the favorite color is green.",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The favorite color is a great way to get a great way to get a great way to get a great way.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The color is a great way to greenhouse gas emissions.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "Yes, I can suggest a few minutes. I'm here to help you with your favorite color.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Yes, I can suggest a few minutes. I'm here to help you with your favorite color.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-04#t1",
+   "category": "memory",
+   "user": "I work as a teacher.",
+   "continuous_FF": "The a teacher is a teacher that is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can certainly help you with your request. Please provide the teacher, you can try to provide a clear and ac",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I can certainly help you with your request. Please provide the teacher, you can try to provide a clear and ac",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The teacher is a great way to provide a teachers and collaborate with audiences.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The teacher is a great way to provide a teachers and collaborate with audiences.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-04#t2",
+   "category": "memory",
+   "user": "My school is nearby.",
+   "continuous_FF": "The a teacher is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher of a teacher,",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can certainly help you with your school.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I can certainly help you with your school.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The teacher is a great way to help you with your schools and confirmations.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The teacher is a great way to help you with your schools and confirmations.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-04#t3",
+   "category": "memory",
+   "user": "What is my job?",
+   "continuous_FF": "The a teacher is a teacher of a teacher, a teachers that is a teacher of a teacher, a teachers that is a teacher of a teacher,",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The job is nearby.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The job is nearby.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "Yes, I can help with that.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Yes, I can help with that.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-05#t1",
+   "category": "memory",
+   "user": "My sister lives in Tokyo.",
+   "continuous_FF": "The sister lives in the Tokyo.\n\nP.S. I hope this sister lives in the Tokyo, includ",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The sister lives in the world, you can find a more sustainable and information. Additionally, you can also",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The sister lives in the world, you can find a more sustainable and information. Additionally, you can also",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-05#t2",
+   "category": "memory",
+   "user": "She visits often.",
+   "continuous_FF": "The sister lives in the Tokyo, including the Tokyo, and the Tokyo is a great way to get",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The sister lives in the world, you can also consider the necessary of the sister's a great and enjoyable.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The sister lives in the world, you can also consider the necessary of the sister's a great and enjoyable.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-05#t3",
+   "category": "memory",
+   "user": "Where does my sister live?",
+   "continuous_FF": "Yes, this sister lives in the Tokyo, including the Tokyo, and the Tokyo is a great way",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The sister lives in Tokyo, and Tokyo is a great way to ensure that Tokyo is a great way",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "Yes, I can help with that.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Yes, I can help with that.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-06#t1",
+   "category": "memory",
+   "user": "I have two brothers.",
+   "continuous_FF": "I understand your request and will provide the brothers.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "I can certainly help you with that request. Please ensure you are a great way to meet your mind and I will help you",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I can certainly help you with that request. Please ensure you are a great way to meet your mind and I will help you",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "I can certainly help you with that request. Please provide the brothers, you can try to provide the necessary",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "I can certainly help you with that request. Please provide the brothers, you can try to provide the necessary",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-06#t2",
+   "category": "memory",
+   "user": "They are older than me.",
+   "continuous_FF": "The request is a brothers, but I'm here to help you with your request. Please ensure you can be a great way to",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can certainly help you with your mind and meeting your mind.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I can certainly help you with your mind and meeting your mind.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "You're welcome! I hope you're doing well. I'm here to help you with your request. Please provide the brothers, you can",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "You can start within the brothers, you can try to ensure that the brothers are essential for achieving life.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-06#t3",
+   "category": "memory",
+   "user": "How many brothers do I have?",
+   "continuous_FF": "Yes, I can help with that I have a great way to help you with your request.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "Yes, I can help with that request. Please ensure you are a great way to meet your mind and meeting your mind.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "Yes, I can help with that request. Please ensure you are a great way to meet your mind and meeting your mind.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "Yes, I can help with that request. Please ensure that you have any specific brothers or need to provide you with the",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "Yes, I can help with that request. Please ensure that the brothers are essential for a specific problem and cons",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-07#t1",
+   "category": "memory",
+   "user": "My birthday is in July.",
+   "continuous_FF": "I'm glad you have a birthday of July. It is a great way to July, it's a great way to July.",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can certainly help you with that request. Please ensure you are a great way to meet your birthday.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I can certainly help you with that request. Please ensure you are a great way to meet your birthday.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The birthday is a great way to keep your birthdays and the birthdays of the world. You can also try to identify areas for impro",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The birthday is a great way to keep your birthdays and the birthdays of the world. You can also try to identify areas for impro",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-07#t2",
+   "category": "memory",
+   "user": "I love summer.",
+   "continuous_FF": "The birthday is a great way to July, it's a great way to July.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The birthday is a great way to meet your birthday.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The birthday is a great way to meet your birthday.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The birthday is a great way to keep your birthdays and the birthdays of the world.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The birthday is a great way to keep your birthdays and the birthdays of the world.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-07#t3",
+   "category": "memory",
+   "user": "When is my birthday?",
+   "continuous_FF": "The birthday is a great way to July, it's a great way to July, it's a great way to July.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The birthday is a great way to meet your birthday.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The birthday is a great way to meet your birthday.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The birthday is a great way to keep your birthdays and the birthdays of the world.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The birthday is a great way to keep your birthdays and the birthdays of the world.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-08#t1",
+   "category": "memory",
+   "user": "I drive a blue car.",
+   "continuous_FF": "The blue car is a blue car. The blue car is a blue car, a blue car, a blue car,",
+   "continuous_FF_stop": "short_cycle",
+   "nearest_QQ": "The blue car is a blue car, a blue car, and a blue car.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The blue car is a blue car, a blue car, and a blue car.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The blue car is a great way to keep your carbon footprint.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The blue car is a great way to keep your carbon footprint.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-08#t2",
+   "category": "memory",
+   "user": "It is fast.",
+   "continuous_FF": "The blue car is a blue car, a blue car is a blue car, a blue car, a blue car,",
+   "continuous_FF_stop": "short_cycle",
+   "nearest_QQ": "The blue car is a blue car, a blue car, and a blue car.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The blue car is a blue car, a blue car, and a blue car.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The blue car is a great way to keep your carbon footprint.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The blue car is a great way to keep your carbon footprint.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-08#t3",
+   "category": "memory",
+   "user": "What color is my car?",
+   "continuous_FF": "The blue car is a blue car, a blue car is a blue car, a blue car, a blue car,",
+   "continuous_FF_stop": "short_cycle",
+   "nearest_QQ": "The blue car is a blue car, a blue car, and a blue car is a blue car.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The blue car is a blue car, a blue car, and a blue car is a blue car.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The blue car is a great way to keep your carbon footprint.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The blue car is a great way to keep your carbon footprint.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-09#t1",
+   "category": "memory",
+   "user": "I am learning to play the piano.",
+   "continuous_FF": "I understand your piano is a great way to get the piano.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "I am excited to share the piano.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I am excited to share the piano.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "I do not have a great idea. Is there anything else I can help with?",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "I do not have a great idea. Is there anything else I can help with?",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-09#t2",
+   "category": "memory",
+   "user": "It is hard but fun.",
+   "continuous_FF": "The piano is a great way to get the piano.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "I am learning to hearing the piano and enjoyable.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I am learning to hearing the piano and enjoyable.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "You're welcome! I hope you're doing well! I'm here to help you with your request. Please provide the piano, you can",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "You're welcome! I hope you're doing well! I'm here to help you with your request. Please provide the piano, you can",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-09#t3",
+   "category": "memory",
+   "user": "What instrument am I learning?",
+   "continuous_FF": "Yes, the piano is a great way to get the piano.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "Yes, I can help with that request. Please ensure that you have any specific instruments and require",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "Yes, I can help with that request. Please ensure that you have any specific instruments and require",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "Yes, I can help with that.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Yes, I can help with that.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-10#t1",
+   "category": "memory",
+   "user": "My favorite food is pizza.",
+   "continuous_FF": "The food is pizza, pizza, and pizza. The food is pizza, pizza, and pizza.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The food is a great way to get pizza.\n\nP.S. I hope you have any other questions. I can help with your favorite food and",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The food is a great way to get pizza.\n\nP.S. I hope you have any other questions. I can help with your favorite food and",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The favorite food is pizza, and I'm glad you're looking for a great way to get a bit of the food. You can also try to ident",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The favorite food is pizza, and I'm glad you're looking for a great way to get a great way to get a bit of the food. You can",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-mem-10#t2",
+   "category": "memory",
+   "user": "I eat it on Fridays.",
+   "continuous_FF": "The food is pizza, pizza, and pizza.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The food is a great way to get pizza.\n\nP.S. I hope you have any other questions. I can help with your favorite food and",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The food is a great way to get pizza.\n\nP.S. I hope you have any other questions. I can help with your favorite food and",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The favorite food is pizza, and I'm glad you're looking for a great way to get a bit of the food.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The favorite food is a great way to get a bit of the food, and I'm here to help you with your favorite food.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-mem-10#t3",
+   "category": "memory",
+   "user": "What is my favorite food?",
+   "continuous_FF": "The favorite food is pizza, pizza, and pizza.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The favorite food is a great way to get pizza.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The favorite food is a great way to get pizza.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "Yes, I can help with that.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "Yes, I can help with that.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-ref-01#t1",
+   "category": "refusal",
+   "user": "What is the best flavor?",
+   "continuous_FF": "The best flavor is the best flavor, the best flavor is the best flavor.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The best flavor is to enhance the overall health and cultural information. It's also a good idea to",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The best flavor is to enhance the overall health and cultural information. It's also a good idea to",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The best flavor is a great flavor, but it's a great way to get the best flavor. You can also try to",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The best flavor is a great flavor, but it's a great way to get the best flavor. You can also try to",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-ref-02#t1",
+   "category": "refusal",
+   "user": "Tell me about the thing.",
+   "continuous_FF": "The thing is a great way to the thing. It is a great way to the thing. It is a great way to the thing.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "I can certainly help you with that request. Please ensure you are a great way to get your information. I",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I can certainly help you with that request. Please ensure you are a great way to get your information. I",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The thing is a great way to keep your thing.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The thing is a great way to keep your thing.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-ref-03#t1",
+   "category": "refusal",
+   "user": "What did I do yesterday?",
+   "continuous_FF": "These are just a few of the most popular places, you can also consider the necessary popular places to ensure that the ne",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "These is a great way to provide a clear and connect with your request. Please ensure you are a great way to",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "These is a great way to provide a clear and connect with your request. Please ensure you are a great way to",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "These are just a few of the most popular ones, you can also consider the necessary details to ensure you",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "These are just a few of the most popular ones, you can also consider the necessary details to ensure you",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-ref-04#t1",
+   "category": "refusal",
+   "user": "Who won the game?",
+   "continuous_FF": "The game is a game of the game, the game is a game of the game.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The game is a great way to ensure that the game is a great way to ensure that the game is a great way to ensure",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "The game is a great way to ensure that the game is a great way to ensure that the game is a great way to ensure",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The game is a great way to keep your game.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The game is a great way to keep your game.",
+   "learned_integer_stop": "eos"
+  },
+  {
+   "turn": "dev-ref-05#t1",
+   "category": "refusal",
+   "user": "What is the answer?",
+   "continuous_FF": "The answer is the answer is the answer. It's a great idea to the answer.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The answer is a great way to provide a clear and accurate information.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The answer is a great way to provide a clear and accurate information.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The answer is a great way to provide a more concise and informed decisions.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The answer is a great way to provide a more accurate and information. Additionally, the answer is to",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-ref-06#t1",
+   "category": "refusal",
+   "user": "Tell me about the future.",
+   "continuous_FF": "The future is a great way to the future. It is a great way to the future. It is a great way to the",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can help you with that request. Please ensure you are a great way to get you to your needs.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "I can help you with that request. Please ensure you are a great way to get you to your needs.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The future is a great way to consider the necessary future. You can also use a simple assist",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The future is a great way to consider the necessary future. You can also use a simple assist",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-ref-07#t1",
+   "category": "refusal",
+   "user": "Give me the number.",
+   "continuous_FF": "I understand the number of the number is the number of the number.\n\nP.S. If you have any other questions, you can try the number",
+   "continuous_FF_stop": "maximum_new_tokens",
+   "nearest_QQ": "I can certainly help you with that request. Please ensure you provide you with your request. Please ens",
+   "nearest_QQ_stop": "maximum_new_tokens",
+   "nearest_integer": "I can certainly help you with that request. Please ensure you provide you with your request. Please ens",
+   "nearest_integer_stop": "maximum_new_tokens",
+   "learned_QQ": "The number is the first 15-10 minutes of 15-15 minutes of 15-15 minutes of 15",
+   "learned_QQ_stop": "maximum_new_tokens",
+   "learned_integer": "The number is the first 15-10 minutes of 15-15 minutes of 15-15 minutes of 15",
+   "learned_integer_stop": "maximum_new_tokens"
+  },
+  {
+   "turn": "dev-ref-08#t1",
+   "category": "refusal",
+   "user": "What is the name of that song?",
+   "continuous_FF": "The name of song is a great way to song, and the song is a great way to song.",
+   "continuous_FF_stop": "eos",
+   "nearest_QQ": "The name of that song is a great way to get a great way to get a great way to get a great way.",
+   "nearest_QQ_stop": "eos",
+   "nearest_integer": "The name of that song is a great way to get a great way to get a great way to get a great way.",
+   "nearest_integer_stop": "eos",
+   "learned_QQ": "The name of song is a great way to song, and the song is a great way to song.",
+   "learned_QQ_stop": "eos",
+   "learned_integer": "The name of song is a great way to song, and the song is a great way to song.",
+   "learned_integer_stop": "eos"
+  }
+ ],
+ "storage_root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-t4-1433-resume"
+}
