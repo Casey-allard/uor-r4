@@ -56,6 +56,7 @@ checks. No new model result is asserted by this handover.
   - The core is the stack, keeping its quaternion transport (D1, #1460).
   - D2 (architectural exact relational memory) ran: **frozen FAIL on the margin**. The store is perfect in distribution; the learned read does not generalise ([result](d2-aerm-probe-result-2026-09-28.md)).
   - D6 is an evaluation-only audit of what the 2I read representation discards (Lab 2). It is evidence, not a veto; the geometric read/address operator G is on the main path (owner, 15:27 UTC).
+  - **G v1 (Lab 2): the always-on, address-driven dual-register read is not yet promoted at this scope.** On D2's world it removes the trigger failure — reads fire (2,294–2,706 events) — but held-out-template Updated is 0.158/0.073/0.029 against the ≥ 0.90 gate and the surviving failures are store/key-side (`Unavailable`); the equal-parameter dense control answers 0.47–0.81. Next diagnosed step: separate a missed write, a wrong key and an eviction, then tag/address generalisation ([result](g1-always-on-read-result-2026-09-28.md), [evidence](../evidence/g1-always-on-read-2026-09-28.json)). D12 keeps the store and G active.
   - D4 is Lab 3's geometry-coded codecs with a fidelity objective, to be trained through Lab 1's QAT hook (#1466). It is still open.
 - **S1, the stack's D11 serving port (Lab 1): measured, not yet qualified** ([record](s1-stack-serving-measurements-2026-09-28.md)).
   - The 4-bit export misses the 0.02-nat fidelity gate: +0.0362 nats (round to nearest), +0.0257 (GPTQ). The integer arithmetic costs ≤ 10⁻⁶ nats.
