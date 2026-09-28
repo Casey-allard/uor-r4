@@ -356,6 +356,7 @@ fn mixed(args: &Args, out: &Path) -> Result<()> {
         read: ReadScore::Dot,
         rotation: true,
         seed: 0,
+        memory: None,
     };
     stack_template.validate()?;
     let mixed_template = MixedConfig {
@@ -597,6 +598,7 @@ fn stories(args: &Args, out: &Path) -> Result<()> {
         read: ReadScore::Dot,
         rotation: true,
         seed: 0,
+        memory: None,
     };
     stack_template.validate()?;
     let story_template = StoryConfig {

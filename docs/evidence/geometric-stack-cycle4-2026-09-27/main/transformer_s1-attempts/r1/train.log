@@ -1,0 +1,2 @@
+Transformer pattern aaaaaa read Dot rotation false: 7155360 parameters, mlp 768
+{"dev":{"bits_per_byte":1.7594615253952375,"nll":4.284037489988679,"targets":16384},"grad_norm":1.1831308379778385,"lr":0.0019997898933979867,"step":250,"tokens":1024000,"tokens_per_second":698.5038854944431,"train_loss":5.237026990890503,"train_seconds":1465.9904136040004}

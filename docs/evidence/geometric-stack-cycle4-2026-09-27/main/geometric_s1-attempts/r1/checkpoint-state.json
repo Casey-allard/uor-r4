@@ -1,0 +1,48 @@
+{
+  "curve": [
+    {
+      "dev": {
+        "bits_per_byte": 1.7389084149627474,
+        "nll": 4.23399360192532,
+        "targets": 16384
+      },
+      "grad_norm": 0.8395179843474511,
+      "lr": 0.0039995797867959735,
+      "step": 250,
+      "tokens": 1024000,
+      "tokens_per_second": 694.7958387931676,
+      "train_loss": 4.88269894695282,
+      "train_seconds": 1473.8142384080002
+    }
+  ],
+  "lineage": {
+    "batch": 16,
+    "clip": 1.0,
+    "config": {
+      "arch": "geometric",
+      "context": 256,
+      "heads": 6,
+      "mlp_hidden": 749,
+      "pattern": "rrarra",
+      "read": "lorentz",
+      "rotation": true,
+      "seed": 1,
+      "vocab_size": 4096,
+      "width": 288
+    },
+    "eval_every": 250,
+    "eval_windows": 64,
+    "lr": 0.004,
+    "min_lr": 0.1,
+    "steps": 7324,
+    "train_weights": [
+      1.0,
+      1.0
+    ],
+    "warmup": 200,
+    "weight_decay": 0.1
+  },
+  "rng": "5015950137922019222",
+  "step": 250,
+  "train_seconds": 1473.8142384080002
+}

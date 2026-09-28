@@ -16,6 +16,10 @@ development runs, one seed per arm. Nothing here is a final holdout or a languag
 | `ablation-seed2/<arm>/report.json`, `attempt.json`, `manifest.json`, `model/config.json` | The seed-2 Lorentz and Dot stacks (§7), from the completed roots `*_r2`; the two interrupted roots per arm stay outside |
 | `ablation-seed2/chain.log` | The pipeline's launches, exits and restarts, including both container restarts |
 | `ablation-readsonly/<arm>/report.json`, `attempt.json`, `manifest.json`, `model/config.json` | The reads-only pair (§7): Dot with seed 1, Lorentz with seed 2 |
+| `main/<arm>/report.json`, `attempt.json`, `manifest.json`, `model/config.json`, `train.log` | The main comparison (§6), `geometric_s1` and `transformer_s1`: the counted roots (`*_r4`, 7,324 updates), resumed from the 250-update checkpoint of `*_r1` |
+| `main/<arm>-attempts/r1/` (`attempt.json`, `checkpoint-state.json`, `train.log`) | The first 250 updates and the checkpoint state the counted root resumed (its SHA-256 is the report's `resumed_from`) |
+| `main/<arm>-attempts/{launch-1708,r2,r3}/` | Attempts that did not continue: the host-tuned build's launch that trapped at 17:39, a root stopped before its first checkpoint, and a root lost to a restart |
+| `main/launch-1708.log`, `main/chain-c4.log`, `main/chain-c5.log`, `main/checkpoint-keep.log` | Launch identities, every launch, exit, restart and rollback of the comparison, and the copies of the last checkpoints (step 7,300) kept before completion removed them |
 | `integer/<model>/export/export.json` (with `attempt.json`, `manifest.json`) | Integer serving export (§8): source model and executable identities, the artifact's size and SHA-256, and the quantization errors per matrix and per table of grid codes |
 | `integer/<model>/evaluation/evaluation.json` (with `attempt.json`, `manifest.json`) | The integer engine beside the float model on the 512 final-evaluation windows: NLL per window, bits per byte, top-1 agreement and the engine's speed |
 | `integer/<model>/steps64/evaluation.json` (with `attempt.json`, `manifest.json`) | The engine's step rate alone on 64 of the windows (commit `cb60c8bd`), apart from the f64 scoring loop |
@@ -23,7 +27,7 @@ development runs, one seed per arm. Nothing here is a final holdout or a languag
 | `integer/<model>/reference/evaluation.json` (with `attempt.json`, `manifest.json`) | Float, grid reference and integer NLL on the 512 windows (commit `feeef7e4`): the split of the integer gap into parameter representation (every exported value, not only the 4-bit matrices) and integer arithmetic |
 | `integer/<model>/gptq-export/export.json`, `gptq-evaluation/evaluation.json` (each with `attempt.json`, `manifest.json`) | The GPTQ export (commit `6bc7dd6d`): calibration settings and cost, and each matrix's relative output error under GPTQ and round-to-nearest; then float, grid reference and integer NLL of that artifact on the 512 windows |
 | `integer/run.log` | Start and end times and the executable identities of the integer stage |
-| `sources/` | The launchers: pilot, post-pilot chain (with the selection rule), ablations, main comparison, the restartable `pipeline.sh` and the integer stage |
+| `sources/` | The launchers: pilot, post-pilot chain (with the selection rule), ablations, main comparison, the restartable `pipeline.sh`, the integer stage, and after the rollback `pipeline-post.sh`, `resume-main.sh` and `keep-checkpoints.sh` |
 | `packet.json` | Per run: group, source commit, settings, threads, final metrics, cost and identities. Per integer model: float and integer NLL, agreement, speed and the artifact's identity, and under `gptq` the same for the calibrated artifact. Also the SHA-256 and size of every file in this directory |
 
 Each `report.json` records:
@@ -38,6 +42,8 @@ Each `report.json` records:
 ## Kept outside the repository
 
 - **Model weights.** Each run's `model/model.safetensors` is 28.6 MB. They stay in the lab sandbox's scratch directory, which is not durable. `packet.json` lists each file's size and SHA-256, which the reports also record.
+  - The container restart of 2026-09-27 (~17:00 UTC) rolled the sandbox back to its 08:24 state. The weights of the seed-2 pair and the reads-only pair no longer exist; their reports and hashes here are the record. The pilot and seed-1 ablation weights survive in the sandbox.
+  - The main pair's final weights and last checkpoints (step 7,300) are on the temporary branch `transfer/cycle4-main-20260928` for the owner's copy, with a SHA-256 manifest; the branch is deleted after the copy.
 - **Integer artifacts.** Each `model.lut` is 4.5–5.0 MB. They stay beside the weights; `packet.json` and each `export.json` record their sizes and SHA-256.
 - **Executables.** Release builds with `-C target-cpu=native`; any rebuild on another host differs in bytes.
   - The pilot used commit `dca1b790` (SHA-256 `fcf710ad…`).

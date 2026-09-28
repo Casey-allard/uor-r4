@@ -1,0 +1,12 @@
+{
+  "arch": "transformer",
+  "vocab_size": 4096,
+  "width": 288,
+  "heads": 6,
+  "mlp_hidden": 768,
+  "context": 256,
+  "pattern": "aaaaaa",
+  "read": "dot",
+  "rotation": false,
+  "seed": 1
+}

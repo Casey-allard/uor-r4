@@ -6,17 +6,23 @@
 
 ## 0. Findings
 
-*Measured* on code, one seed per arm unless stated. Development NLL on the repository split's 512 evenly spaced windows (131,072 targets). This note is an interim record: the main comparison at full exposure (§6) is still running, and its result and the card's reading follow in a separate change.
+*Measured* on code, one seed per arm unless stated. Development NLL on the repository split's 512 evenly spaced windows (131,072 targets).
 
-- **At 1,000 updates the stack leads the control at every learning rate piloted** (§5): by 0.158 nats at each arm's selected rate (4e-3 for the stack, 2e-3 for the control), with 7.15M and 7.16M parameters.
+- **At full exposure the geometric stack matches the transformer control: 1.9981 against 2.0111 nats** (§6).
+  - Setup: 7,324 updates (29,999,104 target visits), 7.15M against 7.16M parameters, the same windows.
+  - The stack is 0.0130 nats lower (0.0052 bits per byte). That is within the seed spread seen at 1,000 updates, so it reads as parity, not an advantage.
+  - Both train at the same speed: 789 and 788 tokens/s.
+  - By the card's rule, fixed before the pilots, the stack is **viable**. Under the programme's ROADMAP (§2) it becomes the main-line candidate, and the director's D0 decision ([#820](https://github.com/UOR-Foundation/uor-r4/issues/820), 2026-09-28) adopted it as the main-line core. Its next step is export to the native, multiplier-free serving contract (D11, R1–R5); integer serving under D10 is now a frozen comparator.
+- **At 1,000 updates the stack led the control at every learning rate piloted** (§5): by 0.158 nats at each arm's selected rate (4e-3 for the stack, 2e-3 for the control). The lead narrowed as training continued and had closed by about 2,750 updates (§6).
 - **Configuration matters more than the read's score** (§7).
-  - Reads-only Lorentz is the best configuration measured: 2.5531 and 2.5382 over two seeds.
+  - Reads-only Lorentz is the best 1,000-update configuration measured: 2.5531 and 2.5382 over two seeds.
   - Inside `rrarra`, Dot and Lorentz trade places across two seeds.
-  - With every layer a read, Lorentz leads Dot by 0.076 at seed 1. The second Dot seed is queued with its reading fixed.
-- **Integer serving costs little, and the cost is in the exported parameters, not the arithmetic** (§8).
-  - Under D10 the stacks lose 0.011–0.013 nats with round-to-nearest, and 0.006–0.007 with GPTQ, which recalibrates only the matrices.
+  - With every layer a read, Lorentz leads Dot by 0.076 at seed 1.
+  - Under ROADMAP ruling 8, an all-reads stack is a transformer comparator, not a candidate backbone.
+- **Integer serving under D10 costs little, and the cost is in the exported parameters, not the arithmetic** (§8).
+  - The stacks lose 0.011–0.013 nats with round-to-nearest, and 0.006–0.007 with GPTQ, which recalibrates only the matrices.
   - The integer arithmetic adds nothing measurable.
-- **Generated code is still not useful.** Every continuation, float or integer, repeats or is malformed.
+- **Generated code is still not useful.** Every continuation repeats or is malformed, float or integer, at 1,000 updates and at full exposure.
 - **The stack has a dialogue path** (`dialogue-train`, `lut-chat`, `scripts/geometric-stack-chat-m1.sh`). It is checked on synthetic data only; the prepared corpus is on the owner's machine.
 
 ## 1. Why capacity, and why a parallel layout
@@ -203,25 +209,73 @@ Final NLL in nats per token, with bits per byte in parentheses:
 
 ## 6. Main comparison
 
-**Running.** Both arms train from scratch with seed 1 on identical windows.
+*Measured.* Both arms trained from scratch with seed 1 on identical windows.
 - Exposure: 7,324 updates of 16 × 256 targets, or 29,999,104 target visits.
 - Schedule: warmup 200, then cosine decay to 10%, with weight decay 0.1 and clipping at 1.0.
 - Rates: each arm's pilot-selected rate, 2e-3 for the control and 4e-3 for the stack (`rrarra`, Lorentz reads, rotation).
 - Data: windows are drawn from the repository and registry streams with equal probability (§4).
 - Evaluation: 64 development windows every 250 updates, and the final score on 512.
-- Launch: 11:23 UTC, with executable `b87acd63`, two threads per arm on the shared sandbox.
+- Threads: two per arm, on the shared 4-core sandbox.
 
-The final scores and the reading follow in a separate change. The card fixed the reading before the pilots:
-- stack within 0.03 nats of the control, or better → the stack is viable; next come its integer serving and an owner M1 run;
-- behind by more than 0.03 → ablations first;
-- more than twice as slow → kernel work first.
+| Arm | Parameters | Final NLL | Bits per byte | Train tokens/s | Model SHA-256 |
+|---|---:|---:|---:|---:|---|
+| Geometric stack | 7,153,860 | **1.998113** | 0.803432 | 789.3 | `3eb1ebbb…` |
+| Transformer control | 7,155,360 | 2.011149 | 0.808673 | 788.1 | `ba5e07e7…` |
 
-Interim development points are not a result and are not reported here.
+- **Reading, by the card's rule** (fixed before the pilots):
+  - within 0.03 nats of the control, or better → viable; next, integer serving and an owner M1 run;
+  - behind by more than 0.03 → ablations;
+  - more than twice as slow → kernels.
 
-**Queued: the reads-only Lorentz stack at the same exposure.** At 1,000 updates the reads-only Lorentz stack is the best configuration measured (§7). A third arm trains it (pattern `aaaaaa`, no rotation, learning rate 4e-3) with the main pair's executable, data, seed and settings, after the cycle-5 arms and the reads-only Dot seed (`c5/pipeline4.sh` in the lab sandbox). It reuses the main pair's control. Its reading, fixed before it runs:
-- at least 0.03 nats below the `rrarra` stack → the owner M1 scripts' default pattern becomes `aaaaaa`;
-- within 0.03 nats, or worse → `rrarra` stays the default, since its recurrences hold a fixed state and read less cache per token at long context;
-- its distance from the control is reported either way.
+  The stack is 0.0130 nats *below* the control, at equal speed, so it is **viable**.
+- **What the difference does and does not show.**
+  - It is one seed per arm. At 1,000 updates, seeds of one configuration differed by up to 0.015 nats, and the two read scores traded places by ±0.021 (§7). A 0.013 difference is inside that spread: this is parity with an equal-size transformer, not a measured advantage.
+  - The 64-window curve changed leader twice (below).
+- **What comes next.** Under the ROADMAP (§2 consolidation, ruling 10, D11 as recorded there), "integer serving" now means the native, multiplier-free contract: the stack's export to a D11 bundle (interface I2), served by table and exact-structure kernels. The D10 engine of §8 is a frozen comparator.
+- **Continuations.** The report roots keep three development prompts per arm, greedy and sampled. Both arms' greedy continuations fall into loops (`Model, Model, Model, …`; `&mut e, &mut e, …`). The sampled ones are locally plausible Rust with invented identifiers and repeated assignments. Neither is useful code.
+- **Records.** The packet's `main/` directory holds:
+  - each arm's final report with its claim and seal manifest, and the model configuration;
+  - the training log, and the checkpoint state the final root resumed from;
+  - every earlier attempt and the chain logs.
+
+  The weights stay outside the repository, pinned by SHA-256. They are in the scratch sandbox and on the temporary transfer branch `transfer/cycle4-main-20260928`, with the last resumable checkpoints (step 7,300).
+
+Development NLL on 64 windows during training (stack − control; negative favours the stack):
+
+| Updates | Stack | Control | Stack − control |
+|---:|---:|---:|---:|
+| 250 | 4.2340 | 4.2840 | −0.0500 |
+| 500 | 3.6557 | 3.6974 | −0.0417 |
+| 1,000 | 3.0170 | 3.2508 | −0.2338 |
+| 1,500 | 2.7933 | 2.8991 | −0.1058 |
+| 2,000 | 2.6466 | 2.6892 | −0.0427 |
+| 2,500 | 2.5662 | 2.5824 | −0.0162 |
+| 3,000 | 2.4734 | 2.4817 | −0.0083 |
+| 3,500 | 2.4273 | 2.4151 | +0.0122 |
+| 4,000 | 2.3535 | 2.3440 | +0.0094 |
+| 4,500 | 2.2853 | 2.2778 | +0.0075 |
+| 5,000 | 2.2335 | 2.2301 | +0.0034 |
+| 5,500 | 2.1822 | 2.1732 | +0.0090 |
+| 6,000 | 2.1428 | 2.1509 | −0.0081 |
+| 6,500 | 2.1054 | 2.1123 | −0.0069 |
+| 7,000 | 2.0764 | 2.0960 | −0.0197 |
+| 7,324 | 2.0764 | 2.0907 | −0.0143 |
+
+**Provenance of this run.** The comparison ran three times before it finished; only the last counts.
+- **First attempt: lost.** It launched at 11:23 UTC on 09-27 with the pinned build of `b87acd63`. It reached about 3,750 updates. A container restart at about 17:00 then rolled the sandbox back to its 08:24 state, and the run was lost with its checkpoints.
+- **Second attempt: trapped.** The restart moved the sandbox from a 2.1 GHz Xeon with AVX512-VBMI to a 2.8 GHz Cascade Lake Xeon. Relaunched at 17:08 with the pinned build, which is tuned for the earlier host, the run trapped on an illegal instruction at 17:39, before its first checkpoint.
+- **The counted run.**
+  - `b87acd63` was rebuilt from source with `-C target-cpu=x86-64-v3` (SHA-256 `0b3b94dc…`) and smoke-tested through training, checkpointing, evaluation and sampling.
+  - The comparison restarted at 17:52 and wrote a checkpoint at 250 updates.
+  - Two later restarts (18:54 and 19:29) each discarded work done after the session's last idle snapshot.
+  - The final roots (`*_r4`) resumed from the 250-update checkpoint at 19:29 and ran to the end without interruption. A resumed run reproduces an uninterrupted one on the same executable and host. With this build, a 6-update run of the stack's configuration and one stopped after its first update and resumed give the same model SHA-256 (`7e94e455…`).
+- **Checkpoint interval.** It changed from 250 to 50 updates at the resume. The interval is not part of the run's lineage and does not affect its numerics.
+- **Reproducing it elsewhere.** The matrix library chooses its blocking from the host's caches, so a rerun on another CPU follows a different floating-point path. The data is pinned by SHA-256 (§4). The registry stream was built from this sandbox's Cargo registry and cannot be rebuilt on the owner's machine.
+
+**Queued: the reads-only Lorentz stack at the same exposure.** At 1,000 updates the reads-only Lorentz stack is the best configuration measured (§7). A third arm trains it (pattern `aaaaaa`, no rotation, learning rate 4e-3) with the main pair's executable, data, seed and settings, after the cycle-5 arms and the reads-only Dot seed (`c5/pipeline4.sh` in the lab sandbox). It reuses the main pair's control. Its reading, fixed before it runs and amended before it runs (2026-09-28):
+- Under [ROADMAP](../../ROADMAP.md) ruling 8 (R4), a stack whose token mixing is all dense all-pairs reads is a transformer comparator.
+- Its score is therefore recorded as a comparator reading, and the owner M1 scripts keep `rrarra` whatever it scores. This replaces the earlier rule that would have made `aaaaaa` the default at 0.03 nats below `rrarra`.
+- Its distances from the `rrarra` stack and from the control are reported either way.
 
 ## 7. Ablations
 
@@ -404,14 +458,18 @@ The recurrence state is held at `2^−32` in 64-bit integers. Read keys and valu
 
 ## 9. What this changes
 
-- **For the native architecture.** Nothing yet. The main comparison (§6) decides whether the stack is viable at full exposure, by the card's rule.
+- **For the native architecture.** At equal parameters and 30M target visits on code, a recurrence-primary geometric stack matches a transformer of the #1017 shape: −0.013 nats at one seed, at equal speed. The stack has quaternion-transport recurrences and two Lorentz reads.
+  - Under the ROADMAP's §2 consolidation rule it becomes the main-line candidate.
+  - Its next step is the export of this checkpoint to the native serving contract (D11; interfaces I1 and I2 of the director plan), not more training.
+  - It does not establish prose or chat quality, an advantage beyond one seed, or any energy result.
 - **For the read's geometry.** At this scale the Lorentz score's benefit depends on the configuration.
   - It is not measurable in `rrarra`.
-  - It is 0.076 nats at one seed when every layer is a read. The queued Dot seed decides whether that lead is recorded (§7).
-  - Cycle 5 moves the geometry to the index of sparse memory layers, where D5 needs it.
-- **For serving.** The stack serves under D10 with no float and no multiplier on learned weights, and GPTQ halves the cost of representing its parameters.
-  - The stack engine is dense and reads every weight per token.
-  - It uses the hardware multiplier on runtime values, so it does not meet D0-b. D0-b remains the native model's target.
+  - It is 0.076 nats at one seed when every layer is a read. Such a stack is a transformer comparator under ruling 8.
+  - The reads-only Dot seed 2, cycle 5's memory arms and the reads-only full-exposure arm are held until this reading is taken up (director plan, 2026-09-28).
+- **For serving.** Under D10 the stack is served with no floating-point arithmetic and no multiplier on learned weights. GPTQ halves the cost of representing its parameters.
+  - The engine is dense and reads every weight per token.
+  - It uses the hardware multiplier and divider on runtime values. A disassembly census of its ARM64 build (Lab 3, on #1437) counts 2 `udiv` and 24 `fmov` register transfers on the step path.
+  - D10 is superseded (ROADMAP ruling 10; D11), so this engine is now a frozen comparator. The stack's mission serving moves to table and exact-structure kernels (T3), fed by the stack export.
 - **For chat.** The stack can learn the prepared dialogue corpus under the retained study's episodes, and talk through the integer engine.
   - Replies follow the study's stop rules and panel limits.
   - This path is checked on synthetic data only.
@@ -426,8 +484,10 @@ The recurrence state is held at `2^−32` in 64-bit integers. Read keys and valu
 | Seed-1 ablations | 1 h 44 min | `dot` and `norot` together, then `readsonly` |
 | Seed-2 pair | 2 h 17 min | including about 56 min lost to two container restarts before the first checkpoint |
 | Reads-only pair | 1 h 24 min | two arms at a time |
-| Main comparison | running since 11:23 UTC | two arms, two threads each |
+| Main comparison, counted run | 10 h 41 min | two arms, two threads each: 25 min to the 250-update checkpoint, then 10 h 16 min from the resume; 38,007 and 38,064 s of training per arm |
+| Main comparison, lost attempts | about 7 h 20 min | the first attempt (11:23 to the ~17:00 rollback), the host-tuned build's 31 min before its trap, and work after two idle snapshots (about 37 and 32 min) |
+| Rollback recovery | not metered separately | branch replay from the session record, rebuilds for the new host, smoke and resume checks |
 | Integer stages | about 50 min of one-thread engine time | evaluations 14.1 min, references 14.9, GPTQ exports 1.9, GPTQ evaluations 17.2, step timing 1.7, samples 6 s; round-to-nearest exports untimed; run beside training |
 | Implementation, tests and builds | not metered separately | |
 
-- **Storage.** The packet in the repository is 2.4 MB (171 files). Run roots in the sandbox hold 585 MB. Models and executables stay outside the repository, pinned by SHA-256 in the packet.
+- **Storage.** The packet in the repository is 2.9 MB (205 files). Models, checkpoints and executables stay outside the repository, pinned by SHA-256 in the packet; the main pair's final models and last checkpoints are on the temporary transfer branch for the owner's copy.

@@ -590,19 +590,22 @@ track does not change the work card below.
     −0.059 nats)
     ([§11](hyperbolic-cycle3-2026-09-26.md#11-addendum-the-integer-lorentz-read)).
 - **A capacity-matched geometric stack** ([cycle 4](geometric-stack-cycle4-2026-09-27.md),
-  interim, September 27). It combines quaternion-transport recurrences, multi-head
+  September 27–28). It combines quaternion-transport recurrences, multi-head
   Lorentz reads and MLPs, at 7.15M parameters, against a 7.16M-parameter
   transformer control on Rust code.
   - At 1,000 updates it leads by 0.158 nats at each arm's selected rate.
   - Reads-only Lorentz is the best configuration measured (2.5531 and 2.5382 over
     two seeds). Inside the default `rrarra`, Dot and Lorentz trade places across
     two seeds.
-  - Under D10, integer serving costs 0.011–0.013 nats, or 0.006–0.007 with GPTQ.
+  - Under D10 (now a frozen comparator), integer serving costs 0.011–0.013 nats, or 0.006–0.007 with GPTQ.
     The cost is in the exported parameters, not the integer arithmetic. The engine
     uses the hardware multiplier on runtime values, so it does not meet D0-b.
   - Continuations still repeat or are malformed.
-  - The full-exposure comparison (29,999,104 target visits per arm) is running;
-    its result follows the card's fixed reading.
+  - At full exposure (29,999,104 target visits per arm) it matches the control:
+    1.9981 against 2.0111 nats, at one seed and equal speed. By the card's rule
+    the stack is viable, and the director's D0 decision (#820) adopted it as the
+    main-line core; its next step is the native D11 export. The 0.013 difference is within seed
+    spread, so this is parity, not an advantage.
   - A dialogue path (`dialogue-train`, `lut-chat`) follows the retained study's
     episodes, stop rules and panel limits. It is checked on synthetic data only.
 - **Owner-runnable M1 scripts.**

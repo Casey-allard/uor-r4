@@ -1,0 +1,12 @@
+chosen lr transformer 0.002 geometric 0.004 2026-09-27T05:58:16Z
+chain.sh replaced by chain2.sh at 2026-09-27T07:21:45Z: seed-2 Lorentz/Dot pair inserted before the main comparison
+chain2.sh replaced by chain3.sh at 2026-09-27T07:45:31Z: reads-only Dot (s1) and Lorentz (s2) pair inserted before the main comparison, after the reads-only Lorentz ablation (2.5531) led all arms
+container reboot at ~08:22Z killed the seed-2 pair (no checkpoint yet) and chain3; replaced by the idempotent pipeline.sh 2026-09-27T08:24:34Z
+pipeline start 2026-09-27T08:24:34Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/lorentz_r1 fresh 2026-09-27T08:24:34Z
+launch /tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/ablation-seed2/dot_r1 fresh 2026-09-27T08:24:34Z
+container restart ~17:00Z rolled the sandbox back to its ~08:24Z state: the first main-comparison attempt (launched 11:23:15Z, about step 3,750-4,000 of 7,324) and its checkpoints were lost; relaunched fresh with the same binary, data and settings at 2026-09-27T17:08:28Z
+17:08Z relaunch used the pinned b87acd63 build, which was tuned for the previous host and trapped (invalid opcode) on this Cascade Lake host at 17:39Z before its first checkpoint; b87acd63 rebuilt from source for x86-64-v3 (smoke-tested through training, evaluation, checkpoint and sampling); main comparison relaunched by c5/pipeline-post.sh 2026-09-27T17:52:41Z
+container restart ~18:54Z (no rollback of the run roots; logs end at 18:17Z, checkpoints at step 250); pipeline relaunched 2026-09-27T18:55:51Z
+pipeline restarted 2026-09-27T18:57:32Z with checkpoint_every=50 for the main pair and resume from the newest checkpoint (the killed _r2 attempts hold none)
+container restart ~19:29Z restored the 18:57Z state (the _r3 attempts hold no checkpoint); restarts at 18:54Z and 19:29Z followed idle periods with no session task running; pipeline relaunched 2026-09-27T19:30:26Z with a session-tracked watcher

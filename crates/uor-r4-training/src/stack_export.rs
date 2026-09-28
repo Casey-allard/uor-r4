@@ -223,6 +223,11 @@ pub fn export_stack(
             "export_stack takes a geometric stack; the control exports as a Llama checkpoint",
         ));
     }
+    if c.memory.is_some() {
+        return Err(invalid(
+            "integer export of product-key memories is not implemented",
+        ));
+    }
     let (d, heads) = (c.width, c.heads);
     let mlp = c.mlp_hidden.div_ceil(GROUP) * GROUP;
     let shape = StackShape {
@@ -489,8 +494,10 @@ pub fn export_stack(
 /// [`crate::lut_export::export_llama`].
 pub fn control_checkpoint(model: &StackModel, weights_sha256: String) -> Result<Checkpoint> {
     let c = &model.config;
-    if c.arch != StackArch::Transformer {
-        return Err(invalid("control_checkpoint takes the transformer control"));
+    if c.arch != StackArch::Transformer || c.memory.is_some() {
+        return Err(invalid(
+            "control_checkpoint takes the transformer control without memories",
+        ));
     }
     let shape = LlamaShape {
         vocab: c.vocab_size,
@@ -613,8 +620,10 @@ pub fn stack_grid_reference(
     artifact: &uor_r4_lut::format::StackArtifact,
 ) -> Result<GridReference> {
     let c = model.config.clone();
-    if c.arch != StackArch::Geometric {
-        return Err(invalid("a stack grid reference needs a geometric stack"));
+    if c.arch != StackArch::Geometric || c.memory.is_some() {
+        return Err(invalid(
+            "a stack grid reference needs a geometric stack without memories",
+        ));
     }
     let reference = StackModel::new(c.clone(), model.device())?;
     let d = c.width;
@@ -698,9 +707,9 @@ pub fn control_grid_reference(
     artifact: &uor_r4_lut::format::Artifact,
 ) -> Result<GridReference> {
     let c = model.config.clone();
-    if c.arch != StackArch::Transformer {
+    if c.arch != StackArch::Transformer || c.memory.is_some() {
         return Err(invalid(
-            "a control grid reference needs the transformer control",
+            "a control grid reference needs the transformer control without memories",
         ));
     }
     let reference = StackModel::new(c.clone(), model.device())?;

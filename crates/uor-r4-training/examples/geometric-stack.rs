@@ -11,7 +11,8 @@
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
 //!   [sample_tokens=128] [tokenizer=TOKENIZER.json] [width=288] [heads=6] [layers=6] [mlp=768] \
-//!   [context=256]
+//!   [stack_mlp=MATCHED] [context=256] [memory_layers=L1,L2 [memory_sub_keys=256] [memory_top_k=32] \
+//!   [memory_heads=4] [memory_key_dim=128] [memory_score=dot|lorentz] [memory_codebook=h4|e8]]
 //! geometric-stack sample model=ROOT/model valid=VALID.u16 merges=MERGES.txt|tokenizer=TOKENIZER.json \
 //!   out=NEW_REPORT_ROOT [prompts=3] [prompt_tokens=64] [sample_tokens=128] [temperature=0.8] [top_k=40] \
 //!   [seed=1]
@@ -115,6 +116,7 @@ use uor_r4_training::stack_export::{
     control_checkpoint, control_grid_reference, export_stack, stack_grid_reference,
     StackCalibration,
 };
+use uor_r4_training::stack_memory::{Codebook, MemoryConfig, MemoryScore};
 use uor_r4_training::{sha256_file, Result, TrainingError};
 
 fn invalid(message: impl Into<String>) -> TrainingError {
@@ -572,8 +574,10 @@ impl Settings {
 
 /// The model shape of `arch=` and the shape options: the control's shape,
 /// #1017's by default, or a geometric stack with its width, heads, depth and
-/// context whose MLP matches its parameter count. `vocab` replaces the
-/// default 4,096-token vocabulary first.
+/// context whose MLP matches its parameter count. `stack_mlp` instead pins
+/// the stack's MLP width, so two stacks can differ in one component at equal
+/// width (and unequal parameter counts). `vocab` replaces the default
+/// 4,096-token vocabulary first.
 fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
     let seed: u64 = args.number("seed", 1)?;
     let read = match args.optional("read").as_deref() {
@@ -597,20 +601,71 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
     if let Some(vocab) = vocab {
         control.vocab_size = vocab;
     }
-    Ok(match args.required("arch")?.as_str() {
+    let stack_mlp = args
+        .optional("stack_mlp")
+        .map(|text| {
+            text.parse::<usize>()
+                .map_err(|_| invalid(format!("invalid stack_mlp={text}")))
+        })
+        .transpose()?;
+    let mut config = match args.required("arch")?.as_str() {
+        "transformer" if stack_mlp.is_some() => {
+            return Err(invalid(
+                "stack_mlp= sets a geometric stack's MLP; the control's is mlp=",
+            ))
+        }
         "transformer" => control,
         "geometric" => {
             let layers = control.layers();
             let default_pattern = "rra".repeat(layers / 3) + &"r".repeat(layers % 3);
-            StackConfig::geometric_matched_to(
+            let mut config = StackConfig::geometric_matched_to(
                 &control,
                 &args.optional("pattern").unwrap_or(default_pattern),
                 read,
                 rotation,
-            )?
+            )?;
+            if let Some(hidden) = stack_mlp {
+                config.mlp_hidden = hidden;
+                config.validate()?;
+            }
+            config
         }
         other => return Err(invalid(format!("unknown arch {other}"))),
-    })
+    };
+    // Product-key memories replace the listed layers' MLPs after the MLP width
+    // is matched, so the other layers keep the matched width.
+    if let Some(layers) = args.optional("memory_layers") {
+        // A fixed codebook sets the sub-key count and the key width.
+        let codebook = match args.optional("memory_codebook").as_deref() {
+            None => None,
+            Some("h4") => Some(Codebook::H4),
+            Some("e8") => Some(Codebook::E8),
+            Some(other) => return Err(invalid(format!("unknown memory_codebook {other}"))),
+        };
+        let (default_sub_keys, default_key_dim) =
+            codebook.map_or((256, 128), |c| (c.size(), 2 * c.dim()));
+        config.memory = Some(MemoryConfig {
+            layers: layers
+                .split(',')
+                .map(|l| {
+                    l.parse()
+                        .map_err(|_| invalid(format!("invalid memory layer {l}")))
+                })
+                .collect::<Result<_>>()?,
+            sub_keys: args.number("memory_sub_keys", default_sub_keys)?,
+            top_k: args.number("memory_top_k", 32)?,
+            heads: args.number("memory_heads", 4)?,
+            key_dim: args.number("memory_key_dim", default_key_dim)?,
+            score: match args.optional("memory_score").as_deref() {
+                None | Some("dot") => MemoryScore::Dot,
+                Some("lorentz") => MemoryScore::Lorentz,
+                Some(other) => return Err(invalid(format!("unknown memory_score {other}"))),
+            },
+            codebook,
+        });
+        config.validate()?;
+    }
+    Ok(config)
 }
 
 fn train_settings(args: &Args) -> Result<Settings> {
@@ -950,8 +1005,9 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         }
     };
     let parameters = model.parameter_count();
+    let active_parameters = model.config.active_parameter_count()?;
     eprintln!(
-        "{:?} pattern {} read {:?} rotation {}: {parameters} parameters, mlp {}",
+        "{:?} pattern {} read {:?} rotation {}: {parameters} parameters ({active_parameters} read per token), mlp {}",
         model.config.arch,
         model.config.pattern,
         model.config.read,
@@ -1048,6 +1104,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "schema": "uor-r4.geometric-stack-run/1",
         "settings": settings.record(),
         "parameters": parameters,
+        "active_parameters": active_parameters,
         "completed_steps": progress.step,
         "stopped_early": stopped_early,
         "resumed_from": resumed_from,
@@ -1877,6 +1934,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "heads",
             "layers",
             "mlp",
+            "stack_mlp",
             "seed",
             "policy",
             "data_seed",
@@ -2423,6 +2481,7 @@ fn main() -> Result<()> {
                     "heads",
                     "layers",
                     "mlp",
+                    "stack_mlp",
                     "context",
                     "valid",
                     "out",
@@ -2448,6 +2507,13 @@ fn main() -> Result<()> {
                     "resume",
                     "max_seconds",
                     "sample_tokens",
+                    "memory_layers",
+                    "memory_sub_keys",
+                    "memory_top_k",
+                    "memory_heads",
+                    "memory_key_dim",
+                    "memory_score",
+                    "memory_codebook",
                 ],
             )?;
             let settings = train_settings(&args)?;

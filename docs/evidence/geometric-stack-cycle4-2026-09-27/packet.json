@@ -1,5 +1,5 @@
 {
- "schema": "uor-r4.geometric-stack-cycle4-packet/4",
+ "schema": "uor-r4.geometric-stack-cycle4-packet/5",
  "label": "Measured, development, one seed per arm",
  "runs": [
   {
@@ -673,13 +673,137 @@
      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
     }
    }
+  },
+  {
+   "group": "main",
+   "run": "transformer_s1",
+   "source_commit": "b87acd63 (x86-64-v3 rebuild)",
+   "arch": "transformer",
+   "pattern": "aaaaaa",
+   "read": "dot",
+   "rotation": false,
+   "mlp_hidden": 768,
+   "lr": 0.002,
+   "seed": 1,
+   "threads": "2",
+   "parameters": 7155360,
+   "completed_steps": 7324,
+   "target_visits": 29999104,
+   "final": {
+    "bits_per_byte": 0.8086734579910343,
+    "nll": 2.01114928948985,
+    "targets": 131072
+   },
+   "train_seconds": 38063.899513462864,
+   "tokens_per_second": 788.1248212466929,
+   "model_sha256": "ba5e07e78dc342bac2db7646121b7a15393cce441863abc4dfd872cc51bb761c",
+   "model_bytes": 28626728,
+   "model_retained_outside": "scratchpad/c4/runs/main/transformer_s1_r4/model/model.safetensors; transfer branch transfer/cycle4-main-20260928",
+   "executable_sha256": "0b3b94dcc2ee43d3ad77d225f47127803fa13063f9d6de9de4f1774e7cfd1e5b",
+   "resumed_from": {
+    "bytes": 993,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/main/transformer_s1_r1/checkpoint/state.json",
+    "sha256": "9af0733c5e4237e6d81fb59948b9101f3e02d7baa27311caad39beae71571e76"
+   },
+   "inputs": {
+    "lens": {
+     "bytes": 8192,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+     "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "merges": {
+     "bytes": 30792,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+     "sha256": "7453bfa086a18d36948d23fd060d2a74bc3ba8d87882d457cb397396dde84405"
+    },
+    "tokenizer": null,
+    "train": [
+     {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     },
+     {
+      "bytes": 58078818,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/data/registry.u16",
+      "sha256": "af93ca73e51a798e4a19e1a470e97037939c95f7499e65ffb8e3526748026f65"
+     }
+    ],
+    "valid": {
+     "bytes": 413688,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+     "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+   }
+  },
+  {
+   "group": "main",
+   "run": "geometric_s1",
+   "source_commit": "b87acd63 (x86-64-v3 rebuild)",
+   "arch": "geometric",
+   "pattern": "rrarra",
+   "read": "lorentz",
+   "rotation": true,
+   "mlp_hidden": 749,
+   "lr": 0.004,
+   "seed": 1,
+   "threads": "2",
+   "parameters": 7153860,
+   "completed_steps": 7324,
+   "target_visits": 29999104,
+   "final": {
+    "bits_per_byte": 0.803431501691116,
+    "nll": 1.9981126841902181,
+    "targets": 131072
+   },
+   "train_seconds": 38006.54993448389,
+   "tokens_per_second": 789.3140538068513,
+   "model_sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a",
+   "model_bytes": 28622728,
+   "model_retained_outside": "scratchpad/c4/runs/main/geometric_s1_r4/model/model.safetensors; transfer branch transfer/cycle4-main-20260928",
+   "executable_sha256": "0b3b94dcc2ee43d3ad77d225f47127803fa13063f9d6de9de4f1774e7cfd1e5b",
+   "resumed_from": {
+    "bytes": 992,
+    "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/runs/main/geometric_s1_r1/checkpoint/state.json",
+    "sha256": "c80a93f516cacaabf157d8a3daba3f9aeb359b3a244dd686c90c6718dd259c03"
+   },
+   "inputs": {
+    "lens": {
+     "bytes": 8192,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/lens.u16",
+     "sha256": "edc0a8d6bcabf8c2a789113a71ebdd4ce6a3dd53de08e77aff13c56bc7c2e61f"
+    },
+    "merges": {
+     "bytes": 30792,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/merges.txt",
+     "sha256": "7453bfa086a18d36948d23fd060d2a74bc3ba8d87882d457cb397396dde84405"
+    },
+    "tokenizer": null,
+    "train": [
+     {
+      "bytes": 14001984,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+     },
+     {
+      "bytes": 58078818,
+      "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c4/data/registry.u16",
+      "sha256": "af93ca73e51a798e4a19e1a470e97037939c95f7499e65ffb8e3526748026f65"
+     }
+    ],
+    "valid": {
+     "bytes": 413688,
+     "path": "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad/c3/data/code/valid.u16",
+     "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+   }
   }
  ],
  "files": [
   {
    "path": "README.md",
-   "bytes": 6967,
-   "sha256": "7d148e0b12bca9cc1e5569367b6923a23ad26af233b044d12683b13fc8132106"
+   "bytes": 8533,
+   "sha256": "e6a09b929b98da9ca76c80b2674c120002ec37bd089e8747f7a81a421a9bdb1f"
   },
   {
    "path": "ablation-readsonly/dot_s1/attempt.json",
@@ -1362,6 +1486,166 @@
    "sha256": "7fd26689f3f49455e9af75138dd4f182157e09a9d467a76c488a190c7fd3b8a3"
   },
   {
+   "path": "main/chain-c4.log",
+   "bytes": 2030,
+   "sha256": "0e1c503538de2096503e695e5c7c592faa0ee26e9b95018b78c175f8ba3f6fdb"
+  },
+  {
+   "path": "main/chain-c5.log",
+   "bytes": 215969,
+   "sha256": "a043258378dcfe885fbc37621d87c9ce2da1bb01400b49460006ed747463b35e"
+  },
+  {
+   "path": "main/checkpoint-keep.log",
+   "bytes": 1326,
+   "sha256": "ff3a1b18a118a649295b302291b1817b1c76d3126b91cbbb61369057c92da23a"
+  },
+  {
+   "path": "main/geometric_s1-attempts/launch-1708/attempt.json",
+   "bytes": 1307,
+   "sha256": "cc0a6c713fe646dd68b660803123b22ba140248f70069cdb664694ca1a9dfa1f"
+  },
+  {
+   "path": "main/geometric_s1-attempts/launch-1708/train.log",
+   "bytes": 157,
+   "sha256": "a4d56294befc53001f3a75bc5b29919e7250ea97183343159a27adba1d30bf6f"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r1/attempt.json",
+   "bytes": 1315,
+   "sha256": "5ff40b67fcd93ca635b174ba199656f9004c6661daf6c0c8916e00a75445b74e"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r1/checkpoint-state.json",
+   "bytes": 992,
+   "sha256": "c80a93f516cacaabf157d8a3daba3f9aeb359b3a244dd686c90c6718dd259c03"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r1/train.log",
+   "bytes": 354,
+   "sha256": "949c9a77f483a0509758013afe6fed184e46d65fc4028671393179e99bd8af4d"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r2/attempt.json",
+   "bytes": 1447,
+   "sha256": "75c0bae93e4fb24ff2d5e865dd3ea90be56cb930bce2e78f3d65fbf06213f732"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r2/train.log",
+   "bytes": 81,
+   "sha256": "59a237a4b2448d85012617c49f37deddb86b37ec48d348dbf61ddf0654053adc"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r3/attempt.json",
+   "bytes": 1446,
+   "sha256": "29fa2aefb42c5fbd800c4f144b3d963ece0d3b9d4b8b0553bec3db6b61784b5a"
+  },
+  {
+   "path": "main/geometric_s1-attempts/r3/train.log",
+   "bytes": 81,
+   "sha256": "59a237a4b2448d85012617c49f37deddb86b37ec48d348dbf61ddf0654053adc"
+  },
+  {
+   "path": "main/geometric_s1/attempt.json",
+   "bytes": 1446,
+   "sha256": "23ade29a7948dd858583a1bedc06e21c676dad3e79759423de77a1c552d200f2"
+  },
+  {
+   "path": "main/geometric_s1/manifest.json",
+   "bytes": 817,
+   "sha256": "9f8ea130ef0032fcf179fa1bc8472479cf7bef122fa62cf9ec314a9b6b4d8310"
+  },
+  {
+   "path": "main/geometric_s1/model/config.json",
+   "bytes": 193,
+   "sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c"
+  },
+  {
+   "path": "main/geometric_s1/report.json",
+   "bytes": 30581,
+   "sha256": "d1d6f2ced688d8671c8881358e9e5cc3f7ff55a70a80ac4f5e5ab431c9caacc8"
+  },
+  {
+   "path": "main/geometric_s1/train.log",
+   "bytes": 8195,
+   "sha256": "8676875e857be051e3c93479ded6656f0211539d566bb026762c050b4c9145c1"
+  },
+  {
+   "path": "main/launch-1708.log",
+   "bytes": 195,
+   "sha256": "1b75d21f64ff9df39cafbbd18a9fe401f464f4870f12daf49b5242e79010417e"
+  },
+  {
+   "path": "main/transformer_s1-attempts/launch-1708/attempt.json",
+   "bytes": 1248,
+   "sha256": "50da58498deb70fbd0af2dc77c464052ae5f261b975ef86ee5e3c8081e3e2c45"
+  },
+  {
+   "path": "main/transformer_s1-attempts/launch-1708/train.log",
+   "bytes": 157,
+   "sha256": "8ed528b31c92203ed890bbf8414bdde46daefd87bdd93c304bec3341b9ce8799"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r1/attempt.json",
+   "bytes": 1256,
+   "sha256": "20c8001e7e21b3408fd100bce3b637a5fbab3ee1e396a1c747154a4d69a7129a"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r1/checkpoint-state.json",
+   "bytes": 993,
+   "sha256": "9af0733c5e4237e6d81fb59948b9101f3e02d7baa27311caad39beae71571e76"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r1/train.log",
+   "bytes": 355,
+   "sha256": "4cdb3abc108dede2bc296a31dd049313e3b841ac0f19985d07d289058fb393ce"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r2/attempt.json",
+   "bytes": 1390,
+   "sha256": "eae308f04c0019f64fe56e0f9e029d2e93609cb7acb0a7e8ba2454090f3e6bf6"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r2/train.log",
+   "bytes": 80,
+   "sha256": "827d83715509f1c6e5d1b4204e1b29d98c2d41c092eeac75ccb01bdf3fb8620e"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r3/attempt.json",
+   "bytes": 1389,
+   "sha256": "d1c17381fb99e688f3dd8d0f5bf3c47bf0b282254cb0da93feeaa333e3d47acd"
+  },
+  {
+   "path": "main/transformer_s1-attempts/r3/train.log",
+   "bytes": 80,
+   "sha256": "827d83715509f1c6e5d1b4204e1b29d98c2d41c092eeac75ccb01bdf3fb8620e"
+  },
+  {
+   "path": "main/transformer_s1/attempt.json",
+   "bytes": 1389,
+   "sha256": "876de92904201fd57015354e54468d7074ffa01d718a2f4a988b1910b2c38aca"
+  },
+  {
+   "path": "main/transformer_s1/manifest.json",
+   "bytes": 819,
+   "sha256": "b31f9771671d22c3f31e4162c4ae02d84580ca1d09fb8def4a4f4f03c695c401"
+  },
+  {
+   "path": "main/transformer_s1/model/config.json",
+   "bytes": 192,
+   "sha256": "e05401cabbd77bbf32e44b33663288d7142cbf7feba77b255df4e2f4d4654d01"
+  },
+  {
+   "path": "main/transformer_s1/report.json",
+   "bytes": 30741,
+   "sha256": "7e0bbff7e3fe772ef43cecb2eb531dc54248a1bede8c1942a7481ec8608534b6"
+  },
+  {
+   "path": "main/transformer_s1/train.log",
+   "bytes": 8192,
+   "sha256": "fab6783d54fb240b5e9029ecfdb1686a287ea076343adbe81101bbf727f997cf"
+  },
+  {
    "path": "pilot/chain.log",
    "bytes": 65,
    "sha256": "75a719cfda12ca5d47ef4c701d01733b966368d059bf85f27fb2bf400220dca5"
@@ -1497,6 +1781,11 @@
    "sha256": "22bb047cdb36684bb1fa981dfb8d28cb1d154591c012ad115a5d914362fe2fbf"
   },
   {
+   "path": "sources/keep-checkpoints.sh",
+   "bytes": 1315,
+   "sha256": "e7b21c9d20a520706002bfb09480a8d283e7961c6e656e7c81afb6122ad2c941"
+  },
+  {
    "path": "sources/launch_ablations.sh",
    "bytes": 1453,
    "sha256": "f9f91d4009c740e394ba60137218584d94af4e592a96be0e98b6e67ba77e652d"
@@ -1522,9 +1811,19 @@
    "sha256": "e8a7d07f5e2afbb2f42f2351329fd0de6290f3a5c1326da2612916aeb97076ef"
   },
   {
+   "path": "sources/pipeline-post.sh",
+   "bytes": 7271,
+   "sha256": "cf4ed8acca29177337ca2ed70f8d10f7b0c8e36b271904a7dfafb62597e711ad"
+  },
+  {
    "path": "sources/pipeline.sh",
    "bytes": 3189,
    "sha256": "22803a6c7708e57c756472329044356a9679e56976590736edbc38b1c1e4dab5"
+  },
+  {
+   "path": "sources/resume-main.sh",
+   "bytes": 2153,
+   "sha256": "93e66315d8f9678a45e5c2b2a4ea290f3cb15483c427da7298d6191304e9c565"
   }
  ],
  "source_commits": {
@@ -1533,7 +1832,8 @@
   "2a681bb7": "integer serving: export and lut-evaluate of the pilot pair and seed-1 ablations",
   "cb60c8bd": "integer serving: engine step timing on 64 windows, apart from the f64 scoring loop",
   "feeef7e4": "integer serving: the grid-reference split of the integer gap into weight rounding and integer arithmetic",
-  "6bc7dd6d": "GPTQ calibrated integer export of the pilot pair and seed-1 ablations, scored with the grid reference"
+  "6bc7dd6d": "GPTQ calibrated integer export of the pilot pair and seed-1 ablations, scored with the grid reference",
+  "b87acd63 (x86-64-v3 rebuild)": "main comparison: b87acd63 rebuilt from source with -C target-cpu=x86-64-v3 (SHA-256 0b3b94dcc2ee43d3ad77d225f47127803fa13063f9d6de9de4f1774e7cfd1e5b) on the Cascade Lake host the sandbox moved to; the pinned host-tuned build (05889874...) traps there"
  },
  "integer": [
   {

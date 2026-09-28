@@ -36,6 +36,7 @@ use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::stack_memory::{keys_aux_len, product_key_memory, MemoryConfig, MemoryScore};
 use crate::{invalid, Result};
 
 /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
@@ -83,6 +84,10 @@ pub struct StackConfig {
     /// leaves a real gated linear recurrence with one decay per lane.
     pub rotation: bool,
     pub seed: u64,
+    /// Product-key memories in place of some layers' MLPs
+    /// ([`crate::stack_memory`]); absent from configurations without one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory: Option<MemoryConfig>,
 }
 
 impl StackConfig {
@@ -99,6 +104,7 @@ impl StackConfig {
             read: ReadScore::Dot,
             rotation: false,
             seed,
+            memory: None,
         }
     }
 
@@ -133,6 +139,7 @@ impl StackConfig {
             read: ReadScore::Dot,
             rotation: false,
             seed,
+            memory: None,
         };
         config.validate()?;
         Ok(config)
@@ -201,11 +208,21 @@ impl StackConfig {
                 }
             }
         }
+        if let Some(memory) = &self.memory {
+            memory.validate(self.layers())?;
+        }
         Ok(())
     }
 
     fn layer_kind(&self, layer: usize) -> char {
         self.pattern.as_bytes()[layer] as char
+    }
+
+    /// Whether `layer`'s MLP is a product-key memory.
+    pub fn memory_layer(&self, layer: usize) -> bool {
+        self.memory
+            .as_ref()
+            .is_some_and(|memory| memory.layers.contains(&layer))
     }
 
     fn rotation_rows(&self) -> usize {
@@ -227,9 +244,28 @@ impl StackConfig {
         for layer in 0..self.layers() {
             let name = |suffix: &str| format!("layers.{layer:02}.{suffix}");
             shapes.insert(name("mlp_norm.weight"), vec![d]);
-            shapes.insert(name("mlp.gate.weight"), vec![m, d]);
-            shapes.insert(name("mlp.up.weight"), vec![m, d]);
-            shapes.insert(name("mlp.down.weight"), vec![d, m]);
+            match &self.memory {
+                Some(memory) if memory.layers.contains(&layer) => {
+                    let half = memory.key_dim / 2;
+                    shapes.insert(
+                        name("memory.query.weight"),
+                        vec![memory.heads * memory.key_dim, d],
+                    );
+                    shapes.insert(
+                        name("memory.keys"),
+                        vec![memory.heads * 2 * memory.sub_keys, half],
+                    );
+                    shapes.insert(name("memory.values"), vec![memory.slots(), d]);
+                    if memory.score == MemoryScore::Lorentz {
+                        shapes.insert(name("memory.log_beta"), vec![memory.heads]);
+                    }
+                }
+                _ => {
+                    shapes.insert(name("mlp.gate.weight"), vec![m, d]);
+                    shapes.insert(name("mlp.up.weight"), vec![m, d]);
+                    shapes.insert(name("mlp.down.weight"), vec![d, m]);
+                }
+            }
             match (self.arch, self.layer_kind(layer)) {
                 (StackArch::Transformer, _) => {
                     shapes.insert(name("attn_norm.weight"), vec![d]);
@@ -273,6 +309,15 @@ impl StackConfig {
             .values()
             .map(|shape| shape.iter().product::<usize>())
             .sum())
+    }
+
+    /// Parameters a token reads: all of them except memory value rows outside
+    /// its selections.
+    pub fn active_parameter_count(&self) -> Result<usize> {
+        let idle = self.memory.as_ref().map_or(0, |memory| {
+            memory.layers.len() * memory.idle_parameters(self.width)
+        });
+        Ok(self.parameter_count()? - idle)
     }
 }
 
@@ -375,7 +420,25 @@ impl StackModel {
                 "rec.conv.weight" => (0..count)
                     .map(|index| if index < config.width { 1.0 } else { 0.0 })
                     .collect(),
-                "rec.conv.bias" | "read.null.bias" | "read.log_beta" => vec![0.0; count],
+                "rec.conv.bias" | "read.null.bias" | "read.log_beta" | "memory.log_beta" => {
+                    vec![0.0; count]
+                }
+                // Sub-keys near unit norm, so first scores are of order one.
+                "memory.keys" => match config.memory.as_ref().and_then(|m| m.codebook) {
+                    // Every head and side holds the whole codebook, in its order.
+                    Some(codebook) => {
+                        let vectors = codebook.vectors();
+                        (0..count / (codebook.size() * codebook.dim()))
+                            .flat_map(|_| vectors.iter().flatten().map(|&v| v as f32))
+                            .collect()
+                    }
+                    None => {
+                        let half = shape[1].max(1) as f64;
+                        (0..count)
+                            .map(|_| (rng.normal() / half.sqrt()) as f32)
+                            .collect()
+                    }
+                },
                 "read.offset" => vec![INITIAL_LORENTZ_OFFSET as f32; count],
                 "rec.gate.bias" => (0..count)
                     .map(|index| {
@@ -497,11 +560,48 @@ impl StackModel {
     fn mlp(&self, layer: usize, x: &Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
         tap(capture, StackSite::Mlp(layer), || self.unit_norm(x))?;
         let u = self.rms_norm(x, self.layer_weight(layer, "mlp_norm.weight")?)?;
+        if let Some(memory) = self
+            .config
+            .memory
+            .as_ref()
+            .filter(|m| m.layers.contains(&layer))
+        {
+            return self.memory(layer, &u, memory);
+        }
         let gate = Self::linear(&u, self.layer_weight(layer, "mlp.gate.weight")?)?;
         let up = Self::linear(&u, self.layer_weight(layer, "mlp.up.weight")?)?;
         let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
         tap(capture, StackSite::Down(layer), || Ok(mixed.clone()))?;
         Self::linear(&mixed, self.layer_weight(layer, "mlp.down.weight")?)
+    }
+
+    /// The product-key memory in place of `layer`'s MLP, on the normalized
+    /// input `u` [batch, time, width].
+    fn memory(&self, layer: usize, u: &Tensor, memory: &MemoryConfig) -> Result<Tensor> {
+        let (batch, time, width) = u.dims3()?;
+        let query = Self::linear(u, self.layer_weight(layer, "memory.query.weight")?)?
+            .reshape((batch * time, memory.heads * memory.key_dim))?;
+        let keys = self.layer_weight(layer, "memory.keys")?.flatten_all()?;
+        // Fixed codebook keys carry no gradient, so they never move.
+        let mut aux = vec![if memory.codebook.is_some() {
+            keys.detach()
+        } else {
+            keys
+        }];
+        if memory.score == MemoryScore::Lorentz {
+            aux.push(self.layer_weight(layer, "memory.log_beta")?.exp()?);
+        }
+        let aux = Tensor::cat(&aux, 0)?;
+        if aux.elem_count() != keys_aux_len(memory) {
+            return Err(invalid("memory key layout differs from its configuration"));
+        }
+        Ok(product_key_memory(
+            &query,
+            &aux,
+            self.layer_weight(layer, "memory.values")?,
+            memory,
+        )?
+        .reshape((batch, time, width))?)
     }
 
     /// Splits [batch, time, width] into [batch, heads, time, head_width].
@@ -952,6 +1052,48 @@ fn decayed(name: &str, rank: usize) -> bool {
     name.ends_with(".weight") && rank == 2 && !name.ends_with("conv.weight")
 }
 
+/// One update's constants, in f32 as Candle's `affine` applies them.
+struct AdamConstants {
+    scale: f32,
+    beta1: f32,
+    rest1: f32,
+    beta2: f32,
+    rest2: f32,
+    correct1: f32,
+    correct2: f32,
+    epsilon: f32,
+    keep: f32,
+    lr: f32,
+}
+
+/// The AdamW step of one variable in one parallel pass. It performs the same
+/// f32 operations, in the same order, as the composition of Candle operations
+/// it replaced (kept in the tests), so updates are bit-identical.
+fn adam_step(
+    parameters: &mut [f32],
+    gradient: &[f32],
+    first_moment: &mut [f32],
+    second_moment: &mut [f32],
+    c: &AdamConstants,
+) {
+    const CHUNK: usize = 1 << 14;
+    parameters
+        .par_chunks_mut(CHUNK)
+        .zip(first_moment.par_chunks_mut(CHUNK))
+        .zip(second_moment.par_chunks_mut(CHUNK))
+        .zip(gradient.par_chunks(CHUNK))
+        .for_each(|(((p, m), v), g)| {
+            for i in 0..p.len() {
+                let grad = g[i] * c.scale + 0.0;
+                m[i] = (m[i] * c.beta1 + 0.0) + (grad * c.rest1 + 0.0);
+                v[i] = (v[i] * c.beta2 + 0.0) + ((grad * grad) * c.rest2 + 0.0);
+                let step = (m[i] * c.correct1 + 0.0)
+                    / (((v[i] * c.correct2 + 0.0).sqrt() * 1.0) + c.epsilon);
+                p[i] = (p[i] * c.keep + 0.0) - (step * c.lr + 0.0);
+            }
+        });
+}
+
 /// AdamW with global gradient-norm clipping and resumable moments.
 pub struct StackAdamW {
     pub beta1: f64,
@@ -1019,33 +1161,38 @@ impl StackAdamW {
                 .moments
                 .get(name)
                 .ok_or_else(|| invalid(format!("missing moments for {name}")))?;
-            let grad = grad.affine(scale, 0.0)?;
-            let m_next = m
-                .as_tensor()
-                .affine(self.beta1, 0.0)?
-                .add(&grad.affine(1.0 - self.beta1, 0.0)?)?;
-            let v_next = v
-                .as_tensor()
-                .affine(self.beta2, 0.0)?
-                .add(&grad.sqr()?.affine(1.0 - self.beta2, 0.0)?)?;
-            let step = m_next.affine(1.0 / first, 0.0)?.div(
-                &v_next
-                    .affine(1.0 / second, 0.0)?
-                    .sqrt()?
-                    .affine(1.0, self.epsilon)?,
-            )?;
             let keep = if decayed(name, var.rank()) {
                 1.0 - lr * self.weight_decay
             } else {
                 1.0
             };
-            var.set(
-                &var.as_tensor()
-                    .affine(keep, 0.0)?
-                    .sub(&step.affine(lr, 0.0)?)?,
-            )?;
-            m.set(&m_next)?;
-            v.set(&v_next)?;
+            let constants = AdamConstants {
+                scale: scale as f32,
+                beta1: self.beta1 as f32,
+                rest1: (1.0 - self.beta1) as f32,
+                beta2: self.beta2 as f32,
+                rest2: (1.0 - self.beta2) as f32,
+                correct1: (1.0 / first) as f32,
+                correct2: (1.0 / second) as f32,
+                epsilon: self.epsilon as f32,
+                keep: keep as f32,
+                lr: lr as f32,
+            };
+            let mut parameters = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let gradient = grad.flatten_all()?.to_vec1::<f32>()?;
+            let mut first_moment = m.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let mut second_moment = v.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            adam_step(
+                &mut parameters,
+                &gradient,
+                &mut first_moment,
+                &mut second_moment,
+                &constants,
+            );
+            let (shape, device) = (var.shape().clone(), var.device().clone());
+            var.set(&Tensor::from_vec(parameters, &shape, &device)?)?;
+            m.set(&Tensor::from_vec(first_moment, &shape, &device)?)?;
+            v.set(&Tensor::from_vec(second_moment, &shape, &device)?)?;
         }
         Ok(norm)
     }
@@ -3276,7 +3423,62 @@ mod tests {
             read,
             rotation,
             seed: 5,
+            memory: None,
         }
+    }
+
+    /// `config` with a small product-key memory in place of layer 1's MLP.
+    fn with_memory(mut config: StackConfig, score: MemoryScore) -> StackConfig {
+        config.memory = Some(MemoryConfig {
+            layers: vec![1],
+            sub_keys: 8,
+            top_k: 3,
+            heads: 2,
+            key_dim: 8,
+            score,
+            codebook: None,
+        });
+        config
+    }
+
+    #[test]
+    fn codebook_keys_are_fixed_and_the_rest_learns() -> Result<()> {
+        use crate::stack_memory::Codebook;
+        for codebook in [Codebook::H4, Codebook::E8] {
+            let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+            config.memory = Some(MemoryConfig {
+                layers: vec![1],
+                sub_keys: codebook.size(),
+                top_k: 4,
+                heads: 2,
+                key_dim: 2 * codebook.dim(),
+                score: MemoryScore::Dot,
+                codebook: Some(codebook),
+            });
+            let model = StackModel::new(config, &cpu())?;
+            let keys = model.variables()["layers.01.memory.keys"]
+                .as_tensor()
+                .to_vec2::<f32>()?;
+            let vectors = codebook.vectors();
+            for (row, key) in keys.iter().enumerate() {
+                let want = &vectors[row % codebook.size()];
+                assert!(key
+                    .iter()
+                    .zip(want)
+                    .all(|(a, b)| (f64::from(*a) - b).abs() < 1e-6));
+            }
+            let ids: Vec<u32> = (0..10u32).map(|i| (i * 5 + 1) % 37).collect();
+            let targets: Vec<u32> = (0..10u32).map(|i| (i * 3 + 2) % 37).collect();
+            let grads = model.loss(&ids, &targets, 1, 10)?.backward()?;
+            let names = model.variables();
+            assert!(grads
+                .get(names["layers.01.memory.keys"].as_tensor())
+                .is_none());
+            for name in ["layers.01.memory.query.weight", "layers.01.memory.values"] {
+                assert!(grads.get(names[name].as_tensor()).is_some(), "{name}");
+            }
+        }
+        Ok(())
     }
 
     #[test]
@@ -3285,6 +3487,14 @@ mod tests {
             tiny(StackArch::Transformer, "aa", ReadScore::Dot, false),
             tiny(StackArch::Geometric, "ra", ReadScore::Lorentz, true),
             tiny(StackArch::Geometric, "ar", ReadScore::Dot, false),
+            with_memory(
+                tiny(StackArch::Geometric, "ra", ReadScore::Dot, true),
+                MemoryScore::Dot,
+            ),
+            with_memory(
+                tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, false),
+                MemoryScore::Lorentz,
+            ),
         ] {
             let model = StackModel::new(config.clone(), &cpu())?;
             let time = 10;
@@ -3366,6 +3576,116 @@ mod tests {
                 "{pattern} {read:?} {rotation}: {count} against {control}"
             );
         }
+        Ok(())
+    }
+
+    #[test]
+    fn memory_layers_replace_the_mlp_train_and_round_trip() -> Result<()> {
+        for score in [MemoryScore::Dot, MemoryScore::Lorentz] {
+            let config = with_memory(
+                tiny(StackArch::Geometric, "ra", ReadScore::Dot, true),
+                score,
+            );
+            let model = StackModel::new(config.clone(), &cpu())?;
+            let names = model.variables();
+            assert!(names.contains_key("layers.01.memory.values"));
+            assert!(!names.contains_key("layers.01.mlp.gate.weight"));
+            assert!(names.contains_key("layers.00.mlp.gate.weight"));
+            assert_eq!(
+                names.contains_key("layers.01.memory.log_beta"),
+                score == MemoryScore::Lorentz
+            );
+            // A token reads 2 heads x 3 of the 64 value rows of width 16.
+            assert_eq!(
+                config.parameter_count()? - config.active_parameter_count()?,
+                (64 - 6) * 16
+            );
+            let ids: Vec<u32> = (0..10u32).map(|i| (i * 5 + 1) % 37).collect();
+            let targets: Vec<u32> = (0..10u32).map(|i| (i * 3 + 2) % 37).collect();
+            let grads = model.loss(&ids, &targets, 1, 10)?.backward()?;
+            for name in [
+                "layers.01.memory.query.weight",
+                "layers.01.memory.keys",
+                "layers.01.memory.values",
+            ] {
+                let grad = grads
+                    .get(names[name].as_tensor())
+                    .ok_or_else(|| invalid(format!("no gradient for {name}")))?;
+                assert!(grad.abs()?.max_all()?.to_scalar::<f32>()? > 0.0, "{name}");
+            }
+            let directory = std::env::temp_dir().join(format!(
+                "geometric-stack-memory-{score:?}-{}",
+                std::process::id()
+            ));
+            model.save(&directory)?;
+            let loaded = StackModel::load(&directory, &cpu())?;
+            fs::remove_dir_all(&directory)?;
+            assert_eq!(loaded.config, config);
+            let a = model.forward(&ids, 1, 10)?;
+            let b = loaded.forward(&ids, 1, 10)?;
+            assert_eq!(a.sub(&b)?.abs()?.max_all()?.to_scalar::<f32>()?, 0.0);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn fused_adam_step_is_bit_identical_to_the_candle_composition() -> Result<()> {
+        let device = cpu();
+        let n = 50_000;
+        let mut seed = 3u64;
+        let mut draw = |scale: f32| {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((((seed >> 11) as f64) / ((1u64 << 53) as f64) - 0.5) as f32) * scale
+        };
+        let p: Vec<f32> = (0..n).map(|_| draw(0.2)).collect();
+        let g: Vec<f32> = (0..n).map(|_| draw(0.01)).collect();
+        let m: Vec<f32> = (0..n).map(|_| draw(0.001)).collect();
+        let v: Vec<f32> = (0..n).map(|_| draw(1e-5).abs()).collect();
+        let (beta1, beta2, epsilon, scale, lr, weight_decay) =
+            (0.9f64, 0.95f64, 1e-8f64, 0.73f64, 0.004f64, 0.1f64);
+        let (first, second) = (1.0 - beta1.powi(7), 1.0 - beta2.powi(7));
+        let keep = 1.0 - lr * weight_decay;
+        // The composition of Candle operations the fused step replaced.
+        let t = |x: &Vec<f32>| Tensor::from_vec(x.clone(), n, &device);
+        let grad = t(&g)?.affine(scale, 0.0)?;
+        let m_next = t(&m)?
+            .affine(beta1, 0.0)?
+            .add(&grad.affine(1.0 - beta1, 0.0)?)?;
+        let v_next = t(&v)?
+            .affine(beta2, 0.0)?
+            .add(&grad.sqr()?.affine(1.0 - beta2, 0.0)?)?;
+        let step = m_next.affine(1.0 / first, 0.0)?.div(
+            &v_next
+                .affine(1.0 / second, 0.0)?
+                .sqrt()?
+                .affine(1.0, epsilon)?,
+        )?;
+        let p_next = t(&p)?.affine(keep, 0.0)?.sub(&step.affine(lr, 0.0)?)?;
+        let (mut p2, mut m2, mut v2) = (p.clone(), m.clone(), v.clone());
+        adam_step(
+            &mut p2,
+            &g,
+            &mut m2,
+            &mut v2,
+            &AdamConstants {
+                scale: scale as f32,
+                beta1: beta1 as f32,
+                rest1: (1.0 - beta1) as f32,
+                beta2: beta2 as f32,
+                rest2: (1.0 - beta2) as f32,
+                correct1: (1.0 / first) as f32,
+                correct2: (1.0 / second) as f32,
+                epsilon: epsilon as f32,
+                keep: keep as f32,
+                lr: lr as f32,
+            },
+        );
+        let bits = |x: &[f32]| x.iter().map(|v| v.to_bits()).collect::<Vec<u32>>();
+        assert_eq!(bits(&p2), bits(&p_next.to_vec1::<f32>()?));
+        assert_eq!(bits(&m2), bits(&m_next.to_vec1::<f32>()?));
+        assert_eq!(bits(&v2), bits(&v_next.to_vec1::<f32>()?));
         Ok(())
     }
 
