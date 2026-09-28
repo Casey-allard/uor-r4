@@ -5,7 +5,13 @@
 **Status** (corrected 2026-09-28 after an independent review of #1442):
 - **Stage A:** complete. Its pre-registered gate PASSES.
 - **Stage B:** the pre-registered subject was quaternion (2I) lanes, and it **FAILS** its per-seed gates. The pre-registered transformer control is **NOT_RUN**. The reflection-pair arm was added after Stage A; it passes the same gates, which makes it an exploratory result, not a pre-registered pass. §5 and §6 spell out what the kill rule implies.
-- Every number below comes from source `09e537a4` and binary SHA-256 `c585f965…` (`tracking-lanes`, release).
+- **B1 closure** (2026-09-28, pre-registered, §8):
+  - the **fresh replication of reflection-pair lanes FAILS**: the text gate misses in seed 4 (+0.069), so **no lane type is kept in the stack**, and finite-group state stays a Stage A result;
+  - the transformer control now ran: it does not track A5 (0.008–0.027 at position 128);
+  - the same-binary anchor is exact;
+  - the Stage A rerun reproduces all 36 runs, with `verify_exact` true on all 17 exact automata.
+- **Stage C** (natural-text swap stories) is parked at this scale; see the [Stage C record](b1c-context-lanes-swap-stories-2026-09-28.md).
+- Every number in §0–§7 comes from source `09e537a4` and binary SHA-256 `c585f965…` (`tracking-lanes`, release). §8's numbers come from `c13d0d2c` (`6e2b0e92…`).
 - The evidence is in [`docs/evidence/b1-finite-group-lanes-2026-09-27.json`](../evidence/b1-finite-group-lanes-2026-09-27.json): run hashes, report-root manifests and gates.
 - Stage A is a synthetic word problem. Stage B mixes synthetic A5 words into text training. **Neither is a language-capability result**: the text gate measures only that tracking costs no text quality.
 
@@ -29,7 +35,7 @@ Labels:
    - Its snapped automaton stayed at 1.000.
    - The served automaton is one byte of state and two table reads per token: no multiplier, no float, no weight map.
 
-5. **Stage B: the pre-registered 2I arm fails; the reflection-pair arm passes as an exploratory result** (*Measured*, §6). The stack is recurrence-primary: `rrar`, width 128, trained on text plus A5 words.
+5. **Stage B: the pre-registered 2I arm fails; the reflection-pair arm passes as an exploratory result, and then fails its fresh pre-registered replication on the text gate** (*Measured*, §6 and §8). The stack is recurrence-primary: `rrar`, width 128, trained on text plus A5 words.
    - With reflection-pair lanes, the stack tracks A5 at 1.000 at every in-context position in 3 of 3 seeds.
    - In each of those seeds, 3–4 of the 8 lanes snap to an exact 60-state automaton that is perfect at length 4,096. The other lanes do not close.
    - Text NLL moves by +0.036, −0.050 and +0.009 nats against the lane-free stack, a mean of −0.002, inside the pre-registered 0.05.
@@ -39,7 +45,7 @@ Labels:
 
 **The pre-registered kill rule applies to 2I lanes.** It is the review §9.3 rule: "keep the architecture with the better ordinary lanes; retire the geometric claim from the serving path; keep geometry as codebook and addressing infrastructure". 2I lanes have no serving-cost advantage over the ordinary control, and they cost more than 0.05 nats in one seed. So:
 - **the 2I geometric-state serving claim is retired;**
-- **the ordinary reflection-pair lanes are the kept mechanism,** exploratory pending a fresh pre-registered replication;
+- **the ordinary reflection-pair lanes were kept as an exploratory mechanism, pending a fresh pre-registered replication. That replication FAILED (§8), so no lane type is kept in the stack;**
 - geometry stays as codebook and addressing infrastructure (T2).
 
 An earlier revision narrowed the retirement to "quaternion-specific" without flagging it; that narrowing is withdrawn.
@@ -190,7 +196,7 @@ Pre-registered in ROADMAP §4.1(b): LM gate within 0.05 nats of the lane-free st
 - `snap` rejects only ambiguous merges. It does not verify group structure, so lanes that are not a group can still close into small automata (orders 1–22 here). The table marks those as meaningless, and they score at chance on fresh words.
 - The served Stage A reflection-pair automaton at lr 0.03, seed 1 merged at a Frobenius distance of 0.394, against the 0.5 tolerance. That is safe for its group, whose elements are about 1.66 apart. Every other exact run merged at ≤0.046.
 - No report root saves the automaton tables, so T3 has no artifact to port yet.
-- Stage C will add a permutation-consistency check and an exhaustive check against `group_table`, save the tables, and record merge distances in the evidence.
+- **Resolved in §8:** every served automaton now saves its tables, records its merge distance, and carries the result of the exhaustive `verify_exact` check against the A5 Cayley table.
 
 **Execution note.** The sequential root `final-b-grid` was stopped by the director, with the owner's approval, after 4 complete runs (none ×3, quaternion seed 1), so that the remaining 8 could run as three parallel streams. Those streams are the sealed roots `final-b-quaternion23`, `final-b-reflection` and `final-b-phase`. `final-b-grid` stays unsealed as an interrupted attempt. Its four run records are complete, and each one's SHA-256 is in the evidence. Seeds and data are identical across roots.
 
@@ -209,3 +215,60 @@ Pre-registered in ROADMAP §4.1(b): LM gate within 0.05 nats of the lane-free st
   - RSS about 0.8 GB per stream.
 - **Model slot:** held 23:47–00:50 and 00:50–01:41 UTC.
 - **Storage:** all reports are under `/Volumes/UOR-Workspace/uor-r4-lab/claude-b1-20260927`; nothing was written to the internal drive beyond source.
+
+## 8. B1 closure (pre-registered 2026-09-28)
+
+**Pre-registration and approval.** Pre-registered on [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5863149284) before any closure run, and owner-approved, after Stage C was parked (see the [Stage C record](b1c-context-lanes-swap-stories-2026-09-28.md)).
+
+**Build.** Binary `tracking-lanes` from source `c13d0d2c`, SHA-256 `6e2b0e92…`.
+
+**Settings.** Stage B settings are unchanged: context 128, 1,500 updates, 512 development windows, 256 A5 words, snap lengths 128, 512 and 4,096.
+
+**Execution.** Three parallel streams at 2 threads each, 04:07–05:26 UTC. The evidence is in [`docs/evidence/b1-closure-2026-09-28.json`](../evidence/b1-closure-2026-09-28.json).
+
+### 8.1 Fresh replication of reflection-pair lanes: FAIL as pre-registered
+
+**Design.** Seeds 4–6 are fresh in both initialisation and data (`data_seed` = 2000 + seed). The gates are Stage B's, applied per seed. **A pass required both gates in 3 of 3 seeds**, the standard 2I lanes failed.
+
+| Seed | Lane-free dev NLL | Reflection-pair dev NLL | ΔNLL (gate ≤ 0.05) | A5 at 128, lanes / lane-free (gate ≥ 0.99) | Served automaton | Lanes snapped |
+|---|---:|---:|---:|---|---|---|
+| 4 | 2.6744 | 2.7432 | +0.0688 **✗** | 1.000 / 0.012 ✓ | order 60 → 60, `verify_exact` true, merge 0.047, 1.000 at 4,096 | 1 of 8 |
+| 5 | 2.7017 | 2.7060 | +0.0043 ✓ | 1.000 / 0.051 ✓ | order 60 → 60, `verify_exact` true, merge 0.098, 1.000 at 4,096 | 3 of 8 |
+| 6 | 2.6869 | 2.7251 | +0.0383 ✓ | 1.000 / 0.008 ✓ | order 60 → 60, `verify_exact` true, merge 0.005, 1.000 at 4,096 | 1 of 8 |
+
+Replication complete: True; pass: **False** (rule: pass only if, in each of seeds 4-6, reflection-pair dNLL <= 0.05 vs lane-free (same seed) and stack A5 accuracy at position 128 >= 0.99).
+
+**Verdict.** Both gates hold in 2 of 3 seeds, so the pre-registered consequence applies:
+- **no lane type is kept in the stack;**
+- **finite-group state stays a Stage A (synthetic) result.**
+
+The earlier reflection-pair pass (§6) therefore stays exploratory, and it is now not replicated.
+
+**What the replication shows** (*Measured*):
+- **Tracking is reliable.** A5 accuracy is 1.000 in 6 of 6 reflection-pair seeds across Stage B and the replication.
+- **Every served automaton passes the exhaustive check.** `verify_exact` checks every state and token against the A5 Cayley table. That proves exact A5 state for these automata. It does **not** show that the model interprets language correctly; no probe here tests language.
+- **The failure is the text cost.** Over six seeds, Δ is +0.036, −0.050, +0.009, +0.069, +0.004 and +0.038 nats: a mean of +0.018, with one seed above 0.05. For scale, the lane-free stack's own seed spread is 0.063 (seeds 1–3) and 0.027 (seeds 4–6).
+- **Only a few lanes close into an automaton:** 1–3 of 8 per seed.
+
+### 8.2 Stage B transformer control (formerly NOT_RUN)
+
+**Design.** Pattern `aaaa` at the same width, heads and MLP. It gets the same auxiliary A5 read-out, the same text and A5 batches (`data_seed` = 2000 + seed) and the same evaluation as every Stage B arm.
+- **Limitation:** it uses the stack's learning rate, 0.003. Its own optimum was not searched.
+- **Status:** descriptive, as pre-registered ("reported at the same lengths").
+
+| Seed | Transformer dev NLL | Δ against the Stage B lane-free stack, same seed | A5 at 8 / 64 / 128 |
+|---|---:|---:|---|
+| 1 | 2.7101 | +0.0441 | 0.152 / 0.027 / 0.008 |
+| 2 | 2.7307 | +0.0017 | 0.199 / 0.023 / 0.027 |
+| 3 | 2.7177 | +0.0366 | 0.188 / 0.012 / 0.012 |
+
+**Reading.** At this size and dose the transformer control tracks A5 at none of the reported lengths, not even at position 8, where the lane-free recurrent stack reaches 0.97–1.00. Its text NLL is 0.002–0.044 nats worse than the lane-free stack at the same seeds. This concerns synthetic A5 inside a small model at one learning rate. It does not establish the TC⁰ limit empirically.
+
+### 8.3 Same-binary anchor and Stage A rerun
+
+- **Anchor:** Anchor (lane-free seed 1, Stage B settings, this binary): dev NLL 2.6660371497273445 against the recorded 2.6660371497273445; dev NLL identical: True; A5 identical: True; training records identical: True; **exact: True**. The mixed-mode path is therefore unchanged from `09e537a4`. The replication and the transformer control compare directly with §6.
+- **Stage A rerun:** Stage A rerun: 36 runs; 36 of 36 reproduce the recorded float and served accuracies exactly; 27 served automata, 17 exact at 4,096, `verify_exact` true for 17; exact but unverified: none; verified but not exact: none. The exhaustive check agrees with empirical exactness at 4,096 on every served automaton.
+
+**What this resolves.** It closes the review item in §6's "Snapping limits".
+- Every served Stage A and replication automaton now saves its tables (`table`, `readout`, `identity`) in its run record.
+- Each carries the result of the exhaustive `verify_exact` check and its merge distance.

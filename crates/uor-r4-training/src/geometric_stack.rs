@@ -709,9 +709,42 @@ impl StackModel {
         Ok(hidden.matmul(&self.weight("embedding.weight")?.t()?)?)
     }
 
-    fn layers_hooked(&self, mut x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
-        let (batch, time, _) = x.dims3()?;
-        for layer in 0..self.config.layers() {
+    /// The residual stream [batch, time, width] after running `layers` on
+    /// `x`, without the final norm: for callers that inject a side channel
+    /// between layers (`stack_tracking`). [`finish`](Self::finish) completes it.
+    pub fn run_layers(&self, x: Tensor, layers: std::ops::Range<usize>) -> Result<Tensor> {
+        let (_, time, width) = x.dims3()?;
+        if time == 0
+            || time > self.config.context
+            || width != self.config.width
+            || layers.start > layers.end
+            || layers.end > self.config.layers()
+        {
+            return Err(invalid(
+                "stack layers need [batch, time, width] within the context and a valid layer range",
+            ));
+        }
+        self.layer_range_hooked(x, layers, &mut None)
+    }
+
+    /// The final normalized states [batch * time, width] from the residual
+    /// stream after the last layer.
+    pub fn finish(&self, x: Tensor) -> Result<Tensor> {
+        self.finish_hooked(x, &mut None)
+    }
+
+    fn layers_hooked(&self, x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+        let x = self.layer_range_hooked(x, 0..self.config.layers(), capture)?;
+        self.finish_hooked(x, capture)
+    }
+
+    fn layer_range_hooked(
+        &self,
+        mut x: Tensor,
+        layers: std::ops::Range<usize>,
+        capture: &mut Capture<'_>,
+    ) -> Result<Tensor> {
+        for layer in layers {
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
                 (StackArch::Transformer, _) => self.attention(layer, &x, capture)?,
                 (StackArch::Geometric, 'r') => self.recurrence(layer, &x, capture)?,
@@ -720,6 +753,11 @@ impl StackModel {
             x = x.add(&mixed)?;
             x = x.add(&self.mlp(layer, &x, capture)?)?;
         }
+        Ok(x)
+    }
+
+    fn finish_hooked(&self, x: Tensor, capture: &mut Capture<'_>) -> Result<Tensor> {
+        let (batch, time, _) = x.dims3()?;
         tap(capture, StackSite::Head, || self.unit_norm(&x))?;
         let x = self.rms_norm(&x, self.weight("final_norm.weight")?)?;
         Ok(x.reshape((batch * time, self.config.width))?)

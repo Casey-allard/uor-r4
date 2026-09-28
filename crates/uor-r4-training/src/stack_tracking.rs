@@ -69,8 +69,9 @@ impl Rng {
         z ^ (z >> 31)
     }
 
+    /// Uniform in `0..bound`; 0 when `bound` is 0.
     pub fn below(&mut self, bound: usize) -> usize {
-        (self.next_u64() % bound as u64) as usize
+        (self.next_u64() % bound.max(1) as u64) as usize
     }
 
     fn uniform(&mut self) -> f64 {
@@ -231,7 +232,7 @@ impl LaneKind {
     }
 
     /// Transport parameters per token and lane.
-    fn width(self) -> usize {
+    pub fn width(self) -> usize {
         match self {
             Self::Quaternion => 4,
             Self::Phase => 1,
@@ -367,35 +368,13 @@ impl LaneTransport {
         if tokens.iter().any(|&t| t as usize >= self.vocab) {
             return Err(invalid("token outside the lane vocabulary"));
         }
-        let lanes = self.lanes;
-        let ids = Tensor::from_vec(tokens.to_vec(), (batch, time), &self.device)?;
-        match self.kind {
-            LaneKind::Quaternion => cumulative(&unit(&self.gather(&ids, batch, time)?)?),
-            LaneKind::Phase => {
-                let theta = self.gather(&ids, batch, time)?;
-                let zero = theta.zeros_like()?;
-                let q = Tensor::cat(&[theta.cos()?, theta.sin()?, zero.clone(), zero], D::Minus1)?;
-                cumulative(&q)
-            }
-            LaneKind::ReflectionPair => {
-                let raw = self.gather(&ids, batch, time)?;
-                let v1 = unit(&raw.narrow(D::Minus1, 0, 4)?)?;
-                let v2 = unit(&raw.narrow(D::Minus1, 4, 4)?)?;
-                let v1_bar = conjugate(&v1)?;
-                let p = hamilton(&v2, &v1_bar)?;
-                let r = hamilton(&v1_bar, &v2)?;
-                // x_t = p_t x_{t-1} r_t from x_{-1} = 1 is P_t conj(Q_t), with
-                // P_t = p_t...p_0 and Q_t = conj(r_t)...conj(r_0).
-                let left = cumulative(&p)?;
-                let right = cumulative(&conjugate(&r)?)?;
-                hamilton(&left, &conjugate(&right)?)
-            }
-            LaneKind::Frozen => {
-                let one = Tensor::ones((batch, time, lanes, 1), DType::F32, &self.device)?;
-                let zero = Tensor::zeros((batch, time, lanes, 3), DType::F32, &self.device)?;
-                Ok(Tensor::cat(&[one, zero], D::Minus1)?)
-            }
+        if self.kind == LaneKind::Frozen {
+            let one = Tensor::ones((batch, time, self.lanes, 1), DType::F32, &self.device)?;
+            let zero = Tensor::zeros((batch, time, self.lanes, 3), DType::F32, &self.device)?;
+            return Ok(Tensor::cat(&[one, zero], D::Minus1)?);
         }
+        let ids = Tensor::from_vec(tokens.to_vec(), (batch, time), &self.device)?;
+        lane_states(self.kind, &self.gather(&ids, batch, time)?)
     }
 
     /// The 4x4 real matrix of lane `lane`'s transport for `token`, row-major.
@@ -413,19 +392,54 @@ impl LaneTransport {
                 .to_dtype(DType::F64)?
                 .to_vec1::<f64>()?,
         };
-        Ok(match self.kind {
-            LaneKind::Quaternion => left_matrix(normalized(&row[0..4])),
-            LaneKind::Phase => left_matrix([row[0].cos(), row[0].sin(), 0.0, 0.0]),
-            LaneKind::ReflectionPair => {
-                let v1 = normalized(&row[0..4]);
-                let v2 = normalized(&row[4..8]);
-                let v1_bar = [v1[0], -v1[1], -v1[2], -v1[3]];
-                let p = quaternion_product(v2, v1_bar);
-                let r = quaternion_product(v1_bar, v2);
-                matrix_product(&left_matrix(p), &right_matrix(r))
-            }
-            LaneKind::Frozen => identity_matrix(),
-        })
+        Ok(transport_matrix_from_raw(self.kind, &row))
+    }
+}
+
+/// Lane states `[batch, time, lanes, 4]` from per-step transport parameters
+/// `raw` `[batch, time, lanes, width]`, for every kind but `Frozen`: the
+/// cumulative transport of `h_{-1} = 1`. Shared by token- and context-conditioned
+/// lanes, so both train exactly the transport that [`transport_matrix_from_raw`]
+/// describes.
+pub fn lane_states(kind: LaneKind, raw: &Tensor) -> Result<Tensor> {
+    match kind {
+        LaneKind::Quaternion => cumulative(&unit(raw)?),
+        LaneKind::Phase => {
+            let zero = raw.zeros_like()?;
+            let q = Tensor::cat(&[raw.cos()?, raw.sin()?, zero.clone(), zero], D::Minus1)?;
+            cumulative(&q)
+        }
+        LaneKind::ReflectionPair => {
+            let v1 = unit(&raw.narrow(D::Minus1, 0, 4)?)?;
+            let v2 = unit(&raw.narrow(D::Minus1, 4, 4)?)?;
+            let v1_bar = conjugate(&v1)?;
+            let p = hamilton(&v2, &v1_bar)?;
+            let r = hamilton(&v1_bar, &v2)?;
+            // x_t = p_t x_{t-1} r_t from x_{-1} = 1 is P_t conj(Q_t), with
+            // P_t = p_t...p_0 and Q_t = conj(r_t)...conj(r_0).
+            let left = cumulative(&p)?;
+            let right = cumulative(&conjugate(&r)?)?;
+            hamilton(&left, &conjugate(&right)?)
+        }
+        LaneKind::Frozen => Err(invalid("frozen lanes have no transport parameters")),
+    }
+}
+
+/// The 4x4 real matrix (row-major) of one step's transport from its raw
+/// parameters (`kind.width()` values).
+pub fn transport_matrix_from_raw(kind: LaneKind, row: &[f64]) -> [f64; 16] {
+    match kind {
+        LaneKind::Quaternion => left_matrix(normalized(&row[0..4])),
+        LaneKind::Phase => left_matrix([row[0].cos(), row[0].sin(), 0.0, 0.0]),
+        LaneKind::ReflectionPair => {
+            let v1 = normalized(&row[0..4]);
+            let v2 = normalized(&row[4..8]);
+            let v1_bar = [v1[0], -v1[1], -v1[2], -v1[3]];
+            let p = quaternion_product(v2, v1_bar);
+            let r = quaternion_product(v1_bar, v2);
+            matrix_product(&left_matrix(p), &right_matrix(r))
+        }
+        LaneKind::Frozen => identity_matrix(),
     }
 }
 
@@ -898,15 +912,58 @@ impl LaneAutomaton {
     }
 
     /// Serve one word: one table read per token for the state, one for the class.
-    pub fn run(&self, tokens: &[u32]) -> Vec<u8> {
+    pub fn run(&self, tokens: &[u32]) -> Result<Vec<u8>> {
+        let vocab = self.table.len() / self.order.max(1);
         let mut state = self.identity as usize;
         tokens
             .iter()
             .map(|&token| {
+                if token as usize >= vocab {
+                    return Err(invalid("token outside the automaton alphabet"));
+                }
                 state = self.table[token as usize * self.order + state] as usize;
-                self.readout[state]
+                Ok(self.readout[state])
             })
             .collect()
+    }
+
+    /// Exhaustive proof that the automaton classifies every prefix of every
+    /// word exactly, at any length. The initial state must read the
+    /// identity's class. Every transition's read-out must equal the exact A5
+    /// class update of its source state's read-out (`class <- class * root`,
+    /// well defined because -1 is central in 2I, via `group_table`). Induction
+    /// on the word length then gives correctness for all words.
+    pub fn verify_exact(&self, task: &A5Task) -> bool {
+        let table = group_table();
+        let vocab = self.table.len() / self.order.max(1);
+        if vocab != task.vocab() || self.readout.len() != self.order {
+            return false;
+        }
+        let mut representative = vec![usize::MAX; A5_ORDER];
+        for (element, &class) in task.class_of.iter().enumerate() {
+            if representative[class as usize] == usize::MAX {
+                representative[class as usize] = element;
+            }
+        }
+        if self.readout[self.identity as usize] != task.class_of[task.identity as usize] {
+            return false;
+        }
+        for state in 0..self.order {
+            let Some(&element) = representative.get(self.readout[state] as usize) else {
+                return false;
+            };
+            if element == usize::MAX {
+                return false;
+            }
+            for (token, &root) in task.generators.iter().enumerate() {
+                let next = self.table[token * self.order + state] as usize;
+                let exact = table.product[element * ROW_STRIDE + root as usize] as usize;
+                if self.readout[next] != task.class_of[exact] {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     /// Exact automaton accuracy on fresh words of each length.
@@ -916,7 +973,7 @@ impl LaneAutomaton {
         lengths: &[usize],
         words: usize,
         seed: u64,
-    ) -> Vec<LengthAccuracy> {
+    ) -> Result<Vec<LengthAccuracy>> {
         let mut rng = Rng::new(seed);
         lengths
             .iter()
@@ -924,7 +981,7 @@ impl LaneAutomaton {
                 let (mut last, mut all) = (0usize, 0usize);
                 for _ in 0..words {
                     let (tokens, labels) = task.sample(&mut rng, length);
-                    let predicted = self.run(&tokens);
+                    let predicted = self.run(&tokens)?;
                     for (t, (p, l)) in predicted.iter().zip(&labels).enumerate() {
                         if *p as u32 == *l {
                             all += 1;
@@ -934,12 +991,12 @@ impl LaneAutomaton {
                         }
                     }
                 }
-                LengthAccuracy {
+                Ok(LengthAccuracy {
                     length,
                     words,
                     final_position: last as f64 / words.max(1) as f64,
                     all_positions: all as f64 / (words * length).max(1) as f64,
-                }
+                })
             })
             .collect()
     }
@@ -958,8 +1015,42 @@ pub struct TrackedStack {
     pub stack: StackModel,
     pub lanes: Option<LaneTransport>,
     projection: Option<Var>,
+    /// Context-conditioned lanes (Stage C), injected between layers.
+    pub context: Option<ContextLanes>,
+    /// Per-token who-holds-what head (Stage C dense supervision):
+    /// weight `[people * people, width]`, bias, people.
+    state_head: Option<(Var, Var, usize)>,
     aux_weight: Var,
     aux_bias: Var,
+}
+
+/// Context-conditioned tracking lanes: each step's transport is an affine map
+/// of the stack's RMS-normalised hidden state after `layer` layers, so a
+/// transition can depend on the whole event ("Mia and Leo swapped."), not one
+/// token. The lane states re-enter the residual stream at the same point
+/// through a zero-initialised projection.
+pub struct ContextLanes {
+    pub kind: LaneKind,
+    pub lanes: usize,
+    pub layer: usize,
+    weight: Var,
+    bias: Var,
+    projection: Var,
+}
+
+impl ContextLanes {
+    /// Transport parameters `[batch, time, lanes, width]` from the residual
+    /// stream `[batch, time, model width]`.
+    fn raw(&self, hidden: &Tensor) -> Result<Tensor> {
+        let (batch, time, width) = hidden.dims3()?;
+        let flat = hidden.reshape((batch * time, width))?;
+        let rms = (flat.sqr()?.mean_keepdim(D::Minus1)? + 1e-5)?.sqrt()?;
+        let raw = flat
+            .broadcast_div(&rms)?
+            .matmul(&self.weight.as_tensor().t()?)?
+            .broadcast_add(self.bias.as_tensor())?;
+        Ok(raw.reshape((batch, time, self.lanes, self.kind.width()))?)
+    }
 }
 
 impl TrackedStack {
@@ -997,9 +1088,114 @@ impl TrackedStack {
             stack,
             lanes,
             projection,
+            context: None,
+            state_head: None,
             aux_weight,
             aux_bias,
         })
+    }
+
+    /// Adds a per-token head predicting which object (in introduction order)
+    /// each of `people` people holds: dense supervision for swap stories.
+    pub fn with_state_head(mut self, people: usize, seed: u64) -> Result<Self> {
+        if people < 2 {
+            return Err(invalid("a state head needs at least two people"));
+        }
+        let device = self.stack.device().clone();
+        let width = self.stack.config.width;
+        let mut rng = Rng::new(seed ^ 0x7374_6174_6521);
+        let weight = normal_var(&mut rng, &[people * people, width], 0.02, &device)?;
+        let bias = Var::from_tensor(&Tensor::zeros(people * people, DType::F32, &device)?)?;
+        self.state_head = Some((weight, bias, people));
+        Ok(self)
+    }
+
+    /// Next-token logits `[batch * time, vocabulary]` and, with a state head,
+    /// state logits `[batch * time * people, people]`, from one trunk pass.
+    pub fn story_forward(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<(Tensor, Option<Tensor>)> {
+        let hidden = self.trunk(ids, batch, time)?;
+        let text = self.stack.head(&hidden)?;
+        let state = match &self.state_head {
+            None => None,
+            Some((weight, bias, people)) => Some(
+                hidden
+                    .matmul(&weight.as_tensor().t()?)?
+                    .broadcast_add(bias.as_tensor())?
+                    .reshape((batch * time * people, *people))?,
+            ),
+        };
+        Ok((text, state))
+    }
+
+    /// Adds context-conditioned lanes read from, and written back to, the
+    /// residual stream after `layer` layers (1 <= layer < layers). The bias
+    /// starts at the identity transport, so every step begins as a no-op and
+    /// the selector must learn which contexts transform the state.
+    pub fn with_context_lanes(
+        mut self,
+        kind: LaneKind,
+        count: usize,
+        layer: usize,
+        seed: u64,
+    ) -> Result<Self> {
+        if kind == LaneKind::Frozen
+            || count == 0
+            || layer == 0
+            || layer >= self.stack.config.layers()
+        {
+            return Err(invalid(
+                "context lanes need a transport kind, lanes and an interior layer",
+            ));
+        }
+        let device = self.stack.device().clone();
+        let width = self.stack.config.width;
+        let per = kind.width();
+        let mut rng = Rng::new(seed ^ 0x636F_6E74_6578_7421);
+        let weight = normal_var(&mut rng, &[count * per, width], 0.01, &device)?;
+        let mut bias = Vec::with_capacity(count * per);
+        for _ in 0..count {
+            match kind {
+                LaneKind::Quaternion => bias.extend([1.0f32, 0.0, 0.0, 0.0]),
+                LaneKind::Phase => bias.push(0.0),
+                LaneKind::ReflectionPair => {
+                    // H(v)H(v) = I: two equal reflection vectors.
+                    let v = normalized(&[rng.normal(), rng.normal(), rng.normal(), rng.normal()]);
+                    let v = v.map(|x| x as f32);
+                    bias.extend(v);
+                    bias.extend(v);
+                }
+                LaneKind::Frozen => {}
+            }
+        }
+        let bias = Var::from_tensor(&Tensor::from_vec(bias, count * per, &device)?)?;
+        let projection =
+            Var::from_tensor(&Tensor::zeros((width, count * 4), DType::F32, &device)?)?;
+        self.context = Some(ContextLanes {
+            kind,
+            lanes: count,
+            layer,
+            weight,
+            bias,
+            projection,
+        });
+        Ok(self)
+    }
+
+    /// The context lanes' transport parameters `[batch, time, lanes, width]`
+    /// for `ids`, detached: for the transport witness.
+    pub fn context_transports(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+        let context = self
+            .context
+            .as_ref()
+            .ok_or_else(|| invalid("this stack has no context lanes"))?;
+        let x = self.stack.embed(ids, batch, time)?;
+        let hidden = self.stack.run_layers(x, 0..context.layer)?;
+        Ok(context.raw(&hidden)?.detach())
     }
 
     /// Stack parameters, and the lane transport, projection and A5 read-out.
@@ -1010,6 +1206,13 @@ impl TrackedStack {
             .and_then(LaneTransport::var)
             .map_or(0, |v| v.elem_count())
             + self.projection.as_ref().map_or(0, |v| v.elem_count())
+            + self.context.as_ref().map_or(0, |c| {
+                c.weight.elem_count() + c.bias.elem_count() + c.projection.elem_count()
+            })
+            + self
+                .state_head
+                .as_ref()
+                .map_or(0, |(w, b, _)| w.elem_count() + b.elem_count())
             + self.aux_weight.elem_count()
             + self.aux_bias.elem_count();
         (self.stack.parameter_count(), side)
@@ -1024,12 +1227,21 @@ impl TrackedStack {
         if let Some(projection) = &self.projection {
             decayed.push(projection.clone());
         }
-        let lanes = self
+        let mut lanes = self
             .lanes
             .as_ref()
             .and_then(LaneTransport::var)
             .map(|var| vec![var.clone()])
             .unwrap_or_default();
+        if let Some(context) = &self.context {
+            decayed.push(context.projection.clone());
+            lanes.push(context.weight.clone());
+            lanes.push(context.bias.clone());
+        }
+        if let Some((weight, bias, _)) = &self.state_head {
+            decayed.push(weight.clone());
+            plain.push(bias.clone());
+        }
         (decayed, plain, lanes)
     }
 
@@ -1046,7 +1258,19 @@ impl TrackedStack {
             ))?;
             x = x.add(&side)?;
         }
-        self.stack.hidden_from_input(x)
+        let Some(context) = &self.context else {
+            return self.stack.hidden_from_input(x);
+        };
+        let hidden = self.stack.run_layers(x, 0..context.layer)?;
+        let states = lane_states(context.kind, &context.raw(&hidden)?)?;
+        let side = states
+            .reshape((batch * time, context.lanes * 4))?
+            .matmul(&context.projection.as_tensor().t()?)?
+            .reshape((batch, time, self.stack.config.width))?;
+        let hidden = hidden.add(&side)?;
+        let layers = self.stack.config.layers();
+        let hidden = self.stack.run_layers(hidden, context.layer..layers)?;
+        self.stack.finish(hidden)
     }
 
     /// Next-token logits `[batch * time, vocabulary]`.
@@ -1314,6 +1538,502 @@ pub fn a5_stack_accuracy(
     })
 }
 
+// ---------------------------------------------------------------------------
+// Stage C: natural-text state tracking (swap stories).
+
+pub const STORY_NAMES: [&str; 8] = [
+    " Mia", " Leo", " Sam", " Tom", " Ben", " Lily", " Max", " Anna",
+];
+pub const STORY_OBJECTS: [&str; 8] = [
+    " ball", " cup", " hat", " book", " toy", " car", " kite", " doll",
+];
+
+/// Swap stories: `people` people each hold one object, each event swaps two
+/// people's objects ("Mia and Leo swapped."), and queries ask who holds what
+/// ("Now Mia has the ball."). Names and objects are single tokens of the text
+/// tokenizer, drawn per story; event pairs and query order are uniformly
+/// random, so after a few events the held object is at chance under local
+/// statistics. Swaps are transpositions, so the state is an element of S_n.
+pub struct SwapStories {
+    names: Vec<u32>,
+    objects: Vec<u32>,
+    has_a: Vec<u32>,
+    and: Vec<u32>,
+    swapped: Vec<u32>,
+    period: Vec<u32>,
+    now: Vec<u32>,
+    has_the: Vec<u32>,
+    pub people: usize,
+    /// When true every story uses the first `people` names holding the first
+    /// `people` objects in canonical order, so the answer depends only on the
+    /// swap history (no per-story binding of names to objects).
+    pub fixed_cast: bool,
+}
+
+/// One story: its tokens, and each answer's position with its token id.
+pub struct Story {
+    pub tokens: Vec<u32>,
+    pub answers: Vec<(usize, u32)>,
+    /// Who holds what after each token, flat `[tokens, people]`: entry
+    /// `t * people + p` is the index (in introduction order) of the object
+    /// person `p` holds once token `t` has been read. A swap takes effect at
+    /// its sentence's period.
+    pub states: Vec<u8>,
+}
+
+/// `count` distinct indices below `pool` (partial Fisher-Yates).
+fn distinct(rng: &mut Rng, pool: usize, count: usize) -> Vec<usize> {
+    let mut indices: Vec<usize> = (0..pool).collect();
+    for i in 0..count.min(pool) {
+        let j = i + rng.below(pool - i);
+        indices.swap(i, j);
+    }
+    indices.truncate(count.min(pool));
+    indices
+}
+
+impl SwapStories {
+    pub fn new(tokenizer: &uor_r4_tokenizer::ByteBpeTokenizer, people: usize) -> Result<Self> {
+        if !(2..=STORY_NAMES.len()).contains(&people) {
+            return Err(invalid("swap stories need 2 to 8 people"));
+        }
+        let single = |word: &str| -> Result<u32> {
+            match tokenizer.encode(word).as_slice() {
+                [id] => Ok(*id),
+                _ => Err(invalid(format!("{word:?} is not a single token"))),
+            }
+        };
+        let names = STORY_NAMES
+            .iter()
+            .map(|w| single(w))
+            .collect::<Result<Vec<_>>>()?;
+        let objects = STORY_OBJECTS
+            .iter()
+            .map(|w| single(w))
+            .collect::<Result<Vec<_>>>()?;
+        let pieces =
+            [" has a", " and", " swapped", ".", " Now", " has the"].map(|t| tokenizer.encode(t));
+        Self::from_ids(names, objects, pieces, people)
+    }
+
+    /// Stories from explicit token ids: single-token names and objects, and
+    /// the pieces " has a", " and", " swapped", ".", " Now", " has the".
+    pub fn from_ids(
+        names: Vec<u32>,
+        objects: Vec<u32>,
+        pieces: [Vec<u32>; 6],
+        people: usize,
+    ) -> Result<Self> {
+        if !(2..=names.len().min(objects.len())).contains(&people)
+            || pieces.iter().any(Vec::is_empty)
+        {
+            return Err(invalid(
+                "swap stories need enough names, objects and every piece",
+            ));
+        }
+        let [has_a, and, swapped, period, now, has_the] = pieces;
+        Ok(Self {
+            names,
+            objects,
+            has_a,
+            and,
+            swapped,
+            period,
+            now,
+            has_the,
+            people,
+            fixed_cast: false,
+        })
+    }
+
+    /// Tokens in a story with `events` events.
+    pub fn story_len(&self, events: usize) -> usize {
+        let intro = self.people * (2 + self.has_a.len() + self.period.len());
+        let event = 2 + self.and.len() + self.swapped.len() + self.period.len();
+        let query = self.people * (2 + self.now.len() + self.has_the.len() + self.period.len());
+        intro + events * event + query
+    }
+
+    pub fn sample(&self, rng: &mut Rng, events: usize) -> Story {
+        let (who, what) = if self.fixed_cast {
+            ((0..self.people).collect(), (0..self.people).collect())
+        } else {
+            (
+                distinct(rng, self.names.len(), self.people),
+                distinct(rng, self.objects.len(), self.people),
+            )
+        };
+        // holds[person] indexes `what`.
+        let mut holds: Vec<usize> = (0..self.people).collect();
+        let mut tokens = Vec::with_capacity(self.story_len(events));
+        let mut states = Vec::with_capacity(self.story_len(events) * self.people);
+        let push = |tokens: &mut Vec<u32>, states: &mut Vec<u8>, holds: &[usize], ids: &[u32]| {
+            for &id in ids {
+                tokens.push(id);
+                states.extend(holds.iter().map(|&h| h as u8));
+            }
+        };
+        for person in 0..self.people {
+            let object = self.objects[what[holds[person]]];
+            push(&mut tokens, &mut states, &holds, &[self.names[who[person]]]);
+            push(&mut tokens, &mut states, &holds, &self.has_a);
+            push(&mut tokens, &mut states, &holds, &[object]);
+            push(&mut tokens, &mut states, &holds, &self.period);
+        }
+        for _ in 0..events {
+            let a = rng.below(self.people);
+            let mut b = rng.below(self.people - 1);
+            if b >= a {
+                b += 1;
+            }
+            push(&mut tokens, &mut states, &holds, &[self.names[who[a]]]);
+            push(&mut tokens, &mut states, &holds, &self.and);
+            push(&mut tokens, &mut states, &holds, &[self.names[who[b]]]);
+            push(&mut tokens, &mut states, &holds, &self.swapped);
+            holds.swap(a, b);
+            push(&mut tokens, &mut states, &holds, &self.period);
+        }
+        let order = distinct(rng, self.people, self.people);
+        let mut answers = Vec::with_capacity(self.people);
+        for &person in &order {
+            push(&mut tokens, &mut states, &holds, &self.now);
+            push(&mut tokens, &mut states, &holds, &[self.names[who[person]]]);
+            push(&mut tokens, &mut states, &holds, &self.has_the);
+            let object = self.objects[what[holds[person]]];
+            answers.push((tokens.len(), object));
+            push(&mut tokens, &mut states, &holds, &[object]);
+            push(&mut tokens, &mut states, &holds, &self.period);
+        }
+        Story {
+            tokens,
+            answers,
+            states,
+        }
+    }
+
+    /// A batch of `batch` stories with `events` events: inputs (each story
+    /// minus its last token), the logit rows that predict each answer, the
+    /// answers, and whether each answer is its story's first.
+    fn batch(&self, rng: &mut Rng, batch: usize, events: usize) -> StoryBatch {
+        let time = self.story_len(events) - 1;
+        let mut out = StoryBatch {
+            time,
+            ..StoryBatch::default()
+        };
+        for story_index in 0..batch {
+            let story = self.sample(rng, events);
+            out.ids.extend(&story.tokens[..time]);
+            out.states.extend(
+                story.states[..time * self.people]
+                    .iter()
+                    .map(|&h| u32::from(h)),
+            );
+            for (k, (position, answer)) in story.answers.iter().enumerate() {
+                out.rows.push((story_index * time + position - 1) as u32);
+                out.answers.push(*answer);
+                out.first.push(k == 0);
+            }
+        }
+        out
+    }
+}
+
+/// A batch of equal-length stories: inputs, the logit rows that predict each
+/// answer, the answers, whether each answer is its story's first, and the
+/// who-holds-what state after each input token, flat `[batch, time, people]`.
+#[derive(Default)]
+struct StoryBatch {
+    ids: Vec<u32>,
+    rows: Vec<u32>,
+    answers: Vec<u32>,
+    first: Vec<bool>,
+    states: Vec<u32>,
+    time: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StoryConfig {
+    pub steps: usize,
+    pub batch: usize,
+    pub context: usize,
+    pub learning_rate: f64,
+    pub lane_learning_rate: f64,
+    pub warmup: usize,
+    pub weight_decay: f64,
+    /// Weight of the answer loss beside the text loss.
+    pub story_weight: f64,
+    /// Weight of the per-token who-holds-what loss (needs a state head).
+    pub state_weight: f64,
+    /// Longest training story, in events; the cap ramps from 2 to it over the
+    /// first 60% of updates and each batch draws uniformly below the cap.
+    pub max_events: usize,
+    pub data_seed: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StoryRecord {
+    pub step: usize,
+    pub text_loss: f64,
+    pub story_loss: f64,
+    pub state_loss: Option<f64>,
+    pub events: usize,
+    pub answer_accuracy: f64,
+    pub seconds: f64,
+}
+
+fn story_schedule(step: usize, config: &StoryConfig) -> f64 {
+    if step < config.warmup {
+        return (step + 1) as f64 / config.warmup as f64;
+    }
+    let span = config.steps.saturating_sub(config.warmup).max(1);
+    let progress = ((step - config.warmup) as f64 / span as f64).min(1.0);
+    0.1 + 0.9 * 0.5 * (1.0 + (std::f64::consts::PI * progress).cos())
+}
+
+/// One text batch and one story batch per update; the loss is the text
+/// cross-entropy plus `story_weight` times the cross-entropy at answer tokens,
+/// plus `state_weight` times the per-token who-holds-what cross-entropy when
+/// the model has a state head.
+pub fn train_stories(
+    model: &TrackedStack,
+    stories: &SwapStories,
+    text: &[u16],
+    config: &StoryConfig,
+) -> Result<(Vec<StoryRecord>, f64)> {
+    if text.iter().any(|&t| t as usize >= TEXT_VOCAB) {
+        return Err(invalid("text token outside the text vocabulary"));
+    }
+    if stories.story_len(config.max_events) - 1 > config.context {
+        return Err(invalid("the longest training story exceeds the context"));
+    }
+    let started = Instant::now();
+    let (decayed, plain, lanes) = model.optimizer_groups();
+    let params = |lr, weight_decay| ParamsAdamW {
+        lr,
+        beta1: 0.9,
+        beta2: 0.95,
+        eps: 1e-8,
+        weight_decay,
+    };
+    let mut decayed_optimizer =
+        AdamW::new(decayed, params(config.learning_rate, config.weight_decay))?;
+    let mut plain_optimizer = AdamW::new(plain, params(config.learning_rate, 0.0))?;
+    let mut lane_optimizer = AdamW::new(lanes, params(config.lane_learning_rate, 0.0))?;
+    let device = model.stack.device().clone();
+    let mut rng = Rng::new(config.data_seed);
+    let mut records = Vec::new();
+    for step in 0..config.steps {
+        let scale = story_schedule(step, config);
+        decayed_optimizer.set_learning_rate(config.learning_rate * scale);
+        plain_optimizer.set_learning_rate(config.learning_rate * scale);
+        lane_optimizer.set_learning_rate(config.lane_learning_rate * scale);
+        let (ids, targets) = text_batch(text, &mut rng, config.batch, config.context)?;
+        let text_logits = model.text_logits(&ids, config.batch, config.context)?;
+        let text_targets = Tensor::from_vec(targets, ids.len(), &device)?;
+        let text_loss = candle_nn::loss::cross_entropy(&text_logits, &text_targets)?;
+        let ramp = (config.steps as f64 * 0.6).max(1.0);
+        let cap = (2.0 + (step as f64 / ramp).min(1.0) * config.max_events.saturating_sub(2) as f64)
+            .round() as usize;
+        // Zero-event stories teach the query format; the cap then ramps.
+        let events = rng.below(cap.clamp(1, config.max_events.max(1)) + 1);
+        let story_batch = stories.batch(&mut rng, config.batch, events);
+        let answers = story_batch.answers.clone();
+        let (logits, state_logits) =
+            model.story_forward(&story_batch.ids, config.batch, story_batch.time)?;
+        let rows = Tensor::from_vec(story_batch.rows, answers.len(), &device)?;
+        let picked = logits.index_select(&rows, 0)?;
+        let answer_targets = Tensor::from_vec(answers.clone(), answers.len(), &device)?;
+        let story_loss = candle_nn::loss::cross_entropy(&picked, &answer_targets)?;
+        let mut loss = (&text_loss + (&story_loss * config.story_weight)?)?;
+        let mut state_loss_value = None;
+        if let (Some(state_logits), true) = (&state_logits, config.state_weight > 0.0) {
+            let targets = Tensor::from_vec(
+                story_batch.states.clone(),
+                story_batch.states.len(),
+                &device,
+            )?;
+            let state_loss = candle_nn::loss::cross_entropy(state_logits, &targets)?;
+            state_loss_value = Some(state_loss.to_scalar::<f32>()? as f64);
+            loss = (&loss + (&state_loss * config.state_weight)?)?;
+        }
+        let grads = loss.backward()?;
+        decayed_optimizer.step(&grads)?;
+        plain_optimizer.step(&grads)?;
+        lane_optimizer.step(&grads)?;
+        if step % 50 == 0 || step + 1 == config.steps {
+            let predicted = picked.argmax(D::Minus1)?.to_vec1::<u32>()?;
+            let correct = predicted
+                .iter()
+                .zip(&answers)
+                .filter(|(p, a)| p == a)
+                .count();
+            records.push(StoryRecord {
+                step,
+                text_loss: text_loss.to_scalar::<f32>()? as f64,
+                story_loss: story_loss.to_scalar::<f32>()? as f64,
+                state_loss: state_loss_value,
+                events,
+                answer_accuracy: correct as f64 / answers.len().max(1) as f64,
+                seconds: started.elapsed().as_secs_f64(),
+            });
+        }
+    }
+    Ok((records, started.elapsed().as_secs_f64()))
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StoryAccuracy {
+    pub events: usize,
+    pub stories: usize,
+    /// Greedy full-vocabulary accuracy over every answer.
+    pub all_answers: f64,
+    /// Accuracy on each story's first answer, which elimination cannot help.
+    pub first_answer: f64,
+    /// With a state head: per-person accuracy of who holds what at the last
+    /// input position, after every event.
+    pub final_state_person: Option<f64>,
+    /// With a state head: fraction of stories whose whole final assignment
+    /// is right.
+    pub final_state_exact: Option<f64>,
+}
+
+/// Greedy answer accuracy on fresh stories of each length.
+pub fn story_accuracy(
+    model: &TrackedStack,
+    stories: &SwapStories,
+    events_list: &[usize],
+    count: usize,
+    batch: usize,
+    seed: u64,
+) -> Result<Vec<StoryAccuracy>> {
+    let context = model.stack.config.context;
+    let device = model.stack.device().clone();
+    let mut rng = Rng::new(seed);
+    let mut out = Vec::with_capacity(events_list.len());
+    for &events in events_list {
+        if stories.story_len(events) - 1 > context {
+            return Err(invalid(format!(
+                "a story with {events} events exceeds the context"
+            )));
+        }
+        let (mut all, mut all_n, mut first, mut first_n) = (0usize, 0usize, 0usize, 0usize);
+        let (mut person_ok, mut person_n, mut exact_ok, mut exact_n) =
+            (0usize, 0usize, 0usize, 0usize);
+        let people = stories.people;
+        let mut remaining = count;
+        while remaining > 0 {
+            let rows_now = batch.min(remaining);
+            let story_batch = stories.batch(&mut rng, rows_now, events);
+            let (answers, is_first, time) = (
+                story_batch.answers.clone(),
+                story_batch.first.clone(),
+                story_batch.time,
+            );
+            let (logits, state_logits) = model.story_forward(&story_batch.ids, rows_now, time)?;
+            if let Some(state_logits) = state_logits {
+                let guess = state_logits.detach().argmax(D::Minus1)?.to_vec1::<u32>()?;
+                for story in 0..rows_now {
+                    let base = (story * time + time - 1) * people;
+                    let right = (0..people)
+                        .filter(|&p| guess[base + p] == story_batch.states[base + p])
+                        .count();
+                    person_ok += right;
+                    person_n += people;
+                    exact_n += 1;
+                    if right == people {
+                        exact_ok += 1;
+                    }
+                }
+            }
+            let rows = Tensor::from_vec(story_batch.rows, answers.len(), &device)?;
+            let predicted = logits
+                .detach()
+                .index_select(&rows, 0)?
+                .argmax(D::Minus1)?
+                .to_vec1::<u32>()?;
+            for ((p, a), f) in predicted.iter().zip(&answers).zip(&is_first) {
+                all_n += 1;
+                if p == a {
+                    all += 1;
+                }
+                if *f {
+                    first_n += 1;
+                    if p == a {
+                        first += 1;
+                    }
+                }
+            }
+            remaining -= rows_now;
+        }
+        out.push(StoryAccuracy {
+            events,
+            stories: count,
+            all_answers: all as f64 / all_n.max(1) as f64,
+            first_answer: first as f64 / first_n.max(1) as f64,
+            final_state_person: (person_n > 0).then(|| person_ok as f64 / person_n as f64),
+            final_state_exact: (exact_n > 0).then(|| exact_ok as f64 / exact_n as f64),
+        });
+    }
+    Ok(out)
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TransportWitness {
+    pub lane: usize,
+    /// Mean trace of the per-step 4x4 transport (4 = identity; a 180-degree
+    /// simple rotation, as a transposition in `std + sign`, has trace 0).
+    pub mean_trace: f64,
+    /// Steps whose trace is below 3 (clearly not the identity), per event.
+    pub moves_per_event: f64,
+    /// Fraction of those moves within 0.5 of trace 0 (half turns).
+    pub half_turn_fraction: f64,
+}
+
+/// What each context lane does per step on fresh stories with `events` events.
+pub fn context_transport_witness(
+    model: &TrackedStack,
+    stories: &SwapStories,
+    events: usize,
+    count: usize,
+    seed: u64,
+) -> Result<Vec<TransportWitness>> {
+    let context = model
+        .context
+        .as_ref()
+        .ok_or_else(|| invalid("this stack has no context lanes"))?;
+    let mut rng = Rng::new(seed);
+    let story_batch = stories.batch(&mut rng, count, events);
+    let time = story_batch.time;
+    let raw = model.context_transports(&story_batch.ids, count, time)?;
+    let per = context.kind.width();
+    let values = raw.flatten_all()?.to_dtype(DType::F64)?.to_vec1::<f64>()?;
+    let mut out = Vec::with_capacity(context.lanes);
+    for lane in 0..context.lanes {
+        let (mut trace_sum, mut moves, mut half_turns, mut steps) =
+            (0.0f64, 0usize, 0usize, 0usize);
+        for position in 0..count * time {
+            let offset = (position * context.lanes + lane) * per;
+            let m = transport_matrix_from_raw(context.kind, &values[offset..offset + per]);
+            let trace = m[0] + m[5] + m[10] + m[15];
+            trace_sum += trace;
+            steps += 1;
+            if trace < 3.0 {
+                moves += 1;
+                if trace.abs() < 0.5 {
+                    half_turns += 1;
+                }
+            }
+        }
+        out.push(TransportWitness {
+            lane,
+            mean_trace: trace_sum / steps.max(1) as f64,
+            moves_per_event: moves as f64 / (count * events.max(1)) as f64,
+            half_turn_fraction: half_turns as f64 / moves.max(1) as f64,
+        });
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1380,8 +2100,14 @@ mod tests {
         assert_eq!(automaton.minimal_order, A5_ORDER);
         assert!(automaton.max_trace_deviation < 1e-6);
         assert!((automaton.fit_accuracy - 1.0).abs() < 1e-12);
-        let served = automaton.evaluate(&task, &[1000], 8, 11);
+        let served = automaton.evaluate(&task, &[1000], 8, 11)?;
         assert!((served[0].all_positions - 1.0).abs() < 1e-12);
+        assert!(automaton.verify_exact(&task));
+        // Corrupt the read-out one step from the start: the check must fail.
+        let mut corrupted = automaton.clone();
+        let next = corrupted.table[corrupted.identity as usize] as usize;
+        corrupted.readout[next] = (corrupted.readout[next] + 1) % A5_ORDER as u8;
+        assert!(!corrupted.verify_exact(&task));
         Ok(())
     }
 
@@ -1425,6 +2151,100 @@ mod tests {
         let (_, side) = with_lanes.parameter_counts();
         assert_eq!(side, 4099 * 8 + 16 * 8 + 60 * 16 + 60);
         assert_eq!(with_lanes.a5_logits(&ids, 2, 8)?.dims(), &[16, A5_ORDER]);
+        Ok(())
+    }
+
+    /// Answers follow the swaps: replay every story from its own tokens.
+    #[test]
+    fn swap_story_answers_follow_the_swaps() -> Result<()> {
+        let names: Vec<u32> = (100..108).collect();
+        let objects: Vec<u32> = (200..208).collect();
+        let pieces = [
+            vec![10, 11],
+            vec![12],
+            vec![13, 14],
+            vec![15],
+            vec![16],
+            vec![17, 18],
+        ];
+        let stories = SwapStories::from_ids(names.clone(), objects.clone(), pieces, 4)?;
+        let mut rng = Rng::new(3);
+        for events in [0usize, 1, 5, 17] {
+            let story = stories.sample(&mut rng, events);
+            assert_eq!(story.tokens.len(), stories.story_len(events));
+            let tokens = &story.tokens;
+            // Intro: name, 10, 11, object, 15.
+            let mut holds = std::collections::HashMap::new();
+            for p in 0..4 {
+                holds.insert(tokens[p * 5], tokens[p * 5 + 3]);
+            }
+            // Events: a, 12, b, 13, 14, 15.
+            for e in 0..events {
+                let base = 20 + e * 6;
+                let (a, b) = (tokens[base], tokens[base + 2]);
+                assert_ne!(a, b);
+                let held_a = holds[&a];
+                let held_b = holds[&b];
+                holds.insert(a, held_b);
+                holds.insert(b, held_a);
+            }
+            // The state targets after the last token match the replay:
+            // person p (introduction order) holds the object introduced in
+            // sentence states[p].
+            let last = &story.states[(tokens.len() - 1) * 4..tokens.len() * 4];
+            for p in 0..4 {
+                assert_eq!(holds[&tokens[p * 5]], tokens[last[p] as usize * 5 + 3]);
+            }
+            assert_eq!(story.states.len(), tokens.len() * 4);
+            // Queries: 16, name, 17, 18, answer, 15.
+            assert_eq!(story.answers.len(), 4);
+            for &(position, answer) in &story.answers {
+                assert_eq!(tokens[position], answer);
+                assert_eq!(holds[&tokens[position - 3]], answer);
+            }
+        }
+        Ok(())
+    }
+
+    /// Context lanes start silent (zero projection), so the mid-stack split
+    /// run_layers -> side channel -> run_layers -> finish reproduces the stack.
+    #[test]
+    fn context_lanes_start_silent_and_keep_the_stack_forward() -> Result<()> {
+        let task = A5Task::standard()?;
+        let device = Device::Cpu;
+        let config = StackConfig {
+            arch: crate::geometric_stack::StackArch::Geometric,
+            vocab_size: TEXT_VOCAB + task.vocab(),
+            width: 16,
+            heads: 2,
+            mlp_hidden: 16,
+            context: 8,
+            pattern: "rra".into(),
+            read: crate::geometric_stack::ReadScore::Dot,
+            rotation: true,
+            seed: 7,
+        };
+        let tracked = TrackedStack::new(config, None, &task, 7, &device)?.with_context_lanes(
+            LaneKind::ReflectionPair,
+            3,
+            2,
+            7,
+        )?;
+        let ids: Vec<u32> = (0..16).map(|i| (i * 131 % 4096) as u32).collect();
+        let direct = tracked
+            .stack
+            .forward(&ids, 2, 8)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let split = tracked
+            .text_logits(&ids, 2, 8)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for (a, b) in direct.iter().zip(&split) {
+            assert!((a - b).abs() < 1e-5, "{a} vs {b}");
+        }
+        let raw = tracked.context_transports(&ids, 2, 8)?;
+        assert_eq!(raw.dims(), &[2, 8, 3, 8]);
         Ok(())
     }
 
