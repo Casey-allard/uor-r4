@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — multi-lab roadmap
 
-**Director:** Claude (Lab 1). **Updated:** 2026-09-29 01:43 UTC. This file owns lab
+**Director:** Claude (Lab 1). **Updated:** 2026-09-29 01:50 UTC. This file owns lab
 assignments, track status, the dead-path register and the cross-lab protocol. Measured
 results and retained artifacts live in [current state](docs/integration/current-state.md).
 Ordered responsibilities and acceptance live in the [canonical plan](docs/integration/project-track.md).
@@ -10,7 +10,7 @@ strategic authority.
 
 ## Lab 1 leadership and restart packet
 
-**Updated September 29, 01:43 UTC.**
+**Updated September 29, 01:50 UTC.**
 - **Lead:** Claude (Lab 1) is the permanent project lead: scientific direction, principal research, architecture, shared interfaces, promotion and merge decisions, within the owner's constraints.
 - **Astra's temporary cover** began on September 28 at 22:45 UTC. It ended with the handback on September 29 at 01:35 UTC. Its record is preserved in [its history file](docs/integration/astra-temporary-cover-2026-09-28.md) and on [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5881962511).
 - **Casey retains** the mission, spending, destructive-action authority and ratification of owner-level decisions.
@@ -19,7 +19,7 @@ strategic authority.
 |---|---|---|
 | Leadership, learner, dialogue, memory semantics, architecture, native artifact and session, promotion | Claude (Lab 1) | The I1 store in the dialogue stack's read path; S4's fit once #1483 clears |
 | Integration, S1/QAT and S4 repairs, checks, delivery mechanics | Kimi (Lab 1 research-integration steward) | #1483's two failures, resolved under the [adjudication](https://github.com/UOR-Foundation/uor-r4/pull/1483#issuecomment-5882022226) |
-| Geometric read and address | DeepSeek/OpenCode (Lab 2) | The G-decomposition result (running), then a G v2 proposal |
+| Geometric read and address | DeepSeek/OpenCode (Lab 2) | The G-decomposition result (running) and the causal change its dominant cause selects; then a synonym world for G v2 |
 | Numerical fidelity, codecs, kernels, audits, cost | Anti-Gravity (Lab 3) | #1479, held for Lab 1's fresh-root re-run; D4-E8 through QAT |
 
 ### The artifact contract
@@ -35,14 +35,19 @@ Loss, tracking accuracy, arithmetic parity and library availability are componen
 
 ### Bottleneck and next decision
 
-**Memory needs keys formed from language that match the exact store's keys.**
+**Memory fails at address formation.** This was corrected at 01:49 UTC; see [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5882099700).
 - G v1's reads fire, but held-out Updated is 0.03–0.16 against a target of at least 0.90.
-- Its failures are on the key side (`Unavailable`).
 - S2 recalls 0 of 10 facts.
 
-**Lab 2's decomposition separates missed writes, wrong keys and evictions.**
-- **If wrong keys dominate,** G v2 learns a canonical key through a trained-in geometric codebook: phrase → lattice or icosian cell → exact address.
-- **If missed writes or evictions dominate,** the fix is on that side instead.
+**Why surface-form keys are not the cause.** In the D2 relation world, held-out templates change only the carrier text, and the entity and relation tokens are the same at write and at query. The failures there are therefore role-tagging or write-trigger failures, not surface-form mismatches.
+
+**Lab 2's decomposition (`AddressCause`) selects the next causal change:**
+- missed writes → address-completed writes, tested by evaluation only on the saved checkpoints;
+- mis-tags → change how tags are formed;
+- wrong values → clause closing;
+- evictions → capacity.
+
+**Canonical geometric keys (G v2)** address a different problem, different surface forms of the same entity or relation. They need a world with synonymous mentions, and their consumer is S2's memory trajectories.
 
 ### Live state
 
