@@ -200,6 +200,16 @@ fn run(args: &Args, out: &Path) -> Result<()> {
     let eval_episodes: usize = args.number("eval_episodes", 512)?;
     let free_episodes: usize = args.number("free_episodes", 32)?;
     let verify: usize = args.number("verify", 256)?;
+    let user_turn_gate: bool = args
+        .0
+        .get("user_turn_gate")
+        .map(|value| {
+            value
+                .parse::<bool>()
+                .map_err(|_| invalid(format!("invalid user_turn_gate={value}")))
+        })
+        .transpose()?
+        .unwrap_or(true);
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
         .ok_or_else(|| invalid("tokenizer JSON is not a supported byte-level BPE"))?;
     let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
@@ -270,6 +280,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
             })
             .transpose()?
             .unwrap_or(false),
+        user_turn_gate,
     };
     let started = Instant::now();
     let protocol_check = verify_protocol(&world, &tokenizer, verify, context)?;
@@ -312,8 +323,15 @@ fn run(args: &Args, out: &Path) -> Result<()> {
             };
             let (records, train_seconds) = train_aerm(&model, &world, &train, &train_config)?;
             let eval_started = Instant::now();
-            let (nll, triggers_per_thousand) =
-                text_nll(&model, &dev, context, dev_windows, 16, world.eos)?;
+            let (nll, triggers_per_thousand) = text_nll(
+                &model,
+                &dev,
+                context,
+                dev_windows,
+                16,
+                world.eos,
+                user_turn_gate,
+            )?;
             let dialogues = evaluate_dialogues(
                 &model,
                 &world,
@@ -322,10 +340,28 @@ fn run(args: &Args, out: &Path) -> Result<()> {
                 false,
                 context,
                 16,
+                user_turn_gate,
             )?;
-            let held =
-                evaluate_dialogues(&model, &world, eval_episodes, HELD_SEED, true, context, 16)?;
-            let free = free_running(&model, &world, free_episodes, FREE_SEED, false, context, 16)?;
+            let held = evaluate_dialogues(
+                &model,
+                &world,
+                eval_episodes,
+                HELD_SEED,
+                true,
+                context,
+                16,
+                user_turn_gate,
+            )?;
+            let free = free_running(
+                &model,
+                &world,
+                free_episodes,
+                FREE_SEED,
+                false,
+                context,
+                16,
+                user_turn_gate,
+            )?;
             let eval_seconds = eval_started.elapsed().as_secs_f64();
             let checkpoint = args
                 .0
@@ -566,6 +602,16 @@ fn checkpoint_eval(args: &Args, out: &Path) -> Result<()> {
     let dev_windows: usize = args.number("dev_windows", 512)?;
     let eval_episodes: usize = args.number("eval_episodes", 512)?;
     let free_episodes: usize = args.number("free_episodes", 32)?;
+    let user_turn_gate: bool = args
+        .0
+        .get("user_turn_gate")
+        .map(|value| {
+            value
+                .parse::<bool>()
+                .map_err(|_| invalid(format!("invalid user_turn_gate={value}")))
+        })
+        .transpose()?
+        .unwrap_or(true);
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
         .ok_or_else(|| invalid("tokenizer JSON is not a supported byte-level BPE"))?;
     let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
@@ -575,7 +621,15 @@ fn checkpoint_eval(args: &Args, out: &Path) -> Result<()> {
     let device = Device::Cpu;
     let model = AermModel::load(&checkpoint, &device)?;
     let dev = read_u16_range(&dev_path, 0, args.number("dev_tokens", 249_000)?)?;
-    let (nll, fired) = text_nll(&model, &dev, context, dev_windows, 16, world.eos)?;
+    let (nll, fired) = text_nll(
+        &model,
+        &dev,
+        context,
+        dev_windows,
+        16,
+        world.eos,
+        user_turn_gate,
+    )?;
     let dialogues = evaluate_dialogues(
         &model,
         &world,
@@ -584,9 +638,28 @@ fn checkpoint_eval(args: &Args, out: &Path) -> Result<()> {
         false,
         context,
         16,
+        user_turn_gate,
     )?;
-    let held = evaluate_dialogues(&model, &world, eval_episodes, HELD_SEED, true, context, 16)?;
-    let free = free_running(&model, &world, free_episodes, FREE_SEED, false, context, 16)?;
+    let held = evaluate_dialogues(
+        &model,
+        &world,
+        eval_episodes,
+        HELD_SEED,
+        true,
+        context,
+        16,
+        user_turn_gate,
+    )?;
+    let free = free_running(
+        &model,
+        &world,
+        free_episodes,
+        FREE_SEED,
+        false,
+        context,
+        16,
+        user_turn_gate,
+    )?;
     let free_exact = free.iter().filter(|(gold, got)| gold == got).count();
     let report = json!({
         "schema": "uor-r4.g1-aerm-checkpoint-eval/1",
@@ -644,6 +717,7 @@ fn main() -> Result<()> {
                     "names",
                     "mask_text_tags",
                     "mask_text_triggers",
+                    "user_turn_gate",
                 ],
             )?;
             let out = PathBuf::from(args.required("out")?);
@@ -671,6 +745,7 @@ fn main() -> Result<()> {
                     "dev_windows",
                     "eval_episodes",
                     "free_episodes",
+                    "user_turn_gate",
                 ],
             )?;
             let out = PathBuf::from(args.required("out")?);
