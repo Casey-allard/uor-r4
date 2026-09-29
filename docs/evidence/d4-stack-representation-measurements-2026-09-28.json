@@ -1,0 +1,135 @@
+{
+  "arms": [
+    {
+      "arm": "Round-to-nearest (Baseline)",
+      "artifact": {
+        "bytes": 4969412,
+        "path": "rtn/model.lut",
+        "sha256": "e79551baad36f8ddece6b95dfbf9345d362447051e2b2f2ea868d357092e4c97"
+      },
+      "codec": "rtn",
+      "metrics": {
+        "bits_per_byte": 0.817999061488201,
+        "decision_flip_rate": 0.093475341796875,
+        "float_nll": 1.9981126916470184,
+        "integer_arithmetic_nll": -4.043172121548366e-7,
+        "integer_minus_float_nll": 0.03622912464343142,
+        "integer_nll": 2.03434181629045,
+        "reference_nll": 2.034342220607662,
+        "top1_agreement": 0.906524658203125,
+        "weight_rounding_nll": 0.036229528960643576
+      },
+      "performance": {
+        "eval_seconds": 339.373811292,
+        "export_seconds": 0.18890625,
+        "step_seconds": 290.69823887399997,
+        "threads": 2,
+        "tokens_per_second": 450.8868045011162
+      }
+    },
+    {
+      "arm": "Hadamard + Grouped 4-bit (H+G4)",
+      "artifact": {
+        "bytes": 4969476,
+        "path": "hadamard_grouped4bit/model.lut",
+        "sha256": "2d63868d58cd7fa706d2b4d7d3c8ae66ace925fa68000aac708ae5d7254404dc"
+      },
+      "codec": "hadamard_grouped4bit",
+      "metrics": {
+        "bits_per_byte": 0.8290319746340896,
+        "decision_flip_rate": 0.1251220703125,
+        "float_nll": 1.9981126916470184,
+        "integer_arithmetic_nll": -4.4918055985831984e-7,
+        "integer_minus_float_nll": 0.06366768493633423,
+        "integer_nll": 2.0617803765833527,
+        "reference_nll": 2.0617808257639125,
+        "top1_agreement": 0.8748779296875,
+        "weight_rounding_nll": 0.06366813411689409
+      },
+      "performance": {
+        "eval_seconds": 315.865193375,
+        "export_seconds": 0.20926825,
+        "step_seconds": 273.81446824300025,
+        "threads": 2,
+        "tokens_per_second": 478.6890949958073
+      }
+    },
+    {
+      "arm": "Head-Compensated 4-bit (Error Diffusion)",
+      "artifact": {
+        "bytes": 4969476,
+        "path": "head_compensated/model.lut",
+        "sha256": "94ecd4eabe748982b99098fc70d5f856cebe1860680a65c3021db0b1889d5098"
+      },
+      "codec": "head_compensated",
+      "metrics": {
+        "bits_per_byte": 0.817999061488201,
+        "decision_flip_rate": 0.093475341796875,
+        "float_nll": 1.9981126916470184,
+        "integer_arithmetic_nll": -4.043172121548366e-7,
+        "integer_minus_float_nll": 0.03622912464343142,
+        "integer_nll": 2.03434181629045,
+        "reference_nll": 2.034342220607662,
+        "top1_agreement": 0.906524658203125,
+        "weight_rounding_nll": 0.036229528960643576
+      },
+      "performance": {
+        "eval_seconds": 370.763320209,
+        "export_seconds": 0.158071084,
+        "step_seconds": 320.68639571500023,
+        "threads": 2,
+        "tokens_per_second": 408.72329400741415
+      }
+    }
+  ],
+  "dataset": {
+    "expected_sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8",
+    "name": "cycle-3 code split valid.u16",
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+    "sha256_match": true,
+    "stride": 403,
+    "targets": 131072,
+    "valid_sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8",
+    "windows": 512
+  },
+  "evaluated_at_secs": 1790619944,
+  "float_baseline": {
+    "nll": 1.9981126916470184
+  },
+  "model": {
+    "config": {
+      "arch": "geometric",
+      "context": 256,
+      "heads": 6,
+      "mlp_hidden": 749,
+      "pattern": "rrarra",
+      "read": "lorentz",
+      "rotation": true,
+      "vocab_size": 4096,
+      "width": 288
+    },
+    "expected_sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a",
+    "name": "cycle-4 geometric_s1",
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model",
+    "sha256_match": true,
+    "weights_sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a"
+  },
+  "comparator_engine": {
+    "engine": "uor_r4_lut::stack::StackModel",
+    "scope": "D10 NEON multithreaded comparator engine (used for representation scoring, not D11 serving qualification)"
+  },
+  "schema": "uor-r4.anti-gravity.d4-candidate-evaluation/1",
+  "sealed_root": {
+    "manifest_sha256": "829103162507764bb08e653fb4c2eb36bce1b1c6fcc783b187ccba5c3b16efeb",
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/evaluation-1",
+    "sealed_at": "1790619945"
+  },
+  "serving_library_audit": {
+    "class_I_multiplications": 0,
+    "class_II_divisions": 0,
+    "class_III_floating_point": 0,
+    "compliance": "PASSED (0 mul, 0 div, 0 float in libuor_r4_integer serving paths)",
+    "scope": "Zero-matmul static disassembly audit of D11 serving symbols (does not certify uor_r4_lut)",
+    "target": "libuor_r4_integer.rlib / uor-r4-stack (D11 multiplier-free engine)"
+  }
+}

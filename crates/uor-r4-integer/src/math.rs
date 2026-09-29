@@ -506,18 +506,23 @@ impl T8ZetaState {
         Self::default()
     }
 
+    #[inline(never)]
+    fn step_raw_phase_scalar(phase: &mut i32, freq: i32) {
+        let next = (*phase as i64) + (freq as i64);
+        let mut wrapped = next;
+        while wrapped >= (1i64 << 30) {
+            wrapped -= 2i64 << 30;
+        }
+        while wrapped < -(1i64 << 30) {
+            wrapped += 2i64 << 30;
+        }
+        *phase = wrapped as i32;
+    }
+
     /// Raw unmodulated frequency step (advances by exact zeta frequencies).
     pub fn step_raw(&mut self) {
         for (phase, &freq) in self.phases.iter_mut().zip(ZETA_FREQUENCIES_Q30.iter()) {
-            let next = (*phase as i64) + (freq as i64);
-            let mut wrapped = next;
-            while wrapped >= (1i64 << 30) {
-                wrapped -= 2i64 << 30;
-            }
-            while wrapped < -(1i64 << 30) {
-                wrapped += 2i64 << 30;
-            }
-            *phase = wrapped as i32;
+            Self::step_raw_phase_scalar(phase, freq);
         }
     }
 

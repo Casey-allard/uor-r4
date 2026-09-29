@@ -568,6 +568,22 @@ EXACT_GEOMETRY_SYMBOLS += [
     for name in ("inverse", "compose", "relative")
 ]
 
+# Discrete parameter codec symbols (audited when present; zero multiplier/divider/float)
+EXACT_GEOMETRY_SYMBOLS += [
+    {
+        "name": "codec::mul_small_code_i64",
+        "pattern": re.compile(r"mul_small_code_i64\b"),
+        "mangled": re.compile(r"__RNv.*mul_small_code_i64\b"),
+        "description": "Multiplier-free small code product via shift-and-add",
+    },
+    {
+        "name": "Grouped4BitRow::to_q16_vector",
+        "pattern": re.compile(r"Grouped4BitRow.*to_q16_vector\b"),
+        "mangled": re.compile(r"__RNv.*Grouped4BitRow.*13to_q16_vector\b"),
+        "description": "Multiplier-free grouped 4-bit activation extraction",
+    },
+]
+
 # Mandatory dialogue serving symbols when auditing interactive chatbot binaries (uor-chat)
 CHAT_MANDATORY_SYMBOLS = [
     {
