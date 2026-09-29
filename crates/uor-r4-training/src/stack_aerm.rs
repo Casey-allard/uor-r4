@@ -1933,9 +1933,14 @@ pub struct AermConfig {
     /// Loss weight of a trigger-positive position relative to a negative one.
     pub trigger_positive_weight: f32,
     pub data_seed: u64,
-    /// Drop the tag and trigger auxiliary losses on ordinary-text batches.
+    /// Drop the tag auxiliary loss on ordinary-text batches.
     #[serde(default)]
     pub mask_text_tags: bool,
+    /// Drop the trigger auxiliary loss on ordinary-text batches; independent of
+    /// [`Self::mask_text_tags`]. With both set this reproduces the original
+    /// single-flag behaviour.
+    #[serde(default)]
+    pub mask_text_triggers: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2060,7 +2065,7 @@ pub fn train_aerm(
         } else {
             Some(head_loss(&bottom.tags, &text_tags, &text_ones)?)
         };
-        let text_trigger = if config.mask_text_tags {
+        let text_trigger = if config.mask_text_triggers {
             None
         } else {
             Some(head_loss(&bottom.triggers, &text_triggers, &text_ones)?)

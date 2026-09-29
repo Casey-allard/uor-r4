@@ -260,6 +260,16 @@ fn run(args: &Args, out: &Path) -> Result<()> {
             })
             .transpose()?
             .unwrap_or(false),
+        mask_text_triggers: args
+            .0
+            .get("mask_text_triggers")
+            .map(|value| {
+                value
+                    .parse::<bool>()
+                    .map_err(|_| invalid(format!("invalid mask_text_triggers={value}")))
+            })
+            .transpose()?
+            .unwrap_or(false),
     };
     let started = Instant::now();
     let protocol_check = verify_protocol(&world, &tokenizer, verify, context)?;
@@ -633,6 +643,7 @@ fn main() -> Result<()> {
                     "save",
                     "names",
                     "mask_text_tags",
+                    "mask_text_triggers",
                 ],
             )?;
             let out = PathBuf::from(args.required("out")?);
