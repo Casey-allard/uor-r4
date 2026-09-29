@@ -53,7 +53,7 @@ use candle_core::{backprop::GradStore, DType, Device, Tensor, Var, D};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW};
 use serde::{Deserialize, Serialize};
 
-use crate::geometric_stack::{logits_cross_entropy, StackConfig, StackModel};
+use crate::geometric_stack::{logits_cross_entropy, StackConfig, StackModel, TransportSnap};
 use crate::stack_tracking::Rng;
 use crate::{invalid, Result};
 
@@ -1816,7 +1816,16 @@ impl AermModel {
     pub fn load(directory: &Path, device: &Device) -> Result<Self> {
         let checkpoint: AermCheckpoint =
             serde_json::from_slice(&fs::read(directory.join("aerm.json"))?)?;
-        let stack = StackModel::load(&directory.join("stack"), device)?;
+        let stack_directory = directory.join("stack");
+        if StackModel::saved_served_representation(&stack_directory)?.is_some() {
+            return Err(invalid(
+                "the saved memory model carries a served representation the wrapper cannot reapply",
+            ));
+        }
+        let mut stack = StackModel::load(&stack_directory, device)?;
+        if let Some(snap) = StackModel::saved_transport_snap(&stack_directory)? {
+            stack.set_transport_snap(Some(snap))?;
+        }
         let width = stack.config.width;
         if checkpoint.split == 0 || checkpoint.split >= stack.config.layers() {
             return Err(invalid("saved split must leave layers on both sides"));
@@ -3207,6 +3216,74 @@ mod tests {
             let norm = grad.sqr()?.sum_all()?.to_scalar::<f32>()?;
             assert!(norm > 0.0, "{name} receives no gradient");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn load_restores_the_saved_transport_snap() -> Result<()> {
+        let device = Device::Cpu;
+        let directory = std::env::temp_dir().join(format!("aerm-snap-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&directory);
+        let config = StackConfig {
+            arch: StackArch::Geometric,
+            vocab_size: 400,
+            width: 32,
+            heads: 2,
+            mlp_hidden: 48,
+            context: 16,
+            pattern: "rrar".into(),
+            read: ReadScore::Dot,
+            rotation: true,
+            seed: 19,
+            memory: None,
+        };
+        let mut stack = StackModel::new(config.clone(), &device)?;
+        stack.set_transport_snap(Some(TransportSnap::Icosian))?;
+        let model = AermModel::from_stack(stack, 2, true, 19)?;
+        model.save(&directory)?;
+        let loaded = AermModel::load(&directory, &device)?;
+        assert_eq!(loaded.stack.transport_snap(), Some(TransportSnap::Icosian));
+        let ids: Vec<u32> = (0..32).map(|i| (i * 13 % 400) as u32).collect();
+        let silent = vec![STATUS_NONE; 32];
+        let values = vec![0u32; 32];
+        let before = model
+            .top(
+                &model.bottom(&ids, 2, 16)?.hidden,
+                &silent,
+                &values,
+                &silent,
+                &values,
+            )?
+            .to_vec2::<f32>()?;
+        let after = loaded
+            .top(
+                &loaded.bottom(&ids, 2, 16)?.hidden,
+                &silent,
+                &values,
+                &silent,
+                &values,
+            )?
+            .to_vec2::<f32>()?;
+        for (a, b) in before.iter().flatten().zip(after.iter().flatten()) {
+            assert_eq!(a, b, "snapped logits differ after reload");
+        }
+        // A full memory checkpoint whose *stack* carries a served
+        // representation: the wrapper cannot reapply it, so load must refuse.
+        let served_directory = directory.join("served");
+        let mut served = StackModel::new(config, &device)?;
+        served.set_served_representation(Some(std::sync::Arc::new(
+            crate::geometric_stack::D11Interim,
+        )))?;
+        let served_model = AermModel::from_stack(served, 2, true, 19)?;
+        served_model.save(&served_directory)?;
+        match AermModel::load(&served_directory, &device) {
+            Ok(_) => panic!("a saved served representation must be refused"),
+            Err(error) => assert!(
+                format!("{error}").contains("served representation"),
+                "unexpected error: {error}"
+            ),
+        }
+        fs::remove_dir_all(&directory)?;
         Ok(())
     }
 
