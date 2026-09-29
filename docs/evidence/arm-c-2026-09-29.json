@@ -1,0 +1,118 @@
+{
+ "schema": "uor-r4.lab2.arm-c-evidence/1",
+ "preregistration": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5884957504",
+ "code_commit": "7cc59549",
+ "executable_sha256": "cfe5c6bd0c975e09fe3e04ab1305dcfa5ed60d0134f93110c19cd4cf4ae329af",
+ "supervision": {
+  "schema": "uor-r4.lab2.arm-c-supervision/1",
+  "plan": "issue #973 comment 5884957504",
+  "commit": "arm-c branch",
+  "executable_sha256": "cfe5c6bd0c975e09fe3e04ab1305dcfa5ed60d0134f93110c19cd4cf4ae329af",
+  "thread_environment": {
+   "RAYON_NUM_THREADS": 2,
+   "processes": 1
+  },
+  "started_utc": "2026-09-29T08:25:01Z",
+  "finished_utc": "2026-09-29T09:10:10Z",
+  "wall_seconds": 2709,
+  "exit": 0,
+  "peak_sampled_rss_kib": 2952432,
+  "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-arm-c/arm-c",
+  "checkpoints": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-arm-c/checkpoints",
+  "hard_caps": ""
+ },
+ "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-arm-c/arm-c",
+ "manifest_sha256": "14b6efa21c7a33b6fa46975631d09bec3a04e95d3576a492c8f456139bf8ef13",
+ "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-arm-c/checkpoints/aerm-s1",
+ "configuration": {
+  "mask_text_tags": true,
+  "mask_text_triggers": false,
+  "seed": 1
+ },
+ "baseline": {
+  "held_out_updated": 0.1575091575091575,
+  "text_dev_nll": 2.3738267198204994,
+  "source": "opencode-g1-decompose/dc-s1"
+ },
+ "measured": {
+  "text": {
+   "context": 256,
+   "dev_nll": 2.456862300634384,
+   "dev_windows": 512,
+   "non_none_triggers_per_thousand_tokens": 0.0
+  },
+  "held_out_updated": {
+   "correct": 151,
+   "queries": 273
+  },
+  "held_out_classes": {
+   "First": {
+    "correct": 79,
+    "queries": 144
+   },
+   "Updated": {
+    "correct": 151,
+    "queries": 273
+   },
+   "Reasserted": {
+    "correct": 26,
+    "queries": 31
+   },
+   "Previous": {
+    "correct": 156,
+    "queries": 195
+   },
+   "PreviousAbsent": {
+    "correct": 139,
+    "queries": 157
+   },
+   "Absent": {
+    "correct": 216,
+    "queries": 378
+   }
+  },
+  "updated_recency_trap": {
+   "correct": 16,
+   "queries": 24
+  },
+  "fresh_classes": {
+   "First": {
+    "correct": 138,
+    "queries": 138
+   },
+   "Updated": {
+    "correct": 343,
+    "queries": 343
+   },
+   "Reasserted": {
+    "correct": 26,
+    "queries": 26
+   },
+   "Previous": {
+    "correct": 159,
+    "queries": 159
+   },
+   "PreviousAbsent": {
+    "correct": 168,
+    "queries": 168
+   },
+   "Absent": {
+    "correct": 355,
+    "queries": 355
+   }
+  },
+  "trace": {
+   "NotSelected": 411
+  },
+  "failure_cause": {
+   "QueryRelationTag": 411
+  },
+  "read_events": 6634,
+  "tag_accuracy": 0.9956082451099665,
+  "free_running": {
+   "exact": 32,
+   "episodes": 32
+  },
+  "parameters_total": 1428816
+ }
+}
