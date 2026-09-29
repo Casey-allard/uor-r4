@@ -21,6 +21,7 @@
 //! Floating point is used here only, once, offline.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use candle_core::Tensor;
 use serde_json::{json, Value};
@@ -249,6 +250,13 @@ pub fn export_stack(
         return Err(invalid(
             "integer export of product-key memories is not implemented",
         ));
+    }
+    if let Some(snap) = model.transport_snap() {
+        return Err(invalid(format!(
+            "the model was trained with transport_snap={}; the stack export and its integer \
+             engines serve the unsnapped transport, so no export writes this model yet",
+            snap.name()
+        )));
     }
     let (d, heads) = (c.width, c.heads);
     let mlp = c.mlp_hidden.div_ceil(GROUP) * GROUP;
@@ -544,6 +552,23 @@ pub fn check_export_representation(
     Ok(())
 }
 
+/// Refuse an export of a model directory saved with a transport snap: this
+/// build's integer engines compute the free transport, so the written
+/// artifact would not be the model that was trained. Every export path that
+/// takes a model directory calls this before it writes (until D11 implements
+/// the snapped transport). A directory without the record exports as before.
+pub fn check_export_transport(model_dir: &Path) -> Result<()> {
+    if let Some(snap) = StackModel::saved_transport_snap(model_dir)? {
+        return Err(invalid(format!(
+            "{} was trained with transport_snap={}; the stack export and its integer engines \
+             serve the unsnapped transport, so no export writes this model yet",
+            model_dir.display(),
+            snap.name()
+        )));
+    }
+    Ok(())
+}
+
 /// The transformer control as a Llama checkpoint (RoPE rotate-half with theta
 /// 10,000, RMSNorm with epsilon 1e-5, SwiGLU, tied embedding), for
 /// [`crate::lut_export::export_llama`].
@@ -802,8 +827,10 @@ pub fn control_grid_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometric_stack::StackConfig;
+    use crate::geometric_stack::{StackConfig, TransportSnap};
     use candle_core::Device;
+    use std::fs;
+    use std::path::PathBuf;
     use uor_r4_lut::format::StackArtifact;
     use uor_r4_lut::stack::StackModel as IntegerStack;
 
@@ -1205,5 +1232,54 @@ mod tests {
         assert!(refusal.to_string().contains("calibration="), "{refusal}");
         assert!(check_export_representation(Some(&other), false).is_err());
         assert!(check_export_representation(Some(&other), true).is_err());
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        std::env::temp_dir().join(format!(
+            "uor-r4-stack-export-{}-{nonce}-{name}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn export_refuses_a_snapped_save_and_an_unsnapped_save_still_exports() {
+        let dir = scratch("transport");
+        let _ = fs::remove_dir_all(&dir);
+        let mut model = small("rarr", ReadScore::Lorentz, true);
+        model
+            .set_transport_snap(Some(TransportSnap::Icosian))
+            .expect("transport snap");
+        model.save(&dir).expect("save snapped");
+        let refusal = check_export_transport(&dir).expect_err("a snapped save is refused");
+        let text = refusal.to_string();
+        assert!(text.contains("transport_snap=icosian"), "{text}");
+        assert!(text.contains("unsnapped transport"), "{text}");
+        model.set_transport_snap(None).expect("no snap");
+        model.save(&dir).expect("save unsnapped");
+        check_export_transport(&dir).expect("an unsnapped save is exportable");
+        let reloaded = StackModel::load(&dir, &Device::Cpu).expect("load");
+        let (bytes, _) = export_stack(&reloaded, json!({}), None).expect("export");
+        assert!(!bytes.is_empty(), "the export wrote no artifact");
+        fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn export_refuses_an_in_memory_transport_snap() {
+        let mut model = small("rarr", ReadScore::Lorentz, true);
+        model
+            .set_transport_snap(Some(TransportSnap::Icosian))
+            .expect("transport snap");
+        let refusal =
+            export_stack(&model, json!({}), None).expect_err("a snapped model is refused");
+        let text = refusal.to_string();
+        assert!(text.contains("transport_snap=icosian"), "{text}");
+        assert!(text.contains("unsnapped transport"), "{text}");
+        model.set_transport_snap(None).expect("no snap");
+        let (bytes, _) = export_stack(&model, json!({}), None).expect("export");
+        assert!(!bytes.is_empty(), "the export wrote no artifact");
     }
 }

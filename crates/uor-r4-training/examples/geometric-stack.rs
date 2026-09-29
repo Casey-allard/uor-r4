@@ -173,8 +173,8 @@ use uor_r4_training::stack_dialogue::{
     DialogueSplit, Reply, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
-    check_export_representation, control_checkpoint, control_grid_reference, export_stack,
-    stack_grid_reference, StackCalibration,
+    check_export_representation, check_export_transport, control_checkpoint,
+    control_grid_reference, export_stack, stack_grid_reference, StackCalibration,
 };
 use uor_r4_training::stack_memory::{Codebook, MemoryConfig, MemoryScore};
 use uor_r4_training::{sha256_file, Result, TrainingError};
@@ -1800,16 +1800,7 @@ fn export_mode(arguments: &[String]) -> Result<()> {
             "calibration_windows must be positive and damp >= 0",
         ));
     }
-    // A model trained with its transport snapped is not the model the
-    // integer engines would serve: they compute the free transport.
-    if let Some(snap) = StackModel::saved_transport_snap(&model_dir)? {
-        return Err(invalid(format!(
-            "{} was trained with transport_snap={}; the stack export and its integer engines \
-             serve the unsnapped transport, so no export writes this model yet",
-            model_dir.display(),
-            snap.name()
-        )));
-    }
+    check_export_transport(&model_dir)?;
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         let started = Instant::now();

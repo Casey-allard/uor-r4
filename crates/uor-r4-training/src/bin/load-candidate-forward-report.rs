@@ -27,7 +27,9 @@ use uor_r4_lut::format::{
 use uor_r4_lut::GROUP;
 use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackModel};
 use uor_r4_training::lut_export::{arcosh_table, quantize_matrix};
-use uor_r4_training::stack_export::{decay_rate, export_stack, grid_code, stack_grid_reference};
+use uor_r4_training::stack_export::{
+    check_export_transport, decay_rate, export_stack, grid_code, stack_grid_reference,
+};
 
 const EXPECTED_MODEL_SHA256: &str =
     "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a";
@@ -562,6 +564,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
             .into());
         }
+
+        // A snapped save would be exported as the free transport; refuse it
+        // here exactly as the geometric-stack export does.
+        check_export_transport(&args.model_dir)?;
 
         // Load float model
         println!("Loading StackModel into Candle CPU...");
