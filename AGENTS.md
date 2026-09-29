@@ -11,11 +11,11 @@ The owner-directed mode is `native_geometric_ai`. Build a learned local language
 - the learner, dialogue conditioning, learning objectives, persistent memory and the complete response path;
 - the stack writer, loader and integer forward, absorbed from the retired cloud track.
 
-**Lab 2 (OpenCode)** owns geometric read/address research and its implementation behind the read interface. **Lab 3 (Anti-Gravity)** owns numerical fidelity, codecs, kernels, execution audits and measured local cost. The Claude cloud track is retired. The Codex lab is not part of the three-lab organization: it is assigned no work and returns only by owner direction. The single shared operating policy, including the standing merge and review criteria, is in [agent-execution-policy.md](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
+**Lab 2 (OpenCode)** owns geometric read/address research and its implementation behind the read interface. **Lab 3 (Anti-Gravity)** owns numerical fidelity, codecs, kernels, execution audits and measured local cost. The Claude cloud track is retired. **Extended by the owner on 29 September to five labs:** the Codex lab rejoined (the owner directed it back) and owns Track B's core, the conversion pipeline and harmonic attention. The Kimi lab is Lab 1's steward for infrastructure, context and delivery. Each lab has a directive board; see [STATUS.md](STATUS.md) and the [plan of record](docs/plans/2026-09-29-path-to-chat.md). The single shared operating policy, including the standing merge and review criteria, is in [agent-execution-policy.md](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28).
 
 ## Authority and recovery
 
-Read [README](README.md) → [canonical plan](docs/integration/project-track.md) → [current state](docs/integration/current-state.md) → [direction and capability assessment](docs/integration/model-direction-2026-09.md) → [project map](docs/PROJECT_MAP.md). Live GitHub owns issue status; #820 is the programme tracker. Current owner instructions and the stable policy override dated experiment scheduling. Historical negatives retain their exact technical scope.
+Read [README](README.md) → [STATUS](STATUS.md) → [plan of record](docs/plans/2026-09-29-path-to-chat.md), which orders the work until the ROADMAP rewrite → [canonical plan](docs/integration/project-track.md) → [current state](docs/integration/current-state.md) → [direction and capability assessment](docs/integration/model-direction-2026-09.md) → [project map](docs/PROJECT_MAP.md). Live GitHub owns issue status; #820 is the programme tracker. Current owner instructions and the stable policy override dated experiment scheduling. Historical negatives retain their exact technical scope.
 
 Refresh `origin/main`, the relevant live issues/PRs, artifact identities and cumulative resource/storage receipts. Use an isolated full worktree. Preserve the owner's original checkout and all unique research/artifacts. Reuse the [source audit](docs/integration/architecture-2026-09/README.md) and inspect the particular mechanism source; do not repeat the broad audit for routine development. Coordinate independent subtasks with explicit file ownership when useful.
 
@@ -134,7 +134,7 @@ Bounded inference and contextual/copy attention exist. General prose, general re
 
 ## Specialist routing and research cadence
 
-**Owner direction, September 26 (historical since September 28):** the fourth Codex lab operated alongside
+**Owner direction, September 26 (historical since September 28; the Codex lab rejoined on 29 September, see the charter above):** the fourth Codex lab operated alongside
 Google, OpenCode/DeepSeek/Kimi and Claude, using shared GitHub issues and isolated
 worktrees. Its allowance is exhausted, its T4 study transferred to Lab 1, and the three-lab charter above
 assigns it no future work. The paragraph and `.codex-lab/` are kept as its record. Read [.codex-lab/README.md](.codex-lab/README.md) for its expert bench,
