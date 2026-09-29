@@ -1,0 +1,214 @@
+{
+ "schema": "uor-r4.lab2.g-binding-evidence/1",
+ "preregistration": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5883172773",
+ "constraint": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5883489559",
+ "code_commit": "e0eefd37",
+ "executable_sha256": "52c3c5bb03022a4803b55784ffd4d722adf2680633ac9ee58628e0996ce1835e",
+ "baseline": {
+  "commit": "5f3de916",
+  "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-decompose/dc-s1",
+  "held_out_updated": {
+   "correct": 43,
+   "queries": 273
+  },
+  "text_dev_nll": 2.3738267198204994
+ },
+ "supervision": {
+  "schema": "uor-r4.lab2.g-binding-supervision/1",
+  "plan": "issue #973 comment 5883172773; constraint 5883489559",
+  "commit": "57dfca49",
+  "executable_sha256": "52c3c5bb03022a4803b55784ffd4d722adf2680633ac9ee58628e0996ce1835e",
+  "thread_environment": {
+   "RAYON_NUM_THREADS": 2,
+   "processes": 2
+  },
+  "started_utc": "2026-09-29T05:04:50Z",
+  "finished_utc": "2026-09-29T06:23:52Z",
+  "wall_seconds": 4742,
+  "arms": {
+   "a": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 2934832,
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/arm-a",
+    "checkpoints": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/checkpoints-a"
+   },
+   "b": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 2919376,
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/arm-b",
+    "checkpoints": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/checkpoints-b"
+   }
+  },
+  "hard_caps": ""
+ },
+ "arms": {
+  "a": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/arm-a",
+   "manifest_sha256": "5b7746afd7df0a1ff9be8e638828c70b7a9247fb0a78628affd011d9272fdfa4",
+   "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/checkpoints-a/aerm-s1",
+   "mask_text_tags": true,
+   "held_out_updated": {
+    "correct": 264,
+    "queries": 273
+   },
+   "held_out_classes": {
+    "First": {
+     "correct": 141,
+     "queries": 144
+    },
+    "Updated": {
+     "correct": 264,
+     "queries": 273
+    },
+    "Reasserted": {
+     "correct": 31,
+     "queries": 31
+    },
+    "Previous": {
+     "correct": 164,
+     "queries": 195
+    },
+    "PreviousAbsent": {
+     "correct": 146,
+     "queries": 157
+    },
+    "Absent": {
+     "correct": 377,
+     "queries": 378
+    }
+   },
+   "updated_recency_trap": {
+    "correct": 24,
+    "queries": 24
+   },
+   "fresh_classes": {
+    "First": {
+     "correct": 138,
+     "queries": 138
+    },
+    "Updated": {
+     "correct": 343,
+     "queries": 343
+    },
+    "Reasserted": {
+     "correct": 26,
+     "queries": 26
+    },
+    "Previous": {
+     "correct": 159,
+     "queries": 159
+    },
+    "PreviousAbsent": {
+     "correct": 168,
+     "queries": 168
+    },
+    "Absent": {
+     "correct": 355,
+     "queries": 355
+    }
+   },
+   "text_dev_nll": 2.4925663098692894,
+   "tag_accuracy": 0.9959706295999102,
+   "read_events": 7460,
+   "trace": {
+    "Emission": 12,
+    "NotSelected": 43
+   },
+   "failure_cause": {
+    "Other": 12,
+    "QueryEntityTag": 1,
+    "QueryRelationTag": 42
+   },
+   "parameters_total": 1428816,
+   "free_running": {
+    "exact": 32,
+    "episodes": 32
+   }
+  },
+  "b": {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/arm-b",
+   "manifest_sha256": "551dfe50b46baf6c330cd52b10280cc8646f103d1db01923d1566215ee6101d6",
+   "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/checkpoints-b/aerm-s1",
+   "mask_text_tags": true,
+   "held_out_updated": {
+    "correct": 185,
+    "queries": 287
+   },
+   "held_out_classes": {
+    "First": {
+     "correct": 116,
+     "queries": 134
+    },
+    "Updated": {
+     "correct": 185,
+     "queries": 287
+    },
+    "Reasserted": {
+     "correct": 24,
+     "queries": 30
+    },
+    "Previous": {
+     "correct": 186,
+     "queries": 186
+    },
+    "PreviousAbsent": {
+     "correct": 172,
+     "queries": 172
+    },
+    "Absent": {
+     "correct": 372,
+     "queries": 383
+    }
+   },
+   "updated_recency_trap": {
+    "correct": 28,
+    "queries": 34
+   },
+   "fresh_classes": {
+    "First": {
+     "correct": 152,
+     "queries": 152
+    },
+    "Updated": {
+     "correct": 337,
+     "queries": 337
+    },
+    "Reasserted": {
+     "correct": 28,
+     "queries": 28
+    },
+    "Previous": {
+     "correct": 162,
+     "queries": 162
+    },
+    "PreviousAbsent": {
+     "correct": 149,
+     "queries": 149
+    },
+    "Absent": {
+     "correct": 374,
+     "queries": 374
+    }
+   },
+   "text_dev_nll": 2.4337248355150223,
+   "tag_accuracy": 0.9976860046452594,
+   "read_events": 7356,
+   "trace": {
+    "Emission": 76,
+    "NotSelected": 60,
+    "Unavailable": 1
+   },
+   "failure_cause": {
+    "Other": 75,
+    "QueryEntityTag": 9,
+    "QueryRelationTag": 52,
+    "WriteValueTag": 1
+   },
+   "parameters_total": 1428816,
+   "free_running": {
+    "exact": 32,
+    "episodes": 32
+   }
+  }
+ }
+}
