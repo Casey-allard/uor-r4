@@ -1,0 +1,244 @@
+{
+  "schema": "uor-r4.evidence/aerm-text-registers/1",
+  "date": "2026-09-29",
+  "lab": "Lab 1 (Claude)",
+  "references": [
+    "#973 comment 5884957504 (arm C pre-registration)",
+    "#973 comment 5887303812 (arm C outcome)",
+    "#1499"
+  ],
+  "question": "Where does the AERM probe text-NLL cost come from, and does arm C keep the binding?",
+  "text_registers": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-prime-route/text-registers-2",
+    "manifest_sha256": "17281d8f0a614edb5025553295c5193c28e5b5f4d173f440e8c06518f8884479",
+    "code": "lab/claude/text-register-gate 69eedceb, examples/aerm-text-registers.rs",
+    "executable_sha256": "29d6f1280c278701089c8657d454f5cd303b3ec64e31d9f5c9f460ab0732d73e",
+    "first_run": {
+      "root": "claude-prime-route/text-registers-1",
+      "manifest_sha256": "07776404aad4eeb96b92a62c6776fd5e26bbb549970100410f9087c4e2453b93",
+      "note": "same figures, built from 1bfef290 before rustfmt"
+    },
+    "dev": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokens/dev.u16",
+      "sha256": "74f7d85fa7670355f65805a9ffe06c2fb9db150b9f4cae8029e0d2f35e8993b6",
+      "tokens": 249000,
+      "windows": 512,
+      "context": 256
+    },
+    "checkpoints": [
+      {
+        "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-decompose/checkpoints/aerm-s1",
+        "files_sha256": {
+          "aerm.json": "8e4627cef285ac6ebaab2390993e66f7e39f0a50bf10002e0575cdb17507830d",
+          "heads.safetensors": "d4980eedf4e3c40393b9a0e233d1984bfd479ccd3ccd87758101bdfe4a7d3393",
+          "stack/config.json": "3e50764ab42b2e0ced21ec0cbf5dbc0d18818d0ab502355841486bb9815f5834",
+          "stack/model.safetensors": "45609df0ef886c3a66aeb99a2aa37001306a93d229d481017a7c8b3941615a8a"
+        },
+        "model_registers_nll": 2.3738267198204994,
+        "silent_registers_nll": 2.3738267198204994,
+        "model_minus_silent": 0.0,
+        "per_thousand_tokens": {
+          "non_none_triggers": 0.0,
+          "read_events": 0.0,
+          "register_active_positions": 0.0,
+          "register_hit_positions": 0.0,
+          "write_triggers": 0.0
+        }
+      },
+      {
+        "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/checkpoints-a/aerm-s1",
+        "files_sha256": {
+          "aerm.json": "8e4627cef285ac6ebaab2390993e66f7e39f0a50bf10002e0575cdb17507830d",
+          "heads.safetensors": "ba0f10a76dd8d062aeff08198c960073be2d71a08cae0d032ac272624937a652",
+          "stack/config.json": "3e50764ab42b2e0ced21ec0cbf5dbc0d18818d0ab502355841486bb9815f5834",
+          "stack/model.safetensors": "5c1a4eae9f9e8b175a52299bbc2a1ced2ca8e0a84c4774ae193ca21201259b71"
+        },
+        "model_registers_nll": 2.4925663098692894,
+        "silent_registers_nll": 2.345184400677681,
+        "model_minus_silent": 0.14738190919160843,
+        "per_thousand_tokens": {
+          "non_none_triggers": 124.88555908203125,
+          "read_events": 97.0001220703125,
+          "register_active_positions": 874.6337890625,
+          "register_hit_positions": 38.3758544921875,
+          "write_triggers": 106.69708251953125
+        }
+      },
+      {
+        "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-arm-c/checkpoints/aerm-s1",
+        "files_sha256": {
+          "aerm.json": "8e4627cef285ac6ebaab2390993e66f7e39f0a50bf10002e0575cdb17507830d",
+          "heads.safetensors": "a8e37cd4f01a3ec799b1ba40c3fb5705d5425b87c5e37733b148f2a505b10bfb",
+          "stack/config.json": "3e50764ab42b2e0ced21ec0cbf5dbc0d18818d0ab502355841486bb9815f5834",
+          "stack/model.safetensors": "f79d591f4ad4c3deb96c26bd4e52a85aec616edcc23f81ddd0fbb3ab57f2f931"
+        },
+        "model_registers_nll": 2.456862300634384,
+        "silent_registers_nll": 2.3758044093847275,
+        "model_minus_silent": 0.08105789124965668,
+        "per_thousand_tokens": {
+          "non_none_triggers": 0.0,
+          "read_events": 196.6705322265625,
+          "register_active_positions": 868.0877685546875,
+          "register_hit_positions": 0.0,
+          "write_triggers": 0.0
+        }
+      },
+      {
+        "checkpoint": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-binding/checkpoints-b/aerm-s1",
+        "files_sha256": {
+          "aerm.json": "8e4627cef285ac6ebaab2390993e66f7e39f0a50bf10002e0575cdb17507830d",
+          "heads.safetensors": "e6b9f30918ecde62a8cd0fbddc032e008768edafde72a1b22d1a1961ab783f77",
+          "stack/config.json": "3e50764ab42b2e0ced21ec0cbf5dbc0d18818d0ab502355841486bb9815f5834",
+          "stack/model.safetensors": "4e4617d36e30fd5e886e05a099ba9ee67cbae5ff68cf2c5a8c1da3213190d24b"
+        },
+        "model_registers_nll": 2.4337248355150223,
+        "silent_registers_nll": 2.3530985563993454,
+        "model_minus_silent": 0.08062627911567688,
+        "per_thousand_tokens": {
+          "non_none_triggers": 91.14837646484375,
+          "read_events": 56.915283203125,
+          "register_active_positions": 784.393310546875,
+          "register_hit_positions": 34.423828125,
+          "write_triggers": 87.62359619140625
+        }
+      }
+    ]
+  },
+  "arm_c_prime_route": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-prime-route/armc-route-1",
+    "manifest_sha256": "ec7102eb5c2b586b29c7d4c601149fbfb69f423d3cc39be08b0d174974a81b85",
+    "executable_sha256": "5469a238e22705be48ca0316b5b6f1c681173d4bda12c0f2c3d3200f6fc90123",
+    "held_out": {
+      "tag_accuracy": 0.9956082451099665,
+      "seed": 9002,
+      "episodes": 512,
+      "arms": {
+        "ExpertSieve": {
+          "Absent": "322/378",
+          "First": "144/144",
+          "Previous": "195/195",
+          "PreviousAbsent": "157/157",
+          "Reasserted": "31/31",
+          "Updated": "273/273"
+        },
+        "ExpertTrigger": {
+          "Absent": "216/378",
+          "First": "79/144",
+          "Previous": "156/195",
+          "PreviousAbsent": "139/157",
+          "Reasserted": "26/31",
+          "Updated": "151/273"
+        },
+        "ExpertTurnEnd": {
+          "Absent": "216/378",
+          "First": "79/144",
+          "Previous": "156/195",
+          "PreviousAbsent": "139/157",
+          "Reasserted": "26/31",
+          "Updated": "151/273"
+        },
+        "GV1": {
+          "Absent": "216/378",
+          "First": "79/144",
+          "Previous": "156/195",
+          "PreviousAbsent": "139/157",
+          "Reasserted": "26/31",
+          "Updated": "151/273"
+        },
+        "Gold": {
+          "Absent": "378/378",
+          "First": "144/144",
+          "Previous": "195/195",
+          "PreviousAbsent": "157/157",
+          "Reasserted": "31/31",
+          "Updated": "273/273"
+        }
+      }
+    },
+    "in_distribution_all_arms": "1.000 in every class"
+  },
+  "memory_replies": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-prime-route/armc-memory-replies-1",
+    "manifest_sha256": "e9b3c5402c4397441c6bdf0aeb8428667f243b2cdfc4009fcbb2db424631301a",
+    "result": "0/10 for arm A and arm C, Store and Silent"
+  },
+  "arm_a_prime_route": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/claude-prime-route/arma-route-1",
+    "manifest_sha256": "a12fabecf810bddb01bd8acbaf06366508b3c6815f2cc53f071ace7732b1d57c",
+    "executable_sha256": "5469a238e22705be48ca0316b5b6f1c681173d4bda12c0f2c3d3200f6fc90123",
+    "note": "arm A through the same prime-route-eval binary as arm C (reproduces binding-eval-1, manifest fee7889c)",
+    "held_out": {
+      "tag_accuracy": 0.9959706295999102,
+      "seed": 9002,
+      "episodes": 512,
+      "arms": {
+        "ExpertSieve": {
+          "Absent": "377/378",
+          "First": "141/144",
+          "Previous": "195/195",
+          "PreviousAbsent": "157/157",
+          "Reasserted": "31/31",
+          "Updated": "264/273"
+        },
+        "ExpertTrigger": {
+          "Absent": "377/378",
+          "First": "141/144",
+          "Previous": "164/195",
+          "PreviousAbsent": "146/157",
+          "Reasserted": "31/31",
+          "Updated": "264/273"
+        },
+        "ExpertTurnEnd": {
+          "Absent": "377/378",
+          "First": "141/144",
+          "Previous": "164/195",
+          "PreviousAbsent": "146/157",
+          "Reasserted": "31/31",
+          "Updated": "264/273"
+        },
+        "GV1": {
+          "Absent": "377/378",
+          "First": "141/144",
+          "Previous": "164/195",
+          "PreviousAbsent": "146/157",
+          "Reasserted": "31/31",
+          "Updated": "264/273"
+        },
+        "Gold": {
+          "Absent": "378/378",
+          "First": "141/144",
+          "Previous": "195/195",
+          "PreviousAbsent": "157/157",
+          "Reasserted": "31/31",
+          "Updated": "264/273"
+        }
+      }
+    }
+  },
+  "configurations": {
+    "baseline (dc-s1)": {
+      "mask_text_tags": false,
+      "mask_text_triggers": false,
+      "root": "opencode-g1-decompose/dc-s1"
+    },
+    "arm A": {
+      "mask_text_tags": true,
+      "mask_text_triggers": "true in effect: at 57dfca49 the single mask_text_tags flag masked both text losses; the saved train block predates the split",
+      "root": "opencode-g1-binding/arm-a"
+    },
+    "arm B": {
+      "mask_text_tags": true,
+      "names": "83-name list",
+      "root": "opencode-g1-binding/arm-b"
+    },
+    "arm C": {
+      "mask_text_tags": true,
+      "mask_text_triggers": false,
+      "root": "opencode-arm-c/arm-c",
+      "executable_sha256_prefix": "cfe5c6bd",
+      "branch": "lab/opencode/arm-c (#1498)"
+    }
+  },
+  "dev_text_markers": "dev.u16 (74f7d85f...) holds no User:, Assistant: or System: marker sequence (non-author review scan), so a user-turn gate gives the silent column on it",
+  "cost": "the sealed roots are charged in extension-2026-09-29-lab1-stage1.json (catch-up), plus arma-route-1"
+}
