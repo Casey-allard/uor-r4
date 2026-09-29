@@ -35,7 +35,11 @@
 //! [`MapCodec`] (by default [`D11Interim`], the export's own 4-bit groups)
 //! with the norm gains folded in, per-channel scalars through their grid codes
 //! and biases, age tables and Lorentz offsets in fixed point. Gradients reach
-//! the float variables by a straight-through estimator.
+//! the float variables by a straight-through estimator. A model saved in
+//! served mode records its codec in `config.json`
+//! ([`SavedServedRepresentation`]), so that an export can refuse to write a
+//! representation the model did not train against
+//! ([`crate::stack_export::check_export_representation`]).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -1002,6 +1006,13 @@ impl StackModel {
         row_nll(&self.forward(ids, batch, time)?.detach(), targets)
     }
 
+    /// Save the float variables (`model.safetensors`) and the configuration
+    /// (`config.json`). In served mode `config.json` also records the served
+    /// representation (`served_representation`, [`SavedServedRepresentation`]):
+    /// the weights are the float variables whose export through that codec is
+    /// what the forward pass read, as after quantization-aware training. A
+    /// float save writes the configuration alone, byte for byte as before the
+    /// record existed. [`Self::load`] ignores the record and loads in float.
     pub fn save(&self, directory: &Path) -> Result<()> {
         fs::create_dir_all(directory)?;
         let tensors: std::collections::HashMap<String, Tensor> = self
@@ -1010,11 +1021,33 @@ impl StackModel {
             .map(|(name, var)| (name.clone(), var.as_tensor().clone()))
             .collect();
         candle_core::safetensors::save(&tensors, directory.join("model.safetensors"))?;
-        fs::write(
-            directory.join("config.json"),
-            serde_json::to_vec_pretty(&self.config)?,
-        )?;
+        let config = match &self.served {
+            None => serde_json::to_vec_pretty(&self.config)?,
+            Some(state) => serde_json::to_vec_pretty(&ServedConfigFile {
+                config: &self.config,
+                served_representation: SavedServedRepresentation {
+                    codec: state.codec.name().to_owned(),
+                },
+            })?,
+        };
+        fs::write(directory.join("config.json"), config)?;
         Ok(())
+    }
+
+    /// The served representation that `directory`'s `config.json` records:
+    /// `Some` for a model saved in served mode ([`Self::save`]), `None` for
+    /// one saved in float, including every model saved before the record
+    /// existed.
+    pub fn saved_served_representation(
+        directory: &Path,
+    ) -> Result<Option<SavedServedRepresentation>> {
+        #[derive(Deserialize)]
+        struct Record {
+            #[serde(default)]
+            served_representation: Option<SavedServedRepresentation>,
+        }
+        let record: Record = serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        Ok(record.served_representation)
     }
 
     pub fn load(directory: &Path, device: &Device) -> Result<Self> {
@@ -1222,6 +1255,27 @@ impl MapCodec for D11Interim {
         let packed = quantize_matrix(values, rows, cols)?;
         dequantize_matrix(rows, cols, packed.exp_base, &packed.nibbles, &packed.scales)
     }
+}
+
+/// What a saved stack's `config.json` records, beside its configuration, of
+/// the served representation the forward pass read when it was saved
+/// ([`StackModel::save`] in served mode; read back by
+/// [`StackModel::saved_served_representation`]). An export must write this
+/// representation, or the served weights are not the ones the model trained
+/// against.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SavedServedRepresentation {
+    /// The codec's [`MapCodec::name`].
+    pub codec: String,
+}
+
+/// `config.json` of a model saved in served mode: the configuration's fields,
+/// then the record, which [`StackConfig`] ignores when it is read.
+#[derive(Serialize)]
+struct ServedConfigFile<'a> {
+    #[serde(flatten)]
+    config: &'a StackConfig,
+    served_representation: SavedServedRepresentation,
 }
 
 /// The served view's name for the output map: the embedding with the final
@@ -4576,7 +4630,6 @@ mod tests {
 
     #[test]
     fn served_forward_equals_the_exported_reference() -> Result<()> {
-        let mut worst = 0f32;
         for pattern in ["rar", "rrarra"] {
             for read in [ReadScore::Lorentz, ReadScore::Dot] {
                 for rotation in [true, false] {
@@ -4591,15 +4644,18 @@ mod tests {
                     let want = reference.logits(&ids, 2, time)?;
                     let gap = max_abs_gap(&served, &want)?;
                     let label = format!("{pattern} {read:?} rotation {rotation}");
-                    assert!(
-                        gap <= 1e-5,
+                    // Bit for bit: both forwards read the export's values
+                    // through the same kernels, so a slip in any rounding (a
+                    // fixed-point exponent of 2^-16 for 2^-24, say) shows.
+                    assert_eq!(
+                        bits(&served)?,
+                        bits(&want)?,
                         "{label}: served logits differ from the exported reference by {gap}"
                     );
                     assert!(
                         max_abs_gap(&served, &float)? > 1e-3,
                         "{label}: the served representation left the logits unchanged"
                     );
-                    worst = worst.max(gap);
                     // The piecewise entry points read the same served view.
                     let x =
                         model.run_layers(model.embed(&ids, 2, time)?, 0..model.config.layers())?;
@@ -4626,9 +4682,6 @@ mod tests {
             exponents.len() >= 8,
             "only {} scale exponents",
             exponents.len()
-        );
-        eprintln!(
-            "served forward against the exported reference: worst absolute logit gap {worst}"
         );
         Ok(())
     }
@@ -4865,12 +4918,14 @@ mod tests {
                 assert!(!same_bits(old, &new), "{pattern}: {name} did not move");
             }
             let updated = exported_reference(&model)?;
-            let gap = max_abs_gap(
-                &model.forward(&ids, 2, time)?,
-                &updated.logits(&ids, 2, time)?,
-            )?;
-            assert!(
-                gap <= 1e-5,
+            let (served, want) = (
+                model.forward(&ids, 2, time)?,
+                updated.logits(&ids, 2, time)?,
+            );
+            let gap = max_abs_gap(&served, &want)?;
+            assert_eq!(
+                bits(&served)?,
+                bits(&want)?,
                 "{pattern}: after an update the served forward is {gap} off"
             );
         }
@@ -5021,12 +5076,55 @@ mod tests {
             let after = statistics(&model)?;
             assert_eq!(after.refreshes, before.refreshes + 1, "{name}");
             assert_eq!(after.tensors, before.tensors + recomputed, "{name}");
-            let gap = max_abs_gap(&logits, &exported_reference(&model)?.logits(&ids, 1, time)?)?;
-            assert!(
-                gap <= 1e-5,
+            let want = exported_reference(&model)?.logits(&ids, 1, time)?;
+            let gap = max_abs_gap(&logits, &want)?;
+            assert_eq!(
+                bits(&logits)?,
+                bits(&want)?,
                 "after changing {name} the served forward is {gap} off"
             );
         }
+        Ok(())
+    }
+
+    #[test]
+    fn a_model_saved_in_served_mode_records_its_representation() -> Result<()> {
+        let mut model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
+        spread(&model, 97)?;
+        let root = std::env::temp_dir().join(format!(
+            "geometric-stack-served-save-{}",
+            std::process::id()
+        ));
+        let (float_dir, served_dir) = (root.join("float"), root.join("served"));
+        model.save(&float_dir)?;
+        model.set_served_representation(Some(Arc::new(D11Interim)))?;
+        model.save(&served_dir)?;
+        let time = model.config.context;
+        let ids = token_ids(time, 96, 31);
+        let float_logits = bits(&model.with_float_forward(|m| m.forward(&ids, 1, time))?)?;
+        // A float save writes the configuration alone, as before the record.
+        assert_eq!(
+            fs::read(float_dir.join("config.json"))?,
+            serde_json::to_vec_pretty(&model.config)?
+        );
+        assert_eq!(StackModel::saved_served_representation(&float_dir)?, None);
+        assert_eq!(
+            StackModel::saved_served_representation(&served_dir)?,
+            Some(SavedServedRepresentation {
+                codec: D11Interim.name().to_owned()
+            })
+        );
+        // Both directories load, in float, with the saved weights.
+        for directory in [&float_dir, &served_dir] {
+            let loaded = StackModel::load(directory, &cpu())?;
+            assert!(loaded.served_codec().is_none());
+            assert_eq!(loaded.config, model.config);
+            assert_eq!(bits(&loaded.forward(&ids, 1, time)?)?, float_logits);
+        }
+        // A float save over a served one leaves no record.
+        StackModel::load(&served_dir, &cpu())?.save(&served_dir)?;
+        assert_eq!(StackModel::saved_served_representation(&served_dir)?, None);
+        fs::remove_dir_all(&root)?;
         Ok(())
     }
 

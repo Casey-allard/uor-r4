@@ -8,7 +8,9 @@
 //! Rounding is to nearest ([`crate::lut_export::quantize_matrix`]) or, given a
 //! [`StackCalibration`] of each map's input moments, GPTQ
 //! ([`crate::lut_export::quantize_matrix_gptq`]); the embedding, a lookup,
-//! always rounds to nearest. Each learned
+//! always rounds to nearest. A model trained against a served representation
+//! (quantization-aware training) exports only as that representation
+//! ([`check_export_representation`]). Each learned
 //! scalar that multiplies a runtime value (convolution taps, decay rates,
 //! Lorentz scales) becomes a grid code `±(16 + m) 2^(e - 4)`. Biases, age
 //! tables and Lorentz offsets become integers, and the exp, SiLU, GELU and
@@ -26,7 +28,9 @@ use uor_r4_lut::format::{Fixed, StackArtifactBuilder, StackNumerics, StackShape,
 use uor_r4_lut::kernels::grid_encode;
 use uor_r4_lut::GROUP;
 
-use crate::geometric_stack::{ReadScore, StackArch, StackModel, StackSite};
+use crate::geometric_stack::{
+    D11Interim, MapCodec, ReadScore, SavedServedRepresentation, StackArch, StackModel, StackSite,
+};
 use crate::kappa_llama::{Checkpoint, LlamaShape, Site};
 use crate::lut_export::{
     arcosh_table, grid_nearest, quantize_matrix, quantize_matrix_gptq, Calibration, EXP_RANGE,
@@ -505,6 +509,39 @@ pub fn export_stack(
             "grid_code_worst_relative_error": code_errors,
         }),
     ))
+}
+
+/// Whether a saved model may be exported, `calibrated` (GPTQ) or not, given
+/// the served representation its directory records
+/// ([`StackModel::saved_served_representation`]). A model trained against a
+/// served representation (quantization-aware training) exports only as that
+/// representation. [`D11Interim`] is [`export_stack`] rounding to nearest, so
+/// such a model refuses a calibrated export, whose values it never trained on;
+/// a model trained against any other codec refuses both, since the stack
+/// export writes neither. A model saved in float may be exported either way.
+pub fn check_export_representation(
+    saved: Option<&SavedServedRepresentation>,
+    calibrated: bool,
+) -> Result<()> {
+    let Some(saved) = saved else {
+        return Ok(());
+    };
+    let interim = D11Interim.name();
+    if saved.codec != interim {
+        return Err(invalid(format!(
+            "the model was trained against the served representation {}, which the stack \
+             export does not write (it writes {interim} when rounding to nearest)",
+            saved.codec
+        )));
+    }
+    if calibrated {
+        return Err(invalid(format!(
+            "the model was trained against {interim} (quantization-aware training); a \
+             calibrated (GPTQ) export would write values it never trained on, so export it \
+             without calibration= to write exactly that representation"
+        )));
+    }
+    Ok(())
 }
 
 /// The transformer control as a Llama checkpoint (RoPE rotate-half with theta
@@ -1149,5 +1186,24 @@ mod tests {
             .tensors
             .contains_key("model.layers.5.mlp.down_proj.weight"));
         assert!(export_stack(&control, json!({}), None).is_err());
+    }
+
+    #[test]
+    fn a_model_trained_against_the_interim_codec_exports_by_rounding_to_nearest_only() {
+        let interim = SavedServedRepresentation {
+            codec: D11Interim.name().to_owned(),
+        };
+        let other = SavedServedRepresentation {
+            codec: "geometry-coded-4bit".to_owned(),
+        };
+        // A float model exports either way.
+        assert!(check_export_representation(None, false).is_ok());
+        assert!(check_export_representation(None, true).is_ok());
+        // A QAT model exports as the representation it trained against only.
+        assert!(check_export_representation(Some(&interim), false).is_ok());
+        let refusal = check_export_representation(Some(&interim), true).unwrap_err();
+        assert!(refusal.to_string().contains("calibration="), "{refusal}");
+        assert!(check_export_representation(Some(&other), false).is_err());
+        assert!(check_export_representation(Some(&other), true).is_err());
     }
 }

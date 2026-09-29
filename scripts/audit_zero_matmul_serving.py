@@ -12,8 +12,9 @@ Usage:
 
 `--stack` (implied for a binary named `uor-r4-stack*`) audits the D11 geometric
 stack engine (`uor_r4_integer::stack`): its step and kernels become the mandatory
-symbols and the call-graph roots, in place of the retained IntegerModel set.
-Other targets audit exactly as before.
+symbols and the call-graph roots, in place of the retained IntegerModel set. A
+stack audit always runs the call graph and fails unless every stack root is
+found. Other targets audit exactly as before.
 """
 
 import argparse
@@ -671,10 +672,13 @@ STACK_MANDATORY_SYMBOLS = [
 ]
 
 # Call-graph roots of the stack engine (v0-mangled names, as `otool -tvV`
-# prints them): its step and the greedy selection.
+# prints them): its step and the greedy selection, as (name, pattern). A stack
+# audit runs the call graph and fails unless every root is found, so a build
+# whose names these patterns miss (legacy mangling, an `.llvm.` suffix) cannot
+# pass with no reachable functions.
 STACK_CALL_GRAPH_ROOTS = [
-    re.compile(r"19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step$"),
-    re.compile(r"12stack_argmax$"),
+    ("IntegerStackSession::step", re.compile(r"19IntegerStackSession(?:L[0-9A-Za-z_]*E)?4step$")),
+    ("stack::kernels::stack_argmax", re.compile(r"12stack_argmax$")),
 ]
 
 
@@ -702,14 +706,29 @@ def run_stack_pattern_tests():
         "__RNvNtNtCs1a2b3c_14uor_r4_integer5stack7kernels12stack_argmax",
     ]
     for root_name in step_names:
-        if not any(p.search(root_name) for p in STACK_CALL_GRAPH_ROOTS):
+        if not any(p.search(root_name) for _, p in STACK_CALL_GRAPH_ROOTS):
             raise AssertionError(f"Stack pattern test failed: no call-graph root matches {root_name}")
     for other in [
         "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_19IntegerStackSession5reset",
         "__RNvMs_NtNtCs1a2b3c_14uor_r4_integer5stack7sessionNtB5_17IntegerStackModel7session",
     ]:
-        if any(p.search(other) for p in STACK_CALL_GRAPH_ROOTS):
+        if any(p.search(other) for _, p in STACK_CALL_GRAPH_ROOTS):
             raise AssertionError(f"Stack pattern test failed: {other} is not a serving root")
+    # Every root must be found. A build whose argmax the pattern misses (legacy
+    # mangling, an `.llvm.` suffix) reports that root missing, and so fails.
+    _, missing = find_serving_roots(step_names, [], STACK_CALL_GRAPH_ROOTS)
+    if missing:
+        raise AssertionError(f"Stack pattern test failed: roots {missing} missed in a v0 build")
+    for renamed in [
+        "__ZN14uor_r4_integer5stack7kernels12stack_argmax17h0123456789abcdefE",
+        "__RNvNtNtCs1a2b3c_14uor_r4_integer5stack7kernels12stack_argmax.llvm.1234567890",
+    ]:
+        _, missing = find_serving_roots([step_names[0], renamed], [], STACK_CALL_GRAPH_ROOTS)
+        if missing != ["stack::kernels::stack_argmax"]:
+            raise AssertionError(f"Stack pattern test failed: {renamed} did not report the argmax root missing")
+    _, missing = find_serving_roots([], [], STACK_CALL_GRAPH_ROOTS)
+    if missing != [name for name, _ in STACK_CALL_GRAPH_ROOTS]:
+        raise AssertionError("Stack pattern test failed: an empty call graph did not report every root missing")
     for longer, shorter in [
         ("stack_activation_tables", "stack_activation"),
         ("stack_gemv_pairs", "stack_gemv"),
@@ -1279,14 +1298,36 @@ def run_sentinel_tests():
             raise AssertionError(f"Sentinel test failed: '{instr}' not detected by STRICT_FORBIDDEN_PATTERN")
 
 
+def find_serving_roots(functions, keywords, extra_roots):
+    """The functions a call-graph traversal starts from (a keyword in the name
+    or an `extra_roots` pattern match, closures and drop glue excluded), and
+    the names of the `extra_roots` (name, pattern) pairs that match none."""
+    roots = [
+        fn
+        for fn in functions
+        if (
+            any(kw in fn for kw in keywords)
+            or any(p.search(fn) for _, p in extra_roots)
+        )
+        and "drop_glue" not in fn
+        and "closure" not in fn
+    ]
+    missing = [name for name, p in extra_roots if not any(p.search(fn) for fn in roots)]
+    return roots, missing
+
+
 def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
     """Transitive call-graph reachability traversal from serving roots.
     Checks 100% of reachable numerical serving functions in compiled binaries.
-    `extra_roots` are compiled patterns naming further roots (the stack set)."""
+    `extra_roots` are (name, compiled pattern) pairs naming further roots (the
+    stack set). Returns the functions visited, the violations and the names of
+    the `extra_roots` that no function matched."""
     try:
         output = subprocess.check_output(["otool", "-tvV", path]).decode("utf-8", errors="ignore")
     except Exception as e:
-        return 0, [("call_graph_init", f"Failed to run otool for call-graph audit: {e}")]
+        return 0, [("call_graph_init", f"Failed to run otool for call-graph audit: {e}")], [
+            name for name, _ in extra_roots
+        ]
 
     functions = {}
     current_fn = None
@@ -1332,16 +1373,7 @@ def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
         "step_zeta_phase_scalar",
     ]
 
-    serving_roots = [
-        fn
-        for fn in functions
-        if (
-            any(kw in fn for kw in serving_entry_keywords)
-            or any(p.search(fn) for p in extra_roots)
-        )
-        and "drop_glue" not in fn
-        and "closure" not in fn
-    ]
+    serving_roots, missing_roots = find_serving_roots(functions, serving_entry_keywords, extra_roots)
 
     allow_patterns = [
         r"alloc",
@@ -1388,7 +1420,7 @@ def run_call_graph_audit(path, disasm_choice="auto", extra_roots=()):
                     visited.add(c)
                     queue.append(c)
 
-    return len(visited), violations
+    return len(visited), violations, missing_roots
 
 
 def main():
@@ -1453,7 +1485,8 @@ def main():
         "--stack",
         action="store_true",
         help="Audit the D11 geometric-stack engine: its step and kernels are the mandatory "
-        "symbols and call-graph roots (implied for a binary named uor-r4-stack*)",
+        "symbols and call-graph roots (implied for a binary named uor-r4-stack*); the call "
+        "graph always runs and every stack root must be found",
     )
 
     args = parser.parse_args()
@@ -1497,8 +1530,10 @@ def main():
     )
 
     do_call_graph = args.call_graph if args.call_graph is not None else (not target_path.endswith(".rlib"))
+    # A stack audit always certifies the call graph of its roots.
+    do_call_graph = do_call_graph or stack
     if do_call_graph:
-        cg_visited, cg_violations = run_call_graph_audit(
+        cg_visited, cg_violations, cg_missing_roots = run_call_graph_audit(
             target_path,
             args.disassembler,
             extra_roots=STACK_CALL_GRAPH_ROOTS if stack else (),
@@ -1508,6 +1543,12 @@ def main():
         if cg_violations:
             for fn, bad in cg_violations:
                 results["all_violations"].append(("call_graph::" + fn, fn, [bad], "Reachable callee"))
+        # Only the stack set declares roots that must exist; a missing one
+        # fails the audit instead of certifying an empty traversal.
+        for name in cg_missing_roots:
+            results["missing_mandatory"].append(
+                (f"call-graph root {name}", "Stack call-graph root: no function in the call graph matches it")
+            )
 
     if args.tap:
         print_tap_output(results, tools_found)

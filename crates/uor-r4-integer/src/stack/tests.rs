@@ -4,7 +4,8 @@
 
 use serde_json::{json, Value};
 
-use super::{IntegerStackModel, StackError, MAGIC};
+use super::format::MAX_READ_CACHE_BYTES;
+use super::{IntegerStackModel, StackError, StackShape, MAGIC};
 
 struct Lcg(u64);
 
@@ -164,6 +165,20 @@ fn artifact(seed: u64) -> Vec<u8> {
     out
 }
 
+/// `bytes` with its JSON header edited; the data sections keep their offsets.
+fn with_header(bytes: &[u8], edit: impl FnOnce(&mut Value)) -> Vec<u8> {
+    let len = u64::from_le_bytes(bytes[8..16].try_into().expect("length")) as usize;
+    let mut header: Value = serde_json::from_slice(&bytes[16..16 + len]).expect("header");
+    edit(&mut header);
+    let json = serde_json::to_vec(&header).expect("header");
+    let mut out = MAGIC.to_vec();
+    out.extend_from_slice(&(json.len() as u64).to_le_bytes());
+    out.extend_from_slice(&json);
+    out.resize(out.len().div_ceil(64) * 64, 0);
+    out.extend_from_slice(&bytes[(16 + len).div_ceil(64) * 64..]);
+    out
+}
+
 fn run(model: &IntegerStackModel, ids: &[u32]) -> Vec<Vec<i32>> {
     let mut session = model.session();
     ids.iter()
@@ -245,4 +260,70 @@ fn truncated_or_mislabelled_artifacts_are_rejected() {
         IntegerStackModel::parse(&json),
         Err(StackError::Header(_))
     ));
+}
+
+#[test]
+fn shapes_whose_read_caches_exceed_the_bound_are_rejected_before_allocation() {
+    let shape = |pattern: &str, read: &str| StackShape {
+        vocab: 40,
+        width: 512,
+        heads: 2,
+        mlp: 32,
+        pattern: pattern.to_owned(),
+        read: read.to_owned(),
+        rotation: false,
+        context: 1 << 16,
+    };
+    // Dot reads cache an i32 key and value row per position: 2^28 bytes per
+    // layer at this width and context, so sixteen layers reach the bound.
+    let sixteen = shape(&"a".repeat(16), "dot");
+    assert_eq!(sixteen.read_cache_bytes(), Some(MAX_READ_CACHE_BYTES));
+    assert!(sixteen.validate().is_ok());
+    assert!(matches!(
+        shape(&"a".repeat(17), "dot").validate(),
+        Err(StackError::Shape(_))
+    ));
+    // Lorentz lifts add a u64 per head and position; recurrences cache nothing.
+    assert!(shape(&"a".repeat(16), "lorentz").validate().is_err());
+    assert_eq!(
+        shape(&"r".repeat(256), "lorentz").read_cache_bytes(),
+        Some(0)
+    );
+    // The loader applies the bound before any section is read or any session
+    // allocated: a small file that declares seventeen such reads is refused.
+    let bytes = with_header(&artifact(3), |header| {
+        let shape = &mut header["shape"];
+        shape["pattern"] = json!("a".repeat(17));
+        shape["width"] = json!(512);
+        shape["read"] = json!("dot");
+        shape["context"] = json!(1 << 16);
+    });
+    match IntegerStackModel::parse(&bytes) {
+        Err(StackError::Shape(reason)) => assert!(reason.contains("read caches"), "{reason}"),
+        other => panic!("expected the read-cache bound, got {:?}", other.err()),
+    }
+}
+
+#[test]
+fn duplicate_sections_are_rejected() {
+    let bytes = artifact(4);
+    for (list, name) in [("matrices", "head"), ("tables", "exp")] {
+        let duplicated = with_header(&bytes, |header| {
+            let entries = header[list].as_array_mut().expect("section list");
+            let copy = entries
+                .iter()
+                .find(|entry| entry["name"] == name)
+                .expect("section")
+                .clone();
+            entries.push(copy);
+        });
+        assert!(
+            matches!(
+                IntegerStackModel::parse(&duplicated),
+                Err(StackError::DuplicateSection(found)) if found == name
+            ),
+            "a duplicate {name} in {list} was not rejected"
+        );
+    }
+    assert!(IntegerStackModel::parse(&with_header(&bytes, |_| {})).is_ok());
 }

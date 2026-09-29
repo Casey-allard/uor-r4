@@ -15,6 +15,8 @@
 //! product of declared sizes is checked, so malformed input returns a
 //! [`StackError`] instead of panicking.
 
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -30,6 +32,17 @@ pub const GROUP: usize = 32;
 const ALIGN: usize = 64;
 /// The largest header accepted (64 MiB).
 const MAX_HEADER: u64 = 64 << 20;
+
+/// Serving limits of a stack's dimensions.
+pub const MAX_VOCAB: usize = 1 << 20;
+pub const MAX_WIDTH: usize = 1 << 14;
+pub const MAX_MLP: usize = 1 << 16;
+pub const MAX_CONTEXT: usize = 1 << 16;
+pub const MAX_LAYERS: usize = 256;
+/// The largest read cache a session may allocate (4 GiB): the keys and
+/// values of every position of the context over all read layers, and their
+/// Lorentz lifts. The dimension limits alone would allow 8 GiB per read layer.
+pub const MAX_READ_CACHE_BYTES: u64 = 1 << 32;
 
 /// Dimensions of a geometric stack.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
@@ -51,12 +64,13 @@ pub struct StackShape {
 
 impl StackShape {
     /// The shape rules of the container: the exporter's invariants and the
-    /// serving limits.
+    /// serving limits, including the bound on a session's read caches, so
+    /// that no accepted shape makes a session allocation abort.
     pub fn validate(&self) -> Result<(), StackError> {
         let dims = [self.vocab, self.width, self.heads, self.mlp, self.context];
         let reason = if dims.contains(&0) {
             Some("a dimension is zero")
-        } else if self.pattern.is_empty() || self.pattern.len() > 256 {
+        } else if self.pattern.is_empty() || self.pattern.len() > MAX_LAYERS {
             Some("the layer pattern is empty or longer than 256 layers")
         } else if self.pattern.bytes().any(|c| c != b'r' && c != b'a') {
             Some("the layer pattern holds a letter other than r and a")
@@ -71,12 +85,17 @@ impl StackShape {
             Some("the MLP width is not a multiple of the group")
         } else if self.width / self.heads > 256 {
             Some("the head width exceeds 256")
-        } else if self.vocab > 1 << 20
-            || self.width > 1 << 14
-            || self.mlp > 1 << 16
-            || self.context > 1 << 16
+        } else if self.vocab > MAX_VOCAB
+            || self.width > MAX_WIDTH
+            || self.mlp > MAX_MLP
+            || self.context > MAX_CONTEXT
         {
             Some("a dimension exceeds its serving limit")
+        } else if self
+            .read_cache_bytes()
+            .is_none_or(|bytes| bytes > MAX_READ_CACHE_BYTES)
+        {
+            Some("the read caches of a session would exceed 4 GiB")
         } else {
             None
         };
@@ -88,6 +107,21 @@ impl StackShape {
 
     pub fn layers(&self) -> usize {
         self.pattern.len()
+    }
+
+    /// Bytes of the caches a session allocates for its whole context over all
+    /// read layers: an `i32` key and value row of the width per position, and
+    /// for the Lorentz read a `u64` lift per head. `None` on overflow.
+    pub fn read_cache_bytes(&self) -> Option<u64> {
+        let reads = self.pattern.bytes().filter(|&c| c == b'a').count() as u64;
+        let lifts = if self.lorentz() { self.heads as u64 } else { 0 };
+        let per_position = (self.width as u64)
+            .checked_mul(2)?
+            .checked_add(lifts.checked_mul(2)?)?
+            .checked_mul(4)?;
+        reads
+            .checked_mul(self.context as u64)?
+            .checked_mul(per_position)
     }
 
     /// Quaternion lanes of a recurrence (`width / 4`).
@@ -210,8 +244,9 @@ pub(crate) struct Container<'a> {
     pub numerics: StackNumerics,
     pub sha256: String,
     data: &'a [u8],
-    matrices: Vec<MatrixEntry>,
-    tables: Vec<TableEntry>,
+    /// Sections by name (unique within each kind).
+    matrices: HashMap<String, MatrixEntry>,
+    tables: HashMap<String, TableEntry>,
 }
 
 /// The data range `offset..offset + bytes`, if it lies inside `len` bytes.
@@ -255,12 +290,12 @@ impl<'a> Container<'a> {
             .filter(|start| *start <= bytes.len())
             .ok_or(StackError::MissingData)?;
         let data = &bytes[data_start..];
-        for (i, m) in header.matrices.iter().enumerate() {
-            if header.matrices[..i]
-                .iter()
-                .any(|other| other.name == m.name)
-            {
-                return Err(StackError::DuplicateSection(m.name.clone()));
+        // Sections are indexed by name as they are checked, which finds a
+        // duplicate in one pass.
+        let mut matrices = HashMap::with_capacity(header.matrices.len());
+        for m in header.matrices {
+            if matrices.contains_key(&m.name) {
+                return Err(StackError::DuplicateSection(m.name));
             }
             let weights = m.rows.checked_mul(m.cols);
             let sized = weights.is_some_and(|w| {
@@ -274,28 +309,31 @@ impl<'a> Container<'a> {
                 || range(m.nibbles, data.len()).is_none()
                 || range(m.scales, data.len()).is_none()
             {
-                return Err(StackError::MatrixSection(m.name.clone()));
+                return Err(StackError::MatrixSection(m.name));
             }
+            matrices.insert(m.name.clone(), m);
         }
-        for (i, t) in header.tables.iter().enumerate() {
-            if header.tables[..i].iter().any(|other| other.name == t.name) {
-                return Err(StackError::DuplicateSection(t.name.clone()));
+        let mut tables = HashMap::with_capacity(header.tables.len());
+        for t in header.tables {
+            if tables.contains_key(&t.name) {
+                return Err(StackError::DuplicateSection(t.name));
             }
             let sized = t
                 .len
                 .checked_mul(t.kind.width())
                 .is_some_and(|b| b as u64 == t.span.bytes);
             if !sized || range(t.span, data.len()).is_none() {
-                return Err(StackError::TableSection(t.name.clone()));
+                return Err(StackError::TableSection(t.name));
             }
+            tables.insert(t.name.clone(), t);
         }
         Ok(Self {
             shape: header.shape,
             numerics: header.numerics,
             sha256: hex::encode(Sha256::digest(bytes)),
             data,
-            matrices: header.matrices,
-            tables: header.tables,
+            matrices,
+            tables,
         })
     }
 
@@ -316,8 +354,7 @@ impl<'a> Container<'a> {
     ) -> Result<MatrixView<'a>, StackError> {
         let m = self
             .matrices
-            .iter()
-            .find(|m| m.name == name)
+            .get(name)
             .ok_or_else(|| StackError::MissingSection(name.to_owned()))?;
         if m.rows != rows || m.cols != cols {
             return Err(StackError::MatrixShape {
@@ -340,8 +377,7 @@ impl<'a> Container<'a> {
     fn table(&self, name: &str, kind: TableKind) -> Result<&'a [u8], StackError> {
         let t = self
             .tables
-            .iter()
-            .find(|t| t.name == name)
+            .get(name)
             .ok_or_else(|| StackError::MissingSection(name.to_owned()))?;
         if t.kind != kind {
             return Err(StackError::TableKind {

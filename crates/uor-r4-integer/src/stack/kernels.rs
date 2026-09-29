@@ -30,6 +30,8 @@ use super::format::Fixed;
 
 /// Exponent of the residual stream and of projection outputs: `v * 2^-16`.
 pub(crate) const RESIDUAL_EXP: i32 = -16;
+/// Exponent of a product of two values at the residual exponent: `v * 2^-32`.
+pub(crate) const PRODUCT_EXP: i32 = RESIDUAL_EXP + RESIDUAL_EXP;
 /// Bias of a grid code's exponent field.
 const GRID_EXP_BIAS: i32 = 64;
 /// Table points per octave of the arcosh argument code, as a power of two.
@@ -474,7 +476,9 @@ pub(crate) fn stack_rms_norm(x: &[i32], eps: Fixed, scratch: &mut [i64], out: &m
         sum = sum.wrapping_add(stack_square(y));
     }
     let mean = stack_div_u64(sum, x.len().max(1) as u64) as i64;
-    let eps_int = shift(eps.mantissa, 2 * (RESIDUAL_EXP + sh) - eps.exp).max(0);
+    // The squares' exponent, twice that of the shifted values.
+    let square_exp = (RESIDUAL_EXP + sh) << 1;
+    let eps_int = shift(eps.mantissa, square_exp - eps.exp).max(0);
     let ms = mean.wrapping_add(eps_int).max(1) as u128;
     // s = sqrt(ms) 2^34 and r = 2^96 / s = 2^62 / sqrt(ms).
     let s = stack_isqrt(ms << 68).max(1);
@@ -539,19 +543,36 @@ pub(crate) struct PackedMatrix {
 /// Per weight: one table read and one addition; per group of 32: the scale
 /// `(16 + m) 2^(de - de_min)` by shifts and additions. The group sums and the
 /// row accumulator are the D10 kernel's exact integers.
+///
+/// The loader's shape checks make every size agree, so the early returns are
+/// unreachable: a debug build asserts, a release build returns rather than
+/// read out of bounds.
 #[inline(never)]
 pub(crate) fn stack_gemv(m: &PackedMatrix, tables: &[[i32; 16]], x_exp: i32, out: &mut [i32]) {
     let row_bytes = m.cols >> 1;
     let groups = m.cols >> 5;
+    debug_assert!(
+        out.len() == m.rows && m.min_de.len() == m.rows && tables.len() >= m.cols,
+        "stack_gemv: {} outputs and {} activation tables for a {}x{} map",
+        out.len(),
+        tables.len(),
+        m.rows,
+        m.cols
+    );
     let Some(tables) = tables.get(..m.cols) else {
         return;
     };
     let (mut nibble_at, mut scale_at) = (0usize, 0usize);
     for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
-        let (Some(row), Some(scales)) = (
+        let (row, scales) = (
             m.nibbles.get(nibble_at..nibble_at + row_bytes),
             m.scales.get(scale_at..scale_at + groups),
-        ) else {
+        );
+        debug_assert!(
+            row.is_some() && scales.is_some(),
+            "stack_gemv: a row lies outside the packed map"
+        );
+        let (Some(row), Some(scales)) = (row, scales) else {
             return;
         };
         let mut acc = 0i64;
@@ -594,7 +615,8 @@ pub(crate) fn stack_pair_tables(tables: &[[i32; 16]], pairs: &mut [[i32; 256]]) 
 
 /// [`stack_gemv`] reading pair tables ([`stack_pair_tables`]): one table
 /// read and one addition per weight byte, that is per two weights. The group
-/// sums, and so the outputs, are the same integers.
+/// sums, and so the outputs, are the same integers. The early returns are
+/// unreachable after loading, as in [`stack_gemv`].
 #[inline(never)]
 pub(crate) fn stack_gemv_pairs(
     m: &PackedMatrix,
@@ -604,15 +626,28 @@ pub(crate) fn stack_gemv_pairs(
 ) {
     let row_bytes = m.cols >> 1;
     let groups = m.cols >> 5;
+    debug_assert!(
+        out.len() == m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
+        "stack_gemv_pairs: {} outputs and {} pair tables for a {}x{} map",
+        out.len(),
+        pairs.len(),
+        m.rows,
+        m.cols
+    );
     let Some(pairs) = pairs.get(..row_bytes) else {
         return;
     };
     let (mut nibble_at, mut scale_at) = (0usize, 0usize);
     for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
-        let (Some(row), Some(scales)) = (
+        let (row, scales) = (
             m.nibbles.get(nibble_at..nibble_at + row_bytes),
             m.scales.get(scale_at..scale_at + groups),
-        ) else {
+        );
+        debug_assert!(
+            row.is_some() && scales.is_some(),
+            "stack_gemv_pairs: a row lies outside the packed map"
+        );
+        let (Some(row), Some(scales)) = (row, scales) else {
             return;
         };
         let mut acc = 0i64;
@@ -633,17 +668,31 @@ pub(crate) fn stack_gemv_pairs(
     }
 }
 
-/// Row `row` of a packed matrix at the residual exponent (the embedding).
+/// Row `row` of a packed matrix at the residual exponent (the embedding). The
+/// step checks the token against the vocabulary, so the early return is
+/// unreachable, as in [`stack_gemv`].
 #[inline(never)]
 pub(crate) fn stack_dequant_row(m: &PackedMatrix, row: usize, out: &mut [i32]) {
     let row_bytes = m.cols >> 1;
     let groups = m.cols >> 5;
+    debug_assert!(
+        row < m.rows && out.len() == m.cols,
+        "stack_dequant_row: row {row} into {} outputs of a {}x{} map",
+        out.len(),
+        m.rows,
+        m.cols
+    );
     let nibble_at = stack_mul_u64(row as u64, row_bytes as u64) as usize;
     let scale_at = stack_mul_u64(row as u64, groups as u64) as usize;
-    let (Some(bytes), Some(scales)) = (
+    let (bytes, scales) = (
         m.nibbles.get(nibble_at..nibble_at + row_bytes),
         m.scales.get(scale_at..scale_at + groups),
-    ) else {
+    );
+    debug_assert!(
+        bytes.is_some() && scales.is_some(),
+        "stack_dequant_row: row {row} lies outside the packed map"
+    );
+    let (Some(bytes), Some(scales)) = (bytes, scales) else {
         return;
     };
     for (c, slot) in out.iter_mut().enumerate().take(m.cols) {
@@ -930,6 +979,51 @@ mod tests {
                 );
                 assert_eq!(nibble_out[r], want, "{rows}x{cols} row {r}");
             }
+        }
+    }
+
+    /// A mis-sized call, unreachable after loading: a debug build stops at an
+    /// assertion, a release build returns with the rows it could read and
+    /// never reads out of bounds.
+    #[test]
+    fn mis_sized_calls_assert_in_debug_and_return_in_release() {
+        // Two rows declared, one row of nibbles present.
+        let m = PackedMatrix {
+            rows: 2,
+            cols: 32,
+            exp_base: 0,
+            nibbles: vec![0x99; 16],
+            scales: vec![0; 2],
+            min_de: vec![0; 2],
+        };
+        let mut tables = vec![[0i32; 16]; 32];
+        stack_activation_tables(&[1i16; 32], &mut tables);
+        let mut pairs = vec![[0i32; 256]; 16];
+        stack_pair_tables(&tables, &mut pairs);
+        let panics = |f: &mut dyn FnMut()| {
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+        };
+        let untouched = i32::MIN;
+        for pairs_kernel in [false, true] {
+            let mut out = vec![untouched; 2];
+            let panicked = panics(&mut || {
+                if pairs_kernel {
+                    stack_gemv_pairs(&m, &pairs, -14, &mut out);
+                } else {
+                    stack_gemv(&m, &tables, -14, &mut out);
+                }
+            });
+            assert_eq!(panicked, cfg!(debug_assertions), "pairs {pairs_kernel}");
+            if !panicked {
+                assert_ne!(out[0], untouched, "pairs {pairs_kernel}: the readable row");
+                assert_eq!(out[1], untouched, "pairs {pairs_kernel}: the missing row");
+            }
+        }
+        let mut row = vec![untouched; 32];
+        let panicked = panics(&mut || stack_dequant_row(&m, 1, &mut row));
+        assert_eq!(panicked, cfg!(debug_assertions), "dequant_row");
+        if !panicked {
+            assert!(row.iter().all(|&v| v == untouched));
         }
     }
 

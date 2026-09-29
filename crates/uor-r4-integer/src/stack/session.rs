@@ -11,7 +11,7 @@ use super::kernels::{
     stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv, stack_gemv_pairs,
     stack_hamilton, stack_isqrt, stack_lift, stack_lorentz_distance, stack_mix_row, stack_mul_u64,
     stack_pair_tables, stack_quantize16, stack_query_tables, stack_rms_norm, stack_sigmoid_q31,
-    stack_square, PackedMatrix, ARCOSH_TABLE_LEN, RESIDUAL_EXP,
+    stack_square, PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP, RESIDUAL_EXP,
 };
 use super::StackError;
 
@@ -126,7 +126,9 @@ impl IntegerStackModel {
     /// the D10 engine's loader (section bounds, matrix shapes, table lengths,
     /// grid codes, the numerics ranges and the arcosh table's order), plus
     /// three that keep every served operation exact: unique section names,
-    /// bounded exponents and a non-increasing exp table.
+    /// bounded exponents and a non-increasing exp table. The shape's read
+    /// caches are bounded too (`MAX_READ_CACHE_BYTES`, 4 GiB), so that
+    /// creating a session cannot abort on allocation.
     pub fn parse(bytes: &[u8]) -> Result<Self, StackError> {
         let artifact = Container::parse(bytes)?;
         let shape = artifact.shape.clone();
@@ -300,7 +302,8 @@ impl IntegerStackModel {
     }
 
     /// A fresh session: zero recurrence states and empty read caches. Every
-    /// buffer a step uses is allocated here, for the full context.
+    /// buffer a step uses is allocated here, for the full context, within the
+    /// bounds the loader checked (the shape's limits and read-cache bound).
     pub fn session(&self) -> IntegerStackSession<'_> {
         let s = &self.shape;
         let (d, context) = (s.width, s.context);
@@ -497,7 +500,15 @@ impl IntegerStackSession<'_> {
                     b,
                     norm_exp,
                 ),
-                _ => return Err(StackError::SessionState),
+                _ => {
+                    // `session` builds every layer's state from the model's
+                    // own pattern, so a mismatch is unreachable.
+                    debug_assert!(
+                        false,
+                        "stack step: a layer's state does not match its mixer"
+                    );
+                    return Err(StackError::SessionState);
+                }
             }
             for (x, p) in b.x.iter_mut().zip(&b.proj) {
                 *x = x.saturating_add(*p);
@@ -509,7 +520,7 @@ impl IntegerStackSession<'_> {
             stack_gemv_pairs(&layer.gate, &b.pairs, norm_exp, &mut b.gate);
             stack_gemv_pairs(&layer.up, &b.pairs, norm_exp, &mut b.up);
             stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
-            let act_exp = stack_quantize16(&b.scratch[..mlp], 2 * RESIDUAL_EXP, &mut b.act[..mlp]);
+            let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
             stack_activation_tables(&b.act[..mlp], &mut b.tables[..mlp]);
             stack_gemv(&layer.down, &b.tables, act_exp, &mut b.proj);
             for (x, p) in b.x.iter_mut().zip(&b.proj) {
@@ -572,7 +583,8 @@ fn stack_recurrence(
             .wrapping_add(grid_apply(i64::from(back3[i]), tap3[i]));
         *slot = c;
     }
-    history.copy_within(..(CONVOLUTION_WIDTH - 2) * d, d);
+    // Age the history by one position: the oldest row drops off the end.
+    history.copy_within(..history.len() - d, d);
     history[..d].copy_from_slice(drive);
     let (decays, rotations) = b.gate_out.split_at(lanes);
     for (lane, ((held, pushed), (&decay, &rate))) in state
@@ -617,7 +629,7 @@ fn stack_recurrence(
         let g = stack_activation(g, &model.gelu_table, n.gelu_step_log2, n.gelu_range_log2);
         *o = saturating_product(h, i64::from(g));
     }
-    let act_exp = stack_quantize16(&b.scratch[..d], 2 * RESIDUAL_EXP, &mut b.act[..d]);
+    let act_exp = stack_quantize16(&b.scratch[..d], PRODUCT_EXP, &mut b.act[..d]);
     stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
     stack_gemv(&r.out, &b.tables, act_exp, &mut b.proj);
 }
@@ -632,11 +644,15 @@ fn stack_rotation(raw: [i32; 4], lambda: u64) -> [i64; 4] {
     }
     // |raw| at exponent -32.
     let norm = stack_isqrt((square + ROTATION_EPSILON) << 32);
-    raw.map(|v| {
+    // An explicit loop, not `raw.map`: the closure of `map` compiles to a
+    // `core::array` symbol of its own, outside the audited `stack_` names.
+    let mut transition = [0i64; 4];
+    for (slot, &v) in transition.iter_mut().zip(&raw) {
         let magnitude = stack_div_u128(u128::from(v.unsigned_abs()) << 46, norm) as i128;
         let unit = if v < 0 { -magnitude } else { magnitude };
-        (mul_i128(i128::from(lambda), unit) >> 30) as i64
-    })
+        *slot = (mul_i128(i128::from(lambda), unit) >> 30) as i64;
+    }
+    transition
 }
 
 /// `a b` saturated to the `i64` range (the D10 engine's `saturating_mul`).
@@ -711,7 +727,7 @@ fn stack_read(
                 // Exponent -32 times Q30 is exponent -62.
                 shift_wide(
                     mul_i128(dot, i128::from(n.score_scale_q30)),
-                    (SCORE_EXP - (2 * RESIDUAL_EXP - 30)) as u32,
+                    (SCORE_EXP - (PRODUCT_EXP - 30)) as u32,
                 )
             };
             let score = score.saturating_add(i64::from(ages[position - j]));

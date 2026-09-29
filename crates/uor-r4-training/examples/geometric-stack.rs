@@ -40,7 +40,7 @@
 //! geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   train_tokens=TRAIN.uort train_mask=TRAIN.mask train_manifest=TRAIN/manifest.json \
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
-//!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) \
+//!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [policy=full_prefix|role_only] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
@@ -75,7 +75,8 @@
 //! straight-through gradients. A QAT run's evaluations score the served
 //! representation (`dev`, `final`) and the float weights (`dev_float`,
 //! `final_float`) on the same windows; its saved model is the float weights,
-//! whose round-to-nearest export is the representation it trained.
+//! whose round-to-nearest export is the representation it trained, and its
+//! `config.json` records that representation (`served_representation`).
 //!
 //! `evaluate` scores consecutive 256-input blocks with a fresh state per
 //! block (257 stored ids, 256 targets), the retained evaluator's protocol
@@ -92,7 +93,10 @@
 //! transformer control, served by `uor_r4_lut::engine`. Weights round to
 //! nearest, or with `calibration=` by GPTQ against the input moments of every
 //! weight map over `calibration_windows` evenly spaced windows of that token
-//! file, which should be training data. `lut-evaluate` runs
+//! file, which should be training data. A model whose `config.json` records a
+//! served representation (a `qat=true` run's) exports only as that
+//! representation: by rounding to nearest, with the record in `export.json`
+//! and the artifact's source; `calibration=` is refused. `lut-evaluate` runs
 //! either engine position by position over the evenly spaced windows of
 //! `train`'s evaluation (`windows=512` is the final evaluation's 131,072
 //! targets), with a fresh session per window, and reports its NLL beside the
@@ -117,7 +121,12 @@
 //! only; each batch drops the padding columns after its longest episode. It
 //! starts from a trained stack (`init=`) or a new one, scores the panel every
 //! `eval_every` updates, and with `requests=` (the study's request format)
-//! writes the float model's greedy replies. `lut-chat` talks through either
+//! writes the float model's greedy replies. `qat=true` trains with the served
+//! representation as `train` does (after `init=` and on a resume alike): each
+//! evaluation scores the served representation (`dev_response_nll`) and the
+//! float weights (`dev_float_response_nll`) on the same panel, the replies
+//! come from the served representation, and the saved model's `config.json`
+//! records the representation. `lut-chat` talks through either
 //! integer engine under the same protocol: replies to `requests=`, or an
 //! interactive conversation on standard input (`/reset` starts over; a full
 //! 256-position context starts a new conversation). Replies stop as the
@@ -146,8 +155,8 @@ use uor_r4_training::stack_dialogue::{
     DialogueSplit, Reply, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
-    control_checkpoint, control_grid_reference, export_stack, stack_grid_reference,
-    StackCalibration,
+    check_export_representation, control_checkpoint, control_grid_reference, export_stack,
+    stack_grid_reference, StackCalibration,
 };
 use uor_r4_training::stack_memory::{Codebook, MemoryConfig, MemoryScore};
 use uor_r4_training::{sha256_file, Result, TrainingError};
@@ -576,16 +585,81 @@ fn qat_codec() -> Arc<dyn MapCodec> {
     Arc::new(D11Interim)
 }
 
+/// `qat=true|false` (default false).
+fn qat_flag(args: &Args) -> Result<bool> {
+    match args.optional("qat").as_deref() {
+        None | Some("false") => Ok(false),
+        Some("true") => Ok(true),
+        Some(other) => Err(invalid(format!("invalid qat={other}"))),
+    }
+}
+
+/// The stacks `qat=true` can train: those the geometric stack export writes.
+fn check_qat_config(config: &StackConfig) -> Result<()> {
+    if config.arch != StackArch::Geometric
+        || config.memory.is_some()
+        || !config.width.is_multiple_of(uor_r4_lut::GROUP)
+    {
+        return Err(invalid(format!(
+            "qat=true trains the geometric stack export's representation: a geometric stack \
+             without memory layers whose width is a multiple of {}",
+            uor_r4_lut::GROUP
+        )));
+    }
+    Ok(())
+}
+
+/// A file's path, size and SHA-256, taken once.
+struct FileIdentity {
+    path: PathBuf,
+    bytes: u64,
+    sha256: String,
+}
+
+impl FileIdentity {
+    fn of(path: &Path) -> Result<Self> {
+        Ok(Self {
+            path: path.to_owned(),
+            bytes: fs::metadata(path)?.len(),
+            sha256: sha256_file(path)?,
+        })
+    }
+
+    /// As [`identity`] records a file.
+    fn identity(&self) -> Value {
+        json!({"path": self.path, "bytes": self.bytes, "sha256": self.sha256})
+    }
+
+    /// Size and SHA-256 only: the resume lineage compares contents, not paths.
+    fn content(&self) -> Value {
+        json!({"bytes": self.bytes, "sha256": self.sha256})
+    }
+}
+
+/// `init=`'s model and configuration, identified once when a run starts; the
+/// lineage, the settings record and the inputs record all reuse these, so the
+/// report binds the bytes the run loaded without hashing them again.
+struct InitFiles {
+    model: FileIdentity,
+    config: FileIdentity,
+}
+
+impl InitFiles {
+    fn identify(directory: &Path) -> Result<Self> {
+        Ok(Self {
+            model: FileIdentity::of(&directory.join("model.safetensors"))?,
+            config: FileIdentity::of(&directory.join("config.json"))?,
+        })
+    }
+}
+
 impl Settings {
-    fn record(&self) -> Result<Value> {
-        let init = match &self.init {
-            Some(directory) => json!({
-                "model": identity(&directory.join("model.safetensors"))?,
-                "config": identity(&directory.join("config.json"))?,
-            }),
-            None => Value::Null,
-        };
-        Ok(json!({
+    fn record(&self, init: Option<&InitFiles>) -> Value {
+        let init = init.map_or(
+            Value::Null,
+            |files| json!({"model": files.model.identity(), "config": files.config.identity()}),
+        );
+        json!({
             "train": self.train, "train_weights": self.train_weights, "valid": self.valid,
             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
             "config": self.config, "init": init,
@@ -595,7 +669,7 @@ impl Settings {
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
             "final_windows": self.final_windows, "checkpoint_every": self.checkpoint_every,
             "sample_tokens": self.sample_tokens,
-        }))
+        })
     }
 
     /// Settings and input contents a resumed run must share with its parent.
@@ -616,7 +690,8 @@ impl Settings {
 
     /// Content identities (size and SHA-256, not paths) of every file the run
     /// reads, so a resume must present the same bytes in the same order.
-    fn input_contents(&self) -> Result<Value> {
+    /// `init` holds `init=`'s identities, taken when the run started.
+    fn input_contents(&self, init: Option<&InitFiles>) -> Result<Value> {
         let content = |path: &Path| -> Result<Value> {
             Ok(json!({"bytes": fs::metadata(path)?.len(), "sha256": sha256_file(path)?}))
         };
@@ -627,10 +702,10 @@ impl Settings {
             "merges": self.merges.as_deref().map(content).transpose()?,
             "tokenizer": self.tokenizer.as_deref().map(content).transpose()?,
         });
-        if let Some(directory) = &self.init {
+        if let Some(files) = init {
             inputs["init"] = json!({
-                "model": content(&directory.join("model.safetensors"))?,
-                "config": content(&directory.join("config.json"))?,
+                "model": files.model.content(),
+                "config": files.config.content(),
             });
         }
         Ok(inputs)
@@ -873,21 +948,9 @@ fn train_settings(args: &Args) -> Result<Settings> {
         Some(directory) => init_config(args, directory)?,
         None => stack_config(args, None)?,
     };
-    let qat = match args.optional("qat").as_deref() {
-        None | Some("false") => false,
-        Some("true") => true,
-        Some(other) => return Err(invalid(format!("invalid qat={other}"))),
-    };
-    if qat
-        && (config.arch != StackArch::Geometric
-            || config.memory.is_some()
-            || !config.width.is_multiple_of(uor_r4_lut::GROUP))
-    {
-        return Err(invalid(format!(
-            "qat=true trains the geometric stack export's representation: a geometric stack \
-             without memory layers whose width is a multiple of {}",
-            uor_r4_lut::GROUP
-        )));
+    let qat = qat_flag(args)?;
+    if qat {
+        check_qat_config(&config)?;
     }
     let train: Vec<PathBuf> = args
         .required("train")?
@@ -1021,6 +1084,20 @@ fn evaluate(
     })
 }
 
+/// `f` on the model in its mode and, in served mode (a QAT run), on its float
+/// weights too.
+fn in_both_modes<T>(
+    model: &mut StackModel,
+    f: impl Fn(&StackModel) -> Result<T>,
+) -> Result<(T, Option<T>)> {
+    let current = f(model)?;
+    let float = match model.served_codec() {
+        Some(_) => Some(model.with_float_forward(&f)?),
+        None => None,
+    };
+    Ok((current, float))
+}
+
 /// [`evaluate`] in the model's mode and, in served mode (a QAT run), of its
 /// float weights too, on the same windows.
 fn evaluate_modes(
@@ -1029,12 +1106,7 @@ fn evaluate_modes(
     lens: Option<&[u32]>,
     windows: usize,
 ) -> Result<(Evaluation, Option<Evaluation>)> {
-    let evaluation = evaluate(model, valid, lens, windows)?;
-    let float = match model.served_codec() {
-        Some(_) => Some(model.with_float_forward(|model| evaluate(model, valid, lens, windows))?),
-        None => None,
-    };
-    Ok((evaluation, float))
+    in_both_modes(model, |model| evaluate(model, valid, lens, windows))
 }
 
 /// Seconds of this process's updates: the first (which includes one-time
@@ -1227,7 +1299,13 @@ fn load_checkpoint(
 
 fn train(settings: &Settings, out: &Path) -> Result<()> {
     let device = Device::Cpu;
-    let lineage = settings.lineage(&settings.input_contents()?);
+    // `init=`'s files are hashed once, here, before the model is loaded.
+    let init_files = settings
+        .init
+        .as_deref()
+        .map(InitFiles::identify)
+        .transpose()?;
+    let lineage = settings.lineage(&settings.input_contents(init_files.as_ref())?);
     let vocabulary = settings.config.vocab_size;
     let train: Vec<Vec<u32>> = settings
         .train
@@ -1416,7 +1494,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     let executable = std::env::current_exe()?;
     let mut report = json!({
         "schema": "uor-r4.geometric-stack-run/1",
-        "settings": settings.record()?,
+        "settings": settings.record(init_files.as_ref()),
         "parameters": parameters,
         "active_parameters": active_parameters,
         "completed_steps": progress.step,
@@ -1436,7 +1514,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             "lens": settings.lens.as_ref().map(|p| identity(p)).transpose()?,
             "merges": settings.merges.as_ref().map(|p| identity(p)).transpose()?,
             "tokenizer": settings.tokenizer.as_ref().map(|p| identity(p)).transpose()?,
-            "init": settings.init.as_ref().map(|p| identity(&p.join("model.safetensors"))).transpose()?,
+            "init": init_files.as_ref().map(|files| files.model.identity()),
         },
         "executable": identity(&executable)?,
         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
@@ -1444,7 +1522,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     if let Some(codec) = model.served_codec() {
         report["qat"] = json!({
             "codec": codec.name(),
-            "representation": "the forward pass read the round-to-nearest export's values (4-bit maps with the norm gains folded in, grid-code scalars, fixed-point biases, age tables and offsets) with straight-through gradients; `dev` and `final` score that representation, `dev_float` and `final_float` the float weights on the same windows; samples come from the served representation",
+            "representation": "the forward pass read the round-to-nearest export's values (4-bit maps with the norm gains folded in, grid-code scalars, fixed-point biases, age tables and offsets) with straight-through gradients; `dev` and `final` score that representation, `dev_float` and `final_float` the float weights on the same windows; samples come from the served representation; the saved model's config.json records the codec (`served_representation`), and `export` writes it by rounding to nearest only",
             "final_float": final_float.as_ref().map(Evaluation::record),
             "served_work_in_updates": served_in_steps,
             "served_work_total": model.served_statistics()?,
@@ -1613,6 +1691,10 @@ fn export_mode(arguments: &[String]) -> Result<()> {
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         let started = Instant::now();
+        // A model trained against a served representation (a `qat=true`
+        // run's) exports only as that representation.
+        let served = StackModel::saved_served_representation(&model_dir)?;
+        check_export_representation(served.as_ref(), calibration_tokens.is_some())?;
         let model = StackModel::load(&model_dir, &Device::Cpu)?;
         let time: usize = args.number("calibration_time", model.config.context)?;
         if time == 0 || time > model.config.context {
@@ -1637,13 +1719,19 @@ fn export_mode(arguments: &[String]) -> Result<()> {
             }),
             None => json!({"method": "round_to_nearest"}),
         };
-        let source = json!({
+        let mut source = json!({
             "exporter": "geometric-stack export",
             "model": identity(&weights)?,
             "config": model.config,
             "executable": identity(&std::env::current_exe()?)?,
             "quantizer": quantizer,
         });
+        if let Some(served) = &served {
+            source["served_representation"] = json!({
+                "codec": served.codec,
+                "scope": "recorded in the model's config.json: the model was trained against this representation (quantization-aware training), which this round-to-nearest export writes",
+            });
+        }
         let (bytes, report) = match model.config.arch {
             StackArch::Geometric => export_stack(
                 &model,
@@ -2539,6 +2627,8 @@ struct DialogueSettings {
     train: [PathBuf; 3],
     dev: [PathBuf; 3],
     init: Option<PathBuf>,
+    /// Train with the served representation (`qat=true`), as `train` does.
+    qat: bool,
     policy: PrefixPolicy,
     data_seed: u64,
     steps: usize,
@@ -2562,7 +2652,9 @@ impl DialogueSettings {
     fn record(&self) -> Value {
         json!({
             "tokenizer": self.tokenizer, "train": self.train, "dev": self.dev,
-            "init": self.init, "policy": self.policy, "data_seed": self.data_seed,
+            "init": self.init,
+            "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+            "policy": self.policy, "data_seed": self.data_seed,
             "steps": self.steps, "batch": self.batch, "lr": self.lr, "warmup": self.warmup,
             "min_lr": self.min_lr, "weight_decay": self.weight_decay, "clip": self.clip,
             "eval_every": self.eval_every, "dev_seed": self.dev_seed,
@@ -2572,7 +2664,9 @@ impl DialogueSettings {
     }
 
     /// Settings, input contents and executable a resumed run must share with
-    /// its parent, so one run's updates all come from the same build.
+    /// its parent, so one run's updates all come from the same build. A run
+    /// with `qat=true` also shares that, as in `train`; other runs' lineage is
+    /// unchanged, so their earlier checkpoints still resume.
     fn lineage(&self, config: &StackConfig) -> Result<Value> {
         let content = |path: &Path| -> Result<Value> {
             Ok(json!({"bytes": fs::metadata(path)?.len(), "sha256": sha256_file(path)?}))
@@ -2580,7 +2674,7 @@ impl DialogueSettings {
         let split = |paths: &[PathBuf; 3]| -> Result<Vec<Value>> {
             paths.iter().map(|p| content(p)).collect()
         };
-        Ok(json!({
+        let mut lineage = json!({
             "config": config, "policy": self.policy, "data_seed": self.data_seed,
             "steps": self.steps, "batch": self.batch, "lr": self.lr, "warmup": self.warmup,
             "min_lr": self.min_lr, "weight_decay": self.weight_decay, "clip": self.clip,
@@ -2592,7 +2686,11 @@ impl DialogueSettings {
                 "dev": split(&self.dev)?,
                 "init": self.init.as_deref().map(|p| content(&p.join("model.safetensors"))).transpose()?,
             },
-        }))
+        });
+        if self.qat {
+            lineage["qat"] = json!({"codec": qat_codec().name()});
+        }
+        Ok(lineage)
     }
 }
 
@@ -2672,6 +2770,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "max_seconds",
             "requests",
             "max_new_tokens",
+            "qat",
         ],
     )?;
     let path = |key: &str| -> Result<PathBuf> { Ok(PathBuf::from(args.required(key)?)) };
@@ -2688,6 +2787,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             path("dev_manifest")?,
         ],
         init: args.optional("init").map(PathBuf::from),
+        qat: qat_flag(&args)?,
         policy: match args.optional("policy").as_deref() {
             None | Some("full_prefix") => PrefixPolicy::FullPrefix,
             Some("role_only") => PrefixPolicy::RoleOnly,
@@ -2756,6 +2856,9 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "the model's context must be the episodes' 256 and its vocabulary the corpus's",
         ));
     }
+    if s.qat {
+        check_qat_config(&config)?;
+    }
     let encoder = protocol
         .bind(&tokenizer)
         .map_err(|e| invalid(e.to_string()))?;
@@ -2764,7 +2867,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         check_panel(&encoder, requests, config.context, s.max_new_tokens)?;
     }
     let lineage = s.lineage(&config)?;
-    let (model, mut optimizer, mut progress, resumed_from) = match &s.resume {
+    let (mut model, mut optimizer, mut progress, resumed_from) = match &s.resume {
         None => {
             let model = match &s.init {
                 Some(directory) => StackModel::load(directory, &device)?,
@@ -2785,6 +2888,10 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             (model, optimizer, progress, Some(state))
         }
     };
+    // After `init=` or a resume alike: a checkpoint holds the float weights.
+    if s.qat {
+        model.set_served_representation(Some(qat_codec()))?;
+    }
     eprintln!(
         "{:?} pattern {} read {:?}: {} parameters; {} training and {} development responses",
         model.config.arch,
@@ -2794,8 +2901,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         train.episodes().len(),
         panel.len(),
     );
+    // In a QAT run each development score is of the served representation,
+    // with the float weights' on the same panel beside it.
+    let score = |model: &StackModel| development(model, &dev, &panel, 16);
     let initial = if progress.step == 0 {
-        Some(development(&model, &dev, &panel, 16)?)
+        Some(in_both_modes(&mut model, &score)?)
     } else {
         None
     };
@@ -2808,6 +2918,8 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         }
     }
     let (mut window_loss, mut stopped_early) = ((0f64, 0usize), false);
+    // The served representation's work inside this process's updates.
+    let mut served_in_steps = ServedStatistics::default();
     let started = Instant::now();
     while progress.step < s.steps {
         let lr = cosine_rate(s.lr, s.warmup, s.min_lr, s.steps, progress.step);
@@ -2815,6 +2927,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         let ids = train.sample_ids(s.data_seed, progress.step as u64, s.batch)?;
         let batch = train.materialize(&ids, s.policy)?;
         let trimmed = trim(&batch);
+        let served_before = model.served_statistics()?;
         let loss = model.weighted_loss(
             &trimmed.inputs,
             &trimmed.targets,
@@ -2829,14 +2942,19 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         let grads = loss.backward()?;
         let grad_norm = optimizer.update(&model, &grads, lr)?;
         progress.train_seconds += clock.elapsed().as_secs_f64();
+        add_served_work(
+            &mut served_in_steps,
+            served_before,
+            model.served_statistics()?,
+        );
         progress.step += 1;
         visits.0 += batch.counts.supervised_target_count;
         visits.1 += batch.batch * trimmed.time;
         window_loss.0 += value;
         window_loss.1 += 1;
         if progress.step % s.eval_every == 0 || progress.step == s.steps {
-            let dev_report = development(&model, &dev, &panel, 16)?;
-            let point = json!({
+            let (dev_report, dev_float) = in_both_modes(&mut model, &score)?;
+            let mut point = json!({
                 "step": progress.step, "lr": lr,
                 "train_response_nll": window_loss.0 / window_loss.1.max(1) as f64,
                 "dev_response_nll": dev_report["response_mean_nll"],
@@ -2844,6 +2962,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 "grad_norm": grad_norm, "supervised_target_visits": visits.0,
                 "train_seconds": progress.train_seconds,
             });
+            if let Some(float) = &dev_float {
+                point["dev_float_response_nll"] = float["response_mean_nll"].clone();
+                point["dev_float_first_four_nll"] =
+                    float["first_four_response_targets_mean_nll"].clone();
+            }
             eprintln!("{point}");
             progress.curve.push(point);
             window_loss = (0.0, 0);
@@ -2860,11 +2983,12 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             break;
         }
     }
+    // In served mode the saved configuration records the codec.
     model.save(&out.join("model"))?;
     if !stopped_early {
         let _ = fs::remove_dir_all(out.join("checkpoint"));
     }
-    let final_development = development(&model, &dev, &panel, 16)?;
+    let (final_development, final_float) = in_both_modes(&mut model, &score)?;
     let replies = match &requests {
         Some(requests) => {
             let clock = Instant::now();
@@ -2878,12 +3002,25 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 &mut |history, cap| greedy_reply(&model, history, cap, protocol.eos_id),
             )?;
             panel["seconds"] = json!(clock.elapsed().as_secs_f64());
-            panel["decoding"] = json!("float model, greedy");
+            panel["decoding"] = json!(if s.qat {
+                "served representation (the round-to-nearest export's values in the float forward), greedy"
+            } else {
+                "float model, greedy"
+            });
             Some(panel)
         }
         None => None,
     };
-    let report = json!({
+    let (initial, initial_float) = match initial {
+        Some((served, float)) => (Some(served), float),
+        None => (None, None),
+    };
+    let replies_from = if s.qat {
+        "the served representation"
+    } else {
+        "the float model"
+    };
+    let mut report = json!({
         "schema": "uor-r4.geometric-stack-dialogue-run/1",
         "settings": s.record(),
         "config": model.config,
@@ -2912,8 +3049,18 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         },
         "executable": identity(&std::env::current_exe()?)?,
         "model_sha256": sha256_file(&out.join("model").join("model.safetensors"))?,
-        "scope": "Offline response learning of the geometric stack on the prepared dialogue corpus; development NLL on the fixed source-stratified panel under full original prefixes; replies from the float model. No integer serving or quality qualification.",
+        "scope": format!("Offline response learning of the geometric stack on the prepared dialogue corpus; development NLL on the fixed source-stratified panel under full original prefixes; replies from {replies_from}. No integer serving or quality qualification."),
     });
+    if let Some(codec) = model.served_codec() {
+        report["qat"] = json!({
+            "codec": codec.name(),
+            "representation": "the forward pass read the round-to-nearest export's values (4-bit maps with the norm gains folded in, grid-code scalars, fixed-point biases, age tables and offsets) with straight-through gradients; `dev_response_nll`, `dev_first_four_nll`, `initial_development` and `final_development` score that representation, `dev_float_*`, `initial_development_float` and `final_development_float` the float weights on the same panel; replies come from the served representation; the saved model's config.json records the codec (`served_representation`), and `export` writes it by rounding to nearest only",
+            "initial_development_float": initial_float,
+            "final_development_float": final_float,
+            "served_work_in_updates": served_in_steps,
+            "served_work_total": model.served_statistics()?,
+        });
+    }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
     Ok(())
 }

@@ -80,7 +80,8 @@ fn serve_greedy(
     for &id in prompt {
         next = stack_argmax(session.step(id)?) as u32;
     }
-    let mut generated = Vec::with_capacity(new_tokens);
+    // At most one id per position the context has left, whatever NEW_TOKENS is.
+    let mut generated = Vec::with_capacity(new_tokens.min(context));
     while generated.len() < new_tokens {
         generated.push(next);
         if generated.len() == new_tokens || session.position() >= context {
@@ -98,7 +99,10 @@ fn generate(args: &[String]) -> Result<(), CliError> {
     let prompt: Vec<u32> = prompt
         .split(',')
         .filter(|s| !s.is_empty())
-        .map(|s| number(s, "a prompt id").map(|v| v as u32))
+        .map(|s| {
+            let id = number(s, "a prompt id")?;
+            u32::try_from(id).map_err(|_| usage(&format!("prompt id {id} does not fit in u32")))
+        })
         .collect::<Result<_, _>>()?;
     let new_tokens = number(new_tokens, "NEW_TOKENS")?;
     if prompt.is_empty() {
@@ -107,6 +111,10 @@ fn generate(args: &[String]) -> Result<(), CliError> {
     let load = Instant::now();
     let model = IntegerStackModel::load(Path::new(artifact))?;
     let load_seconds = load.elapsed().as_secs_f64();
+    let vocab = model.shape().vocab;
+    if let Some(&id) = prompt.iter().find(|&&id| id as usize >= vocab) {
+        return Err(CliError::Stack(StackError::Token { token: id, vocab }));
+    }
     let serve = Instant::now();
     let (generated, steps) = serve_greedy(&model, &prompt, new_tokens)?;
     let serve_seconds = serve.elapsed().as_secs_f64();
@@ -140,17 +148,27 @@ fn digest(args: &[String]) -> Result<(), CliError> {
         .chunks_exact(2)
         .map(|pair| u32::from(u16::from_le_bytes([pair[0], pair[1]])))
         .collect();
-    if windows == 0 || ids.len() <= context + windows {
+    // Every window needs a whole context and a stride of at least one token.
+    if windows == 0
+        || context
+            .checked_add(windows)
+            .is_none_or(|needed| ids.len() <= needed)
+    {
         return Err(usage("too few tokens for the windows"));
     }
     if let Some(&id) = ids.iter().find(|&&id| id as usize >= vocab) {
         return Err(CliError::Stack(StackError::Token { token: id, vocab }));
     }
+    let steps = windows
+        .checked_mul(context)
+        .ok_or_else(|| usage("WINDOWS times the context overflows"))?;
     let stride = (ids.len() - context - 1) / windows;
     let mut hash = Sha256::new();
     let mut session = model.session();
     let clock = Instant::now();
     for window in 0..windows {
+        // `window * stride < windows * stride <= ids.len() - context - 1`, so
+        // neither the start nor the window's end overflows.
         let start = window * stride;
         session.reset();
         for &id in &ids[start..start + context] {
@@ -160,7 +178,6 @@ fn digest(args: &[String]) -> Result<(), CliError> {
         }
     }
     let seconds = clock.elapsed().as_secs_f64();
-    let steps = windows * context;
     let record = json!({
         "schema": "uor-r4.stack-d11-digest/1",
         "artifact_sha256": model.artifact_sha256(),
