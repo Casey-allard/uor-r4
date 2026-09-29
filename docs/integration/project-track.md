@@ -2,12 +2,12 @@
 
 ## Current programme entry point, September 28
 
-Use the [three-lab operating policy](agent-execution-policy.md), the
-[roadmap's current assignment and temporary integration handover](../../ROADMAP.md#temporary-integration-handover-september-28-2245-utc),
-and [current state](current-state.md) before reading historical plans below.
-Astra temporarily covers the integration lead at the owner's request; Kimi is
-supporting delivery, not another model programme. D11, terminal D5 and D12
-remain in force. The twelve capability responsibilities and their acceptance
+Before reading the historical plans below, read:
+- the [three-lab operating policy](agent-execution-policy.md);
+- the [roadmap's leadership and restart packet](../../ROADMAP.md#lab-1-leadership-and-restart-packet);
+- [current state](current-state.md).
+
+Claude (Lab 1) leads. Astra's temporary cover ended with the handback on September 29 at 01:35 UTC, and [its record is preserved](astra-temporary-cover-2026-09-28.md). Kimi is Lab 1's research-integration steward, not another model programme. D11, terminal D5 and D12 remain in force. The twelve capability responsibilities and their acceptance
 remain unchanged; every task must feed the same native geometric model.
 
 ## Four-lab research programme — owner direction September 26

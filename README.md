@@ -7,9 +7,9 @@ UOR-R4 is an experimental autoregressive geometric state model with exact addres
 **Current programme, September 28:** the recurrence-primary geometric stack is
 the main line; the older native model is retained as a baseline. Read the
 [current state](docs/integration/current-state.md) and
-[current roadmap assignment](ROADMAP.md#temporary-integration-handover-september-28-2245-utc)
-for the owner-directed temporary integration handover and S1/QAT, S4, memory/read
-and native-serving dependencies. Dated results below keep their original scope;
+[roadmap's leadership and restart packet](ROADMAP.md#lab-1-leadership-and-restart-packet)
+for the current lead, lane assignments and the S1/QAT, S4, memory/read and
+native-serving dependencies. Dated results below keep their original scope;
 none is an integrated useful-chat or energy qualification.
 
 **Active September 24 correction:** the [stuck-point assessment](docs/integration/stuck-point-review-response-2026-09-24.md) and [D8 ladder](docs/integration/project-track.md) move development from successive local discrete-selector fixes to a coherent Rust autodiff training path, a pinned working language reference, explicit discretization and the actual hard serving path. A4's four matched continuations still produce zero complete answers; they are retained evidence. The historical #1017 transformer is an offline comparator/possible teacher, while the target remains a native transformerless geometric model. The [current state](docs/integration/current-state.md) is now a short handoff with its complete prior history linked separately.

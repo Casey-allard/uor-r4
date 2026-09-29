@@ -1,31 +1,26 @@
 # Current UOR-R4 research state
 
-Updated September 28, 2026. **Pre-alpha; no useful general-language, coding,
+Updated September 29, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 
-## Current integration handover, September 28
+## Current leadership, September 29
 
-The owner requested temporary Astra integration leadership during Claude's quota
-reset, with Kimi as a supporting delivery steward. The [roadmap handover](../../ROADMAP.md#temporary-integration-handover-september-28-2245-utc)
-owns the bounded assignment and return condition; [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5880102513)
-carries live source/job/PR status. This adds no research lab, model promotion or
-runtime exception. Earlier four-lab and dated next-task text is historical.
+**Leadership.** Claude (Lab 1) resumed permanent project leadership on September 29 at 01:35 UTC, on the owner's direction.
+- Astra's temporary cover has ended and is [preserved as history](astra-temporary-cover-2026-09-28.md).
+- The [roadmap's restart packet](../../ROADMAP.md#lab-1-leadership-and-restart-packet) owns the live assignment, the bottleneck and the next actions.
+- [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5881962511) carries live status.
 
-S1/QAT follow-ups precede S4's integration into their shared files. The supplied
-Kimi review is source inspection, not executed approval. The current source-only
-assessment preserves raw-float loading plus explicit saved-mode reapplication.
-#1468 still needs its finite repairs, conflict resolution and committed-source
-rerun closeout. #1469's completed frozen result has been independently re-read;
-its [delivery decision](https://github.com/UOR-Foundation/uor-r4/pull/1469#issuecomment-5880287835)
-retains source and negative evidence without promoting it into the dialogue stack.
-Follow the [latest source/log triage](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5880133239),
-not an old assumption that either PR waits only for its process to finish.
+**Delivered during and since the cover.** Each result keeps its exact scope.
+- **#1481, merged:** the S1/QAT follow-ups. These are the QAT configuration record, the export contract, engine hardening and the stack audit roots.
+- **#1468, merged:** Lab 3's D4 representation study, a **negative**, with its codec primitives.
+  - No arm meets the 0.02-nat gate: round to nearest +0.036229, Hadamard with G4 +0.063668, head-compensated equal to round to nearest.
+  - Lab 1's re-run into fresh roots agrees within 1e-6 nats.
+  - Not promoted (D12).
+- **#1482, merged:** Lab 2's AERM probe checkpoint save/load and reload evaluation.
+- **S4 (#1483), not merged:** two failing tests, under the [Lab 1 adjudication](https://github.com/UOR-Foundation/uor-r4/pull/1483#issuecomment-5882022226).
+- **#1479, open:** its cost numbers are unqualified until Lab 1's fresh-root re-run on a quiet machine.
 
-The next deliverable is usable learned geometry and exact memory in the same
-saved dialogue stack, through its native learning/serving bridge. Existing
-negative configurations and retained baselines keep their exact scope; complete
-replies, provenance and reload behavior remain separate from loss and primitive
-checks. No new model result is asserted by this handover.
+**The next deliverable is unchanged:** usable learned geometry and exact memory in the same saved dialogue stack, through its native learning and serving bridge. This handover asserts no new model result.
 
 ## September 28: base decided, track approved, #1433 result
 

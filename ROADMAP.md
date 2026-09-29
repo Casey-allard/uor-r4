@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — multi-lab roadmap
 
-**Director:** Claude, Lab 1 window. **Updated:** 2026-09-28 06:20 UTC. This file owns lab
+**Director:** Claude (Lab 1). **Updated:** 2026-09-29 01:43 UTC. This file owns lab
 assignments, track status, the dead-path register and the cross-lab protocol. Measured
 results and retained artifacts live in [current state](docs/integration/current-state.md).
 Ordered responsibilities and acceptance live in the [canonical plan](docs/integration/project-track.md).
@@ -8,68 +8,91 @@ Owner decisions live in [DECISIONS](docs/integration/DECISIONS.md). Director rul
 coordinate the labs. They do not amend an owner decision record, and the owner keeps
 strategic authority.
 
-## Temporary integration handover, September 28, 22:45 UTC
+## Lab 1 leadership and restart packet
 
-**Owner-directed acting lead:** Astra covers project management, technical review,
-course correction and qualified protected delivery during Claude's approximately
-three-hour quota reset. [Owner instruction and work allocation](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5880102513).
-Claude remains the substantive Lab 1 lead. This cover ends on explicit handback or
-September 29 at 01:45 UTC; it does not restart the retired Codex lab. Kimi is an
-integration/delivery steward inside this function, not an independent research lab.
-D11, D5, D12, owner ratification, provider/spending limits, preservation and the
-existing class A/B/C merge requirements are unchanged. No unconditional auto-merge.
+**Updated September 29, 01:43 UTC.**
+- **Lead:** Claude (Lab 1) is the permanent project lead: scientific direction, principal research, architecture, shared interfaces, promotion and merge decisions, within the owner's constraints.
+- **Astra's temporary cover** began on September 28 at 22:45 UTC. It ended with the handback on September 29 at 01:35 UTC. Its record is preserved in [its history file](docs/integration/astra-temporary-cover-2026-09-28.md) and on [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5881962511).
+- **Casey retains** the mission, spending, destructive-action authority and ratification of owner-level decisions.
 
-**One delivery target:** the recurrence-primary stack, its declared tokenizer,
-learned geometric transport/read, exact versioned memory, response training and
-native artifact/session must converge on useful complete replies. Low loss,
-finite-group tracking, arithmetic parity and library availability remain distinct
-from that end-to-end result. Geometry is trained into causal computation; it is
-neither retired by one failed configuration nor qualified by telemetry alone.
+| Lane | Owner | Current deliverable |
+|---|---|---|
+| Leadership, learner, dialogue, memory semantics, architecture, native artifact and session, promotion | Claude (Lab 1) | The I1 store in the dialogue stack's read path; S4's fit once #1483 clears |
+| Integration, S1/QAT and S4 repairs, checks, delivery mechanics | Kimi (Lab 1 research-integration steward) | #1483's two failures, resolved under the [adjudication](https://github.com/UOR-Foundation/uor-r4/pull/1483#issuecomment-5882022226) |
+| Geometric read and address | DeepSeek/OpenCode (Lab 2) | The G-decomposition result (running), then a G v2 proposal |
+| Numerical fidelity, codecs, kernels, audits, cost | Anti-Gravity (Lab 3) | #1479, held for Lab 1's fresh-root re-run; D4-E8 through QAT |
 
-**Execution order and ownership:**
-- **S1/QAT follow-ups, then S4 integration:** original Claude workers retain
-  their live files. Kimi refreshes their exact heads/diffs and coordinates a
-  clean-worktree handover before editing. Preserve both changes in the two
-  overlapping training files. Do not replace either whole file from the other
-  branch. Reuse valid executed checks; add one necessary combined-mode
-  save/metadata/reapply/export-refusal check, not a new training campaign.
-- **#1468, Lab 3:** resolve the existing technical findings and Git conflict;
-  acting lead reviews the changed diff and closes out Claude's original
-  committed-source rerun. A completed rerun alone is not merge approval.
-- **#1469, Lab 2:** the frozen run is complete and independently re-read;
-  its [source-bound closeout](https://github.com/UOR-Foundation/uor-r4/pull/1469#issuecomment-5880287835)
-  permits protected delivery as unpromoted research evidence, not adoption by
-  the dialogue stack. Diagnose only what its retained failure traces expose;
-  the runner saved reports, not trained weights. No assumed replay or refit.
-- **Next learned consumer:** I1 memory with G in the dialogue stack, and
-  trained-in S4 geometry through the declared learning/serving bridge. Further
-  compute requires its named causal change, retained weights where needed,
-  consumer and prospective limits. No third learner or automatic seed/dose sweep.
+### The artifact contract
 
-**Kimi's continuing remit:** choose the highest-value unblocked integration or
-review task from this queue, announce its exact owned paths on #973, complete it
-through source, focused checks and a PR, then take the next justified task. Keep
-one write task active. At most one additional read-only specialist on the already
-configured owner-approved no-charge route may assist a genuinely independent
-question; no recursion or implicit paid-provider fallback. Permissions must be
-available explicitly, not bypassed. The acting lead holds cross-lab decisions,
-non-author acceptance and merge approval. Kimi may execute the existing protected
-merge procedure for an exact head already approved with every class condition
-met, then verify delivery and notify the consumer. Kimi cannot approve its own
-work; a changed head or new blocker requires a fresh review, not a bypass.
+**The integrated milestone is one saved model** that gives useful complete replies with:
+- memory update;
+- source and version distinctions;
+- absence and conflict handling;
+- reload survival;
+- native D11 execution.
 
-**Important review correction:** the current proposed `StackModel::load` returns
-float weights with neither served nor snapped mode enabled. Read saved metadata
-with the declared accessors and explicitly reapply the requested mode. Do not
-change default loading merely to satisfy wording in the supplied Kimi review.
-Keep combined-mode score labels explicit; no fourth scoring arm is mandated
-unless it changes a pending decision. [Source/log triage](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5880133239).
+Loss, tracking accuracy, arithmetic parity and library availability are components of that milestone, not the milestone itself. There is no third learner and no parallel serving engine.
 
-**Resources and handback:** source-only review may proceed during a heavy job;
-new builds and model work obey the shared reservation. A live child PID is not
-proof of a live supervisor. Publish supervisor identity, current limit, source,
-root, result, blocker and next consumer. GitHub records actual activity; neither
-this document nor a ChatGPT reply creates an unattended execution process.
+### Bottleneck and next decision
+
+**Memory needs keys formed from language that match the exact store's keys.**
+- G v1's reads fire, but held-out Updated is 0.03–0.16 against a target of at least 0.90.
+- Its failures are on the key side (`Unavailable`).
+- S2 recalls 0 of 10 facts.
+
+**Lab 2's decomposition separates missed writes, wrong keys and evictions.**
+- **If wrong keys dominate,** G v2 learns a canonical key through a trained-in geometric codebook: phrase → lattice or icosian cell → exact address.
+- **If missed writes or evictions dominate,** the fix is on that side instead.
+
+### Live state
+
+Verify it against GitHub; this file is not a job monitor.
+- **Merged at 01:35 UTC:**
+  - #1481 (`f4a1e171`, the S1/QAT follow-ups);
+  - #1468 (`9869229b`, Lab 3's negative D4 study and codec primitives).
+
+  Earlier: #1482 (`1c94969d`, Lab 2's AERM checkpoint save and load). The squash patches of #1481 and #1468 were checked equal to their PR diffs.
+- **Open:**
+  - #1483 (S4, Kimi).
+  - #1479 (Lab 3). Its cost numbers are unqualified until Lab 1 re-runs them on a quiet machine into a fresh root. `d11-cost-profile-1` was resealed in place, so it is not original evidence.
+- **Running:** Lab 2's `aerm-decompose` at `5f3de916`, in the model slot from 00:32 UTC to about 04:02 UTC (6 threads, 9 GB cap).
+- **Pinned models:**
+  - the S2 dialogue stack `8cb11d8f…`, the loss baseline;
+  - the native child `98aca5ab…`, the reference for replies and memory;
+  - `geometric_s1` `3eb1ebbb…`, the D4 codec target.
+
+### Rules in force
+
+- **Decisions:**
+  - D11 and D0-b govern serving: no float, and no multiply or divide instruction, in the served numerical path.
+  - D12: a missed gate prevents promotion only.
+  - D9: new compute needs a named causal change.
+- **Merges:**
+  - The class A/B/C criteria are in the [policy](docs/integration/agent-execution-policy.md).
+  - Lab 3 results merge only after Lab 1 re-runs them from committed code into a fresh root.
+  - Nothing is auto-merged unconditionally. Before each merge, recheck the exact approved head and its blockers. Then merge through the protected queue, verify the delivered patch, and notify the consumer.
+  - The shared GitHub account never turns self-review into a non-author review.
+- **Machine and spending:**
+  - One heavy job at a time, through `/Volumes/UOR-Workspace/locks/model-slot.json`; light jobs use at most 2 threads.
+  - No paid or external compute, and no change of provider, plan, credential or spending limit.
+
+### Restart procedure
+
+1. Run `date -u`.
+2. Read this packet, the latest #973 comments, the open PRs and the model-slot lock.
+3. Recover existing workers, branches, jobs and sealed roots before assigning anything.
+4. Staffing defaults:
+   - zero additional Opus workers, and at most one bounded specialist;
+   - no recursive spawning;
+   - completion events, not polling.
+
+**Next actions, in order:**
+1. Resolve and review #1483.
+2. When the slot frees:
+   - Lab 1's #1479 cost and E8-reference re-runs, on a quiet machine;
+   - then S4's pre-registered fit, if #1483 has merged.
+3. Lab 2's decomposition, then the G v2 decision.
+4. Wire the I1 store into the stack's read path, and measure it on S2's 10 memory trajectories.
 
 ## 0. Mission and hard runtime rules
 
