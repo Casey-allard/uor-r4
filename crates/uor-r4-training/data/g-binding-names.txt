@@ -1,0 +1,93 @@
+# G-binding training names (Lab 1's pre-registration, #973 comment 5883172773).
+# One name per line. Every name is a single #1017 token with a leading space
+# (taken from the tokenizer's own vocabulary; each was verified as an exact
+# `ĠName` vocabulary key before commit);
+# `aerm-probe extend_names` refuses any other. The four held-out names
+# (Molly, Leo, Emma, Rose) are excluded, as are tokens that collide with the
+# world's relation values (blue, brown, bird, cat, doggy).
+# The 4,096-token #1017 vocabulary contains only this many single-token names,
+# so the list is 83 rather than the pre-registration's lower bound of 100;
+# recorded on #973 before the run.
+Al
+Amy
+Andy
+Ann
+Anna
+Bella
+Ben
+Benny
+Bessie
+Billy
+Bob
+Bobby
+Dan
+Don
+Ella
+Em
+Emily
+Fred
+Jack
+Jake
+Jane
+Jen
+Jenny
+Jerry
+Jill
+Jim
+Jimmy
+Jo
+Joe
+John
+Kim
+Lila
+Lily
+Lisa
+Lucy
+Lulu
+Luna
+Mark
+Mary
+Max
+Mia
+Mimi
+Ollie
+Pete
+Peter
+Polly
+Rex
+Rob
+Sally
+Sam
+Sammy
+Sara
+Sarah
+Sue
+Tim
+Timmy
+Tina
+Toby
+Tom
+Tommy
+Will
+Bear
+Binky
+Birdy
+Bobo
+Buddy
+Bunny
+Buzz
+Buzzy
+Chirpy
+Daisy
+Ducky
+Fluffy
+Kiki
+Kitty
+Momo
+Poppy
+Remy
+Spot
+Sunny
+Tiny
+Tweet
+Whiskers

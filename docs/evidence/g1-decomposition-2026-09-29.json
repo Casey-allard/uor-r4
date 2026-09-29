@@ -1,0 +1,319 @@
+{
+ "schema": "uor-r4.lab2.g1-decomposition-evidence/1",
+ "preregistration": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5881325638",
+ "code_commit": "5f3de916",
+ "executable_sha256": "5c1a4a758620b07e3972bfef2c1641a7db58d55bec96c0153548d677c94e2653",
+ "supervision": {
+  "receipt": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-decompose/decompose.supervision.json",
+  "started_utc": "2026-09-29T00:32:03Z",
+  "finished_utc": "2026-09-29T03:49:32Z",
+  "wall_seconds": 11849,
+  "hard_caps": "",
+  "seeds": {
+   "1": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 2348992
+   },
+   "2": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 2360064
+   },
+   "3": {
+    "exit": 0,
+    "peak_sampled_rss_kib": 2735024
+   }
+  }
+ },
+ "gate": {
+  "outcome": "FAIL",
+  "gates": {
+   "every_seed": true,
+   "held_out_updated_accuracy_at_least": 0.9,
+   "parameter_relative_tolerance": 0.0005,
+   "text_nll_delta_at_most": 0.05
+  },
+  "seeds": [
+   {
+    "aerm_text_nll": 2.3738267198204994,
+    "aerm_total_parameters": 1428816.0,
+    "complete": true,
+    "control_held_out_updated": 0.4652014652014652,
+    "control_text_nll": 2.390003204345703,
+    "control_total_parameters": 1428556.0,
+    "control_updated": 0.8979591836734694,
+    "held_out_first": 0.2152777777777778,
+    "held_out_pass": false,
+    "held_out_updated": 0.1575091575091575,
+    "in_distribution_updated": 1.0,
+    "margin": 0.10204081632653061,
+    "parameters_pass": true,
+    "pass": false,
+    "read_events": 2294,
+    "seed": 1,
+    "text_delta": -0.016176484525203705,
+    "text_pass": true,
+    "trace": {
+     "Emission": 1,
+     "NotSelected": 175,
+     "Unavailable": 460
+    }
+   },
+   {
+    "aerm_text_nll": 2.384031631052494,
+    "aerm_total_parameters": 1428816.0,
+    "complete": true,
+    "control_held_out_updated": 0.7728937728937729,
+    "control_text_nll": 2.3958400264382362,
+    "control_total_parameters": 1428556.0,
+    "control_updated": 0.8950437317784257,
+    "held_out_first": 0.1875,
+    "held_out_pass": false,
+    "held_out_updated": 0.07326007326007326,
+    "in_distribution_updated": 1.0,
+    "margin": 0.10495626822157433,
+    "parameters_pass": true,
+    "pass": false,
+    "read_events": 2574,
+    "seed": 2,
+    "text_delta": -0.011808395385742188,
+    "text_pass": true,
+    "trace": {
+     "Emission": 15,
+     "NotSelected": 172,
+     "Unavailable": 484
+    }
+   },
+   {
+    "aerm_text_nll": 2.3647860661149025,
+    "aerm_total_parameters": 1428816.0,
+    "complete": true,
+    "control_held_out_updated": 0.8131868131868132,
+    "control_text_nll": 2.3982851281762123,
+    "control_total_parameters": 1428556.0,
+    "control_updated": 0.8979591836734694,
+    "held_out_first": 0.3680555555555556,
+    "held_out_pass": false,
+    "held_out_updated": 0.029304029304029304,
+    "in_distribution_updated": 1.0,
+    "margin": 0.10204081632653061,
+    "parameters_pass": true,
+    "pass": false,
+    "read_events": 2706,
+    "seed": 3,
+    "text_delta": -0.033499062061309814,
+    "text_pass": true,
+    "trace": {
+     "Emission": 20,
+     "NotSelected": 59,
+     "Unavailable": 519
+    }
+   }
+  ]
+ },
+ "roots": [
+  {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-decompose/dc-s1",
+   "manifest_sha256": "b8f7b97a3369919d75ae33fac22e161eb189c07eb0229c060f2d189141dc0f71",
+   "files": [
+    {
+     "blake3": "298dc8b9bf2e5b4d6f0ed5e54b9b4f936430caa11ab15edc20868c5a75cea4ed",
+     "bytes": 721,
+     "path": "attempt.json"
+    },
+    {
+     "blake3": "4d7c6637274690aa262bd259df7d6c010211aab6158fd7ed13485efb791984a6",
+     "bytes": 46663,
+     "path": "runs/aerm-s1.json"
+    },
+    {
+     "blake3": "4dc9e986da924ee235e00347927062c9426bc563a1f7a1d902ce7fd98af781de",
+     "bytes": 46522,
+     "path": "runs/control-s1.json"
+    },
+    {
+     "blake3": "30a0f6bfbea2852637466e8267b29c99e1fb9abfefe686fc247746c3e47535f2",
+     "bytes": 8029,
+     "path": "summary.json"
+    }
+   ],
+   "runs": {
+    "aerm-s1": {
+     "parameters_total": 1428816,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 43,
+      "oracle_correct": 221,
+      "queries": 273,
+      "whole_answer_correct": 41
+     },
+     "held_out_trace": {
+      "Emission": 1,
+      "NotSelected": 175,
+      "Unavailable": 460
+     },
+     "held_out_failure_cause": {
+      "Other": 2,
+      "QueryEntityTag": 587,
+      "QueryRelationTag": 41,
+      "WriteMissed": 1,
+      "WriteValueTag": 5
+     },
+     "fresh_failure_cause": {},
+     "read_events": 2294,
+     "text_dev_nll": 2.3738267198204994
+    },
+    "control-s1": {
+     "parameters_total": 1428556,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 127,
+      "oracle_correct": 0,
+      "queries": 273,
+      "whole_answer_correct": 99
+     },
+     "held_out_trace": {},
+     "held_out_failure_cause": {},
+     "fresh_failure_cause": {},
+     "read_events": 2692,
+     "text_dev_nll": 2.390003204345703
+    }
+   }
+  },
+  {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-decompose/dc-s2",
+   "manifest_sha256": "ebbeb8daeeabb2b431674d5ecba8799871c01782847f57d6ba9188bb93e6d4eb",
+   "files": [
+    {
+     "blake3": "3e08e8faa1044ba42366e3179220426ec7aac0e517bb805001dd0ff456b4d87a",
+     "bytes": 721,
+     "path": "attempt.json"
+    },
+    {
+     "blake3": "cc43172e82d455b28c3cceb7242bf6cb8ec84589e253f5594b112aaec4552588",
+     "bytes": 46634,
+     "path": "runs/aerm-s2.json"
+    },
+    {
+     "blake3": "a51caf681d017e2b66deb3a78048bba0c3b2257b22614bfc4aac43d0c0ca9557",
+     "bytes": 46509,
+     "path": "runs/control-s2.json"
+    },
+    {
+     "blake3": "df78678cc1d3bb28c2ee1aa7b50a2269b87a5d384d9c211cd7b97965a6ed54f3",
+     "bytes": 8029,
+     "path": "summary.json"
+    }
+   ],
+   "runs": {
+    "aerm-s2": {
+     "parameters_total": 1428816,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 20,
+      "oracle_correct": 228,
+      "queries": 273,
+      "whole_answer_correct": 15
+     },
+     "held_out_trace": {
+      "Emission": 15,
+      "NotSelected": 172,
+      "Unavailable": 484
+     },
+     "held_out_failure_cause": {
+      "Other": 5,
+      "QueryEntityTag": 523,
+      "QueryRelationTag": 81,
+      "WriteEntityKey": 58,
+      "WriteValueTag": 4
+     },
+     "fresh_failure_cause": {},
+     "read_events": 2574,
+     "text_dev_nll": 2.384031631052494
+    },
+    "control-s2": {
+     "parameters_total": 1428556,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 211,
+      "oracle_correct": 0,
+      "queries": 273,
+      "whole_answer_correct": 189
+     },
+     "held_out_trace": {},
+     "held_out_failure_cause": {},
+     "fresh_failure_cause": {},
+     "read_events": 3332,
+     "text_dev_nll": 2.3958400264382362
+    }
+   }
+  },
+  {
+   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-decompose/dc-s3",
+   "manifest_sha256": "e821cced3934ae888a94e3d3b4238f2855069b728088ed98f0713a70f7cd1291",
+   "files": [
+    {
+     "blake3": "93eb9eaad9a81786a24f34f4d1062c5854e3ffd2b769e6ff4d2098508bcef841",
+     "bytes": 721,
+     "path": "attempt.json"
+    },
+    {
+     "blake3": "3b500bd51968135c2fe79e136fb775f7963907364393457d27e70d31e3300c25",
+     "bytes": 46687,
+     "path": "runs/aerm-s3.json"
+    },
+    {
+     "blake3": "9c684cb4946d3c5987ae35d40fc5cff0f629d41a55bd8717379a0d9dd7528cb0",
+     "bytes": 46530,
+     "path": "runs/control-s3.json"
+    },
+    {
+     "blake3": "b5b1bf885aff4dcd2d27d0d10b6df930d57598561cd733721a9bad68002cb7b2",
+     "bytes": 8027,
+     "path": "summary.json"
+    }
+   ],
+   "runs": {
+    "aerm-s3": {
+     "parameters_total": 1428816,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 8,
+      "oracle_correct": 185,
+      "queries": 273,
+      "whole_answer_correct": 7
+     },
+     "held_out_trace": {
+      "Emission": 20,
+      "NotSelected": 59,
+      "Unavailable": 519
+     },
+     "held_out_failure_cause": {
+      "Other": 23,
+      "QueryEntityTag": 370,
+      "QueryRelationTag": 20,
+      "WriteEntityKey": 184,
+      "WriteMissed": 1
+     },
+     "fresh_failure_cause": {},
+     "read_events": 2706,
+     "text_dev_nll": 2.3647860661149025
+    },
+    "control-s3": {
+     "parameters_total": 1428556,
+     "read_policy": "always_on_address_driven",
+     "held_out_updated": {
+      "correct": 222,
+      "oracle_correct": 0,
+      "queries": 273,
+      "whole_answer_correct": 144
+     },
+     "held_out_trace": {},
+     "held_out_failure_cause": {},
+     "fresh_failure_cause": {},
+     "read_events": 2866,
+     "text_dev_nll": 2.3982851281762123
+    }
+   }
+  }
+ ]
+}

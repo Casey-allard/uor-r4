@@ -205,7 +205,21 @@ fn run(args: &Args, out: &Path) -> Result<()> {
     let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
     let encode = |text: &str| tokenizer.encode(text);
-    let world = RelationWorld::new(&encode, protocol.bos_id, protocol.eos_id)?;
+    let mut world = RelationWorld::new(&encode, protocol.bos_id, protocol.eos_id)?;
+    let names_file = args.0.get("names").map(PathBuf::from);
+    let extra_names = match &names_file {
+        Some(path) => {
+            let text = fs::read_to_string(path)?;
+            let list: Vec<String> = text
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                .map(str::to_owned)
+                .collect();
+            world.extend_names(&encode, &list)?
+        }
+        None => 0,
+    };
     let template = StackConfig {
         arch: StackArch::Geometric,
         vocab_size: 4096,
@@ -236,6 +250,16 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         trigger_weight: args.number("trigger_weight", 1.0)?,
         trigger_positive_weight: args.number("trigger_positive", 5.0)?,
         data_seed: 0,
+        mask_text_tags: args
+            .0
+            .get("mask_text_tags")
+            .map(|value| {
+                value
+                    .parse::<bool>()
+                    .map_err(|_| invalid(format!("invalid mask_text_tags={value}")))
+            })
+            .transpose()?
+            .unwrap_or(false),
     };
     let started = Instant::now();
     let protocol_check = verify_protocol(&world, &tokenizer, verify, context)?;
@@ -366,6 +390,10 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         "control_extra_mlp_units": extra_mlp,
         "memory_branch_parameters": memory_parameters,
         "protocol_check": protocol_check,
+        "world": {
+            "names_file": names_file.as_ref().map(|path| path.display().to_string()),
+            "extra_names_added": extra_names,
+        },
         "vocabulary": world.vocabulary(),
         "data": {
             "text": text_path, "text_sha256": text_sha256, "train_tokens": train_tokens,
@@ -603,6 +631,8 @@ fn main() -> Result<()> {
                     "free_episodes",
                     "verify",
                     "save",
+                    "names",
+                    "mask_text_tags",
                 ],
             )?;
             let out = PathBuf::from(args.required("out")?);

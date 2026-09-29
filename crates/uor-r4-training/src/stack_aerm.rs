@@ -223,6 +223,14 @@ pub struct ReadEvent {
     pub value: u32,
 }
 
+/// One completed write: the clause's exact key and value at a write trigger.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WriteEvent {
+    pub position: usize,
+    pub key: (u32, u32),
+    pub value: u32,
+}
+
 /// Registers per position and the store after the last position.
 #[derive(Clone, Debug)]
 pub struct Simulation {
@@ -231,6 +239,7 @@ pub struct Simulation {
     pub status_previous: Vec<u32>,
     pub value_previous: Vec<u32>,
     pub reads: Vec<ReadEvent>,
+    pub writes: Vec<WriteEvent>,
     pub store: RelationStore,
 }
 
@@ -264,6 +273,7 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
     let mut status_previous = Vec::with_capacity(tokens.len());
     let mut values_previous = Vec::with_capacity(tokens.len());
     let mut reads = Vec::new();
+    let mut writes = Vec::new();
     for (position, ((&token, &tag), &trigger)) in tokens.iter().zip(tags).zip(triggers).enumerate()
     {
         match tag {
@@ -299,6 +309,11 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
             TRIGGER_WRITE => {
                 if let (Some(e), Some(r), Some(v)) = (entity, relation, value) {
                     store.write(e, r, v);
+                    writes.push(WriteEvent {
+                        position,
+                        key: (e, r),
+                        value: v,
+                    });
                 }
                 close = true;
             }
@@ -318,6 +333,7 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
         status_previous,
         value_previous: values_previous,
         reads,
+        writes,
         store,
     })
 }
@@ -570,7 +586,7 @@ const RELATIONS: &[(&str, Option<&str>, Option<&[&str]>)] = &[
 
 #[derive(Clone, Debug)]
 struct Word {
-    text: &'static str,
+    text: String,
     id: u32,
 }
 
@@ -579,6 +595,8 @@ struct RelationSpec {
     word: Word,
     article: Option<&'static str>,
     values: Vec<Word>,
+    /// The values were the name pool at construction; `extend_names` grows them.
+    from_names: bool,
 }
 
 /// The class of a query, from the gold store when it is asked.
@@ -669,7 +687,10 @@ impl RelationWorld {
     pub fn new(encode: &dyn Fn(&str) -> Vec<u32>, bos: u32, eos: u32) -> Result<Self> {
         let single = |text: &'static str| -> Result<Word> {
             match encode(text).as_slice() {
-                [id] => Ok(Word { text, id: *id }),
+                [id] => Ok(Word {
+                    text: text.to_owned(),
+                    id: *id,
+                }),
                 _ => Err(invalid(format!("{text:?} is not a single token"))),
             }
         };
@@ -683,17 +704,21 @@ impl RelationWorld {
             .collect::<Result<Vec<_>>>()?;
         let mut relations = Vec::new();
         for &(word, article, values) in RELATIONS {
-            let values = match values {
-                Some(values) => values
-                    .iter()
-                    .map(|&v| single(v))
-                    .collect::<Result<Vec<_>>>()?,
-                None => names.clone(),
+            let (values, from_names) = match values {
+                Some(values) => (
+                    values
+                        .iter()
+                        .map(|&v| single(v))
+                        .collect::<Result<Vec<_>>>()?,
+                    false,
+                ),
+                None => (names.clone(), true),
             };
             relations.push(RelationSpec {
                 word: single(word)?,
                 article,
                 values,
+                from_names,
             });
         }
         let mut pieces = BTreeMap::new();
@@ -732,6 +757,47 @@ impl RelationWorld {
         })
     }
 
+    /// Extends the training name pool from a list of first names. A name must
+    /// encode together with its leading space to exactly one token; duplicates
+    /// and held-out names are skipped. Returns how many names were added.
+    pub fn extend_names(
+        &mut self,
+        encode: &dyn Fn(&str) -> Vec<u32>,
+        names: &[String],
+    ) -> Result<usize> {
+        let mut added = 0usize;
+        for name in names {
+            let trimmed = name.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let text = format!(" {trimmed}");
+            if self
+                .held_names
+                .iter()
+                .chain(&self.names)
+                .any(|w| w.text == text)
+            {
+                continue;
+            }
+            let word = match encode(&text).as_slice() {
+                [id] => Word { text, id: *id },
+                _ => return Err(invalid(format!("{text:?} is not a single token"))),
+            };
+            if self.relations.iter().any(|r| r.word.id == word.id) {
+                continue;
+            }
+            for relation in self.relations.iter_mut() {
+                if relation.from_names {
+                    relation.values.push(word.clone());
+                }
+            }
+            self.names.push(word);
+            added += 1;
+        }
+        Ok(added)
+    }
+
     /// Every slot word with its token id: names, held-out names and each
     /// relation's word and values.
     pub fn vocabulary(&self) -> serde_json::Value {
@@ -742,7 +808,7 @@ impl RelationWorld {
             "names": words(&self.names),
             "held_out_names": words(&self.held_names),
             "relations": self.relations.iter().map(|r| serde_json::json!({
-                "word": (r.word.text, r.word.id),
+                "word": (r.word.text.clone(), r.word.id),
                 "article": r.article,
                 "values": words(&r.values),
             })).collect::<Vec<_>>(),
@@ -835,12 +901,12 @@ impl<'a> EpisodeBuilder<'a> {
                     out.tags.extend(std::iter::repeat_n(TAG_OTHER, piece.len()));
                 }
                 Entity => {
-                    out.text.push_str(entity.text);
+                    out.text.push_str(&entity.text);
                     out.tokens.push(entity.id);
                     out.tags.push(TAG_ENTITY);
                 }
                 Relation => {
-                    out.text.push_str(relation.word.text);
+                    out.text.push_str(&relation.word.text);
                     out.tokens.push(relation.word.id);
                     out.tags.push(TAG_RELATION);
                 }
@@ -852,7 +918,7 @@ impl<'a> EpisodeBuilder<'a> {
                         out.tokens.extend_from_slice(piece);
                         out.tags.extend(std::iter::repeat_n(TAG_OTHER, piece.len()));
                     }
-                    out.text.push_str(value.text);
+                    out.text.push_str(&value.text);
                     out.value_offset = Some(out.tokens.len());
                     out.tokens.push(value.id);
                     out.tags.push(TAG_VALUE);
@@ -890,7 +956,7 @@ impl<'a> EpisodeBuilder<'a> {
             out.tokens.extend_from_slice(piece);
             out.tags.extend(std::iter::repeat_n(TAG_OTHER, piece.len()));
         }
-        out.text.push_str(value.text);
+        out.text.push_str(&value.text);
         out.text.push('.');
         out.value_offset = Some(out.tokens.len());
         out.tokens.push(value.id);
@@ -1825,6 +1891,9 @@ pub struct AermConfig {
     /// Loss weight of a trigger-positive position relative to a negative one.
     pub trigger_positive_weight: f32,
     pub data_seed: u64,
+    /// Drop the tag and trigger auxiliary losses on ordinary-text batches.
+    #[serde(default)]
+    pub mask_text_tags: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1944,8 +2013,16 @@ pub fn train_aerm(
             &silent_value,
         )?;
         let text_loss = logits_cross_entropy(&logits, &targets, None)?;
-        let text_tag = head_loss(&bottom.tags, &text_tags, &text_ones)?;
-        let text_trigger = head_loss(&bottom.triggers, &text_triggers, &text_ones)?;
+        let text_tag = if config.mask_text_tags {
+            None
+        } else {
+            Some(head_loss(&bottom.tags, &text_tags, &text_ones)?)
+        };
+        let text_trigger = if config.mask_text_tags {
+            None
+        } else {
+            Some(head_loss(&bottom.triggers, &text_triggers, &text_ones)?)
+        };
         // Dialogues.
         let dialogues = world.batch(&mut rng, batch, context, false)?;
         let bottom = model.bottom(&dialogues.ids, batch, context)?;
@@ -1972,8 +2049,14 @@ pub fn train_aerm(
             })
             .collect();
         let trigger_loss = head_loss(&bottom.triggers, &dialogues.triggers, &trigger_weights)?;
-        let aux_tag = ((&text_tag + &tag_loss)? * (0.5 * config.tag_weight))?;
-        let aux_trigger = ((&text_trigger + &trigger_loss)? * (0.5 * config.trigger_weight))?;
+        let aux_tag = match &text_tag {
+            Some(text_term) => ((text_term + &tag_loss)? * (0.5 * config.tag_weight))?,
+            None => (&tag_loss * (0.5 * config.tag_weight))?,
+        };
+        let aux_trigger = match &text_trigger {
+            Some(text_term) => ((text_term + &trigger_loss)? * (0.5 * config.trigger_weight))?,
+            None => (&trigger_loss * (0.5 * config.trigger_weight))?,
+        };
         let loss = (((&text_loss + &dialogue_loss)? + aux_tag)? + aux_trigger)?;
         let mut grads = loss.backward()?;
         let norm = clip_gradients(&mut grads, &all, config.clip)?;
@@ -2033,6 +2116,8 @@ pub struct DialogueEvaluation {
     /// address).
     pub read_events: usize,
     pub trace: BTreeMap<String, usize>,
+    /// Every memory-arm failure decomposed by [`AddressCause`].
+    pub failure_cause: BTreeMap<String, usize>,
     /// The last query of the first episodes: gold and teacher-forced predictions.
     pub examples: Vec<QueryExample>,
 }
@@ -2167,6 +2252,23 @@ pub fn evaluate_dialogues(
                         world.eos,
                     )?;
                     *result.trace.entry(format!("{class:?}")).or_default() += 1;
+                    let inputs = episode.tokens.len() - 1;
+                    if inputs >= 2 {
+                        let cause = address_cause(
+                            &episode.tokens[..inputs],
+                            &episode.tags[..inputs],
+                            &episode.triggers[..inputs],
+                            &tags[base..base + inputs],
+                            &triggers[base..base + inputs],
+                            query.answer_start - 1,
+                            query.key,
+                            world.eos,
+                        )?;
+                        *result
+                            .failure_cause
+                            .entry(format!("{cause:?}"))
+                            .or_default() += 1;
+                    }
                 }
                 if index == last && result.examples.len() < 32 {
                     result.examples.push(QueryExample {
@@ -2233,6 +2335,113 @@ fn trace(
         Some(event) if event.key == Some(query.key) => Ok(TraceClass::WrongValue),
         _ => Ok(TraceClass::NotSelected),
     }
+}
+
+/// Where a memory-arm failure's address went wrong (the G-decomposition
+/// diagnostic; it changes no score).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum AddressCause {
+    /// The query turn's entity token was not tagged as an entity.
+    QueryEntityTag,
+    /// The query turn's relation token was not tagged as a relation.
+    QueryRelationTag,
+    /// The last gold write's entity slot was not tagged as an entity.
+    WriteEntityKey,
+    /// The last gold write's relation slot was not tagged as a relation.
+    WriteRelationKey,
+    /// The last gold write's value slot was not tagged as a value.
+    WriteValueTag,
+    /// The model fired no write trigger where gold wrote the key.
+    WriteMissed,
+    /// The key is present but the model's latest write carries another value.
+    WrongValueStored,
+    /// The store reports the query key evicted.
+    Evicted,
+    /// None of the above.
+    Other,
+}
+
+/// Classifies a failed query by comparing the model's own tags and triggers
+/// with the gold stream, on the query turn and on the last gold write of the
+/// query key. All five arrays must be the same length and `end` in range.
+pub fn address_cause(
+    tokens: &[u32],
+    gold_tags: &[u32],
+    gold_triggers: &[u32],
+    model_tags: &[u32],
+    model_triggers: &[u32],
+    end: usize,
+    key: (u32, u32),
+    eos: u32,
+) -> Result<AddressCause> {
+    if tokens.len() != gold_tags.len()
+        || tokens.len() != gold_triggers.len()
+        || tokens.len() != model_tags.len()
+        || tokens.len() != model_triggers.len()
+        || end >= tokens.len()
+    {
+        return Err(invalid("aligned arrays and an in-range end are required"));
+    }
+    let gold = simulate(
+        &tokens[..=end],
+        &gold_tags[..=end],
+        &gold_triggers[..=end],
+        eos,
+    )?;
+    let model = simulate(
+        &tokens[..=end],
+        &model_tags[..=end],
+        &model_triggers[..=end],
+        eos,
+    )?;
+    let turn_start = tokens[..end]
+        .iter()
+        .rposition(|&t| t == eos)
+        .map_or(1, |p| p + 1);
+    let query_slot = |tag: u32| (turn_start..=end).rev().find(|&p| gold_tags[p] == tag);
+    let Some(entity) = query_slot(TAG_ENTITY) else {
+        return Ok(AddressCause::Other);
+    };
+    if model_tags[entity] != TAG_ENTITY {
+        return Ok(AddressCause::QueryEntityTag);
+    }
+    let Some(relation) = query_slot(TAG_RELATION) else {
+        return Ok(AddressCause::Other);
+    };
+    if model_tags[relation] != TAG_RELATION {
+        return Ok(AddressCause::QueryRelationTag);
+    }
+    let Some(write) = gold.writes.iter().rev().find(|w| w.key == key) else {
+        return Ok(AddressCause::Other);
+    };
+    if model.store.read(key.0, key.1, false).0 == STATUS_EVICTED {
+        return Ok(AddressCause::Evicted);
+    }
+    let clause_slot = |tag: u32| (0..write.position).rev().find(|&p| gold_tags[p] == tag);
+    if let Some(p) = clause_slot(TAG_ENTITY) {
+        if model_tags[p] != TAG_ENTITY {
+            return Ok(AddressCause::WriteEntityKey);
+        }
+    }
+    if let Some(p) = clause_slot(TAG_RELATION) {
+        if model_tags[p] != TAG_RELATION {
+            return Ok(AddressCause::WriteRelationKey);
+        }
+    }
+    if let Some(p) = clause_slot(TAG_VALUE) {
+        if model_tags[p] != TAG_VALUE {
+            return Ok(AddressCause::WriteValueTag);
+        }
+    }
+    if model_triggers[write.position] != TRIGGER_WRITE {
+        return Ok(AddressCause::WriteMissed);
+    }
+    let held = model.store.record(key.0, key.1).map(|r| r.value);
+    let wanted = gold.store.record(key.0, key.1).map(|r| r.value);
+    if held != wanted {
+        return Ok(AddressCause::WrongValueStored);
+    }
+    Ok(AddressCause::Other)
 }
 
 /// Mean next-token NLL over `windows` evenly spaced development windows. The
@@ -2671,6 +2880,116 @@ mod tests {
         assert!(simulation.reads.is_empty());
         assert!(simulation.status.iter().all(|&s| s == STATUS_NONE));
         assert!(simulation.status_previous.iter().all(|&s| s == STATUS_NONE));
+        Ok(())
+    }
+
+    #[test]
+    fn write_events_record_the_exact_clause() -> Result<()> {
+        let tokens = vec![0u32, 10, 20, 30, 40, 1, 10, 20, 41, 1];
+        let tags = vec![
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_VALUE,
+            TAG_OTHER,
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_OTHER,
+            TAG_OTHER,
+        ];
+        let triggers = vec![
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_WRITE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+        ];
+        let simulation = simulate(&tokens, &tags, &triggers, 1)?;
+        assert_eq!(
+            simulation.writes,
+            vec![WriteEvent {
+                position: 4,
+                key: (10, 20),
+                value: 30,
+            }]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn address_cause_names_the_query_and_write_slots() -> Result<()> {
+        let tokens = vec![0u32, 10, 20, 30, 40, 1, 10, 20, 41, 1];
+        let tags = vec![
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_VALUE,
+            TAG_OTHER,
+            TAG_OTHER,
+            TAG_ENTITY,
+            TAG_RELATION,
+            TAG_OTHER,
+            TAG_OTHER,
+        ];
+        let triggers = vec![
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_WRITE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+            TRIGGER_NONE,
+        ];
+        let cause = |model_tags: &[u32], model_triggers: &[u32]| -> Result<AddressCause> {
+            address_cause(
+                &tokens,
+                &tags,
+                &triggers,
+                model_tags,
+                model_triggers,
+                9,
+                (10, 20),
+                1,
+            )
+        };
+        assert_eq!(cause(&tags, &triggers)?, AddressCause::Other);
+        let flip = |at: usize, value: u32| -> (Vec<u32>, Vec<u32>) {
+            let mut model_tags = tags.clone();
+            model_tags[at] = value;
+            (model_tags, triggers.clone())
+        };
+        assert_eq!(
+            cause(&flip(6, TAG_OTHER).0, &triggers)?,
+            AddressCause::QueryEntityTag
+        );
+        assert_eq!(
+            cause(&flip(7, TAG_OTHER).0, &triggers)?,
+            AddressCause::QueryRelationTag
+        );
+        assert_eq!(
+            cause(&flip(1, TAG_OTHER).0, &triggers)?,
+            AddressCause::WriteEntityKey
+        );
+        assert_eq!(
+            cause(&flip(2, TAG_OTHER).0, &triggers)?,
+            AddressCause::WriteRelationKey
+        );
+        assert_eq!(
+            cause(&flip(3, TAG_OTHER).0, &triggers)?,
+            AddressCause::WriteValueTag
+        );
+        let mut missed = triggers.clone();
+        missed[4] = TRIGGER_NONE;
+        assert_eq!(cause(&tags, &missed)?, AddressCause::WriteMissed);
         Ok(())
     }
 
