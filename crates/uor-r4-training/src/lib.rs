@@ -39,6 +39,7 @@ pub mod joint_rounding_campaign;
 pub mod joint_transfer;
 pub mod kappa_llama;
 pub mod lut_export;
+pub mod milestone_world;
 pub mod ngram;
 pub mod read_localize;
 pub mod reference_campaign;
