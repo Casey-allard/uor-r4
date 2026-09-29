@@ -7,7 +7,7 @@
 //! ```text
 //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
 //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
-//!   [read=lorentz|dot] [rotation=true|false] [qat=false|true] \
+//!   [read=lorentz|dot] [rotation=true|false] [qat=false|true] [transport_snap=none|icosian] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -41,6 +41,7 @@
 //!   train_tokens=TRAIN.uort train_mask=TRAIN.mask train_manifest=TRAIN/manifest.json \
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
+//!   [transport_snap=none|icosian] \
 //!   [policy=full_prefix|role_only] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
@@ -77,6 +78,23 @@
 //! `final_float`) on the same windows; its saved model is the float weights,
 //! whose round-to-nearest export is the representation it trained, and its
 //! `config.json` records that representation (`served_representation`).
+//!
+//! `transport_snap=icosian` (in `train` and `dialogue-train`, after `init=`
+//! and on a resume alike) trains with every recurrence's unit transport
+//! quaternion snapped to the nearest of the 120 unit icosians of 2I before
+//! its scaling by lambda, with straight-through gradients
+//! (`StackModel::set_transport_snap`), so the transport is an exact element
+//! of 2I. It needs a geometric stack with `rotation=true`, and composes with
+//! `qat=true`. The resume lineage records it. Each evaluation scores the
+//! model's own forward, snapped (`dev`, `final`; in `dialogue-train`
+//! `dev_response_nll`), and the same weights with the transport free
+//! (`dev_unsnapped`, `final_unsnapped`; `dev_unsnapped_*`) on the same
+//! windows or panel, and reports the icosian usage over the evaluated
+//! positions (`transport_usage`: roots selected, entropy of the selection
+//! distribution, the identity's share). The saved model is the float
+//! weights with `transport.json` beside them recording the snap; loading it
+//! does not apply the snap, and `export` refuses it, as the integer engines
+//! serve the unsnapped transport.
 //!
 //! `evaluate` scores consecutive 256-input blocks with a fresh state per
 //! block (257 stored ids, 256 targets), the retained evaluator's protocol
@@ -144,10 +162,10 @@ use serde_json::{json, Value};
 use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_core::report_output;
 use uor_r4_training::dialogue_development;
-use uor_r4_training::dialogue_episodes::{PrefixPolicy, EPISODE_CONTEXT};
+use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CONTEXT};
 use uor_r4_training::geometric_stack::{
     logits_cross_entropy, D11Interim, MapCodec, ReadScore, ServedStatistics, StackAdamW, StackArch,
-    StackConfig, StackModel,
+    StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -564,6 +582,8 @@ struct Settings {
     init: Option<PathBuf>,
     /// Train with the served representation (`qat=true`).
     qat: bool,
+    /// Train with the transport snapped (`transport_snap=`).
+    transport_snap: Option<TransportSnap>,
     steps: usize,
     batch: usize,
     lr: f64,
@@ -652,6 +672,27 @@ impl InitFiles {
         })
     }
 }
+/// `transport_snap=none|icosian` (default none).
+fn transport_snap_arg(args: &Args) -> Result<Option<TransportSnap>> {
+    match args.optional("transport_snap").as_deref() {
+        None | Some("none") => Ok(None),
+        Some("icosian") => Ok(Some(TransportSnap::Icosian)),
+        Some(other) => Err(invalid(format!(
+            "invalid transport_snap={other} (none or icosian)"
+        ))),
+    }
+}
+
+/// What a transport-snap run's report says its scores are.
+const TRANSPORT_SNAP_SCOPE: &str =
+    "every recurrence's unit transport quaternion was snapped, before its scaling by lambda, to \
+     the nearest of the snap's roots (the 120 unit icosians of 2I), with straight-through \
+     gradients to the rotation logits; the model's own forward (its `dev` scores, the samples and \
+     replies) is snapped, and the `unsnapped` scores are the same weights with the transport free \
+     on the same windows or panel (a served representation, if any, unchanged); \
+     `transport_usage` counts the roots the snapped forward selected over every recurrence layer, \
+     lane and evaluated position; the saved model is the float weights, with transport.json \
+     recording the snap";
 
 impl Settings {
     fn record(&self, init: Option<&InitFiles>) -> Value {
@@ -664,6 +705,7 @@ impl Settings {
             "lens": self.lens, "merges": self.merges, "tokenizer": self.tokenizer,
             "config": self.config, "init": init,
             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+            "transport_snap": self.transport_snap,
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
@@ -673,8 +715,9 @@ impl Settings {
     }
 
     /// Settings and input contents a resumed run must share with its parent.
-    /// A run from `init=` or with `qat=true` also shares those; other runs'
-    /// lineage is unchanged, so their earlier checkpoints still resume.
+    /// A run from `init=`, with `qat=true` or with a transport snap also
+    /// shares those; other runs' lineage is unchanged, so their earlier
+    /// checkpoints still resume.
     fn lineage(&self, inputs: &Value) -> Value {
         let mut lineage = json!({
             "config": self.config, "steps": self.steps, "batch": self.batch, "lr": self.lr,
@@ -684,6 +727,9 @@ impl Settings {
         });
         if self.qat {
             lineage["qat"] = json!({"codec": qat_codec().name()});
+        }
+        if let Some(snap) = self.transport_snap {
+            lineage["transport_snap"] = snap.record();
         }
         lineage
     }
@@ -952,6 +998,10 @@ fn train_settings(args: &Args) -> Result<Settings> {
     if qat {
         check_qat_config(&config)?;
     }
+    let transport_snap = transport_snap_arg(args)?;
+    if let Some(snap) = transport_snap {
+        snap.check(&config)?;
+    }
     let train: Vec<PathBuf> = args
         .required("train")?
         .split(',')
@@ -984,6 +1034,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         config,
         init,
         qat,
+        transport_snap,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
         lr: args.number("lr", 0.002)?,
@@ -1107,6 +1158,47 @@ fn evaluate_modes(
     windows: usize,
 ) -> Result<(Evaluation, Option<Evaluation>)> {
     in_both_modes(model, |model| evaluate(model, valid, lens, windows))
+}
+
+/// In a transport-snap run, on the windows [`evaluate`] scores: the NLL of
+/// the same weights with the transport free (a served representation
+/// unchanged), and the roots the snapped forward selects there.
+fn evaluate_transport(
+    model: &mut StackModel,
+    valid: &[u32],
+    lens: Option<&[u32]>,
+    windows: usize,
+) -> Result<Option<(Evaluation, TransportUsage)>> {
+    let Some(snap) = model.transport_snap() else {
+        return Ok(None);
+    };
+    let unsnapped =
+        model.with_unsnapped_transport(|model| evaluate(model, valid, lens, windows))?;
+    let time = model.config.context;
+    let stride = (valid.len() - time - 1) / windows;
+    let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
+    let mut usage = TransportUsage::new(snap, &model.config);
+    for group in starts.chunks(16) {
+        let ids: Vec<u32> = group
+            .iter()
+            .flat_map(|&start| valid[start..start + time].iter().copied())
+            .collect();
+        usage.add(&model.transport_usage(&ids, group.len(), time, None)?)?;
+    }
+    Ok(Some((unsnapped, usage)))
+}
+
+/// A transport-snap evaluation into an evaluation point: the unsnapped
+/// score under `key`, the usage under `transport_usage`.
+fn record_transport(
+    point: &mut Value,
+    key: &str,
+    transport: Option<&(Evaluation, TransportUsage)>,
+) {
+    if let Some((unsnapped, usage)) = transport {
+        point[key] = unsnapped.record();
+        point["transport_usage"] = usage.summary();
+    }
 }
 
 /// Seconds of this process's updates: the first (which includes one-time
@@ -1375,14 +1467,19 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     if settings.qat {
         model.set_served_representation(Some(qat_codec()))?;
     }
+    // After `init=` or a resume alike: a saved model holds no snap.
+    model.set_transport_snap(settings.transport_snap)?;
     // A run from a trained model scores it before any update.
     if settings.init.is_some() && progress.step == 0 {
         let (evaluation, float) =
             evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+        let transport =
+            evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
         let mut point = json!({"step": 0, "tokens": 0, "dev": evaluation.record()});
         if let Some(float) = &float {
             point["dev_float"] = float.record();
         }
+        record_transport(&mut point, "dev_unsnapped", transport.as_ref());
         eprintln!("{point}");
         progress.curve.push(point);
     }
@@ -1437,6 +1534,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         if progress.step % settings.eval_every == 0 || progress.step == settings.steps {
             let (evaluation, float) =
                 evaluate_modes(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
+            let transport =
+                evaluate_transport(&mut model, &valid, lens.as_deref(), settings.eval_windows)?;
             let tokens = progress.step * settings.batch * time;
             let mut point = json!({
                 "step": progress.step, "tokens": tokens, "lr": lr,
@@ -1448,6 +1547,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             if let Some(float) = &float {
                 point["dev_float"] = float.record();
             }
+            record_transport(&mut point, "dev_unsnapped", transport.as_ref());
             eprintln!("{point}");
             progress.curve.push(point);
             window_loss = (0.0, 0);
@@ -1466,9 +1566,14 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     }
     let (final_evaluation, final_float) =
         evaluate_modes(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
+    let final_transport =
+        evaluate_transport(&mut model, &valid, lens.as_deref(), settings.final_windows)?;
     eprintln!("final: {}", final_evaluation.record());
     if let Some(float) = &final_float {
         eprintln!("final float: {}", float.record());
+    }
+    if let Some((unsnapped, _)) = &final_transport {
+        eprintln!("final unsnapped: {}", unsnapped.record());
     }
     model.save(&out.join("model"))?;
     if !stopped_early {
@@ -1527,6 +1632,13 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             "served_work_in_updates": served_in_steps,
             "served_work_total": model.served_statistics()?,
         });
+    }
+    if let Some(snap) = model.transport_snap() {
+        let mut section = snap.record();
+        section["scope"] = json!(TRANSPORT_SNAP_SCOPE);
+        section["saved_record"] = json!(StackModel::saved_transport_snap(&out.join("model"))?);
+        record_transport(&mut section, "final_unsnapped", final_transport.as_ref());
+        report["transport_snap"] = section;
     }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
     Ok(())
@@ -1687,6 +1799,16 @@ fn export_mode(arguments: &[String]) -> Result<()> {
         return Err(invalid(
             "calibration_windows must be positive and damp >= 0",
         ));
+    }
+    // A model trained with its transport snapped is not the model the
+    // integer engines would serve: they compute the free transport.
+    if let Some(snap) = StackModel::saved_transport_snap(&model_dir)? {
+        return Err(invalid(format!(
+            "{} was trained with transport_snap={}; the stack export and its integer engines \
+             serve the unsnapped transport, so no export writes this model yet",
+            model_dir.display(),
+            snap.name()
+        )));
     }
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
@@ -2010,6 +2132,7 @@ fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
             "windows": windows,
             "targets": seen,
             "roots": "canonical_h4_roots: the 120 unit icosians of 2I",
+            "trained_transport_snap": StackModel::saved_transport_snap(&model_dir)?,
             "fused_nll": fused_mean,
             "snapped_nll": snapped_mean,
             "snapped_minus_fused_nats": snapped_mean - fused_mean,
@@ -2629,6 +2752,8 @@ struct DialogueSettings {
     init: Option<PathBuf>,
     /// Train with the served representation (`qat=true`), as `train` does.
     qat: bool,
+    /// Train with the transport snapped (`transport_snap=`), as `train` does.
+    transport_snap: Option<TransportSnap>,
     policy: PrefixPolicy,
     data_seed: u64,
     steps: usize,
@@ -2654,6 +2779,7 @@ impl DialogueSettings {
             "tokenizer": self.tokenizer, "train": self.train, "dev": self.dev,
             "init": self.init,
             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
+            "transport_snap": self.transport_snap,
             "policy": self.policy, "data_seed": self.data_seed,
             "steps": self.steps, "batch": self.batch, "lr": self.lr, "warmup": self.warmup,
             "min_lr": self.min_lr, "weight_decay": self.weight_decay, "clip": self.clip,
@@ -2665,8 +2791,8 @@ impl DialogueSettings {
 
     /// Settings, input contents and executable a resumed run must share with
     /// its parent, so one run's updates all come from the same build. A run
-    /// with `qat=true` also shares that, as in `train`; other runs' lineage is
-    /// unchanged, so their earlier checkpoints still resume.
+    /// with `qat=true` or a transport snap also shares that, as in `train`;
+    /// other runs' lineage is unchanged, so their earlier checkpoints still resume.
     fn lineage(&self, config: &StackConfig) -> Result<Value> {
         let content = |path: &Path| -> Result<Value> {
             Ok(json!({"bytes": fs::metadata(path)?.len(), "sha256": sha256_file(path)?}))
@@ -2689,6 +2815,9 @@ impl DialogueSettings {
         });
         if self.qat {
             lineage["qat"] = json!({"codec": qat_codec().name()});
+        }
+        if let Some(snap) = self.transport_snap {
+            lineage["transport_snap"] = snap.record();
         }
         Ok(lineage)
     }
@@ -2771,6 +2900,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "requests",
             "max_new_tokens",
             "qat",
+            "transport_snap",
         ],
     )?;
     let path = |key: &str| -> Result<PathBuf> { Ok(PathBuf::from(args.required(key)?)) };
@@ -2788,6 +2918,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         ],
         init: args.optional("init").map(PathBuf::from),
         qat: qat_flag(&args)?,
+        transport_snap: transport_snap_arg(&args)?,
         policy: match args.optional("policy").as_deref() {
             None | Some("full_prefix") => PrefixPolicy::FullPrefix,
             Some("role_only") => PrefixPolicy::RoleOnly,
@@ -2822,10 +2953,65 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
              1..{MAX_NEW_TOKENS}, min_lr in [0, 1]"
         )));
     }
+    // The snap needs a rotating geometric stack: `init=`'s, or the shape
+    // options' (whose vocabulary the corpus sets later).
+    if let Some(snap) = settings.transport_snap {
+        let config = match &settings.init {
+            Some(directory) => {
+                serde_json::from_slice::<StackConfig>(&fs::read(directory.join("config.json"))?)?
+            }
+            None => stack_config(&args, None)?,
+        };
+        snap.check(&config)?;
+    }
     let out = PathBuf::from(args.required("out")?);
     report_output::claim(&out)?;
     let result = dialogue_train(&settings, &args, &out);
     finish(&out, result)
+}
+
+/// The roots the snapped forward selects over the development panel, as
+/// [`development`] batches it (full original prefixes, 16 responses at a
+/// time), counted over each episode's real input positions.
+fn panel_transport_usage(
+    model: &StackModel,
+    dev: &EpisodeIndex<'_>,
+    panel: &[usize],
+) -> Result<Option<TransportUsage>> {
+    let Some(snap) = model.transport_snap() else {
+        return Ok(None);
+    };
+    let mut usage = TransportUsage::new(snap, &model.config);
+    for chunk in panel.chunks(16) {
+        let episodes = dev.materialize(chunk, PrefixPolicy::FullPrefix)?;
+        let trimmed = trim(&episodes);
+        let lengths: Vec<usize> = episodes
+            .rows
+            .iter()
+            .map(|row| row.counts.real_input_positions.min(trimmed.time))
+            .collect();
+        usage.add(&model.transport_usage(
+            &trimmed.inputs,
+            episodes.batch,
+            trimmed.time,
+            Some(&lengths),
+        )?)?;
+    }
+    Ok(Some(usage))
+}
+
+/// In a transport-snap run: the development panel with the transport free
+/// (the same weights), and the icosian usage over the panel.
+fn panel_transport(
+    model: &mut StackModel,
+    dev: &EpisodeIndex<'_>,
+    panel: &[usize],
+) -> Result<Option<(Value, TransportUsage)>> {
+    let Some(usage) = panel_transport_usage(model, dev, panel)? else {
+        return Ok(None);
+    };
+    let unsnapped = model.with_unsnapped_transport(|model| development(model, dev, panel, 16))?;
+    Ok(Some((unsnapped, usage)))
 }
 
 fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
@@ -2888,10 +3074,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             (model, optimizer, progress, Some(state))
         }
     };
-    // After `init=` or a resume alike: a checkpoint holds the float weights.
+    // After `init=` or a resume alike: a saved model holds neither mode.
     if s.qat {
         model.set_served_representation(Some(qat_codec()))?;
     }
+    model.set_transport_snap(s.transport_snap)?;
     eprintln!(
         "{:?} pattern {} read {:?}: {} parameters; {} training and {} development responses",
         model.config.arch,
@@ -2902,13 +3089,25 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         panel.len(),
     );
     // In a QAT run each development score is of the served representation,
-    // with the float weights' on the same panel beside it.
+    // with the float weights' on the same panel beside it; in a transport-snap
+    // run the panel is also scored unsnapped, with the icosian usage.
     let score = |model: &StackModel| development(model, &dev, &panel, 16);
-    let initial = if progress.step == 0 {
-        Some(in_both_modes(&mut model, &score)?)
+    let (initial, initial_transport) = if progress.step == 0 {
+        (
+            Some(in_both_modes(&mut model, &score)?),
+            panel_transport(&mut model, &dev, &panel)?,
+        )
     } else {
-        None
+        (None, None)
     };
+    if let Some((unsnapped, usage)) = &initial_transport {
+        eprintln!(
+            "step 0 unsnapped response NLL {} (first four {}); transport usage {}",
+            unsnapped["response_mean_nll"],
+            unsnapped["first_four_response_targets_mean_nll"],
+            usage.summary()
+        );
+    }
     // Visits of earlier steps follow from the stateless sampler.
     let mut visits = (0usize, 0usize);
     for step in 0..progress.step {
@@ -2920,6 +3119,8 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     let (mut window_loss, mut stopped_early) = ((0f64, 0usize), false);
     // The served representation's work inside this process's updates.
     let mut served_in_steps = ServedStatistics::default();
+    // This process's updates' seconds.
+    let mut step_seconds = Vec::new();
     let started = Instant::now();
     while progress.step < s.steps {
         let lr = cosine_rate(s.lr, s.warmup, s.min_lr, s.steps, progress.step);
@@ -2941,7 +3142,9 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         }
         let grads = loss.backward()?;
         let grad_norm = optimizer.update(&model, &grads, lr)?;
-        progress.train_seconds += clock.elapsed().as_secs_f64();
+        let seconds = clock.elapsed().as_secs_f64();
+        step_seconds.push(seconds);
+        progress.train_seconds += seconds;
         add_served_work(
             &mut served_in_steps,
             served_before,
@@ -2954,6 +3157,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         window_loss.1 += 1;
         if progress.step % s.eval_every == 0 || progress.step == s.steps {
             let (dev_report, dev_float) = in_both_modes(&mut model, &score)?;
+            let transport = panel_transport(&mut model, &dev, &panel)?;
             let mut point = json!({
                 "step": progress.step, "lr": lr,
                 "train_response_nll": window_loss.0 / window_loss.1.max(1) as f64,
@@ -2966,6 +3170,12 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 point["dev_float_response_nll"] = float["response_mean_nll"].clone();
                 point["dev_float_first_four_nll"] =
                     float["first_four_response_targets_mean_nll"].clone();
+            }
+            if let Some((unsnapped, usage)) = &transport {
+                point["dev_unsnapped_response_nll"] = unsnapped["response_mean_nll"].clone();
+                point["dev_unsnapped_first_four_nll"] =
+                    unsnapped["first_four_response_targets_mean_nll"].clone();
+                point["transport_usage"] = usage.summary();
             }
             eprintln!("{point}");
             progress.curve.push(point);
@@ -2989,6 +3199,22 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         let _ = fs::remove_dir_all(out.join("checkpoint"));
     }
     let (final_development, final_float) = in_both_modes(&mut model, &score)?;
+    let final_transport = panel_transport(&mut model, &dev, &panel)?;
+    let (initial, initial_float) = match initial {
+        Some((served, float)) => (Some(served), float),
+        None => (None, None),
+    };
+    let replies_from = match (s.qat, s.transport_snap.is_some()) {
+        (true, true) => {
+            "the served representation (the round-to-nearest export's values in the float \
+             forward) with its transport snapped"
+        }
+        (true, false) => {
+            "the served representation (the round-to-nearest export's values in the float forward)"
+        }
+        (false, true) => "the float model with its transport snapped",
+        (false, false) => "the float model",
+    };
     let replies = match &requests {
         Some(requests) => {
             let clock = Instant::now();
@@ -3002,23 +3228,10 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 &mut |history, cap| greedy_reply(&model, history, cap, protocol.eos_id),
             )?;
             panel["seconds"] = json!(clock.elapsed().as_secs_f64());
-            panel["decoding"] = json!(if s.qat {
-                "served representation (the round-to-nearest export's values in the float forward), greedy"
-            } else {
-                "float model, greedy"
-            });
+            panel["decoding"] = json!(format!("{replies_from}, greedy"));
             Some(panel)
         }
         None => None,
-    };
-    let (initial, initial_float) = match initial {
-        Some((served, float)) => (Some(served), float),
-        None => (None, None),
-    };
-    let replies_from = if s.qat {
-        "the served representation"
-    } else {
-        "the float model"
     };
     let mut report = json!({
         "schema": "uor-r4.geometric-stack-dialogue-run/1",
@@ -3035,6 +3248,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         "supervised_target_visits": visits.0,
         "tensor_positions_this_process": visits.1,
         "train_seconds": progress.train_seconds,
+        "step_seconds": step_timing(&step_seconds),
         "threads": std::env::var("RAYON_NUM_THREADS").ok(),
         "curve": progress.curve,
         "initial_development": initial,
@@ -3060,6 +3274,22 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "served_work_in_updates": served_in_steps,
             "served_work_total": model.served_statistics()?,
         });
+    }
+    if let Some(snap) = model.transport_snap() {
+        let mut section = snap.record();
+        section["scope"] = json!(TRANSPORT_SNAP_SCOPE);
+        section["saved_record"] = json!(StackModel::saved_transport_snap(&out.join("model"))?);
+        let (initial_unsnapped, initial_usage) = match &initial_transport {
+            Some((unsnapped, usage)) => (Some(unsnapped), Some(usage.summary())),
+            None => (None, None),
+        };
+        section["initial_development_unsnapped"] = json!(initial_unsnapped);
+        section["initial_transport_usage"] = json!(initial_usage);
+        if let Some((unsnapped, usage)) = &final_transport {
+            section["final_development_unsnapped"] = unsnapped.clone();
+            section["final_transport_usage"] = usage.summary();
+        }
+        report["transport_snap"] = section;
     }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
     Ok(())
@@ -3382,6 +3612,7 @@ fn main() -> Result<()> {
                     "memory_codebook",
                     "init",
                     "qat",
+                    "transport_snap",
                 ],
             )?;
             let settings = train_settings(&args)?;

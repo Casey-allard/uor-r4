@@ -338,6 +338,10 @@ pub enum StackCheckpointError {
     /// would silently run the float weights. Save with served mode off, or
     /// export the model instead.
     ServedMode,
+    /// The model snaps its transport (`StackModel::set_transport_snap`).
+    /// An inference checkpoint restores the float weights without the snap,
+    /// so a reload would silently run the unsnapped transport.
+    TransportSnap,
 }
 
 impl fmt::Display for StackCheckpointError {
@@ -369,6 +373,11 @@ impl fmt::Display for StackCheckpointError {
                 f,
                 "stack checkpoint: the model is in served (QAT) mode; its forward reads exported \
                  values that an inference checkpoint does not store"
+            ),
+            Self::TransportSnap => write!(
+                f,
+                "stack checkpoint: the model snaps its transport; an inference checkpoint \
+                 restores the float weights without the snap"
             ),
         }
     }
@@ -427,6 +436,9 @@ pub fn save_checkpoint(
 ) -> Result<CheckpointRecord, StackCheckpointError> {
     if model.served_codec().is_some() {
         return Err(StackCheckpointError::ServedMode);
+    }
+    if model.transport_snap().is_some() {
+        return Err(StackCheckpointError::TransportSnap);
     }
     identity.validate()?;
     check_against_model(identity, &model.config)?;
@@ -1102,6 +1114,24 @@ mod tests {
             other => panic!("{other:?}"),
         }
         assert!(!root.exists(), "no root is claimed for a served-mode model");
+    }
+
+    #[test]
+    fn a_model_with_a_transport_snap_is_refused_before_claiming() {
+        let (base, identity) = fixture("snapped");
+        let mut model = tiny_model();
+        model
+            .set_transport_snap(Some(crate::geometric_stack::TransportSnap::Icosian))
+            .expect("transport snap");
+        let root = base.join("snapped-checkpoint");
+        match save_checkpoint(&root, &model, &identity, None) {
+            Err(StackCheckpointError::TransportSnap) => {}
+            other => panic!("{other:?}"),
+        }
+        assert!(!root.exists(), "no root is claimed for a snapped model");
+        // Without the snap the same model saves.
+        model.set_transport_snap(None).expect("no snap");
+        save_checkpoint(&root, &model, &identity, None).expect("checkpoint");
     }
 
     #[test]

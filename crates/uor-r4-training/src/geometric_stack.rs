@@ -40,16 +40,29 @@
 //! ([`SavedServedRepresentation`]), so that an export can refuse to write a
 //! representation the model did not train against
 //! ([`crate::stack_export::check_export_representation`]).
+//!
+//! Trained-in transport snap: with a snap set
+//! ([`StackModel::set_transport_snap`]), every recurrence replaces each unit
+//! transport quaternion `u_t`, before its scaling by `lambda_t`, by the
+//! nearest of a fixed set of unit quaternions. For [`TransportSnap::Icosian`]
+//! that set is the 120 unit icosians of the binary icosian group 2I, so every
+//! transport is an exact element of 2I. The gradient passes the snap
+//! unchanged to `u_t` and on through its normalization to the rotation logits
+//! (straight-through, `u + (snap(u) - u).detach()`). The fused recurrence core
+//! applies it, so training runs at the fused path's speed; with no snap set the
+//! core computes exactly what it computed before the snap existed.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_lut::GROUP;
 
 use crate::lut_export::{dequantize_matrix, quantize_matrix};
@@ -423,6 +436,9 @@ pub struct StackModel {
     /// The served representation the forward pass reads, if set
     /// ([`Self::set_served_representation`]).
     served: Option<ServedState>,
+    /// The roots the recurrences snap their transport to, if set
+    /// ([`Self::set_transport_snap`]).
+    transport: Option<TransportSnap>,
 }
 
 impl StackModel {
@@ -514,6 +530,7 @@ impl StackModel {
             variables,
             device: device.clone(),
             served: None,
+            transport: None,
         })
     }
 
@@ -755,8 +772,7 @@ impl StackModel {
         tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
         let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
-        let gates = Self::linear(&u, p.layer(layer, "rec.gate.weight")?)?
-            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
+        let gates = self.recurrence_gates(p, layer, &u)?;
         let parameters = Tensor::cat(
             &[
                 &p.layer(layer, "rec.conv.weight")?.flatten_all()?,
@@ -773,6 +789,7 @@ impl StackModel {
                 time,
                 width,
                 rotation: self.config.rotation,
+                snap: self.transport,
             },
         )?;
         tap(
@@ -781,6 +798,14 @@ impl StackModel {
             || Ok(core.clone()),
         )?;
         Self::linear(&core, p.layer(layer, "rec.out.weight")?)
+    }
+
+    /// A recurrence's gates [batch, time, lanes (+ width with rotation)] from
+    /// its normalized input `u`: the decay-gate logits, then the raw rotation
+    /// quaternions.
+    fn recurrence_gates(&self, p: &Params<'_>, layer: usize, u: &Tensor) -> Result<Tensor> {
+        Ok(Self::linear(u, p.layer(layer, "rec.gate.weight")?)?
+            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?)
     }
 
     /// Logits [batch * time, vocabulary] for a batch of windows. Positions see
@@ -1012,7 +1037,11 @@ impl StackModel {
     /// the weights are the float variables whose export through that codec is
     /// what the forward pass read, as after quantization-aware training. A
     /// float save writes the configuration alone, byte for byte as before the
-    /// record existed. [`Self::load`] ignores the record and loads in float.
+    /// record existed. With a transport snap set, [`TRANSPORT_RECORD`]
+    /// beside them records it ([`Self::saved_transport_snap`]); a save
+    /// without one removes a stale record, so the directory never claims a
+    /// snap its weights were not saved with. [`Self::load`] ignores both
+    /// records and loads in float.
     pub fn save(&self, directory: &Path) -> Result<()> {
         fs::create_dir_all(directory)?;
         let tensors: std::collections::HashMap<String, Tensor> = self
@@ -1031,6 +1060,15 @@ impl StackModel {
             })?,
         };
         fs::write(directory.join("config.json"), config)?;
+        let record = directory.join(TRANSPORT_RECORD);
+        match self.transport {
+            Some(snap) => fs::write(&record, serde_json::to_vec_pretty(&snap.file_record())?)?,
+            None => match fs::remove_file(&record) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            },
+        }
         Ok(())
     }
 
@@ -1048,6 +1086,31 @@ impl StackModel {
         }
         let record: Record = serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
         Ok(record.served_representation)
+    }
+
+    /// The transport snap that `directory`'s [`TRANSPORT_RECORD`] records:
+    /// `Some` for a model saved with a snap set ([`Self::save`]), `None` for
+    /// one saved without, including every model saved before the record
+    /// existed. A record whose roots differ from this build's is refused.
+    pub fn saved_transport_snap(directory: &Path) -> Result<Option<TransportSnap>> {
+        let bytes = match fs::read(directory.join(TRANSPORT_RECORD)) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error.into()),
+        };
+        let record: TransportFileRecord = serde_json::from_slice(&bytes)?;
+        let snap = record.snap;
+        if record.schema != TRANSPORT_RECORD_SCHEMA
+            || record.roots != snap.roots().len()
+            || record.roots_sha256 != snap.roots_sha256()
+        {
+            return Err(invalid(format!(
+                "{} is not a {TRANSPORT_RECORD_SCHEMA} record of this build's {} roots",
+                directory.join(TRANSPORT_RECORD).display(),
+                snap.name()
+            )));
+        }
+        Ok(Some(snap))
     }
 
     pub fn load(directory: &Path, device: &Device) -> Result<Self> {
@@ -1074,6 +1137,7 @@ impl StackModel {
             variables,
             device: device.clone(),
             served: None,
+            transport: None,
         })
     }
 }
@@ -1084,7 +1148,10 @@ impl StackModel {
     /// before its scaling by lambda, by the nearest of `snap` (for example the
     /// 120 unit icosians of 2I). The recurrences run through their composed
     /// Candle reference; with `snap = None` this equals the fused forward
-    /// within float tolerance. Not a training or serving path.
+    /// without a transport snap within float tolerance, and with the snap's
+    /// roots the fused forward with it ([`Self::set_transport_snap`]). The
+    /// model's own snap, if set, is ignored: `snap` alone decides. Not a
+    /// training or serving path.
     pub fn logits_with_transport(
         &self,
         ids: &[u32],
@@ -1098,11 +1165,31 @@ impl StackModel {
         if snap.is_some() && !self.config.rotation {
             return Err(invalid("transport snapping needs a rotating stack"));
         }
+        self.composed_logits(
+            ids,
+            batch,
+            time,
+            match snap {
+                None => ComposedTransport::Free,
+                Some(roots) => ComposedTransport::Snapped(roots),
+            },
+        )
+    }
+
+    /// Logits with every recurrence composed from Candle operations, its
+    /// transport as `transport` says. Geometric stacks only.
+    fn composed_logits(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        transport: ComposedTransport<'_>,
+    ) -> Result<Tensor> {
         let p = self.params()?;
         let mut x = self.embed_with(&p, ids, batch, time)?;
         for layer in 0..self.config.layers() {
             let mixed = match self.config.layer_kind(layer) {
-                'r' => self.composed_recurrence(&p, layer, &x, snap)?,
+                'r' => self.composed_recurrence(&p, layer, &x, transport)?,
                 _ => self.geometric_read(&p, layer, &x, &mut None)?,
             };
             x = x.add(&mixed)?;
@@ -1113,14 +1200,13 @@ impl StackModel {
     }
 
     /// The recurrence mixer composed from Candle operations: the reference
-    /// for the fused core. `snap` replaces each unit transport quaternion by
-    /// its nearest root (see [`Self::logits_with_transport`]).
+    /// for the fused core, its unit transport quaternions as `transport` says.
     fn composed_recurrence(
         &self,
         p: &Params<'_>,
         layer: usize,
         x: &Tensor,
-        snap: Option<&[[f32; 4]]>,
+        transport: ComposedTransport<'_>,
     ) -> Result<Tensor> {
         let (batch, time, width) = x.dims3()?;
         let lanes = width / 4;
@@ -1154,11 +1240,13 @@ impl StackModel {
         // log a = -softplus(-decay) keeps a in (0, 1); log lambda = c r log a.
         let log_a = p
             .layer(layer, "rec.decay")?
+            .to_dtype(DType::F64)?
             .neg()?
             .exp()?
             .affine(1.0, 1.0)?
             .log()?
-            .neg()?;
+            .neg()?
+            .to_dtype(DType::F32)?;
         let log_lambda = opening.broadcast_mul(&log_a)?.affine(DECAY_EXPONENT, 0.0)?;
         let lambda = log_lambda.exp()?.unsqueeze(3)?;
         let keep = lambda
@@ -1172,9 +1260,14 @@ impl StackModel {
                 .reshape((batch, time, lanes, 4))?;
             let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
             let unit = raw.broadcast_div(&norm)?;
-            let unit = match snap {
-                None => unit,
-                Some(roots) => snap_to_roots(&unit, roots)?,
+            let unit = match transport {
+                ComposedTransport::Free => unit,
+                ComposedTransport::Snapped(roots) => snap_to_roots(&unit, roots)?,
+                #[cfg(test)]
+                ComposedTransport::StraightThrough(roots) => {
+                    let snapped = snap_to_roots(&unit, roots)?;
+                    unit.add(&snapped.sub(&unit)?.detach())?
+                }
             };
             unit.broadcast_mul(&lambda)?
         } else {
@@ -1193,8 +1286,23 @@ impl StackModel {
     }
 }
 
+/// How the composed recurrence treats its unit transport quaternions.
+#[derive(Clone, Copy, Debug)]
+enum ComposedTransport<'a> {
+    /// As they are.
+    Free,
+    /// Each replaced by the nearest of the roots, a value without gradient
+    /// ([`StackModel::logits_with_transport`]).
+    Snapped(&'a [[f32; 4]]),
+    /// `u + (snap(u) - u).detach()`: the nearest root's value with the unit's
+    /// gradient, the straight-through reference for the fused core's snap.
+    #[cfg(test)]
+    StraightThrough(&'a [[f32; 4]]),
+}
+
 /// Each quaternion of a `[.., 4]` tensor replaced by the root with the
-/// largest dot product: the nearest root, as every root is a unit.
+/// largest dot product: the nearest root, as every root is a unit
+/// ([`nearest_root`], which the fused recurrence core's snap uses too).
 fn snap_to_roots(unit: &Tensor, roots: &[[f32; 4]]) -> Result<Tensor> {
     if roots.is_empty() {
         return Err(invalid("snapping needs at least one root"));
@@ -1203,24 +1311,378 @@ fn snap_to_roots(unit: &Tensor, roots: &[[f32; 4]]) -> Result<Tensor> {
     let values = unit.flatten_all()?.to_vec1::<f32>()?;
     let snapped: Vec<[f32; 4]> = values
         .par_chunks(4)
-        .map(|q| {
-            let mut best = roots[0];
-            let mut best_dot = f32::NEG_INFINITY;
-            for root in roots {
-                let dot = q[0] * root[0] + q[1] * root[1] + q[2] * root[2] + q[3] * root[3];
-                if dot > best_dot {
-                    best_dot = dot;
-                    best = *root;
-                }
-            }
-            best
-        })
+        .map(|q| roots[nearest_root([q[0], q[1], q[2], q[3]], roots)])
         .collect();
     Ok(Tensor::from_vec(
         snapped.into_iter().flatten().collect::<Vec<f32>>(),
         shape,
         unit.device(),
     )?)
+}
+
+/// The index of the root with the largest dot product with `q`, the first
+/// on a tie (and 0 if every dot product is NaN). Every dot product is
+/// `q[0] r[0] + q[1] r[1] + q[2] r[2] + q[3] r[3]` summed left to right, so
+/// equal inputs select the same root in every caller. `roots` is not empty.
+#[inline]
+fn nearest_root(q: [f32; 4], roots: &[[f32; 4]]) -> usize {
+    let mut best = 0;
+    let mut best_dot = f32::NEG_INFINITY;
+    for (index, root) in roots.iter().enumerate() {
+        let dot = q[0] * root[0] + q[1] * root[1] + q[2] * root[2] + q[3] * root[3];
+        if dot > best_dot {
+            best_dot = dot;
+            best = index;
+        }
+    }
+    best
+}
+
+/// `raw / sqrt(|raw|^2 + 1e-6)` and that norm: a recurrence's unit transport
+/// quaternion from its raw rotation logits.
+#[inline]
+fn unit_quaternion(raw: [f32; 4]) -> ([f32; 4], f32) {
+    let norm = (raw.iter().map(|v| v * v).sum::<f32>() + 1e-6).sqrt();
+    (
+        [raw[0] / norm, raw[1] / norm, raw[2] / norm, raw[3] / norm],
+        norm,
+    )
+}
+
+// ---------------------------------------------------------------------------
+// The trained-in transport snap.
+
+/// The file beside `config.json` in which [`StackModel::save`] records a
+/// model's transport snap.
+pub const TRANSPORT_RECORD: &str = "transport.json";
+/// The schema of [`TRANSPORT_RECORD`].
+pub const TRANSPORT_RECORD_SCHEMA: &str = "uor-r4.stack-transport/1";
+
+/// A fixed set of unit quaternions that every recurrence's unit transport
+/// quaternion snaps to, before its scaling by lambda, in training and
+/// evaluation alike ([`StackModel::set_transport_snap`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TransportSnap {
+    /// The 120 unit icosians of the binary icosian group 2I, the vertices of
+    /// the 600-cell (`canonical_h4_roots`), as f32 quaternions in that order
+    /// ([`Self::roots`]).
+    Icosian,
+}
+
+impl TransportSnap {
+    /// The unit quaternions the transports snap to.
+    pub fn roots(self) -> &'static [[f32; 4]] {
+        match self {
+            Self::Icosian => icosian_roots(),
+        }
+    }
+
+    /// A stable name for arguments and reports.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Icosian => "icosian",
+        }
+    }
+
+    /// The index into [`Self::roots`] of the root nearest to the unit
+    /// quaternion `unit`: the largest dot product, the first on a tie.
+    pub fn nearest(self, unit: [f32; 4]) -> usize {
+        nearest_root(unit, self.roots())
+    }
+
+    /// SHA-256 of the roots' little-endian f32 bytes, row by row.
+    pub fn roots_sha256(self) -> String {
+        let mut digest = Sha256::new();
+        for root in self.roots() {
+            for value in root {
+                digest.update(value.to_le_bytes());
+            }
+        }
+        hex::encode(digest.finalize())
+    }
+
+    /// The snap, its root count and the roots' digest, for settings, resume
+    /// lineages and reports.
+    pub fn record(self) -> serde_json::Value {
+        serde_json::json!({
+            "snap": self,
+            "roots": self.roots().len(),
+            "roots_sha256": self.roots_sha256(),
+        })
+    }
+
+    /// Whether `config`'s stacks can snap their transport: geometric, with
+    /// `rotation = true` and at least one recurrence layer.
+    pub fn check(self, config: &StackConfig) -> Result<()> {
+        if config.arch != StackArch::Geometric || !config.rotation || !config.pattern.contains('r')
+        {
+            return Err(invalid(format!(
+                "a {} transport snap needs a geometric stack with rotation=true and at least one \
+                 recurrence (r) layer; this one is {:?}, rotation={}, pattern {}",
+                self.name(),
+                config.arch,
+                config.rotation,
+                config.pattern
+            )));
+        }
+        Ok(())
+    }
+
+    fn file_record(self) -> TransportFileRecord {
+        TransportFileRecord {
+            schema: TRANSPORT_RECORD_SCHEMA.to_owned(),
+            snap: self,
+            roots: self.roots().len(),
+            roots_sha256: self.roots_sha256(),
+            scope: "The model was saved with this transport snap set: its forward pass replaced \
+                    every unit transport quaternion by the nearest of these roots before its \
+                    scaling by lambda, with straight-through gradients. model.safetensors holds \
+                    the float variables; StackModel::load loads them without the snap, and \
+                    StackModel::saved_transport_snap reads this record."
+                .to_owned(),
+        }
+    }
+}
+
+/// [`TRANSPORT_RECORD`]'s contents.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TransportFileRecord {
+    schema: String,
+    snap: TransportSnap,
+    roots: usize,
+    roots_sha256: String,
+    scope: String,
+}
+
+/// The 120 unit icosians of 2I (`canonical_h4_roots`), in f32.
+fn icosian_roots() -> &'static [[f32; 4]] {
+    static ROOTS: OnceLock<Vec<[f32; 4]>> = OnceLock::new();
+    ROOTS.get_or_init(|| {
+        canonical_h4_roots()
+            .iter()
+            .map(|root| {
+                let a = root.to_array();
+                [a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32]
+            })
+            .collect()
+    })
+}
+
+/// How often a snapped forward pass selected each root
+/// ([`StackModel::transport_usage`]).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TransportUsage {
+    pub snap: TransportSnap,
+    /// For each recurrence layer (by index), the selections of each root in
+    /// [`TransportSnap::roots`] order, over its lanes and the counted
+    /// positions.
+    pub layers: BTreeMap<usize, Vec<u64>>,
+}
+
+impl TransportUsage {
+    /// No selections yet, for `config`'s recurrence layers.
+    pub fn new(snap: TransportSnap, config: &StackConfig) -> Self {
+        let roots = snap.roots().len();
+        Self {
+            snap,
+            layers: (0..config.layers())
+                .filter(|&layer| config.layer_kind(layer) == 'r')
+                .map(|layer| (layer, vec![0; roots]))
+                .collect(),
+        }
+    }
+
+    /// Add `other`'s selections, of the same snap and layers.
+    pub fn add(&mut self, other: &Self) -> Result<()> {
+        if self.snap != other.snap
+            || !self.layers.keys().eq(other.layers.keys())
+            || self
+                .layers
+                .values()
+                .zip(other.layers.values())
+                .any(|(a, b)| a.len() != b.len())
+        {
+            return Err(invalid("transport usages of different snaps or layers"));
+        }
+        for (mine, theirs) in self.layers.values_mut().zip(other.layers.values()) {
+            for (a, b) in mine.iter_mut().zip(theirs) {
+                *a += b;
+            }
+        }
+        Ok(())
+    }
+
+    /// The selections of each root over every layer.
+    pub fn pooled(&self) -> Vec<u64> {
+        let mut pooled = vec![0u64; self.snap.roots().len()];
+        for counts in self.layers.values() {
+            for (a, b) in pooled.iter_mut().zip(counts) {
+                *a += b;
+            }
+        }
+        pooled
+    }
+
+    /// Selections, distinct roots selected, the entropy (bits) of the
+    /// selection distribution against its maximum `log2(roots)`, the
+    /// identity's share and the five most selected roots: pooled over the
+    /// layers, then per layer.
+    pub fn summary(&self) -> serde_json::Value {
+        let roots = self.snap.roots();
+        let identity = roots.iter().position(|r| *r == [1.0, 0.0, 0.0, 0.0]);
+        let describe = |counts: &[u64]| -> serde_json::Value {
+            let total: u64 = counts.iter().sum();
+            let share = |count: u64| {
+                if total == 0 {
+                    0.0
+                } else {
+                    count as f64 / total as f64
+                }
+            };
+            let entropy: f64 = counts
+                .iter()
+                .filter(|&&count| count > 0)
+                .map(|&count| {
+                    let p = share(count);
+                    -p * p.log2()
+                })
+                .sum();
+            let mut ranked: Vec<(usize, u64)> = counts.iter().copied().enumerate().collect();
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+            serde_json::json!({
+                "selections": total,
+                "distinct_roots": counts.iter().filter(|&&count| count > 0).count(),
+                "entropy_bits": entropy,
+                "identity_share": identity.map(|index| share(counts[index])),
+                "top_roots": ranked
+                    .iter()
+                    .take(5)
+                    .filter(|(_, count)| *count > 0)
+                    .map(|&(index, count)| serde_json::json!({
+                        "index": index, "root": roots[index], "share": share(count),
+                    }))
+                    .collect::<Vec<_>>(),
+            })
+        };
+        let mut summary = describe(&self.pooled());
+        summary["snap"] = serde_json::json!(self.snap);
+        summary["roots"] = serde_json::json!(roots.len());
+        summary["max_entropy_bits"] = serde_json::json!((roots.len() as f64).log2());
+        summary["per_layer"] = self
+            .layers
+            .iter()
+            .map(|(layer, counts)| {
+                let mut report = describe(counts);
+                report["layer"] = serde_json::json!(layer);
+                report
+            })
+            .collect::<Vec<_>>()
+            .into();
+        summary
+    }
+}
+
+impl StackModel {
+    /// Snap every recurrence's unit transport quaternion, before its scaling
+    /// by lambda, to the nearest of `snap`'s roots (`Some`), or leave it free
+    /// (`None`, the default). With a snap set every forward pass
+    /// ([`forward`](Self::forward), [`loss`](Self::loss) and the rest)
+    /// transports by the roots alone, and the gradient passes the snap
+    /// straight through to the unit quaternion and on through its
+    /// normalization to the rotation logits (`u + (snap(u) - u).detach()`).
+    /// The fused recurrence core applies it, at 120 dot products per lane and
+    /// position for [`TransportSnap::Icosian`]. Geometric stacks with
+    /// `rotation = true` and at least one recurrence layer only
+    /// ([`TransportSnap::check`]). It composes with the served
+    /// representation: served weights compute the logits the snap reads.
+    pub fn set_transport_snap(&mut self, snap: Option<TransportSnap>) -> Result<()> {
+        if let Some(snap) = snap {
+            snap.check(&self.config)?;
+        }
+        self.transport = snap;
+        Ok(())
+    }
+
+    /// The transport snap the forward pass applies, if set.
+    pub fn transport_snap(&self) -> Option<TransportSnap> {
+        self.transport
+    }
+
+    /// `f` on this model with its transport free, with the snap restored
+    /// afterwards. Served mode is unchanged.
+    pub fn with_unsnapped_transport<T>(&mut self, f: impl FnOnce(&Self) -> Result<T>) -> Result<T> {
+        let snap = self.transport.take();
+        let result = f(self);
+        self.transport = snap;
+        result
+    }
+
+    /// The roots the snapped forward pass selects for `ids` (as
+    /// [`forward`](Self::forward) takes them), counted per recurrence layer
+    /// over every lane and, in window `w`, its first `lengths[w]` positions
+    /// (all `time` without `lengths`). The selections are those of the fused
+    /// core: its gates, normalization and nearest root.
+    pub fn transport_usage(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        lengths: Option<&[usize]>,
+    ) -> Result<TransportUsage> {
+        let snap = self
+            .transport
+            .ok_or_else(|| invalid("transport usage needs a transport snap"))?;
+        if let Some(lengths) = lengths {
+            if lengths.len() != batch || lengths.iter().any(|&length| length > time) {
+                return Err(invalid(
+                    "transport usage needs one length of at most time per window",
+                ));
+            }
+        }
+        let roots = snap.roots();
+        let (width, lanes) = (self.config.width, self.config.width / 4);
+        let gate_width = lanes + width;
+        let mut usage = TransportUsage::new(snap, &self.config);
+        let last = usage.layers.keys().next_back().copied().unwrap_or(0);
+        let p = self.params()?;
+        let mut x = self.embed_with(&p, ids, batch, time)?;
+        for layer in 0..=last {
+            if let Some(counts) = usage.layers.get_mut(&layer) {
+                let u = self.norm(&p, &x, &layer_name(layer, "rec_norm.weight"))?;
+                let gates = self
+                    .recurrence_gates(&p, layer, &u)?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                if gates.len() != batch * time * gate_width {
+                    return Err(invalid("recurrence gates differ from their layout"));
+                }
+                let windows: Vec<Vec<u64>> = gates
+                    .par_chunks(time * gate_width)
+                    .enumerate()
+                    .map(|(window, gates)| {
+                        let mut counts = vec![0u64; roots.len()];
+                        let counted = lengths.map_or(time, |lengths| lengths[window]);
+                        for row in gates.chunks_exact(gate_width).take(counted) {
+                            for lane in 0..lanes {
+                                let (unit, _) = unit_quaternion(quad(row, lanes + 4 * lane));
+                                counts[nearest_root(unit, roots)] += 1;
+                            }
+                        }
+                        counts
+                    })
+                    .collect();
+                for window in &windows {
+                    for (a, b) in counts.iter_mut().zip(window) {
+                        *a += b;
+                    }
+                }
+            }
+            x = self.layer_range_hooked(&p, x, layer..layer + 1, &mut None)?;
+        }
+        Ok(usage)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2169,12 +2631,18 @@ fn gelu(x: f32) -> (f32, f32) {
 /// then the raw rotation quaternions); parameters packed as the convolution
 /// taps [4, width], its bias [width] and the lane decays [lanes]. Output:
 /// `h * gelu(g)` [batch, time, width].
+///
+/// With `snap` (and rotation), each unit quaternion is replaced by its nearest
+/// root before its scaling by lambda, and the backward passes the root's
+/// gradient to the unit quaternion unchanged (straight-through). Without it the
+/// core computes what it computed before the snap existed, bit for bit.
 #[derive(Clone, Copy, Debug)]
 struct RecurrenceCore {
     batch: usize,
     time: usize,
     width: usize,
     rotation: bool,
+    snap: Option<TransportSnap>,
 }
 
 /// One lane's transition at one position.
@@ -2186,7 +2654,11 @@ struct Transition {
     keep: f32,
     /// `1 - lambda^2` fell below the floor, so `keep` carries no gradient.
     clamped: bool,
+    /// The transport's unit quaternion, `q = lambda rotation`: `unit`, or with
+    /// a snap its nearest root.
     rotation: [f32; 4],
+    /// `raw / norm`, whose normalization the backward differentiates.
+    unit: [f32; 4],
     norm: f32,
 }
 
@@ -2225,6 +2697,7 @@ impl RecurrenceCore {
             (self.time, self.width, self.lanes(), self.gate_width());
         let taps = &parameters[..CONVOLUTION_WIDTH * width];
         let bias = &parameters[CONVOLUTION_WIDTH * width..(CONVOLUTION_WIDTH + 1) * width];
+        let roots = self.snap.map(TransportSnap::roots);
         let mut drive = vec![0f32; time * width];
         let mut state = vec![0f32; time * width];
         let mut transitions = vec![Transition::default(); time * lanes];
@@ -2251,15 +2724,15 @@ impl RecurrenceCore {
                 } else {
                     (complement.sqrt(), false)
                 };
-                let (rotation, norm) = if self.rotation {
-                    let raw = quad(gate_row, lanes + 4 * lane);
-                    let norm = (raw.iter().map(|v| v * v).sum::<f32>() + 1e-6).sqrt();
-                    (
-                        [raw[0] / norm, raw[1] / norm, raw[2] / norm, raw[3] / norm],
-                        norm,
-                    )
+                let (rotation, unit, norm) = if self.rotation {
+                    let (unit, norm) = unit_quaternion(quad(gate_row, lanes + 4 * lane));
+                    let rotation = match roots {
+                        None => unit,
+                        Some(roots) => roots[nearest_root(unit, roots)],
+                    };
+                    (rotation, unit, norm)
                 } else {
-                    ([1.0, 0.0, 0.0, 0.0], 1.0)
+                    ([1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], 1.0)
                 };
                 transitions[t * lanes + lane] = Transition {
                     opening,
@@ -2267,6 +2740,7 @@ impl RecurrenceCore {
                     keep,
                     clamped,
                     rotation,
+                    unit,
                     norm,
                 };
                 let q = rotation.map(|v| v * lambda);
@@ -2396,7 +2870,8 @@ impl CustomOp3 for RecurrenceCore {
                         for k in 0..4 {
                             d_drive[offset + k] = transition.keep * total[k];
                         }
-                        // q = lambda u, with h_{-1} = 0.
+                        // q = lambda u (u the unit, or with a snap its root),
+                        // with h_{-1} = 0.
                         let dq = if t > 0 {
                             quaternion_product(
                                 total,
@@ -2416,12 +2891,16 @@ impl CustomOp3 for RecurrenceCore {
                         d_gate[t * gate_width + lane] =
                             d_opening * transition.opening * (1.0 - transition.opening);
                         if self.rotation {
-                            // u = raw / n, n = sqrt(|raw|^2 + eps).
+                            // u = raw / n, n = sqrt(|raw|^2 + eps). A snapped
+                            // rotation's gradient reaches u unchanged
+                            // (straight-through), so the normalization is
+                            // differentiated at the unsnapped unit.
                             let du = dq.map(|v| v * transition.lambda);
-                            let projection: f32 = (0..4).map(|k| du[k] * u[k]).sum();
+                            let unit = transition.unit;
+                            let projection: f32 = (0..4).map(|k| du[k] * unit[k]).sum();
                             for k in 0..4 {
                                 d_gate[t * gate_width + lanes + offset + k] =
-                                    (du[k] - u[k] * projection) / transition.norm;
+                                    (du[k] - unit[k] * projection) / transition.norm;
                             }
                         }
                     }
@@ -4065,7 +4544,7 @@ mod tests {
             let x = random(&mut Initializer(47), &[2, 9, 16], 1.0);
             let p = model.params()?;
             let fused = model.recurrence(&p, 0, &x, &mut None)?;
-            let composed = model.composed_recurrence(&p, 0, &x, None)?;
+            let composed = model.composed_recurrence(&p, 0, &x, ComposedTransport::Free)?;
             let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
             assert!(
                 gap < 1e-5,
@@ -4089,7 +4568,7 @@ mod tests {
                 .mul(&weights)?
                 .sum_all()?;
             let composed_loss = model
-                .composed_recurrence(&p, 0, &x, None)?
+                .composed_recurrence(&p, 0, &x, ComposedTransport::Free)?
                 .mul(&weights)?
                 .sum_all()?;
             let (a, b) = (fused_loss.backward()?, composed_loss.backward()?);
@@ -4688,7 +5167,8 @@ mod tests {
 
     /// The float forward composed directly from the variables with the
     /// stack's kernels, in the order the forward pass took before the served
-    /// representation existed.
+    /// representation existed, and with the recurrence core as it was before
+    /// the transport snap existed ([`LegacyRecurrenceCore`]).
     fn float_reference_logits(
         model: &StackModel,
         ids: &[u32],
@@ -4735,7 +5215,7 @@ mod tests {
                 let core = branches.contiguous()?.apply_op3(
                     &gates.contiguous()?,
                     &parameters,
-                    RecurrenceCore {
+                    LegacyRecurrenceCore {
                         batch,
                         time,
                         width: c.width,
@@ -5162,6 +5642,924 @@ mod tests {
         let mut model = StackModel::new(exportable("ra", ReadScore::Dot, true), &cpu())?;
         model.set_served_representation(Some(Arc::new(Short)))?;
         assert!(model.forward(&token_ids(8, 96, 3), 1, 8).is_err());
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // The trained-in transport snap.
+
+    // The recurrence core exactly as it was before the transport snap existed,
+    // copied verbatim from the parent of this change and renamed: the frozen
+    // reference that the core without a snap must equal bit for bit
+    // (`float_reference_logits` composes it, and
+    // `without_a_snap_the_core_is_bit_identical_to_the_pre_snap_core` compares
+    // the ops directly).
+    #[derive(Clone, Copy, Debug)]
+    struct LegacyRecurrenceCore {
+        batch: usize,
+        time: usize,
+        width: usize,
+        rotation: bool,
+    }
+
+    /// One lane's transition at one position.
+    #[derive(Clone, Copy, Default)]
+    struct LegacyTransition {
+        /// Decay gate sigma(logit).
+        opening: f32,
+        lambda: f32,
+        keep: f32,
+        /// `1 - lambda^2` fell below the floor, so `keep` carries no gradient.
+        clamped: bool,
+        rotation: [f32; 4],
+        norm: f32,
+    }
+
+    impl LegacyRecurrenceCore {
+        fn lanes(&self) -> usize {
+            self.width / 4
+        }
+
+        fn gate_width(&self) -> usize {
+            self.lanes() + if self.rotation { self.width } else { 0 }
+        }
+
+        fn parameter_len(&self) -> usize {
+            CONVOLUTION_WIDTH * self.width + self.width + self.lanes()
+        }
+
+        /// `log a` per lane: `-softplus(-decay)`.
+        fn log_a(&self, parameters: &[f32]) -> Vec<f32> {
+            let decay = &parameters[(CONVOLUTION_WIDTH + 1) * self.width..];
+            decay
+                .iter()
+                .map(|&d| -((-f64::from(d)).exp().ln_1p()) as f32)
+                .collect()
+        }
+
+        /// Forward pass of one window: convolved drives `c` [time, width], states
+        /// `h` [time, width] and transitions [time, lanes].
+        fn window(
+            &self,
+            branches: &[f32],
+            gates: &[f32],
+            parameters: &[f32],
+            log_a: &[f32],
+        ) -> (Vec<f32>, Vec<f32>, Vec<LegacyTransition>) {
+            let (time, width, lanes, gate_width) =
+                (self.time, self.width, self.lanes(), self.gate_width());
+            let taps = &parameters[..CONVOLUTION_WIDTH * width];
+            let bias = &parameters[CONVOLUTION_WIDTH * width..(CONVOLUTION_WIDTH + 1) * width];
+            let mut drive = vec![0f32; time * width];
+            let mut state = vec![0f32; time * width];
+            let mut transitions = vec![LegacyTransition::default(); time * lanes];
+            for t in 0..time {
+                let c = &mut drive[t * width..(t + 1) * width];
+                c.copy_from_slice(bias);
+                for shift in 0..CONVOLUTION_WIDTH.min(t + 1) {
+                    let a = &branches[(t - shift) * 2 * width..(t - shift) * 2 * width + width];
+                    for ((c, &w), &a) in c
+                        .iter_mut()
+                        .zip(&taps[shift * width..(shift + 1) * width])
+                        .zip(a)
+                    {
+                        *c += w * a;
+                    }
+                }
+                let gate_row = &gates[t * gate_width..(t + 1) * gate_width];
+                for lane in 0..lanes {
+                    let opening = sigmoid(gate_row[lane]);
+                    let lambda = (DECAY_EXPONENT as f32 * opening * log_a[lane]).exp();
+                    let complement = 1.0 - lambda * lambda;
+                    let (keep, clamped) = if complement < 1e-6 {
+                        (1e-3, true)
+                    } else {
+                        (complement.sqrt(), false)
+                    };
+                    let (rotation, norm) = if self.rotation {
+                        let raw = quad(gate_row, lanes + 4 * lane);
+                        let norm = (raw.iter().map(|v| v * v).sum::<f32>() + 1e-6).sqrt();
+                        (
+                            [raw[0] / norm, raw[1] / norm, raw[2] / norm, raw[3] / norm],
+                            norm,
+                        )
+                    } else {
+                        ([1.0, 0.0, 0.0, 0.0], 1.0)
+                    };
+                    transitions[t * lanes + lane] = LegacyTransition {
+                        opening,
+                        lambda,
+                        keep,
+                        clamped,
+                        rotation,
+                        norm,
+                    };
+                    let q = rotation.map(|v| v * lambda);
+                    let previous = if t > 0 {
+                        quad(&state, (t - 1) * width + 4 * lane)
+                    } else {
+                        [0.0; 4]
+                    };
+                    let moved = quaternion_product(q, previous);
+                    let offset = t * width + 4 * lane;
+                    for k in 0..4 {
+                        state[offset + k] = moved[k] + keep * drive[offset + k];
+                    }
+                }
+            }
+            (drive, state, transitions)
+        }
+    }
+
+    impl CustomOp3 for LegacyRecurrenceCore {
+        fn name(&self) -> &'static str {
+            "legacy-geometric-stack-recurrence"
+        }
+
+        fn cpu_fwd(
+            &self,
+            s1: &CpuStorage,
+            l1: &Layout,
+            s2: &CpuStorage,
+            l2: &Layout,
+            s3: &CpuStorage,
+            l3: &Layout,
+        ) -> candle_core::Result<(CpuStorage, Shape)> {
+            let (branches, gates, parameters) = (
+                contiguous(s1, l1)?,
+                contiguous(s2, l2)?,
+                contiguous(s3, l3)?,
+            );
+            let (time, width) = (self.time, self.width);
+            if branches.len() != self.batch * time * 2 * width
+                || gates.len() != self.batch * time * self.gate_width()
+                || parameters.len() != self.parameter_len()
+            {
+                candle_core::bail!("recurrence core inputs have the wrong sizes");
+            }
+            let log_a = self.log_a(parameters);
+            let mut out = vec![0f32; self.batch * time * width];
+            out.par_chunks_mut(time * width)
+                .enumerate()
+                .for_each(|(window, out)| {
+                    let branches =
+                        &branches[window * time * 2 * width..(window + 1) * time * 2 * width];
+                    let gates = &gates[window * time * self.gate_width()
+                        ..(window + 1) * time * self.gate_width()];
+                    let (_, state, _) = self.window(branches, gates, parameters, &log_a);
+                    for t in 0..time {
+                        let g = &branches[t * 2 * width + width..(t + 1) * 2 * width];
+                        for i in 0..width {
+                            out[t * width + i] = state[t * width + i] * gelu(g[i]).0;
+                        }
+                    }
+                });
+            Ok((CpuStorage::F32(out), Shape::from((self.batch, time, width))))
+        }
+
+        fn bwd(
+            &self,
+            branches: &Tensor,
+            gates: &Tensor,
+            parameters: &Tensor,
+            _out: &Tensor,
+            grad: &Tensor,
+        ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+            let branch_values = branches.flatten_all()?.to_vec1::<f32>()?;
+            let gate_values = gates.flatten_all()?.to_vec1::<f32>()?;
+            let parameter_values = parameters.to_vec1::<f32>()?;
+            let d_out = grad.flatten_all()?.to_vec1::<f32>()?;
+            let (time, width, lanes, gate_width) =
+                (self.time, self.width, self.lanes(), self.gate_width());
+            let log_a = self.log_a(&parameter_values);
+            let taps = &parameter_values[..CONVOLUTION_WIDTH * width];
+            let exponent = DECAY_EXPONENT as f32;
+            let mut d_branches = vec![0f32; branch_values.len()];
+            let mut d_gates = vec![0f32; gate_values.len()];
+            let partials: Vec<Vec<f64>> = d_branches
+                .par_chunks_mut(time * 2 * width)
+                .zip(d_gates.par_chunks_mut(time * gate_width))
+                .enumerate()
+                .map(|(window, (d_branch, d_gate))| {
+                    let branch =
+                        &branch_values[window * time * 2 * width..(window + 1) * time * 2 * width];
+                    let gate =
+                        &gate_values[window * time * gate_width..(window + 1) * time * gate_width];
+                    let dy = &d_out[window * time * width..(window + 1) * time * width];
+                    let (drive, state, transitions) =
+                        self.window(branch, gate, &parameter_values, &log_a);
+                    // Partial parameter gradients: taps, bias, then log a per lane.
+                    let mut d_parameters = vec![0f64; self.parameter_len()];
+                    let mut d_log_a = vec![0f64; lanes];
+                    let mut carried = vec![[0f32; 4]; lanes];
+                    let mut d_drive = vec![0f32; width];
+                    for t in (0..time).rev() {
+                        let g = &branch[t * 2 * width + width..(t + 1) * 2 * width];
+                        for i in 0..width {
+                            let (value, slope) = gelu(g[i]);
+                            d_branch[t * 2 * width + width + i] =
+                                dy[t * width + i] * state[t * width + i] * slope;
+                            // Reuse d_drive as the direct state gradient for now.
+                            d_drive[i] = dy[t * width + i] * value;
+                        }
+                        for (lane, held) in carried.iter_mut().enumerate() {
+                            let offset = 4 * lane;
+                            let mut total = quad(&d_drive, offset);
+                            if t + 1 < time {
+                                let next = transitions[(t + 1) * lanes + lane];
+                                let q_next = next.rotation.map(|v| v * next.lambda);
+                                let back = quaternion_product(conjugate(q_next), *held);
+                                for k in 0..4 {
+                                    total[k] += back[k];
+                                }
+                            }
+                            *held = total;
+                            let transition = transitions[t * lanes + lane];
+                            let c = quad(&drive, t * width + offset);
+                            // x = keep c.
+                            let d_keep: f32 = (0..4).map(|k| total[k] * c[k]).sum();
+                            for k in 0..4 {
+                                d_drive[offset + k] = transition.keep * total[k];
+                            }
+                            // q = lambda u, with h_{-1} = 0.
+                            let dq = if t > 0 {
+                                quaternion_product(
+                                    total,
+                                    conjugate(quad(&state, (t - 1) * width + offset)),
+                                )
+                            } else {
+                                [0.0; 4]
+                            };
+                            let u = transition.rotation;
+                            let mut d_lambda: f32 = (0..4).map(|k| dq[k] * u[k]).sum();
+                            if !transition.clamped {
+                                d_lambda -= d_keep * transition.lambda / transition.keep;
+                            }
+                            let d_log_lambda = d_lambda * transition.lambda;
+                            let d_opening = d_log_lambda * exponent * log_a[lane];
+                            d_log_a[lane] +=
+                                f64::from(d_log_lambda * exponent * transition.opening);
+                            d_gate[t * gate_width + lane] =
+                                d_opening * transition.opening * (1.0 - transition.opening);
+                            if self.rotation {
+                                // u = raw / n, n = sqrt(|raw|^2 + eps).
+                                let du = dq.map(|v| v * transition.lambda);
+                                let projection: f32 = (0..4).map(|k| du[k] * u[k]).sum();
+                                for k in 0..4 {
+                                    d_gate[t * gate_width + lanes + offset + k] =
+                                        (du[k] - u[k] * projection) / transition.norm;
+                                }
+                            }
+                        }
+                        // Convolution: c_t = bias + sum_k taps_k * a_{t-k}.
+                        for i in 0..width {
+                            d_parameters[CONVOLUTION_WIDTH * width + i] += f64::from(d_drive[i]);
+                        }
+                        for shift in 0..CONVOLUTION_WIDTH.min(t + 1) {
+                            let source = (t - shift) * 2 * width;
+                            for i in 0..width {
+                                d_parameters[shift * width + i] +=
+                                    f64::from(d_drive[i] * branch[source + i]);
+                                d_branch[source + i] += taps[shift * width + i] * d_drive[i];
+                            }
+                        }
+                    }
+                    let decay_offset = (CONVOLUTION_WIDTH + 1) * width;
+                    d_parameters[decay_offset..decay_offset + lanes].copy_from_slice(&d_log_a);
+                    d_parameters
+                })
+                .collect();
+            // d log a / d decay = sigma(-decay).
+            let decay_offset = (CONVOLUTION_WIDTH + 1) * width;
+            let mut d_parameters = vec![0f64; self.parameter_len()];
+            for partial in &partials {
+                for (a, b) in d_parameters.iter_mut().zip(partial) {
+                    *a += b;
+                }
+            }
+            for lane in 0..lanes {
+                let decay = f64::from(parameter_values[decay_offset + lane]);
+                d_parameters[decay_offset + lane] *= 1.0 / (1.0 + decay.exp());
+            }
+            let d_parameters: Vec<f32> = d_parameters.into_iter().map(|v| v as f32).collect();
+            Ok((
+                Some(Tensor::from_vec(
+                    d_branches,
+                    branches.shape(),
+                    branches.device(),
+                )?),
+                Some(Tensor::from_vec(d_gates, gates.shape(), gates.device())?),
+                Some(Tensor::from_vec(
+                    d_parameters,
+                    parameters.shape(),
+                    parameters.device(),
+                )?),
+            ))
+        }
+    }
+
+    /// The 120 unit icosians in f32, built as the snap-evaluate diagnostic
+    /// builds them.
+    fn icosians() -> Vec<[f32; 4]> {
+        uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots()
+            .iter()
+            .map(|r| {
+                let a = r.to_array();
+                [a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32]
+            })
+            .collect()
+    }
+
+    /// `config`'s stack with its recurrence gate weights drawn at scale 0.5,
+    /// far above initialization, so the unit transports spread over S^3 and
+    /// snap to many roots.
+    fn spread_transport(config: StackConfig, seed: u64) -> Result<StackModel> {
+        let model = StackModel::new(config, &cpu())?;
+        let mut rng = Initializer(seed);
+        for (name, var) in model.variables() {
+            if name.ends_with("rec.gate.weight") {
+                var.set(&random(&mut rng, var.dims(), 0.5))?;
+            }
+        }
+        Ok(model)
+    }
+
+    /// The largest gap of any variable's gradient between two backward
+    /// passes, relative to the largest magnitude of that gradient in `want`.
+    fn worst_relative_gradient_gap(
+        model: &StackModel,
+        got: &candle_core::backprop::GradStore,
+        want: &candle_core::backprop::GradStore,
+        label: &str,
+    ) -> Result<f32> {
+        let mut worst = 0f32;
+        for (name, var) in model.variables() {
+            let (a, b) = (
+                got.get(var.as_tensor())
+                    .ok_or_else(|| invalid(format!("{label}: no gradient for {name}")))?,
+                want.get(var.as_tensor())
+                    .ok_or_else(|| invalid(format!("{label}: no reference gradient for {name}")))?,
+            );
+            let size = b.abs()?.max_all()?.to_scalar::<f32>()?;
+            assert!(size > 0.0, "{label}: {name} has a zero reference gradient");
+            worst = worst.max(max_abs_gap(a, b)? / size);
+        }
+        Ok(worst)
+    }
+
+    #[test]
+    fn the_icosian_snap_holds_the_120_unit_icosians() -> Result<()> {
+        let roots = TransportSnap::Icosian.roots();
+        assert_eq!(roots, icosians().as_slice());
+        assert_eq!(roots.len(), 120);
+        for root in roots {
+            let norm: f64 = root.iter().map(|&v| f64::from(v) * f64::from(v)).sum();
+            assert!((norm - 1.0).abs() < 1e-6, "{root:?} is not a unit");
+        }
+        // Closed under the quaternion product (2I is a group), up to f32.
+        for a in roots.iter().step_by(7) {
+            for b in roots.iter().step_by(5) {
+                let product = quaternion_product(*a, *b);
+                let nearest = roots[TransportSnap::Icosian.nearest(product)];
+                let gap = (0..4)
+                    .map(|k| (product[k] - nearest[k]).abs())
+                    .fold(0f32, f32::max);
+                assert!(gap < 1e-6, "{a:?} {b:?}: product off the group by {gap}");
+            }
+        }
+        // Each root is its own nearest root, and a tie goes to the first.
+        for (index, root) in roots.iter().enumerate() {
+            assert_eq!(TransportSnap::Icosian.nearest(*root), index);
+        }
+        let tie = [[0.0f32, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]];
+        let halfway = [std::f32::consts::FRAC_1_SQRT_2; 2];
+        assert_eq!(nearest_root([halfway[0], halfway[1], 0.0, 0.0], &tie), 0);
+        assert_eq!(nearest_root([f32::NAN; 4], &tie), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn a_snapped_fused_forward_equals_the_composed_snapped_reference() -> Result<()> {
+        let roots = icosians();
+        let identity = TransportSnap::Icosian.nearest([1.0, 0.0, 0.0, 0.0]);
+        let mut worst = 0f32;
+        for pattern in ["rar", "rrarra"] {
+            for read in [ReadScore::Lorentz, ReadScore::Dot] {
+                let label = format!("{pattern} {read:?}");
+                let mut config = tiny(StackArch::Geometric, pattern, read, true);
+                config.seed = 59;
+                let mut model = spread_transport(config, 61)?;
+                let (batch, time) = (2, 12);
+                let ids = token_ids(batch * time, 37, 67);
+                let free = model.forward(&ids, batch, time)?;
+                model.set_transport_snap(Some(TransportSnap::Icosian))?;
+                let fused = model.forward(&ids, batch, time)?;
+                let composed = model.logits_with_transport(&ids, batch, time, Some(&roots))?;
+                let gap = max_abs_gap(&fused, &composed)?;
+                assert!(
+                    gap < 1e-4,
+                    "{label}: the snapped fused forward differs from the composed reference by {gap}"
+                );
+                worst = worst.max(gap);
+                // The snap is not trivial (Lab 1 adjudication, #1483, 2026-09-29):
+                // 1. some lane's chosen root differs from its unit quaternion
+                //    by more than 1e-3 in L2, witnessed on layer 0's raw
+                //    quaternions as the fused core computes them;
+                // 2. the snap moves the logits at least 100x the parity floor
+                //    (its own fused-vs-composed gap), so the effect is a
+                //    mechanism and not numerical noise.
+                let p = model.params()?;
+                let x = model.embed_with(&p, &ids, batch, time)?;
+                let u = model.norm(&p, &x, &layer_name(0, "rec_norm.weight"))?;
+                let gates = model.recurrence_gates(&p, 0, &u)?;
+                let lanes = model.config.width / 4;
+                let raw = gates
+                    .narrow(2, lanes, model.config.width)?
+                    .reshape((batch, time, lanes, 4))?;
+                let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
+                let unit = raw.broadcast_div(&norm)?.flatten_all()?.to_vec1::<f32>()?;
+                let mut max_displacement = 0f32;
+                for quad in unit.chunks_exact(4) {
+                    let root = roots[nearest_root([quad[0], quad[1], quad[2], quad[3]], &roots)];
+                    let l2: f32 = (0..4)
+                        .map(|k| (root[k] - quad[k]) * (root[k] - quad[k]))
+                        .sum::<f32>()
+                        .sqrt();
+                    max_displacement = max_displacement.max(l2);
+                }
+                assert!(
+                    max_displacement > 1e-3,
+                    "{label}: the snap left every transport unchanged ({max_displacement})"
+                );
+                let floor = gap.max(1e-7);
+                let moved = max_abs_gap(&fused, &free)?;
+                assert!(
+                    moved > 100.0 * floor,
+                    "{label}: the snap's effect ({moved}) is within noise of the parity floor ({floor})"
+                );
+                let usage = model.transport_usage(&ids, batch, time, None)?;
+                let pooled = usage.pooled();
+                let total: u64 = pooled.iter().sum();
+                assert_eq!(total, (usage.layers.len() * batch * time * 4) as u64);
+                let distinct = pooled.iter().filter(|&&count| count > 0).count();
+                assert!(distinct >= 20, "{label}: only {distinct} roots selected");
+                assert!(
+                    pooled[identity] * 4 < total,
+                    "{label}: the identity took {} of {total} selections",
+                    pooled[identity]
+                );
+                // Unsnapped, the forward is the free one again.
+                let unsnapped = model.with_unsnapped_transport(|m| m.forward(&ids, batch, time))?;
+                assert_eq!(bits(&unsnapped)?, bits(&free)?, "{label}: unsnapped");
+                assert_eq!(model.transport_snap(), Some(TransportSnap::Icosian));
+            }
+        }
+        eprintln!(
+            "snapped fused forward against the composed snapped reference: worst absolute logit gap {worst}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn snapped_gradients_equal_the_straight_through_reference() -> Result<()> {
+        let roots = icosians();
+        let (mut worst, mut worst_free) = (0f32, 0f32);
+        for pattern in ["rar", "rrarra"] {
+            for read in [ReadScore::Lorentz, ReadScore::Dot] {
+                let label = format!("{pattern} {read:?}");
+                let mut config = tiny(StackArch::Geometric, pattern, read, true);
+                config.seed = 71;
+                let mut model = spread_transport(config, 73)?;
+                let (batch, time) = (2, 12);
+                let ids = token_ids(batch * time, 37, 79);
+                // Random logit weights give derivatives well above f32 rounding.
+                let weights = random(&mut Initializer(83), &[batch * time, 37], 1.0);
+                let objective = |logits: Tensor| -> Result<candle_core::backprop::GradStore> {
+                    Ok(logits.mul(&weights)?.sum_all()?.backward()?)
+                };
+                // The fused core against its composed reference without a snap:
+                // the float gap the two paths have anyway.
+                let free = objective(model.forward(&ids, batch, time)?)?;
+                let free_reference = objective(model.composed_logits(
+                    &ids,
+                    batch,
+                    time,
+                    ComposedTransport::Free,
+                )?)?;
+                worst_free = worst_free.max(worst_relative_gradient_gap(
+                    &model,
+                    &free,
+                    &free_reference,
+                    &label,
+                )?);
+                model.set_transport_snap(Some(TransportSnap::Icosian))?;
+                let fused = objective(model.forward(&ids, batch, time)?)?;
+                let reference = objective(model.composed_logits(
+                    &ids,
+                    batch,
+                    time,
+                    ComposedTransport::StraightThrough(&roots),
+                )?)?;
+                let gap = worst_relative_gradient_gap(&model, &fused, &reference, &label)?;
+                assert!(
+                    gap < 1e-4,
+                    "{label}: a snapped gradient differs from the straight-through reference by {gap} (relative)"
+                );
+                worst = worst.max(gap);
+                // The straight-through gradient reaches every rotation row,
+                // and differs from the free gradient there.
+                for (name, var) in model.variables() {
+                    if !name.ends_with("rec.gate.weight") {
+                        continue;
+                    }
+                    let rotation_rows =
+                        |grads: &candle_core::backprop::GradStore| -> Result<Tensor> {
+                            Ok(grads
+                                .get(var.as_tensor())
+                                .ok_or_else(|| invalid(name.clone()))?
+                                .narrow(0, 4, 16)?)
+                        };
+                    let snapped_rows = rotation_rows(&fused)?;
+                    assert!(
+                        snapped_rows.abs()?.max_all()?.to_scalar::<f32>()? > 0.0,
+                        "{label}: {name}'s rotation rows have no gradient"
+                    );
+                    assert!(
+                        max_abs_gap(&snapped_rows, &rotation_rows(&free)?)? > 0.0,
+                        "{label}: {name}'s rotation gradient ignores the snap"
+                    );
+                }
+            }
+        }
+        eprintln!(
+            "snapped gradients against the straight-through reference: worst relative gap {worst}; \
+             without a snap the fused and composed paths differ by {worst_free}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn without_a_snap_the_core_is_bit_identical_to_the_pre_snap_core() -> Result<()> {
+        // The op itself, on random inputs: forward and every input gradient.
+        for rotation in [true, false] {
+            let (batch, time, width) = (3, 11, 16);
+            let lanes = width / 4;
+            let gate_width = lanes + if rotation { width } else { 0 };
+            let mut rng = Initializer(101);
+            let branches = Var::from_tensor(&random(&mut rng, &[batch, time, 2 * width], 1.0))?;
+            let gates = Var::from_tensor(&random(&mut rng, &[batch, time, gate_width], 1.0))?;
+            let parameters = Var::from_tensor(&random(
+                &mut rng,
+                &[(CONVOLUTION_WIDTH + 1) * width + lanes],
+                0.5,
+            ))?;
+            let weights = random(&mut rng, &[batch, time, width], 1.0);
+            let current = branches.as_tensor().apply_op3(
+                gates.as_tensor(),
+                parameters.as_tensor(),
+                RecurrenceCore {
+                    batch,
+                    time,
+                    width,
+                    rotation,
+                    snap: None,
+                },
+            )?;
+            let legacy = branches.as_tensor().apply_op3(
+                gates.as_tensor(),
+                parameters.as_tensor(),
+                LegacyRecurrenceCore {
+                    batch,
+                    time,
+                    width,
+                    rotation,
+                },
+            )?;
+            assert_eq!(
+                bits(&current)?,
+                bits(&legacy)?,
+                "rotation {rotation}: forward"
+            );
+            let a = current.mul(&weights)?.sum_all()?.backward()?;
+            let b = legacy.mul(&weights)?.sum_all()?.backward()?;
+            for (name, var) in [
+                ("branches", &branches),
+                ("gates", &gates),
+                ("parameters", &parameters),
+            ] {
+                let grad = |grads: &candle_core::backprop::GradStore| -> Result<Vec<u32>> {
+                    bits(
+                        grads
+                            .get(var.as_tensor())
+                            .ok_or_else(|| invalid(format!("no gradient for {name}")))?,
+                    )
+                };
+                assert_eq!(
+                    grad(&a)?,
+                    grad(&b)?,
+                    "rotation {rotation}: gradient of {name}"
+                );
+            }
+        }
+        // The whole model, never snapped, snapped and unsnapped again, or
+        // bypassed: logits and every gradient, bit for bit, equal to the
+        // forward composed with the pre-snap core.
+        for (pattern, read) in [("rar", ReadScore::Lorentz), ("rrarra", ReadScore::Dot)] {
+            let mut model = spread_transport(tiny(StackArch::Geometric, pattern, read, true), 107)?;
+            let (batch, time) = (2, 12);
+            let (ids, targets) = (
+                token_ids(batch * time, 37, 109),
+                token_ids(batch * time, 37, 113),
+            );
+            let plain = bits(&model.forward(&ids, batch, time)?)?;
+            let legacy = float_reference_logits(&model, &ids, batch, time)?;
+            assert_eq!(
+                plain,
+                bits(&legacy)?,
+                "{pattern}: logits against the pre-snap core"
+            );
+            let plain_grads = model.loss(&ids, &targets, batch, time)?.backward()?;
+            let legacy_grads = logits_cross_entropy(&legacy, &targets, None)?.backward()?;
+            let vars: Vec<(String, Var)> = model
+                .variables()
+                .iter()
+                .map(|(name, var)| (name.clone(), var.clone()))
+                .collect();
+            let gradient_bits =
+                |grads: &candle_core::backprop::GradStore| -> Result<Vec<Vec<u32>>> {
+                    vars.iter()
+                        .map(|(name, var)| {
+                            bits(
+                                grads
+                                    .get(var.as_tensor())
+                                    .ok_or_else(|| invalid(name.clone()))?,
+                            )
+                        })
+                        .collect()
+                };
+            let want = gradient_bits(&plain_grads)?;
+            assert_eq!(want, gradient_bits(&legacy_grads)?, "{pattern}: gradients");
+            model.set_transport_snap(Some(TransportSnap::Icosian))?;
+            assert_ne!(plain, bits(&model.forward(&ids, batch, time)?)?);
+            let bypassed = model.with_unsnapped_transport(|m| m.forward(&ids, batch, time))?;
+            assert_eq!(
+                plain,
+                bits(&bypassed)?,
+                "{pattern}: with_unsnapped_transport"
+            );
+            model.set_transport_snap(None)?;
+            assert_eq!(
+                plain,
+                bits(&model.forward(&ids, batch, time)?)?,
+                "{pattern}: off again"
+            );
+            let again = model.loss(&ids, &targets, batch, time)?.backward()?;
+            assert_eq!(
+                want,
+                gradient_bits(&again)?,
+                "{pattern}: gradients off again"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_transport_snap_takes_rotating_geometric_stacks_only() -> Result<()> {
+        for config in [
+            tiny(StackArch::Transformer, "aa", ReadScore::Dot, false),
+            tiny(StackArch::Geometric, "rar", ReadScore::Lorentz, false),
+            // Rotating, but with no recurrence to snap.
+            tiny(StackArch::Geometric, "aa", ReadScore::Dot, true),
+        ] {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            assert!(TransportSnap::Icosian.check(&config).is_err(), "{config:?}");
+            assert!(
+                model
+                    .set_transport_snap(Some(TransportSnap::Icosian))
+                    .is_err(),
+                "{config:?}"
+            );
+            assert_eq!(model.transport_snap(), None);
+            assert!(model
+                .transport_usage(&token_ids(8, 37, 3), 1, 8, None)
+                .is_err());
+        }
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::Dot, true),
+            &cpu(),
+        )?;
+        // Usage counts need a snap, and one length of at most `time` per window.
+        let ids = token_ids(16, 37, 5);
+        assert!(model.transport_usage(&ids, 2, 8, None).is_err());
+        model.set_transport_snap(Some(TransportSnap::Icosian))?;
+        assert_eq!(model.transport_snap(), Some(TransportSnap::Icosian));
+        assert!(model.transport_usage(&ids, 2, 8, Some(&[8])).is_err());
+        assert!(model.transport_usage(&ids, 2, 8, Some(&[8, 9])).is_err());
+        let usage = model.transport_usage(&ids, 2, 8, Some(&[3, 8]))?;
+        assert_eq!(usage.layers.keys().copied().collect::<Vec<_>>(), vec![0]);
+        assert_eq!(usage.pooled().iter().sum::<u64>(), (3 + 8) * 4);
+        let summary = usage.summary();
+        assert_eq!(summary["selections"], serde_json::json!(44));
+        assert_eq!(summary["roots"], serde_json::json!(120));
+        Ok(())
+    }
+
+    #[test]
+    fn a_snapped_model_saves_its_transport_record() -> Result<()> {
+        let mut model = spread_transport(
+            tiny(StackArch::Geometric, "rrarra", ReadScore::Lorentz, true),
+            131,
+        )?;
+        let root = std::env::temp_dir().join(format!(
+            "geometric-stack-transport-save-{}",
+            std::process::id()
+        ));
+        let (free_dir, snapped_dir) = (root.join("free"), root.join("snapped"));
+        model.save(&free_dir)?;
+        model.set_transport_snap(Some(TransportSnap::Icosian))?;
+        model.save(&snapped_dir)?;
+        // A save without a snap writes the files it wrote before the record.
+        assert!(!free_dir.join(TRANSPORT_RECORD).exists());
+        assert_eq!(StackModel::saved_transport_snap(&free_dir)?, None);
+        assert_eq!(
+            StackModel::saved_transport_snap(&snapped_dir)?,
+            Some(TransportSnap::Icosian)
+        );
+        assert_eq!(
+            fs::read(free_dir.join("config.json"))?,
+            fs::read(snapped_dir.join("config.json"))?
+        );
+        // Both load, without the snap, with the saved weights.
+        let ids = token_ids(12, 37, 137);
+        let free = bits(&model.with_unsnapped_transport(|m| m.forward(&ids, 1, 12))?)?;
+        for directory in [&free_dir, &snapped_dir] {
+            let loaded = StackModel::load(directory, &cpu())?;
+            assert_eq!(loaded.transport_snap(), None);
+            assert_eq!(bits(&loaded.forward(&ids, 1, 12)?)?, free);
+        }
+        // Setting the recorded snap restores the snapped forward.
+        let mut loaded = StackModel::load(&snapped_dir, &cpu())?;
+        loaded.set_transport_snap(StackModel::saved_transport_snap(&snapped_dir)?)?;
+        assert_eq!(
+            bits(&loaded.forward(&ids, 1, 12)?)?,
+            bits(&model.forward(&ids, 1, 12)?)?
+        );
+        // A save without the snap over a snapped one removes the record.
+        StackModel::load(&snapped_dir, &cpu())?.save(&snapped_dir)?;
+        assert_eq!(StackModel::saved_transport_snap(&snapped_dir)?, None);
+        // A record of other roots is refused.
+        fs::write(
+            free_dir.join(TRANSPORT_RECORD),
+            br#"{"schema":"uor-r4.stack-transport/1","snap":"icosian","roots":120,"roots_sha256":"00","scope":""}"#,
+        )?;
+        assert!(StackModel::saved_transport_snap(&free_dir).is_err());
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn the_transport_snap_composes_with_the_served_representation() -> Result<()> {
+        let roots = icosians();
+        let mut model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
+        spread(&model, 139)?;
+        for (name, var) in model.variables() {
+            if name.ends_with("rec.gate.weight") {
+                var.set(&var.as_tensor().affine(8.0, 0.0)?)?;
+            }
+        }
+        model.set_served_representation(Some(Arc::new(D11Interim)))?;
+        model.set_transport_snap(Some(TransportSnap::Icosian))?;
+        let time = model.config.context;
+        let (ids, targets) = (token_ids(2 * time, 96, 149), token_ids(2 * time, 96, 151));
+        let both = model.forward(&ids, 2, time)?;
+        // The composed reference reads the served view too.
+        let composed = model.logits_with_transport(&ids, 2, time, Some(&roots))?;
+        let gap = max_abs_gap(&both, &composed)?;
+        assert!(
+            gap < 1e-4,
+            "served and snapped: the composed reference differs by {gap}"
+        );
+        // Each constraint moves the logits on its own.
+        let served_only = model.with_unsnapped_transport(|m| m.forward(&ids, 2, time))?;
+        let snapped_only = model.with_float_forward(|m| m.forward(&ids, 2, time))?;
+        assert!(max_abs_gap(&both, &served_only)? > 1e-3);
+        assert!(max_abs_gap(&both, &snapped_only)? > 1e-3);
+        assert!(model.served_codec().is_some() && model.transport_snap().is_some());
+        // A training step reaches every variable.
+        let grads = model.loss(&ids, &targets, 2, time)?.backward()?;
+        for (name, var) in model.variables() {
+            let grad = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid(format!("{name} has no gradient")))?;
+            let values = grad.flatten_all()?.to_vec1::<f32>()?;
+            assert!(values.iter().all(|v| v.is_finite()), "{name}: nonfinite");
+            assert!(values.iter().any(|&v| v != 0.0), "{name}: zero gradient");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_served_and_snapped_model_saves_both_records_for_explicit_reapplication() -> Result<()> {
+        // The combined-mode save/metadata/reapply contract: a model saved
+        // with the served representation and a transport snap records both;
+        // `load` re-applies neither (raw float); reading the recorded modes
+        // and reapplying them restores the saved forward bit for bit.
+        let mut model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
+        spread(&model, 139)?;
+        for (name, var) in model.variables() {
+            if name.ends_with("rec.gate.weight") {
+                var.set(&var.as_tensor().affine(8.0, 0.0)?)?;
+            }
+        }
+        model.set_served_representation(Some(Arc::new(D11Interim)))?;
+        model.set_transport_snap(Some(TransportSnap::Icosian))?;
+        let time = model.config.context;
+        let ids = token_ids(time, 96, 163);
+        let both_logits = bits(&model.forward(&ids, 1, time)?)?;
+        let saved_snap = model.transport_snap();
+        model.set_transport_snap(None)?;
+        let float_free = model.with_float_forward(|m| bits(&m.forward(&ids, 1, time)?))?;
+        model.set_transport_snap(saved_snap)?;
+        let root = std::env::temp_dir().join(format!(
+            "geometric-stack-combined-save-{}",
+            std::process::id()
+        ));
+        let dir = root.join("both");
+        model.save(&dir)?;
+        // Both metadata records read back through the declared accessors.
+        assert_eq!(
+            StackModel::saved_transport_snap(&dir)?,
+            Some(TransportSnap::Icosian)
+        );
+        assert_eq!(
+            StackModel::saved_served_representation(&dir)?,
+            Some(SavedServedRepresentation {
+                codec: D11Interim.name().to_owned()
+            })
+        );
+        // A raw load enables neither mode: the float forward is restored.
+        let mut loaded = StackModel::load(&dir, &cpu())?;
+        assert!(loaded.served_codec().is_none() && loaded.transport_snap().is_none());
+        assert_eq!(bits(&loaded.forward(&ids, 1, time)?)?, float_free);
+        assert_ne!(bits(&loaded.forward(&ids, 1, time)?)?, both_logits);
+        // Reapplying the recorded modes restores the saved forward exactly.
+        loaded.set_served_representation(Some(Arc::new(D11Interim)))?;
+        loaded.set_transport_snap(StackModel::saved_transport_snap(&dir)?)?;
+        assert_eq!(bits(&loaded.forward(&ids, 1, time)?)?, both_logits);
+        // The recorded snap makes the integer export's refusal decidable from
+        // the directory alone, before any weights are exported.
+        assert!(StackModel::saved_transport_snap(&dir)?.is_some());
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// The snap's cost in the fused recurrence core at the main line's shape
+    /// (width 288, so 72 lanes, and 16 windows of 256): one layer's forward
+    /// and backward, alternating free and snapped, median seconds. Timing
+    /// only; run in a release build with `--ignored`.
+    #[test]
+    #[ignore]
+    fn the_snap_cost_in_the_fused_core() -> Result<()> {
+        let (batch, time, width) = (16, 256, 288);
+        let lanes = width / 4;
+        let mut rng = Initializer(157);
+        let branches = Var::from_tensor(&random(&mut rng, &[batch, time, 2 * width], 1.0))?;
+        let gates = Var::from_tensor(&random(&mut rng, &[batch, time, lanes + width], 1.0))?;
+        let parameters = Var::from_tensor(&random(
+            &mut rng,
+            &[(CONVOLUTION_WIDTH + 1) * width + lanes],
+            0.3,
+        ))?;
+        let weights = random(&mut rng, &[batch, time, width], 1.0);
+        let mut seconds = [Vec::new(), Vec::new()];
+        for _ in 0..7 {
+            for (arm, snap) in [None, Some(TransportSnap::Icosian)].into_iter().enumerate() {
+                let clock = Instant::now();
+                let out = branches.as_tensor().apply_op3(
+                    gates.as_tensor(),
+                    parameters.as_tensor(),
+                    RecurrenceCore {
+                        batch,
+                        time,
+                        width,
+                        rotation: true,
+                        snap,
+                    },
+                )?;
+                out.mul(&weights)?.sum_all()?.backward()?;
+                seconds[arm].push(clock.elapsed().as_secs_f64());
+            }
+        }
+        let median = |values: &mut Vec<f64>| {
+            values.sort_by(f64::total_cmp);
+            values[values.len() / 2]
+        };
+        let (free, snapped) = (median(&mut seconds[0]), median(&mut seconds[1]));
+        eprintln!(
+            "fused recurrence core, one layer forward and backward: free {free:.4} s, icosian \
+             snap {snapped:.4} s ({:+.1}%)",
+            100.0 * (snapped / free - 1.0)
+        );
         Ok(())
     }
 }
