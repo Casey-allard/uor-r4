@@ -48,6 +48,7 @@ pub mod stack_checkpoint;
 pub mod stack_dialogue;
 pub mod stack_export;
 pub mod stack_memory;
+pub mod stack_memory_replies;
 pub mod stack_prime_route;
 pub mod stack_store;
 pub mod stack_tracking;
