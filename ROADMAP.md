@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — multi-lab roadmap
 
-**Director:** Claude (Lab 1). **Updated:** 2026-09-29 01:50 UTC. This file owns lab
+**Director:** Claude (Lab 1). **Updated:** 2026-09-29 11:37 UTC. This file owns lab
 assignments, track status, the dead-path register and the cross-lab protocol. Measured
 results and retained artifacts live in [current state](docs/integration/current-state.md).
 Ordered responsibilities and acceptance live in the [canonical plan](docs/integration/project-track.md).
@@ -10,61 +10,102 @@ strategic authority.
 
 ## Lab 1 leadership and restart packet
 
-**Updated September 29, 01:50 UTC.**
+> **Superseded as the plan by the [plan of record](docs/plans/2026-09-29-path-to-chat.md) (29 September, [#1507](https://github.com/UOR-Foundation/uor-r4/pull/1507)) and by D13 once it is recorded.** This packet keeps the milestone target and the measured state as of 11:37 UTC. A rewritten ROADMAP will replace it.
+
+**Updated September 29, 11:37 UTC.** Every lab reads this first on restart.
 - **Lead:** Claude (Lab 1) is the permanent project lead: scientific direction, principal research, architecture, shared interfaces, promotion and merge decisions, within the owner's constraints.
-- **Astra's temporary cover** began on September 28 at 22:45 UTC. It ended with the handback on September 29 at 01:35 UTC. Its record is preserved in [its history file](docs/integration/astra-temporary-cover-2026-09-28.md) and on [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5881962511).
 - **Casey retains** the mission, spending, destructive-action authority and ratification of owner-level decisions.
+- **Astra's temporary cover** (09-28 22:45 to 09-29 01:35 UTC) is preserved in [its history file](docs/integration/astra-temporary-cover-2026-09-28.md).
+- **Names.** Say "the DeepSeek lab" (Lab 2), "the Kimi lab" (the Lab 1 research-integration steward) and "Anti-Gravity" (Lab 3). Both OpenCode labs run inside OpenCode.
 
-| Lane | Owner | Current deliverable |
-|---|---|---|
-| Leadership, learner, dialogue, memory semantics, architecture, native artifact and session, promotion | Claude (Lab 1) | The I1 store in the dialogue stack's read path; S4's fit once #1483 clears |
-| Integration, S1/QAT and S4 repairs, checks, delivery mechanics | Kimi (Lab 1 research-integration steward) | #1483's two failures, resolved under the [adjudication](https://github.com/UOR-Foundation/uor-r4/pull/1483#issuecomment-5882022226) |
-| Geometric read and address | DeepSeek/OpenCode (Lab 2) | The G-decomposition result (running) and the causal change its dominant cause selects; then a synonym world for G v2 |
-| Numerical fidelity, codecs, kernels, audits, cost | Anti-Gravity (Lab 3) | #1479, held for Lab 1's fresh-root re-run; D4-E8 through QAT |
+### The target
 
-### The artifact contract
+**§8's next product milestone is the project's target.** Its thresholds are the owner's, and they change only with the owner.
 
-**The integrated milestone is one saved model** that gives useful complete replies with:
-- memory update;
-- source and version distinctions;
-- absence and conflict handling;
-- reload survival;
-- native D11 execution.
+**The artifact is one saved model:**
+- a sealed D11 bundle, reloaded in a fresh `uor-chat` process;
+- a clean auditor on its serving binary;
+- a declared context budget, eviction policy and per-turn token limit.
+
+**It is scored on a sealed panel,** authored from typed intent before the final fit and held out from all training and development. In §8's words:
+- "responsive multi-turn: 40 conversations of 3–4 turns, each reply answering its own latest turn";
+- "updated relation: 30 conversations that assert, update and then query a relation, answered with the updated value";
+- "new simple instructions: 30 instructions of at least 6 types absent from training templates".
+
+The owner settled on 29 September that "absent from training templates" binds the *wording*: the panel uses new wording of trained instruction types. M-world's development split holds out phrasings within trained types, so it measures phrasing transfer only.
+
+**It passes when:**
+- at least 80% of scored turns pass in each category;
+- greedy streams are 100% identical across the reload;
+- a cost report gives tokens/s, RSS and whole-system J/token.
 
 Loss, tracking accuracy, arithmetic parity and library availability are components of that milestone, not the milestone itself. There is no third learner and no parallel serving engine.
 
-### Bottleneck and next decision
+### Where we are
 
-**Memory fails at address formation.** This was corrected at 01:49 UTC; see [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5882099700).
-- G v1's reads fire, but held-out Updated is 0.03–0.16 against a target of at least 0.90.
-- S2 recalls 0 of 10 facts.
+| Gap | Measured now | Decisive next step |
+|---|---|---|
+| Replies | S2 answers 2 of 38 development requests: generic filler and mismatched stock replies | **R1** (Lab 1): does narrow-domain data make the 7M stack responsive? |
+| Memory keys | The real panel recalls 0 of 10. Six of the ten need one key across different words | The **G v2** frozen-trunk key probe (the DeepSeek lab) |
+| Memory binding and text cost | **Adopted for the integration; a hypothesis on dialogue text until the integration measures it.** Measured separately, each at its scope, on the probe's world and dev text:<br>• arm A with the sieve, no gate: held-out Updated 264/273 (Gold's own ceiling, 0.967), Absent 377/378 (`binding-eval-1`);<br>• text NLL with prose registers silenced: 0.029 below the baseline ([#1500](https://github.com/UOR-Foundation/uor-r4/pull/1500));<br>• the gate ([#1502](https://github.com/UOR-Foundation/uor-r4/pull/1502), merged) gives exactly the silenced figure on text without user turns. Its effect on dialogue text with user turns is not measured | Measure it in the integration |
+| Native fidelity | **Code model `geometric_s1`:** the 4-bit export costs +0.0362 nats (round to nearest) and +0.0257 (GPTQ).<br>**Dialogue stack S2:** under the D10 GPTQ export, greedy replies match float on 14 of 58 turns. Its nats gap was not measured | **QAT** (Anti-Gravity) |
+| Native serving | The D11 engine's logits equal the D10 integer reference's (maximum difference 0 on 16 S2 windows). On `geometric_s1`, integer arithmetic costs ≤ 10⁻⁶ nats against the artifact's own f32 values. Not yet served: S4's 2I transport, the memory port, the store arena, store persistence | **S1.4**, then S1.2 and the native port (the Kimi lab) |
 
-**Why surface-form keys are not the cause.** In the D2 relation world, held-out templates change only the carrier text, and the entity and relation tokens are the same at write and at query. The failures there are therefore role-tagging or write-trigger failures, not surface-form mismatches.
+**Pinned models:**
+- **S4 arm A `2b3b5681…`**, the main line's start point: `/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model`. It is S2 continued with the trained-in 2I transport snap (#973 comments 5883878235 and 5884326637; #1494 records the adoption);
+- S2 `8cb11d8f…`;
+- the native child `98aca5ab…`;
+- `geometric_s1` `3eb1ebbb…`.
 
-**Lab 2's decomposition (`AddressCause`) selects the next causal change:**
-- missed writes → address-completed writes, tested by evaluation only on the saved checkpoints;
-- mis-tags → change how tags are formed;
-- wrong values → clause closing;
-- evictions → capacity.
+§2b's "One artifact: S2 plus the port" predates this plan. Stage 2 below supersedes it.
 
-**Canonical geometric keys (G v2)** address a different problem, different surface forms of the same entity or relation. They need a world with synonymous mentions, and their consumer is S2's memory trajectories.
+**S1.4** is the D11 kernel for the 2I icosian transport: argmax of q·r over the 120 roots, with exact Z[φ] coefficients (spec: #973 comment 5884334661).
 
-### Live state
+### Order of work
 
-Verify it against GitHub; this file is not a job monitor.
-- **Merged at 01:35 UTC:**
-  - #1481 (`f4a1e171`, the S1/QAT follow-ups);
-  - #1468 (`9869229b`, Lab 3's negative D4 study and codec primitives).
+**Stage 1 runs now, in parallel.** It is one decisive experiment per open risk, plus native plumbing.
 
-  Earlier: #1482 (`1c94969d`, Lab 2's AERM checkpoint save and load). The squash patches of #1481 and #1468 were checked equal to their PR diffs.
-- **Open:**
-  - #1483 (S4, Kimi).
-  - #1479 (Lab 3). Its cost numbers are unqualified until Lab 1 re-runs them on a quiet machine into a fresh root. `d11-cost-profile-1` was resealed in place, so it is not original evidence.
-- **Running:** Lab 2's `aerm-decompose` at `5f3de916`, in the model slot from 00:32 UTC to about 04:02 UTC (6 threads, 9 GB cap).
-- **Pinned models:**
-  - the S2 dialogue stack `8cb11d8f…`, the loss baseline;
-  - the native child `98aca5ab…`, the reference for replies and memory;
-  - `geometric_s1` `3eb1ebbb…`, the D4 codec target.
+| Lab | Deliverables, in order | What it decides |
+|---|---|---|
+| Lab 1 (Claude) | 1. **M-world v1** ([#1503](https://github.com/UOR-Foundation/uor-r4/pull/1503)): a typed-intent world for the three milestone categories, with a frozen oracle and a train / development split of phrasings and relation values. The qualification panel is authored separately at Stage 3. <br>2. **R1**, pre-registered on #973: continue S4 arm A on chat-v0 **unchanged** plus M-world's training conversations. Score it on the development phrasings and on the 38-request panel | Whether data, rather than scale, closes the reply gap at 7M parameters, for phrasing transfer within the trained intent types |
+| The DeepSeek lab (Lab 2) | 1. The user-turn gate. <br>2. D2-natural v2, with lexical families. <br>3. The G v2 frozen-trunk key probe on S4 arm A | The memory heads for the integration |
+| Anti-Gravity (Lab 3) | 1. #1490. <br>2. QAT on `geometric_s1`, against a float-continuation control. <br>3. Only if that passes its 0.02-nat gate: QAT on S2, measured by native greedy agreement | The codec for the final fit |
+| The Kimi lab (steward) | 1. #1493 and #1494. <br>2. **S1.4**, the D11 icosian transport kernel. <br>3. **S1.2**, the stack bundle and loader, with reload equality | Whether S4-line models serve natively |
+
+**Stage 2, the integration.** It starts when R1 and the G v2 probe report.
+
+| Lab | Deliverable |
+|---|---|
+| Lab 1 | The integration run: S4 arm A with the memory port (G v2 heads, the gate, the sieve and I1's six-view store), on R1's mixture plus D2-natural v2. It is scored on M-world's development templates, D2's held-out phrasing, the 38-request panel and the 161-response guard |
+| The Kimi lab | The native memory port: <br>• the heads and memory branch in D11; <br>• a fixed-arena store in the session; <br>• store save and reload, with identical reads and tokens; <br>• I3, the `uor-chat` stack profile |
+| The DeepSeek lab | The multi-token value copy pointer (not implemented today), and G v2 inside the integrated model |
+| Anti-Gravity | The auditor on the D11 stack serving binary, and the cost harness (tokens/s, RSS, whole-system J/token) |
+
+**Stage 3 (Lab 1): shape and final fit.**
+1. **Choose the milestone shape** from Stage 2 and the D11 cost. Keep 7M if the integration reaches 80% on the development phrasings; otherwise move to 10–30M. That figure is a proxy for phrasing transfer; the sealed §8 panel alone qualifies the artifact.
+2. **Author and seal the qualification panel** before the final fit.
+3. **Run the final fit:** S4 transport, the QAT phase and the memory port. Then export, bundle and reload in a fresh `uor-chat`.
+
+**Stage 4: qualification.**
+- Lab 1 scores the sealed panel on the reloaded bundle.
+- Anti-Gravity measures the cost.
+- Every failed turn gets the four-class trace. The float parent and the dialogue child are reported beside it.
+
+### Machine and compute
+
+- **The machine:** an M1 with 8 cores and 16 GB.
+  - At 11:37 UTC, swap was near its 7.2 GB, the internal drive had 15 GiB free (below §6's 25 GiB line) and the SSD had 37 GiB free (above its 30 GiB floor).
+  - Heavy jobs and caches stay on the SSD.
+  - **One heavy job at a time.**
+- **Slot priority when contended:**
+  - a ready Stage 1 decisive experiment goes next;
+  - no lab runs more than two heavy jobs in a row while another lab's Stage 1 job waits;
+  - nothing runs during a timing measurement: §6's light-job allowance does not apply while the slot holder is timing;
+  - the lock file gives the race order. When two labs are waiting, they settle the order on #973 by the rules above.
+- **Ledger** (`model-time.json`, read 11:37 UTC): 761.48M of 820M ms.
+  - Lab 1 charged its uncharged evaluations of 09-29.
+  - It recorded a +40M ms extension for Stage 1 under the standing authorization (`extension-2026-09-29-lab1-stage1.json`).
+  - The final fit is projected at its pre-registration.
 
 ### Rules in force
 
@@ -72,13 +113,24 @@ Verify it against GitHub; this file is not a job monitor.
   - D11 and D0-b govern serving: no float, and no multiply or divide instruction, in the served numerical path.
   - D12: a missed gate prevents promotion only.
   - D9: new compute needs a named causal change.
+- **Evidence:**
+  - Pre-register on #973 before any run.
+  - Every number comes from committed code, in a sealed root (`claim` → `seal` → `verify`).
+  - An unmeasured mechanism is a hypothesis.
 - **Merges:**
   - The class A/B/C criteria are in the [policy](docs/integration/agent-execution-policy.md).
   - Lab 3 results merge only after Lab 1 re-runs them from committed code into a fresh root.
+  - Class B results need Lab 1's re-read before merge.
+  - Required review fixes land before merge.
   - Nothing is auto-merged unconditionally. Before each merge, recheck the exact approved head and its blockers. Then merge through the protected queue, verify the delivered patch, and notify the consumer.
   - The shared GitHub account never turns self-review into a non-author review.
+- **Code and Git:**
+  - Rust for all new code and tools. No new Python code or analysis, including one-liners; read JSON with `jq`. The existing check scripts, such as `check_claim_wording.py`, run as they are.
+  - Merge `main` in. Never rebase, force-push or `reset --hard` shared work.
+  - Never push to `main`.
+  - Leave other labs' worktrees and the owner checkout alone.
 - **Machine and spending:**
-  - One heavy job at a time, through `/Volumes/UOR-Workspace/locks/model-slot.json`; light jobs use at most 2 threads.
+  - One heavy job at a time, through `/Volumes/UOR-Workspace/locks/model-slot.json`. Light jobs use at most 2 threads.
   - No paid or external compute, and no change of provider, plan, credential or spending limit.
 
 ### Restart procedure
@@ -86,18 +138,15 @@ Verify it against GitHub; this file is not a job monitor.
 1. Run `date -u`.
 2. Read this packet, the latest #973 comments, the open PRs and the model-slot lock.
 3. Recover existing workers, branches, jobs and sealed roots before assigning anything.
-4. Staffing defaults:
-   - zero additional Opus workers, and at most one bounded specialist;
+4. **Staffing:**
+   - zero additional Opus workers by default, and at most one bounded specialist;
    - no recursive spawning;
    - completion events, not polling.
-
-**Next actions, in order:**
-1. Resolve and review #1483.
-2. When the slot frees:
-   - Lab 1's #1479 cost and E8-reference re-runs, on a quiet machine;
-   - then S4's pre-registered fit, if #1483 has merged.
-3. Lab 2's decomposition, then the G v2 decision.
-4. Wire the I1 store into the stack's read path, and measure it on S2's 10 memory trajectories.
+5. Continue your lab's row in the stage tables. Hand off with:
+   - what was selected or rejected;
+   - the artifacts, with paths and identities;
+   - the consumer;
+   - the exact next action.
 
 ## 0. Mission and hard runtime rules
 
