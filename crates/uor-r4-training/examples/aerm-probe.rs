@@ -11,8 +11,11 @@
 //!   [arms=aerm,control] [seeds=1] [train_tokens=16777216] [dev_tokens=249000] [width=128] \
 //!   [heads=4] [mlp=384] [pattern=rrar] [context=256] [split=2] [steps=1500] [batch=16] \
 //!   [lr=0.003] [warmup=100] [weight_decay=0.1] [clip=1] [tag_weight=1] [trigger_weight=1] \
-//!   [trigger_positive=5] [dev_windows=512] [eval_episodes=512] [free_episodes=32] [verify=256]
+//!   [trigger_positive=5] [dev_windows=512] [eval_episodes=512] [free_episodes=32] [verify=256] \
+//!   [save=CHECKPOINT_ROOT]
 //! aerm-probe summarize out=NEW_REPORT_ROOT roots=ROOT,ROOT,... [gates=g1|d2]
+//! aerm-probe checkpoint-eval out=NEW_REPORT_ROOT checkpoint=DIR dev=DEV.u16 tokenizer=TOKENIZER.json \
+//!   [dev_tokens=249000] [context=256] [dev_windows=512] [eval_episodes=512] [free_episodes=32]
 //! ```
 //!
 //! `run` claims its report root before building anything, verifies `verify`
@@ -20,6 +23,9 @@
 //! protocol encoder, trains each arm with each seed on identical data, and
 //! evaluates development text NLL, fresh relation dialogues (training
 //! templates and names), held-out-template dialogues and free-running answers.
+//! `save=CHECKPOINT_ROOT` writes `<arm>-s<seed>/` checkpoints
+//! (`AermModel::save`). `checkpoint-eval` loads one such arm and writes the
+//! same evaluations so a reload can be compared against a sealed root.
 //! `summarize` applies the pre-registered gate set to sealed run roots:
 //! `gates=g1` is Lab 1's five-part G v1 acceptance (held-out Updated ≥ 0.90 in
 //! every seed, an equal-parameter control, text NLL within 0.05, the failure
@@ -287,6 +293,13 @@ fn run(args: &Args, out: &Path) -> Result<()> {
                 evaluate_dialogues(&model, &world, eval_episodes, HELD_SEED, true, context, 16)?;
             let free = free_running(&model, &world, free_episodes, FREE_SEED, false, context, 16)?;
             let eval_seconds = eval_started.elapsed().as_secs_f64();
+            let checkpoint = args
+                .0
+                .get("save")
+                .map(|root| PathBuf::from(root).join(format!("{arm}-s{seed}")));
+            if let Some(directory) = &checkpoint {
+                model.save(directory)?;
+            }
             let free_exact = free.iter().filter(|(gold, got)| gold == got).count();
             let free_rows: Vec<Value> = free
                 .iter()
@@ -316,6 +329,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
                 "arm": arm,
                 "seed": seed,
                 "read_policy": "always_on_address_driven",
+                "checkpoint": checkpoint.map(|directory| directory.display().to_string()),
                 "stack": config,
                 "split": split,
                 "train": train_config,
@@ -504,6 +518,51 @@ fn summarize(args: &Args, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Loads one saved arm and writes the same evaluations the training run
+/// recorded, so a reload can be compared against a sealed root.
+fn checkpoint_eval(args: &Args, out: &Path) -> Result<()> {
+    let checkpoint = PathBuf::from(args.required("checkpoint")?);
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let dev_path = PathBuf::from(args.required("dev")?);
+    let context: usize = args.number("context", 256)?;
+    let dev_windows: usize = args.number("dev_windows", 512)?;
+    let eval_episodes: usize = args.number("eval_episodes", 512)?;
+    let free_episodes: usize = args.number("free_episodes", 32)?;
+    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
+        .ok_or_else(|| invalid("tokenizer JSON is not a supported byte-level BPE"))?;
+    let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
+        .map_err(|e| invalid(format!("protocol: {e}")))?;
+    let encode = |text: &str| tokenizer.encode(text);
+    let world = RelationWorld::new(&encode, protocol.bos_id, protocol.eos_id)?;
+    let device = Device::Cpu;
+    let model = AermModel::load(&checkpoint, &device)?;
+    let dev = read_u16_range(&dev_path, 0, args.number("dev_tokens", 249_000)?)?;
+    let (nll, fired) = text_nll(&model, &dev, context, dev_windows, 16, world.eos)?;
+    let dialogues = evaluate_dialogues(
+        &model,
+        &world,
+        eval_episodes,
+        DIALOGUE_SEED,
+        false,
+        context,
+        16,
+    )?;
+    let held = evaluate_dialogues(&model, &world, eval_episodes, HELD_SEED, true, context, 16)?;
+    let free = free_running(&model, &world, free_episodes, FREE_SEED, false, context, 16)?;
+    let free_exact = free.iter().filter(|(gold, got)| gold == got).count();
+    let report = json!({
+        "schema": "uor-r4.g1-aerm-checkpoint-eval/1",
+        "checkpoint": checkpoint.display().to_string(),
+        "read_policy": "always_on_address_driven",
+        "text": {"dev_nll": nll, "non_none_triggers_per_thousand_tokens": fired},
+        "dialogues": dialogues,
+        "held_out": held,
+        "free_running": {"episodes": free.len(), "exact": free_exact},
+    });
+    fs::write(out.join("loaded.json"), serde_json::to_vec_pretty(&report)?)?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     let Some((mode, rest)) = arguments.split_first() else {
@@ -543,6 +602,7 @@ fn main() -> Result<()> {
                     "eval_episodes",
                     "free_episodes",
                     "verify",
+                    "save",
                 ],
             )?;
             let out = PathBuf::from(args.required("out")?);
@@ -555,6 +615,26 @@ fn main() -> Result<()> {
             let out = PathBuf::from(args.required("out")?);
             report_output::claim(&out)?;
             let result = summarize(&args, &out);
+            finish(&out, result)
+        }
+        "checkpoint-eval" => {
+            let args = Args::parse(
+                rest,
+                &[
+                    "out",
+                    "checkpoint",
+                    "dev",
+                    "tokenizer",
+                    "dev_tokens",
+                    "context",
+                    "dev_windows",
+                    "eval_episodes",
+                    "free_episodes",
+                ],
+            )?;
+            let out = PathBuf::from(args.required("out")?);
+            report_output::claim(&out)?;
+            let result = checkpoint_eval(&args, &out);
             finish(&out, result)
         }
         other => Err(invalid(format!("unknown mode {other}"))),

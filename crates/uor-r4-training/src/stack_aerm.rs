@@ -45,6 +45,8 @@
 //! Offline training and evaluation only; nothing here is a serving path.
 
 use std::collections::BTreeMap;
+use std::fs;
+use std::path::Path;
 use std::time::Instant;
 
 use candle_core::{backprop::GradStore, DType, Device, Tensor, Var, D};
@@ -1663,6 +1665,109 @@ impl AermModel {
     }
 }
 
+/// Checkpoint configuration beside the weights.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AermCheckpoint {
+    pub split: usize,
+    pub memory: bool,
+}
+
+impl AermModel {
+    /// Saves the stack, both heads and, when present, the memory branch.
+    pub fn save(&self, directory: &Path) -> Result<()> {
+        fs::create_dir_all(directory)?;
+        self.stack.save(&directory.join("stack"))?;
+        let mut tensors: std::collections::HashMap<String, Tensor> =
+            std::collections::HashMap::new();
+        tensors.insert("tag_weight".into(), self.tag_weight.as_tensor().clone());
+        tensors.insert("tag_bias".into(), self.tag_bias.as_tensor().clone());
+        tensors.insert(
+            "trigger_weight".into(),
+            self.trigger_weight.as_tensor().clone(),
+        );
+        tensors.insert("trigger_bias".into(), self.trigger_bias.as_tensor().clone());
+        if let Some(m) = &self.memory {
+            for (name, var) in [
+                ("memory.status", &m.status),
+                ("memory.projection", &m.projection),
+                ("memory.copy_weight", &m.copy_weight),
+                ("memory.copy_bias", &m.copy_bias),
+                ("memory.copy_scale", &m.copy_scale),
+                ("memory.status_previous", &m.status_previous),
+                ("memory.projection_previous", &m.projection_previous),
+                ("memory.copy_weight_previous", &m.copy_weight_previous),
+                ("memory.copy_bias_previous", &m.copy_bias_previous),
+                ("memory.copy_scale_previous", &m.copy_scale_previous),
+            ] {
+                tensors.insert(name.into(), var.as_tensor().clone());
+            }
+        }
+        candle_core::safetensors::save(&tensors, directory.join("heads.safetensors"))?;
+        fs::write(
+            directory.join("aerm.json"),
+            serde_json::to_vec_pretty(&AermCheckpoint {
+                split: self.split,
+                memory: self.memory.is_some(),
+            })?,
+        )?;
+        Ok(())
+    }
+
+    /// Loads a checkpoint written by [`AermModel::save`].
+    pub fn load(directory: &Path, device: &Device) -> Result<Self> {
+        let checkpoint: AermCheckpoint =
+            serde_json::from_slice(&fs::read(directory.join("aerm.json"))?)?;
+        let stack = StackModel::load(&directory.join("stack"), device)?;
+        let width = stack.config.width;
+        if checkpoint.split == 0 || checkpoint.split >= stack.config.layers() {
+            return Err(invalid("saved split must leave layers on both sides"));
+        }
+        let tensors = candle_core::safetensors::load(directory.join("heads.safetensors"), device)?;
+        let expected = 4 + if checkpoint.memory { 10 } else { 0 };
+        if tensors.len() != expected {
+            return Err(invalid("saved heads tensors differ from the configuration"));
+        }
+        let var = |name: &str, shape: &[usize]| -> Result<Var> {
+            let tensor = tensors
+                .get(name)
+                .ok_or_else(|| invalid(format!("saved heads lack {name}")))?;
+            if tensor.dims() != shape || tensor.dtype() != DType::F32 {
+                return Err(invalid(format!("saved heads shape differs for {name}")));
+            }
+            Ok(Var::from_tensor(tensor)?)
+        };
+        let tag_weight = var("tag_weight", &[TAGS, width])?;
+        let tag_bias = var("tag_bias", &[TAGS])?;
+        let trigger_weight = var("trigger_weight", &[TRIGGERS, width])?;
+        let trigger_bias = var("trigger_bias", &[TRIGGERS])?;
+        let memory = if checkpoint.memory {
+            Some(MemoryBranch {
+                status: var("memory.status", &[STATUSES, width])?,
+                projection: var("memory.projection", &[width, width])?,
+                copy_weight: var("memory.copy_weight", &[width, 1])?,
+                copy_bias: var("memory.copy_bias", &[1])?,
+                copy_scale: var("memory.copy_scale", &[1])?,
+                status_previous: var("memory.status_previous", &[STATUSES, width])?,
+                projection_previous: var("memory.projection_previous", &[width, width])?,
+                copy_weight_previous: var("memory.copy_weight_previous", &[width, 1])?,
+                copy_bias_previous: var("memory.copy_bias_previous", &[1])?,
+                copy_scale_previous: var("memory.copy_scale_previous", &[1])?,
+            })
+        } else {
+            None
+        };
+        Ok(Self {
+            stack,
+            split: checkpoint.split,
+            tag_weight,
+            tag_bias,
+            trigger_weight,
+            trigger_bias,
+            memory,
+        })
+    }
+}
+
 /// Argmax of each row of `[rows, classes]` logits.
 fn argmax_rows(logits: &Tensor) -> Result<Vec<u32>> {
     Ok(logits.detach().argmax(D::Minus1)?.to_vec1::<u32>()?)
@@ -2657,6 +2762,95 @@ mod tests {
             let norm = grad.sqr()?.sum_all()?.to_scalar::<f32>()?;
             assert!(norm > 0.0, "{name} receives no gradient");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn aerm_save_and_load_reproduce_logits() -> Result<()> {
+        let device = Device::Cpu;
+        let directory = std::env::temp_dir().join(format!("aerm-save-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&directory);
+        let config = StackConfig {
+            arch: StackArch::Geometric,
+            vocab_size: 400,
+            width: 32,
+            heads: 2,
+            mlp_hidden: 48,
+            context: 16,
+            pattern: "rrar".into(),
+            read: ReadScore::Dot,
+            rotation: true,
+            seed: 11,
+            memory: None,
+        };
+        let mut model = AermModel::new(config.clone(), 2, true, 11, &device)?;
+        // Non-zero, deterministic head and memory values: an all-zero branch
+        // would leave a parameter dropped from both save and load invisible.
+        let fill = |shape: &[usize], seed: usize| -> Result<Var> {
+            let count: usize = shape.iter().product();
+            let values: Vec<f32> = (0..count)
+                .map(|i| (((i * 7 + seed * 3) % 13) as f32 - 6.0) / 9.0)
+                .collect();
+            Ok(Var::from_vec(values, shape, &device)?)
+        };
+        model.tag_weight = fill(&[TAGS, 32], 1)?;
+        model.tag_bias = fill(&[TAGS], 2)?;
+        model.trigger_weight = fill(&[TRIGGERS, 32], 3)?;
+        model.trigger_bias = fill(&[TRIGGERS], 4)?;
+        let branch = model.memory.as_mut().expect("memory branch");
+        branch.status = fill(&[STATUSES, 32], 5)?;
+        branch.projection = fill(&[32, 32], 6)?;
+        branch.copy_weight = fill(&[32, 1], 7)?;
+        branch.copy_bias = fill(&[1], 8)?;
+        branch.copy_scale = fill(&[1], 9)?;
+        branch.status_previous = fill(&[STATUSES, 32], 10)?;
+        branch.projection_previous = fill(&[32, 32], 11)?;
+        branch.copy_weight_previous = fill(&[32, 1], 12)?;
+        branch.copy_bias_previous = fill(&[1], 13)?;
+        branch.copy_scale_previous = fill(&[1], 14)?;
+        model.save(&directory)?;
+        let loaded = AermModel::load(&directory, &device)?;
+        let ids: Vec<u32> = (0..32).map(|i| (i * 5 % 400) as u32).collect();
+        let status: Vec<u32> = (0..32).map(|i| (i % 4) as u32).collect();
+        let value: Vec<u32> = (0..32).map(|i| (i * 7 % 400) as u32).collect();
+        let tags_a = model.bottom(&ids, 2, 16)?.tags.to_vec2::<f32>()?;
+        let tags_b = loaded.bottom(&ids, 2, 16)?.tags.to_vec2::<f32>()?;
+        for (x, y) in tags_a.iter().flatten().zip(tags_b.iter().flatten()) {
+            assert_eq!(x, y, "loaded tag logits differ");
+        }
+        let a = model
+            .top(
+                &model.bottom(&ids, 2, 16)?.hidden,
+                &status,
+                &value,
+                &status,
+                &value,
+            )?
+            .to_vec2::<f32>()?;
+        let b = loaded
+            .top(
+                &loaded.bottom(&ids, 2, 16)?.hidden,
+                &status,
+                &value,
+                &status,
+                &value,
+            )?
+            .to_vec2::<f32>()?;
+        for (x, y) in a.iter().flatten().zip(b.iter().flatten()) {
+            assert_eq!(x, y, "loaded memory-arm logits differ");
+        }
+        let control = AermModel::new(config, 2, false, 11, &device)?;
+        control.save(&directory.join("control"))?;
+        let loaded_control = AermModel::load(&directory.join("control"), &device)?;
+        let c = control.stack.forward(&ids, 2, 16)?.to_vec2::<f32>()?;
+        let d = loaded_control
+            .stack
+            .forward(&ids, 2, 16)?
+            .to_vec2::<f32>()?;
+        for (x, y) in c.iter().flatten().zip(d.iter().flatten()) {
+            assert_eq!(x, y, "loaded control logits differ");
+        }
+        fs::remove_dir_all(&directory)?;
         Ok(())
     }
 }
