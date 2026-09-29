@@ -81,6 +81,137 @@ pub const STORE_SLOTS: usize = 64;
 pub const STORE_STASH: usize = 8;
 
 // ---------------------------------------------------------------------------
+// Canonical atoms of the natural relation world (D2-natural v2).
+//
+// The standard world keys a fact by the exact surface `(entity, relation)`
+// tokens, so two synonyms of the same word ("name"/"named"/"called") or the
+// pronoun and possessive forms of one person ("I"/"My"/"my") fragment into
+// different keys. The natural world gives every entity and relation a small,
+// stable canonical atom instead; the gold store and the per-clause labels are
+// keyed by those atoms, independent of the surface tokens a phrasing chooses.
+//
+// Ids are fixed and documented; they are never renumbered. A `0` atom means
+// "no canonical label at this position".
+
+/// Canonical entity atoms. `SPEAKER` is the first-person writer (I, my, me).
+pub mod entity_atom {
+    pub const SPEAKER: u32 = 1;
+    pub const CAT: u32 = 2;
+    pub const SISTER: u32 = 3;
+    pub const BROTHERS: u32 = 4;
+    pub const CAR: u32 = 5;
+    pub const DOG: u32 = 6;
+    pub const BROTHER: u32 = 7;
+    pub const BIKE: u32 = 8;
+}
+
+/// Canonical relation atoms. `NAME..INSTRUMENT` drive the milestone panel;
+/// `PET..CITY` are non-panel relations.
+pub mod relation_atom {
+    pub const NAME: u32 = 1;
+    pub const JOB: u32 = 2;
+    pub const HOME: u32 = 3;
+    pub const COUNT: u32 = 4;
+    pub const BIRTHDAY: u32 = 5;
+    pub const CAR_COLOR: u32 = 6;
+    pub const FAVORITE_COLOR: u32 = 7;
+    pub const FAVORITE_FOOD: u32 = 8;
+    pub const INSTRUMENT: u32 = 9;
+    pub const PET: u32 = 10;
+    pub const TOY: u32 = 11;
+    pub const FRIEND: u32 = 12;
+    pub const AGE: u32 = 13;
+    pub const CITY: u32 = 14;
+}
+
+/// One natural-world clause: a write at a statement end, or a read at a
+/// question end. `trigger_position` is the document position that closes the
+/// clause (`TRIGGER_WRITE` for a statement, `TRIGGER_READ`/`TRIGGER_READ_PREVIOUS`
+/// for a question); `value` is the written value for a write and the gold
+/// read value for a read (`None` when the read is absent); `previous` marks a
+/// read of the previous distinct value; `class` is the fact's history class at
+/// the clause. `entity_atom`/`relation_atom` are the canonical key.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Clause {
+    pub trigger_position: usize,
+    pub entity_atom: u32,
+    pub relation_atom: u32,
+    pub value: Option<u32>,
+    pub previous: bool,
+    pub class: QueryClass,
+}
+
+/// The change history of one canonical key in the v2 gold store.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AtomRecord {
+    /// The current value token.
+    pub value: u32,
+    /// The value before the last change; a same-value write keeps it.
+    pub previous: Option<u32>,
+    pub version: u32,
+}
+
+/// The D2-natural v2 gold store, keyed by canonical `(entity_atom,
+/// relation_atom)`. It mirrors [`RelationStore`]'s version semantics exactly
+/// (current value, previous distinct value, version) but is an exact map, so a
+/// stored key is never evicted. It exists beside the token-keyed store, which
+/// is unchanged, so a key probe can compare a model's read register against
+/// canonical gold without the surface fragmentation of the token store.
+#[derive(Clone, Debug, Default)]
+pub struct AtomStore {
+    records: BTreeMap<(u32, u32), AtomRecord>,
+}
+
+impl AtomStore {
+    pub fn new() -> Self {
+        Self {
+            records: BTreeMap::new(),
+        }
+    }
+
+    pub fn record(&self, entity: u32, relation: u32) -> Option<AtomRecord> {
+        self.records.get(&(entity, relation)).copied()
+    }
+
+    /// Writes `value` under a canonical key: overwrite on a hit (keeping the
+    /// previous distinct value and incrementing the version), else insert.
+    pub fn write(&mut self, entity: u32, relation: u32, value: u32) {
+        match self.records.get_mut(&(entity, relation)) {
+            Some(record) => {
+                if record.value != value {
+                    record.previous = Some(record.value);
+                    record.value = value;
+                }
+                record.version += 1;
+            }
+            None => {
+                self.records.insert(
+                    (entity, relation),
+                    AtomRecord {
+                        value,
+                        previous: None,
+                        version: 1,
+                    },
+                );
+            }
+        }
+    }
+
+    /// `(status, value)`: the current value, or the previous distinct value
+    /// when `previous`; Absent when there is none.
+    pub fn read(&self, entity: u32, relation: u32, previous: bool) -> (u32, u32) {
+        match self.record(entity, relation) {
+            Some(record) => match (previous, record.previous) {
+                (false, _) => (STATUS_HIT, record.value),
+                (true, Some(value)) => (STATUS_HIT, value),
+                (true, None) => (STATUS_ABSENT, 0),
+            },
+            None => (STATUS_ABSENT, 0),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // The exact store.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -684,6 +815,15 @@ pub struct Episode {
     /// EOS, padding). Built from the protocol's role structure, never labels.
     pub user_turn: Vec<u8>,
     pub queries: Vec<Query>,
+    /// Canonical entity atom at a tagged entity position, 0 elsewhere. In the
+    /// standard world every entry is 0.
+    pub entity_atom: Vec<u32>,
+    /// Canonical relation atom at the surface token that carries the relation,
+    /// 0 elsewhere. In the standard world every entry is 0.
+    pub relation_atom: Vec<u32>,
+    /// The natural world's per-clause canonical gold; empty in the standard
+    /// world.
+    pub clauses: Vec<Clause>,
 }
 
 /// Vocabulary, templates and piece encodings of the relation dialogues.
@@ -697,6 +837,17 @@ pub struct RelationWorld {
     newline: Vec<u32>,
     pub bos: u32,
     pub eos: u32,
+    mode: WorldMode,
+    natural: Option<NaturalWorld>,
+}
+
+/// Which world [`RelationWorld::episode`] renders.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorldMode {
+    /// The literal-role surface-keyed world (unchanged).
+    Standard,
+    /// The natural world with canonical `(entity, relation)` atoms.
+    Natural,
 }
 
 fn every_template() -> impl Iterator<Item = Template> {
@@ -790,7 +941,42 @@ impl RelationWorld {
             newline: encode("\n"),
             bos,
             eos,
+            mode: WorldMode::Standard,
+            natural: None,
         })
+    }
+
+    /// Builds the natural world (D2-natural v2) from a text encoder. Every
+    /// entity, relation and value surface must encode to exactly one token in
+    /// the exact form the templates use (sentence-initial words carry no
+    /// leading space). The standard pools are left empty; only
+    /// [`Self::episode`] uses the natural families.
+    pub fn natural(encode: &dyn Fn(&str) -> Vec<u32>, bos: u32, eos: u32) -> Result<Self> {
+        let mut pieces: BTreeMap<&'static str, Vec<u32>> = BTreeMap::new();
+        let natural = NaturalWorld::build(encode, &mut pieces)?;
+        if pieces.values().any(Vec::is_empty) {
+            return Err(invalid(
+                "every natural template piece must encode to tokens",
+            ));
+        }
+        Ok(Self {
+            names: Vec::new(),
+            held_names: Vec::new(),
+            relations: Vec::new(),
+            pieces,
+            user_marker: encode("User: "),
+            assistant_marker: encode("Assistant: "),
+            newline: encode("\n"),
+            bos,
+            eos,
+            mode: WorldMode::Natural,
+            natural: Some(natural),
+        })
+    }
+
+    /// The active world mode.
+    pub fn mode(&self) -> WorldMode {
+        self.mode
     }
 
     /// Extends the training name pool from a list of first names. A name must
@@ -858,9 +1044,13 @@ impl RelationWorld {
             .ok_or_else(|| invalid(format!("unencoded piece {text:?}")))
     }
 
-    /// Samples one episode that fits `limit` tokens (`context + 1`).
+    /// Samples one episode that fits `limit` tokens (`context + 1`), in the
+    /// active world mode.
     pub fn episode(&self, rng: &mut Rng, held: bool, limit: usize) -> Result<Episode> {
-        EpisodeBuilder::new(self, held, limit).build(rng)
+        match self.mode {
+            WorldMode::Standard => EpisodeBuilder::new(self, held, limit).build(rng),
+            WorldMode::Natural => NaturalBuilder::new(self, held, limit)?.build(rng),
+        }
     }
 }
 
@@ -1372,6 +1562,7 @@ impl<'a> EpisodeBuilder<'a> {
         if self.queries.is_empty() {
             return Err(invalid("an episode must end with at least one query"));
         }
+        let tokens = self.tokens.len();
         Ok(Episode {
             messages: self.messages,
             tokens: self.tokens,
@@ -1380,6 +1571,9 @@ impl<'a> EpisodeBuilder<'a> {
             triggers: self.triggers,
             user_turn: self.user_turn,
             queries: self.queries,
+            entity_atom: vec![0; tokens],
+            relation_atom: vec![0; tokens],
+            clauses: Vec::new(),
         })
     }
 }
@@ -1397,6 +1591,10 @@ pub struct DialogueBatch {
     pub real: Vec<f32>,
     pub tags: Vec<u32>,
     pub triggers: Vec<u32>,
+    /// Canonical atoms per input position, from the natural world; 0 for the
+    /// standard world and padding.
+    pub entity_atom: Vec<u32>,
+    pub relation_atom: Vec<u32>,
     /// 1 on user-turn input positions, 0 elsewhere (assistant, padding).
     pub user_turn: Vec<u8>,
     /// Gold registers (teacher forcing) for both the current and previous
@@ -1437,6 +1635,8 @@ impl RelationWorld {
             real: vec![0.0; rows],
             tags: vec![TAG_OTHER; rows],
             triggers: vec![TRIGGER_NONE; rows],
+            entity_atom: vec![0; rows],
+            relation_atom: vec![0; rows],
             user_turn: vec![0; rows],
             status: vec![STATUS_NONE; rows],
             value: vec![0; rows],
@@ -1464,6 +1664,8 @@ impl RelationWorld {
                 out.real[row] = 1.0;
                 out.tags[row] = episode.tags[t];
                 out.triggers[row] = episode.triggers[t];
+                out.entity_atom[row] = episode.entity_atom[t];
+                out.relation_atom[row] = episode.relation_atom[t];
                 out.user_turn[row] = episode.user_turn[t];
                 out.status[row] = gold.status[t];
                 out.value[row] = gold.value[t];
@@ -1474,6 +1676,1630 @@ impl RelationWorld {
         out.episodes = episodes;
         Ok(out)
     }
+}
+
+// ---------------------------------------------------------------------------
+// D2-natural v2: the canonical-key natural relation world.
+
+/// One part of a natural phrasing template. `Entity`/`Relation` carry the exact
+/// surface word used at that slot (each must encode to one token); `Value` is
+/// filled from the family's value pool.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NSlot {
+    Text(&'static str),
+    Entity(&'static str),
+    Relation(&'static str),
+    Value,
+}
+
+const fn nt(text: &'static str) -> NSlot {
+    NSlot::Text(text)
+}
+const fn ne(entity: &'static str) -> NSlot {
+    NSlot::Entity(entity)
+}
+const fn nr(relation: &'static str) -> NSlot {
+    NSlot::Relation(relation)
+}
+const NY: NSlot = NSlot::Value;
+
+type NTemplate = &'static [NSlot];
+
+/// A natural `(entity, relation)` family: its canonical key, value pools and
+/// train/held-out phrasing sets. The two sets and their value pools are
+/// disjoint by construction.
+struct NaturalFamily {
+    entity: u32,
+    relation: u32,
+    article: Option<&'static str>,
+    values_train: &'static [&'static str],
+    values_held: &'static [&'static str],
+    statements_train: &'static [NTemplate],
+    statements_held: &'static [NTemplate],
+    queries_train: &'static [NTemplate],
+    queries_held: &'static [NTemplate],
+    previous_train: &'static [NTemplate],
+    previous_held: &'static [NTemplate],
+}
+
+/// Update/reassert wrappers reuse a family statement template, so every family
+/// gets grammatical update and reassertion phrasings without duplicating them.
+/// The lead-ins and endings are distinct between train and held-out.
+const UPDATE_LEAD_TRAIN: &str = "Update: ";
+const UPDATE_LEAD_HELD: &str = "These days: ";
+const REASSERT_LEAD_TRAIN: &str = "Nothing changed: ";
+const REASSERT_LEAD_HELD: &str = "As always: ";
+const UPDATE_END: &str = " now.";
+const REASSERT_END: &str = " still.";
+
+/// Chatter turns and hard-negative distractors with no memory operation.
+const NATURAL_CHAT_TRAIN: &[&str] = &[
+    "I also like rainy days.",
+    "The weather is nice today.",
+    "My neighbor has a cat too.",
+    "I saw a dog at the park.",
+    "My brother rides his bike.",
+    "I think red is a warm color.",
+    "The nurse is very kind.",
+    "We went to the beach last week.",
+    "My friend and I play outside.",
+    "The garden looks lovely today.",
+];
+/// Panel sentences (and their near neighbours) held out of training entirely.
+const NATURAL_CHAT_HELD: &[&str] = &[
+    "I also like apples.",
+    "I also like blue.",
+    "It is hard but fun.",
+    "She likes to sleep.",
+];
+
+/// Pronoun follow-ups after a possessed-entity fact: the memory operation
+/// concerns the entity, the follow-up turn does not.
+const FOLLOW_CAT_TRAIN: &[&str] = &["She purrs loudly.", "She sleeps all day."];
+const FOLLOW_CAT_HELD: &[&str] = &["She likes to sleep."];
+const FOLLOW_DOG_TRAIN: &[&str] = &["He runs in the yard.", "He is very friendly."];
+const FOLLOW_DOG_HELD: &[&str] = &["He likes to play."];
+const FOLLOW_SISTER_TRAIN: &[&str] = &["She calls me often.", "She is very kind."];
+const FOLLOW_SISTER_HELD: &[&str] = &["She visits often."];
+const FOLLOW_BROTHERS_TRAIN: &[&str] = &["They are all taller.", "They make me laugh."];
+const FOLLOW_BROTHERS_HELD: &[&str] = &["They are older than me."];
+const FOLLOW_BROTHER_TRAIN: &[&str] = &["He lives nearby.", "He is a good friend."];
+const FOLLOW_BROTHER_HELD: &[&str] = &["He works nearby."];
+const FOLLOW_CAR_TRAIN: &[&str] = &["It is quite old.", "It runs well."];
+const FOLLOW_CAR_HELD: &[&str] = &["It is fast."];
+const FOLLOW_BIKE_TRAIN: &[&str] = &["It is bright red.", "It goes fast."];
+const FOLLOW_BIKE_HELD: &[&str] = &["It is new."];
+const FOLLOW_INSTRUMENT_TRAIN: &[&str] = &["It sounds lovely.", "It is a lot of work."];
+const FOLLOW_INSTRUMENT_HELD: &[&str] = &["It is hard but fun."];
+
+fn follow_ups(entity: u32, relation: u32, held: bool) -> Option<&'static [&'static str]> {
+    match entity {
+        entity_atom::CAT => Some(if held {
+            FOLLOW_CAT_HELD
+        } else {
+            FOLLOW_CAT_TRAIN
+        }),
+        entity_atom::DOG => Some(if held {
+            FOLLOW_DOG_HELD
+        } else {
+            FOLLOW_DOG_TRAIN
+        }),
+        entity_atom::SISTER => Some(if held {
+            FOLLOW_SISTER_HELD
+        } else {
+            FOLLOW_SISTER_TRAIN
+        }),
+        entity_atom::BROTHERS => Some(if held {
+            FOLLOW_BROTHERS_HELD
+        } else {
+            FOLLOW_BROTHERS_TRAIN
+        }),
+        entity_atom::BROTHER => Some(if held {
+            FOLLOW_BROTHER_HELD
+        } else {
+            FOLLOW_BROTHER_TRAIN
+        }),
+        entity_atom::CAR => Some(if held {
+            FOLLOW_CAR_HELD
+        } else {
+            FOLLOW_CAR_TRAIN
+        }),
+        entity_atom::BIKE => Some(if held {
+            FOLLOW_BIKE_HELD
+        } else {
+            FOLLOW_BIKE_TRAIN
+        }),
+        _ if relation == relation_atom::INSTRUMENT => Some(if held {
+            FOLLOW_INSTRUMENT_HELD
+        } else {
+            FOLLOW_INSTRUMENT_TRAIN
+        }),
+        _ => None,
+    }
+}
+
+/// The natural families: one `(entity, relation)` pair each, covering all
+/// eight entity atoms and all fourteen relation atoms. Panel values and
+/// panel-relevant phrasings are held out.
+const NATURAL_FAMILIES: &[NaturalFamily] = &[
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::NAME,
+        article: None,
+        values_train: &[" Sam", " Mia", " Tom", " Anna", " Max"],
+        values_held: &[" Molly", " Leo", " Emma", " Rose"],
+        statements_train: &[
+            &[ne("My"), nr(" name"), nt(" is"), NY, nt(".")],
+            &[ne("I"), nt(" am"), nr(" named"), NY, nt(".")],
+            &[ne("I"), nt(" am"), nr(" called"), NY, nt(".")],
+        ],
+        statements_held: &[&[nt("They"), nr(" call"), ne(" me"), NY, nt(".")]],
+        queries_train: &[
+            &[nt("What am"), ne(" I"), nr(" called"), nt("?")],
+            &[nt("Can you tell me"), ne(" my"), nr(" name"), nt("?")],
+        ],
+        queries_held: &[&[nt("What is"), ne(" my"), nr(" name"), nt("?")]],
+        previous_train: &[&[nt("What was"), ne(" my"), nr(" name"), nt(" before?")]],
+        previous_held: &[&[
+            nt("What"),
+            nr(" name"),
+            nt(" did"),
+            ne(" I"),
+            nt(" have before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::CAT,
+        relation: relation_atom::NAME,
+        article: None,
+        values_train: &[" Luna", " Rex", " Buddy"],
+        values_held: &[" Daisy", " Bella"],
+        statements_train: &[
+            &[nt("My"), ne(" cat"), nt(" is"), nr(" named"), NY, nt(".")],
+            &[nt("My"), ne(" cat"), nt(" is"), nr(" called"), NY, nt(".")],
+        ],
+        statements_held: &[&[
+            nt("My"),
+            ne(" cat"),
+            nt(" has the"),
+            nr(" name"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[
+            &[nt("What is my"), ne(" cat"), nr(" called"), nt("?")],
+            &[nt("What is my"), ne(" cat"), nr(" named"), nt("?")],
+        ],
+        queries_held: &[&[nt("What is my"), ne(" cat"), nt("'s"), nr(" name"), nt("?")]],
+        previous_train: &[&[
+            nt("What was my"),
+            ne(" cat"),
+            nt("'s"),
+            nr(" name"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("What"),
+            nr(" name"),
+            nt(" did my"),
+            ne(" cat"),
+            nt(" have before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::DOG,
+        relation: relation_atom::NAME,
+        article: None,
+        values_train: &[" Rex", " Buddy"],
+        values_held: &[" Daisy", " Bella"],
+        statements_train: &[
+            &[nt("My"), ne(" dog"), nt(" is"), nr(" named"), NY, nt(".")],
+            &[nt("My"), ne(" dog"), nt(" is"), nr(" called"), NY, nt(".")],
+        ],
+        statements_held: &[&[
+            nt("My"),
+            ne(" dog"),
+            nt(" has the"),
+            nr(" name"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[&[nt("What is my"), ne(" dog"), nr(" called"), nt("?")]],
+        queries_held: &[&[nt("What is my"), ne(" dog"), nt("'s"), nr(" name"), nt("?")]],
+        previous_train: &[&[
+            nt("What was my"),
+            ne(" dog"),
+            nt("'s"),
+            nr(" name"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("What"),
+            nr(" name"),
+            nt(" did my"),
+            ne(" dog"),
+            nt(" have before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::JOB,
+        article: Some(" a"),
+        values_train: &[" doctor", " nurse", " cook", " farmer", " driver"],
+        values_held: &[" teacher"],
+        statements_train: &[
+            &[ne("I"), nr(" work"), nt(" as a"), NY, nt(".")],
+            &[ne("My"), nr(" job"), nt(" is a"), NY, nt(".")],
+        ],
+        statements_held: &[&[ne("My"), nr(" job"), nt(" is being a"), NY, nt(".")]],
+        queries_train: &[
+            &[nt("What do"), ne(" I"), nr(" work"), nt(" as?")],
+            &[nt("What"), nr(" work"), nt(" do"), ne(" I"), nt(" do?")],
+        ],
+        queries_held: &[&[nt("What is"), ne(" my"), nr(" job"), nt("?")]],
+        previous_train: &[&[nt("What was"), ne(" my"), nr(" job"), nt(" before?")]],
+        previous_held: &[&[nt("What did"), ne(" I"), nr(" work"), nt(" as before?")]],
+    },
+    NaturalFamily {
+        entity: entity_atom::BROTHER,
+        relation: relation_atom::JOB,
+        article: Some(" a"),
+        values_train: &[" cook", " farmer", " driver"],
+        values_held: &[" teacher"],
+        statements_train: &[
+            &[
+                nt("My"),
+                ne(" brother"),
+                nt(" has a"),
+                nr(" job"),
+                nt(" as a"),
+                NY,
+                nt("."),
+            ],
+            &[
+                nt("My"),
+                ne(" brother"),
+                nt("'s"),
+                nr(" job"),
+                nt(" is a"),
+                NY,
+                nt("."),
+            ],
+        ],
+        statements_held: &[&[
+            nt("My"),
+            ne(" brother"),
+            nt(" took a"),
+            nr(" job"),
+            nt(" as a"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[&[
+            nt("What is my"),
+            ne(" brother"),
+            nt("'s"),
+            nr(" job"),
+            nt("?"),
+        ]],
+        queries_held: &[&[
+            nt("What"),
+            nr(" job"),
+            nt(" does my"),
+            ne(" brother"),
+            nt(" have?"),
+        ]],
+        previous_train: &[&[
+            nt("What was my"),
+            ne(" brother"),
+            nt("'s"),
+            nr(" job"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("What"),
+            nr(" job"),
+            nt(" did my"),
+            ne(" brother"),
+            nt(" have before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SISTER,
+        relation: relation_atom::HOME,
+        article: Some(" in"),
+        values_train: &[" park", " farm", " beach", " town", " village", " island"],
+        values_held: &[" woods", " field", " house"],
+        statements_train: &[
+            &[
+                nt("My"),
+                ne(" sister"),
+                nt("'s"),
+                nr(" home"),
+                nt(" is"),
+                NY,
+                nt("."),
+            ],
+            &[
+                nt("My"),
+                ne(" sister"),
+                nt(" has her"),
+                nr(" home"),
+                NY,
+                nt("."),
+            ],
+        ],
+        statements_held: &[&[
+            nt("My"),
+            ne(" sister"),
+            nt(" will"),
+            nr(" stay"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[
+            &[nr("Where"), nt(" does my"), ne(" sister"), nt(" stay?")],
+            &[nr("Where"), nt(" is my"), ne(" sister"), nt("'s home?")],
+        ],
+        queries_held: &[&[nr("Where"), nt(" does my"), ne(" sister"), nt(" live?")]],
+        previous_train: &[&[
+            nr("Where"),
+            nt(" did my"),
+            ne(" sister"),
+            nt(" stay before?"),
+        ]],
+        previous_held: &[&[
+            nr("Where"),
+            nt(" did my"),
+            ne(" sister"),
+            nt(" live before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::HOME,
+        article: Some(" in"),
+        values_train: &[" river", " lake", " hill", " forest", " castle", " garden"],
+        values_held: &[" zoo", " market", " school"],
+        statements_train: &[
+            &[ne("I"), nr(" live"), NY, nt(".")],
+            &[ne("My"), nr(" home"), nt(" is"), NY, nt(".")],
+        ],
+        statements_held: &[&[ne("I"), nt(" will"), nr(" stay"), NY, nt(".")]],
+        queries_train: &[
+            &[nr("Where"), nt(" do"), ne(" I"), nt(" live?")],
+            &[nr("Where"), nt(" is"), ne(" my"), nt(" home?")],
+        ],
+        queries_held: &[&[nr("Where"), nt(" will"), ne(" I"), nt(" stay?")]],
+        previous_train: &[&[nr("Where"), nt(" did"), ne(" I"), nt(" live before?")]],
+        previous_held: &[&[nr("Where"), nt(" did"), ne(" I"), nt(" stay before?")]],
+    },
+    NaturalFamily {
+        entity: entity_atom::BROTHERS,
+        relation: relation_atom::COUNT,
+        article: None,
+        values_train: &[" one", " three", " four", " five", " ten"],
+        values_held: &[" two"],
+        statements_train: &[
+            &[nt("I"), nr(" have"), NY, ne(" brothers"), nt(".")],
+            &[nt("My family"), nr(" has"), NY, ne(" brothers"), nt(".")],
+        ],
+        statements_held: &[&[nt("My"), ne(" brothers"), nr(" number"), NY, nt(".")]],
+        queries_train: &[
+            &[nr("How"), nt(" many"), ne(" brothers"), nt(" are there?")],
+            &[nr("How"), nt(" many"), ne(" brothers"), nt(" do I count?")],
+        ],
+        queries_held: &[&[nr("How"), nt(" many"), ne(" brothers"), nt(" do I have?")]],
+        previous_train: &[&[
+            nr("How"),
+            nt(" many"),
+            ne(" brothers"),
+            nt(" did I have before?"),
+        ]],
+        previous_held: &[&[
+            nr("How"),
+            nt(" many"),
+            ne(" brothers"),
+            nt(" were there before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::BIRTHDAY,
+        article: Some(" in"),
+        values_train: &[" spring", " fall"],
+        values_held: &[" bloom"],
+        statements_train: &[
+            &[ne("My"), nr(" birthday"), nt(" is"), NY, nt(".")],
+            &[ne("My"), nr(" birthday"), nt(" falls"), NY, nt(".")],
+        ],
+        statements_held: &[&[ne("My"), nr(" birthday"), nt(" comes"), NY, nt(".")]],
+        queries_train: &[
+            &[nr("When"), nt(" does"), ne(" my"), nt(" birthday come?")],
+            &[nr("When"), nt(" does"), ne(" my"), nt(" birthday fall?")],
+        ],
+        queries_held: &[&[nr("When"), nt(" is"), ne(" my"), nt(" birthday?")]],
+        previous_train: &[&[nr("When"), nt(" was"), ne(" my"), nt(" birthday before?")]],
+        previous_held: &[&[
+            nr("When"),
+            nt(" did"),
+            ne(" my"),
+            nt(" birthday come before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::CAR,
+        relation: relation_atom::CAR_COLOR,
+        article: None,
+        values_train: &[" red", " yellow", " pink", " purple", " orange", " brown"],
+        values_held: &[" green", " blue"],
+        statements_train: &[
+            &[nt("I"), nr(" drive"), nt(" a"), NY, ne(" car"), nt(".")],
+            &[nt("My"), ne(" car"), nt(" is"), nr(" painted"), NY, nt(".")],
+        ],
+        statements_held: &[
+            &[
+                nt("The"),
+                ne(" car"),
+                nt(" I"),
+                nr(" drive"),
+                nt(" is"),
+                NY,
+                nt("."),
+            ],
+            &[nt("I"), nr(" have"), nt(" a"), NY, ne(" car"), nt(".")],
+        ],
+        queries_train: &[&[nr("What"), nt(" color do"), ne(" I"), nt(" drive?")]],
+        queries_held: &[&[nr("What"), nt(" color is my"), ne(" car"), nt("?")]],
+        previous_train: &[&[nr("What"), nt(" color was my"), ne(" car"), nt(" before?")]],
+        previous_held: &[&[
+            nr("What"),
+            nt(" color did my"),
+            ne(" car"),
+            nt(" have before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::BIKE,
+        relation: relation_atom::CAR_COLOR,
+        article: None,
+        values_train: &[" black", " white", " brown"],
+        values_held: &[" green", " blue"],
+        statements_train: &[
+            &[nt("I"), nr(" ride"), nt(" a"), NY, ne(" bike"), nt(".")],
+            &[
+                nt("My"),
+                ne(" bike"),
+                nt(" is"),
+                nr(" painted"),
+                NY,
+                nt("."),
+            ],
+        ],
+        statements_held: &[&[nt("I"), nr(" have"), nt(" a"), NY, ne(" bike"), nt(".")]],
+        queries_train: &[&[nr("What"), nt(" color does my"), ne(" bike"), nt(" have?")]],
+        queries_held: &[&[nr("What"), nt(" color is my"), ne(" bike"), nt("?")]],
+        previous_train: &[&[nr("What"), nt(" color was my"), ne(" bike"), nt(" before?")]],
+        previous_held: &[&[
+            nr("What"),
+            nt(" color did my"),
+            ne(" bike"),
+            nt(" have before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::FAVORITE_COLOR,
+        article: None,
+        values_train: &[" red", " yellow", " pink", " purple", " orange", " brown"],
+        values_held: &[" green", " blue"],
+        statements_train: &[
+            &[
+                ne("My"),
+                nt(" favorite"),
+                nr(" color"),
+                nt(" is"),
+                NY,
+                nt("."),
+            ],
+            &[ne("I"), nt(" love the"), nr(" color"), NY, nt(".")],
+        ],
+        statements_held: &[
+            &[
+                ne("My"),
+                nt(" most loved"),
+                nr(" color"),
+                nt(" is"),
+                NY,
+                nt("."),
+            ],
+            &[ne("I"), nt(" like the"), nr(" color"), NY, nt(" best.")],
+        ],
+        queries_train: &[&[nr("What"), nt(" color do"), ne(" I"), nt(" love most?")]],
+        queries_held: &[&[
+            nt("What is"),
+            ne(" my"),
+            nt(" favorite"),
+            nr(" color"),
+            nt("?"),
+        ]],
+        previous_train: &[&[
+            nt("What was"),
+            ne(" my"),
+            nt(" favorite"),
+            nr(" color"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("What"),
+            nr(" color"),
+            nt(" did"),
+            ne(" I"),
+            nt(" love before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::FAVORITE_FOOD,
+        article: None,
+        values_train: &[" pasta", " rice", " bread", " soup", " salad"],
+        values_held: &[" pizza"],
+        statements_train: &[
+            &[
+                ne("My"),
+                nt(" favorite"),
+                nr(" food"),
+                nt(" is"),
+                NY,
+                nt("."),
+            ],
+            &[
+                ne("My"),
+                nt(" favorite"),
+                nr(" dish"),
+                nt(" is"),
+                NY,
+                nt("."),
+            ],
+        ],
+        statements_held: &[&[
+            ne("My"),
+            nt(" preferred"),
+            nr(" food"),
+            nt(" is"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[&[nr("What"), nt(" food do"), ne(" I"), nt(" love?")]],
+        queries_held: &[&[
+            nt("What is"),
+            ne(" my"),
+            nt(" favorite"),
+            nr(" food"),
+            nt("?"),
+        ]],
+        previous_train: &[&[
+            nt("What was"),
+            ne(" my"),
+            nt(" favorite"),
+            nr(" food"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("What"),
+            nr(" food"),
+            nt(" did"),
+            ne(" I"),
+            nt(" love before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::INSTRUMENT,
+        article: Some(" the"),
+        values_train: &[" guitar", " violin", " flute"],
+        values_held: &[" piano"],
+        statements_train: &[
+            &[ne("I"), nr(" play"), NY, nt(".")],
+            &[ne("I"), nt(" am"), nr(" learning"), NY, nt(".")],
+        ],
+        statements_held: &[&[ne("I"), nt(" am learning to"), nr(" play"), NY, nt(".")]],
+        queries_train: &[&[nr("What"), nt(" instrument do"), ne(" I"), nt(" play?")]],
+        queries_held: &[&[nr("What"), nt(" instrument am"), ne(" I"), nt(" learning?")]],
+        previous_train: &[&[
+            nr("What"),
+            nt(" instrument did"),
+            ne(" I"),
+            nt(" play before?"),
+        ]],
+        previous_held: &[&[
+            nr("What"),
+            nt(" instrument did"),
+            ne(" I"),
+            nt(" learn before?"),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::PET,
+        article: Some(" a"),
+        values_train: &[" bird", " fish", " frog", " bunny", " duck", " mouse"],
+        values_held: &[" horse", " cow", " pig", " sheep", " goat"],
+        statements_train: &[
+            &[ne("I"), nr(" have"), NY, nt(".")],
+            &[ne("My"), nr(" pet"), nt(" is"), NY, nt(".")],
+        ],
+        statements_held: &[&[ne("I"), nr(" keep"), NY, nt(".")]],
+        queries_train: &[&[nr("What"), nt(" pet do"), ne(" I"), nt(" have?")]],
+        queries_held: &[&[nt("What is"), ne(" my"), nr(" pet"), nt("?")]],
+        previous_train: &[&[nr("What"), nt(" pet did"), ne(" I"), nt(" have before?")]],
+        previous_held: &[&[nr("What"), nt(" pet did"), ne(" I"), nt(" keep before?")]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::TOY,
+        article: Some(" a"),
+        values_train: &[" ball", " doll", " kite", " drum", " boat"],
+        values_held: &[" robot", " truck", " puzzle", " teddy"],
+        statements_train: &[
+            &[ne("My"), nr(" toy"), nt(" is"), NY, nt(".")],
+            &[ne("My"), nt(" best"), nr(" toy"), nt(" is"), NY, nt(".")],
+        ],
+        statements_held: &[&[
+            ne("My"),
+            nt(" favorite"),
+            nr(" toy"),
+            nt(" is"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[&[nr("What"), nt(" toy do"), ne(" I"), nt(" have?")]],
+        queries_held: &[&[nt("What is"), ne(" my"), nr(" toy"), nt("?")]],
+        previous_train: &[&[nr("What"), nt(" toy did"), ne(" I"), nt(" have before?")]],
+        previous_held: &[&[nr("What"), nt(" toy did"), ne(" I"), nt(" own before?")]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::FRIEND,
+        article: None,
+        values_train: &[" Sam", " Mia", " Tom", " Anna", " Max"],
+        values_held: &[" Molly", " Leo", " Emma", " Rose"],
+        statements_train: &[
+            &[ne("My"), nr(" friend"), nt(" is"), NY, nt(".")],
+            &[ne("My"), nt(" best"), nr(" friend"), nt(" is"), NY, nt(".")],
+        ],
+        statements_held: &[&[
+            ne("My"),
+            nt(" closest"),
+            nr(" friend"),
+            nt(" is"),
+            NY,
+            nt("."),
+        ]],
+        queries_train: &[&[nt("Who is"), ne(" my"), nr(" friend"), nt("?")]],
+        queries_held: &[&[nt("Tell me who"), ne(" my"), nr(" friend"), nt(" is.")]],
+        previous_train: &[&[nt("Who was"), ne(" my"), nr(" friend"), nt(" before?")]],
+        previous_held: &[&[nt("Who was"), ne(" my"), nr(" friend"), nt(" before that?")]],
+    },
+    NaturalFamily {
+        entity: entity_atom::CAT,
+        relation: relation_atom::AGE,
+        article: None,
+        values_train: &[" one", " three", " four", " five", " ten"],
+        values_held: &[" two"],
+        statements_train: &[
+            &[
+                nt("My"),
+                ne(" cat"),
+                nt(" is"),
+                NY,
+                nr(" years"),
+                nt(" old."),
+            ],
+            &[nt("My"), ne(" cat"), nr(" turned"), NY, nt(".")],
+        ],
+        statements_held: &[&[
+            nt("My"),
+            ne(" cat"),
+            nt(" is now"),
+            NY,
+            nr(" years"),
+            nt(" old."),
+        ]],
+        queries_train: &[&[nt("How"), nr(" old"), nt(" is my"), ne(" cat"), nt("?")]],
+        queries_held: &[&[
+            nt("Tell me how"),
+            nr(" old"),
+            nt(" my"),
+            ne(" cat"),
+            nt(" is."),
+        ]],
+        previous_train: &[&[
+            nt("How"),
+            nr(" old"),
+            nt(" was my"),
+            ne(" cat"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("Tell me how"),
+            nr(" old"),
+            nt(" my"),
+            ne(" cat"),
+            nt(" was before."),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SISTER,
+        relation: relation_atom::AGE,
+        article: None,
+        values_train: &[" one", " three", " four", " five", " ten"],
+        values_held: &[" two"],
+        statements_train: &[
+            &[
+                nt("My"),
+                ne(" sister"),
+                nt(" is"),
+                NY,
+                nr(" years"),
+                nt(" old."),
+            ],
+            &[nt("My"), ne(" sister"), nr(" turned"), NY, nt(".")],
+        ],
+        statements_held: &[&[
+            nt("My"),
+            ne(" sister"),
+            nt(" is now"),
+            NY,
+            nr(" years"),
+            nt(" old."),
+        ]],
+        queries_train: &[&[nt("How"), nr(" old"), nt(" is my"), ne(" sister"), nt("?")]],
+        queries_held: &[&[
+            nt("Tell me how"),
+            nr(" old"),
+            nt(" my"),
+            ne(" sister"),
+            nt(" is."),
+        ]],
+        previous_train: &[&[
+            nt("How"),
+            nr(" old"),
+            nt(" was my"),
+            ne(" sister"),
+            nt(" before?"),
+        ]],
+        previous_held: &[&[
+            nt("Tell me how"),
+            nr(" old"),
+            nt(" my"),
+            ne(" sister"),
+            nt(" was before."),
+        ]],
+    },
+    NaturalFamily {
+        entity: entity_atom::SPEAKER,
+        relation: relation_atom::CITY,
+        article: None,
+        values_train: &[" park", " farm", " beach", " town", " village", " island"],
+        values_held: &[" woods", " field", " house"],
+        statements_train: &[
+            &[ne("My"), nr(" city"), nt(" is called"), NY, nt(".")],
+            &[ne("I"), nr(" come"), nt(" from"), NY, nt(".")],
+        ],
+        statements_held: &[&[ne("My"), nr(" city"), nt(" is"), NY, nt(" these days.")]],
+        queries_train: &[&[
+            nt("What"),
+            nr(" city"),
+            nt(" do"),
+            ne(" I"),
+            nt(" come from?"),
+        ]],
+        queries_held: &[&[nt("What is"), ne(" my"), nr(" city"), nt("?")]],
+        previous_train: &[&[
+            nr("What"),
+            nt(" city did"),
+            ne(" I"),
+            nt(" come from before?"),
+        ]],
+        previous_held: &[&[
+            nr("What"),
+            nt(" city did"),
+            ne(" I"),
+            nt(" live in before?"),
+        ]],
+    },
+];
+
+/// A family with its surface words and value pools resolved to tokens.
+struct ResolvedFamily {
+    entity: u32,
+    relation: u32,
+    article: Option<&'static str>,
+    values_train: Vec<Word>,
+    values_held: Vec<Word>,
+    statements_train: &'static [NTemplate],
+    statements_held: &'static [NTemplate],
+    queries_train: &'static [NTemplate],
+    queries_held: &'static [NTemplate],
+    previous_train: &'static [NTemplate],
+    previous_held: &'static [NTemplate],
+}
+
+/// Encoder-bound vocabulary and phrasing data of the natural world.
+struct NaturalWorld {
+    families: Vec<ResolvedFamily>,
+    words: BTreeMap<String, Word>,
+    by_id: BTreeMap<u32, Word>,
+}
+
+fn natural_piece(
+    encode: &dyn Fn(&str) -> Vec<u32>,
+    pieces: &mut BTreeMap<&'static str, Vec<u32>>,
+    text: &'static str,
+) {
+    pieces.entry(text).or_insert_with(|| encode(text));
+}
+
+fn natural_word(
+    encode: &dyn Fn(&str) -> Vec<u32>,
+    words: &mut BTreeMap<String, Word>,
+    by_id: &mut BTreeMap<u32, Word>,
+    text: &'static str,
+) -> Result<()> {
+    if words.contains_key(text) {
+        return Ok(());
+    }
+    match encode(text).as_slice() {
+        [id] => {
+            let word = Word {
+                text: text.to_owned(),
+                id: *id,
+            };
+            by_id.entry(*id).or_insert_with(|| word.clone());
+            words.insert(text.to_owned(), word);
+            Ok(())
+        }
+        _ => Err(invalid(format!(
+            "natural slot {text:?} is not a single token"
+        ))),
+    }
+}
+
+fn natural_template(
+    encode: &dyn Fn(&str) -> Vec<u32>,
+    words: &mut BTreeMap<String, Word>,
+    by_id: &mut BTreeMap<u32, Word>,
+    pieces: &mut BTreeMap<&'static str, Vec<u32>>,
+    template: NTemplate,
+) -> Result<()> {
+    for part in template {
+        match *part {
+            NSlot::Text(text) => natural_piece(encode, pieces, text),
+            NSlot::Entity(surface) | NSlot::Relation(surface) => {
+                natural_word(encode, words, by_id, surface)?
+            }
+            NSlot::Value => {}
+        }
+    }
+    Ok(())
+}
+
+impl NaturalWorld {
+    fn build(
+        encode: &dyn Fn(&str) -> Vec<u32>,
+        pieces: &mut BTreeMap<&'static str, Vec<u32>>,
+    ) -> Result<Self> {
+        let mut words: BTreeMap<String, Word> = BTreeMap::new();
+        let mut by_id: BTreeMap<u32, Word> = BTreeMap::new();
+        for family in NATURAL_FAMILIES {
+            for template in family
+                .statements_train
+                .iter()
+                .chain(family.statements_held)
+                .chain(family.queries_train)
+                .chain(family.queries_held)
+                .chain(family.previous_train)
+                .chain(family.previous_held)
+            {
+                natural_template(encode, &mut words, &mut by_id, pieces, template)?;
+            }
+            if let Some(article) = family.article {
+                natural_piece(encode, pieces, article);
+            }
+            for value in family.values_train.iter().chain(family.values_held) {
+                natural_word(encode, &mut words, &mut by_id, value)?;
+            }
+        }
+        for text in [
+            UPDATE_LEAD_TRAIN,
+            UPDATE_LEAD_HELD,
+            REASSERT_LEAD_TRAIN,
+            REASSERT_LEAD_HELD,
+            UPDATE_END,
+            REASSERT_END,
+        ] {
+            natural_piece(encode, pieces, text);
+        }
+        for &text in NATURAL_CHAT_TRAIN
+            .iter()
+            .chain(NATURAL_CHAT_HELD)
+            .chain(CHAT_REPLIES)
+            .chain(ACKS)
+            .chain([&ABSTAIN, &"It is", &"It was"])
+        {
+            natural_piece(encode, pieces, text);
+        }
+        for entity in 1..=8u32 {
+            for relation in 1..=14u32 {
+                for held in [false, true] {
+                    if let Some(list) = follow_ups(entity, relation, held) {
+                        for &text in list {
+                            natural_piece(encode, pieces, text);
+                        }
+                    }
+                }
+            }
+        }
+        let mut families = Vec::with_capacity(NATURAL_FAMILIES.len());
+        for family in NATURAL_FAMILIES {
+            let resolve = |texts: &'static [&'static str]| -> Result<Vec<Word>> {
+                texts
+                    .iter()
+                    .map(|text| {
+                        words
+                            .get(*text)
+                            .cloned()
+                            .ok_or_else(|| invalid(format!("unresolved value {text:?}")))
+                    })
+                    .collect()
+            };
+            families.push(ResolvedFamily {
+                entity: family.entity,
+                relation: family.relation,
+                article: family.article,
+                values_train: resolve(family.values_train)?,
+                values_held: resolve(family.values_held)?,
+                statements_train: family.statements_train,
+                statements_held: family.statements_held,
+                queries_train: family.queries_train,
+                queries_held: family.queries_held,
+                previous_train: family.previous_train,
+                previous_held: family.previous_held,
+            });
+        }
+        Ok(Self {
+            families,
+            words,
+            by_id,
+        })
+    }
+}
+
+/// A rendered natural message with its canonical atom labels.
+struct NRendered {
+    text: String,
+    tokens: Vec<u32>,
+    tags: Vec<u32>,
+    entity_atom: Vec<u32>,
+    relation_atom: Vec<u32>,
+    entity_token: u32,
+    relation_token: u32,
+    value_offset: Option<usize>,
+}
+
+struct NaturalBuilder<'a> {
+    world: &'a RelationWorld,
+    natural: &'a NaturalWorld,
+    held: bool,
+    limit: usize,
+    tokens: Vec<u32>,
+    mask: Vec<u8>,
+    tags: Vec<u32>,
+    triggers: Vec<u32>,
+    user_turn: Vec<u8>,
+    entity_atom: Vec<u32>,
+    relation_atom: Vec<u32>,
+    queries: Vec<Query>,
+    clauses: Vec<Clause>,
+    messages: Vec<(String, String)>,
+    turns: usize,
+    events: usize,
+    store: AtomStore,
+    history: BTreeMap<(u32, u32), Fact>,
+    latest_relation_write: BTreeMap<u32, (usize, u32)>,
+}
+
+impl<'a> NaturalBuilder<'a> {
+    fn new(world: &'a RelationWorld, held: bool, limit: usize) -> Result<Self> {
+        let natural = world
+            .natural
+            .as_ref()
+            .ok_or_else(|| invalid("the natural builder needs a natural world"))?;
+        Ok(Self {
+            world,
+            natural,
+            held,
+            limit,
+            tokens: vec![world.bos],
+            mask: vec![0],
+            tags: vec![TAG_OTHER],
+            triggers: vec![TRIGGER_NONE],
+            user_turn: vec![0],
+            entity_atom: vec![0],
+            relation_atom: vec![0],
+            queries: Vec::new(),
+            clauses: Vec::new(),
+            messages: Vec::new(),
+            turns: 0,
+            events: 0,
+            store: AtomStore::new(),
+            history: BTreeMap::new(),
+            latest_relation_write: BTreeMap::new(),
+        })
+    }
+
+    fn render(
+        &self,
+        family: &ResolvedFamily,
+        template: &[NSlot],
+        value: Option<&Word>,
+    ) -> Result<NRendered> {
+        let mut out = NRendered {
+            text: String::new(),
+            tokens: Vec::new(),
+            tags: Vec::new(),
+            entity_atom: Vec::new(),
+            relation_atom: Vec::new(),
+            entity_token: 0,
+            relation_token: 0,
+            value_offset: None,
+        };
+        let mut entities = 0usize;
+        let mut relations = 0usize;
+        for part in template {
+            match *part {
+                NSlot::Text(text) => {
+                    out.text.push_str(text);
+                    let piece = self.world.piece(text)?;
+                    out.tokens.extend_from_slice(piece);
+                    out.tags.extend(std::iter::repeat_n(TAG_OTHER, piece.len()));
+                    out.entity_atom.extend(std::iter::repeat_n(0, piece.len()));
+                    out.relation_atom
+                        .extend(std::iter::repeat_n(0, piece.len()));
+                }
+                NSlot::Entity(surface) => {
+                    let word = self
+                        .natural
+                        .words
+                        .get(surface)
+                        .ok_or_else(|| invalid(format!("unresolved entity {surface:?}")))?;
+                    out.text.push_str(surface);
+                    out.tokens.push(word.id);
+                    out.tags.push(TAG_ENTITY);
+                    out.entity_atom.push(family.entity);
+                    out.relation_atom.push(0);
+                    out.entity_token = word.id;
+                    entities += 1;
+                }
+                NSlot::Relation(surface) => {
+                    let word = self
+                        .natural
+                        .words
+                        .get(surface)
+                        .ok_or_else(|| invalid(format!("unresolved relation {surface:?}")))?;
+                    out.text.push_str(surface);
+                    out.tokens.push(word.id);
+                    out.tags.push(TAG_RELATION);
+                    out.entity_atom.push(0);
+                    out.relation_atom.push(family.relation);
+                    out.relation_token = word.id;
+                    relations += 1;
+                }
+                NSlot::Value => {
+                    let value = value.ok_or_else(|| invalid("a value slot needs a value"))?;
+                    if let Some(article) = family.article {
+                        out.text.push_str(article);
+                        let piece = self.world.piece(article)?;
+                        out.tokens.extend_from_slice(piece);
+                        out.tags.extend(std::iter::repeat_n(TAG_OTHER, piece.len()));
+                        out.entity_atom.extend(std::iter::repeat_n(0, piece.len()));
+                        out.relation_atom
+                            .extend(std::iter::repeat_n(0, piece.len()));
+                    }
+                    out.text.push_str(&value.text);
+                    out.value_offset = Some(out.tokens.len());
+                    out.tokens.push(value.id);
+                    out.tags.push(TAG_VALUE);
+                    out.entity_atom.push(0);
+                    out.relation_atom.push(0);
+                }
+            }
+        }
+        if entities != 1 || relations != 1 {
+            return Err(invalid(
+                "a natural template needs one entity and one relation slot",
+            ));
+        }
+        Ok(out)
+    }
+
+    fn plain(&self, text: &str) -> Result<NRendered> {
+        let tokens = self.world.piece(text)?.to_vec();
+        let tags = vec![TAG_OTHER; tokens.len()];
+        Ok(NRendered {
+            text: text.to_owned(),
+            entity_atom: vec![0; tokens.len()],
+            relation_atom: vec![0; tokens.len()],
+            tokens,
+            tags,
+            entity_token: 0,
+            relation_token: 0,
+            value_offset: None,
+        })
+    }
+
+    fn answer(
+        &self,
+        family: &ResolvedFamily,
+        value: Option<&Word>,
+        previous: bool,
+    ) -> Result<NRendered> {
+        let Some(value) = value else {
+            return self.plain(ABSTAIN);
+        };
+        let mut out = self.plain(if previous { "It was" } else { "It is" })?;
+        if let Some(article) = family.article {
+            out.text.push_str(article);
+            let piece = self.world.piece(article)?;
+            out.tokens.extend_from_slice(piece);
+            out.tags.extend(std::iter::repeat_n(TAG_OTHER, piece.len()));
+        }
+        out.text.push_str(&value.text);
+        out.text.push('.');
+        out.value_offset = Some(out.tokens.len());
+        out.tokens.push(value.id);
+        out.tags.push(TAG_OTHER);
+        let period = self.world.piece(".")?;
+        out.tokens.extend_from_slice(period);
+        out.tags
+            .extend(std::iter::repeat_n(TAG_OTHER, period.len()));
+        out.entity_atom = vec![0; out.tokens.len()];
+        out.relation_atom = vec![0; out.tokens.len()];
+        Ok(out)
+    }
+
+    fn turn_len(&self, user: &NRendered, reply: &NRendered) -> usize {
+        let separator = if self.turns == 0 {
+            0
+        } else {
+            self.world.newline.len()
+        };
+        separator
+            + self.world.user_marker.len()
+            + user.tokens.len()
+            + self.world.newline.len()
+            + self.world.assistant_marker.len()
+            + reply.tokens.len()
+            + 1
+    }
+
+    fn fits(&self, user: &NRendered, reply: &NRendered, reserve: usize) -> bool {
+        self.tokens.len() + self.turn_len(user, reply) + reserve <= self.limit
+    }
+
+    fn push_plain(&mut self, tokens: &[u32]) {
+        self.tokens.extend_from_slice(tokens);
+        self.mask.extend(std::iter::repeat_n(0, tokens.len()));
+        self.tags
+            .extend(std::iter::repeat_n(TAG_OTHER, tokens.len()));
+        self.triggers
+            .extend(std::iter::repeat_n(TRIGGER_NONE, tokens.len()));
+        self.user_turn.extend(std::iter::repeat_n(0, tokens.len()));
+        self.entity_atom
+            .extend(std::iter::repeat_n(0, tokens.len()));
+        self.relation_atom
+            .extend(std::iter::repeat_n(0, tokens.len()));
+    }
+
+    /// Appends one user turn and its reply; returns the reply start and the
+    /// position of the trigger on the user turn's last token.
+    fn push_turn(&mut self, user: &NRendered, trigger: u32, reply: &NRendered) -> (usize, usize) {
+        if self.turns > 0 {
+            let newline = self.world.newline.clone();
+            self.push_plain(&newline);
+        }
+        let marker = self.world.user_marker.clone();
+        self.push_plain(&marker);
+        self.tokens.extend_from_slice(&user.tokens);
+        self.mask.extend(std::iter::repeat_n(0, user.tokens.len()));
+        self.tags.extend_from_slice(&user.tags);
+        self.entity_atom.extend_from_slice(&user.entity_atom);
+        self.relation_atom.extend_from_slice(&user.relation_atom);
+        self.user_turn
+            .extend(std::iter::repeat_n(1, user.tokens.len()));
+        self.triggers
+            .extend(std::iter::repeat_n(TRIGGER_NONE, user.tokens.len()));
+        let trigger_position = self.tokens.len() - 1;
+        if let Some(last) = self.triggers.last_mut() {
+            *last = trigger;
+        }
+        let newline = self.world.newline.clone();
+        self.push_plain(&newline);
+        let marker = self.world.assistant_marker.clone();
+        self.push_plain(&marker);
+        let start = self.tokens.len();
+        self.tokens.extend_from_slice(&reply.tokens);
+        self.mask.extend(std::iter::repeat_n(1, reply.tokens.len()));
+        self.tags
+            .extend(std::iter::repeat_n(TAG_OTHER, reply.tokens.len()));
+        self.triggers
+            .extend(std::iter::repeat_n(TRIGGER_NONE, reply.tokens.len()));
+        self.entity_atom
+            .extend(std::iter::repeat_n(0, reply.tokens.len()));
+        self.relation_atom
+            .extend(std::iter::repeat_n(0, reply.tokens.len()));
+        self.user_turn
+            .extend(std::iter::repeat_n(0, reply.tokens.len()));
+        self.tokens.push(self.world.eos);
+        self.mask.push(1);
+        self.tags.push(TAG_OTHER);
+        self.triggers.push(TRIGGER_NONE);
+        self.entity_atom.push(0);
+        self.relation_atom.push(0);
+        self.user_turn.push(0);
+        self.messages.push((user.text.clone(), reply.text.clone()));
+        self.turns += 1;
+        (start, trigger_position)
+    }
+
+    fn chat(&mut self, rng: &mut Rng, reserve: usize) -> Result<bool> {
+        let pool = if self.held {
+            NATURAL_CHAT_HELD
+        } else {
+            NATURAL_CHAT_TRAIN
+        };
+        let user = self.plain(pool[rng.below(pool.len())])?;
+        let reply = self.plain(CHAT_REPLIES[rng.below(CHAT_REPLIES.len())])?;
+        if !self.fits(&user, &reply, reserve) {
+            return Ok(false);
+        }
+        self.push_turn(&user, TRIGGER_NONE, &reply);
+        Ok(true)
+    }
+
+    /// A pronoun follow-up turn after a possessed-entity statement, when the
+    /// family has one.
+    fn follow_up(
+        &mut self,
+        family: &ResolvedFamily,
+        rng: &mut Rng,
+        reserve: usize,
+    ) -> Result<bool> {
+        let Some(list) = follow_ups(family.entity, family.relation, self.held) else {
+            return Ok(true);
+        };
+        let user = self.plain(list[rng.below(list.len())])?;
+        let reply = self.plain(CHAT_REPLIES[rng.below(CHAT_REPLIES.len())])?;
+        if !self.fits(&user, &reply, reserve) {
+            return Ok(false);
+        }
+        self.push_turn(&user, TRIGGER_NONE, &reply);
+        Ok(true)
+    }
+
+    fn emit_statement(
+        &mut self,
+        family: &ResolvedFamily,
+        template: &[NSlot],
+        value: &Word,
+        reserve: usize,
+        rng: &mut Rng,
+    ) -> Result<bool> {
+        let class = match self.history.get(&(family.entity, family.relation)) {
+            None => QueryClass::First,
+            Some(fact) if fact.value == value.id => QueryClass::Reasserted,
+            Some(_) => QueryClass::Updated,
+        };
+        let user = self.render(family, template, Some(value))?;
+        let reply = self.plain(ACKS[rng.below(ACKS.len())])?;
+        if !self.fits(&user, &reply, reserve) {
+            return Ok(false);
+        }
+        let (_, trigger_position) = self.push_turn(&user, TRIGGER_WRITE, &reply);
+        self.store.write(family.entity, family.relation, value.id);
+        self.events += 1;
+        let changed = self
+            .history
+            .get(&(family.entity, family.relation))
+            .is_some_and(|fact| fact.changed);
+        self.history.insert(
+            (family.entity, family.relation),
+            Fact {
+                value: value.id,
+                changed: changed || class == QueryClass::Updated,
+                last_was_reassert: class == QueryClass::Reasserted,
+                last_write: self.events,
+            },
+        );
+        self.latest_relation_write
+            .insert(family.relation, (self.events, family.entity));
+        self.clauses.push(Clause {
+            trigger_position,
+            entity_atom: family.entity,
+            relation_atom: family.relation,
+            value: Some(value.id),
+            previous: false,
+            class,
+        });
+        Ok(true)
+    }
+
+    fn emit_query(
+        &mut self,
+        family: &ResolvedFamily,
+        template: &[NSlot],
+        previous: bool,
+        class: QueryClass,
+    ) -> Result<bool> {
+        let user = self.render(family, template, None)?;
+        let (status, value) = self.store.read(family.entity, family.relation, previous);
+        let value_word = if status == STATUS_HIT {
+            self.natural.by_id.get(&value).cloned()
+        } else {
+            None
+        };
+        if value_word.is_some() == class.abstains() {
+            return Err(invalid("natural query class disagrees with the gold store"));
+        }
+        let reply = self.answer(family, value_word.as_ref(), previous)?;
+        if !self.fits(&user, &reply, 0) {
+            return Ok(false);
+        }
+        let recency_trap = self
+            .history
+            .get(&(family.entity, family.relation))
+            .is_some_and(|fact| {
+                self.latest_relation_write
+                    .get(&family.relation)
+                    .is_some_and(|&(event, writer)| {
+                        event > fact.last_write && writer != family.entity
+                    })
+            });
+        let (start, trigger_position) = self.push_turn(
+            &user,
+            if previous {
+                TRIGGER_READ_PREVIOUS
+            } else {
+                TRIGGER_READ
+            },
+            &reply,
+        );
+        let end = self.tokens.len() - 1;
+        self.queries.push(Query {
+            class,
+            recency_trap,
+            key: (user.entity_token, user.relation_token),
+            answer_start: start,
+            answer_end: end,
+            value_position: reply.value_offset.map(|o| start + o),
+            value: value_word.as_ref().map(|w| w.id),
+        });
+        self.clauses.push(Clause {
+            trigger_position,
+            entity_atom: family.entity,
+            relation_atom: family.relation,
+            value: value_word.map(|w| w.id),
+            previous,
+            class,
+        });
+        Ok(true)
+    }
+
+    fn build(mut self, rng: &mut Rng) -> Result<Episode> {
+        const RESERVE: usize = 40;
+        let families = &self.natural.families;
+        let panel: Vec<usize> = (0..families.len())
+            .filter(|&f| (1..=9).contains(&families[f].relation))
+            .collect();
+        let count = 2 + rng.below(3);
+        let mut chosen: Vec<usize> = vec![panel[rng.below(panel.len())]];
+        while chosen.len() < count.min(families.len()) {
+            let candidate = rng.below(families.len());
+            if !chosen.contains(&candidate) {
+                chosen.push(candidate);
+            }
+        }
+        for &index in &chosen {
+            let family = &families[index];
+            if rng.below(10) < 2 && !self.chat(rng, RESERVE * 3)? {
+                break;
+            }
+            let pool = if self.held {
+                &family.values_held
+            } else {
+                &family.values_train
+            };
+            let value = pool[rng.below(pool.len())].clone();
+            let templates = if self.held {
+                family.statements_held
+            } else {
+                family.statements_train
+            };
+            let template = templates[rng.below(templates.len())];
+            if !self.emit_statement(family, template, &value, RESERVE * 3, rng)? {
+                break;
+            }
+            if !self.follow_up(family, rng, RESERVE * 2)? {
+                break;
+            }
+        }
+        if self.history.is_empty() {
+            return Err(invalid("a natural episode must assert at least one fact"));
+        }
+        let middle = 1 + rng.below(3);
+        for _ in 0..middle {
+            let keys: Vec<(u32, u32)> = self.history.keys().copied().collect();
+            let key = keys[rng.below(keys.len())];
+            let index = chosen
+                .iter()
+                .copied()
+                .find(|&f| families[f].entity == key.0 && families[f].relation == key.1);
+            let Some(index) = index else {
+                break;
+            };
+            let family = &families[index];
+            let fact = self.history[&key];
+            let roll = rng.below(10);
+            if roll < 5 {
+                let pool = if self.held {
+                    &family.values_held
+                } else {
+                    &family.values_train
+                };
+                let options: Vec<Word> = pool
+                    .iter()
+                    .filter(|value| value.id != fact.value)
+                    .cloned()
+                    .collect();
+                if options.is_empty() {
+                    continue;
+                }
+                let value = options[rng.below(options.len())].clone();
+                let templates = if self.held {
+                    family.statements_held
+                } else {
+                    family.statements_train
+                };
+                let base = templates[rng.below(templates.len())];
+                let lead = if self.held {
+                    UPDATE_LEAD_HELD
+                } else {
+                    UPDATE_LEAD_TRAIN
+                };
+                let template = wrapped(base, lead, UPDATE_END);
+                if !self.emit_statement(family, &template, &value, RESERVE * 2, rng)? {
+                    break;
+                }
+            } else if roll < 7 {
+                let value = family
+                    .values_train
+                    .iter()
+                    .chain(&family.values_held)
+                    .find(|value| value.id == fact.value)
+                    .cloned()
+                    .ok_or_else(|| invalid("natural fact value outside its pools"))?;
+                let templates = if self.held {
+                    family.statements_held
+                } else {
+                    family.statements_train
+                };
+                let base = templates[rng.below(templates.len())];
+                let lead = if self.held {
+                    REASSERT_LEAD_HELD
+                } else {
+                    REASSERT_LEAD_TRAIN
+                };
+                let template = wrapped(base, lead, REASSERT_END);
+                if !self.emit_statement(family, &template, &value, RESERVE * 2, rng)? {
+                    break;
+                }
+            } else if !self.chat(rng, RESERVE * 2)? {
+                break;
+            }
+        }
+        let query_count = 2 + rng.below(2);
+        for position in 0..query_count {
+            let last = position + 1 == query_count;
+            let mut available: Vec<(QueryClass, usize, bool)> = Vec::new();
+            for &index in &chosen {
+                let family = &families[index];
+                let Some(fact) = self.history.get(&(family.entity, family.relation)) else {
+                    continue;
+                };
+                let class = if fact.last_was_reassert {
+                    QueryClass::Reasserted
+                } else if fact.changed {
+                    QueryClass::Updated
+                } else {
+                    QueryClass::First
+                };
+                available.push((class, index, false));
+                available.push((
+                    if fact.changed {
+                        QueryClass::Previous
+                    } else {
+                        QueryClass::PreviousAbsent
+                    },
+                    index,
+                    true,
+                ));
+            }
+            for index in 0..families.len() {
+                if !chosen.contains(&index) {
+                    available.push((QueryClass::Absent, index, false));
+                }
+            }
+            let want_updated = last && rng.below(10) < 4;
+            let pick: Vec<(QueryClass, usize, bool)> = if want_updated {
+                available
+                    .iter()
+                    .filter(|(class, _, _)| *class == QueryClass::Updated)
+                    .copied()
+                    .collect()
+            } else {
+                Vec::new()
+            };
+            let (class, index, previous) = if pick.is_empty() {
+                available[rng.below(available.len())]
+            } else {
+                pick[rng.below(pick.len())]
+            };
+            let family = &families[index];
+            let templates = if previous {
+                if self.held {
+                    family.previous_held
+                } else {
+                    family.previous_train
+                }
+            } else if self.held {
+                family.queries_held
+            } else {
+                family.queries_train
+            };
+            let template = templates[rng.below(templates.len())];
+            if !self.emit_query(family, template, previous, class)? {
+                break;
+            }
+        }
+        if self.queries.is_empty() {
+            return Err(invalid(
+                "a natural episode must end with at least one query",
+            ));
+        }
+        Ok(Episode {
+            messages: self.messages,
+            tokens: self.tokens,
+            response_mask: self.mask,
+            tags: self.tags,
+            triggers: self.triggers,
+            user_turn: self.user_turn,
+            queries: self.queries,
+            entity_atom: self.entity_atom,
+            relation_atom: self.relation_atom,
+            clauses: self.clauses,
+        })
+    }
+}
+
+/// A statement template with a lead-in and a replaced sentence-final period,
+/// so update and reassertion phrasings derive from the family's statements.
+fn wrapped(base: &[NSlot], prefix: &'static str, ending: &'static str) -> Vec<NSlot> {
+    let mut parts = Vec::with_capacity(base.len() + 1);
+    parts.push(NSlot::Text(prefix));
+    parts.extend_from_slice(&base[..base.len().saturating_sub(1)]);
+    parts.push(NSlot::Text(ending));
+    parts
 }
 
 // ---------------------------------------------------------------------------
@@ -3583,6 +5409,256 @@ mod tests {
             assert_eq!(x, y, "loaded control logits differ");
         }
         fs::remove_dir_all(&directory)?;
+        Ok(())
+    }
+
+    fn natural_world() -> Result<RelationWorld> {
+        RelationWorld::natural(&toy_encoder(), 0, 1)
+    }
+
+    fn normalize(text: &str) -> String {
+        text.to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .trim_end_matches(['.', '?'])
+            .trim_end()
+            .to_owned()
+    }
+
+    /// The 30 user turns of development panel `dev-mem-01..10` (three turns
+    /// each), frozen before any natural training run.
+    const PANEL_SENTENCES: [&str; 30] = [
+        "My name is Alex.",
+        "I also like apples.",
+        "What is my name?",
+        "My cat is named Momo.",
+        "She likes to sleep.",
+        "What is my cat's name?",
+        "My favorite color is green.",
+        "I also like blue.",
+        "What is my favorite color?",
+        "I work as a teacher.",
+        "My school is nearby.",
+        "What is my job?",
+        "My sister lives in Tokyo.",
+        "She visits often.",
+        "Where does my sister live?",
+        "I have two brothers.",
+        "They are older than me.",
+        "How many brothers do I have?",
+        "My birthday is in July.",
+        "I love summer.",
+        "When is my birthday?",
+        "I drive a blue car.",
+        "It is fast.",
+        "What color is my car?",
+        "I am learning to play the piano.",
+        "It is hard but fun.",
+        "What instrument am I learning?",
+        "My favorite food is pizza.",
+        "I eat it on Fridays.",
+        "What is my favorite food?",
+    ];
+
+    #[test]
+    fn natural_training_never_contains_a_panel_sentence() -> Result<()> {
+        let world = natural_world()?;
+        let panels: Vec<String> = PANEL_SENTENCES.iter().map(|s| normalize(s)).collect();
+        let mut rng = Rng::new(0x0D2_2026_09_29);
+        for _ in 0..2_000 {
+            let episode = world.episode(&mut rng, false, 257)?;
+            for (user, reply) in &episode.messages {
+                for text in [user, reply] {
+                    let message = normalize(text);
+                    for panel in &panels {
+                        assert!(
+                            !message.contains(panel),
+                            "training message {message:?} contains panel sentence {panel:?}"
+                        );
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn natural_tagged_slots_carry_canonical_atoms() -> Result<()> {
+        let world = natural_world()?;
+        let mut rng = Rng::new(7);
+        for index in 0..500 {
+            let held = index % 2 == 0;
+            let episode = world.episode(&mut rng, held, 257)?;
+            assert_eq!(episode.tokens.len(), episode.entity_atom.len());
+            assert_eq!(episode.tokens.len(), episode.relation_atom.len());
+            for position in 0..episode.tokens.len() {
+                assert_eq!(
+                    episode.tags[position] == TAG_ENTITY,
+                    episode.entity_atom[position] != 0,
+                    "entity atom disagrees with the entity tag at {position}"
+                );
+                assert_eq!(
+                    episode.tags[position] == TAG_RELATION,
+                    episode.relation_atom[position] != 0,
+                    "relation atom disagrees with the relation tag at {position}"
+                );
+            }
+            assert!(!episode.clauses.is_empty());
+            for clause in &episode.clauses {
+                assert!(clause.entity_atom != 0 && clause.relation_atom != 0);
+                assert!(clause.trigger_position < episode.tokens.len());
+                assert!(matches!(
+                    episode.triggers[clause.trigger_position],
+                    TRIGGER_WRITE | TRIGGER_READ | TRIGGER_READ_PREVIOUS
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn natural_held_out_phrasings_never_appear_in_training() -> Result<()> {
+        let world = natural_world()?;
+        let natural = world.natural.as_ref().expect("natural world");
+        let held_values: Vec<u32> = natural
+            .families
+            .iter()
+            .flat_map(|family| family.values_held.iter().map(|word| word.id))
+            .collect();
+        assert!(!held_values.is_empty());
+        let mut rng = Rng::new(99);
+        let mut training: Vec<String> = Vec::new();
+        let mut training_tokens: Vec<u32> = Vec::new();
+        for _ in 0..1_000 {
+            let episode = world.episode(&mut rng, false, 257)?;
+            for (user, reply) in &episode.messages {
+                training.push(normalize(user));
+                training.push(normalize(reply));
+            }
+            training_tokens.extend_from_slice(&episode.tokens);
+        }
+        for id in &held_values {
+            assert!(
+                !training_tokens.contains(id),
+                "held value token {id} appears in a training episode"
+            );
+        }
+        let mut rng = Rng::new(1_234);
+        for _ in 0..400 {
+            let episode = world.episode(&mut rng, true, 257)?;
+            for (user, _) in &episode.messages {
+                let message = normalize(user);
+                assert!(
+                    !training.iter().any(|text| text.contains(&message)),
+                    "held phrasing {message:?} appears in a training episode"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn natural_held_out_templates_are_not_training_templates() {
+        for family in NATURAL_FAMILIES {
+            for held in [
+                family.statements_held,
+                family.queries_held,
+                family.previous_held,
+            ] {
+                for template in held {
+                    for train in [
+                        family.statements_train,
+                        family.queries_train,
+                        family.previous_train,
+                    ] {
+                        assert!(
+                            !train.contains(template),
+                            "a held-out phrasing is also a training phrasing: {template:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn natural_episodes_answer_from_the_atom_gold_store() -> Result<()> {
+        let world = natural_world()?;
+        let mut rng = Rng::new(4_242);
+        let mut classes: BTreeMap<QueryClass, usize> = BTreeMap::new();
+        for index in 0..800 {
+            let held = index % 3 == 0;
+            let episode = world.episode(&mut rng, held, 257)?;
+            let reads: Vec<&Clause> = episode
+                .clauses
+                .iter()
+                .filter(|clause| {
+                    matches!(
+                        episode.triggers[clause.trigger_position],
+                        TRIGGER_READ | TRIGGER_READ_PREVIOUS
+                    )
+                })
+                .collect();
+            assert_eq!(reads.len(), episode.queries.len());
+            let mut store = AtomStore::new();
+            for clause in &episode.clauses {
+                match episode.triggers[clause.trigger_position] {
+                    TRIGGER_WRITE => {
+                        assert!(!clause.previous);
+                        assert!(matches!(
+                            clause.class,
+                            QueryClass::First | QueryClass::Updated | QueryClass::Reasserted
+                        ));
+                        let value = clause.value.expect("a write carries its value");
+                        store.write(clause.entity_atom, clause.relation_atom, value);
+                    }
+                    trigger @ (TRIGGER_READ | TRIGGER_READ_PREVIOUS) => {
+                        let previous = trigger == TRIGGER_READ_PREVIOUS;
+                        assert_eq!(clause.previous, previous);
+                        assert_eq!(clause.value.is_none(), clause.class.abstains());
+                        let (status, value) =
+                            store.read(clause.entity_atom, clause.relation_atom, previous);
+                        match clause.value {
+                            Some(expected) => {
+                                assert_eq!(status, STATUS_HIT);
+                                assert_eq!(value, expected);
+                            }
+                            None => assert_ne!(status, STATUS_HIT),
+                        }
+                    }
+                    other => panic!("natural clause trigger {other} outside the trigger set"),
+                }
+            }
+            for (query, clause) in episode.queries.iter().zip(&reads) {
+                *classes.entry(query.class).or_insert(0) += 1;
+                assert_eq!(query.class, clause.class);
+                assert_eq!(query.value, clause.value);
+                assert_eq!(query.value.is_some(), !query.class.abstains());
+                match query.value {
+                    Some(value) => {
+                        let slot = query.value_position.expect("value slot");
+                        assert_eq!(episode.tokens[slot], value);
+                        assert_eq!(episode.response_mask[slot], 1);
+                    }
+                    None => assert!(query.value_position.is_none()),
+                }
+                assert_eq!(episode.tokens[query.answer_end], 1);
+            }
+        }
+        for class in [
+            QueryClass::First,
+            QueryClass::Updated,
+            QueryClass::Reasserted,
+            QueryClass::Previous,
+            QueryClass::PreviousAbsent,
+            QueryClass::Absent,
+        ] {
+            assert!(
+                classes.get(&class).copied().unwrap_or(0) > 3,
+                "{class:?} is rare: {classes:?}"
+            );
+        }
         Ok(())
     }
 }
