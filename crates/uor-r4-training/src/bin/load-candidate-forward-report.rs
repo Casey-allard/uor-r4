@@ -20,13 +20,13 @@ use candle_core::Device;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use uor_r4_core::report_output;
-use uor_r4_integer::codec::CodecArm;
+use uor_r4_integer::codec::{quantize_matrix_compensated, CodecArm};
 use uor_r4_lut::format::{
     Fixed, StackArtifact, StackArtifactBuilder, StackNumerics, StackShape, TableValues,
 };
 use uor_r4_lut::GROUP;
 use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackModel};
-use uor_r4_training::lut_export::{arcosh_table, quantize_matrix, Packed};
+use uor_r4_training::lut_export::{arcosh_table, quantize_matrix};
 use uor_r4_training::stack_export::{decay_rate, export_stack, grid_code, stack_grid_reference};
 
 const EXPECTED_MODEL_SHA256: &str =
@@ -154,11 +154,13 @@ fn parse_cli_args() -> Result<ParsedArgs, Box<dyn std::error::Error>> {
         | "hadamard_grouped4bit"
         | "head_compensated"
         | "head"
+        | "matched_bit_e8"
+        | "hadamard_e8_matched_bit"
         | "all"
         | "compare" => {}
         other => {
             return Err(format!(
-                "unknown codec arm '{other}'. Supported: rtn, hadamard_grouped4bit, head_compensated, all"
+                "unknown codec arm '{other}'. Supported: rtn, hadamard_grouped4bit, head_compensated, matched_bit_e8, all"
             )
             .into());
         }
@@ -251,190 +253,6 @@ fn fixed_point(value: f64, exp: i32) -> Result<i32, Box<dyn std::error::Error>> 
         return Err(format!("fixed-point value out of range: {value} at exp {exp}").into());
     }
     Ok(scaled as i32)
-}
-
-fn quantize_matrix_compensated(
-    values: &[f32],
-    rows: usize,
-    cols: usize,
-) -> Result<Packed, Box<dyn std::error::Error>> {
-    if values.len() != rows * cols
-        || !cols.is_multiple_of(GROUP)
-        || values.iter().any(|v| !v.is_finite())
-    {
-        return Err("matrix to quantize has the wrong size or a nonfinite value".into());
-    }
-    let groups = cols / GROUP;
-    let mut chosen: Vec<Option<(u8, i32)>> = Vec::with_capacity(rows * groups);
-    for group in values.chunks_exact(GROUP) {
-        chosen.push(uor_r4_integer::codec::d11_best_scale(group));
-    }
-
-    let e_max = chosen.iter().flatten().map(|(_, e)| *e).max().unwrap_or(0);
-    let e_min = chosen.iter().flatten().map(|(_, e)| *e).min().unwrap_or(0);
-
-    let mut best_base = e_max.saturating_sub(15);
-    let mut min_total_error = f64::INFINITY;
-
-    let base_candidates = if e_max - e_min > 15 {
-        (e_min..=e_max.saturating_sub(15))
-            .rev()
-            .take(8)
-            .collect::<Vec<_>>()
-    } else {
-        vec![e_max.saturating_sub(15)]
-    };
-
-    for &candidate_base in &base_candidates {
-        let mut total_err = 0.0f64;
-        for (g_idx, w) in values.chunks_exact(GROUP).enumerate() {
-            let (m, e) = match chosen[g_idx] {
-                Some((_, e)) if e < candidate_base => {
-                    let mut best_m = 0u8;
-                    let mut best_e_err = f64::INFINITY;
-                    for cand_m in 0..16u8 {
-                        let s = uor_r4_integer::codec::d11_grid_scale(cand_m, candidate_base);
-                        let err: f64 = w
-                            .iter()
-                            .map(|&v| {
-                                let vf = f64::from(v);
-                                let q = (vf / s).round().clamp(-8.0, 7.0);
-                                (vf - q * s).powi(2)
-                            })
-                            .sum();
-                        if err < best_e_err {
-                            best_e_err = err;
-                            best_m = cand_m;
-                        }
-                    }
-                    (best_m, candidate_base)
-                }
-                Some((_, e)) if e > candidate_base + 15 => {
-                    let top_e = candidate_base + 15;
-                    let mut best_m = 15u8;
-                    let mut best_e_err = f64::INFINITY;
-                    for cand_m in 0..16u8 {
-                        let s = uor_r4_integer::codec::d11_grid_scale(cand_m, top_e);
-                        let err: f64 = w
-                            .iter()
-                            .map(|&v| {
-                                let vf = f64::from(v);
-                                let q = (vf / s).round().clamp(-8.0, 7.0);
-                                (vf - q * s).powi(2)
-                            })
-                            .sum();
-                        if err < best_e_err {
-                            best_e_err = err;
-                            best_m = cand_m;
-                        }
-                    }
-                    (best_m, top_e)
-                }
-                Some(chosen_scale) => chosen_scale,
-                None => (0, candidate_base),
-            };
-            let s = uor_r4_integer::codec::d11_grid_scale(m, e);
-            let err: f64 = w
-                .iter()
-                .map(|&v| {
-                    let vf = f64::from(v);
-                    let q = (vf / s).round().clamp(-8.0, 7.0);
-                    (vf - q * s).powi(2)
-                })
-                .sum();
-            total_err += err;
-        }
-        if total_err < min_total_error {
-            min_total_error = total_err;
-            best_base = candidate_base;
-        }
-    }
-
-    let exp_base = best_base;
-    let mut nibbles = vec![0u8; rows * cols / 2];
-    let mut scales = vec![0u8; rows * groups];
-    let (mut error, mut energy) = (0f64, 0f64);
-
-    for r in 0..rows {
-        for g in 0..groups {
-            let g_idx = r * groups + g;
-            let (m, e) = match chosen[g_idx] {
-                Some((_, e)) if e < exp_base => {
-                    let mut best_m = 0u8;
-                    let mut best_e_err = f64::INFINITY;
-                    let w = &values[r * cols + g * GROUP..r * cols + (g + 1) * GROUP];
-                    for cand_m in 0..16u8 {
-                        let s = uor_r4_integer::codec::d11_grid_scale(cand_m, exp_base);
-                        let err: f64 = w
-                            .iter()
-                            .map(|&v| {
-                                let vf = f64::from(v);
-                                let q = (vf / s).round().clamp(-8.0, 7.0);
-                                (vf - q * s).powi(2)
-                            })
-                            .sum();
-                        if err < best_e_err {
-                            best_e_err = err;
-                            best_m = cand_m;
-                        }
-                    }
-                    (best_m, exp_base)
-                }
-                Some((_, e)) if e > exp_base + 15 => {
-                    let top_e = exp_base + 15;
-                    let mut best_m = 15u8;
-                    let mut best_e_err = f64::INFINITY;
-                    let w = &values[r * cols + g * GROUP..r * cols + (g + 1) * GROUP];
-                    for cand_m in 0..16u8 {
-                        let s = uor_r4_integer::codec::d11_grid_scale(cand_m, top_e);
-                        let err: f64 = w
-                            .iter()
-                            .map(|&v| {
-                                let vf = f64::from(v);
-                                let q = (vf / s).round().clamp(-8.0, 7.0);
-                                (vf - q * s).powi(2)
-                            })
-                            .sum();
-                        if err < best_e_err {
-                            best_e_err = err;
-                            best_m = cand_m;
-                        }
-                    }
-                    (best_m, top_e)
-                }
-                Some(chosen_scale) => chosen_scale,
-                None => (0, exp_base),
-            };
-
-            let s = uor_r4_integer::codec::d11_grid_scale(m, e);
-            scales[g_idx] = m | (((e - exp_base) as u8) << 4);
-
-            for c in g * GROUP..(g + 1) * GROUP {
-                let v = f64::from(values[r * cols + c]);
-                let q = (v / s).round().clamp(-8.0, 7.0);
-                error += (v - q * s).powi(2);
-                energy += v * v;
-                let nibble = (q as i32 + 8) as u8;
-                let index = (r * cols + c) / 2;
-                if c % 2 == 0 {
-                    nibbles[index] |= nibble;
-                } else {
-                    nibbles[index] |= nibble << 4;
-                }
-            }
-        }
-    }
-
-    Ok(Packed {
-        nibbles,
-        scales,
-        exp_base,
-        relative_rms_error: if energy > 0.0 {
-            (error / energy).sqrt()
-        } else {
-            0.0
-        },
-    })
 }
 
 fn export_stack_candidate(
@@ -638,7 +456,7 @@ fn export_stack_candidate(
             &packed.nibbles,
             &packed.scales,
         )?;
-        errors.insert("head".to_owned(), json!(packed.relative_rms_error));
+        errors.insert("head".to_owned(), json!(packed.relative_rms_error(&head)?));
     } else {
         let head_values = match head_codec {
             Some(arm) => {
@@ -853,6 +671,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Head-Compensated 4-bit (Error Diffusion)",
                 Some(CodecArm::HeadCompensated),
             )],
+            "matched_bit_e8" | "hadamard_e8_matched_bit" => vec![(
+                "Hadamard + Matched-Bit E8 Lattice (Two-Stage Residual, ~4 bpw)",
+                Some(CodecArm::HadamardE8MatchedBit),
+            )],
             "all" | "compare" => vec![
                 ("Round-to-nearest (Baseline)", None),
                 (
@@ -863,10 +685,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "Head-Compensated 4-bit (Error Diffusion)",
                     Some(CodecArm::HeadCompensated),
                 ),
+                (
+                    "Hadamard + Matched-Bit E8 Lattice (Two-Stage Residual, ~4 bpw)",
+                    Some(CodecArm::HadamardE8MatchedBit),
+                ),
             ],
             other => {
                 return Err(format!(
-                    "Unknown codec arm '{other}'. Supported: rtn, hadamard_grouped4bit, head_compensated, all"
+                    "Unknown codec arm '{other}'. Supported: rtn, hadamard_grouped4bit, head_compensated, matched_bit_e8, all"
                 )
                 .into());
             }
@@ -881,6 +707,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some(CodecArm::HadamardGrouped4Bit) => "hadamard_grouped4bit",
                 Some(CodecArm::HadamardE8) => "hadamard_e8",
                 Some(CodecArm::HeadCompensated) => "head_compensated",
+                Some(CodecArm::HadamardE8MatchedBit) => "hadamard_e8_matched_bit",
             };
             println!("\n------------------------------------------------------------");
             println!("Evaluating Arm: {} [{}]", arm_title, arm_slug);

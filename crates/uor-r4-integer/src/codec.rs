@@ -583,7 +583,37 @@ impl Grouped4BitMatrix {
         mat.validate()?;
         Ok(mat)
     }
+
+    /// Calculate relative RMS error against original unquantized float values:
+    /// `sqrt( sum((orig - deq)^2) / sum(orig^2) )`.
+    pub fn relative_rms_error(&self, original: &[f32]) -> Result<f64> {
+        let deq = Grouped4BitCodec::new(self.group_size, Grouped4BitRounding::Nearest)
+            .dequantize(self)?;
+        if deq.len() != original.len() {
+            return Err(invalid(format!(
+                "dimension mismatch: matrix has {} weights but original has {}",
+                deq.len(),
+                original.len()
+            )));
+        }
+        let mut error = 0.0f64;
+        let mut energy = 0.0f64;
+        for (&orig, &d) in original.iter().zip(&deq) {
+            let vo = f64::from(orig);
+            let vd = f64::from(d);
+            error += (vo - vd).powi(2);
+            energy += vo * vo;
+        }
+        Ok(if energy > 0.0 {
+            (error / energy).sqrt()
+        } else {
+            0.0
+        })
+    }
 }
+
+/// Alias for [`Grouped4BitMatrix`] emphasizing packed storage layout.
+pub type PackedGrouped4BitMatrix = Grouped4BitMatrix;
 
 /// Compute canonical D11 grid scale: `(16 + m) * 2^(e - 4)`.
 #[inline]
@@ -949,6 +979,233 @@ impl Grouped4BitCodec {
         let total_bytes = Grouped4BitMatrix::CONTAINER_FRAMING_BYTES + nibbles_bytes + scales_bytes;
         (total_bytes as f64 * 8.0) / total_weights as f64
     }
+
+    /// Quantize using head-compensated optimal base selection and boundary MSE minimization.
+    pub fn quantize_compensated(
+        &self,
+        values: &[f32],
+        rows: usize,
+        cols: usize,
+    ) -> Result<Grouped4BitMatrix> {
+        quantize_matrix_compensated_with_group(values, rows, cols, self.group_size)
+    }
+}
+
+/// Quantize a row-major `rows x cols` float matrix using optimal base selection
+/// and boundary-scale error minimization (head-compensated quantization).
+///
+/// Handles `cols` that are multiples of `DEFAULT_GROUP_SIZE` (32).
+/// Evaluates candidate base exponents and boundary mantissas to minimize squared error across
+/// groups with dynamic range spanning beyond the standard 16 exponent window.
+/// Produces a canonical [`Grouped4BitMatrix`] (also aliased as [`PackedGrouped4BitMatrix`])
+/// conforming to D11 serving invariants.
+pub fn quantize_matrix_compensated(
+    values: &[f32],
+    rows: usize,
+    cols: usize,
+) -> Result<Grouped4BitMatrix> {
+    quantize_matrix_compensated_with_group(values, rows, cols, DEFAULT_GROUP_SIZE)
+}
+
+/// Quantize a matrix with compensated base and boundary search using an explicit group size.
+pub fn quantize_matrix_compensated_with_group(
+    values: &[f32],
+    rows: usize,
+    cols: usize,
+    group_size: usize,
+) -> Result<Grouped4BitMatrix> {
+    if rows == 0 || cols == 0 || group_size == 0 {
+        return Err(invalid("matrix dimensions and group_size must be non-zero"));
+    }
+    let total_weights = rows
+        .checked_mul(cols)
+        .ok_or_else(|| invalid("matrix dimensions overflow"))?;
+    if values.len() != total_weights {
+        return Err(invalid(format!(
+            "values length ({}) does not match rows * cols ({rows} * {cols} = {total_weights})",
+            values.len(),
+        )));
+    }
+    if !cols.is_multiple_of(group_size) {
+        return Err(invalid(format!(
+            "cols ({cols}) must be a multiple of group_size ({group_size})"
+        )));
+    }
+    if values.iter().any(|v| !v.is_finite()) {
+        return Err(invalid("matrix contains non-finite values"));
+    }
+
+    let groups = cols / group_size;
+    let mut chosen: Vec<Option<(u8, i32)>> = Vec::with_capacity(rows * groups);
+    for group in values.chunks_exact(group_size) {
+        chosen.push(d11_best_scale(group));
+    }
+
+    let e_max = chosen.iter().flatten().map(|(_, e)| *e).max().unwrap_or(0);
+    let e_min = chosen.iter().flatten().map(|(_, e)| *e).min().unwrap_or(0);
+
+    let mut best_base = e_max.saturating_sub(15).clamp(-200, 120);
+    let mut min_total_error = f64::INFINITY;
+
+    let base_candidates = if e_max - e_min > 15 {
+        (e_min..=e_max.saturating_sub(15))
+            .rev()
+            .take(8)
+            .map(|e| e.clamp(-200, 120))
+            .collect::<Vec<_>>()
+    } else {
+        vec![best_base]
+    };
+
+    for &candidate_base in &base_candidates {
+        let mut total_err = 0.0f64;
+        for (g_idx, w) in values.chunks_exact(group_size).enumerate() {
+            let (m, e) = match chosen[g_idx] {
+                Some((_, e)) if e < candidate_base => {
+                    let mut best_m = 0u8;
+                    let mut best_e_err = f64::INFINITY;
+                    for cand_m in 0..16u8 {
+                        let s = d11_grid_scale(cand_m, candidate_base);
+                        let err: f64 = w
+                            .iter()
+                            .map(|&v| {
+                                let vf = f64::from(v);
+                                let q = (vf / s).round().clamp(-8.0, 7.0);
+                                (vf - q * s).powi(2)
+                            })
+                            .sum();
+                        if err < best_e_err {
+                            best_e_err = err;
+                            best_m = cand_m;
+                        }
+                    }
+                    (best_m, candidate_base)
+                }
+                Some((_, e)) if e > candidate_base + 15 => {
+                    let top_e = candidate_base + 15;
+                    let mut best_m = 15u8;
+                    let mut best_e_err = f64::INFINITY;
+                    for cand_m in 0..16u8 {
+                        let s = d11_grid_scale(cand_m, top_e);
+                        let err: f64 = w
+                            .iter()
+                            .map(|&v| {
+                                let vf = f64::from(v);
+                                let q = (vf / s).round().clamp(-8.0, 7.0);
+                                (vf - q * s).powi(2)
+                            })
+                            .sum();
+                        if err < best_e_err {
+                            best_e_err = err;
+                            best_m = cand_m;
+                        }
+                    }
+                    (best_m, top_e)
+                }
+                Some(chosen_scale) => chosen_scale,
+                None => (0, candidate_base),
+            };
+            let s = d11_grid_scale(m, e);
+            let err: f64 = w
+                .iter()
+                .map(|&v| {
+                    let vf = f64::from(v);
+                    let q = (vf / s).round().clamp(-8.0, 7.0);
+                    (vf - q * s).powi(2)
+                })
+                .sum();
+            total_err += err;
+        }
+        if total_err < min_total_error {
+            min_total_error = total_err;
+            best_base = candidate_base;
+        }
+    }
+
+    let exp_base = best_base;
+    let mut nibbles = vec![0u8; total_weights.div_ceil(2)];
+    let mut scales = vec![0u8; rows * groups];
+
+    for r in 0..rows {
+        for g in 0..groups {
+            let g_idx = r * groups + g;
+            let (m, e) = match chosen[g_idx] {
+                Some((_, e)) if e < exp_base => {
+                    let mut best_m = 0u8;
+                    let mut best_e_err = f64::INFINITY;
+                    let w = &values[r * cols + g * group_size..r * cols + (g + 1) * group_size];
+                    for cand_m in 0..16u8 {
+                        let s = d11_grid_scale(cand_m, exp_base);
+                        let err: f64 = w
+                            .iter()
+                            .map(|&v| {
+                                let vf = f64::from(v);
+                                let q = (vf / s).round().clamp(-8.0, 7.0);
+                                (vf - q * s).powi(2)
+                            })
+                            .sum();
+                        if err < best_e_err {
+                            best_e_err = err;
+                            best_m = cand_m;
+                        }
+                    }
+                    (best_m, exp_base)
+                }
+                Some((_, e)) if e > exp_base + 15 => {
+                    let top_e = exp_base + 15;
+                    let mut best_m = 15u8;
+                    let mut best_e_err = f64::INFINITY;
+                    let w = &values[r * cols + g * group_size..r * cols + (g + 1) * group_size];
+                    for cand_m in 0..16u8 {
+                        let s = d11_grid_scale(cand_m, top_e);
+                        let err: f64 = w
+                            .iter()
+                            .map(|&v| {
+                                let vf = f64::from(v);
+                                let q = (vf / s).round().clamp(-8.0, 7.0);
+                                (vf - q * s).powi(2)
+                            })
+                            .sum();
+                        if err < best_e_err {
+                            best_e_err = err;
+                            best_m = cand_m;
+                        }
+                    }
+                    (best_m, top_e)
+                }
+                Some(chosen_scale) => chosen_scale,
+                None => (0, exp_base),
+            };
+
+            let s = d11_grid_scale(m, e);
+            let de = (e - exp_base).clamp(0, 15) as u8;
+            scales[g_idx] = (m & 15) | (de << 4);
+
+            for c in g * group_size..(g + 1) * group_size {
+                let v = f64::from(values[r * cols + c]);
+                let q = (v / s).round().clamp(-8.0, 7.0);
+                let nibble = (q as i32 + 8) as u8;
+                let linear_idx = r * cols + c;
+                let index = linear_idx / 2;
+                if linear_idx % 2 == 0 {
+                    nibbles[index] |= nibble;
+                } else {
+                    nibbles[index] |= nibble << 4;
+                }
+            }
+        }
+    }
+
+    let mat = Grouped4BitMatrix {
+        rows,
+        cols,
+        group_size,
+        exp_base,
+        nibbles,
+        scales,
+    };
+    mat.validate()?;
+    Ok(mat)
 }
 
 /// Nearest D8 lattice point (integer coordinates with even sum).
@@ -1079,40 +1336,53 @@ impl E8Codebook {
     }
 
     /// Find the index of the nearest E8 root (or zero) to a given 8D block.
+    ///
+    /// Evaluates the least-squares projection scale s = max(0, <block, root> / 8),
+    /// which minimizes squared reconstruction error ||block - s * root||^2 = energy - <block, root>^2 / 8.
     pub fn quantize_block(&self, block: &[f64; E8_DIM]) -> (u8, f64) {
         let energy: f64 = block.iter().map(|&x| x * x).sum();
-        let scale = (energy / 8.0).sqrt();
-
-        if scale < 1e-9 {
+        if energy < 1e-12 {
             return (0, 0.0);
         }
 
         let mut best_idx = 0u8;
-        let mut best_dist = energy; // Distance to zero codeword is energy
+        let mut best_dot = 0.0f64;
 
-        for (idx, root) in self.roots.iter().enumerate() {
-            let mut dist = 0.0f64;
+        for (idx, root) in self.roots.iter().enumerate().skip(1) {
+            let mut dot = 0.0f64;
             for i in 0..E8_DIM {
-                let diff = block[i] - (root[i] as f64) * scale;
-                dist += diff * diff;
+                dot += block[i] * (root[i] as f64);
             }
-            if dist < best_dist {
-                best_dist = dist;
+            if dot > best_dot {
+                best_dot = dot;
                 best_idx = idx as u8;
             }
         }
 
-        (best_idx, scale)
+        if best_idx == 0 || best_dot <= 0.0 {
+            (0, 0.0)
+        } else {
+            let scale = best_dot / 8.0;
+            (best_idx, scale)
+        }
     }
 
     /// Dequantize a root index given block scale.
-    pub fn dequantize_block(&self, idx: u8, scale: f64) -> [f64; E8_DIM] {
-        let root = &self.roots[idx as usize];
+    ///
+    /// Returns `Err` if `idx` exceeds the valid root index range (recoverable path, no panic).
+    pub fn dequantize_block(&self, idx: u8, scale: f64) -> Result<[f64; E8_DIM]> {
+        let root = self.roots.get(idx as usize).ok_or_else(|| {
+            invalid(format!(
+                "E8 root index {} out of bounds (max {})",
+                idx,
+                self.roots.len().saturating_sub(1)
+            ))
+        })?;
         let mut out = [0.0f64; E8_DIM];
         for i in 0..E8_DIM {
             out[i] = (root[i] as f64) * scale;
         }
-        out
+        Ok(out)
     }
 }
 
@@ -1156,17 +1426,108 @@ impl E8EncodedRow {
     }
 
     /// Dequantize E8 encoded row back to float weights.
-    pub fn dequantize_f32(&self, codebook: &E8Codebook) -> Vec<f32> {
+    pub fn dequantize_f32(&self, codebook: &E8Codebook) -> Result<Vec<f32>> {
         let mut out = Vec::with_capacity(self.elements);
         for (&idx, &scale) in self.indices.iter().zip(&self.scales) {
-            let deq = codebook.dequantize_block(idx, scale as f64);
+            let deq = codebook.dequantize_block(idx, scale as f64)?;
             for &val in &deq {
                 if out.len() < self.elements {
                     out.push(val as f32);
                 }
             }
         }
-        out
+        Ok(out)
+    }
+}
+
+/// Matched-bit E8 lattice encoded row (two-stage residual E8 quantization at ~4 bits per weight).
+///
+/// In stage 1, the 8-dimensional block is projected onto the nearest E8 lattice root.
+/// In stage 2, the residual quantization error is projected onto a second E8 lattice root.
+/// Stored footprint: 2 index bytes + 2 scale bytes per 8-weight block = 4 bytes / 8 weights = 4.0 bits per weight.
+#[derive(Clone, Debug)]
+pub struct E8MatchedBitEncodedRow {
+    pub stage1_indices: Vec<u8>,
+    pub stage1_scales: Vec<f32>,
+    pub stage2_indices: Vec<u8>,
+    pub stage2_scales: Vec<f32>,
+    pub elements: usize,
+}
+
+impl E8MatchedBitEncodedRow {
+    /// Encode a slice of float weights using two-stage matched-bit E8 residual quantization.
+    pub fn encode_f32(weights: &[f32], codebook: &E8Codebook) -> Result<Self> {
+        if weights.is_empty() {
+            return Err(invalid("weights slice cannot be empty"));
+        }
+        let padded_len = weights.len().div_ceil(E8_DIM) * E8_DIM;
+        let mut padded = vec![0.0f64; padded_len];
+        for (dst, &src) in padded.iter_mut().zip(weights) {
+            *dst = src as f64;
+        }
+
+        let num_blocks = padded_len / E8_DIM;
+        let mut stage1_indices = Vec::with_capacity(num_blocks);
+        let mut stage1_scales = Vec::with_capacity(num_blocks);
+        let mut stage2_indices = Vec::with_capacity(num_blocks);
+        let mut stage2_scales = Vec::with_capacity(num_blocks);
+
+        for block in padded.chunks_exact(E8_DIM) {
+            let mut b = [0.0f64; E8_DIM];
+            b.copy_from_slice(block);
+            let (idx1, scale1) = codebook.quantize_block(&b);
+            let deq1 = codebook.dequantize_block(idx1, scale1)?;
+            let mut res = [0.0f64; E8_DIM];
+            for i in 0..E8_DIM {
+                res[i] = b[i] - deq1[i];
+            }
+            let (idx2, scale2) = codebook.quantize_block(&res);
+            stage1_indices.push(idx1);
+            stage1_scales.push(scale1 as f32);
+            stage2_indices.push(idx2);
+            stage2_scales.push(scale2 as f32);
+        }
+
+        Ok(Self {
+            stage1_indices,
+            stage1_scales,
+            stage2_indices,
+            stage2_scales,
+            elements: weights.len(),
+        })
+    }
+
+    /// Dequantize matched-bit E8 encoded row back to float weights.
+    pub fn dequantize_f32(&self, codebook: &E8Codebook) -> Result<Vec<f32>> {
+        let mut out = Vec::with_capacity(self.elements);
+        for i in 0..self.stage1_indices.len() {
+            let idx1 = self.stage1_indices[i];
+            let scale1 = self.stage1_scales[i] as f64;
+            let idx2 = self.stage2_indices[i];
+            let scale2 = self.stage2_scales[i] as f64;
+            let deq1 = codebook.dequantize_block(idx1, scale1)?;
+            let deq2 = codebook.dequantize_block(idx2, scale2)?;
+            for j in 0..E8_DIM {
+                if out.len() < self.elements {
+                    out.push((deq1[j] + deq2[j]) as f32);
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    /// Stored byte count for this row (2 index bytes + 2 scale bytes per 8-weight block).
+    pub fn stored_bytes(&self) -> usize {
+        self.stage1_indices.len() * 4
+    }
+
+    /// Effective bits per weight for this row.
+    pub fn bits_per_weight(&self) -> f64 {
+        if self.elements == 0 {
+            0.0
+        } else {
+            (self.stored_bytes() * 8) as f64 / (self.elements as f64)
+        }
     }
 }
 
@@ -1228,10 +1589,12 @@ pub enum CodecArm {
     NearestPerRow,
     /// Arm 1: Randomized Walsh-Hadamard transform + Grouped 4-bit (H+G4).
     HadamardGrouped4Bit,
-    /// Arm 2: Randomized Walsh-Hadamard transform + E8 lattice (H+E8).
+    /// Arm 2: Randomized Walsh-Hadamard transform + E8 lattice (H+E8 at ~2 bpw).
     HadamardE8,
     /// Arm 3: Head-compensated quantization (mean-offset compensation per group).
     HeadCompensated,
+    /// Arm 4: Matched-bit E8 lattice codebook (two-stage residual E8 at ~4 bits per weight).
+    HadamardE8MatchedBit,
 }
 
 /// Transform matrix weights using the selected codec arm.
@@ -1311,7 +1674,33 @@ pub fn apply_codec_arm(
                 let had_f32: Vec<f32> = had_i64.iter().map(|&v| (v as f32) / SCALE).collect();
 
                 let e8_row = E8EncodedRow::encode_f32(&had_f32, &codebook)?;
-                let deq_had = e8_row.dequantize_f32(&codebook);
+                let deq_had = e8_row.dequantize_f32(&codebook)?;
+
+                let i64_deq: Vec<i64> = deq_had
+                    .iter()
+                    .map(|&w| (w * SCALE).round() as i64)
+                    .collect();
+                let restored_i64 = inverse_block_padded_hadamard_transform(&i64_deq, &signs, cols)?;
+                for v in restored_i64 {
+                    out.push((v as f32) / SCALE);
+                }
+            }
+            Ok(out)
+        }
+        CodecArm::HadamardE8MatchedBit => {
+            const SCALE: f32 = 65536.0;
+            let padded_cols = cols.div_ceil(HADAMARD_BLOCK) * HADAMARD_BLOCK;
+            let signs = deterministic_signs(padded_cols, seed);
+            let codebook = E8Codebook::new();
+            let mut out = Vec::with_capacity(weights.len());
+
+            for row in weights.chunks_exact(cols) {
+                let i64_row: Vec<i64> = row.iter().map(|&w| (w * SCALE).round() as i64).collect();
+                let had_i64 = block_padded_hadamard_transform(&i64_row, &signs)?;
+                let had_f32: Vec<f32> = had_i64.iter().map(|&v| (v as f32) / SCALE).collect();
+
+                let e8_row = E8MatchedBitEncodedRow::encode_f32(&had_f32, &codebook)?;
+                let deq_had = e8_row.dequantize_f32(&codebook)?;
 
                 let i64_deq: Vec<i64> = deq_had
                     .iter()
@@ -1502,9 +1891,54 @@ mod tests {
             CodecArm::HadamardGrouped4Bit,
             CodecArm::HadamardE8,
             CodecArm::HeadCompensated,
+            CodecArm::HadamardE8MatchedBit,
         ] {
             let deq = apply_codec_arm(&weights, rows, cols, arm, 100)?;
             assert_eq!(deq.len(), rows * cols);
+            for &v in &deq {
+                assert!(v.is_finite());
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_e8_codebook_dequantize_block_bounds_checked() -> Result<()> {
+        let codebook = E8Codebook::new();
+        // Valid roots [0..=240] return Ok
+        for idx in 0..=240u8 {
+            let deq = codebook.dequantize_block(idx, 1.5)?;
+            assert_eq!(deq.len(), E8_DIM);
+            for &v in &deq {
+                assert!(v.is_finite());
+            }
+        }
+        // Indices [241..=255] exceed root count (241) and must return Err without panicking
+        for bad_idx in 241..=255u8 {
+            assert!(codebook.dequantize_block(bad_idx, 1.0).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_matched_bit_e8_arm_effective_bits_and_reconstruction() -> Result<()> {
+        let codebook = E8Codebook::new();
+        let weights: Vec<f32> = (0..32)
+            .map(|i| (((i as f32) * 0.7) % 5.0 - 2.5) * 0.1)
+            .collect();
+
+        let row = E8MatchedBitEncodedRow::encode_f32(&weights, &codebook)?;
+        assert_eq!(row.elements, 32);
+        assert_eq!(row.stage1_indices.len(), 4);
+        assert_eq!(row.stage2_indices.len(), 4);
+        // 4 blocks * 4 bytes per block = 16 bytes = 128 bits / 32 weights = 4.0 bits per weight
+        assert_eq!(row.stored_bytes(), 16);
+        assert!((row.bits_per_weight() - 4.0).abs() < 1e-6);
+
+        let deq = row.dequantize_f32(&codebook)?;
+        assert_eq!(deq.len(), 32);
+        for &v in &deq {
+            assert!(v.is_finite());
         }
         Ok(())
     }
@@ -1826,5 +2260,55 @@ mod tests {
         let c_x = 0.25f64;
         let c_w = 0.125f64;
         assert!((32.0 * c_x * c_w - 1.0).abs() < 1e-15);
+    }
+
+    #[test]
+    fn test_quantize_matrix_compensated() -> Result<()> {
+        let rows = 4;
+        let cols = 64;
+        let weights: Vec<f32> = (0..rows * cols)
+            .map(|i| {
+                let base = (((i as f32) * 1.3) % 20.0 - 10.0) * 0.05;
+                if i < 32 {
+                    base * 100.0 // Group 0 has large scale
+                } else if i < 64 {
+                    base * 0.01 // Group 1 has small scale
+                } else {
+                    base
+                }
+            })
+            .collect();
+
+        // Error cases
+        assert!(quantize_matrix_compensated(&[], 0, cols).is_err());
+        assert!(quantize_matrix_compensated(&[], rows, 0).is_err());
+        assert!(quantize_matrix_compensated(&weights[..63], rows, cols).is_err());
+        assert!(quantize_matrix_compensated(&weights, rows, 63).is_err());
+        let mut nonfinite = weights.clone();
+        nonfinite[10] = f32::NAN;
+        assert!(quantize_matrix_compensated(&nonfinite, rows, cols).is_err());
+
+        // Valid execution
+        let mat = quantize_matrix_compensated(&weights, rows, cols)?;
+        mat.validate()?;
+        assert_eq!(mat.rows, rows);
+        assert_eq!(mat.cols, cols);
+        assert_eq!(mat.group_size, 32);
+
+        // Raw parameter bits per weight: exactly 4.0 + 8.0/32 = 4.25
+        let raw_bpw = mat.param_bits_per_weight();
+        assert_eq!(raw_bpw, 4.25, "raw parameter bits must be exactly 4.25");
+
+        // Relative RMS error
+        let rel_err = mat.relative_rms_error(&weights)?;
+        assert!(rel_err.is_finite());
+        assert!(rel_err >= 0.0);
+
+        // Equivalence via Grouped4BitCodec
+        let codec = Grouped4BitCodec::default();
+        let mat_codec = codec.quantize_compensated(&weights, rows, cols)?;
+        assert_eq!(mat, mat_codec);
+
+        Ok(())
     }
 }

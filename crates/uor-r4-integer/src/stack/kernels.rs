@@ -31,6 +31,7 @@ use super::format::Fixed;
 /// Exponent of the residual stream and of projection outputs: `v * 2^-16`.
 pub(crate) const RESIDUAL_EXP: i32 = -16;
 /// Exponent of a product of two values at the residual exponent: `v * 2^-32`.
+#[allow(dead_code)]
 pub(crate) const PRODUCT_EXP: i32 = RESIDUAL_EXP + RESIDUAL_EXP;
 /// Bias of a grid code's exponent field.
 const GRID_EXP_BIAS: i32 = 64;
@@ -543,7 +544,6 @@ pub(crate) struct PackedMatrix {
 /// Per weight: one table read and one addition; per group of 32: the scale
 /// `(16 + m) 2^(de - de_min)` by shifts and additions. The group sums and the
 /// row accumulator are the D10 kernel's exact integers.
-///
 /// The loader's shape checks make every size agree, so the early returns are
 /// unreachable: a debug build asserts, a release build returns rather than
 /// read out of bounds.
@@ -581,10 +581,29 @@ pub(crate) fn stack_gemv(m: &PackedMatrix, tables: &[[i32; 16]], x_exp: i32, out
             .zip(tables.chunks_exact(32))
             .zip(scales)
         {
-            let mut a = 0i32;
-            for (&byte, pair) in bytes.iter().zip(columns.chunks_exact(2)) {
-                a += pair[0][usize::from(byte & 15)] + pair[1][usize::from(byte >> 4)];
+            let mut a0 = 0i32;
+            let mut a1 = 0i32;
+            let mut a2 = 0i32;
+            let mut a3 = 0i32;
+            for i in 0..4 {
+                let b0 = bytes[4 * i];
+                let b1 = bytes[4 * i + 1];
+                let b2 = bytes[4 * i + 2];
+                let b3 = bytes[4 * i + 3];
+                a0 = a0
+                    .wrapping_add(columns[8 * i][usize::from(b0 & 15)])
+                    .wrapping_add(columns[8 * i + 1][usize::from(b0 >> 4)]);
+                a1 = a1
+                    .wrapping_add(columns[8 * i + 2][usize::from(b1 & 15)])
+                    .wrapping_add(columns[8 * i + 3][usize::from(b1 >> 4)]);
+                a2 = a2
+                    .wrapping_add(columns[8 * i + 4][usize::from(b2 & 15)])
+                    .wrapping_add(columns[8 * i + 5][usize::from(b2 >> 4)]);
+                a3 = a3
+                    .wrapping_add(columns[8 * i + 6][usize::from(b3 & 15)])
+                    .wrapping_add(columns[8 * i + 7][usize::from(b3 >> 4)]);
             }
+            let a = a0.wrapping_add(a1).wrapping_add(a2.wrapping_add(a3));
             acc = acc.wrapping_add(scale_16_plus(i64::from(a), s & 15) << ((s >> 4) - min_de));
         }
         *slot = to_exp_i32(
@@ -652,10 +671,23 @@ pub(crate) fn stack_gemv_pairs(
         };
         let mut acc = 0i64;
         for ((bytes, tables), &s) in row.chunks_exact(16).zip(pairs.chunks_exact(16)).zip(scales) {
-            let mut a = 0i32;
-            for (&byte, table) in bytes.iter().zip(tables) {
-                a += table[usize::from(byte)];
-            }
+            let a0 = tables[0][usize::from(bytes[0])]
+                .wrapping_add(tables[1][usize::from(bytes[1])])
+                .wrapping_add(tables[2][usize::from(bytes[2])])
+                .wrapping_add(tables[3][usize::from(bytes[3])]);
+            let a1 = tables[4][usize::from(bytes[4])]
+                .wrapping_add(tables[5][usize::from(bytes[5])])
+                .wrapping_add(tables[6][usize::from(bytes[6])])
+                .wrapping_add(tables[7][usize::from(bytes[7])]);
+            let a2 = tables[8][usize::from(bytes[8])]
+                .wrapping_add(tables[9][usize::from(bytes[9])])
+                .wrapping_add(tables[10][usize::from(bytes[10])])
+                .wrapping_add(tables[11][usize::from(bytes[11])]);
+            let a3 = tables[12][usize::from(bytes[12])]
+                .wrapping_add(tables[13][usize::from(bytes[13])])
+                .wrapping_add(tables[14][usize::from(bytes[14])])
+                .wrapping_add(tables[15][usize::from(bytes[15])]);
+            let a = a0.wrapping_add(a1).wrapping_add(a2.wrapping_add(a3));
             acc = acc.wrapping_add(scale_16_plus(i64::from(a), s & 15) << ((s >> 4) - min_de));
         }
         *slot = to_exp_i32(

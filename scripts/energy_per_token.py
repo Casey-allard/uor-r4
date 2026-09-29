@@ -43,7 +43,10 @@ import subprocess
 import sys
 import time
 
-MACMON_BIN = "/opt/homebrew/bin/macmon"
+import threading
+from datetime import datetime, timezone
+
+MACMON_BIN = os.environ.get("MACMON_BIN", "/opt/homebrew/bin/macmon")
 
 POWER_FIELDS = [
     (
@@ -63,6 +66,20 @@ TOKEN_PATTERNS = [
 ]
 
 
+def drain_pipe(stream, line_accumulator):
+    """Continuously drain lines from stream until EOF to prevent OS pipe buffer stall."""
+    try:
+        for line in iter(stream.readline, ""):
+            line_accumulator.append(line)
+    except Exception:
+        pass
+    finally:
+        try:
+            stream.close()
+        except Exception:
+            pass
+
+
 def parse_powermetrics_text(text):
     """Pick ONE power field for the whole output, in priority order."""
     for name, pat in POWER_FIELDS:
@@ -72,21 +89,163 @@ def parse_powermetrics_text(text):
     return [], None
 
 
-def parse_macmon_jsonl(text):
-    """Parse macmon newline-delimited JSON stream and extract sys_power in mW."""
+def parse_macmon_jsonl(text, reject_malformed=True):
+    """Parse macmon newline-delimited JSON stream and extract sys_power in mW and timestamps.
+    
+    If reject_malformed is True, incomplete or corrupted JSON lines raise ValueError.
+    Note: A trailing incomplete fragment on the very last line caused by SIGINT termination
+    is discarded if preceding lines successfully parsed valid samples.
+    """
     readings_mw = []
+    timestamps = []
     lines = text.strip().splitlines()
-    for line in lines:
-        if not line.strip():
+    num_lines = len(lines)
+    for line_idx, line in enumerate(lines, 1):
+        line_s = line.strip()
+        if not line_s or line_s.startswith("==="):
             continue
         try:
-            data = json.loads(line)
-            if "sys_power" in data and data["sys_power"] is not None:
-                # sys_power is in Watts; convert to mW for unit parity
-                readings_mw.append(float(data["sys_power"]) * 1000.0)
-        except json.JSONDecodeError:
+            data = json.loads(line_s)
+        except json.JSONDecodeError as e:
+            if line_idx == num_lines and len(readings_mw) > 0:
+                # Discard trailing fragment from SIGINT process interruption
+                continue
+            if reject_malformed:
+                raise ValueError(
+                    f"Malformed or truncated JSON on line {line_idx} of macmon output: "
+                    f"{line_s[:100]!r}... ({e})"
+                )
             continue
-    return readings_mw, "sys_power (macmon whole-system)"
+        if "sys_power" in data and data["sys_power"] is not None:
+            # sys_power is in Watts; convert to mW for unit parity
+            readings_mw.append(float(data["sys_power"]) * 1000.0)
+            if "timestamp" in data and data["timestamp"]:
+                timestamps.append(data["timestamp"])
+    return readings_mw, timestamps, "sys_power (macmon whole-system)"
+
+
+def validate_timestamp_coverage(
+    timestamps,
+    expected_duration_s,
+    label="workload",
+    min_coverage_ratio=0.85,
+    max_gap_seconds=2.0,
+    start_wall=None,
+    end_wall=None,
+    max_boundary_offset_s=2.5,
+):
+    """Validate that sample timestamps cover at least min_coverage_ratio of expected duration,
+    consecutive samples do not have stalls exceeding max_gap_seconds,
+    and sample timestamps align with the execution interval [start_wall, end_wall].
+    
+    Rejects incomplete coverage, excessive stalls, and traces outside the workload interval.
+    """
+    if not timestamps:
+        raise ValueError(f"No timestamps found in {label} samples.")
+    if len(timestamps) < 2:
+        if expected_duration_s >= 2.0:
+            raise ValueError(
+                f"Only {len(timestamps)} timestamp recorded for a {expected_duration_s:.2f}s {label}. "
+                "Sampler output is incomplete."
+            )
+        return 0.0
+
+    parsed = []
+    for ts_str in timestamps:
+        try:
+            dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            parsed.append(dt)
+        except Exception as e:
+            raise ValueError(f"Cannot parse timestamp {ts_str!r}: {e}")
+
+    t_first = parsed[0]
+    t_last = parsed[-1]
+    span_s = (t_last - t_first).total_seconds()
+    if span_s < 0:
+        raise ValueError(f"Negative timestamp span in {label}: {span_s}s")
+
+    # Verify temporal alignment against actual wall-clock execution interval
+    if start_wall is not None and end_wall is not None:
+        if start_wall.tzinfo is None:
+            start_wall = start_wall.replace(tzinfo=timezone.utc)
+        if end_wall.tzinfo is None:
+            end_wall = end_wall.replace(tzinfo=timezone.utc)
+
+        if t_last < start_wall:
+            raise ValueError(
+                f"Timestamp misalignment in {label}: samples fall completely before execution window "
+                f"(last sample at {t_last.isoformat()} was before start at {start_wall.isoformat()})."
+            )
+        if t_first > end_wall:
+            raise ValueError(
+                f"Timestamp misalignment in {label}: samples fall completely after execution window "
+                f"(first sample at {t_first.isoformat()} was after end at {end_wall.isoformat()})."
+            )
+        startup_offset = (t_first - start_wall).total_seconds()
+        if startup_offset > max_boundary_offset_s:
+            raise ValueError(
+                f"Timestamp misalignment in {label}: sampler started {startup_offset:.2f}s after "
+                f"workload began (threshold: {max_boundary_offset_s:.1f}s)."
+            )
+        shutdown_offset = (end_wall - t_last).total_seconds()
+        if shutdown_offset > max_boundary_offset_s:
+            raise ValueError(
+                f"Timestamp misalignment in {label}: sampler ended {shutdown_offset:.2f}s before "
+                f"workload finished (threshold: {max_boundary_offset_s:.1f}s)."
+            )
+
+    coverage_ratio = span_s / expected_duration_s if expected_duration_s > 0 else 1.0
+
+    # Check for stalls/gaps between consecutive samples
+    max_gap = 0.0
+    for i in range(len(parsed) - 1):
+        gap = (parsed[i + 1] - parsed[i]).total_seconds()
+        if gap > max_gap:
+            max_gap = gap
+    if max_gap > max_gap_seconds:
+        raise ValueError(
+            f"Sampler stalled during {label}: maximum gap between consecutive samples was {max_gap:.2f}s "
+            f"(threshold: {max_gap_seconds:.1f}s)."
+        )
+
+    # Reject incomplete coverage:
+    # 1. On substantial runs (>= 4.0s), coverage ratio must meet min_coverage_ratio (85%).
+    # 2. On short runs (>= 2.0s), allow up to 30% startup/shutdown margin (coverage >= 70%).
+    if expected_duration_s >= 4.0:
+        if coverage_ratio < min_coverage_ratio:
+            raise ValueError(
+                f"Incomplete timestamp coverage in {label}: sampled span is {span_s:.2f}s "
+                f"for a {expected_duration_s:.2f}s run ({coverage_ratio * 100.0:.1f}% coverage, "
+                f"required >= {min_coverage_ratio * 100.0:.1f}%). "
+                f"First timestamp: {timestamps[0]}, last: {timestamps[-1]}. "
+                "Sampler output was truncated or terminated prematurely."
+            )
+    elif expected_duration_s >= 2.0:
+        if coverage_ratio < 0.70:
+            raise ValueError(
+                f"Incomplete timestamp coverage in {label}: sampled span is {span_s:.2f}s "
+                f"for a {expected_duration_s:.2f}s run ({coverage_ratio * 100.0:.1f}% coverage, required >= 70.0%). "
+                f"First timestamp: {timestamps[0]}, last: {timestamps[-1]}."
+            )
+    return span_s
+
+
+def validate_powermetrics_coverage(readings, expected_duration_s, interval_ms, label="workload", min_coverage_ratio=0.85):
+    """Validate sample count for powermetrics against expected duration."""
+    if not readings:
+        raise ValueError(f"No power readings found in {label}.")
+    sampled_s = len(readings) * (interval_ms / 1000.0)
+    if expected_duration_s >= 2.0:
+        coverage_ratio = sampled_s / expected_duration_s
+        if coverage_ratio < min_coverage_ratio:
+            raise ValueError(
+                f"Incomplete sample coverage in {label}: {len(readings)} samples (~{sampled_s:.2f}s) "
+                f"for a {expected_duration_s:.2f}s run ({coverage_ratio * 100.0:.1f}% coverage, "
+                f"required >= {min_coverage_ratio * 100.0:.1f}%)."
+            )
+    return sampled_s
 
 
 def get_powermetrics_cmd(interval_ms, count):
@@ -101,15 +260,36 @@ def run_powermetrics_idle(seconds, interval_ms):
     cmd = get_powermetrics_cmd(interval_ms, count)
     out = subprocess.run(cmd, capture_output=True, text=True)
     readings, field = parse_powermetrics_text(out.stdout)
+    validate_powermetrics_coverage(readings, seconds, interval_ms, label="idle baseline")
     return readings, field, out.stdout, out.stderr
 
 
 def run_macmon_idle(seconds, interval_ms):
     count = max(1, math.ceil(seconds * 1000 / interval_ms))
     cmd = [MACMON_BIN, "pipe", "-s", str(count), "-i", str(interval_ms)]
-    out = subprocess.run(cmd, capture_output=True, text=True)
-    readings, field = parse_macmon_jsonl(out.stdout)
-    return readings, field, out.stdout, out.stderr
+    t0_wall = datetime.now(timezone.utc)
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
+    stdout_lines = []
+    stderr_lines = []
+    t_out = threading.Thread(target=drain_pipe, args=(proc.stdout, stdout_lines), daemon=True)
+    t_err = threading.Thread(target=drain_pipe, args=(proc.stderr, stderr_lines), daemon=True)
+    t_out.start()
+    t_err.start()
+    proc.wait(timeout=max(30, int(seconds * 2)))
+    t_out.join(timeout=2)
+    t_err.join(timeout=2)
+    t1_wall = datetime.now(timezone.utc)
+    raw_stdout = "".join(stdout_lines)
+    raw_stderr = "".join(stderr_lines)
+    readings, timestamps, field = parse_macmon_jsonl(raw_stdout)
+    validate_timestamp_coverage(timestamps, seconds, label="idle baseline", start_wall=t0_wall, end_wall=t1_wall)
+    return readings, timestamps, field, raw_stdout, raw_stderr
 
 
 def detect_tokens(text):
@@ -170,7 +350,10 @@ def main():
     idle_pm = []
     idle_field_pm = None
     idle_mac = []
+    idle_mac_ts = []
     idle_field_mac = None
+    raw_pm = ""
+    raw_mac = ""
 
     if args.sampler in ("powermetrics", "dual"):
         idle_pm, idle_field_pm, raw_pm, err_pm = run_powermetrics_idle(args.idle_seconds, args.interval_ms)
@@ -186,7 +369,7 @@ def main():
             print(f"      [powermetrics] idle n={len(idle_pm):>3}  mean {mean_pm:8.1f} mW (std ±{std_pm:6.1f} mW)  field: {idle_field_pm}")
 
     if args.sampler in ("macmon", "dual"):
-        idle_mac, idle_field_mac, raw_mac, err_mac = run_macmon_idle(args.idle_seconds, args.interval_ms)
+        idle_mac, idle_mac_ts, idle_field_mac, raw_mac, err_mac = run_macmon_idle(args.idle_seconds, args.interval_ms)
         if not idle_mac:
             sys.exit(
                 "macmon produced no readings for the idle phase.\n"
@@ -205,6 +388,15 @@ def main():
     
     pm_proc = None
     mac_proc = None
+    pm_lines = []
+    pm_err_lines = []
+    pm_thread = None
+    pm_err_thread = None
+
+    mac_lines = []
+    mac_err_lines = []
+    mac_thread = None
+    mac_err_thread = None
 
     if args.sampler in ("powermetrics", "dual"):
         n = max(1, math.ceil(args.max_seconds * 1000 / args.interval_ms))
@@ -214,7 +406,12 @@ def main():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            bufsize=1,
         )
+        pm_thread = threading.Thread(target=drain_pipe, args=(pm_proc.stdout, pm_lines), daemon=True)
+        pm_err_thread = threading.Thread(target=drain_pipe, args=(pm_proc.stderr, pm_err_lines), daemon=True)
+        pm_thread.start()
+        pm_err_thread.start()
 
     if args.sampler in ("macmon", "dual"):
         mac_proc = subprocess.Popen(
@@ -222,11 +419,18 @@ def main():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            bufsize=1,
         )
+        mac_thread = threading.Thread(target=drain_pipe, args=(mac_proc.stdout, mac_lines), daemon=True)
+        mac_err_thread = threading.Thread(target=drain_pipe, args=(mac_proc.stderr, mac_err_lines), daemon=True)
+        mac_thread.start()
+        mac_err_thread.start()
 
+    t0_wall = datetime.now(timezone.utc)
     t0 = time.perf_counter()
     run = subprocess.run(command, capture_output=True, text=True)
     elapsed = time.perf_counter() - t0
+    t1_wall = datetime.now(timezone.utc)
 
     raw_pm_work = ""
     raw_mac_work = ""
@@ -234,32 +438,73 @@ def main():
     if pm_proc:
         pm_proc.terminate()
         try:
-            raw_pm_work, _ = pm_proc.communicate(timeout=5)
+            pm_proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             pm_proc.kill()
-            raw_pm_work, _ = pm_proc.communicate()
+            pm_proc.wait()
+        if pm_thread:
+            pm_thread.join(timeout=2)
+        if pm_err_thread:
+            pm_err_thread.join(timeout=2)
+        raw_pm_work = "".join(pm_lines)
 
     if mac_proc:
         mac_proc.send_signal(signal.SIGINT)
         try:
-            raw_mac_work, _ = mac_proc.communicate(timeout=5)
+            mac_proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             mac_proc.kill()
-            raw_mac_work, _ = mac_proc.communicate()
+            mac_proc.wait()
+        if mac_thread:
+            mac_thread.join(timeout=2)
+        if mac_err_thread:
+            mac_err_thread.join(timeout=2)
+        raw_mac_work = "".join(mac_lines)
 
     if args.raw_out:
         os.makedirs(os.path.dirname(os.path.abspath(args.raw_out)), exist_ok=True)
         with open(args.raw_out, "w", encoding="utf-8") as rf:
+            if raw_mac:
+                rf.write("=== MACMON IDLE SAMPLES ===\n")
+                rf.write(raw_mac)
+                if not raw_mac.endswith("\n"):
+                    rf.write("\n")
             if raw_mac_work:
-                rf.write("=== MACMON RAW SAMPLES ===\n")
+                rf.write("=== MACMON WORKLOAD SAMPLES ===\n")
                 rf.write(raw_mac_work)
+                if not raw_mac_work.endswith("\n"):
+                    rf.write("\n")
+            if raw_pm:
+                rf.write("=== POWERMETRICS IDLE SAMPLES ===\n")
+                rf.write(raw_pm)
+                if not raw_pm.endswith("\n"):
+                    rf.write("\n")
             if raw_pm_work:
-                rf.write("\n=== POWERMETRICS RAW SAMPLES ===\n")
+                rf.write("=== POWERMETRICS WORKLOAD SAMPLES ===\n")
                 rf.write(raw_pm_work)
+                if not raw_pm_work.endswith("\n"):
+                    rf.write("\n")
 
-    # Parse workload power
-    work_pm, work_field_pm = parse_powermetrics_text(raw_pm_work) if raw_pm_work else ([], None)
-    work_mac, work_field_mac = parse_macmon_jsonl(raw_mac_work) if raw_mac_work else ([], None)
+    # Parse workload power and validate coverage
+    work_mac = []
+    work_mac_ts = []
+    work_field_mac = None
+    try:
+        if raw_mac_work:
+            work_mac, work_mac_ts, work_field_mac = parse_macmon_jsonl(raw_mac_work)
+            validate_timestamp_coverage(
+                work_mac_ts,
+                elapsed,
+                label="workload",
+                start_wall=t0_wall,
+                end_wall=t1_wall,
+            )
+
+        if raw_pm_work:
+            work_pm, work_field_pm = parse_powermetrics_text(raw_pm_work)
+            validate_powermetrics_coverage(work_pm, elapsed, args.interval_ms, label="workload")
+    except ValueError as e:
+        sys.exit(f"[energy_per_token] Sampler validation error: {e}")
 
     combined = (run.stdout or "") + (run.stderr or "")
     tokens = args.tokens if args.tokens else detect_tokens(combined)
