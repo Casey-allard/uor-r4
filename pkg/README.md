@@ -4,6 +4,14 @@ UOR-R4 is an experimental autoregressive geometric state model with exact addres
 
 **Status: pre-alpha research.** The repository contains working geometric primitives, bounded learned memory/composition experiments and natural-text training infrastructure. Sustained general prose, useful chat, general reasoning/coding, frontier capability and complete-task energy savings are not established. There is no single qualified artifact combining all implemented capabilities.
 
+**Current programme, September 28:** the recurrence-primary geometric stack is
+the main line; the older native model is retained as a baseline. Read the
+[current state](docs/integration/current-state.md) and
+[roadmap's leadership and restart packet](ROADMAP.md#lab-1-leadership-and-restart-packet)
+for the current lead, lane assignments and the S1/QAT, S4, memory/read and
+native-serving dependencies. Dated results below keep their original scope;
+none is an integrated useful-chat or energy qualification.
+
 **Active September 24 correction:** the [stuck-point assessment](docs/integration/stuck-point-review-response-2026-09-24.md) and [D8 ladder](docs/integration/project-track.md) move development from successive local discrete-selector fixes to a coherent Rust autodiff training path, a pinned working language reference, explicit discretization and the actual hard serving path. A4's four matched continuations still produce zero complete answers; they are retained evidence. The historical #1017 transformer is an offline comparator/possible teacher, while the target remains a native transformerless geometric model. The [current state](docs/integration/current-state.md) is now a short handoff with its complete prior history linked separately.
 
 **Retained rung 1, September 25:** the [joint recurrent-memory campaign](docs/integration/joint-recurrent-result-2026-09-25.md) completed 29,999,104 target visits per arm, including 21,381,120 with matched 256-token training/evaluation. Comparison-tail NLL is **2.110368** for quaternion, **2.085241** for the matched ordinary recurrent control, and **2.391786** for count/cache. The combined read/copy path materially contributes; loaded text is varied but semantically unreliable. The frozen rung 1 engineering gate is accepted. These are floating-point offline learners, with no geometric-advantage or integer-serving qualification. The subsequent quantized continuation is reported below.
@@ -20,9 +28,11 @@ For the live research position, read [current state](docs/integration/current-st
 
 ## Goal and serving contract
 
-The [fourth Codex research lab](.codex-lab/README.md) coordinates with Google,
+> **Historical since 2026-09-28.** The paragraph below describes the Codex lab, which is not part of the owner's three-lab charter; it is assigned no work and returns only by owner direction. See the [execution policy](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28). Results recorded in this section keep their exact scope.
+
+The [fourth Codex research lab](.codex-lab/README.md) coordinated with Google,
 OpenCode/DeepSeek/Kimi and Claude through shared GitHub issues and isolated
-worktrees. Its expert bench and source-review protocol serve the
+worktrees. Its expert bench and source-review protocol served the
 [adaptive roadmap](docs/integration/project-track.md#four-lab-research-programme--owner-direction-september-26):
 geometric attention, efficient inference, general prose, chat and reasoning.
 The lab has delivered an [offline radial reader control](docs/integration/radial-read-control-2026-09-26.md)
