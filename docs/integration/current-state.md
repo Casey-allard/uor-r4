@@ -3,7 +3,33 @@
 Updated September 29, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 
-## Current leadership, September 29
+## Active execution contract — durable labs, September 29
+
+The owner's current continuation is [the durable-lab plan](../labs/plan-2026-09-29.md)
+under [D14](DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance).
+Claude, Codex, Anti-Gravity and OpenCode/DeepSeek are available; any other lab may
+join. No provider is a permanent director. Live boards/claims own assignment and
+handoff; older leadership paragraphs below are historical. This documentation
+change makes no new model result or qualification claim.
+
+The immediate infrastructure dependency is restored-SSD recovery and verified
+admission ([#1520](https://github.com/UOR-Foundation/uor-r4/issues/1520), #1510).
+The runner/control-plane implementation and client adapters must be described
+by their execution receipt; their presence is not proof of deployment. Safe
+source engineering can continue in verified internal worktrees while affected
+heavy builds/model compute wait. Preserve live workers, unpushed source and all
+unique artifacts; recovery is not a license for blanket pruning or deletion.
+
+Scientific next work: finish A1/M-world v2 retrieval and the shared flock/copy
+interface; complete faithful S4/memory bundle integration; only then scale
+response learning. Track B #1518 awaits unchanged source-bound parity after the
+compiler/storage boundary is repaired; its uncompiled drafts and interrupted
+attempts establish no quality result. #1519 reports the completed E8 B3 negative
+and awaits review; do not repeat that run unchanged or treat it as family-wide
+disproof. [STATUS](../../STATUS.md) provides short navigation; GitHub carries the
+latest PR/incident state.
+
+## Historical leadership snapshot, September 29
 
 **Leadership.** Claude (Lab 1) resumed permanent project leadership on September 29 at 01:35 UTC, on the owner's direction.
 - Astra's temporary cover has ended and is [preserved as history](astra-temporary-cover-2026-09-28.md).

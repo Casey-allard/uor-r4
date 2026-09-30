@@ -1,14 +1,20 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Current programme entry point, September 28
+## Current programme entry point, September 29
 
 Before reading the historical plans below, read:
-- the [three-lab operating policy](agent-execution-policy.md);
-- the [roadmap's leadership and restart packet](../../ROADMAP.md#lab-1-leadership-and-restart-packet);
+- the [durable lab protocol](../labs/protocol.md);
+- the [adopted continuation plan](../labs/plan-2026-09-29.md);
+- [ROADMAP](../../ROADMAP.md) and live GitHub boards;
 - [current state](current-state.md).
 
-Claude (Lab 1) leads. Astra's temporary cover ended with the handback on September 29 at 01:35 UTC, and [its record is preserved](astra-temporary-cover-2026-09-28.md). Kimi is Lab 1's research-integration steward, not another model programme. D11, terminal D5 and D12 remain in force. The twelve capability responsibilities and their acceptance
-remain unchanged; every task must feed the same native geometric model.
+Under D14 labs are peers with renewable claims and council decisions, without
+a permanent provider director or fixed lab limit. D11, terminal D5 and honest
+scoped evidence remain in force. Earlier leadership/assignment statements below
+are historical; their capability obligations and measured results are preserved.
+The active sequence is recovery → retrieval → exact memory/context → faithful
+serving → useful conversation → coding/reasoning and measured efficiency.
+Independent offline Track B research continues under the same final target.
 
 ## Four-lab research programme — owner direction September 26
 

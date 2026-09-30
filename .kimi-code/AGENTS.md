@@ -1,5 +1,13 @@
 # UOR-R4 lead workflow for Kimi Code
 
+**Current September 29 entry:** the [shared protocol](../docs/labs/protocol.md)
+and [joining goal](../docs/labs/prompts/join.md) govern every client. For the
+current OpenCode/DeepSeek lab use [its full goal](../docs/labs/prompts/opencode-deepseek.md).
+Older temporary/permanent lead, fixed-provider, fixed-lab and “ask Proceed again”
+rules below are historical wherever superseded by D14. Existing tool configuration
+is not permission to change paid providers. Recover actual tools/claims/jobs and
+the SSD incident before work; no new model compute on an unverified restored path.
+
 **Mandatory owner correction, September 25:** apply [progress control](../docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25) before model compute. The active context/access contract is in `docs/integration/current-state.md`. Use one existing-issue work card, require new causal evidence for repeats, and end validation once the current deliverable's declared risks are resolved. Do not substitute more tests for an integrated implementation. Recent64 training is withdrawn; preserve the accepted full-256 baseline.
 
 Read the [research-leader handoff](../docs/integration/research-leader-handoff-2026-09-23.md) at the start of a substantial run. It connects the historical artifact families, current blocker, conditional mathematics and durable-memory method; refresh every changing fact from `current-state.md` and the live repository.

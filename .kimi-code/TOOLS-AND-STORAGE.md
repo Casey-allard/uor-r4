@@ -1,5 +1,11 @@
 # Tools, GitHub and local storage runbook
 
+**Current authority, September 29:** the [operations guide](../docs/labs/operations.md)
+owns admission, SSD recovery and cleanup. Verify mount identity and client
+capabilities; paths below are recovery clues. Preserve unique artifacts and live
+workers. The [shared protocol](../docs/labs/protocol.md) owns GitHub/council/delivery;
+contradictory provider-specific and repeated-approval rules are historical.
+
 This is operational guidance for the Kimi team. Root `AGENTS.md` and the live protected repository override it. The lead should use a tool because it answers a specific research or delivery question, not because it is installed.
 
 | Need | Tool and use | Trust boundary |

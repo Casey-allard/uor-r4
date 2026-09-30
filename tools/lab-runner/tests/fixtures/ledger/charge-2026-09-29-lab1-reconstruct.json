@@ -1,0 +1,10 @@
+{
+  "schema": "uor-r4.model-time-charge/1",
+  "recorded_utc": "2026-09-29T20:05:25Z",
+  "lab": "Lab 1 (Claude, lead) reconstruction",
+  "reason": "model-time.json was overwritten at 14:24 UTC from a stale read (limit 780M, cumulative 768,447,701), dropping Lab 1 extension-2026-09-29-lab1-stage1 (limit 820M) and its 2,495,630 ms catch-up charge. This record restores that charge and charges work sealed since: Lab 1 R1 (fit 12:15:07-13:11:51 = 3,404 s; evaluations r1-dev-1 130.5 s, r1-train-1 128.4 s; baselines dev-1 697.5, train-1 974.5, dev-2 982.9, train-2 428.0 s; corpora 6.2 s; arma-route-1 92.6 s) and, on Lab 2 behalf from sealed roots, opencode-g2 keys-1 2,383.8 s, decode-1 541.4 s, keys-9 1,682.5 s, keys-11 142.6 s (failed attempts not included; Lab 2 adds them).",
+  "base_read_cumulative_ms": 768447701,
+  "restored_lost_catch_up_ms": 2495630,
+  "lab1_r1_ms": 6844600,
+  "lab2_g2_sealed_ms": 4750250
+}

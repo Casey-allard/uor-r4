@@ -1,5 +1,10 @@
 # Frontier research decision protocol
 
+**Shared authority:** [D14's lab protocol](../docs/labs/protocol.md) now owns
+council, delegation, prospective constraint changes and continuation. This
+document retains useful Socratic/evidence methods; older provider/leader or
+renewed-owner-permission rules cannot override the shared contract.
+
 **Mandatory owner correction, September 25:** apply [progress control](../docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25) before model compute. The active context/access contract is in `docs/integration/current-state.md`. Use one existing-issue work card, require new causal evidence for repeats, and end validation once the current deliverable's declared risks are resolved. Do not substitute more tests for an integrated implementation. Recent64 training is withdrawn; preserve the accepted full-256 baseline.
 
 The unit of work is one **coherent milestone** in the shared native model, not a timer, a fixed number of retries, or a fresh architectural survey. Start from the live roadmap/current state, prior best artifact and its failures. Ask Socratically: What capability is missing? What information can the model actually observe? What assumptions create the proposed mechanism's advantage? What simpler mechanism could do the same job? What observation would distinguish them? Which observation would be ambiguous because of instrumentation, data, optimization or loss denominator? Use first-principles derivation and primary literature to sharpen the question, then build the cheapest test that can change a real decision.

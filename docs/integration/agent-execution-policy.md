@@ -1,12 +1,47 @@
 # Native geometric AI execution policy
 
 The owner-directed mode is `native_geometric_ai`. The
-[project plan](project-track.md) owns the goal and deliverables;
-[current-state.md](current-state.md) owns the current implementation pointer.
-The [machine policy](agent-execution-policy.json) captures stable invariants,
-not a hardcoded stage order or copies of roadmap prose.
+[current continuation plan](../labs/plan-2026-09-29.md) orders the work;
+[project-track.md](project-track.md) retains capability responsibilities and
+historical ladders; [current-state.md](current-state.md) owns measured results.
+The [machine policy](agent-execution-policy.json) captures stable invariants.
+
+## Durable autonomous labs — current owner charter, September 29
+
+[D14](DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance) adopts
+the [shared protocol](../labs/protocol.md) and [operations guide](../labs/operations.md)
+for all clients. They supersede the organization, fixed director/provider rules,
+merge classes, machine scheduling and handoff rules in the historical section
+below. Scientific evidence keeps its original scope; D11/D5 and the remaining
+stable invariants are unchanged.
+
+GitHub `main` owns accepted source/decisions; issues/PRs own proposals and live
+activity; atomic coordination records own current lab/task leases. Any number of
+labs may join. Work is assigned through renewable claims, with a five-minute
+heartbeat, twenty-minute lease and thirty-minute recoverable checkpoint. An
+expired claim never authorizes killing or duplicating a verified live worker.
+
+Shared decisions use three council seats, at least two non-authors and two
+recorded votes. The council may prospectively amend working policy and research
+constraints with reasons, evidence, impact and rollback. It cannot change the
+mission, falsify/retroactively weaken evidence, delete unique material or
+authorize paid external spend. Necessary local budget extensions remain
+preauthorized with prospective cumulative accounting. Reuse valid independent
+reviews and choose reruns by risk/provenance, not provider identity.
+
+Delivery uses exact-head independent review, a coordinator receipt and the
+protected merge queue. The server-required gate is effective only after the
+administrator enables and verifies it; until then report procedural enforcement.
+No direct main push, protection bypass or shared force-push. Runner/client
+installation and recovery remain separately observed statuses, not implications
+of a policy document. Use issue #1520's live recovery status before SSD work.
 
 ## Three-lab organization and shared operating policy (owner charter, 2026-09-28)
+
+> **Historical record, superseded operationally by D14 above.** This entire
+> section, ending before “Architecture and scope”, records the September 28
+> charter. Its permanent lead, fixed lab roster and provider-specific gates are
+> not current instructions. Preserve it for decision history.
 
 This section is the **single shared operating policy for every lab**. The labs' standing prompts restate it; they do not replace it. Where a prompt and this file disagree, this file on `main` wins until a protected PR changes it, except against a newer explicit owner instruction. Lab 1 records such an instruction here by protected PR. The owner's charter is recorded verbatim in [three-lab-charter-2026-09-28.md](three-lab-charter-2026-09-28.md).
 

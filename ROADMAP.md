@@ -1,6 +1,34 @@
 # UOR-R4 Geometric Language Model — multi-lab roadmap
 
-**Director:** Claude (Lab 1). **Updated:** 2026-09-29 11:37 UTC. This file owns lab
+## Current programme — durable labs, September 29
+
+The [adopted continuation plan](docs/labs/plan-2026-09-29.md) orders scientific
+work; the [shared protocol](docs/labs/protocol.md) governs every lab; and
+[operations](docs/labs/operations.md) governs host admission, cleanup and recovery.
+[D14](docs/integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance)
+supersedes fixed director/lab-count and provider-specific workflow rules.
+
+The ready-work graph is recovery/control plane (#1510/#1520), native retrieval
+and integrated chat (#1508), and independent offline conversion research (#1509).
+The scientific ladder is retrieval → exact memory/context → faithful integer
+serving → useful conversation → executable coding/reasoning and measured laptop
+efficiency. Mission D11/D5 is unchanged. Preserve accepted artifacts and scoped
+negative results; prospective council corrections do not change old verdicts.
+
+Initial four-lab claims are Claude/A1, DeepSeek/shared read and addressing,
+Anti-Gravity/fidelity and kernels, and Codex/recovery plus Track B parity.
+Refresh live boards #1511–#1515 before taking work. No board is a permanent
+monopoly; the former Kimi steward obligations are recoverable by available labs.
+Use the [joining packet](docs/labs/prompts/join.md) for additional labs.
+
+Below is the preserved earlier roadmap. Its dated “next”, fixed leadership and
+operating rules are **historical wherever superseded above**; source/evidence
+links and unmet capability obligations remain useful. No broad documentation
+move or deletion is needed to recover that history.
+
+## Historical roadmap snapshot
+
+**Historical director:** Claude (Lab 1). **Updated:** 2026-09-29 11:37 UTC. This file owned lab
 assignments, track status, the dead-path register and the cross-lab protocol. Measured
 results and retained artifacts live in [current state](docs/integration/current-state.md).
 Ordered responsibilities and acceptance live in the [canonical plan](docs/integration/project-track.md).

@@ -14,8 +14,8 @@ measured position of every active line of work.
 ## Approach
 
 The work runs on two tracks that share one set of geometric mechanisms. The
-[plan of record](docs/plans/2026-09-29-path-to-chat.md) sets their gates, kill
-criteria and owners.
+[continuation plan](docs/labs/plan-2026-09-29.md) sets their dependencies and
+evidence gates.
 
 - **Track A: a native geometric chat model.** A small (≤ 30M parameter) model,
   trained from scratch and served without floating point or a hardware
@@ -24,7 +24,7 @@ criteria and owners.
 - **Track B: geometric conversion of pretrained transformers.** Distill open
   models (SmolLM2 135M → 360M → 1.7B) into a geometric runtime, and measure the
   quality gap to the teacher and the bytes and operations per token.
-  - It is approved in the plan of record (D13 pending).
+  - It is approved in D13 and continues under D14's shared workflow.
   - Under D11 the source transformers stay offline teachers and comparators.
   - A converted model is served only if it meets D11.
 
@@ -32,10 +32,10 @@ The four geometric mechanisms under test:
 
 | Mechanism | Idea | Status |
 | --- | --- | --- |
-| Flock attention | Each query reads a sink, a local window and its *k* nearest keys, as starlings track about seven neighbors. Rank-table weights; k = 1 is an exact copy | Being built (A1, B0) |
+| Flock attention | Each query selects a sink, a local window and its *k* nearest keys. A pointer/copy path must separately preserve the selected payload | Being built (A1, B0) |
 | Spherical-harmonic attention | Harmonic features of normalized queries and keys give a fixed-size recurrent state | Planned (B2) |
 | Quaternion / 2I transport | Recurrent state carried by unit quaternions, snapped to the 120-element binary icosahedral group | Trained into the main-line model; D11 kernel in review |
-| E8 / 2I lattice codes | Weights stored as lattice codewords and read by table lookup | Weight coding planned (B3); earlier E8 codec arms lost to 4-bit rounding |
+| E8 / 2I lattice codes | Weights stored as lattice codewords and read by table lookup | B3 has a reported negative awaiting review; the geometric toolbox is preserved |
 
 A geometric mechanism stays when it is within 0.02 nats of its ordinary matrix
 equivalent. The rule was set by the owner on 29 September and is judged on
@@ -47,7 +47,7 @@ paired arms with at least two seeds.
   interleaves quaternion-transport recurrence layers (`r`) and multi-head reads
   with a Lorentz or dot score (`a`). A SwiGLU MLP follows each layer. An
   ordinary transformer control runs on the same kernels.
-- **Memory:** an exact, addressed store keyed by prime identities (AERM). It
+- **Memory:** an exact, addressed store with entity/relation token keys (AERM). It
   exists today as a probe, is not yet in the served model, and becomes an index
   into an exact log of the conversation.
 - **Serving (D11):** the integer engine ([`uor-r4-integer`](crates/uor-r4-integer/README.md))
@@ -55,7 +55,8 @@ paired arms with at least two seeds.
   floating point, no multiply or divide instruction, and an instruction-level
   audit of the binary.
   - Every weight is still read for every token.
-  - The one whole-system energy measurement was 4.3× worse than float.
+  - A measured product-table emulator used 4.3× the energy of its float comparator;
+    no general energy advantage is established.
 - **Training:** offline in Rust (Candle), with floating point allowed.
   Quantization-aware training reads exactly the values the export writes.
 
@@ -96,14 +97,15 @@ cargo test -p uor-r4-training --lib geometric_stack
 
 ## How the work is run
 
-Five labs work in parallel. Each is an AI research agent with its own GitHub
-board, and the owner holds the mission, spending and final decisions.
+Any number of labs may join and leave, using GitHub for durable work and evidence.
+Renewable claims and an independent council replace a permanent provider lead.
+The owner retains the mission, evidence, unique-data and spending boundaries.
 
-- [Plan of record](docs/plans/2026-09-29-path-to-chat.md): tracks,
-  experiments, gates, kill criteria, owners and the anti-stall rules.
+- [Lab entry and extended goals](docs/labs/README.md): the shared workflow,
+  continuation plan, resource cadence, recovery and client instructions.
 - [STATUS.md](STATUS.md): one row per lab, with the current item and the latest result.
-- [ROADMAP.md](ROADMAP.md): assignments, the dead-path register and the cross-lab protocol.
-- [DECISIONS.md](docs/integration/DECISIONS.md): owner decisions.
+- [ROADMAP.md](ROADMAP.md): active dependencies and preserved historical plans.
+- [DECISIONS.md](docs/integration/DECISIONS.md): owner and delegated council decisions.
 - [Current state](docs/integration/current-state.md): measured results and artifacts.
 - The [programme tracker #820](https://github.com/UOR-Foundation/uor-r4/issues/820)
   and epics [#1508](https://github.com/UOR-Foundation/uor-r4/issues/1508) (Track A),
@@ -112,8 +114,8 @@ board, and the owner holds the mission, spending and final decisions.
 - [AGENTS.md](AGENTS.md): the operating rules for every contributor and agent.
 
 **Evidence rules.**
-- Numbers come from committed code run into sealed report directories. A lab's
-  own figure is labeled self-reported until a non-author re-runs it.
+- Numbers come from committed code run into sealed report directories. Label
+  self-reported, independently read and independently rerun evidence separately.
 - Experiments are pre-registered with a gate and a kill criterion. A kill ends
   an experiment, not a mechanism family (D12).
 - Negative results keep their exact scope.

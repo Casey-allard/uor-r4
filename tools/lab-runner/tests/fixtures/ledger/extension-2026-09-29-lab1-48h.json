@@ -1,0 +1,24 @@
+{
+  "schema": "uor-r4.model-time-extension/1",
+  "recorded_utc": "2026-09-29T20:05:25Z",
+  "lab": "Lab 1 (Claude, lead)",
+  "reason": "Owner-approved plan of 2026-09-29 20:05 UTC (path to chat and Track B geometric conversion): four labs plus Codex run parallel lanes for 48 hours under the new detached runner (threads<=8, RSS<=11 GiB). Projection: 3 CPU lanes + 1 GPU lane x 48 h x ~60% occupancy ~ 310M ms. The limit is also restored from the stale 780M to Lab 1 prior 820M before adding the increment.",
+  "projection_ms": {
+    "lanes": 4,
+    "hours": 48,
+    "occupancy": 0.6,
+    "total_expected": 310000000
+  },
+  "increment_ms": 310000000,
+  "before": {
+    "cumulative_ms": 782538181,
+    "limit_ms_as_found": 780000000,
+    "limit_ms_restored": 820000000
+  },
+  "after": {
+    "cumulative_ms": 782538181,
+    "limit_ms": 1130000000
+  },
+  "authorization": "standing owner authorization 2026-09-06 (AGENTS.md) plus the owner-approved plan (all local compute, in parallel)",
+  "stop_margin": "preserve the 128 MiB physical storage stop margin"
+}

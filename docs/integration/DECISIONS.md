@@ -1,7 +1,10 @@
 # DECISIONS
 
-Append-only. Each entry is an owner decision with its rationale and scope.
-Agents may draft entries; only the owner ratifies them.
+Append-only. Each entry records its authority, rationale and scope. D0–D13
+record owner direction. Under D14 the owner delegates prospective working-policy
+decisions to the recorded council; immutable mission, evidence, unique-data and
+spending boundaries still require owner direction. Preserve original decisions
+and mark supersession explicitly rather than rewriting historical outcomes.
 
 ---
 
@@ -460,3 +463,96 @@ Context. Near misses on one configuration of mechanisms still under construction
    > leave closed mechanisms that demonstrated real geometric capabilities that are absent from the rest of our mechanisms so that we have their tools and pieces available to fix other problems later - use your context and project understanding synthesis to evaluate them and their novelty
 
    Lab 1 keeps such mechanisms' code building and documented, with their demonstrated capability, novelty and reuse points, in the [geometric toolbox](geometric-toolbox-2026-09-28.md).
+
+---
+
+## D13 — Record the September 29 two-track owner plan
+
+Authority: the owner's approval recorded in the
+[September 29 plan of record](../plans/2026-09-29-path-to-chat.md), delivered by
+[#1507](https://github.com/UOR-Foundation/uor-r4/pull/1507). This entry records that
+existing ratification; it does not assert that the planned council, experiments,
+runner, cleanup or integrations subsequently completed.
+
+The approved scientific programme has two tracks: native geometric chat with
+retrieval before scale, and offline geometric conversion/distillation of local
+open-weight teachers. Four candidate mechanisms are flock selection, harmonic
+features, quaternion/2I transport and lattice weight codes. Track B's source
+transformers remain offline teachers/comparators until an actual converted
+runtime satisfies D11. The exact persisted conversation log is the durable
+memory; learned/prime addresses index it. Context is malleable with separately
+declared learning, evaluation, access and state dimensions.
+
+The initial retention rule uses paired geometric/ordinary arms, at least two
+seeds, and 0.02 nats or 0.03 accuracy tolerance. Staged measured parity and later
+prospective amendments follow D14; prior one-seed evidence retains its original
+scope. Instruction qualification uses new wordings of trained instruction types.
+Local teacher work and local CPU/GPU compute are allowed within measured host
+and cumulative budgets; paid/external compute is not adopted.
+
+The plan authorized GitHub lab boards and two-hour notice for cleanup of
+validated regenerable caches/clean merged worktrees, while unique data remains
+protected. Its permanent lead, fixed roster, rigid working rules and provisional
+assignment order are superseded by D14. Its “kill” terminology terminates a
+declared run/advancement decision, not the existence of a mechanism family.
+Unfinished work and historical results remain recorded at their exact scope.
+
+## D14 — Durable autonomous labs and correctable governance
+
+Authority: direct owner instructions in the September 29 durable-lab planning
+and implementation session. The owner requested GitHub as source of truth,
+unlimited joining/returning labs, continuation after token loss, SSD/session
+repair, resource hygiene, extended standing goals, expert/adversarial research
+and broad council authority to correct working restrictions. Subsequent owner
+choices fixed the council and cadences below and authorized implementation and
+dispatch. This entry does not claim those mechanisms are already deployed.
+
+1. **GitHub and recoverability.** Protected main holds accepted source, decisions
+   and research. Issues/PRs hold live work and proposals; atomic coordination
+   records hold lab/task leases. Local memory/search indexes are derived views.
+   Every lab publishes completed work, source/evidence identities, limitations,
+   costs and the next dependency. No chat is indispensable project memory.
+2. **Unlimited peer labs.** Labs may join, disappear and return; Claude, Codex,
+   Anti-Gravity and OpenCode/DeepSeek are currently available. No permanent
+   provider director, fixed lab cap or special-provider review monopoly remains.
+   Task ownership is a renewable claim; machine admission bounds concurrent
+   jobs. Older lead/roster statements are preserved as historical instructions.
+3. **Council discretion.** Consequential shared architecture, interface,
+   promotion and policy changes use three seats, at least two non-author seats,
+   and two recorded votes on an identified proposal revision. The council may
+   prospectively change working constraints, research methods, schedules,
+   evaluation design and priority with evidence, explicit objections, impact,
+   budget and rollback. The mission and D11/D5 final-runtime target, honest
+   evidence, preservation of unique material and paid/external spending remain
+   owner boundaries. No vote retroactively converts a failed result to a pass.
+4. **Staged research.** Use source-bound smoke, measured development parity,
+   paired candidate gates and separate final qualification. Keep context/access
+   contracts explicit. Gates govern promotion at their tested scope; retries
+   need new causal evidence. Preserve useful geometric pieces and history.
+   Cheap agents handle routine work; independent experts address consequential
+   mathematics, learning, systems and evidence questions. No repeated broad
+   audit or ceremonial test/review campaign is a default requirement.
+5. **Cadence and failover.** Active heartbeats every five minutes, twenty-minute
+   claims, recoverable checkpoints every thirty minutes and before quota/context/
+   connection boundaries. Expired leases are suspect, not proof a worker died.
+   Verify process/job/source identity before adoption; preserve live jobs and
+   unique/unpushed work. Blocked labs advance independent ready dependencies.
+6. **Resource stewardship.** Use verified durable runner admission, an
+   append-only cumulative ledger and actual host/volume identity. Necessary
+   local budget extensions remain prospectively recordable under standing
+   authority. Two-hour notice plus revalidation precedes removal of manifested
+   regenerable caches or clean merged worktrees. Unique material is not routine
+   cleanup. Separate disk headroom, RAM/unified memory and paid compute.
+7. **Protected delivery.** Exact-head independent review and a delivery
+   coordinator precede the merge queue. Shared-policy changes use council
+   authority unless they cross an owner boundary. A required server check is
+   adopted as the target enforcement mechanism; until administrator setup and
+   a real smoke verify it, report procedural enforcement only. Shared-account
+   review provenance remains explicit. No direct main, admin bypass or shared
+   force-push. Verify delivered changes; close only completed acceptance.
+8. **Portable clients.** The [lab protocol](../labs/protocol.md),
+   [operations](../labs/operations.md), [plan](../labs/plan-2026-09-29.md) and
+   [extended goals](../labs/README.md) implement this charter. Adapters identify
+   manual/unavailable/unverified capabilities. A prompt cannot keep an offline
+   model reasoning; durable submitted jobs and recoverable records bridge that
+   gap. README remains a professional overview rather than an activity stream.

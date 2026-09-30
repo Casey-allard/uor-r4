@@ -1,0 +1,35 @@
+{
+  "schema": "uor-r4.model-time-extension/1",
+  "recorded_utc": "2026-09-28T17:39:00.460515+00:00",
+  "lab": "Lab 1 (Claude main)",
+  "reason": "Prospective extension before Lab 1's S2 (first dialogue-trained stack: 2,237 LM + 1,024 response updates on chat-v0, then export and integer replies) and the QAT validation fine-tune (owner-approved 2026-09-28 17:00 UTC). Lab 1 first charges its model work of 2026-09-28 not yet on this ledger (wall seconds per job, listed in catch_up; any duplicate of an earlier charge would overstate, not understate, cost). Without the extension the ledger would cross its limit during S2.",
+  "catch_up_charged_now_ms": 11628000,
+  "catch_up": {
+    "t4_1433_fit_resume_s": 3841,
+    "t4_1433_endpoints_s": 164,
+    "d2_attempt1_void_s": 210,
+    "d2_attempt2_s": 5887,
+    "s1_0_rtn_export_eval_s": 195,
+    "s1_0_gptq_export_eval_s": 200,
+    "s1_0b_snap_three_models_s": 139,
+    "s1_0c_attribution_two_exports_s": 882,
+    "s2_smokes_lm_and_dialogue_s": 110
+  },
+  "projection": {
+    "s2_max_ms": 10800000,
+    "qat_validation_max_ms": 7200000,
+    "concurrent_cross_lab_ms_expected": 5000000,
+    "total_expected": 23000000
+  },
+  "increment_ms": 24000000,
+  "before": {
+    "cumulative_ms": 738711698,
+    "limit_ms": 756000000
+  },
+  "after": {
+    "cumulative_ms": 750339698,
+    "limit_ms": 780000000
+  },
+  "authorization": "standing owner authorization 2026-09-06 (AGENTS.md): necessary local model/time/storage extensions preauthorized; projection, reason, increment and updated limit recorded before use",
+  "stop_margin": "preserve the 128 MiB physical storage stop margin; stop work if cumulative approaches the updated limit"
+}

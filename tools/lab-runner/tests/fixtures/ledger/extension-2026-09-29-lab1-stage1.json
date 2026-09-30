@@ -1,0 +1,39 @@
+{
+  "schema": "uor-r4.model-time-extension/1",
+  "recorded_utc": "2026-09-29T10:27:46Z",
+  "lab": "Lab 1 (Claude, project lead)",
+  "reason": "Prospective extension for Stage 1 of the milestone plan (ROADMAP restart packet, 2026-09-29): one decisive experiment per open risk, run in parallel by four labs (DeepSeek G v2 frozen-trunk probe; Anti-Gravity QAT on geometric_s1 and S2; Lab 1 R1 responsiveness fit; Kimi S1.4/S1.2 checks). Without it the ledger crosses its limit during Stage 1. Lab 1 first charges its uncharged evaluation work of 2026-09-29 (sealed roots under claude-prime-route, wall seconds per root).",
+  "catch_up_charged_now_ms": 2495630,
+  "catch_up_s": {
+    "eval-1": 281.271,
+    "eval-2": 545.137,
+    "eval-3": 373.768,
+    "eval-4": 555.495,
+    "rerun-independent-1": 360.321,
+    "memory-replies-1": 26.479,
+    "binding-eval-1": 160.104,
+    "text-registers-1": 59.075,
+    "armc-route-1": 69.974,
+    "armc-memory-replies-1": 3.830,
+    "text-registers-2": 60.192
+  },
+  "projection_ms": {
+    "deepseek_gate_and_g2_probe": 7200000,
+    "antigravity_qat_geometric_s1_two_arms_and_s2": 18000000,
+    "lab1_r1_responsiveness_fit_and_evals": 10800000,
+    "kimi_s1_4_s1_2_checks_and_timing": 3600000,
+    "total_expected": 39600000
+  },
+  "increment_ms": 40000000,
+  "before": {
+    "cumulative_ms": 758981701,
+    "limit_ms": 780000000
+  },
+  "after": {
+    "cumulative_ms": 761477331,
+    "limit_ms": 820000000
+  },
+  "authorization": "standing owner authorization 2026-09-06 (AGENTS.md): necessary local model/time/storage extensions preauthorized; projection, reason, increment and updated limit recorded before use",
+  "not_covered": "the milestone final fit (Stage 3) is projected separately at its pre-registration",
+  "stop_margin": "preserve the 128 MiB physical storage stop margin; stop work if cumulative approaches the updated limit"
+}

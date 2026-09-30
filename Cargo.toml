@@ -19,6 +19,7 @@ members = [
     "crates/repo-conformance",
     "crates/uor-r4-naf",
     "xtask",
+    "tools/lab-runner",
 ]
 default-members = [
     ".",

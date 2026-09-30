@@ -1,0 +1,20 @@
+{
+  "schema": "uor-r4.model-time-extension/1",
+  "recorded_utc": "2026-09-27T21:11:07.310016+00:00",
+  "reason": "Prospective extension before the read-side localization milestone (state/read path). The shared ledger was within 9.42M ms of its limit; this milestone is projected at <=2.5 h elapsed (<=9M ms, model compute only minutes) and concurrent cross-lab consumption at the recently measured rate (~2.1M ms/h) is expected to add ~5M ms during it. Without the extension the programme would cross the ceiling mid-milestone through other labs' charges.",
+  "projection": {
+    "milestone_ms_max": 9000000,
+    "concurrent_cross_lab_ms_expected": 5000000,
+    "total_expected": 14000000
+  },
+  "increment_ms": 12000000,
+  "before": {
+    "cumulative_ms": 734583247,
+    "limit_ms": 744000000
+  },
+  "after": {
+    "cumulative_ms": 734583247,
+    "limit_ms": 756000000
+  },
+  "stop_margin": "preserve the 128 MiB physical storage stop margin; stop work if cumulative approaches the updated limit"
+}

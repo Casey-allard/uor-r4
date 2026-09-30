@@ -1,5 +1,11 @@
 # One-window UOR-R4 research team
 
+**Current authority, September 29:** use the [shared lab protocol](../docs/labs/protocol.md)
+and [client adapter contract](../docs/labs/adapters.md). The specialist roles
+below are reusable options, not a permanent provider hierarchy. Declare actual
+tool availability and use current claims/budgets. Contradictory fixed-leader,
+fixed-lab and renewed-approval rules below are historical under D14.
+
 DeepSeek V4.1 Flash High is the economical day-to-day lead in Kimi Desktop. It owns live-state recovery, experiment coordination, implementation, integration and truthful handoff. Per the owner’s September 25 cost direction, `DeepSeek/deepseek-flash` is the default for every specialist, including `uor-architect-reviewer` for difficult mathematics, structural mechanisms, roadmap pivots and disputed claims. Start a Kimi/Moonshot review only after a new explicit owner request. Independent evidence review remains required where warranted; an expensive second provider is not a prerequisite. A second model opinion is not proof. The owner retains strategic authority, and Codex remains the returning principal investigator who should revisit major pivots.
 
 The lead should not launch every role on every turn. A healthy research run has three dependency waves:

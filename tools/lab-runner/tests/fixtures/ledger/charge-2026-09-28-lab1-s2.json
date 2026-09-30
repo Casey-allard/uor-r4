@@ -1,0 +1,15 @@
+{
+  "schema": "uor-r4.model-time-charge/1",
+  "recorded_utc": "2026-09-28T20:24:46.930406+00:00",
+  "lab": "Lab 1 (Claude main)",
+  "work": "S2 dialogue stack baseline (lm-1, dialogue-1, export-1, chat-1), supervision wall seconds 6323",
+  "charged_ms": 6323000,
+  "before": {
+    "cumulative_ms": 750339698,
+    "limit_ms": 780000000
+  },
+  "after": {
+    "cumulative_ms": 756662698,
+    "limit_ms": 780000000
+  }
+}

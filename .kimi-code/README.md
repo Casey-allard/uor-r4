@@ -1,5 +1,13 @@
 # Kimi Code workspace for UOR-R4
 
+**Current entry:** [docs/labs](../docs/labs/README.md) and the
+[joining goal](../docs/labs/prompts/join.md) supersede the dated leadership and
+one-milestone stopping workflow below. A returning Kimi session declares its
+capabilities and claims ready work as a peer; OpenCode/DeepSeek uses
+[its current goal](../docs/labs/prompts/opencode-deepseek.md). Do not assume the
+old absolute workspace paths survived SSD restoration. Technical tool/history
+details below are retained for recovery, not proof of current availability.
+
 The [research-leader handoff](../docs/integration/research-leader-handoff-2026-09-23.md) is the long-horizon project map for the temporary lead. Read it with the live state and owner decisions; it is not a frozen run script.
 
 Open `/Users/casey.allard/uor-r4-kimi` as the Kimi Desktop project. The repository-root `AGENTS.md` is primary; `.kimi-code/AGENTS.md` gives the lead workflow, `.kimi-code/TEAM.md` defines the team and handoff, `.kimi-code/RESEARCH-PROTOCOL.md` defines the Socratic evidence and negative-result scope, and `.kimi-code/TOOLS-AND-STORAGE.md` routes tools, GitHub and safe cleanup. DeepSeek Flash is the default main/subagent model, including `uor-architect-reviewer`, under the owner’s September 25 cost direction. Kimi/Moonshot requires a new explicit owner request. Kimi discovers the specialist roles in `.kimi-code/agents/`. Their contexts are isolated, so every delegation needs an explicit source/artifact/task packet. Review roles have constrained tools; the implementer works only on assigned files.

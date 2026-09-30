@@ -92,7 +92,29 @@
         "local_accelerator",
         "compilation",
         "preparation_and_orchestration"
-      ]
+      ],
+      "cleanup_notice_seconds": 7200,
+      "production_runner_requires_host_policy": true,
+      "test_mode_allowed_on_production": false,
+      "storage_watermarks_gib": {
+        "internal": {
+          "target": 60,
+          "warning": 40,
+          "stop": 25
+        },
+        "inner_workspace": {
+          "target": 120,
+          "warning": 60,
+          "stop": 30
+        },
+        "outer_ssd": {
+          "target": 240,
+          "warning": 120,
+          "stop": 60
+        }
+      },
+      "track_b_trace_reserve_gib": 30,
+      "absolute_storage_stop_margin_mib": 128
     },
     "prohibited": [
       "blind_unchanged_failure_retries",
@@ -105,7 +127,7 @@
     "progress_control": {
       "required_before_model_compute": true,
       "authority": "docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25",
-      "active_contract": "docs/integration/current-state.md#active-execution-contract",
+      "active_contract": "docs/integration/current-state.md#active-execution-contract--durable-labs-september-29",
       "record": "one_short_work_card_in_existing_active_issue_or_current_state",
       "work_card": [
         "integrated_deliverable",
@@ -133,7 +155,7 @@
         "data_window",
         "artifact_lineage"
       ],
-      "owner_fixed_contract_change": "requires_owner_direction_before_execution",
+      "owner_fixed_contract_change": "council_may_change_working_contract_prospectively_owner_direction_required_for_immutable_boundaries",
       "new_check_requires": "named_unresolved_risk_to_current_deliverable_measurement_or_applicable_contract",
       "verification_exit": "stop_when_declared_risks_are_resolved",
       "sound_failure_without_new_cause": "preserve_result_and_accepted_artifact_park_branch_advance_independent_implementation",
@@ -152,10 +174,12 @@
     "canonical_plan": "docs/integration/project-track.md",
     "current_state": "docs/integration/current-state.md",
     "status": "development_no_alpha_claim",
-    "direction": "docs/integration/model-direction-2026-09.md"
+    "direction": "docs/integration/model-direction-2026-09.md",
+    "active_continuation_plan": "docs/labs/plan-2026-09-29.md",
+    "lab_entry": "docs/labs/README.md"
   },
   "research": {
-    "broad_mapping_default": "deferred_until_release_candidate",
+    "broad_mapping_default": "reuse_existing_history_and_source_audits_expand_only_for_a_decision_relevant_unknown",
     "consultation": "on_demand_for_a_concrete_active_implementation_question",
     "core_architecture": "prime_zeta_r4_s3_h4_and_uor_are_primary_not_optional_donors",
     "external_sources": [
@@ -164,7 +188,8 @@
       "w33",
       "nemesis"
     ],
-    "transfer_rule": "original_source_inspection_and_direct_uor_measurement_required_before_capability_claim"
+    "transfer_rule": "original_source_inspection_and_direct_uor_measurement_required_before_capability_claim",
+    "council_policy": "docs/labs/protocol.md#socratic-research-and-the-council"
   },
   "routine_artifacts": {
     "not_default_before_release_candidate": [
@@ -185,72 +210,66 @@
       "concise_limit_and_next_action"
     ]
   },
-  "schema": "uor-r4.agent-execution-policy/5",
+  "schema": "uor-r4.agent-execution-policy/6",
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,
     "type": "isolated_full_git_worktree"
   },
   "organization": {
-    "authority": "docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28",
-    "owner": "mission_strategic_authority_hard_constraints_ratification_of_decisions_organization_lanes_merge_criteria_spending_destructive_actions",
-    "labs": {
-      "lab1_claude_main": [
-        "roadmap",
-        "architecture",
-        "mathematical_decisions",
-        "shared_interfaces",
-        "promotion",
-        "integrated_artifact_contract",
-        "learner_dialogue_conditioning_learning_objectives",
-        "persistent_memory",
-        "complete_response_path",
-        "stack_writer_loader_integer_forward",
-        "qat_hook_and_validation_fine_tune"
-      ],
-      "lab2_opencode": [
-        "geometric_read_address_research",
-        "integration_ready_read_implementation_behind_read_interface"
-      ],
-      "lab3_anti_gravity": [
-        "numerical_fidelity",
-        "codecs_and_training_aware_discretization",
-        "kernels",
-        "execution_audits",
-        "measured_local_cost"
-      ]
+    "authority": "docs/labs/protocol.md",
+    "owner_boundaries": [
+      "mission_and_D11_D5_final_runtime_target",
+      "evidence_integrity",
+      "unique_material_preservation",
+      "paid_external_spending"
+    ],
+    "lab_count_limit": null,
+    "permanent_provider_director": false,
+    "currently_available": [
+      "claude",
+      "codex",
+      "anti_gravity",
+      "opencode_deepseek"
+    ],
+    "claims": "renewable_atomic_git_coordination",
+    "heartbeat_seconds": 300,
+    "lease_seconds": 1200,
+    "checkpoint_seconds": 1800,
+    "council": {
+      "seats": 3,
+      "minimum_non_author_seats": 2,
+      "approval_votes": 2,
+      "authority": "prospective_shared_working_policy_architecture_interfaces_priorities_and_promotion",
+      "record_required": true,
+      "retrospective_gate_weakening_allowed": false
     },
     "single_shared_policy_on_main": true,
-    "charter_record": "docs/integration/three-lab-charter-2026-09-28.md",
-    "not_in_organization_no_future_assignments": [
-      "claude_cloud_track_2026-09-28",
-      "codex_lab4_not_in_three_lab_organization_returns_only_by_owner_direction"
-    ]
+    "charter_record": "docs/integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance"
   },
   "merge_review": {
     "classes": {
       "A_lane_work": [
-        "required_checks_pass",
-        "focused_local_checks_listed",
-        "one_non_author_technical_review"
+        "focused_checks_for_declared_risks",
+        "exact_head_non_author_review"
       ],
       "B_results": [
         "class_A",
-        "sealed_report_roots_on_disk",
-        "headline_numbers_reread_from_roots_by_lab1_or_for_lab1_results_by_another_lab_or_independent_pass",
-        "artifact_promotion_needs_lab1_decision",
-        "lab3_results_gating_measurement_rerun_by_lab1"
+        "sealed_evidence",
+        "independent_headline_and_manifest_read",
+        "risk_based_gating_rerun",
+        "council_decision_for_promotion"
       ],
       "C_shared_interfaces_architecture": [
         "class_A",
         "class_B_if_results",
-        "lab1_documented_decision_in_roadmap",
-        "owner_ratification_for_decisions_d11_invariants_organization_and_merge_criteria"
+        "recorded_council_decision",
+        "owner_direction_for_immutable_boundaries"
       ]
     },
-    "lab1_own_consequential_changes_need_non_author_review": true,
     "owner_approval_per_merge_required": false,
-    "merge_path": "merge_queue_when_clean_then_verify_squash_diff_equals_pr_diff_and_notify_consumer",
+    "merge_path": "head_bound_delivery_receipt_then_protected_merge_queue_then_verify_delivered_patch",
+    "server_required_gate": "requires_administrator_configuration_and_observed_smoke_before_claiming_enforced",
     "failed_gate_merges_as_negative_without_promotion": true,
     "result_readers_fail_on_missing_keys": true,
     "review_listing_required_fixes_is_not_approval_until_they_land": true
