@@ -18,6 +18,42 @@ pub const SAMPLER_ID: &str = "uor-r4.dialogue-response-uniform/splitmix64-counte
 pub enum PrefixPolicy {
     FullPrefix,
     RoleOnly,
+    /// BOS, then the last prefix IDs before the response (ending with the
+    /// assistant marker): at most `keep_last` of them, and no more than fit
+    /// in the context with the whole response. The response is never cut: a
+    /// response that does not fit whole after BOS and the marker is excluded.
+    /// Only an index built for this policy
+    /// ([`EpisodeIndex::with_policy`]) admits it, because its eligibility
+    /// differs from FullPrefix's.
+    TruncatedPrefix {
+        keep_last: usize,
+    },
+}
+
+impl PrefixPolicy {
+    /// A command-line policy: `full_prefix` (also the default, `None`),
+    /// `role_only`, `truncated_prefix:KEEP` with KEEP from 1 to 254, or
+    /// `truncated_prefix` alone for as many prefix IDs as fit (254). The
+    /// index checks KEEP against the assistant marker's length.
+    pub fn parse(value: Option<&str>) -> Result<Self> {
+        let most = EPISODE_CONTEXT - 2;
+        match value {
+            None | Some("full_prefix") => Ok(Self::FullPrefix),
+            Some("role_only") => Ok(Self::RoleOnly),
+            Some("truncated_prefix") => Ok(Self::TruncatedPrefix { keep_last: most }),
+            Some(other) => other
+                .strip_prefix("truncated_prefix:")
+                .and_then(|keep| keep.parse::<usize>().ok())
+                .filter(|keep| (1..=most).contains(keep))
+                .map(|keep_last| Self::TruncatedPrefix { keep_last })
+                .ok_or_else(|| {
+                    invalid(format!(
+                        "unknown policy {other}: full_prefix, role_only, truncated_prefix or \
+                         truncated_prefix:KEEP with KEEP from 1 to {most}"
+                    ))
+                }),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -92,6 +128,11 @@ pub struct SourcePopulation {
     pub eligible_response_tokens: usize,
     pub excluded_over_context: usize,
     pub identical_prefixes: usize,
+    /// Eligible responses whose kept prefix is shorter than their full prefix
+    /// (TruncatedPrefix only; omitted from the record when zero, so other
+    /// policies' records are unchanged).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub truncated_prefixes: usize,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
@@ -104,7 +145,13 @@ pub struct EpisodePopulation {
     pub eligible_response_tokens: usize,
     pub excluded_over_context: usize,
     pub identical_prefixes: usize,
+    #[serde(skip_serializing_if = "is_zero")]
+    pub truncated_prefixes: usize,
     pub sources: Vec<SourcePopulation>,
+}
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
@@ -119,6 +166,9 @@ pub struct EpisodeCounts {
     pub supervised_target_count: usize,
     pub eos_targets: usize,
     pub identical_prefix_visits: usize,
+    /// Visits whose prefix was cut (TruncatedPrefix only; omitted when zero).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub truncated_prefix_visits: usize,
 }
 
 impl EpisodeCounts {
@@ -130,6 +180,7 @@ impl EpisodeCounts {
         self.supervised_target_count += other.supervised_target_count;
         self.eos_targets += other.eos_targets;
         self.identical_prefix_visits += other.identical_prefix_visits;
+        self.truncated_prefix_visits += other.truncated_prefix_visits;
     }
 }
 
@@ -177,16 +228,49 @@ pub struct EpisodeIndex<'a> {
     sources: Vec<SourceSpan>,
     episodes: Vec<EpisodeSpan>,
     population: EpisodePopulation,
+    /// `keep_last` of an index built for TruncatedPrefix; `None` for the
+    /// FullPrefix eligibility, which FullPrefix and RoleOnly share.
+    keep_last: Option<usize>,
 }
 
 impl<'a> EpisodeIndex<'a> {
+    /// The FullPrefix eligibility: a response is an episode when its whole
+    /// document prefix and the response fit the context.
     pub fn new(
         tokens: &'a [u16],
         mask: &[u8],
         contract: EpisodeContract,
         sources: &[SourceSpan],
     ) -> Result<Self> {
+        Self::with_policy(tokens, mask, contract, sources, PrefixPolicy::FullPrefix)
+    }
+
+    /// The eligibility `policy` needs. FullPrefix and RoleOnly build exactly
+    /// [`Self::new`]'s index. TruncatedPrefix admits every response that fits
+    /// whole after BOS and the assistant marker; `keep_last` must cover the
+    /// marker and leave room for at least one response ID.
+    pub fn with_policy(
+        tokens: &'a [u16],
+        mask: &[u8],
+        contract: EpisodeContract,
+        sources: &[SourceSpan],
+        policy: PrefixPolicy,
+    ) -> Result<Self> {
         contract.validate()?;
+        let keep_last = match policy {
+            PrefixPolicy::FullPrefix | PrefixPolicy::RoleOnly => None,
+            PrefixPolicy::TruncatedPrefix { keep_last } => {
+                if keep_last < contract.assistant_marker_ids.len()
+                    || keep_last > contract.context - 2
+                {
+                    return Err(invalid(
+                        "truncated_prefix keep_last must cover the assistant marker and leave one \
+                         response ID in the context",
+                    ));
+                }
+                Some(keep_last)
+            }
+        };
         if tokens.is_empty() || tokens.len() != mask.len() || sources.is_empty() {
             return Err(invalid("dialogue episode token/mask/source shape"));
         }
@@ -226,6 +310,7 @@ impl<'a> EpisodeIndex<'a> {
             sources: sources.to_vec(),
             episodes: Vec::new(),
             population,
+            keep_last,
         };
         let mut document = 0;
         let mut source_index = 0;
@@ -319,19 +404,29 @@ impl<'a> EpisodeIndex<'a> {
         let source = &mut self.population.sources[source_index];
         source.response_runs += 1;
         source.response_tokens += response_tokens;
-        if end - document > self.contract.context {
+        let fits = match self.keep_last {
+            None => end - document <= self.contract.context,
+            Some(_) => 1 + marker_len + response_tokens <= self.contract.context,
+        };
+        if !fits {
             self.population.excluded_over_context += 1;
             source.excluded_over_context += 1;
             return Ok(());
         }
         // BOS plus exact marker is the complete empty-history role prefix.
         let identical_prefix = marker_start == document + 1;
+        let truncated = self.keep_last.is_some_and(|keep_last| {
+            kept_prefix(keep_last, self.contract.context, document, start, end)
+                < start - document - 1
+        });
         self.population.eligible_responses += 1;
         self.population.eligible_response_tokens += response_tokens;
         self.population.identical_prefixes += usize::from(identical_prefix);
+        self.population.truncated_prefixes += usize::from(truncated);
         source.eligible_responses += 1;
         source.eligible_response_tokens += response_tokens;
         source.identical_prefixes += usize::from(identical_prefix);
+        source.truncated_prefixes += usize::from(truncated);
         self.episodes.push(EpisodeSpan {
             response_id: self.episodes.len(),
             corpus_response_index,
@@ -385,9 +480,24 @@ impl<'a> EpisodeIndex<'a> {
         Ok(result)
     }
 
+    /// Whether this index's eligibility is `policy`'s: FullPrefix and RoleOnly
+    /// on a [`Self::new`] index, TruncatedPrefix with the same `keep_last` on
+    /// its own index.
+    pub fn admits(&self, policy: PrefixPolicy) -> bool {
+        match policy {
+            PrefixPolicy::FullPrefix | PrefixPolicy::RoleOnly => self.keep_last.is_none(),
+            PrefixPolicy::TruncatedPrefix { keep_last } => self.keep_last == Some(keep_last),
+        }
+    }
+
     pub fn materialize(&self, ids: &[usize], policy: PrefixPolicy) -> Result<EpisodeBatch> {
         if ids.is_empty() || ids.len() > 64 || ids.iter().any(|&id| id >= self.episodes.len()) {
             return Err(invalid("dialogue episode batch/response ID"));
+        }
+        if !self.admits(policy) {
+            return Err(invalid(
+                "the episode index was built for a different prefix eligibility",
+            ));
         }
         let time = self.contract.context;
         let mut batch = EpisodeBatch {
@@ -417,6 +527,7 @@ impl<'a> EpisodeIndex<'a> {
             let r = span.response_start;
             let e = span.response_end;
             let mut episode = Vec::with_capacity(e - span.document_start);
+            let mut truncated = false;
             match policy {
                 PrefixPolicy::FullPrefix => episode.extend(
                     self.tokens[span.document_start..r]
@@ -428,6 +539,16 @@ impl<'a> EpisodeIndex<'a> {
                     let marker_start = r - self.contract.assistant_marker_ids.len();
                     episode.extend(
                         self.tokens[marker_start..r]
+                            .iter()
+                            .map(|&token| u32::from(token)),
+                    );
+                }
+                PrefixPolicy::TruncatedPrefix { keep_last } => {
+                    let keep = kept_prefix(keep_last, time, span.document_start, r, e);
+                    truncated = keep < r - span.document_start - 1;
+                    episode.push(u32::from(self.tokens[span.document_start]));
+                    episode.extend(
+                        self.tokens[r - keep..r]
                             .iter()
                             .map(|&token| u32::from(token)),
                     );
@@ -460,6 +581,7 @@ impl<'a> EpisodeIndex<'a> {
                 supervised_target_count: e - r,
                 eos_targets: 1,
                 identical_prefix_visits: usize::from(span.identical_prefix),
+                truncated_prefix_visits: usize::from(truncated),
             };
             batch.counts.add(&counts);
             batch.source_visits[span.source_index].counts.add(&counts);
@@ -475,6 +597,22 @@ impl<'a> EpisodeIndex<'a> {
         }
         Ok(batch)
     }
+}
+
+/// The prefix IDs after BOS that TruncatedPrefix keeps for the response
+/// `start..end` of the document beginning at `document`: at most `keep_last`,
+/// no more than fit in `context` beside BOS and the whole response, and no
+/// more than the document has. The caller has checked that the response fits.
+fn kept_prefix(
+    keep_last: usize,
+    context: usize,
+    document: usize,
+    start: usize,
+    end: usize,
+) -> usize {
+    keep_last
+        .min(context - 1 - (end - start))
+        .min(start - document - 1)
 }
 
 fn splitmix(mut value: u64) -> u64 {
@@ -680,6 +818,170 @@ mod tests {
             "full_prefix"
         );
         assert_eq!(serde_json::to_value(PrefixPolicy::RoleOnly)?, "role_only");
+        Ok(())
+    }
+
+    /// One document: BOS, `history` prefix IDs, the marker, then a response of
+    /// `response` IDs ending in EOS.
+    fn document(history: usize, response: usize) -> (Vec<u16>, Vec<u8>) {
+        let mut tokens = vec![0u16];
+        tokens.extend(std::iter::repeat_n(11, history));
+        tokens.extend([7, 8]);
+        tokens.extend(std::iter::repeat_n(22, response - 1));
+        tokens.push(1);
+        let mut mask = vec![0u8; 3 + history];
+        mask.resize(tokens.len(), 1);
+        (tokens, mask)
+    }
+
+    fn corpus(documents: &[(usize, usize)]) -> (Vec<u16>, Vec<u8>) {
+        let (mut tokens, mut mask) = (Vec::new(), Vec::new());
+        for &(history, response) in documents {
+            let (t, m) = document(history, response);
+            tokens.extend(t);
+            mask.extend(m);
+        }
+        (tokens, mask)
+    }
+
+    fn lanes(batch: &EpisodeBatch) -> (&[u32], &[u32], &[f32]) {
+        (&batch.inputs, &batch.targets, &batch.weights)
+    }
+
+    #[test]
+    fn truncated_prefix_admits_whole_responses_whose_history_does_not_fit() -> Result<()> {
+        // Short; long history; a response too long even alone; exactly 256.
+        let (tokens, mask) = corpus(&[(0, 3), (300, 10), (10, 254), (0, 253)]);
+        let sources = source(tokens.len());
+        let full = EpisodeIndex::new(&tokens, &mask, contract(), &sources)?;
+        let policy = PrefixPolicy::TruncatedPrefix { keep_last: 254 };
+        let truncated = EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, policy)?;
+        // FullPrefix's eligibility is unchanged, and its record has no new field.
+        assert_eq!(full.population().eligible_responses, 2);
+        assert_eq!(full.population().excluded_over_context, 2);
+        assert_eq!(full.population().truncated_prefixes, 0);
+        assert!(serde_json::to_value(full.population())?
+            .get("truncated_prefixes")
+            .is_none());
+        // TruncatedPrefix adds the long-history response and nothing else.
+        let population = truncated.population();
+        assert_eq!(population.eligible_responses, 3);
+        assert_eq!(population.excluded_over_context, 1);
+        assert_eq!(population.truncated_prefixes, 1);
+        assert_eq!(population.eligible_response_tokens, 3 + 10 + 253);
+        assert_eq!(population.response_runs, full.population().response_runs);
+        assert_eq!(truncated.episodes()[1].corpus_response_index, 1);
+        // Its episode is BOS, the latest 245 prefix IDs (ending with the
+        // marker) and the whole response, filling the context.
+        let batch = truncated.materialize(&[1], policy)?;
+        let row = &batch.rows[0].counts;
+        assert_eq!(row.prefix_positions, 1 + 245);
+        assert_eq!(row.real_input_positions, 255);
+        assert_eq!(row.supervised_target_count, 10);
+        assert_eq!(row.truncated_prefix_visits, 1);
+        assert_eq!(batch.inputs[0], 0);
+        assert!(batch.inputs[1..244].iter().all(|&id| id == 11));
+        assert_eq!(&batch.inputs[244..246], &[7, 8]);
+        assert_eq!(
+            supervised(&batch, 0),
+            [22, 22, 22, 22, 22, 22, 22, 22, 22, 1]
+        );
+        // A smaller keep_last keeps only the latest IDs.
+        let short = PrefixPolicy::TruncatedPrefix { keep_last: 16 };
+        let index = EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, short)?;
+        let batch = index.materialize(&[1], short)?;
+        assert_eq!(batch.rows[0].counts.prefix_positions, 17);
+        assert_eq!(&batch.inputs[15..17], &[7, 8]);
+        assert_eq!(supervised(&batch, 0).len(), 10);
+        Ok(())
+    }
+
+    #[test]
+    fn truncated_prefix_reduces_to_full_prefix_and_to_role_only() -> Result<()> {
+        let (tokens, mask) = corpus(&[(0, 3), (5, 4), (40, 2), (0, 253)]);
+        let sources = source(tokens.len());
+        let full = EpisodeIndex::new(&tokens, &mask, contract(), &sources)?;
+        let ids = [0, 1, 2, 3, 2, 1];
+        let full_prefix = full.materialize(&ids, PrefixPolicy::FullPrefix)?;
+        let role_only = full.materialize(&ids, PrefixPolicy::RoleOnly)?;
+        // Room for every whole prefix: FullPrefix, with nothing truncated.
+        let wide = PrefixPolicy::TruncatedPrefix { keep_last: 254 };
+        let index = EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, wide)?;
+        assert_eq!(index.population().eligible_responses, 4);
+        assert_eq!(index.population().truncated_prefixes, 0);
+        let batch = index.materialize(&ids, wide)?;
+        assert_eq!(lanes(&batch), lanes(&full_prefix));
+        assert_eq!(batch.counts.truncated_prefix_visits, 0);
+        // Only the marker kept: RoleOnly, counted as truncated where the
+        // document had history.
+        let marker = PrefixPolicy::TruncatedPrefix { keep_last: 2 };
+        let index = EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, marker)?;
+        assert_eq!(index.population().truncated_prefixes, 2);
+        let batch = index.materialize(&ids, marker)?;
+        assert_eq!(lanes(&batch), lanes(&role_only));
+        assert_eq!(batch.counts.truncated_prefix_visits, 4);
+        assert_eq!(batch.selected_target_ids, full_prefix.selected_target_ids);
+        Ok(())
+    }
+
+    #[test]
+    fn an_index_materializes_only_its_own_eligibility() -> Result<()> {
+        let (tokens, mask) = corpus(&[(0, 3), (5, 4)]);
+        let sources = source(tokens.len());
+        let full = EpisodeIndex::new(&tokens, &mask, contract(), &sources)?;
+        let policy = PrefixPolicy::TruncatedPrefix { keep_last: 64 };
+        let truncated = EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, policy)?;
+        assert!(full.materialize(&[0], policy).is_err());
+        assert!(truncated
+            .materialize(&[0], PrefixPolicy::FullPrefix)
+            .is_err());
+        assert!(truncated.materialize(&[0], PrefixPolicy::RoleOnly).is_err());
+        let other = PrefixPolicy::TruncatedPrefix { keep_last: 65 };
+        assert!(truncated.materialize(&[0], other).is_err());
+        assert!(truncated.materialize(&[0], policy).is_ok());
+        // keep_last must cover the two-ID marker and leave a response ID.
+        for keep_last in [0, 1, 255, 256] {
+            let bad = PrefixPolicy::TruncatedPrefix { keep_last };
+            assert!(EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, bad).is_err());
+        }
+        assert_eq!(
+            serde_json::to_value(policy)?,
+            serde_json::json!({"truncated_prefix": {"keep_last": 64}})
+        );
+        let back: PrefixPolicy = serde_json::from_value(serde_json::to_value(policy)?)?;
+        assert_eq!(back, policy);
+        Ok(())
+    }
+
+    #[test]
+    fn prefix_policies_parse_from_the_command_line() -> Result<()> {
+        assert_eq!(PrefixPolicy::parse(None)?, PrefixPolicy::FullPrefix);
+        assert_eq!(
+            PrefixPolicy::parse(Some("full_prefix"))?,
+            PrefixPolicy::FullPrefix
+        );
+        assert_eq!(
+            PrefixPolicy::parse(Some("role_only"))?,
+            PrefixPolicy::RoleOnly
+        );
+        assert_eq!(
+            PrefixPolicy::parse(Some("truncated_prefix"))?,
+            PrefixPolicy::TruncatedPrefix { keep_last: 254 }
+        );
+        assert_eq!(
+            PrefixPolicy::parse(Some("truncated_prefix:96"))?,
+            PrefixPolicy::TruncatedPrefix { keep_last: 96 }
+        );
+        for bad in [
+            "truncated_prefix:0",
+            "truncated_prefix:255",
+            "truncated_prefix:",
+            "truncated_prefix:x",
+            "truncated",
+            "",
+        ] {
+            assert!(PrefixPolicy::parse(Some(bad)).is_err(), "{bad}");
+        }
         Ok(())
     }
 }

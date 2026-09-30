@@ -103,6 +103,23 @@ impl DialogueSplit {
     pub fn index(&self, contract: EpisodeContract) -> Result<EpisodeIndex<'_>> {
         EpisodeIndex::new(self.reader.as_slice(), &self.mask, contract, &self.sources)
     }
+
+    /// Every episode of the split under `contract` with `policy`'s
+    /// eligibility ([`EpisodeIndex::with_policy`]); FullPrefix and RoleOnly
+    /// give [`Self::index`].
+    pub fn index_for(
+        &self,
+        contract: EpisodeContract,
+        policy: PrefixPolicy,
+    ) -> Result<EpisodeIndex<'_>> {
+        EpisodeIndex::with_policy(
+            self.reader.as_slice(),
+            &self.mask,
+            contract,
+            &self.sources,
+            policy,
+        )
+    }
 }
 
 /// The literal-role protocol of `tokenizer` and the episode contract the

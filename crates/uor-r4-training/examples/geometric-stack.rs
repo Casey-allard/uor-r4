@@ -43,7 +43,7 @@
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [transport_snap=none|icosian] [select=none|flock:WINDOW:K] [pointer=none|DIM] \
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
-//!   [policy=full_prefix|role_only] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
+//!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
 //!   [max_new_tokens=96]
@@ -151,6 +151,15 @@
 //! 256-position context starts a new conversation). Replies stop as the
 //! study's do: at EOS, at a terminal cycle of one to four ids repeated three
 //! times, or at `max_new_tokens`.
+//!
+//! `policy=` (`dialogue-train`) sets the training episodes' prefix; the
+//! development panel always keeps its full prefix. `full_prefix` (the default)
+//! keeps the whole document before the response, and `role_only` only BOS and
+//! the assistant marker, on the same responses. `truncated_prefix:KEEP` also
+//! admits each response whose document is too long but which fits whole after
+//! BOS and the marker, and keeps BOS and at most the last KEEP prefix IDs that
+//! fit beside it (`truncated_prefix` alone: as many as fit). No response is
+//! cut. Its eligible population is recorded as `train_population`.
 //!
 //! `select=flock:WINDOW:K`, `pointer=DIM`, `pointer_score=dot|lorentz` and
 //! `pointer_select=none|flock:WINDOW:K|top:K` (`dialogue-train`, for fresh
@@ -3317,11 +3326,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         pointer: args.optional("pointer"),
         pointer_score: args.optional("pointer_score"),
         pointer_select: args.optional("pointer_select"),
-        policy: match args.optional("policy").as_deref() {
-            None | Some("full_prefix") => PrefixPolicy::FullPrefix,
-            Some("role_only") => PrefixPolicy::RoleOnly,
-            Some(other) => return Err(invalid(format!("unknown policy {other}"))),
-        },
+        policy: PrefixPolicy::parse(args.optional("policy").as_deref())?,
         data_seed: args.number("data_seed", 1)?,
         steps: args.number("steps", 1024)?,
         batch: args.number("batch", 16)?,
@@ -3528,7 +3533,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         return Err(invalid("the splits declare different vocabularies"));
     }
     let (protocol, contract) = episode_contract(&tokenizer, vocab)?;
-    let train = train_split.index(contract.clone())?;
+    let train = train_split.index_for(contract.clone(), s.policy)?;
     let dev = dev_split.index(contract)?;
     let panel = dialogue_development::select(&dev, s.dev_seed, s.dev_per_source)?;
     let requests = s.requests.as_deref().map(load_requests).transpose()?;
