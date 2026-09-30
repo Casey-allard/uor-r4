@@ -1,204 +1,132 @@
 # UOR-R4 Geometric Language Model
 
-UOR-R4 is an experimental autoregressive geometric state model with exact addressed memory and learned typed operators, developed in Rust. The goal is useful local conversation, durable memory, reasoning and Rust coding on consumer M1-class hardware, ultimately with competitive quality and lower energy and wasted computation.
+UOR-R4 is a research language model written in Rust. It asks whether geometry
+(quaternion transport, lattice codes, hyperbolic and harmonic similarity) can
+replace the parts of a transformer that are expensive at run time. The aim is a
+model with frontier-level quality that is stored on, and runs from, a 16 GB
+laptop.
 
-**Status: pre-alpha research.** The repository contains working geometric primitives, bounded learned memory/composition experiments and natural-text training infrastructure. Sustained general prose, useful chat, general reasoning/coding, frontier capability and complete-task energy savings are not established. There is no single qualified artifact combining all implemented capabilities.
+**Status: pre-alpha research.** No model in this repository holds a useful
+conversation yet. General prose, reasoning, coding, frontier equivalence and
+energy savings are not established. The [status page](STATUS.md) gives the
+measured position of every active line of work.
 
-**Current programme, September 28:** the recurrence-primary geometric stack is
-the main line; the older native model is retained as a baseline. Read the
-[current state](docs/integration/current-state.md) and
-[roadmap's leadership and restart packet](ROADMAP.md#lab-1-leadership-and-restart-packet)
-for the current lead, lane assignments and the S1/QAT, S4, memory/read and
-native-serving dependencies. Dated results below keep their original scope;
-none is an integrated useful-chat or energy qualification.
+## Approach
 
-**Active September 24 correction:** the [stuck-point assessment](docs/integration/stuck-point-review-response-2026-09-24.md) and [D8 ladder](docs/integration/project-track.md) move development from successive local discrete-selector fixes to a coherent Rust autodiff training path, a pinned working language reference, explicit discretization and the actual hard serving path. A4's four matched continuations still produce zero complete answers; they are retained evidence. The historical #1017 transformer is an offline comparator/possible teacher, while the target remains a native transformerless geometric model. The [current state](docs/integration/current-state.md) is now a short handoff with its complete prior history linked separately.
+The work runs on two tracks that share one set of geometric mechanisms. The
+[plan of record](docs/plans/2026-09-29-path-to-chat.md) sets their gates, kill
+criteria and owners.
 
-**Retained rung 1, September 25:** the [joint recurrent-memory campaign](docs/integration/joint-recurrent-result-2026-09-25.md) completed 29,999,104 target visits per arm, including 21,381,120 with matched 256-token training/evaluation. Comparison-tail NLL is **2.110368** for quaternion, **2.085241** for the matched ordinary recurrent control, and **2.391786** for count/cache. The combined read/copy path materially contributes; loaded text is varied but semantically unreliable. The frozen rung 1 engineering gate is accepted. These are floating-point offline learners, with no geometric-advantage or integer-serving qualification. The subsequent quantized continuation is reported below.
+- **Track A: a native geometric chat model.** A small (≤ 30M parameter) model,
+  trained from scratch and served without floating point or a hardware
+  multiplier. Its first milestone is a sealed conversation panel: multi-turn
+  replies, recall of updated facts, and new instruction wordings.
+- **Track B: geometric conversion of pretrained transformers.** Distill open
+  models (SmolLM2 135M → 360M → 1.7B) into a geometric runtime, and measure the
+  quality gap to the teacher and the bytes and operations per token.
+  - It is approved in the plan of record (D13 pending).
+  - Under D11 the source transformers stay offline teachers and comparators.
+  - A converted model is served only if it meets D11.
 
-**Latest, September 27 — matched reader decision:** the [completed fixed adaptation](docs/integration/radial-adaptation-result-2026-09-27.md) compares Dot, Lorentz and Affine after identical 1,024-update exposure. Full development NLL is 1.999367 / 2.045766 / 2.012670, with 21/32 / 14/32 / 19/32 complete source answers. All sampled prose panels remain 0/5; isolated greedy stories do not offset the radial regressions. Retain the native Dot path and park these transferred radial configurations without an automatic dose or seed extension. The [complete-prefix dialogue learner](docs/integration/dialogue-prefix-implementation-2026-09-27.md) now completes matched two-update integration runs with identical response/EOS exposure, saved parameter/Adam reload and actual replies. Eight focused checks pass; both final factual/name-memory replies remain incorrect. The [completed 1,024-update dialogue pair](docs/integration/dialogue-prefix-paired-result-2026-09-27.md) retains the full-prefix endpoint as a narrow conditioning candidate: it improves several factual/name-memory replies against both the parent and role-only control, while every middle memory turn remains unresponsive and instruction failures persist. Its [separate native integer observation](docs/integration/dialogue-child-native-observation-2026-09-27.md) loses useful relations after parameter discretization. The [current state](docs/integration/current-state.md) records the response-aware legal-code work and its execution status. Accepted integer parents and the native, multiplier-free serving target remain unchanged; no general chat or integer-language qualification follows.
+The four geometric mechanisms under test:
 
-**Previous continuation, September 26 — language target unmet:** the [fixed full-context continuation](docs/integration/language-continuation-result-2026-09-26.md) reaches step15,672 in both arms, preserving exactly7,324 added updates and29,999,104 target visits per arm. Continuous comparison NLL improves to1.996490 quaternion /1.974724 ordinary, but both continuous story packets score0/5 acceptable. Integer stories score0/5 quaternion /1/5 ordinary; neither meets the frozen3/5 and two-story improvement requirements. The ordinary arm also fails hard-loss, original-source and integer state-drift limits. Quaternion passes those scoped numerical controls but has a served short-cycle and source regressions against its accepted parent. No new artifact is promoted. Preserve the accepted September25 parents and all new failures; park exposure-only fitting. The [same-checkpoint emission/selection diagnostic](docs/integration/emission-selection-diagnostic-result-2026-09-27.md) is now executed read-only: the witnessed malformed decisions are predominantly low-probability draws from the model's own ranking (8/12 departure, 2/12 near-tie, 2/12 top choice, 0 copy-dominated), so selection policy was the supported next interface. That [selection-policy diagnostic](docs/integration/selection-policy-diagnostic-result-2026-09-27.md) is now executed: removing the draw does not reproduce the sampled malformed clauses, but greedy prose still misses the frozen acceptability bar (quaternion 2/5, ordinary pair 0/5) and the greedy source panel keeps failing (21/32, 23/32), so ranking/emission was the supported next target. That [termination-weighted objective experiment](docs/integration/termination-objective-result-2026-09-27.md) is now executed and returns INERT: at 2.5× on sentence-final targets over 1,024 updates it adds only 3 unique source rows beyond a dose-matched plain continuation (0 unique losses) and leaves sampled prose at 0/5, while the plain dose already recovers most failing panel rows — termination weighting is a weak lever at this dose, so the next rung is the state/read path. No decoding or weight change and no promotion follows.
-
-**Retained September25 serving implementation:** the [standalone result](docs/integration/integer-serving-result-2026-09-25.md) delivers a Rust CLI and stateful session with bound tokenizer/model/tables, integer sampling and full256 causal attention. Its accepted parents retain28/32 quaternion and24/32 ordinary source answers, NoRead0/32 each. A profile-directed arithmetic optimization preserved its actual outputs while improving measured complete generation workloads4.5–6.6x. These historical retention results do not transfer automatically to the new weights. Dense parameters/allocation and shape/address instructions remain; whole-process multiplier-free operation, useful language and energy are unqualified. [Usage](crates/uor-r4-integer/README.md). Admission pruning remains deferred under D9.
-
-**Independent serving result, September 27:** the [shared packed-coefficient implementation](docs/integration/packed-integer-preparation-2026-09-27.md) preserves signed4 weights in shared packed storage and reads them directly in the supported integer kernels. The [completed retained-artifact comparison](docs/integration/packed-integer-comparison-2026-09-27.md) preserves all declared stable fields across eight paired workloads on two width-256 models; all 16 processes complete successfully. Retained coefficient storage and observed peak RSS fall, while timings are small and mixed. Existing weak language behavior remains, and this result establishes no width-576 equivalence, D5 sparse access or speed/energy advantage.
-
-For the live research position, read [current state](docs/integration/current-state.md), the [canonical plan](docs/integration/project-track.md) and the [September 23 ordinary-lexical audit](docs/integration/ordinary-lexical-audit-2026-09-23.md). The [research-leader handoff](docs/integration/research-leader-handoff-2026-09-23.md) connects the full history to the current decision method. The [September 19 takeover review](docs/integration/takeover-review-2026-09-19.md) and [evidence index](docs/integration/EVIDENCE.md) preserve the wider mechanism history. Live [programme issue #820](https://github.com/UOR-Foundation/uor-r4/issues/820) owns delivery status; dated experiments remain evidence at their original scope. Contributors and research agents start with [AGENTS.md](AGENTS.md); the optional [Kimi/DeepSeek workspace](.kimi-code/README.md) documents its team, tool and handoff workflow.
-
-## Goal and serving contract
-
-> **Historical since 2026-09-28.** The paragraph below describes the Codex lab, which is not part of the owner's three-lab charter; it is assigned no work and returns only by owner direction. See the [execution policy](docs/integration/agent-execution-policy.md#three-lab-organization-and-shared-operating-policy-owner-charter-2026-09-28). Results recorded in this section keep their exact scope.
-
-The [fourth Codex research lab](.codex-lab/README.md) coordinated with Google,
-OpenCode/DeepSeek/Kimi and Claude through shared GitHub issues and isolated
-worktrees. Its expert bench and source-review protocol served the
-[adaptive roadmap](docs/integration/project-track.md#four-lab-research-programme--owner-direction-september-26):
-geometric attention, efficient inference, general prose, chat and reasoning.
-The lab has delivered an [offline radial reader control](docs/integration/radial-read-control-2026-09-26.md)
-and an [exact-token dialogue adapter](docs/integration/dialogue-protocol-contract-2026-09-26.md).
-The adapter's loaded-bundle prediction witness passes, while its actual short
-responses remain incoherent for chat. These contributions add no model-quality claim.
-
-The research priority is learned geometric addressing, state and selected computation: prime identities and ordered n-lets; R4/S3/H4 transport; exact `Z[phi]` and typed paired-H4/icosian structure; fixed zeta phases; exact occurrence/version memory; and shared learned operators. Each mechanism needs an implemented role and a measurement appropriate to that role. Canonical identity is not semantic distance, and exact geometry does not by itself establish predictive advantage.
-
-The owner confirmed [DECISIONS.md D0-b](docs/integration/DECISIONS.md#d0-b--what-no-matmul-at-serving-means-adopted) during the September 19 takeover:
-
-- Rust preparation and offline training may use floating point, gradients and matrix multiplication.
-- Bounded integer/ternary linear maps are permitted at serving when executed through adds, subtracts, shifts and table reads, with no multiplier instruction in the kernel; learned weights are at most four bits, ternary preferred.
-- Geometric routing and selected work remain preferred. No floating-point serving or hidden runtime teacher/provider is part of the target.
-- Energy savings require physical measurement on a named machine, together with useful output quality.
-
-**Owner direction (2026-09-23):** the ultimate goal is a **fully transformerless geometric language model in which geometry *replaces* floating-point matrix multiplication** — not merely a table-native output layer. Training may use float and matmul; the declared serving kernel may not. This is a **multiplier-free serving target**, not a mathematical prohibition on every linear map. Whole-path compliance is not yet established for every experimental or shipped path. Allocation tests, symbol-level instruction checks and arithmetic parity tests support only their tested boundaries. The separate frozen TLA/R4G1 runtime retains its own stricter scoped contract. See [AGENTS.md](AGENTS.md) and the [execution policy](docs/integration/agent-execution-policy.md).
-
-## Model paths and their evidence
-
-| Path | What exists | What the evidence establishes |
+| Mechanism | Idea | Status |
 | --- | --- | --- |
-| Current offline joint recurrent-memory learner | One differentiable Rust graph trains quaternion transport, state, causal contextual reads/writes and vocabulary/copy output; a matched Householder-pair arm is retained | The continuous and learned-code parents pass their frozen engineering gates. Shared bounded admission is now implemented; the orthant64 continuation fails source retention despite numerical retention. The recent64 fit is withdrawn. The new full256 integer numerical bridge retains source answers and bounded state/output drift on its recorded panel; the F32 emulator remains a comparator. The standalone integer session now executes at its scoped numerical boundary; useful conversation, qualified long-range admission, geometric advantage and energy remain unqualified. |
-| Retained native memory and shared language experiments | Exact retained values, versioned relations, Copy/Add, learned source choice, dependent reads, Read/Emit/Stop and bounded phrase/role composition | Causal generated behavior on authored tasks with retained controls. Later contextual-role repairs also use authored syntax rules. These are not general prose or an integrated chat model. |
-| TinyStories prose learner and `.rgm` serving | Learned root assignments, JEPA/lexical objectives, lattice/count features, VSA routing, binary artifacts, CLI/API generation | A reported 555M-token training run and measurable text prediction. Training-time, exported full-vocabulary and routed serving scorers differ. Generations remain repetitive; historical memory tests do not qualify this new prose artifact. |
-| Current geometric addressed-memory core and exact-token prior | Fixed token-to-element assignment, ordered address pairs, accumulated value memory, two learned token-position tables, bounded nonlinearity and shared ternary readout | The memory-only configuration has 85–94% cold reads on the measured internal corpora. PR #1294 implements the local prior and a negative paired pilot. PR #1298 repairs the learner and fits the consistent 16-context task at 16/16. PR #1300 trains the prior on repository text and records a 1.99-bit gain over its frozen bias. PR #1301's review found the permutation and document bootstrap defective; the executed evaluation-only replay corrects both, reproduces the recorded losses exactly, passes the frozen 0.10-bit threshold on the legacy and spread-position panels, and shows the two-token readout is dominated by an order-2 count reference. The stored geometric element table is unused by this predictor. |
+| Flock attention | Each query reads a sink, a local window and its *k* nearest keys, as starlings track about seven neighbors. Rank-table weights; k = 1 is an exact copy | Being built (A1, B0) |
+| Spherical-harmonic attention | Harmonic features of normalized queries and keys give a fixed-size recurrent state | Planned (B2) |
+| Quaternion / 2I transport | Recurrent state carried by unit quaternions, snapped to the 120-element binary icosahedral group | Trained into the main-line model; D11 kernel in review |
+| E8 / 2I lattice codes | Weights stored as lattice codewords and read by table lookup | Weight coding planned (B3); earlier E8 codec arms lost to 4-bit rounding |
 
-**The earlier retained integer Generate/Copy/Stop language artifact contains no geometry.** The shared Generate/Copy/Stop learner
-(`learner/transferable_lexical.rs`) is a plain 64-dimensional integer RNN with a linear readout; it has no
-prime/zeta/R4/S3/H4/`Z[phi]` reference. This statement is scoped to that artifact.
-The new offline recurrent learner executes quaternion transport in the actual language prediction graph.
-The standalone integer session executes the same packed codes and integer token selection; useful language remains unfinished. The matched ordinary continuous control has lower natural likelihood loss.
-No general geometric predictive advantage is qualified by this one-seed result.
+A geometric mechanism stays when it is within 0.02 nats of its ordinary matrix
+equivalent. The rule was set by the owner on 29 September and is judged on
+paired arms with at least two seeds.
 
-UOR-R4 is **not** a "world model" in either industry sense (a learned, action-conditioned latent dynamics model used
-for planning, or an observation-level generative simulator). At most it is trivially "an autoregressive latent-state
-sequence model". The term must not be used in project claims. The [direction decision](docs/integration/direction-decision-2026-09-24.md)
-re-scopes Goal R (geometric predictive advantage) from an assumption to a gated hypothesis and moves the modelling
-bet to capacity, context and objective.
+## Architecture
 
-The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measurements to artifacts and receipts. Corrections and superseding rows must be read together.
+- **The geometric stack** ([`geometric_stack.rs`](crates/uor-r4-training/src/geometric_stack.rs))
+  interleaves quaternion-transport recurrence layers (`r`) and multi-head reads
+  with a Lorentz or dot score (`a`). A SwiGLU MLP follows each layer. An
+  ordinary transformer control runs on the same kernels.
+- **Memory:** an exact, addressed store keyed by prime identities (AERM). It
+  exists today as a probe, is not yet in the served model, and becomes an index
+  into an exact log of the conversation.
+- **Serving (D11):** the integer engine ([`uor-r4-integer`](crates/uor-r4-integer/README.md))
+  runs 4-bit weights with integer add, shift, compare and table reads only: no
+  floating point, no multiply or divide instruction, and an instruction-level
+  audit of the binary.
+  - Every weight is still read for every token.
+  - The one whole-system energy measurement was 4.3× worse than float.
+- **Training:** offline in Rust (Candle), with floating point allowed.
+  Quantization-aware training reads exactly the values the export writes.
 
-### Selected results, with their limits
+## Repository map
 
-- **TinyStories training:** the recorded run processes 546,644,574 sequence tokens from a 555,385,505-token corpus in 3,982.42 seconds. Reported **1.2372 bits/byte** belongs to the continuous training-time probability model. The later exported full-vocabulary measurement is **1.8055 BPB**, or **1.7989 BPB** after removing the coarse lattice tier. These numbers do not measure the routed generation distribution on one common evaluation boundary. The repository n-gram comparator uses a smaller training sample and requires independent validation before it can support a matched Kneser–Ney claim. [Training record](docs/integration/current-state.md), [scorer and ablation evidence](docs/integration/EVIDENCE.md).
-- **Codebook repair:** deriving VSA codes from learned roots improves routed candidate recall from approximately **8.4–8.8% to 10.7–11.2%** on two development slices. A full-vocabulary scoring ablation missed this routing effect. The result motivates measuring candidate admission separately from ranking; recall is still low. [Routing receipt](docs/evidence/native_geometric_shortlist_routing_2026-09-19.txt).
-- **Exact finite composition:** the 120-element 2I table has checked identity, inverses and associativity over all 1,728,000 triples. Replacing selected quaternion accumulations preserved the measured outputs. This is an algebraic/implementation result, not a language-quality result. [Group-table receipt](docs/evidence/native_geometric_group_table_2026-09-19.txt).
-- **Real-text qualification:** PR #1292 fixes short-prefix arithmetic and duplicate gradient normalization. Its causal replay records **93.81% cold routes on docs** and **85.49% on crates** at 64-token resets; the memory-only model is necessarily uniform at those positions. Warm batch-8 training calls take **0.5649 s** on the measured M1. Corrected static residue/full-token two-context CE is **6.3310/5.2551 bits/target on docs** and **5.0402/4.2007 on crates**, on a separate evaluation population. These are development count scores, not a learned model or ceiling. PR #1294 subsequently repairs the argmax/reference-scale defects; its own numerical and population-accounting defects are documented in the [latest review](docs/integration/prior-learning-review-2026-09-19.md). [Preserved receipt](docs/evidence/native_geometric_causal_qualification_2026-09-19.txt).
-- **Efficiency:** one later release measurement reports native generation at **617 tokens/second** against approximately **36.1** for CPU Qwen2.5-1.5B Q4, with substantially unequal quality and different timing boundaries. It is not a quality-matched win. Whole-task energy/token remains **UNAVAILABLE**. Earlier small-kernel throughput figures must not be presented as interactive serving performance. [Incumbent receipt](docs/evidence/native_geometric_p1_incumbent_baseline_2026-09-19.txt).
-
-## Current research step
-
-[D8's persistent ladder](docs/integration/project-track.md) is the active sequence: reproduce the reference and common baselines, learn one recurrent-memory model with continuous language credit, then discretize, preserve full context while hardening execution, and export integer serving. The [current state](docs/integration/current-state.md) records executed results and the active dependency. The offline Rust tool is [`crates/uor-r4-training`](crates/uor-r4-training/README.md). Further A1–A4 local-selector tuning is parked.
-
-Rung1 and the September25 learned-code parents pass at their frozen engineering scopes; older quantized negatives and the orthant64 source-retention failure remain preserved. The completed September26 continuation fails the declared language target and is not promoted. Follow the [current decision](docs/integration/current-state.md#active-execution-contract) and [D9 progress control](docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25): close this exposure milestone, retain the existing integer session, and localize a witnessed semantic failure before another learning or architecture change. Full256 access and the ordinary control remain fixed; admission pruning is deferred. DeepSeek is the default specialist route when independent work is needed; Kimi requires explicit owner direction.
-
-### Historical direction and component results
-
-**Direction adopted 2026-09-24.** The owner adopted the independent three-reviewer reassessment: Goal S
-(multiplier-free serving) kept; Goal R (geometric predictive advantage) re-scoped to a gated hypothesis and a
-candidate sparse-access structure; per-token parameter sparsity recorded as the terminal serving invariant; the
-target objective moved to a long-range information probe with the order-2 count prior retained as a control. The
-ordered next work is the "escape from bigram class" diagnostic gate. See the
-[direction decision](docs/integration/direction-decision-2026-09-24.md), the
-[staged plan](docs/integration/repo-review-direction-2026-09-23.md#8-recommended-plan-staged-each-stage-has-a-reject-criterion)
-and the [milestone plan](docs/integration/escape-bigram-class-plan-2026-09-24.md).
-
-**September24 UTC matched span curriculum and copy/stop length:** the declared separate span RNG is implemented so `max_span ∈ {3,8}` arms are exactly data-matched (witnessed by byte-identical `final.tlx` for the cap-inert arm); with matched data the cap improves the long span cells and fresh-span extrapolation. A read-only diagnostic localizes the multi-token negative to a missing terminal `Stop` after a completed multi-token copy (not a copy or state-saturation failure), and a matched length curriculum fixes 3-token rows with 3-token supervision and 4-token rows with 4-token supervision but not across lengths, regressing `repository_bits` beyond the pre-declared `+0.05` tolerance. [Result](docs/integration/matched-span-copy-length-result-2026-09-24.md).
-
-**Still pre-alpha:** free generation remains repetitive, generated dialogue and unmodified Rust attempts fail, and the new Q8 relation learner matches a competent ordinary control rather than establishing a unique geometric advantage. The extended copy/stop curriculum carries a measured prose cost. No default application model, full scoped-session qualification or energy claim is silently promoted; the terminal geometric objective remains unchanged.
-
-**Earlier component reviews remain historical:**
-
-**Principal review of PRs #1353/#1354 (historical):** one Rust artifact fits source-separated ordinary text and authored grounded Generate/Copy/Stop cases. Its 7.3722 bits/target on open development prose beats fit-only unigram (9.0827) but trails donor E (6.8701) and a fit/tune-separated two-token count reference (5.1217); greedy continuation collapses. The 32/32 temporal cases were fitted. The 2/2 class test jointly changes pre-copy evidence and copied-token feedback.
-
-**Principal review of PR #1352:** V3 retains an executed lexical observation/feedback interface at 31/31 exposed authored responses. All computed and post-copy cases were fitted; the eight held-out cases reuse non-computed forms. The 4/4 computed pair changes key_changed with the payload, so it does not isolate content use. Ordinary-text learning is NOT_RUN and the finite 20/31 reference has less information. [Review](docs/integration/transferable-lexical-principal-review-2026-09-23.md) and [next DeepSeek brief](docs/integration/deepseek-ordinary-lexical-step-2026-09-23.md) keep the next milestone at one shared open-vocabulary Generate/Copy/Stop learner for prose and grounded exact spans.
-
-**This task, executed (PR #1352, References #820):** the retained state-conditioned decoder now consumes a position-resolved, tail-carrying, unknown-explicit content observation, the **actual emitted token identity** and an exact 15-coordinate **typed causal block** (requested history, `derived`, `prior_differs`, `committed`, `key_changed`, exact equality/prefix/divergence/lengths/unknown counts) in its recurrence, and **continues after the copied span** when the consumed computation actually changed the address. Executed: learned **31/31** (fitting 23/23, held-out source documents **8/8**), teacher-forced **791/791** through the exported integer artifact, retained legacy copy **31/31**, retained comparator **20/31**, recurrence ablation **0/31**, context ablation **6/31**, paired computed-request difference **4/4** (operation and key_changed vary), restart across ten in-process boundaries and a separate process, and the E generates while S loads/validates in the submitted probe; principal replay executes S separately. Ordinary-text learning is **NOT_RUN**: the scoped contract supervises an exactly owned span and fitted content coverage of source-separated prose is ~2% (measured). [Result](docs/integration/transferable-lexical-result-2026-09-22.md), [evidence](docs/evidence/transferable-lexical-2026-09-22.json), [principal review that set the task](docs/integration/state-conditioned-lexical-review-2026-09-22.md).
-
-**Next:** learn vocabulary and continuation from a source-separated ordinary-text corpus through the retained session, then adapt the E/S donor through a new donor-conditioned vocabulary decision over an exact owned span. Broader conversation and executed Rust follow through the same candidate, then whole-model laptop cost and product delivery.
-
-**PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](docs/integration/state-conditioned-lexical-review-2026-09-22.md), [independent audit](docs/evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](docs/evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. The corrected retained reference scores 12/31; the unchanged learned artifact retains 31/31. Original artifacts remain preserved.
-
-**Next:** [one transferable lexical learner](docs/integration/deepseek-transferable-lexical-step-2026-09-22.md): exact causal address/value/history distinctions, actual generated and copied-token feedback, meaningful continuation after copying, ordinary source-separated text plus grounded responses, and a loaded E/S reference or measured adaptation. Geometric ordered transport/shared residuals remain preferred candidates beside the ordinary low-bit baseline. Complete this interface before broader conversation and executed Rust; then qualify whole-model laptop cost and product delivery. This remains the open lexical milestone, not a new series of renamed fixtures.
-
-**Retained at its original scope (PR #1349, principal review):** the earlier learned Copy/Insert/Stop interface remains an exposed four-word construction whose authored targets misused tense. Its artifacts and the `RealizedV1` path are preserved. [Review](docs/integration/grounded-lexical-realization-review-2026-09-22.md) and [independent audit](docs/evidence/grounded-lexical-realization-principal-audit-2026-09-22.json) distinguish implementation, semantic validity, exposure and same-artifact scope.
-
-**Leadership and resources:** principal mathematical/ML/systems review governs the roadmap; DeepSeek has substantive design and diagnostic discretion. Record necessary local extensions prospectively, cumulative work and measured physical space. No arbitrary short timer or retry quota, no paid compute, and no deletion of unique artifacts. Learned behavior, exact infrastructure and supplied supervision remain separate.
-
-The dated records below preserve the earlier evidence and are superseded for scheduling.
-
-PR #1300 recorded a real-text curve of **9.1316 → 8.2182 → 7.1425 bits/target** at steps 0/256/512. Only the step-512 artifact was saved. The evaluation-only replay (PR #1301's task) reproduces the recorded step-512 micro losses to ~1e-15 bits/target, corrects the occurrence-collapsing permutation and the window-as-document bootstrap, and recovers the original exposure. It passes the frozen 0.10-bit threshold on both the 32-document legacy panel and a 36-document spread-position panel, with a corrected per-occurrence permutation penalty of **+3.0572/+3.0858 bits**. This is a positive local prediction result, but an interpolated order-2 count reference on the *same* input reaches **3.9691** bits/target, so it is not useful language or geometric advantage.
-
-The learned older-prefix pilot remains numerically negative, and its three candidates have been recovered into executable exact-table-bound CPX2 artifacts without retraining. The subsequent empirical output-head refit improves the fixed development panel from **7.558429 to 7.170816 bits/target**; the smoothed arm scores 7.188585 and an offline floating head on the same features 6.874144. Both hard heads still enter short greedy cycles. [Raw receipt](docs/evidence/native_geometric_prefix_recovery_readout_2026-09-20.txt).
-
-The [principal review after PR #1308](docs/integration/geometric-query-review-2026-09-20.md) independently reproduces the saved E/Q0/QG losses and paired intervals. The executed projection improves on ordinary quantization by **0.225306 bits/target**, but remains **0.020057 bits worse than E**. Both conversions fail the practical screen. This comparison supports the complete executed calibration recipe; it does not isolate each ingredient. Lower raw squared-score error against the floating head does not imply lower cross-entropy.
-
-Two source corrections matter: QG omitted the optimized nearest-code seed at its original scale, so the complete prescribed search is **NOT_RUN**; and reported Gram singularity was never measured. These do not invalidate the saved losses. E/S tokenizer metadata is now corrected without changing numerical bytes. E remained the numerical incumbent at that projection checkpoint, and all six generations were degenerate. Preserve the [raw receipt](docs/evidence/native_geometric_head_projection_2026-09-20.txt) with this scope correction.
-
-**Latest result and correction:** the [frozen S attribution](docs/integration/s-attribution-result-2026-09-20.md) preserves a useful local-query gain. Removing its individual-history row improves old/new all-target CE from 7.032228/6.919775 to 7.022581/6.912660 bits/target. The [principal review after PR #1312](docs/integration/occurrence-reader-review-2026-09-20.md) verifies the saved evidence and narrows the conclusion to no demonstrated net benefit from that frozen older-history contribution. A better fit-average comparator does not prove length dependence is the useful cause; its target-position population has a small defect. The submillisecond timings used cached parent/residual logits and are not direct serving measurements. All generations remain repetitive.
-
-The raw tokenizer identity is now bound in corrected CPX3 artifacts with unchanged numerical bytes, and inference avoids duplicate history folds. The legacy import restriction is enforced by the repair runner. CPQK remains incomplete production continuation; only the trainer actually used next needs its continuation repaired and exercised before fitting.
-
-**Latest occurrence-reader result, corrected:** [PR #1314's principal audit](docs/integration/occurrence-reader-audit-2026-09-20.md) preserves a substantial constructed selection gain: **411/443** reader-relevant positions versus latest occurrence **279/443**. Raw text has **5 correct and 83 wrong reads out of 88**, including five errors among ten covered positions. The previous “10/10 covered correct” claim was a counter defect. Synthetic/raw all-position loss worsens **+0.6713/+2.7891 bits/token**. The slot feature is an eight-class equivalence relation; uniquely geometric advantage and the reported causal/cost controls are not established as originally stated. No model is promoted; original reports and negative artifacts are preserved.
-
-**Latest: a useful synthetic geometric-reader candidate, with unresolved attribution and runtime controls.** The [PR #1319 review](docs/integration/relational-reader-review-2026-09-20.md) retains an improvement over a fitted exact-context reader: 199 versus 176 correct selected payloads and -1.499668 versus -1.082268 bits of hard-action CE change on 940 constructed candidate-bearing positions. Natural-text prediction was not scored. The categorical control uses the wrong evaluation addresses; the fixture also permits a source-class shortcut. Thus unique-H4 advantage is unestablished. The original failed criterion and artifact remain unchanged.
-
-The review distinguishes covered decision success from conditional precision and soft expected cost from served loss. It also identifies stale generation observations, two empty outputs, and incomplete cost/parity controls. Source-level fixes are assigned to the next constructive run; this documentation review did not execute a model.
-
-**PR #1321, corrected:** H4 retains a constructed hard-loss gain of **-0.179540 bits/candidate position [-0.270206,-0.093226]** against exact recurrence; the old -2.4956 figure is bits/sequence. Natural text still regresses **+1.2908 bits/token** and `positive=false` remains. The categorical code map did not learn, the query-blind arm is a partial relation-channel lesion, generation used a different ring boundary, and the partner/absence fixture was defective. Unique-H4 advantage and solved ranking are not established. The [principal review](docs/integration/competitive-reader-review-2026-09-20.md) and [saved-data receipt](docs/evidence/competitive-reader-principal-review-2026-09-20.json) preserve the useful result with its limits.
-
-**PR #1323, independently reviewed:** contextual utility is a retained component positive: **−0.257644 bits/candidate position [−0.327088,−0.182968]** versus frozen global strength. On 119 present final queries, correct emitted tokens improve **8→35** and correct payload reads **11→49**. Absent-query behavior worsens; natural text remains **+0.218875 bits/token** worse than local on documents also fitted by this reader. Generation remains degenerate. Unique-H4 benefit and integrated language usefulness are not established. The [principal review](docs/integration/contextual-utility-review-2026-09-21.md) and [saved-data analysis](docs/evidence/contextual-utility-principal-review-2026-09-21.json) correct the global-arm/NoRead/duplicate-count diagnostic and text, artifact, control and cost claims.
-
-**PR #1325/#1326, independently reviewed:** improved learning raises present-query correct payload reads **49→103/119** and correct emitted next tokens **35→83/119** on the retained construction. H4 beats exact recurrence by **−0.524968 bits/candidate position**, while matched categorical+contextual has lower loss than H4+contextual. The marginal controller gain is unresolved; earlier positives keep their original scope. The construction is a replay, not a new final draw. Reader-document separation is valid, but H4-contextual still harms held-out text by **+0.274243 bits/token**. [Principal review](docs/integration/relational-learning-review-2026-09-21.md) and [saved-data evidence](docs/evidence/relational-learning-principal-review-2026-09-21.json).
-
-**PR #1328, independently reviewed:** the exported policy retains a small reader-held-out text probability gain: H4 **−0.019477 bits/token [−0.032861,−0.005507]**, eight documents /1,952 positions; all five declared document intervals reproduce. Text emitted correctness remains 406/1,952, equal to local; general prose remains degenerate. Full construction emitted correctness drops 362→29. **The contextual-representation diagnosis is withdrawn:** fitting used legacy zero gap thresholds and serving used new negative thresholds, leaving 24/32 gap-band entries untrained. The intended observation was not tested consistently. [Principal review](docs/integration/reader-utility-review-2026-09-21.md); [saved-data audit](docs/evidence/reader-utility-principal-review-2026-09-21.json).
-
-**PR #1330, independently reviewed:** the fit/serve feature repair and four negative outcome criteria verify. Corrected H4 harms reader-held-out text by **+0.119319 bits/token [+0.070211,+0.167862]**, versus parent +0.453197 and fixed one nat −0.014769. Present-query correct emissions fall **77→56/121**; absent reads rise **5→19/19**. Preserve PR #1328's old artifact gain: the changed successor does not refute that measurement. Both modified source hashes and all five reported document intervals verify. Attempt 4 faithfully replays attempt 3 after a report repair; it is not a second independent final draw. [Principal review](docs/integration/policy-objective-review-2026-09-21.md); [saved-data audit](docs/evidence/policy-objective-principal-review-2026-09-21.json).
-
-**PR #1334 scope correction:** the principal review above supersedes the submitted learned-update/readout-only diagnosis; seeded maps and the suffix-solvable fixture remain preserved evidence.
-
-**PR #1332, independently reviewed and corrected:** exact integer reconstruction confirms the unchanged 32-address influence class cannot preserve the development parent's answers and absence behavior. At absent reads <=7, H4 can emit at most **74** correct answers and categorical **71**, against **145** required, even with every bucket free. This is an information collision in the coarse five-bit influence observation, not an H4 capacity limit. [Principal review](docs/integration/policy-obstruction-review-2026-09-21.md); [audit](docs/evidence/policy-obstruction-principal-review-2026-09-21.json).
-
-**PR #1333, independently reviewed and corrected:** the confidence sign restores fitted policy expressivity; both selected tables meet development-fit constraints. Fresh joint preservation fails for both: H4 present 71/117 versus parent 73, categorical 79 versus its own parent 81; present CE worsens **+0.159790/+0.152981 bits/query** above +.05, and absent reads rise **11/10 and 7/6**. Text deltas remain **+0.037882/+0.020116 bits/token**; both tune text screens fail. Confidence generation/intervention/timing are NOT_RUN. Preserve this useful interface component without promotion. [Principal review](docs/integration/reader-confidence-review-2026-09-21.md); [audit](docs/evidence/reader-confidence-principal-review-2026-09-21.json).
-
-**Historical next after PR #1333 (superseded above):** [one learned read-conditioned geometric update feeding shared emission](docs/integration/deepseek-read-conditioned-state-step-2026-09-21.md), beginning with compact frozen-confidence rollout. A payload-only logit boost cannot change relative odds between two uncopied tokens; 939/976 fresh text targets are absent from admitted payloads. Learn one bounded signed-H4 transport/shared residual and test a noncopy output with actual changed-source/NoRead/update-disabled controls and a matched ordinary-state comparator. End automatic scalar-copy feature expansion; an extra text/query bit is not established as the missing mechanism. Keep source admission/ranking and exact identities fixed initially; dependent reads and learned stopping follow a useful one-read transformation. No new model result is claimed by this review.
-
-The longer programme still requires coherent language, durable isolated memory, grounded correctness, compositional reasoning, executable Rust tasks and complete M1 cost on the **same accepted artifact**. The [canonical plan](docs/integration/project-track.md) owns that acceptance. The existing [Studio project](https://github.com/Casey-allard/uor-r4-wasm-chat) is a later integration target; a working UI is not evidence that an accepted native model runs in it.
-
-## Source and tools
-
-| Component | Source |
+| Path | Contents |
 | --- | --- |
-| Standalone integer session and shared tokenizer | [serving usage](crates/uor-r4-integer/README.md), [model](crates/uor-r4-integer/src/model.rs), [generation](crates/uor-r4-integer/src/generation.rs), [shared BPE](crates/uor-r4-tokenizer/src/lib.rs) |
-| Current offline joint learner and continuation | [joint_model.rs](crates/uor-r4-training/src/joint_model.rs), [joint_campaign.rs](crates/uor-r4-training/src/joint_campaign.rs), [joint_parallel.rs](crates/uor-r4-training/src/joint_parallel.rs), [joint_comparison.rs](crates/uor-r4-training/src/joint_comparison.rs) |
-| Current exact-token prior, geometric memory and low-bit substrate | [prior_learning.rs](crates/uor-r4-core/src/native_geometric/learner/prior_learning.rs), [cold_prior.rs](crates/uor-r4-core/src/native_geometric/learner/cold_prior.rs), [geometric_attention.rs](crates/uor-r4-core/src/native_geometric/learner/geometric_attention.rs), [lowbit.rs](crates/uor-r4-core/src/native_geometric/learner/lowbit.rs), [group_table.rs](crates/uor-r4-core/src/native_geometric/learner/group_table.rs) |
-| Retained memory and shared language composition | [memory_runtime.rs](crates/uor-r4-core/src/native_geometric/memory_runtime.rs), [relation.rs](crates/uor-r4-core/src/native_geometric/relation.rs), [value_runtime.rs](crates/uor-r4-core/src/native_geometric/value_runtime.rs), [dependent_language](crates/uor-r4-core/src/native_geometric/dependent_language/) |
-| Prose training and artifact | [jepa_trainer.rs](crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs), [binary_model.rs](crates/uor-r4-core/src/native_geometric/learner/binary_model.rs), [train-native-prose.rs](crates/uor-r4-core/src/bin/train-native-prose.rs) |
-| Routing, geometric observations and count features | [vsa](crates/uor-r4-core/src/native_geometric/vsa/), [lattice_table.rs](crates/uor-r4-core/src/native_geometric/lattice_table.rs), [hopf_metric.rs](crates/uor-r4-core/src/native_geometric/hopf_metric.rs), [engram.rs](crates/uor-r4-core/src/native_geometric/engram.rs) |
-| Corpus preparation | [pretokenize-corpus.rs](crates/uor-r4-core/src/bin/pretokenize-corpus.rs), [mmap_corpus.rs](crates/uor-r4-core/src/native_geometric/mmap_corpus.rs) |
-| Evaluation and diagnostics | [geometric-realtext-ceiling.rs](crates/uor-r4-core/src/bin/geometric-realtext-ceiling.rs) (historical name; fitted baselines), [ablate-prose.rs](crates/uor-r4-core/src/bin/ablate-prose.rs), [shortlist-recall.rs](crates/uor-r4-core/src/bin/shortlist-recall.rs) |
-| Prose CLI/API | [r4-native-chat.rs](crates/uor-r4-api/src/bin/r4-native-chat.rs), [native_capability_api.rs](crates/uor-r4-api/src/native_capability_api.rs) |
+| [`crates/uor-r4-training`](crates/uor-r4-training) | The geometric stack, memory, training worlds, export, and the experiment drivers in `examples/` |
+| [`crates/uor-r4-integer`](crates/uor-r4-integer) | The multiplier-free serving engine and the `uor-r4-stack` and `uor-chat` binaries |
+| [`crates/uor-r4-lut`](crates/uor-r4-lut) | The serving artifact format |
+| [`crates/uor-r4-model-source`](crates/uor-r4-model-source) | The exact CPU reference for teacher models (Llama/SmolLM2, GPT-2) and the attention-replacement seam |
+| [`crates/uor-r4-core`](crates/uor-r4-core) | Geometric primitives (R4/S3/H4, exact `Z[φ]`, prime addressing), the earlier native learner and sealed report output |
+| [`crates/uor-r4-tokenizer`](crates/uor-r4-tokenizer) | The shared byte-level BPE tokenizer |
+| `crates/uor-r4-graph-*`, `uor-r4-router` | The frozen TLA/R4G1 graph runtime and certified routing, under their own scoped contracts |
+| [`docs/`](docs) | Plans, decisions, results and the full research history |
 
-The CLI accepts an explicit artifact and its matching tokenizer; trained artifacts are local ignored material and are not supplied by cloning this repository. For example, after building the relevant binary:
+The [project map](docs/PROJECT_MAP.md) covers every crate and historical engine.
+
+## Quick start
+
+Rust is pinned by `rust-toolchain.toml` (1.97.1), and rustup selects it
+automatically. Training data and model artifacts are local material and are
+not in the repository.
 
 ```sh
-target/release/r4-native-chat --model /path/to/model.rgm --tokenizer /path/to/tokenizer.json --temperature 0 --top-k 1 "Once upon a time"
+cargo build --release -p uor-r4-training --example geometric-stack
+cargo build --release -p uor-r4-integer --bin uor-r4-stack
+cargo test -p uor-r4-training --lib geometric_stack
 ```
 
-With no prompt it opens the interactive loop (`/reset`, `/stats`, `/exit`). Consult each linked binary's argument parser/help for current options. The corpus and training tools belong to package `uor-r4-core`; the chat binary belongs to `uor-r4-api`. Do not start a training or historical qualification campaign before recording its resource projection and verifying its inputs.
+- `geometric-stack` trains, evaluates and exports stacks. Run it without
+  arguments to list its modes.
+- `uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS` serves an artifact
+  written by `geometric-stack export` under D11. `PROMPT_IDS` is a
+  comma-separated list of token IDs.
+- The interactive `uor-chat --bundle <dir>` serves the earlier integer model.
+  Its stack profile is not built yet.
 
-## Research, verification and continuity
+## How the work is run
 
-The [structural-memory/Hopf direction](docs/integration/structural-memory-hopf-direction-2026-09-20.md) preserves the role/scope-memory research direction and conditional reuse of finite Hopf/S7 relation state or harmonic coefficients. The occurrence-reader experiment is historical. These are untested hypotheses; the [canonical plan](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up) owns their sequence and advantage tests.
+Five labs work in parallel. Each is an AI research agent with its own GitHub
+board, and the owner holds the mission, spending and final decisions.
 
-- [Project map](docs/PROJECT_MAP.md): source families, historical engines, artifact locations and interface boundaries.
-- [Architecture audit](docs/integration/architecture-2026-09/README.md) and [import audit](docs/integration/architecture-2026-09/imports.md): reusable UOR, NEMESIS, W33, GoldSnnail, SpiralCore and other mechanisms, with source/pin/claim limits.
-- [Geometric-attention synthesis](docs/integration/geometric-attention-research-2026-09/README.md) and [mathematical foundations](docs/integration/geometric-attention-research-2026-09/mathematical-foundations.md): exact constructions, proposed bridges and missing learning evidence.
-- [Research archive](research/README.md), [research ledger](docs/RESEARCH.md), [September 16 review](docs/integration/review-2026-09-16/00-project-brain-index.md) and [experiment cards](docs/integration/cards/): preserved historical evidence. Dated recommendations do not override current owner direction.
-- [Formal vocabulary](docs/formal_vocabulary.md): distinguish definitions, assumptions, proof, empirical results and objectives.
-- [Kimi Code research workspace](.kimi-code/README.md): an optional one-window DeepSeek team workflow, scoped specialist roles and handoff pattern. It supplements the live project authority; local credentials and private session traces are never part of the repository.
+- [Plan of record](docs/plans/2026-09-29-path-to-chat.md): tracks,
+  experiments, gates, kill criteria, owners and the anti-stall rules.
+- [STATUS.md](STATUS.md): one row per lab, with the current item and the latest result.
+- [ROADMAP.md](ROADMAP.md): assignments, the dead-path register and the cross-lab protocol.
+- [DECISIONS.md](docs/integration/DECISIONS.md): owner decisions.
+- [Current state](docs/integration/current-state.md): measured results and artifacts.
+- The [programme tracker #820](https://github.com/UOR-Foundation/uor-r4/issues/820)
+  and epics [#1508](https://github.com/UOR-Foundation/uor-r4/issues/1508) (Track A),
+  [#1509](https://github.com/UOR-Foundation/uor-r4/issues/1509) (Track B) and
+  [#1510](https://github.com/UOR-Foundation/uor-r4/issues/1510) (infrastructure).
+- [AGENTS.md](AGENTS.md): the operating rules for every contributor and agent.
 
-Use focused compilation/tests and actual generated behavior for changed model paths; use allocation, serialization and operation checks where the changed boundary warrants them. Queue compatibility acknowledgements are not tests. The [historical qualification driver](scripts/verify_qualification.sh) has local evidence dependencies and tests the retained dependent-language family; it is not qualification of every model in the repository.
+**Evidence rules.**
+- Numbers come from committed code run into sealed report directories. A lab's
+  own figure is labeled self-reported until a non-author re-runs it.
+- Experiments are pre-registered with a gate and a kill criterion. A kill ends
+  an experiment, not a mechanism family (D12).
+- Negative results keep their exact scope.
+- Claims follow the [formal vocabulary](docs/formal_vocabulary.md).
 
-Preserve research, original checkouts, artifact parents, negative candidates and receipts. Record cumulative local resource charges and necessary authorized extensions before use; no paid/external compute is implied. Deliver named changes through protected pull requests and update the owning issue, current state and claims after each run. See [AGENTS.md](AGENTS.md) for the complete workflow.
+## History
+
+The research began with exact geometric memory and a transformerless prose
+learner, then moved to learned recurrent models with integer serving. The
+[README as of 29 September 2026](https://github.com/UOR-Foundation/uor-r4/blob/0fb03372/README.md)
+keeps the dated results log. The [evidence index](docs/integration/EVIDENCE.md)
+and the [research ledger](docs/RESEARCH.md) cover the full history.
 
 ## License
 
-UOR-R4 is licensed under the [MIT License](LICENSE). Third-party research and dependencies retain their original licenses and attribution; a research link does not itself grant permission to reuse its contents.
+[MIT](LICENSE). Third-party research and dependencies keep their own licenses.
