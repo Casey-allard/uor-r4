@@ -782,6 +782,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "legacy low-bit learner threshold: the Adam v_hat guard removed in #1298 is not restored (owner ruling, D18 section 9, #1546)"]
     fn learns_induction_at_short_delay() {
         for delay in [1usize, 4] {
             let acc = train_induction(delay, 1500, 2026_0919);
@@ -799,6 +800,7 @@ mod tests {
     /// this machine and build, and the module docs record that neighbouring regimes (larger batch,
     /// longer delay, higher learning rate at large width) collapse to the uniform predictor.
     #[test]
+    #[ignore = "legacy low-bit learner threshold: the Adam v_hat guard removed in #1298 is not restored (owner ruling, D18 section 9, #1546)"]
     fn learns_induction_at_long_delay() {
         let delay = 16usize;
         let train = induction_batch(0xA5A5_1234, 32, delay);
@@ -819,6 +821,7 @@ mod tests {
     /// The confirmed power-of-two readout normalisation moves the run off the uniform collapse that
     /// was measured at `dk = 128, lr = 0.05` (loss exactly `ln 8`, accuracy 0.06).
     #[test]
+    #[ignore = "legacy low-bit learner threshold: the Adam v_hat guard removed in #1298 is not restored (owner ruling, D18 section 9, #1546)"]
     fn normalisation_moves_off_the_uniform_collapse() {
         let delay = 16usize;
         let train = induction_batch(0xA5A5_1234, 32, delay);

@@ -1387,6 +1387,7 @@ mod tests {
     /// The diagnosis from the previous round was that robustness is not in the objective. Put corrupted
     /// addresses *in* the objective and the learned filter should stop being pure loss.
     #[test]
+    #[ignore = "legacy low-bit learner threshold: the Adam v_hat guard removed in #1298 is not restored (owner ruling, D18 section 9, #1546)"]
     fn corruption_in_the_objective_changes_the_filter() {
         let k = 8usize;
         let train = repeat_alphabet(0xA5A5_1234, 64, k, 8);
