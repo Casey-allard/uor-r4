@@ -10,6 +10,8 @@
 //! kappa-conversion mode=tokenize model=DIR text=IN.txt out=OUT.u16
 //! kappa-conversion mode=probe model=DIR tokens=X.u16 out=NEW_ROOT
 //!     [score=intrinsic|key_norm] [batch=1] [time=256] [windows=4] [t_grid=1e-8,1e-6,...,3]
+//!     # or training-free flock attention, exactly one arm per invocation:
+//!     [flock=1|7|16|64] [weights=softmax|rank] [seed=9001] [held_out_tokens=N]
 //! kappa-conversion mode=drive model=DIR tokens=X.u16 out=NEW_ROOT
 //!     [teacher=DIR] [batch=1] [time=256] [windows=16] [t_grid=0.1,1] [cost_layers=all|0,4,...]
 //! kappa-conversion mode=train student=DIR train=X.u16 valid=Y.u16 out=NEW_ROOT
@@ -35,8 +37,19 @@
 //! the first-order gain at `t = 1` (`-sum_h g_h`) exceeds the measured zero-shot
 //! cost at `t = 1`.
 //!
+//! `probe flock=K` runs the dense baseline plus exactly one training-free flock
+//! arm on the same windows: sink (position 0) + the 64 nearest causal positions
+//! + the exact top-`K` of the rest by Lorentz rank, weighting the support either
+//! by the checkpoint's scaled-dot softmax (`weights=softmax`; the learned
+//! per-head `log_beta` is not applied, so this matches the checkpoint's own
+//! softmax only at `log_beta == 0`) or by the fixed normalized
+//! rank table `w_i = 1/(i+1)` (`weights=rank`, no exponentials). Ranking lifts
+//! each head's post-RoPE q/k as `x_L = (sqrt(1+|x|^2), x)` and orders by
+//! `-q0 k0 + q . k` (monotone; no `arcosh`). No weights change. With
+//! `seed`/`held_out_tokens` the window starts are counter-drawn from the final
+//! `held_out_tokens` of the token file and recorded.
+//!
 //! `train` minimizes KL(teacher || student) when `teacher=` is given (the
-//! teacher runs the Dot score) and next-token loss on `train=` otherwise.
 //! `score=dot` is the matched plain control and `*_linear` the matched
 //! first-order control (dot plus the fixed quartic feature, free coefficient).
 //! `anneal_t` raises a floor on every head's curvature linearly to `t = T`
@@ -51,7 +64,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use candle_core::backprop::GradStore;
 use candle_core::{Device, Tensor};
@@ -60,7 +75,8 @@ use uor_r4_core::report_output;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 use uor_r4_training::joint_optimizer::{AdamConfig, NamedAdamW};
 use uor_r4_training::kappa_llama::{
-    distillation_kl, load_checkpoint, max_abs_difference, mean_key_sq, next_token_nll, Checkpoint,
+    distillation_kl, held_out_starts, load_checkpoint, max_abs_difference, mean_key_sq,
+    next_token_nll, rank_table, Checkpoint, FlockSpec, FlockStats, FlockWeights,
     HeadStatisticsAccumulator, KappaLlama, ScoreKind, Trainable, LAMBDA, LOG_BETA, LOG_EPS,
     NORM_SCALE,
 };
@@ -299,13 +315,49 @@ struct ProbeSettings {
     time: usize,
     windows: usize,
     grid: Vec<f64>,
+    flock: Option<usize>,
+    flock_weights: FlockWeights,
+    seed: Option<u64>,
+    held_out_tokens: Option<usize>,
 }
 
 fn probe_settings(args: &Args) -> Result<ProbeSettings> {
+    let flock = match args.text("flock") {
+        None => None,
+        Some(text) => {
+            let k: usize = text
+                .parse()
+                .map_err(|_| invalid(format!("flock must be a positive integer, not {text}")))?;
+            if !matches!(k, 1 | 7 | 16 | 64) {
+                return Err(invalid("flock k must be one of 1, 7, 16, 64"));
+            }
+            Some(k)
+        }
+    };
     let score = ScoreKind::parse(args.text("score").unwrap_or("intrinsic"))?;
-    if !score.is_curved() {
+    if flock.is_none() && !score.is_curved() {
         return Err(invalid(
-            "probe compares a curved score (intrinsic or key_norm) with dot",
+            "probe compares a curved score (intrinsic or key_norm) with dot, or takes flock=K",
+        ));
+    }
+    let flock_weights = FlockWeights::parse(args.text("weights").unwrap_or("softmax"))?;
+    let seed: Option<u64> = match args.text("seed") {
+        None => None,
+        Some(text) => Some(
+            text.parse()
+                .map_err(|_| invalid(format!("seed must be an integer, not {text}")))?,
+        ),
+    };
+    let held_out_tokens: Option<usize> = match args.text("held_out_tokens") {
+        None => None,
+        Some(text) => Some(
+            text.parse()
+                .map_err(|_| invalid(format!("held_out_tokens must be an integer, not {text}")))?,
+        ),
+    };
+    if seed.is_some() != held_out_tokens.is_some() {
+        return Err(invalid(
+            "seed and held_out_tokens are given together (the held-out split is drawn from the token file tail)",
         ));
     }
     let settings = ProbeSettings {
@@ -317,6 +369,10 @@ fn probe_settings(args: &Args) -> Result<ProbeSettings> {
         time: args.number("time", 256)?,
         windows: args.number("windows", 4)?,
         grid: args.list("t_grid", "1e-8,1e-6,1e-4,1e-3,1e-2,0.1,0.3,1,3")?,
+        flock,
+        flock_weights,
+        seed,
+        held_out_tokens,
     };
     if settings.batch == 0 || settings.time < 2 || settings.windows == 0 {
         return Err(invalid("batch and windows must be positive and time >= 2"));
@@ -325,6 +381,176 @@ fn probe_settings(args: &Args) -> Result<ProbeSettings> {
 }
 
 fn probe(settings: &ProbeSettings, out: &Path) -> Result<()> {
+    if let Some(k) = settings.flock {
+        return probe_flock(settings, k, out);
+    }
+    probe_curved(settings, out)
+}
+
+/// Peak resident set of this process, sampled from `/bin/ps` while a run is live.
+fn resident_bytes() -> Option<u64> {
+    let process = std::process::id().to_string();
+    let output = std::process::Command::new("/bin/ps")
+        .args(["-o", "rss=", "-p", &process])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8(output.stdout).ok()?;
+    text.split_whitespace()
+        .next()?
+        .parse::<u64>()
+        .ok()?
+        .checked_mul(1024)
+}
+
+/// Sample RSS every 100 ms until the returned flag is set; join for the peak.
+fn rss_sampler() -> (Arc<AtomicBool>, Arc<AtomicU64>, std::thread::JoinHandle<()>) {
+    let stop = Arc::new(AtomicBool::new(false));
+    let peak = Arc::new(AtomicU64::new(0));
+    let thread_stop = Arc::clone(&stop);
+    let thread_peak = Arc::clone(&peak);
+    let handle = std::thread::spawn(move || {
+        while !thread_stop.load(Ordering::Relaxed) {
+            if let Some(bytes) = resident_bytes() {
+                thread_peak.fetch_max(bytes, Ordering::Relaxed);
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    });
+    (stop, peak, handle)
+}
+
+/// Dense baseline plus exactly one training-free flock arm over the same windows.
+fn probe_flock(settings: &ProbeSettings, k: usize, out: &Path) -> Result<()> {
+    let started = Instant::now();
+    let (stop, peak, sampler) = rss_sampler();
+    let device = &settings.device;
+    let checkpoint = load_checkpoint(&settings.model, device)?;
+    let weights_sha256 = checkpoint.weights_sha256.clone();
+    let tokens = read_tokens(&settings.tokens, checkpoint.shape.vocab)?;
+    let tokens_sha256 = uor_r4_training::sha256_file(&settings.tokens)?;
+    let starts = match (settings.seed, settings.held_out_tokens) {
+        (Some(seed), Some(held_out)) => held_out_starts(
+            tokens.len(),
+            settings.time,
+            settings.windows,
+            held_out,
+            seed,
+        )?,
+        _ => evenly_spaced(tokens.len(), settings.time, settings.windows)?,
+    };
+    let chunks = chunks(&tokens, &starts, settings.time, settings.batch);
+    let dot = KappaLlama::new(
+        clone_checkpoint(&checkpoint),
+        ScoreKind::Dot,
+        0.0,
+        Trainable::Scalars,
+        device,
+    )?;
+    let spec = FlockSpec {
+        k,
+        window: 64,
+        weights: settings.flock_weights,
+    };
+    let mut flock = KappaLlama::new(checkpoint, ScoreKind::Dot, 0.0, Trainable::Scalars, device)?;
+    flock.set_flock(Some(spec))?;
+    let share = 1.0 / chunks.len() as f64;
+    let (mut dot_nll, mut flock_nll, mut agree) = (0.0, 0.0, 0.0);
+    let mut stats = FlockStats::default();
+    for (inputs, targets, n) in &chunks {
+        let reference = dot.forward(inputs, *n, settings.time, true)?;
+        dot_nll += scalar(&next_token_nll(&reference, targets)?)? * share;
+        let logits = flock.forward(inputs, *n, settings.time, true)?;
+        flock_nll += scalar(&next_token_nll(&logits, targets)?)? * share;
+        let same = logits
+            .argmax(2)?
+            .eq(&reference.argmax(2)?)?
+            .to_dtype(candle_core::DType::F32)?
+            .mean_all()?;
+        agree += scalar(&same)? * share;
+        stats.add(&flock.take_flock_stats());
+    }
+    stop.store(true, Ordering::Relaxed);
+    sampler
+        .join()
+        .map_err(|_| invalid("rss sampler panicked"))?;
+    let peak_rss = peak.load(Ordering::Relaxed);
+    let after = uor_r4_training::sha256_file(&settings.model.join("model.safetensors"))?;
+    let weights_unchanged = after == weights_sha256;
+    let table = match settings.flock_weights {
+        FlockWeights::Rank => Some(rank_table(1 + spec.window + k)),
+        FlockWeights::Softmax => None,
+    };
+    let table_sha256 = table.as_ref().map(|values| {
+        let bytes: Vec<u8> = values.iter().flat_map(|w| w.to_le_bytes()).collect();
+        uor_r4_training::sha256_bytes(&bytes)
+    });
+    let dense_bits = dot_nll / std::f64::consts::LN_2;
+    let report = json!({
+        "schema": "uor-r4.kappa-conversion-probe/2",
+        "mode": "flock",
+        "identity": {
+            "model": settings.model,
+            "weights_sha256": weights_sha256,
+            "tokens": settings.tokens,
+            "tokens_sha256": tokens_sha256,
+            "shape": flock.shape(),
+        },
+        "flock": {
+            "k": k,
+            "window": spec.window,
+            "weights": settings.flock_weights,
+            "weight_rule": "arm R: w_i = 1/(i+1) normalized over the selected support, i the Lorentz-rank position; arm S: the checkpoint's scaled-dot softmax over the same support, without the learned per-head log_beta (matches the model's own softmax only at log_beta == 0)",
+            "weight_table": table,
+            "weight_table_sha256": table_sha256,
+            "weight_table_scope": "nominal maximum support (1 + window + k); per-row support is shorter at short prefixes and at top-k-short rows",
+            "raw_rank_scale": "unnormalized a_i = 1/(i+1) via uor_r4_training::flock::raw_rank_weights, the B2 hybrid scale; not the normalized table above",
+        },
+        "batch": settings.batch,
+        "time": settings.time,
+        "windows": settings.windows,
+        "seed": settings.seed,
+        "held_out_tokens": settings.held_out_tokens,
+        "window_starts": starts,
+        "dot_nll": dot_nll,
+        "flock_nll": flock_nll,
+        "delta_nll": flock_nll - dot_nll,
+        "top1_agreement": agree,
+        "support": {
+            "queries": stats.queries,
+            "mean_selected": stats.mean_selected(),
+            "sink_share": stats.sink_share(),
+            "window_share": stats.window_share(),
+            "top_k_share": stats.top_k_share(),
+            "candidates_scanned": stats.candidates_scanned,
+            "short_prefix_rows": stats.short_prefix,
+            "top_k_short_rows": stats.top_k_short,
+            "cutoff_tie_rows": stats.cutoff_ties,
+            "selector": uor_r4_training::flock::FLOCK_SELECTOR_VERSION,
+        },
+        "weights_sha256": after,
+        "weights_unchanged": weights_unchanged,
+        "peak_rss_bytes": peak_rss,
+        "g2_crosscheck": {
+            "dense_bits_per_token": dense_bits,
+            "external_reference_bits_per_token": 3.8425,
+            "delta_bits_per_token": dense_bits - 3.8425,
+            "reference": "docs/transformerless/EXTERNAL_REFEREE_300.md: 596 held-out articles / 71,714 target tokens, first 128 tokens per article, HF tokenizer, no BOS/chat template; a different pipeline",
+        },
+        "seconds": started.elapsed().as_secs_f64(),
+    });
+    fs::write(out.join("probe.json"), serde_json::to_vec_pretty(&report)?)?;
+    if !weights_unchanged {
+        return Err(invalid(
+            "the checkpoint weights file changed during the flock probe",
+        ));
+    }
+    Ok(())
+}
+
+fn probe_curved(settings: &ProbeSettings, out: &Path) -> Result<()> {
     let started = Instant::now();
     let device = &settings.device;
     let checkpoint = load_checkpoint(&settings.model, device)?;

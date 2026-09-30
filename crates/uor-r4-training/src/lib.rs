@@ -20,6 +20,8 @@ pub mod dialogue_episodes;
 pub mod dialogue_learning;
 pub mod dialogue_rounding;
 pub mod dialogue_rounding_artifact;
+pub mod flock;
+pub mod flock_transport;
 pub mod geometric_read;
 pub mod geometric_stack;
 pub mod joint_admission;
@@ -141,6 +143,12 @@ pub fn sha256_file(path: &Path) -> Result<String> {
         digest.update(&buffer[..bytes]);
     }
     Ok(hex::encode(digest.finalize()))
+}
+
+pub fn sha256_bytes(bytes: &[u8]) -> String {
+    let mut digest = Sha256::new();
+    digest.update(bytes);
+    hex::encode(digest.finalize())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

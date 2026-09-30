@@ -35,6 +35,7 @@
 //! Every head also carries a learnable log inverse temperature (`log_beta`), in
 //! every score kind, so a `Dot` control has the same non-curvature freedom.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
@@ -45,6 +46,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{invalid, Result};
+
+pub use crate::flock::{
+    flock_row_weights, flock_select, rank_table, raw_rank_weights, softmax_over_support,
+    FlockEntry, FlockScan, FlockSelect, FlockSelection, FlockSlot, FlockSpec, FlockStats,
+    FlockWeights, FLOCK_SELECTOR_VERSION,
+};
 
 /// Name of the per-head log curvature scale (`kappa = exp(2 log_eps)`).
 pub const LOG_EPS: &str = "curvature.log_eps";
@@ -96,6 +103,103 @@ impl ScoreKind {
     pub fn is_linear(self) -> bool {
         matches!(self, Self::KeyNormLinear | Self::IntrinsicLinear)
     }
+}
+
+/// Flock attention probabilities `(batch, heads, time, time)`, training-free.
+///
+/// Keys are lifted to the Lorentz model as `x_L = (sqrt(1 + |x|^2), x)` and
+/// ranked by the Minkowski product `-q0 k0 + q . k`, which is monotone
+/// (`-cosh d`); **no `arcosh` is evaluated**. The `sqrt` is the ordinary f32
+/// tensor square root. The support and both weight arms come from the shared
+/// pure selector in [`crate::flock`]; this adapter only lifts the rows and
+/// writes the dense probability tensor.
+pub fn flock_probabilities(
+    query: &Tensor,
+    key: &Tensor,
+    spec: FlockSpec,
+    stats: &mut FlockStats,
+) -> Result<Tensor> {
+    if spec.k == 0 {
+        return Err(invalid("flock k must be positive"));
+    }
+    let (batch, heads, time, head_dim) = query.dims4()?;
+    if key.dims4()? != (batch, heads, time, head_dim) {
+        return Err(invalid("flock query and key shapes differ"));
+    }
+    let key_t = key.transpose(2, 3)?.contiguous()?;
+    let dot = query.matmul(&key_t)?;
+    let q0 = query.sqr()?.sum_keepdim(3)?.affine(1.0, 1.0)?.sqrt()?;
+    let k0 = key.sqr()?.sum_keepdim(3)?.affine(1.0, 1.0)?.sqrt()?;
+    let k0_t = k0.transpose(2, 3)?.contiguous()?;
+    // -q0 k0 + q . k
+    let lorentz = dot.sub(&q0.matmul(&k0_t)?)?;
+    // Arm S scores: the checkpoint's scaled dot product. The learned per-head
+    // log_beta (applied on the dense path below) is deliberately not applied
+    // here, so this equals the checkpoint's own softmax only when log_beta == 0.
+    let scaled = dot.affine(1.0 / (head_dim as f64).sqrt(), 0.0)?;
+    let cpu = Device::Cpu;
+    let lorentz = lorentz.to_device(&cpu)?.flatten_all()?.to_vec1::<f32>()?;
+    let scaled = scaled.to_device(&cpu)?.flatten_all()?.to_vec1::<f32>()?;
+    let mut probability = vec![0f32; batch * heads * time * time];
+    for row in 0..batch * heads {
+        let matrix = row * time * time;
+        for position in 0..time {
+            let base = matrix + position * time;
+            let rank_row = &lorentz[base..base + position + 1];
+            let model_row = &scaled[base..base + position + 1];
+            let weighted = flock_row_weights(rank_row, model_row, position, &spec)?;
+            stats.record(&weighted.selection.scan);
+            probability[base..base + position + 1].copy_from_slice(&weighted.weights);
+        }
+    }
+    Ok(Tensor::from_vec(
+        probability,
+        (batch, heads, time, time),
+        query.device(),
+    )?)
+}
+
+/// Counter-based window sampler (SplitMix64), shared by the probe and the G1a
+/// exactness test so both draw identical held-out windows.
+pub struct WindowSampler(u64);
+
+impl WindowSampler {
+    pub fn new(seed: u64) -> Self {
+        Self(seed)
+    }
+
+    pub fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+}
+
+/// `count` counter-seeded window starts inside the final `held_out` tokens.
+/// Held-out windows are drawn at runtime and never tuned on.
+pub fn held_out_starts(
+    len: usize,
+    time: usize,
+    count: usize,
+    held_out: usize,
+    seed: u64,
+) -> Result<Vec<usize>> {
+    if count == 0 {
+        return Err(invalid("window count must be positive"));
+    }
+    if held_out > len || held_out < time + 2 {
+        return Err(invalid(format!(
+            "held-out region of {held_out} tokens cannot hold windows of {time} from {len} tokens"
+        )));
+    }
+    let origin = len - held_out;
+    let span = held_out - time - 1;
+    let mut sampler = WindowSampler::new(seed);
+    Ok((0..count)
+        .map(|_| origin + (sampler.next() % span as u64) as usize)
+        .collect())
 }
 
 /// Where a weight map reads its input (see [`KappaLlama::forward_with_capture`]).
@@ -503,6 +607,8 @@ pub struct KappaLlama {
     frozen: BTreeMap<String, Tensor>,
     variables: BTreeMap<String, Var>,
     device: Device,
+    flock: Option<FlockSpec>,
+    flock_stats: RefCell<FlockStats>,
 }
 
 impl KappaLlama {
@@ -570,7 +676,31 @@ impl KappaLlama {
             frozen,
             variables,
             device: device.clone(),
+            flock: None,
+            flock_stats: RefCell::new(FlockStats::default()),
         })
+    }
+
+    /// Enable (or clear) training-free flock attention on the checkpoint's own
+    /// dot scores. The model's weights are never modified.
+    pub fn set_flock(&mut self, flock: Option<FlockSpec>) -> Result<()> {
+        if let Some(spec) = flock {
+            if self.score != ScoreKind::Dot {
+                return Err(invalid(
+                    "flock attention is defined on the checkpoint's own (dot) scores",
+                ));
+            }
+            if spec.k == 0 || spec.window == 0 {
+                return Err(invalid("flock k and window must be positive"));
+            }
+        }
+        self.flock = flock;
+        Ok(())
+    }
+
+    /// Supports collected since the previous call, for the probe report.
+    pub fn take_flock_stats(&self) -> FlockStats {
+        self.flock_stats.replace(FlockStats::default())
     }
 
     pub fn shape(&self) -> &LlamaShape {
@@ -765,9 +895,19 @@ impl KappaLlama {
                 LayerCurvature::Flat
             };
             let log_beta = self.layer_scalars(LOG_BETA, layer, detached)?;
-            let scores = head_scores(self.score, &query, &key, curvature, &log_beta)?;
-            let masked = mask.where_cond(&excluded, &scores)?;
-            let probability = candle_nn::ops::softmax(&masked, 3)?;
+            let probability = if let Some(spec) = self.flock {
+                if !detached {
+                    return Err(invalid(
+                        "flock attention is a detached measurement path (its support is not differentiable)",
+                    ));
+                }
+                let mut stats = self.flock_stats.borrow_mut();
+                flock_probabilities(&query, &key, spec, &mut stats)?
+            } else {
+                let scores = head_scores(self.score, &query, &key, curvature, &log_beta)?;
+                let masked = mask.where_cond(&excluded, &scores)?;
+                candle_nn::ops::softmax(&masked, 3)?
+            };
             probe(layer, &query, &key, &probability)?;
             let attended = probability
                 .matmul(&value)?
@@ -1458,5 +1598,386 @@ mod tests {
             "the curved start must differ from the teacher: {before}"
         );
         assert!(after < 0.1 * before, "KL {before} -> {after}");
+    }
+
+    fn flock_model(k: usize, window: usize, weights: FlockWeights) -> KappaLlama {
+        let mut model = model(ScoreKind::Dot, 0.0, Trainable::Scalars);
+        model
+            .set_flock(Some(FlockSpec { k, window, weights }))
+            .expect("flock");
+        model
+    }
+
+    #[test]
+    fn flock_top1_is_the_exact_copy_pointer() {
+        let device = Device::Cpu;
+        let time = 12usize;
+        let head_dim = 4usize;
+        let query: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0];
+        let mut key = vec![0f32; time * head_dim];
+        for position in 0..time {
+            for lane in 0..head_dim {
+                key[position * head_dim + lane] = 0.25 + 0.1 * position as f32 + lane as f32;
+            }
+        }
+        key[3 * head_dim..4 * head_dim].copy_from_slice(&query);
+        let repeated: Vec<f32> = (0..time).flat_map(|_| query.clone()).collect();
+        let query = Tensor::from_vec(repeated, (1, 1, time, head_dim), &device).expect("q");
+        let key = Tensor::from_vec(key, (1, 1, time, head_dim), &device).expect("k");
+        let spec = FlockSpec {
+            k: 1,
+            window: 2,
+            weights: FlockWeights::Rank,
+        };
+        let mut stats = FlockStats::default();
+        let probability = flock_probabilities(&query, &key, spec, &mut stats).expect("flock");
+        let row = probability
+            .narrow(2, time - 1, 1)
+            .expect("row")
+            .flatten_all()
+            .expect("flat")
+            .to_vec1::<f32>()
+            .expect("vec");
+        let selected: Vec<usize> = row
+            .iter()
+            .enumerate()
+            .filter(|(_, value)| **value > 0.0)
+            .map(|(index, _)| index)
+            .collect();
+        assert_eq!(
+            selected,
+            vec![0, 3, 10, 11],
+            "the support must be sink + window + the top-1 copy pointer: {row:?}"
+        );
+        let top = row
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(index, _)| index)
+            .expect("argmax");
+        assert_eq!(top, 3, "the copy pointer must be rank 0: {row:?}");
+        assert!(row.iter().all(|value| value.is_finite() && *value >= 0.0));
+    }
+
+    #[test]
+    fn lorentz_rank_matches_the_acosh_distance_reference() {
+        let query: Vec<f32> = vec![0.7, -0.4, 1.3, 0.2, -0.9];
+        let mut rows = Vec::new();
+        for position in 0..9usize {
+            rows.push(vec![
+                0.1 * position as f32 - 0.3,
+                0.2 - 0.05 * position as f32,
+                0.4 + 0.03 * position as f32,
+                -0.6 + 0.07 * position as f32,
+                0.25 * position as f32 - 0.5,
+            ]);
+        }
+        let lorentz: Vec<f32> = rows
+            .iter()
+            .map(|k| {
+                let q2: f32 = query.iter().map(|v| v * v).sum();
+                let k2: f32 = k.iter().map(|v| v * v).sum();
+                let dot: f32 = query.iter().zip(k).map(|(a, b)| a * b).sum();
+                -(1.0 + q2).sqrt() * (1.0 + k2).sqrt() + dot
+            })
+            .collect();
+        let selection = flock_select(
+            &lorentz,
+            8,
+            FlockSelect {
+                sink: 0,
+                window: 1,
+                k: 8,
+            },
+        )
+        .expect("selection");
+        let ranked: Vec<usize> = selection
+            .entries
+            .iter()
+            .filter(|entry| entry.slot == FlockSlot::TopK)
+            .map(|entry| entry.position)
+            .collect();
+        // Reference: true hyperbolic distance d = arcosh(q0 k0 - q . k).
+        let distance = |k: &[f32]| -> f64 {
+            let q2: f64 = query.iter().map(|v| (v * v) as f64).sum();
+            let k2: f64 = k.iter().map(|v| (v * v) as f64).sum();
+            let dot: f64 = query
+                .iter()
+                .zip(k)
+                .map(|(a, b)| (*a as f64) * (*b as f64))
+                .sum();
+            (((1.0 + q2).sqrt() * (1.0 + k2).sqrt() - dot).max(1.0)).acosh()
+        };
+        let mut reference: Vec<usize> = (1..=7).collect();
+        reference.sort_by(|&a, &b| distance(&rows[a]).total_cmp(&distance(&rows[b])));
+        assert_eq!(
+            ranked, reference,
+            "the Minkowski ranking must agree with the true distance ordering"
+        );
+    }
+
+    #[test]
+    fn flock_softmax_over_full_support_matches_dense() {
+        let dense = model(ScoreKind::Dot, 0.0, Trainable::Scalars);
+        let flock = flock_model(64, 64, FlockWeights::Softmax);
+        let tokens = ids(1, 8);
+        let reference = dense.forward(&tokens, 1, 8, true).expect("dense");
+        let logits = flock.forward(&tokens, 1, 8, true).expect("flock");
+        let difference = max_abs_difference(&logits, &reference).expect("diff");
+        assert!(
+            difference <= 1e-4,
+            "full-support softmax differs by {difference}"
+        );
+    }
+
+    #[test]
+    fn flock_attention_is_deterministic_and_leaves_weights_unchanged() {
+        for weights in [FlockWeights::Softmax, FlockWeights::Rank] {
+            let flock = flock_model(3, 4, weights);
+            let frozen_before: Vec<(String, Vec<f32>)> = flock
+                .frozen
+                .iter()
+                .map(|(name, tensor)| {
+                    (
+                        name.clone(),
+                        tensor.flatten_all().expect("flat").to_vec1().expect("vec"),
+                    )
+                })
+                .collect();
+            let variables_before: Vec<(String, Vec<f32>)> = flock
+                .variables
+                .iter()
+                .map(|(name, var)| {
+                    (
+                        name.clone(),
+                        var.as_tensor()
+                            .flatten_all()
+                            .expect("flat")
+                            .to_vec1()
+                            .expect("vec"),
+                    )
+                })
+                .collect();
+            let tokens = ids(2, 10);
+            let first = flock.forward(&tokens, 2, 10, true).expect("first");
+            let second = flock.forward(&tokens, 2, 10, true).expect("second");
+            assert_eq!(
+                first
+                    .flatten_all()
+                    .expect("flat")
+                    .to_vec1::<f32>()
+                    .expect("vec"),
+                second
+                    .flatten_all()
+                    .expect("flat")
+                    .to_vec1::<f32>()
+                    .expect("vec"),
+                "{weights:?} forward is not deterministic"
+            );
+            let frozen_after: Vec<(String, Vec<f32>)> = flock
+                .frozen
+                .iter()
+                .map(|(name, tensor)| {
+                    (
+                        name.clone(),
+                        tensor.flatten_all().expect("flat").to_vec1().expect("vec"),
+                    )
+                })
+                .collect();
+            let variables_after: Vec<(String, Vec<f32>)> = flock
+                .variables
+                .iter()
+                .map(|(name, var)| {
+                    (
+                        name.clone(),
+                        var.as_tensor()
+                            .flatten_all()
+                            .expect("flat")
+                            .to_vec1()
+                            .expect("vec"),
+                    )
+                })
+                .collect();
+            assert_eq!(
+                frozen_before, frozen_after,
+                "{weights:?} changed frozen weights"
+            );
+            assert_eq!(
+                variables_before, variables_after,
+                "{weights:?} changed trainable weights"
+            );
+            assert!(
+                !flock.variables.contains_key(LOG_EPS),
+                "a flock run must not create curvature parameters"
+            );
+            let stats = flock.take_flock_stats();
+            assert_eq!(stats.queries, 2 * 2 * 2 * 4 * 10);
+            assert!(stats.mean_selected() > 1.0);
+            assert!(
+                (stats.sink_share() + stats.window_share() + stats.top_k_share() - 1.0).abs()
+                    < 1e-9
+            );
+        }
+    }
+
+    #[test]
+    fn flock_requires_dot_scores_and_a_detached_forward() {
+        let mut curved = model(ScoreKind::Intrinsic, -1.0, Trainable::Scalars);
+        assert!(curved
+            .set_flock(Some(FlockSpec {
+                k: 7,
+                window: 64,
+                weights: FlockWeights::Rank,
+            }))
+            .is_err());
+        let mut dot = model(ScoreKind::Dot, 0.0, Trainable::Scalars);
+        dot.set_flock(Some(FlockSpec {
+            k: 7,
+            window: 64,
+            weights: FlockWeights::Rank,
+        }))
+        .expect("flock");
+        assert!(dot.forward(&ids(1, 4), 1, 4, false).is_err());
+        assert!(dot.forward(&ids(1, 4), 1, 4, true).is_ok());
+    }
+
+    #[test]
+    #[ignore = "needs the pinned SmolLM2 checkpoint and u16 token file: UOR_B0_MODEL=/path UOR_B0_TOKENS=/path/x.u16 UOR_B0_HELD_OUT=1200000 cargo test -p uor-r4-training --release --offline --lib g1a -- --ignored --nocapture; the exact oracle takes about two hours over 4x512 positions on 8 cores (the default), or set UOR_B0_ORACLE_WORKERS=1 for one worker"]
+    fn g1a_dense_path_matches_the_exact_f32_oracle() {
+        use uor_r4_model_source::{BehaviorSource, HuggingFaceLlamaOracle, TeacherExecutionConfig};
+
+        let model_dir = std::env::var("UOR_B0_MODEL")
+            .expect("set UOR_B0_MODEL to the SmolLM2-135M-Instruct directory");
+        let token_path = std::path::PathBuf::from(
+            std::env::var("UOR_B0_TOKENS").expect("set UOR_B0_TOKENS to the pinned u16 file"),
+        );
+        let held_out: usize = std::env::var("UOR_B0_HELD_OUT")
+            .expect("set UOR_B0_HELD_OUT to the held-out token count")
+            .parse()
+            .expect("UOR_B0_HELD_OUT is a token count");
+        let device = Device::Cpu;
+        let checkpoint = load_checkpoint(Path::new(&model_dir), &device).expect("checkpoint");
+        let vocab = checkpoint.shape.vocab;
+        let weights_sha = checkpoint.weights_sha256.clone();
+        let tokens = read_u16_tokens(&token_path, vocab).expect("tokens");
+        let window = 512usize;
+        let starts = held_out_starts(tokens.len(), 2048, 4, held_out, 9001).expect("starts");
+        let model = KappaLlama::new(checkpoint, ScoreKind::Dot, 0.0, Trainable::Scalars, &device)
+            .expect("model");
+        let execution = match std::env::var("UOR_B0_ORACLE_WORKERS").as_deref() {
+            Ok(fixed) if fixed != "available" => TeacherExecutionConfig::fixed_workers(
+                std::num::NonZeroUsize::new(fixed.parse().expect("UOR_B0_ORACLE_WORKERS"))
+                    .expect("nonzero"),
+            ),
+            _ => TeacherExecutionConfig::available_parallelism(),
+        };
+        let mut oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(
+            &model_dir, window, execution,
+        )
+        .map_err(|error| invalid(format!("oracle: {error}")))
+        .expect("oracle");
+        let started = std::time::Instant::now();
+        let mut maximum = 0f64;
+        let mut agreement = 0usize;
+        let mut positions = 0usize;
+        let mut candle_total = 0f64;
+        let mut oracle_total = 0f64;
+        for (window_index, &start) in starts.iter().enumerate() {
+            let inputs = &tokens[start..start + window];
+            let targets = &tokens[start + 1..start + window + 1];
+            let logits = model
+                .forward(inputs, 1, window, true)
+                .expect("dense forward")
+                .reshape((window, vocab))
+                .expect("rows")
+                .to_vec2::<f32>()
+                .expect("logits");
+            eprintln!(
+                "G1a window {window_index} start={start}: candle forward done at {:.0}s",
+                started.elapsed().as_secs_f64()
+            );
+            let mut reference = vec![0f32; vocab];
+            for (position, &token) in inputs.iter().enumerate() {
+                oracle.step(token as usize, position, &mut reference);
+                let row = &logits[position];
+                let candle_top1 = row
+                    .iter()
+                    .enumerate()
+                    .max_by(|a, b| a.1.total_cmp(b.1))
+                    .map(|(index, _)| index)
+                    .expect("candle top1");
+                let oracle_top1 = reference
+                    .iter()
+                    .enumerate()
+                    .max_by(|a, b| a.1.total_cmp(b.1))
+                    .map(|(index, _)| index)
+                    .expect("oracle top1");
+                if candle_top1 == oracle_top1 {
+                    agreement += 1;
+                }
+                for (a, b) in row.iter().zip(&reference) {
+                    maximum = maximum.max((f64::from(*a) - f64::from(*b)).abs());
+                }
+                let target = targets[position] as usize;
+                candle_total += logprob_nll(row, target);
+                oracle_total += logprob_nll(&reference, target);
+                positions += 1;
+                if positions % 64 == 0 {
+                    eprintln!(
+                        "G1a position {positions}: {:.0}s elapsed, max_abs_logit_delta={maximum}, agreement={agreement}",
+                        started.elapsed().as_secs_f64()
+                    );
+                }
+            }
+            eprintln!(
+                "G1a window {window_index}/{} start={start} done: positions={positions} agreement={agreement} max_abs_logit_delta={maximum} at {:.0}s",
+                starts.len(),
+                started.elapsed().as_secs_f64()
+            );
+        }
+        let candle_nll = candle_total / positions as f64;
+        let oracle_nll = oracle_total / positions as f64;
+        eprintln!(
+            "G1a: starts={starts:?} window_starts_sha256={} weights={weights_sha} positions={positions} \
+             argmax_agreement={agreement}/{positions} max_abs_logit_delta={maximum} \
+             candle_nll={candle_nll} oracle_nll={oracle_nll} delta={}",
+            crate::sha256_file(&token_path).expect("token sha"),
+            (candle_nll - oracle_nll).abs()
+        );
+        assert_eq!(
+            agreement, positions,
+            "every argmax must agree with the exact oracle"
+        );
+        assert!(maximum <= 1e-4, "max |delta logit| {maximum} exceeds 1e-4");
+        assert!(
+            (candle_nll - oracle_nll).abs() <= 1e-4,
+            "NLL differs by more than 1e-4 nats: candle {candle_nll}, oracle {oracle_nll}"
+        );
+    }
+
+    fn logprob_nll(logits: &[f32], target: usize) -> f64 {
+        let maximum = logits
+            .iter()
+            .fold(f64::NEG_INFINITY, |best, &value| best.max(f64::from(value)));
+        let sum: f64 = logits
+            .iter()
+            .map(|&value| (f64::from(value) - maximum).exp())
+            .sum();
+        -(f64::from(logits[target]) - maximum - sum.ln())
+    }
+
+    fn read_u16_tokens(path: &Path, vocab: usize) -> Result<Vec<u32>> {
+        let bytes = fs::read(path)?;
+        if bytes.len() % 2 != 0 {
+            return Err(invalid("token file is not u16"));
+        }
+        let tokens: Vec<u32> = bytes
+            .chunks_exact(2)
+            .map(|b| u32::from(u16::from_le_bytes([b[0], b[1]])))
+            .collect();
+        if tokens.iter().any(|&t| t as usize >= vocab) {
+            return Err(invalid("token file has an out-of-vocabulary token"));
+        }
+        Ok(tokens)
     }
 }
