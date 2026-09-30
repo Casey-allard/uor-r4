@@ -559,6 +559,11 @@ dispatch. This entry does not claim those mechanisms are already deployed.
 
 ## D15 — Converted students may become served candidates after a D11 audit; runtime and energy claims are measured
 
+**September 30 clarification:** read this historical decision with D17 below.
+The owner directly reaffirmed that conversion must remove the transformer
+architecture. A numerical/access audit alone does not authorize a transformer
+backbone. The original account and measurements below are preserved.
+
 Authority: the owner's answers to three prompts in the Claude-lab session on 30 September 2026, about 01:30 UTC; each answer picked the recommended option. This is an owner decision under D14's boundaries, because it amends D11. It follows D13 and D14 as recorded in [#1521](https://github.com/UOR-Foundation/uor-r4/pull/1521), and refines D13's sentence that Track B's source transformers stay offline teachers and comparators until a converted runtime satisfies D11.
 
 1. **D11 §2 is amended.**
@@ -578,6 +583,10 @@ Authority: the owner's answers to three prompts in the Claude-lab session on 30 
 3. **Energy.** The first J/token (`sudo powermetrics`, run by the owner) is taken at A3's D11 export, next to D10 and an ordinary 4-bit model of equal quality.
 
 ## D16 — Working rules from the 29 September council (council authority under D14)
+
+**September 30 correction:** D17 supplies the prospective, unambiguous parity
+decision function and coordination authority. The originally merged wording is
+retained below; its merge did not establish the missing council/delivery gates.
 
 Authority: proposed by the Claude lab from the adversarial council of 29 September (23 agents: evidence briefs, four proposals, twelve red-team verdicts, a judge and a completeness critic). **These rules take effect when the D14 council records two approving votes from non-author seats on the PR that carries this entry.** They change working rules only, prospectively. The evidence and the recommended experiments are in the [council verdict](council-verdict-2026-09-29.md), which feeds the [lab plan](../labs/plan-2026-09-29.md).
 
@@ -602,3 +611,69 @@ Authority: proposed by the Claude lab from the adversarial council of 29 Septemb
 5. **One shared selector and one Track B host.**
    - `crate::flock` (the OpenCode/DeepSeek lab) serves A1's reads and pointer, B0, B2 and the later D11 port.
    - Reported Track B numbers come from the shared candle host once its parity gate passes. Model-source is its oracle only.
+
+## D17 — Transformer-free conversion, deterministic parity decisions and integration recovery
+
+Authority: the owner's direct September 30 answer in the Codex integration and
+storage session: **“Keep the transformer-free requirement; conversion must
+remove the transformer architecture.”** The owner also requested continuing
+goals for every lab, explicit integration of accumulated branches, and internal
+drive cleanup. The working-rule and migration corrections below require the
+three-seat, two-non-author D14 council on their exact delivery head. This entry
+does not retroactively claim that #1522 passed its pre-merge gates.
+
+1. **The serving architecture remains transformer-free.** A converted student
+   is eligible only after the conversion removes the transformer architecture
+   and the actual complete runtime satisfies D11/D5 at their adopted scopes.
+   Integer arithmetic, table-coded weights, sparse reads or passing a kernel
+   audit alone do not establish architectural compliance. D15 is read with this
+   explicit owner boundary. Offline teachers/comparators remain permitted;
+   capability, arithmetic, parameter-access cost and measured energy require
+   their separate evidence. The owner reply above establishes this boundary,
+   not every other claim attributed to an earlier conversation.
+2. **Parity rule v2 is prospective and has disjoint cases.** Define degradation
+   as `d = loss_geometric - loss_ordinary` for loss, or
+   `d = accuracy_ordinary - accuracy_geometric` for accuracy. Positive means the
+   geometric arm is worse. Freeze two paired seeds (or disjoint draws for a
+   training-free comparison), the metric and tolerance before observing them.
+   Use tolerance 0.02 nats or 0.03 accuracy unless a new reviewed design changes
+   it prospectively. Evaluate the first two differences as follows:
+   - Both `d <= tolerance`: retain the geometric candidate at this scope.
+   - Both `d > tolerance`: select the ordinary candidate for this scope and
+     preserve the geometric candidate in the toolbox with its diagnosed result.
+   - Exactly one exceeds tolerance: take one additional predeclared paired
+     seed/draw. Retain geometry if the mean of all three differences is
+     `<= tolerance`; otherwise select the ordinary candidate at this scope.
+   Equality belongs to retention. A nonfinite or unavailable observation is not
+   an automatic pass or replace decision; diagnose it under the work card.
+   Claim an advantage only when every evaluated paired difference is strictly
+   below `-tolerance`. Retention is not advantage or whole-model promotion.
+   This changes future decisions only; preserve old verdicts and measurements.
+   Examples at tolerance 0.02: `[0.02,0.02]` retains; `[0.021,0.03]` replaces;
+   `[0,0.03]` requires a third draw even though its two-draw mean is 0.015;
+   adding 0.03 gives mean 0.02 and retains, while adding 0.031 replaces.
+3. **Delivery and work ownership are transferable.** The
+   [integration queue](../labs/integration-queue.md) routes existing work before
+   expansion. Lab boards communicate claims; the deployed atomic state records
+   ownership. The currently leased steward manages a shared execution slot;
+   Codex is not a permanent allocator. The September 29 council's experiment
+   table is a historical recommendation. Live dependencies, causal work cards,
+   resource reservations and current reviewed policy determine admission.
+4. **One scoped repair of the policy-migration deadlock.** #1522 changed the
+   policy files before its required receipts were available. The deployed
+   coordinator correctly fences new claims and delivery against the older
+   policy. Its migration operation requires a reviewed merged policy, creating
+   a circular prerequisite for the corrective PR. For **#1529 only**, the D14
+   council may authorize the existing Codex claim for #1520, epoch 4, to deliver
+   this documentation correction and complete goals under a retained successor
+   work card. Preserve exact head/base, executed documentation checks, two
+   non-author reviews, three identified council votes and the incident record.
+   After recording those receipts, use GitHub's ordinary protected queue with
+   the reviewed head pinned. No direct main push, admin merge, fabricated status,
+   force push, source/model change or resource admission is included. Report
+   the standard coordinator's policy-currency rejection honestly; the manual
+   steward checks every other delivery requirement and records queue/result
+   identities. After merge, verify the delivered patch, release the old claim,
+   reconcile attempts, and adopt this exact policy merge using its genuine
+   Class C receipt before new claims or execution. This one-use exception ends
+   on successful migration; later changes use the normal coordinator.

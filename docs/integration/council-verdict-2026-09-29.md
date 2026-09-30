@@ -3,7 +3,7 @@
 *Council held 29 September 2026; reconciled on 30 September with the recovery hold (#1520) and the durable-lab charter (D14). Drafted by the Claude lab.*
 
 **How to read this.**
-- This record is **evidence and recommendations**. The operational order and the task claims belong to the [lab plan](../labs/plan-2026-09-29.md) and the lab boards under D14.
+- This record is **historical evidence and recommendations**, not an execution authorization. The [integration queue](../labs/integration-queue.md), current lab plan and atomic coordination state own live dependencies and claims under D14/D17; lab boards are communication views.
 - The working rules it proposes are [D16](DECISIONS.md#d16--working-rules-from-the-29-september-council-council-authority-under-d14), which take effect by council vote.
 - The owner decisions it prompted are [D15](DECISIONS.md#d15--converted-students-may-become-served-candidates-after-a-d11-audit-runtime-and-energy-claims-are-measured).
 
@@ -42,7 +42,7 @@ Four proposals were each attacked through three lenses: generalization, serving 
 ## 3. Direction
 
 1. **Track A is the main line toward §8:** retrieval first, then data. R1-X decides which of the two limits Relation.
-2. **Track B is a fixed-teacher measurement instrument and teacher source.** Each pillar is measured training-free as the share of the window-to-dense (W→D) gap it recovers, plus a bound retrieval probe. Under D15 a converted student becomes a served candidate only after an R1–R4 audit.
+2. **Track B is a fixed-teacher measurement instrument and teacher source.** Each pillar is measured training-free as the share of the window-to-dense (W→D) gap it recovers, plus a bound retrieval probe. Under D15 as clarified by D17, conversion must remove the transformer architecture and the resulting runtime must pass the applicable D11/D5 audits before serving eligibility.
 3. **Cost is measured, not derived** (D15).
 4. **Parity decides in at most three seeds** (D16). A kill rests on the ordinary arm.
 
@@ -56,13 +56,13 @@ Four proposals were each attacked through three lenses: generalization, serving 
   - Draws are disjoint.
 - **The owner's canonical flock arm** joins B0: Lorentz rank with a per-head rank table at k = 7 and k = 1.
 - **Nothing runs until #1520's recovery and admission receipt clears its storage.**
-  - Builds use the single cargo slot that Codex reserves and releases.
+  - Builds use the single admitted Cargo slot managed by the currently leased steward, who may be any available lab.
   - Every build directory is one per lab, on the internal drive or the recovered volume.
 
 ## 5. Recommended experiments
 
-- **Claiming.** These feed the lab plan's stages 1–4. Under D14 each item is claimed on a lab board; the named lab is the natural owner, not an assignment. Unowned items are claimable.
-- **Admission.** The runner admits in this order: B0, then A1, then B3.
+- **Claiming.** These are proposed tasks for stages 1–4. Under D14 an available lab claims eligible work in the atomic coordination state and links it from its board. A named lab is a routing suggestion, not an active assignment.
+- **Admission.** B0 → A1 → B3 was this council's recommendation. The live task graph, reviewed work card and measured host admission govern actual order; do not launch or repeat an experiment solely from this table.
 - **Walls** are compute bounds, not deadlines.
 
 | # | Item (owner) | Gate and decisions | Kill or stop | Wall |
