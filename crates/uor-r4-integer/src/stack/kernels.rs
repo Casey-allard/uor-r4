@@ -702,6 +702,172 @@ pub(crate) fn stack_gemv_pairs(
     }
 }
 
+/// [`stack_gemv_pairs`] unrolled across 4 adjacent matrix rows.
+///
+/// Groups 4 adjacent rows to share each 1 KB pair table reference across 4 row activations
+/// (locality hypothesis for pair table cache reuse; unmeasured cache traffic reduction in serving),
+/// producing bit-for-bit identical outputs to [`stack_gemv_pairs`].
+#[allow(dead_code)]
+#[inline(never)]
+pub(crate) fn stack_gemv_pairs_blocked4(
+    m: &PackedMatrix,
+    pairs: &[[i32; 256]],
+    x_exp: i32,
+    out: &mut [i32],
+) {
+    let row_bytes = m.cols >> 1;
+    let groups = m.cols >> 5;
+    debug_assert!(
+        out.len() == m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
+        "stack_gemv_pairs_blocked4: {} outputs and {} pair tables for a {}x{} map",
+        out.len(),
+        pairs.len(),
+        m.rows,
+        m.cols
+    );
+    let Some(pairs) = pairs.get(..row_bytes) else {
+        return;
+    };
+
+    let full_blocks = m.rows / 4;
+    let mut row_offset = 0usize;
+    let mut scale_offset = 0usize;
+
+    for b in 0..full_blocks {
+        let r0 = b * 4;
+        let r1 = r0 + 1;
+        let r2 = r0 + 2;
+        let r3 = r0 + 3;
+
+        let b0_start = row_offset;
+        let b1_start = b0_start + row_bytes;
+        let b2_start = b1_start + row_bytes;
+        let b3_start = b2_start + row_bytes;
+
+        let s0_start = scale_offset;
+        let s1_start = s0_start + groups;
+        let s2_start = s1_start + groups;
+        let s3_start = s2_start + groups;
+
+        let (Some(b0), Some(b1), Some(b2), Some(b3)) = (
+            m.nibbles.get(b0_start..b0_start + row_bytes),
+            m.nibbles.get(b1_start..b1_start + row_bytes),
+            m.nibbles.get(b2_start..b2_start + row_bytes),
+            m.nibbles.get(b3_start..b3_start + row_bytes),
+        ) else {
+            return;
+        };
+
+        let (Some(s0), Some(s1), Some(s2), Some(s3)) = (
+            m.scales.get(s0_start..s0_start + groups),
+            m.scales.get(s1_start..s1_start + groups),
+            m.scales.get(s2_start..s2_start + groups),
+            m.scales.get(s3_start..s3_start + groups),
+        ) else {
+            return;
+        };
+
+        let min_de0 = m.min_de[r0];
+        let min_de1 = m.min_de[r1];
+        let min_de2 = m.min_de[r2];
+        let min_de3 = m.min_de[r3];
+
+        let mut acc0 = 0i64;
+        let mut acc1 = 0i64;
+        let mut acc2 = 0i64;
+        let mut acc3 = 0i64;
+
+        for g in 0..groups {
+            let chunk_bytes = g * 16;
+            let chunk_tables = g * 16;
+
+            let tables = &pairs[chunk_tables..chunk_tables + 16];
+            let g_b0 = &b0[chunk_bytes..chunk_bytes + 16];
+            let g_b1 = &b1[chunk_bytes..chunk_bytes + 16];
+            let g_b2 = &b2[chunk_bytes..chunk_bytes + 16];
+            let g_b3 = &b3[chunk_bytes..chunk_bytes + 16];
+
+            let mut sum0 = 0i32;
+            let mut sum1 = 0i32;
+            let mut sum2 = 0i32;
+            let mut sum3 = 0i32;
+
+            for i in 0..16 {
+                let t = &tables[i];
+                sum0 = sum0.wrapping_add(t[usize::from(g_b0[i])]);
+                sum1 = sum1.wrapping_add(t[usize::from(g_b1[i])]);
+                sum2 = sum2.wrapping_add(t[usize::from(g_b2[i])]);
+                sum3 = sum3.wrapping_add(t[usize::from(g_b3[i])]);
+            }
+
+            let sc0 = s0[g];
+            let sc1 = s1[g];
+            let sc2 = s2[g];
+            let sc3 = s3[g];
+
+            acc0 = acc0
+                .wrapping_add(scale_16_plus(i64::from(sum0), sc0 & 15) << ((sc0 >> 4) - min_de0));
+            acc1 = acc1
+                .wrapping_add(scale_16_plus(i64::from(sum1), sc1 & 15) << ((sc1 >> 4) - min_de1));
+            acc2 = acc2
+                .wrapping_add(scale_16_plus(i64::from(sum2), sc2 & 15) << ((sc2 >> 4) - min_de2));
+            acc3 = acc3
+                .wrapping_add(scale_16_plus(i64::from(sum3), sc3 & 15) << ((sc3 >> 4) - min_de3));
+        }
+
+        out[r0] = to_exp_i32(
+            acc0,
+            m.exp_base + i32::from(min_de0) - 4 + x_exp,
+            RESIDUAL_EXP,
+        );
+        out[r1] = to_exp_i32(
+            acc1,
+            m.exp_base + i32::from(min_de1) - 4 + x_exp,
+            RESIDUAL_EXP,
+        );
+        out[r2] = to_exp_i32(
+            acc2,
+            m.exp_base + i32::from(min_de2) - 4 + x_exp,
+            RESIDUAL_EXP,
+        );
+        out[r3] = to_exp_i32(
+            acc3,
+            m.exp_base + i32::from(min_de3) - 4 + x_exp,
+            RESIDUAL_EXP,
+        );
+
+        row_offset += 4 * row_bytes;
+        scale_offset += 4 * groups;
+    }
+
+    // Remainder rows if rows is not a multiple of 4
+    let rem_start = full_blocks * 4;
+    for (slot, &min_de) in out[rem_start..].iter_mut().zip(&m.min_de[rem_start..]) {
+        let (row, scales) = (
+            m.nibbles.get(row_offset..row_offset + row_bytes),
+            m.scales.get(scale_offset..scale_offset + groups),
+        );
+        let (Some(row), Some(scales)) = (row, scales) else {
+            return;
+        };
+        let mut acc = 0i64;
+        for ((bytes, tables), &s) in row.chunks_exact(16).zip(pairs.chunks_exact(16)).zip(scales) {
+            let mut sum = 0i32;
+            for i in 0..16 {
+                sum = sum.wrapping_add(tables[i][usize::from(bytes[i])]);
+            }
+            acc = acc.wrapping_add(scale_16_plus(i64::from(sum), s & 15) << ((s >> 4) - min_de));
+        }
+        *slot = to_exp_i32(
+            acc,
+            m.exp_base + i32::from(min_de) - 4 + x_exp,
+            RESIDUAL_EXP,
+        );
+        row_offset += row_bytes;
+        scale_offset += groups;
+    }
+}
+
 /// Row `row` of a packed matrix at the residual exponent (the embedding). The
 /// step checks the token against the vocabulary, so the early return is
 /// unreachable, as in [`stack_gemv`].

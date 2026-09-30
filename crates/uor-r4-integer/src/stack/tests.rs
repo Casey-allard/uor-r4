@@ -482,3 +482,103 @@ fn the_snap_trace_records_every_selection() {
     let without_trace = run(&model, &ids);
     assert_eq!(with_trace, without_trace);
 }
+
+#[test]
+fn test_gemv_pairs_blocked4_bit_identical_to_scalar() {
+    use super::kernels::{
+        stack_activation_tables, stack_gemv_pairs, stack_gemv_pairs_blocked4, stack_pair_tables,
+        PackedMatrix,
+    };
+
+    let (rows, cols) = (16usize, 32usize);
+    let mut rng = Lcg(12345);
+
+    let nibbles: Vec<u8> = (0..rows * cols / 2)
+        .map(|_| (rng.next() & 0xFF) as u8)
+        .collect();
+    let scales: Vec<u8> = (0..rows * cols / 32)
+        .map(|_| (rng.next() & 0x3F) as u8)
+        .collect();
+    let min_de: Vec<u8> = scales
+        .chunks_exact(cols / 32)
+        .map(|row_scales| row_scales.iter().map(|&s| s >> 4).min().unwrap_or(0))
+        .collect();
+
+    let matrix = PackedMatrix {
+        rows,
+        cols,
+        exp_base: -9,
+        nibbles,
+        scales,
+        min_de,
+    };
+
+    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16) >> 4).collect();
+    let mut act_tables = vec![[0i32; 16]; cols];
+    stack_activation_tables(&x, &mut act_tables);
+
+    let mut pair_tables = vec![[0i32; 256]; cols / 2];
+    stack_pair_tables(&act_tables, &mut pair_tables);
+
+    let mut out_scalar = vec![0i32; rows];
+    let mut out_blocked = vec![0i32; rows];
+
+    stack_gemv_pairs(&matrix, &pair_tables, -14, &mut out_scalar);
+    stack_gemv_pairs_blocked4(&matrix, &pair_tables, -14, &mut out_blocked);
+
+    assert_eq!(
+        out_scalar, out_blocked,
+        "stack_gemv_pairs_blocked4 must produce bit-for-bit identical outputs to stack_gemv_pairs"
+    );
+}
+
+#[test]
+fn test_gemv_pairs_blocked4_multiple_groups_and_remainder_rows() {
+    use super::kernels::{
+        stack_activation_tables, stack_gemv_pairs, stack_gemv_pairs_blocked4, stack_pair_tables,
+        PackedMatrix,
+    };
+
+    // Width 64 (2 groups of 32), 19 rows (4 full blocks of 4 + 3 remainder rows)
+    let (rows, cols) = (19usize, 64usize);
+    let mut rng = Lcg(54321);
+
+    let nibbles: Vec<u8> = (0..rows * cols / 2)
+        .map(|_| (rng.next() & 0xFF) as u8)
+        .collect();
+    // Heterogeneous scales across groups (cols / 32 = 2 groups per row)
+    let scales: Vec<u8> = (0..rows * cols / 32)
+        .map(|_| ((rng.next() & 0x3F) as u8).max(1))
+        .collect();
+    let min_de: Vec<u8> = scales
+        .chunks_exact(cols / 32)
+        .map(|row_scales| row_scales.iter().map(|&s| s >> 4).min().unwrap_or(0))
+        .collect();
+
+    let matrix = PackedMatrix {
+        rows,
+        cols,
+        exp_base: -10,
+        nibbles,
+        scales,
+        min_de,
+    };
+
+    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16) >> 4).collect();
+    let mut act_tables = vec![[0i32; 16]; cols];
+    stack_activation_tables(&x, &mut act_tables);
+
+    let mut pair_tables = vec![[0i32; 256]; cols / 2];
+    stack_pair_tables(&act_tables, &mut pair_tables);
+
+    let mut out_scalar = vec![0i32; rows];
+    let mut out_blocked = vec![0i32; rows];
+
+    stack_gemv_pairs(&matrix, &pair_tables, -14, &mut out_scalar);
+    stack_gemv_pairs_blocked4(&matrix, &pair_tables, -14, &mut out_blocked);
+
+    assert_eq!(
+        out_scalar, out_blocked,
+        "blocked4 must match scalar across multiple groups and remainder rows"
+    );
+}

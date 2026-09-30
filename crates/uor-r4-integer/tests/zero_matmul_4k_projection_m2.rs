@@ -24,11 +24,14 @@ fn get_process_rss_mb() -> Option<f64> {
 }
 
 fn get_live_chatbot_rss_mb() -> f64 {
-    let bin_candidates = [
+    let mut bin_candidates = vec![
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/release/uor-chat"),
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/uor-chat"),
-        Path::new("/Users/casey.allard/uor-r4/target/release/uor-chat").to_path_buf(),
     ];
+    if let Ok(target_dir) = std::env::var("CARGO_TARGET_DIR") {
+        bin_candidates.push(std::path::PathBuf::from(&target_dir).join("release/uor-chat"));
+        bin_candidates.push(std::path::PathBuf::from(&target_dir).join("debug/uor-chat"));
+    }
     for bin in &bin_candidates {
         if bin.exists() {
             let mut child = match Command::new(bin)
