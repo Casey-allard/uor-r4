@@ -405,7 +405,9 @@ fn read_identity(identity: &FileIdentity, cap: u64) -> Result<Vec<u8>, BoxError>
     let capacity =
         usize::try_from(identity.bytes).map_err(|_| "file length does not fit memory")?;
     let mut bytes = Vec::with_capacity(capacity);
-    file.by_ref().take(cap + 1).read_to_end(&mut bytes)?;
+    Read::by_ref(&mut file)
+        .take(cap + 1)
+        .read_to_end(&mut bytes)?;
     let after = file.metadata()?;
     if bytes.len() as u64 != identity.bytes || after.len() != before.len() {
         return Err("file changed or has trailing bytes".into());

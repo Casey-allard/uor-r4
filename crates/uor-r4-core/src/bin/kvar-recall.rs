@@ -35,7 +35,7 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 use uor_r4_core::report_output::{claim, seal, verify};
 
-#[path = "kvar_relative_energy.rs"]
+#[path = "support/kvar_relative_energy.rs"]
 mod kvar_relative_energy;
 
 /// Fixed panel vocabulary: `CONTENT` content tokens, then `BIND`, then `QUERY`.

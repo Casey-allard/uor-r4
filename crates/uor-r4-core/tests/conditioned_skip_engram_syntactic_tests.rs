@@ -307,6 +307,7 @@ fn test_unmatched_quotation_mark_rate_under_one_percent_across_100_stories() {
         discrete_jepa_fiber_bias: [0; 2],
         vsa_seed: 42,
         vsa_scale_q15: 0,
+        vsa_code_mode: 0,
         hierarchical_codebook: None,
         engram_table: Some(engram_table),
         hierarchical_lattice: None,

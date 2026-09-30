@@ -441,7 +441,7 @@ fn handle_connection(mut stream: TcpStream, application: &Application, authority
         })
         .and_then(|request| dispatch(request, application))
     {
-        Ok(response) => response,
+        Ok(response) => Ok(response),
         Err(error) => serialize_public_error(application, error),
     };
     if let Ok(response) = response {
