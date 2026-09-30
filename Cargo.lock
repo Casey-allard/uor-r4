@@ -2979,9 +2979,11 @@ name = "uor-r4-training"
 version = "0.1.0"
 dependencies = [
  "candle-core",
+ "candle-metal-kernels",
  "candle-nn",
  "half",
  "hex",
+ "objc2-metal",
  "rayon",
  "safetensors 0.6.2",
  "serde",
