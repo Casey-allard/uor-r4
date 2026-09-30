@@ -58,13 +58,14 @@
       "passes": false,
       "two_i_in_distribution": { "split_2": 0.884, "split_4": 0.906 },
       "softmax_in_distribution": { "split_2": 0.9799, "split_4": 0.9792 },
-      "note": "fails for the 2I arm and narrowly for the softmax arm; the instrument is not validated at the 2I arm and the negative is scoped accordingly"
+      "note": "the guard flag is computed on the 2I arm only; the softmax in-distribution values (0.9799/0.9792) also fall narrowly below 0.98; the instrument is not validated at the 2I arm and the negative is scoped accordingly"
     },
     "decision_flags": {
       "lexical_below_0_5_at_both_splits": true,
       "lexical_flag_computed_on": "two_i arm only",
       "lexical_flag_history": { "keys_1": true, "keys_11": false },
       "control_lexical_split_4": { "synonyms_morphology": 0.5247, "wh_carried": 0.6146 },
+      "control_lexical_split_2": { "synonyms_morphology": 0.5, "wh_carried": 0.3854 },
       "all_phenomena_at_least_0_90": false,
       "geometric_atoms_used": false,
       "heads_to_integration": false,
@@ -95,7 +96,20 @@
       "update": 0.2079646017699115,
       "wh_carried": 0.3541666666666667
     },
-    "costs": { "wall_seconds": 1682.5, "peak_rss_kib": 169120, "source": "keys-9 sealed root" }
+    "costs": {
+      "wall_seconds": 1682.518831625,
+      "peak_rss_kib": 169120,
+      "peak_rss_measurement": "end-of-run ps sample (current RSS at report time), asserted <= peak_rss_bound_kib 1572864; the historical run's true peak RSS is unavailable and cannot be reconstructed; a separately authorized future run could measure only its own peak",
+      "recorded_wall_sum_seconds": 6955.003,
+      "recorded_wall_sources": {
+        "keys_1": "external 2383.79",
+        "keys_4": "2204.757749833",
+        "decode_1": "541.36530175",
+        "keys_11": "external 142.569287667",
+        "keys_9": "1682.518831625"
+      },
+      "source": "keys-9 sealed root"
+    }
   },
   "exploratory_roots": [
     {
@@ -141,20 +155,34 @@
   },
   "design_amendments": [
     {
+      "name": "original pre-registration",
+      "reference": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5890046442",
+      "quoted": [
+        "Both arms use identical data, features, seeds, update count and evaluation.",
+        "Below 0.5 on the lexical phenomena at both splits: the trunk lacks the semantics at this scale; report to Lab 1."
+      ],
+      "note": "fixes no steps, learning rate or episode counts and names no arm; those came from later comments and code defaults"
+    },
+    {
       "name": "root bound",
       "recorded_before_fit": true,
       "detail": "pairwise |q.r| <= 1/2 is infeasible for 14 roots; at most 12 mutually separated icosians exist (24-cell 2T antipodal quotient). 14 relation roots at the best feasible greedy min-max bound RELATION_ROOT_MAX_INNER = phi/2 ~= 0.809017, indices [0,2,4,6,8,9,10,11,12,13,14,15,24,25]; entity head plain softmax in both arms."
     },
     {
       "name": "exposure",
-      "recorded_before_fit": true,
-      "detail": "first run diagnosed exposure-limited (decode-1); supervision-row feature cache, heads trained to convergence; metrics, guard and decision rules unchanged."
+      "recorded_before_fit": false,
+      "recorded_before_rerun": true,
+      "recorded_after": [
+        "keys-1 sealed 2026-09-29T13:54:22+00:00",
+        "decode-1 sealed 2026-09-29T14:29:31+00:00"
+      ],
+      "detail": "first run diagnosed exposure-limited (decode-1); supervision-row feature cache, up to 30000 steps with plateau early-stop (2I did not plateau; softmax early-stopped); metrics, guard and decision rules unchanged."
     }
   ],
   "sequence": {
     "order": ["keys-1", "decode-1", "keys-2.failed-attempt-1..5", "keys-3", "keys-4", "keys-5..keys-8", "keys-9", "keys-10 (gap)", "keys-11"],
-    "keys_4": "completed 30k run under peer-duplicate contention (wall 2206 s); superseded by the uncontended keys-9 re-run, which reproduces its numbers at reported precision",
-    "keys_10": "numbering gap: no root under this name in the branch record, either preserved-attempt list, or the two session transcripts; the concurrent duplicate sessions (keys-2, keys-5..keys-8) are the likely source of an additional claimed-but-unsealed attempt; a claimed root is never reused, so the next completed run took keys-11; the store cannot be re-listed while /Volumes/UOR-Workspace is detached (#1520), so this absence is recorded, not re-verified"
+    "keys_4": "completed 30k run under peer-duplicate contention (wall 2204.757749833 s); sealed (result.json blake3 6f7d8a930a986dcf47a97f0ca6a96c55e93d643ca8da9960cd6eb8ceab760d6a); superseded by the keys-9 re-run, which ran with no peer-duplicate contention (keys-11 overlapped keys-9 for 142.6 s) and reproduces its numbers at reported precision",
+    "keys_10": "numbering gap: no root under this name in the branch record, either preserved-attempt list, or the two session transcripts; the concurrent duplicate sessions (keys-2, keys-5..keys-8) are the likely source of an additional claimed-but-unsealed attempt; a claimed root is never reused, so the next completed run took keys-11; at record time the mount was detached (#1520), preventing re-listing; the mount is now restored, and a current listing establishes only what exists now, not that a prior claimed attempt never existed; recorded as a numbering gap, not as a missing result"
   },
   "conclusion": {
     "statement": "Linear per-head readouts trained on training phrasings do not transfer relation atoms to held-out phrasings at splits 2 and 4. Whether the limit is the trunk, the readout, or template diversity (about 5 training templates per family vs 1-2 held out) is unresolved.",
