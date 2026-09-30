@@ -142,13 +142,18 @@ impl MapCodec for E8MatchedBitMapCodec {
     }
 }
 
-/// Lab 3 codec applying minimum-MSE scale optimization to recurrence output projections
-/// (`rec_out`) or specified square matrices within the <= 4.25 bpw D4 gate.
+/// Codec applying minimum-MSE scale optimization to matrices matching a specified shape
+/// (e.g. `(width, width)`).
+///
+/// Note: in architecture configurations where read/attention maps share dimensions with
+/// recurrence output (e.g. 288x288), `for_shape(288, 288)` matches all square maps of that
+/// dimension (including read `query`, `key`, `value`, `out`), not exclusively recurrence
+/// output sites.
 #[derive(Clone, Debug)]
 pub struct RecurrenceOutMinMseMapCodec {
-    /// Target shape for recurrence output projections (e.g. `(width, width)`).
-    /// If specified, only matrices matching `(rows, cols) == (width, width)` receive
-    /// Minimum-MSE quantization, while others use standard RTN.
+    /// Target shape for matrices receiving Minimum-MSE quantization (e.g. `(width, width)`).
+    /// If specified, only matrices matching `(rows, cols) == (target_rows, target_cols)`
+    /// receive Minimum-MSE quantization, while others use standard RTN.
     pub target_shape: Option<(usize, usize)>,
     name: String,
 }
@@ -189,9 +194,10 @@ impl MapCodec for RecurrenceOutMinMseMapCodec {
 /// Look up a codec by name.
 pub fn codec_by_name(name: &str) -> Result<Arc<dyn MapCodec>> {
     match name {
-        "native-d11-grouped-4bit-g32-rtn" | "native-d11-grouped-4bit-g32" => {
-            Ok(Arc::new(D11Interim))
-        }
+        "d11-interim"
+        | "d11-interim-4bit-g32-round-to-nearest"
+        | "native-d11-grouped-4bit-g32-rtn"
+        | "native-d11-grouped-4bit-g32" => Ok(Arc::new(D11Interim)),
         "native-d11-grouped-4bit-g32-min-mse" => Ok(Arc::new(D4Grouped4BitAdapter::min_mse())),
         "native-d4-head-compensated-all-maps" => Ok(Arc::new(HeadCompensatedMapCodec::all_maps())),
         "native-d4-e8-matched-bit" => Ok(Arc::new(E8MatchedBitMapCodec::default())),

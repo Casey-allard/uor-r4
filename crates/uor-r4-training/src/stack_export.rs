@@ -291,6 +291,15 @@ pub fn export_stack(
                 codec.name()
             )));
         }
+        if codec.name() == "native-d4-head-compensated-head-only"
+            || codec.name() == "native-d4-rec-out-min-mse"
+            || codec.name() == "native-d4-s2-rec-out-min-mse"
+        {
+            return Err(invalid(format!(
+                "refusing to export stack with bare shape-dependent codec {}: explicit target shape required",
+                codec.name()
+            )));
+        }
     }
     let (d, heads) = (c.width, c.heads);
     let mlp = c.mlp_hidden.div_ceil(GROUP) * GROUP;
@@ -629,10 +638,7 @@ pub fn export_stack(
             "mlp_padded_from": c.mlp_hidden, "mlp_padded_to": mlp,
         }),
         None => {
-            let quantizer_name = match model.served_codec().map(|c| c.name()) {
-                Some(name) => name,
-                None => "round_to_nearest",
-            };
+            let quantizer_name = export_quantizer_method(model);
             json!({
                 "quantizer": quantizer_name,
                 "mlp_padded_from": c.mlp_hidden, "mlp_padded_to": mlp,
@@ -650,6 +656,14 @@ pub fn export_stack(
     ))
 }
 
+/// Determine the quantizer method name for uncalibrated export from the model's served codec.
+pub fn export_quantizer_method(model: &StackModel) -> &str {
+    match model.served_codec().map(|c| c.name()) {
+        Some(name) => name,
+        None => "round_to_nearest",
+    }
+}
+
 /// Whether a saved model may be exported, `calibrated` (GPTQ) or not, given
 /// the served representation its directory records
 /// ([`StackModel::saved_served_representation`]). A model trained against a
@@ -665,18 +679,24 @@ pub fn check_export_representation(
     let Some(saved) = saved else {
         return Ok(());
     };
+    if saved.codec == "native-d4-head-compensated-head-only"
+        || saved.codec == "native-d4-rec-out-min-mse"
+        || saved.codec == "native-d4-s2-rec-out-min-mse"
+    {
+        return Err(invalid(format!(
+            "saved representation '{}' requires explicit target shape; bare shape-dependent names cannot be exported",
+            saved.codec
+        )));
+    }
     let interim = D11Interim.name();
     let is_export_compatible = saved.codec == interim
         || saved.codec == "native-d11-grouped-4bit-g32-rtn"
         || saved.codec == "native-d11-grouped-4bit-g32-min-mse"
-        || saved.codec == "native-d4-head-compensated-head-only"
+        || saved.codec == "native-d4-head-compensated-all-maps"
         || saved
             .codec
             .starts_with("native-d4-head-compensated-head-only-")
-        || saved.codec == "native-d4-head-compensated-all-maps"
-        || saved.codec == "native-d4-rec-out-min-mse"
         || saved.codec.starts_with("native-d4-rec-out-min-mse-")
-        || saved.codec == "native-d4-s2-rec-out-min-mse"
         || saved.codec.starts_with("native-d4-s2-rec-out-min-mse-");
     if !is_export_compatible {
         return Err(invalid(format!(
@@ -693,6 +713,7 @@ pub fn check_export_representation(
             saved.codec
         )));
     }
+    let _ = crate::d4_codecs::codec_by_name(&saved.codec)?;
     Ok(())
 }
 
@@ -1362,7 +1383,8 @@ mod tests {
         let head_comp = SavedServedRepresentation {
             codec: "native-d4-head-compensated-head-only".to_owned(),
         };
-        assert!(check_export_representation(Some(&head_comp), false).is_ok());
+        // Restoring bare shape-dependent codec on export requires explicit target shape
+        assert!(check_export_representation(Some(&head_comp), false).is_err());
         assert!(check_export_representation(Some(&head_comp), true).is_err());
 
         let head_comp_shape = SavedServedRepresentation {
@@ -1380,7 +1402,8 @@ mod tests {
         let rec_out_min_mse = SavedServedRepresentation {
             codec: "native-d4-rec-out-min-mse".to_owned(),
         };
-        assert!(check_export_representation(Some(&rec_out_min_mse), false).is_ok());
+        // Restoring bare shape-dependent codec on export requires explicit target shape
+        assert!(check_export_representation(Some(&rec_out_min_mse), false).is_err());
         assert!(check_export_representation(Some(&rec_out_min_mse), true).is_err());
 
         let rec_out_shape = SavedServedRepresentation {
