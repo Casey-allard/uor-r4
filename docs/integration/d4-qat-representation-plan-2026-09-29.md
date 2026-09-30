@@ -113,6 +113,6 @@ $$\frac{\partial \mathcal{L}}{\partial W} \approx \frac{\partial \mathcal{L}}{\p
      - `HeadCompensatedMapCodec` (compensated base and boundary scale search for output head)
    - Maintain comprehensive unit and regression coverage in `crates/uor-r4-training/tests/d4_map_codec_adapter.rs`.
    - Ensure complete export compatibility: weights trained or saved with these adapters round-trip into `StackArtifact` without requiring runtime multiplier or divider instructions.
-   - Deliver #1479 carrying the D4 negative result, D11 cost records, dequantize_block Result, matched-bit E8 primitive, and ILP kernel.
+   - Deliver #1479 carrying the D4 negative result, D11 cost records, dequantize_block Result, matched-bit E8 primitive, and ILP kernel (landed). Deliver QAT adapters through PR #1490 for Lab 1 to decide on shared interfaces.
 3. **Downstream Consumer:**
    - Lab 1 (Claude main) consumes `D4Grouped4BitAdapter` and `HeadCompensatedMapCodec` via `StackModel::set_served_representation` during the S1 QAT fine-tuning run.
