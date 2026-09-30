@@ -3,7 +3,7 @@
 //! numerical path: they use the kernels of [`super::kernels`], running offsets
 //! for every index, and buffers allocated when the session is created.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::format::{Container, Fixed, MatrixView, StackNumerics, StackShape, StackTransportSnap};
 use super::kernels::{
@@ -349,6 +349,7 @@ impl IntegerStackModel {
             position: 0,
             cache_at: 0,
             lift_at: 0,
+            tokens: Vec::with_capacity(context),
             states,
             b: Buffers {
                 x: vec![0; d],
@@ -394,6 +395,61 @@ enum LayerState {
     },
 }
 
+/// Canonical schema identifier for serialized integer stack session state snapshots.
+pub const STACK_SESSION_SCHEMA: &str = "uor-r4.stack-session/1";
+
+/// Serialized state of a single layer within an [`IntegerStackSession`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SerializedStackLayerState {
+    /// Recurrence layer state: internal state vector and causal convolution history.
+    Recurrence {
+        /// Recurrence state vector `[width]` at exponent -32.
+        state: Vec<i64>,
+        /// Causal convolution history `[(CONVOLUTION_WIDTH - 1) * width]` at exponent -16.
+        history: Vec<i32>,
+    },
+    /// Read layer cache: keys, values, and optional Lorentz lifts up to the active context position.
+    Read {
+        /// Populated key cache entries `[position * width]` at exponent -16.
+        keys: Vec<i32>,
+        /// Populated value cache entries `[position * width]` at exponent -16.
+        values: Vec<i32>,
+        /// Populated Lorentz key lifts `[position * heads]` at exponent -32 (empty for dot read).
+        lifts: Vec<u64>,
+    },
+}
+
+/// Durable, reloadable snapshot of an [`IntegerStackSession`].
+///
+/// Binds strictly to the model's `artifact_sha256`, context bounds, and layer dimensions,
+/// enabling exact bit-identical state recovery across persistent sessions.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SerializedStackSession {
+    /// Schema identifier, strictly matching [`STACK_SESSION_SCHEMA`].
+    pub schema: String,
+    /// Schema version (must be 1).
+    pub version: u32,
+    /// SHA-256 of the model artifact this session was created from.
+    pub artifact_sha256: String,
+    /// Current sequence position (number of tokens ingested / stepped).
+    pub position: u64,
+    /// Keys/values cache length (`position * width`).
+    pub cache_at: u64,
+    /// Lifts cache length (`position * heads`).
+    pub lift_at: u64,
+    /// Pending next-token logits produced by the last step (length equals vocab when position > 0).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub logits: Vec<i32>,
+    /// Optional sequence of tokens ingested so far (`[position]` entries).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tokens: Vec<u32>,
+    /// Optional opt-in snap trace root indices recorded so far.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub snap_trace: Option<Vec<u32>>,
+    /// Per-layer state snapshots.
+    pub layers: Vec<SerializedStackLayerState>,
+}
+
 /// One entry of the opt-in snap trace ([`IntegerStackSession::enable_snap_trace`]):
 /// the root index the snapped transport selected at (layer, position, lane).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -407,6 +463,7 @@ pub struct SnapTraceEntry {
 /// The trace buffer: one root index per (position, recurrence layer, lane),
 /// in step order. Writes are plain stores — no allocation in a step.
 struct SnapTrace {
+    origin_position: usize,
     selected: Vec<u32>,
     written: usize,
 }
@@ -456,10 +513,65 @@ pub struct IntegerStackSession<'m> {
     cache_at: usize,
     /// `position * heads`: where this position's Lorentz key lifts go.
     lift_at: usize,
+    /// Sequence of tokens stepped in this session so far.
+    tokens: Vec<u32>,
     /// Boxed, like the model's layers, for a power-of-two stride.
     #[allow(clippy::vec_box)]
     states: Vec<Box<LayerState>>,
     b: Buffers,
+}
+
+/// Maximum justified serialized JSON size for a session of the given model shape.
+/// Derived using checked arithmetic over model shape dimensions, allocating up to 24 bytes
+/// per numerical element to soundly bound compact JSON (where i64/u64 with punctuation can take
+/// up to 21 bytes) produced by `save_session_to_file`.
+pub(super) fn max_serialized_session_bytes(model: &IntegerStackModel) -> u64 {
+    let s = &model.shape;
+    let d = s.width as u64;
+    let ctx = s.context as u64;
+    let heads = s.heads as u64;
+    let vocab = s.vocab as u64;
+    let rec_layers = s.pattern.bytes().filter(|&b| b == b'r').count() as u64;
+
+    let layer_bytes: u64 = s
+        .pattern
+        .bytes()
+        .map(|c| {
+            if c == b'a' {
+                let lifts = if model.lorentz {
+                    ctx.checked_mul(heads).unwrap_or(u64::MAX / 4)
+                } else {
+                    0
+                };
+                (2 * ctx * d + lifts)
+                    .checked_mul(24)
+                    .unwrap_or(u64::MAX / 2)
+            } else {
+                (CONVOLUTION_WIDTH as u64 * d)
+                    .checked_mul(24)
+                    .unwrap_or(u64::MAX / 2)
+            }
+        })
+        .sum();
+
+    let logits_bytes = vocab.checked_mul(24).unwrap_or(1024 * 1024);
+    let tokens_bytes = ctx.checked_mul(24).unwrap_or(1024 * 1024);
+    let trace_bytes = if model.snapped {
+        ctx.checked_mul(s.lanes() as u64)
+            .and_then(|x| x.checked_mul(rec_layers))
+            .and_then(|x| x.checked_mul(24))
+            .unwrap_or(1024 * 1024)
+    } else {
+        0
+    };
+    let margin = 131072u64; // 128 KiB for schema, metadata keys, and formatting punctuation
+
+    layer_bytes
+        .checked_add(logits_bytes)
+        .and_then(|acc| acc.checked_add(tokens_bytes))
+        .and_then(|acc| acc.checked_add(trace_bytes))
+        .and_then(|acc| acc.checked_add(margin))
+        .unwrap_or(100 * 1024 * 1024)
 }
 
 impl IntegerStackSession<'_> {
@@ -478,6 +590,7 @@ impl IntegerStackSession<'_> {
         let recurrences = s.pattern.bytes().filter(|&c| c == b'r').count();
         let entries = s.context * recurrences * s.lanes();
         self.b.snap_trace = Some(SnapTrace {
+            origin_position: self.position,
             selected: vec![u32::MAX; entries],
             written: 0,
         });
@@ -504,10 +617,10 @@ impl IntegerStackSession<'_> {
         let written = trace.written.min(trace.selected.len());
         let entries = (0..written)
             .map(|slot| {
-                let (position, rem) = (slot / per_position, slot % per_position);
+                let (rel_pos, rem) = (slot / per_position, slot % per_position);
                 SnapTraceEntry {
                     layer: recurrences[rem / lanes],
-                    position,
+                    position: trace.origin_position + rel_pos,
                     lane: rem % lanes,
                     root: trace.selected[slot] as usize,
                 }
@@ -516,13 +629,28 @@ impl IntegerStackSession<'_> {
         Some(entries)
     }
 
+    /// Sequence of tokens stepped in this session so far.
+    pub fn tokens(&self) -> &[u32] {
+        &self.tokens
+    }
+
     /// Start a new stream.
     pub fn reset(&mut self) {
         self.position = 0;
         self.cache_at = 0;
         self.lift_at = 0;
+        self.tokens.clear();
+        self.b.logits.fill(0);
         if let Some(trace) = &mut self.b.snap_trace {
+            let s = &self.model.shape;
+            let recurrences = s.pattern.bytes().filter(|&c| c == b'r').count();
+            let full_entries = s.context * recurrences * s.lanes();
+            trace.origin_position = 0;
             trace.written = 0;
+            if trace.selected.len() < full_entries {
+                trace.selected.resize(full_entries, u32::MAX);
+            }
+            trace.selected.fill(u32::MAX);
         }
         for state in &mut self.states {
             match state.as_mut() {
@@ -541,6 +669,397 @@ impl IntegerStackSession<'_> {
                 }
             }
         }
+    }
+
+    /// The active keys/values cache length (`position * width`).
+    pub fn cache_at(&self) -> usize {
+        self.cache_at
+    }
+
+    /// The active Lorentz lifts cache length (`position * heads`).
+    pub fn lift_at(&self) -> usize {
+        self.lift_at
+    }
+
+    /// Snapshot the active session state into a [`SerializedStackSession`].
+    ///
+    /// Preserves exact recurrence vectors, causal convolution histories,
+    /// populated read caches up to the current position (`cache_at` / `lift_at`),
+    /// pending next-token logits from the last step, ingested tokens, and opt-in snap trace.
+    pub fn save_state(&self) -> SerializedStackSession {
+        let layers = self
+            .states
+            .iter()
+            .map(|st| match st.as_ref() {
+                LayerState::Recurrence { state, history } => {
+                    SerializedStackLayerState::Recurrence {
+                        state: state.clone(),
+                        history: history.clone(),
+                    }
+                }
+                LayerState::Read {
+                    keys,
+                    values,
+                    lifts,
+                } => SerializedStackLayerState::Read {
+                    keys: keys[..self.cache_at].to_vec(),
+                    values: values[..self.cache_at].to_vec(),
+                    lifts: if self.model.lorentz {
+                        lifts[..self.lift_at].to_vec()
+                    } else {
+                        Vec::new()
+                    },
+                },
+            })
+            .collect();
+
+        let logits = if self.position > 0 {
+            self.b.logits.clone()
+        } else {
+            Vec::new()
+        };
+
+        let snap_trace = if self.model.snapped {
+            let rec_layers = self
+                .model
+                .shape
+                .pattern
+                .bytes()
+                .filter(|&b| b == b'r')
+                .count();
+            let expected_len = self.position * self.model.shape.lanes() * rec_layers;
+            self.b.snap_trace.as_ref().and_then(|t| {
+                if t.origin_position == 0
+                    && t.written == expected_len
+                    && expected_len <= t.selected.len()
+                {
+                    Some(t.selected[..expected_len].to_vec())
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        };
+
+        SerializedStackSession {
+            schema: STACK_SESSION_SCHEMA.to_string(),
+            version: 1,
+            artifact_sha256: self.model.sha256.clone(),
+            position: self.position as u64,
+            cache_at: self.cache_at as u64,
+            lift_at: self.lift_at as u64,
+            logits,
+            tokens: self.tokens.clone(),
+            snap_trace,
+            layers,
+        }
+    }
+
+    /// Restore session state from a [`SerializedStackSession`].
+    ///
+    /// Validates schema, version, artifact SHA-256, context bounds, layer dimensions,
+    /// pending logits, ingested tokens, and snap trace before applying state. Designed
+    /// so that after restoration, subsequent step calls produce bit-for-bit identical
+    /// outputs to continuing the original session.
+    pub fn restore_state(&mut self, saved: &SerializedStackSession) -> Result<(), StackError> {
+        if saved.schema != STACK_SESSION_SCHEMA {
+            return Err(StackError::Schema(format!(
+                "expected {STACK_SESSION_SCHEMA}, found {}",
+                saved.schema
+            )));
+        }
+        if saved.version != 1 {
+            return Err(StackError::Schema(format!(
+                "unsupported session version {}",
+                saved.version
+            )));
+        }
+        if saved.artifact_sha256 != self.model.sha256 {
+            return Err(StackError::Numerics(format!(
+                "session artifact SHA-256 mismatch: session has '{}', model has '{}'",
+                saved.artifact_sha256, self.model.sha256
+            )));
+        }
+        let position = usize::try_from(saved.position).map_err(|_| StackError::SessionState)?;
+        let cache_at = usize::try_from(saved.cache_at).map_err(|_| StackError::SessionState)?;
+        let lift_at = usize::try_from(saved.lift_at).map_err(|_| StackError::SessionState)?;
+        if position > self.model.shape.context {
+            return Err(StackError::ContextFull {
+                context: self.model.shape.context,
+            });
+        }
+        let d = self.model.shape.width;
+        let heads = self.model.shape.heads;
+        let expected_cache_at = position.checked_mul(d).ok_or(StackError::SessionState)?;
+        let expected_lift_at = position
+            .checked_mul(heads)
+            .ok_or(StackError::SessionState)?;
+        if cache_at != expected_cache_at || lift_at != expected_lift_at {
+            return Err(StackError::SessionState);
+        }
+        if saved.layers.len() != self.states.len() {
+            return Err(StackError::SessionState);
+        }
+
+        // Validate pending logits
+        if position == 0 {
+            if !saved.logits.is_empty() {
+                return Err(StackError::SessionState);
+            }
+        } else if saved.logits.len() != self.model.shape.vocab {
+            return Err(StackError::SessionState);
+        }
+
+        // Validate tokens
+        if saved.tokens.len() != position {
+            return Err(StackError::SessionState);
+        }
+        for &tok in &saved.tokens {
+            if tok as usize >= self.model.shape.vocab {
+                return Err(StackError::Token {
+                    token: tok,
+                    vocab: self.model.shape.vocab,
+                });
+            }
+        }
+
+        // Validate snap trace if present
+        let rec_layers = self
+            .model
+            .shape
+            .pattern
+            .bytes()
+            .filter(|&b| b == b'r')
+            .count();
+        let expected_snap_entries = position
+            .checked_mul(self.model.shape.lanes())
+            .and_then(|x| x.checked_mul(rec_layers))
+            .ok_or(StackError::SessionState)?;
+        if let Some(ref trace_entries) = saved.snap_trace {
+            if !self.model.snapped {
+                if !trace_entries.is_empty() {
+                    return Err(StackError::SessionState);
+                }
+            } else {
+                if trace_entries.len() != expected_snap_entries {
+                    return Err(StackError::SessionState);
+                }
+                for &root in trace_entries {
+                    if root >= 120 {
+                        return Err(StackError::SessionState);
+                    }
+                }
+            }
+        }
+
+        // Validate all layers before mutating session
+        for (saved_layer, state) in saved.layers.iter().zip(&self.states) {
+            match (saved_layer, state.as_ref()) {
+                (
+                    SerializedStackLayerState::Recurrence {
+                        state: s,
+                        history: h,
+                    },
+                    LayerState::Recurrence { .. },
+                ) => {
+                    if s.len() != d || h.len() != (CONVOLUTION_WIDTH - 1) * d {
+                        return Err(StackError::SessionState);
+                    }
+                }
+                (
+                    SerializedStackLayerState::Read {
+                        keys: k,
+                        values: v,
+                        lifts: l,
+                    },
+                    LayerState::Read { .. },
+                ) => {
+                    if k.len() != cache_at || v.len() != cache_at {
+                        return Err(StackError::SessionState);
+                    }
+                    if self.model.lorentz {
+                        if l.len() != lift_at {
+                            return Err(StackError::SessionState);
+                        }
+                    } else if !l.is_empty() {
+                        return Err(StackError::SessionState);
+                    }
+                }
+                _ => return Err(StackError::SessionState),
+            }
+        }
+
+        // Apply state
+        for (saved_layer, state) in saved.layers.iter().zip(self.states.iter_mut()) {
+            match (saved_layer, state.as_mut()) {
+                (
+                    SerializedStackLayerState::Recurrence {
+                        state: s,
+                        history: h,
+                    },
+                    LayerState::Recurrence {
+                        state: cur_s,
+                        history: cur_h,
+                    },
+                ) => {
+                    cur_s.copy_from_slice(s);
+                    cur_h.copy_from_slice(h);
+                }
+                (
+                    SerializedStackLayerState::Read {
+                        keys: k,
+                        values: v,
+                        lifts: l,
+                    },
+                    LayerState::Read {
+                        keys: cur_k,
+                        values: cur_v,
+                        lifts: cur_l,
+                    },
+                ) => {
+                    cur_k[..cache_at].copy_from_slice(k);
+                    cur_v[..cache_at].copy_from_slice(v);
+                    if self.model.lorentz {
+                        cur_l[..lift_at].copy_from_slice(l);
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        self.position = position;
+        self.cache_at = cache_at;
+        self.lift_at = lift_at;
+
+        // Restore pending logits
+        if position > 0 {
+            self.b.logits.copy_from_slice(&saved.logits);
+        } else {
+            self.b.logits.fill(0);
+        }
+
+        // Restore tokens
+        self.tokens.clear();
+        self.tokens.extend_from_slice(&saved.tokens);
+
+        // Restore snap trace
+        if let Some(ref trace_entries) = saved.snap_trace {
+            if self.model.snapped {
+                let total = self.model.shape.context * self.model.shape.lanes() * rec_layers;
+                let mut selected = vec![u32::MAX; total];
+                selected[..trace_entries.len()].copy_from_slice(trace_entries);
+                self.b.snap_trace = Some(SnapTrace {
+                    origin_position: 0,
+                    selected,
+                    written: trace_entries.len(),
+                });
+            } else {
+                self.b.snap_trace = None;
+            }
+        } else {
+            // Untraced snapshot: explicitly disable tracing in destination session to
+            // prevent partial or misaligned root history from a prior session.
+            self.b.snap_trace = None;
+        }
+
+        Ok(())
+    }
+
+    /// Save session state to a JSON file at `path` atomically and durably.
+    ///
+    /// Writes to an exclusive temporary sibling file, flushes and synchronizes content to disk,
+    /// atomically renames over destination `path`, and synchronizes the parent directory.
+    /// If an error occurs prior to rename, any existing checkpoint file at `path` remains intact.
+    /// Note that if an error occurs during parent directory synchronization after rename, the
+    /// destination file has already been replaced but directory durability remains unconfirmed.
+    pub fn save_session_to_file(&self, path: &Path) -> Result<(), StackError> {
+        self.save_session_to_file_internal(path, None)
+    }
+
+    pub(super) fn save_session_to_file_internal(
+        &self,
+        path: &Path,
+        temp_override: Option<PathBuf>,
+    ) -> Result<(), StackError> {
+        let serialized = self.save_state();
+        let bytes =
+            serde_json::to_vec(&serialized).map_err(|e| StackError::Numerics(e.to_string()))?;
+        let parent = match path.parent() {
+            Some(p) if !p.as_os_str().is_empty() => p,
+            _ => Path::new("."),
+        };
+        std::fs::create_dir_all(parent).map_err(StackError::Io)?;
+
+        static SAVE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let count = SAVE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let pid = std::process::id();
+        let file_name = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("session");
+        let temp_path =
+            temp_override.unwrap_or_else(|| parent.join(format!(".{file_name}.tmp-{pid}-{count}")));
+
+        let mut temp_created = false;
+        let write_res = (|| -> Result<(), std::io::Error> {
+            use std::io::Write;
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temp_path)?;
+            temp_created = true;
+            file.write_all(&bytes)?;
+            file.sync_all()?;
+            drop(file);
+
+            std::fs::rename(&temp_path, path)?;
+            temp_created = false;
+
+            let dir = std::fs::File::open(parent)?;
+            dir.sync_all()?;
+            Ok(())
+        })();
+
+        if let Err(e) = write_res {
+            if temp_created {
+                let _ = std::fs::remove_file(&temp_path);
+            }
+            return Err(StackError::Io(e));
+        }
+
+        Ok(())
+    }
+
+    /// Load and restore session state from a JSON file at `path`.
+    ///
+    /// Validates file length against a model-derived upper bound before reading
+    /// to prevent memory exhaustion from oversized or malformed payloads.
+    pub fn restore_session_from_file(&mut self, path: &Path) -> Result<(), StackError> {
+        use std::io::Read;
+        let file = std::fs::File::open(path).map_err(StackError::Io)?;
+        let max_len = max_serialized_session_bytes(self.model);
+        if let Ok(meta) = file.metadata() {
+            if meta.len() > max_len {
+                return Err(StackError::Numerics(format!(
+                    "session file size {} exceeds maximum expected bound {}",
+                    meta.len(),
+                    max_len
+                )));
+            }
+        }
+        let mut bytes = Vec::new();
+        file.take(max_len + 1)
+            .read_to_end(&mut bytes)
+            .map_err(StackError::Io)?;
+        if bytes.len() as u64 > max_len {
+            return Err(StackError::Numerics(format!(
+                "session file size exceeds maximum expected bound {max_len}"
+            )));
+        }
+        let serialized: SerializedStackSession = serde_json::from_slice(&bytes)
+            .map_err(|e| StackError::Numerics(format!("invalid session JSON: {e}")))?;
+        self.restore_state(&serialized)
     }
 
     /// The logits of the last step (value `v` means `v * 2^-16`).
@@ -630,6 +1149,7 @@ impl IntegerStackSession<'_> {
         self.position += 1;
         self.cache_at += d;
         self.lift_at += heads;
+        self.tokens.push(token);
         Ok(&self.b.logits)
     }
 }

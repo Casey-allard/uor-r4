@@ -63,7 +63,10 @@ pub use format::{
     Fixed, StackNumerics, StackShape, StackTransportSnap, GROUP, MAGIC, STACK_SCHEMA,
 };
 pub use kernels::{stack_argmax, stack_snap_select};
-pub use session::{IntegerStackModel, IntegerStackSession, SnapTraceEntry, CONVOLUTION_WIDTH};
+pub use session::{
+    IntegerStackModel, IntegerStackSession, SerializedStackLayerState, SerializedStackSession,
+    SnapTraceEntry, CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
+};
 
 /// SHA-256 of the 120 unit icosians of 2I (the transport snap's roots) as
 /// little-endian f32 bytes row by row, in `canonical_h4_roots` order. Equals
