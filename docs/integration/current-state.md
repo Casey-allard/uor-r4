@@ -45,6 +45,17 @@ latest PR/incident state.
 - **#1482, merged:** Lab 2's AERM probe checkpoint save/load and reload evaluation.
 - **S4, merged (#1483); the trained-in 2I transport is adopted (Lab 1, [05:34 UTC 09-29](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5884326637)) — the first geometric mechanism to pass its gate trained into the model.** The pre-registered fit (`/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/`; manifests `2aabdc73…`, `e4926422…`, `56d29a49…`) scored arm A snapped **2.547953579954328** (model `2b3b5681…`, `transport.json` = icosian) against arm B free **2.5373633745806394** (model `fcc3099b…`): a **+0.010590** gap, inside the ≤ 0.02 band (0.0094 from the threshold, more than 0.005), so no second seed. Both arms ran executable `fbeedde1…`; arm A's step-0 unsnapped score reproduces S2's 2.520916; the post-hoc snap costs +0.01770 on B, of which training recovers +0.00711. Root usage (A, final): 120/120 roots, identity share 7.50%, entropy 6.32 of 6.91 bits. Scope: one seed; the 161-response development panel; 512 updates after a schedule restart (the restart, not the snap, is why both arms end above S2); S2 `8cb11d8f…` stays the loss-level reference; replies differ in 36 of 38 requests. Later phases (memory port, then QAT) continue from arm A with the snap on; arm B is the matched control. The exact D11 icosian serving kernel (S1.4) is not yet built.
 - **#1479, open:** its cost numbers are unqualified until Lab 1's fresh-root re-run on a quiet machine.
+- **B3 E8 lattice weight coding on SmolLM2-360M MLP layers (Lab 3): negative result preserved; kill criterion triggered.**
+  All 32 layers of SmolLM2-360M's MLP weights (`gate_proj`, `up_proj`, `down_proj`, 235,929,600 weights) were evaluated across 7 arms under $E_8$ vector quantization (QuIP# E8P codebook with Randomized Hadamard Transform) at 2, 3, and 4 bpw against RTN 4-bit (~4.25 bpw) and matched-bit scalar controls on 32 windows $\times$ 1,024 tokens (32,768 tokens) of SimpleWiki.
+  - Float reference baseline: 2.122189 nats.
+  - Plain RTN 4-bit: 2.193682 nats (+0.071494 nats vs float, 4.2765 bpw, 85.61% top-1 agreement).
+  - RHT + RTN 4-bit: 2.237834 nats (+0.115645 nats vs float, 4.2766 bpw, 82.74% agreement).
+  - RHT + RTN 3-bit (Scalar Control): 2.850512 nats (+0.728323 nats vs float, 3.2766 bpw, 61.03% agreement).
+  - RHT + E8P 2-bit: 13.723733 nats (+11.601545 nats vs float, 2.0134 bpw, 0.03% agreement).
+  - RHT + E8P 3-bit: 7.084971 nats (+4.962782 nats vs float, +4.891289 nats excess over RTN 4-bit, 3.0134 bpw, 12.51% agreement).
+  - RHT + E8P 4-bit: 5.814762 nats (+3.692573 nats vs float, 4.0134 bpw, 24.57% agreement).
+  - Kill criterion triggered: RHT-E8P 3-bit is +4.891289 nats worse than RTN 4-bit (threshold +0.05 nats). Scalar uniform grid outperforms $E_8$ lattice by 4.23 nats at matched ~3 bpw budget under identical RHT incoherence transform.
+  - All matrices passed exact bit-for-bit codec round-trip gates. Preserved per D12/D9 without parameter sweeps; Track B second lever halted ([result](b3-e8-smollm2-result-2026-09-29.md), [evidence](../evidence/b3-e8-smollm2-360m-2026-09-29.json)).
 
 **The next deliverable is unchanged:** usable learned geometry and exact memory in the same saved dialogue stack, through its native learning and serving bridge. This handover asserts no new model result.
 

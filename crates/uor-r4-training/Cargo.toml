@@ -25,3 +25,4 @@ uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-lut = { path = "../uor-r4-lut" }
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
 rayon = "1.10"
+half = "2.7.1"

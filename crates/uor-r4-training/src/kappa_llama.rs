@@ -590,6 +590,20 @@ impl KappaLlama {
         &self.variables
     }
 
+    /// Access a frozen tensor by name.
+    pub fn get_tensor(&self, name: &str) -> Option<&Tensor> {
+        self.frozen.get(name)
+    }
+
+    /// Set or replace a frozen tensor by name.
+    pub fn set_tensor(&mut self, name: &str, tensor: Tensor) -> Result<()> {
+        if !self.frozen.contains_key(name) {
+            return Err(invalid(format!("tensor {name} not found in model")));
+        }
+        self.frozen.insert(name.to_string(), tensor);
+        Ok(())
+    }
+
     fn tensor(&self, name: &str, detached: bool) -> Result<Tensor> {
         if let Some(variable) = self.variables.get(name) {
             let tensor = variable.as_tensor();
