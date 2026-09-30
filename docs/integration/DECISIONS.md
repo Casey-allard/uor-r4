@@ -556,3 +556,49 @@ dispatch. This entry does not claim those mechanisms are already deployed.
    manual/unavailable/unverified capabilities. A prompt cannot keep an offline
    model reasoning; durable submitted jobs and recoverable records bridge that
    gap. README remains a professional overview rather than an activity stream.
+
+## D15 — Converted students may become served candidates after a D11 audit; runtime and energy claims are measured
+
+Authority: the owner's answers to three prompts in the Claude-lab session on 30 September 2026, about 01:30 UTC; each answer picked the recommended option. This is an owner decision under D14's boundaries, because it amends D11. It follows D13 and D14 as recorded in [#1521](https://github.com/UOR-Foundation/uor-r4/pull/1521), and refines D13's sentence that Track B's source transformers stay offline teachers and comparators until a converted runtime satisfies D11.
+
+1. **D11 §2 is amended.**
+   - A converted open-weight student (Track B) may become a **served candidate** once an audit of its release binary shows D11's R1–R4:
+     - no floating point and no integer multiply or divide in served kernels;
+     - token mixing that is not mostly dense all-pairs reads;
+     - weights of at most 4 bits, read from tables;
+     - reported per-token parameter reads.
+   - Until that audit passes, it remains a comparator or offline teacher.
+   - The rest of D11 is unchanged, and the D10 exception stays withdrawn.
+2. **D11 R1–R2 are unchanged, and cost claims are measured.**
+   - A runtime claim needs measured ms/token on this M1, against the D10 NEON engine and an ordinary 4-bit model of equal quality. An energy claim needs measured J/token against the same.
+   - Analytic byte and operation tables are hypotheses.
+   - Closing the serving-kernel gap is a named item for the fidelity and cost lab (Anti-Gravity).
+   - R2 is revisited only if a measured, independently re-run gap cannot be brought below 2× with threads and table layout.
+   - The only same-artifact figure so far is *self-reported* until re-run: about 5.40 ms/token for D11 against 1.11 for D10 on the S2 model. The D10 figure and the identity of the logits have not been independently re-run.
+3. **Energy.** The first J/token (`sudo powermetrics`, run by the owner) is taken at A3's D11 export, next to D10 and an ordinary 4-bit model of equal quality.
+
+## D16 — Working rules from the 29 September council (council authority under D14)
+
+Authority: proposed by the Claude lab from the adversarial council of 29 September (23 agents: evidence briefs, four proposals, twelve red-team verdicts, a judge and a completeness critic). **These rules take effect when the D14 council records two approving votes from non-author seats on the PR that carries this entry.** They change working rules only, prospectively. The evidence and the recommended experiments are in the [council verdict](council-verdict-2026-09-29.md), which feeds the [lab plan](../labs/plan-2026-09-29.md).
+
+1. **Applying the parity rule so that it always decides.**
+   - For each seed or disjoint draw i, **d_i** is the geometric arm's metric minus its paired ordinary arm's metric, with loss in nats or the accuracy drop.
+   - **Keep:** the geometric form stays if the mean of the d_i is at most the tolerance (0.02 nats or 0.03 accuracy).
+   - **Replace:** the ordinary form takes the main-line slot if every d_i exceeds the tolerance. The geometric form goes to the D12 toolbox, never deleted.
+   - **Mixed:** run exactly one more seed or draw, then the mean of the three decides.
+   - **Advantage:** a geometric advantage is claimed only if every d_i is below minus the tolerance.
+   - For training-free arms, disjoint window draws stand in for seeds.
+   - A kill rests on the ordinary arm (for example dot top-k), so that sparsity is never confounded with geometry.
+2. **Retrieval instruments must defeat fixed untrained rules before they freeze.** For A1 these are "the latest open value" and "the latest 2-word continuation", each below 0.6 on every gated cell.
+3. **Credit for geometry needs the matched ordinary arm.**
+   - E8 weight coding is credited only through E8P against RHT-plus-scalar codes at equal bits.
+   - Harmonic attention is compared with Taylor-2 at equal feature count, and it enters serving only on a measured win over a byte-matched window.
+   - The owner's Lie-group case is tested with an arm that can differ from Taylor-2: a RoPE-plane-aligned or SU(2)/Wigner-D basis.
+   - The quaternion pillar gets a decayed or gated recurrent Track B arm.
+4. **Records relabelled** (measurements unchanged):
+   - **B3 root:** the instrument of `b3-e8-smollm2-mlp/attempt-full-32layers` is disputed. Its float reference scored 9.45 nats/token on SmolLM2, consistent with #1017 token IDs (max 4095) fed to a 49,152-token model. It is not a verdict on E8 until a re-run with a float-NLL validity band.
+   - **#1505:** `keys-1` was the originally pre-registered, under-exposed probe, and `keys-9` is the full-exposure run under the amended pre-registration.
+   - **The R1 panel:** only its memory score (0/10) is stored.
+5. **One shared selector and one Track B host.**
+   - `crate::flock` (the OpenCode/DeepSeek lab) serves A1's reads and pointer, B0, B2 and the later D11 port.
+   - Reported Track B numbers come from the shared candle host once its parity gate passes. Model-source is its oracle only.
