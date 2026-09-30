@@ -7,7 +7,11 @@ struct TempDirGuard(PathBuf);
 
 impl Drop for TempDirGuard {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
+        if self.0.is_dir() {
+            let _ = std::fs::remove_dir_all(&self.0);
+        } else {
+            let _ = std::fs::remove_file(&self.0);
+        }
     }
 }
 
@@ -25,6 +29,25 @@ fn setup_temp_workspace(test_name: &str) -> (TempDirGuard, WorkspaceEnvironment)
     std::fs::create_dir_all(&dir_path).expect("create tempdir");
     let env = WorkspaceEnvironment::new(dir_path.clone());
     (TempDirGuard(dir_path), env)
+}
+
+/// A compiled-binary path outside every workspace root.
+///
+/// A workspace tracks every file under its root and rejects any above
+/// `MAX_WORKSPACE_FILE_BYTES` when it computes a revision. A default `rustc` binary exceeds that
+/// 1 MiB limit on Linux, so compiled test artifacts must be created outside the workspace.
+fn setup_temp_binary(test_name: &str) -> (TempDirGuard, PathBuf) {
+    let now_nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let path = std::env::temp_dir().join(format!(
+        "uor_r4_bin_{}_{}_{}",
+        test_name,
+        std::process::id(),
+        now_nanos
+    ));
+    (TempDirGuard(path.clone()), path)
 }
 
 #[test]
@@ -138,7 +161,7 @@ fn main() {
 "#;
     env.write_file(src_path, broken_code)
         .expect("write broken code");
-    let bin_path = env.root().join("repaired_bin");
+    let (_bin_guard, bin_path) = setup_temp_binary("iterative_repair");
 
     let report = WorkspaceCodingEngine::iterative_repair(
         "task-repair-type-mismatch",
@@ -171,6 +194,10 @@ fn main() {
     assert_ne!(
         report.initial_revision.revision_id,
         report.final_revision.revision_id
+    );
+    assert_eq!(
+        report.final_revision.file_count, 1,
+        "the compiled binary must live outside the workspace and not be tracked in the revision"
     );
 }
 
@@ -280,7 +307,7 @@ fn main() {
 }
 "#;
     env.write_file(src_path, code).expect("write code");
-    let bin_path = env.root().join("provenance_bin");
+    let (_bin_guard, bin_path) = setup_temp_binary("provenance");
 
     let report = WorkspaceCodingEngine::iterative_repair(
         "task-provenance-binding-999",
@@ -303,6 +330,10 @@ fn main() {
     assert_ne!(
         report.initial_revision.revision_id,
         report.final_revision.revision_id
+    );
+    assert_eq!(
+        report.final_revision.file_count, 1,
+        "the compiled binary must live outside the workspace and not be tracked in the revision"
     );
     assert!(report.final_compile_success);
     assert!(report.final_execution_success);

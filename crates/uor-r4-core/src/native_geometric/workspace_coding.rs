@@ -561,6 +561,10 @@ impl WorkspaceCodingEngine {
     }
 
     /// Execute an iterative compile-and-repair loop on a target file in the workspace.
+    ///
+    /// `bin_path` must point outside the workspace root: [`WorkspaceEnvironment::compute_revision`]
+    /// rejects any tracked file above [`MAX_WORKSPACE_FILE_BYTES`], and a default `rustc` binary
+    /// exceeds that 1 MiB limit on Linux.
     pub fn iterative_repair<F>(
         task_id: &str,
         workspace: &WorkspaceEnvironment,

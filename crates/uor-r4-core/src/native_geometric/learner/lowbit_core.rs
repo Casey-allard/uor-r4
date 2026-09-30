@@ -153,14 +153,16 @@ impl LowBitCore {
         let mut next = vec![0i32; self.dim];
         for (r, slot) in next.iter_mut().enumerate() {
             let w = self.w_x.weight(r, t);
-            *slot = w << self.w_x.shift(r);
+            *slot = w.wrapping_shl(self.w_x.shift(r));
         }
 
         // W_h · h, decayed by the recurrent shift, added in. Both terms are pre-scaled, so they
-        // combine as integers directly, and the contraction is a right shift (no multiplier).
+        // combine as integers directly, and the contraction is a right shift (no multiplier). The
+        // sum is wrapping: the served kernel is fixed-width, so an un-decayed state that reaches
+        // the i32 boundary must wrap, not panic (the contract documented on `forward_i32`).
         let recurrent = self.w_h.forward_i32(h);
         for (r, v) in recurrent.iter().enumerate() {
-            next[r] += *v >> self.recurrent_shift;
+            next[r] = next[r].wrapping_add(v.wrapping_shr(self.recurrent_shift));
         }
 
         // relu: a max against zero, no multiply and no float.
@@ -1184,6 +1186,18 @@ mod tests {
         let wh: Vec<f32> = (0..dim * dim).map(|_| next_f32(1.0)).collect();
         let wo: Vec<f32> = (0..vocab * dim).map(|_| next_f32(1.0)).collect();
         LowBitCore::from_f32(vocab, dim, &wx, &wh, &wo).expect("build")
+    }
+
+    /// Regression for issue #1546: an un-decayed state crosses the `i32` range within tens of
+    /// steps; the wrapped result is defined and `step` must not panic.
+    #[test]
+    fn un_decayed_growth_wraps_without_panicking() {
+        let core = random_core(11, 32, 0x1234_5678_9ABC_DEF0);
+        let mut h = core.initial_state();
+        for i in 0..64u32 {
+            h = core.step(&h, (i * 7) % 11);
+        }
+        assert_eq!(h.len(), core.dim);
     }
 
     /// Q1: does the state actually blow up with sequence length, as the earlier reading assumed?

@@ -160,6 +160,12 @@ impl TernaryLinear {
     /// Multiplier-free by construction: the ternary weight selects an add, a subtract or nothing,
     /// and the scale is a shift. No `*`, `/` or `%` is executed, and the arithmetic is exact
     /// integer throughout.
+    ///
+    /// The accumulator is a fixed-width `i32` kernel, so a sum that leaves the `i32` range wraps
+    /// modulo `2^32` — the machine add/subtract semantics of the served kernel — rather than
+    /// panicking in a debug build. Callers that need a bounded state must keep the recurrence
+    /// decayed (see `LowBitCore::recurrent_shift`); an un-decayed state is expected to reach the
+    /// `i32` boundary, and that is a defined wrap, not an error.
     pub fn forward_i32(&self, x: &[i32]) -> Vec<i32> {
         assert_eq!(x.len(), self.cols, "input length must equal cols");
         let mut out = vec![0i32; self.rows];
@@ -167,12 +173,12 @@ impl TernaryLinear {
             let mut acc: i32 = 0;
             for c in 0..self.cols {
                 match self.weight(r, c) {
-                    1 => acc += x[c],
-                    -1 => acc -= x[c],
+                    1 => acc = acc.wrapping_add(x[c]),
+                    -1 => acc = acc.wrapping_sub(x[c]),
                     _ => {}
                 }
             }
-            out[r] = acc << self.shift[r];
+            out[r] = acc.wrapping_shl(self.shift[r]);
         }
         out
     }
@@ -290,6 +296,25 @@ mod tests {
         );
         // x = [5, 5, 5, 5] -> 5 - 5 + 0 + 5 = 5, scaled by 2^1 = 10.
         assert_eq!(m.forward_i32(&[5, 5, 5, 5])[0], 10);
+    }
+
+    /// Regression for issue #1546: an accumulator that leaves the `i32` range must wrap, not panic.
+    /// The old `acc += x[c]` / `acc -= x[c]` panicked with "attempt to subtract with overflow" in a
+    /// debug build as soon as the un-decayed state reached the boundary.
+    #[test]
+    fn accumulator_overflow_wraps_instead_of_panicking() {
+        // All-`+1` row: `MAX + MAX + 1 + 0` wraps modulo 2^32.
+        let positive = TernaryLinear::quantize(&[1.0f32; 4], 1, 4);
+        assert_eq!(
+            positive.forward_i32(&[i32::MAX, i32::MAX, 1, 0])[0],
+            i32::MAX.wrapping_add(i32::MAX).wrapping_add(1)
+        );
+        // All-`-1` row with `i32::MIN` is the exact arm that panicked.
+        let negative = TernaryLinear::quantize(&[-1.0f32; 4], 1, 4);
+        assert_eq!(
+            negative.forward_i32(&[i32::MIN, 0, 0, 0])[0],
+            0i32.wrapping_sub(i32::MIN)
+        );
     }
 
     #[test]
