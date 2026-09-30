@@ -34,6 +34,10 @@ pub struct HostPolicy {
     /// critical pressure is never permitted for admission.
     #[serde(default = "normal_pressure")]
     pub admission_pressure_max: u32,
+    /// Reviewed small CPU validation specs eligible at warning pressure.
+    /// Digests use the same canonical JobSpec serialization as reservations.
+    #[serde(default)]
+    pub warning_validation_specs: Vec<String>,
     #[serde(default)]
     pub coordination_repo: Option<PathBuf>,
     pub volumes: Vec<VolumePolicy>,
@@ -49,10 +53,24 @@ impl HostPolicy {
             || policy.max_rss_gib <= 0.0
             || policy.max_rss_gib > 11.0
             || !matches!(policy.admission_pressure_max, 1 | 2)
-            || policy.max_jobs != 1
+            || policy.max_jobs == 0
+            || policy.max_jobs > policy.max_threads as usize
             || policy.volumes.is_empty()
         {
             return Err(invalid("host policy schema or resource ceilings invalid"));
+        }
+        let mut approved = std::collections::BTreeSet::new();
+        for digest in &policy.warning_validation_specs {
+            if digest.len() != 64
+                || !digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                || !approved.insert(digest)
+            {
+                return Err(invalid(
+                    "invalid or duplicate warning validation spec digest",
+                ));
+            }
         }
         let mut ids = std::collections::BTreeSet::new();
         for volume in &policy.volumes {
@@ -216,6 +234,77 @@ pub fn memory_pressure() -> Result<u32> {
     }
 }
 
+/// Concurrent jobs are limited by aggregate resources, not artificial lane pairs.
+fn check_concurrent_jobs(specs: &[JobSpec]) -> Result<()> {
+    if specs.len() <= 1 {
+        return Ok(());
+    }
+    if specs.iter().any(|s| s.exclusive) {
+        return Err(invalid("exclusive measurement requires the host"));
+    }
+    for spec in specs {
+        spec.validate()?;
+    }
+    let cargo: Vec<_> = specs.iter().filter(|s| s.cargo).collect();
+    if cargo.len() > 1 {
+        let target = |s: &JobSpec| -> Result<PathBuf> {
+            let value = s
+                .env
+                .as_ref()
+                .and_then(|e| e.get("CARGO_TARGET_DIR"))
+                .ok_or_else(|| {
+                    invalid("concurrent Cargo requires explicit separate target directories")
+                })?;
+            let path = Path::new(value);
+            if !path.is_absolute() || !path.is_dir() {
+                return Err(invalid(
+                    "concurrent Cargo target must be an existing absolute directory",
+                ));
+            }
+            Ok(fs::canonicalize(path)?)
+        };
+        let targets = cargo
+            .iter()
+            .map(|s| target(s))
+            .collect::<Result<Vec<_>>>()?;
+        for (i, a) in targets.iter().enumerate() {
+            for b in &targets[i + 1..] {
+                if a.starts_with(b) || b.starts_with(a) {
+                    return Err(invalid("concurrent Cargo target directories overlap"));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Warning pressure alone need not stall a reviewed, bounded CPU check.
+/// This only decides pressure eligibility; all other admission checks still run.
+fn check_pressure(policy: &HostPolicy, spec: &JobSpec, pressure: u32) -> Result<()> {
+    match pressure {
+        1 => Ok(()),
+        2 if policy.admission_pressure_max == 2 => Ok(()),
+        2 => {
+            let digest = crate::coord::digest(&serde_json::to_vec(spec)?);
+            if policy.warning_validation_specs.contains(&digest)
+                && (1..=2).contains(&spec.threads)
+                && spec.rss_gib.is_finite()
+                && spec.rss_gib > 0.0
+                && spec.rss_gib <= 2.0
+                && (1..=600).contains(&spec.wall_s)
+                && !spec.gpu
+            {
+                Ok(())
+            } else {
+                Err(invalid("memory pressure warning; requires approved CPU validation spec within 2 threads, 2 GiB and 600 seconds"))
+            }
+        }
+        _ => Err(invalid(
+            "critical or unknown memory pressure; defer new workload",
+        )),
+    }
+}
+
 pub fn check_admission(
     root: &Path,
     policy: &HostPolicy,
@@ -227,9 +316,7 @@ pub fn check_admission(
             "production command kill criteria require an owned supervisor; use wall or log_match",
         ));
     }
-    if memory_pressure()? > policy.admission_pressure_max {
-        return Err(invalid("memory pressure elevated; defer new workload"));
-    }
+    check_pressure(policy, spec, memory_pressure()?)?;
     if !policy.admission_enabled {
         return Err(invalid("host admission disabled"));
     }
@@ -246,9 +333,7 @@ pub fn check_admission(
     if threads > u64::from(policy.max_threads) || rss > policy.max_rss_gib {
         return Err(invalid("host resources reserved"));
     }
-    if specs.iter().filter(|s| s.cargo).count() > 1 {
-        return Err(invalid("one Cargo process permitted"));
-    }
+    check_concurrent_jobs(&specs)?;
     let claim = spec
         .coordination
         .as_ref()
@@ -367,6 +452,7 @@ mod tests {
             max_rss_gib: 1.0,
             max_jobs: 1,
             admission_pressure_max: 1,
+            warning_validation_specs: vec![],
             coordination_repo: None,
             volumes: vec![],
         };
@@ -375,6 +461,150 @@ mod tests {
             .to_string()
             .contains("command kill criteria"));
     }
+    fn pressure_fixture() -> (HostPolicy, JobSpec) {
+        let spec = JobSpec::parse(
+            &serde_json::to_vec(&serde_json::json!({
+                "id":"small-check","lab":"test","cwd":std::env::temp_dir(),"argv":["/usr/bin/true"],
+                "threads":2,"rss_gib":2.0,"wall_s":600,"kill_criterion":{"kind":"wall"}
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let policy: HostPolicy = serde_json::from_value(serde_json::json!({
+            "schema":"uor-r4.host-policy/1", "admission_enabled":true,
+            "max_threads":8,"max_rss_gib":11.0,"max_jobs":1,"volumes":[]
+        }))
+        .unwrap();
+        (policy, spec)
+    }
+
+    fn approve(policy: &mut HostPolicy, spec: &JobSpec) {
+        policy.warning_validation_specs =
+            vec![crate::coord::digest(&serde_json::to_vec(spec).unwrap())];
+    }
+
+    #[test]
+    fn warning_requires_exact_reviewed_spec_and_legacy_policy_stays_normal() {
+        let (mut policy, spec) = pressure_fixture();
+        assert!(policy.warning_validation_specs.is_empty());
+        assert!(check_pressure(&policy, &spec, 1).is_ok());
+        assert!(check_pressure(&policy, &spec, 2).is_err());
+        approve(&mut policy, &spec);
+        assert!(check_pressure(&policy, &spec, 2).is_ok());
+        let mut changed = spec.clone();
+        changed.argv.push("different-work".into());
+        assert!(check_pressure(&policy, &changed, 2).is_err());
+        changed = spec.clone();
+        changed.id = "new-attempt".into();
+        assert!(check_pressure(&policy, &changed, 2).is_err());
+    }
+
+    #[test]
+    fn reviewed_spec_cannot_exceed_small_check_bounds() {
+        let (mut policy, spec) = pressure_fixture();
+        for bad in 0..6 {
+            let mut changed = spec.clone();
+            match bad {
+                0 => changed.threads = 3,
+                1 => changed.rss_gib = 2.001,
+                2 => changed.wall_s = 601,
+                3 => changed.gpu = true,
+                4 => changed.wall_s = 0,
+                _ => changed.rss_gib = 0.0,
+            }
+            approve(&mut policy, &changed);
+            assert!(check_pressure(&policy, &changed, 2).is_err(), "case {bad}");
+        }
+    }
+
+    #[test]
+    fn critical_and_unknown_pressure_never_admit_even_with_global_override() {
+        let (mut policy, spec) = pressure_fixture();
+        approve(&mut policy, &spec);
+        for max in [1, 2] {
+            policy.admission_pressure_max = max;
+            for pressure in [0, 3, 4, 8, u32::MAX] {
+                assert!(check_pressure(&policy, &spec, pressure).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn pressure_approval_does_not_skip_disabled_admission() {
+        let (mut policy, spec) = pressure_fixture();
+        approve(&mut policy, &spec);
+        policy.admission_enabled = false;
+        let error = check_admission(&std::env::temp_dir(), &policy, &spec, &[]).unwrap_err();
+        // Host pressure may independently reject on a stressed test host.
+        assert!(error.to_string().contains("disabled") || error.to_string().contains("pressure"));
+    }
+
+    #[test]
+    fn concurrency_has_no_lane_quota_and_preserves_exclusivity() {
+        let (_, work) = pressure_fixture();
+        let mut validation = work.clone();
+        validation.id = "validation".into();
+        validation.validation_lane = true;
+        assert!(check_concurrent_jobs(&[work.clone(), validation.clone()]).is_ok());
+        assert!(check_concurrent_jobs(&[work.clone(), work.clone(), work.clone()]).is_ok());
+        assert!(check_concurrent_jobs(&[validation.clone(), validation.clone()]).is_ok());
+        let mut exclusive = work;
+        exclusive.exclusive = true;
+        assert!(check_concurrent_jobs(&[exclusive, validation]).is_err());
+    }
+
+    #[test]
+    fn concurrent_cargo_requires_disjoint_real_caches() {
+        let (_, mut work) = pressure_fixture();
+        let mut validation = work.clone();
+        validation.validation_lane = true;
+        work.cargo = true;
+        validation.cargo = true;
+        assert!(check_concurrent_jobs(&[work.clone(), validation.clone()]).is_err());
+        let root = std::env::temp_dir().join(format!("uor-cache-lanes-{}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        let a = root.join("a");
+        let b = root.join("b");
+        fs::create_dir(&a).unwrap();
+        fs::create_dir(&b).unwrap();
+        work.env = Some(std::collections::BTreeMap::from([(
+            "CARGO_TARGET_DIR".into(),
+            a.to_string_lossy().into_owned(),
+        )]));
+        validation.env = Some(std::collections::BTreeMap::from([(
+            "CARGO_TARGET_DIR".into(),
+            b.to_string_lossy().into_owned(),
+        )]));
+        assert!(check_concurrent_jobs(&[work.clone(), validation.clone()]).is_ok());
+        validation.env = work.env.clone();
+        assert!(check_concurrent_jobs(&[work.clone(), validation.clone()]).is_err());
+        #[cfg(unix)]
+        {
+            let alias = root.join("alias");
+            std::os::unix::fs::symlink(&a, &alias).unwrap();
+            validation.env.as_mut().unwrap().insert(
+                "CARGO_TARGET_DIR".into(),
+                alias.to_string_lossy().into_owned(),
+            );
+            assert!(check_concurrent_jobs(&[work, validation]).is_err());
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn legacy_serialization_omits_lane_and_new_lane_enforces_limits() {
+        let (_, mut spec) = pressure_fixture();
+        assert!(!serde_json::to_value(&spec)
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .contains_key("validation_lane"));
+        spec.validation_lane = true;
+        assert!(spec.validate().is_ok());
+        spec.wall_s = 601;
+        assert!(spec.validate().is_err());
+    }
+
     #[test]
     fn absent_volume_is_never_created() {
         let path = std::env::temp_dir().join(format!("absent-uor-volume-{}", std::process::id()));

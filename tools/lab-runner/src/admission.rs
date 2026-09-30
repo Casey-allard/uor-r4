@@ -87,6 +87,7 @@ mod tests {
             },
             exclusive,
             cargo: false,
+            validation_lane: false,
             storage: vec![],
             coordination: None,
             provenance: None,

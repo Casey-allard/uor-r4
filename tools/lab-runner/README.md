@@ -27,8 +27,8 @@ runner/
 
 A missing/invalid host policy holds admission. Production policy names verified
 volume UUIDs and sentinels, capacity reserves, the coordination store, memory
-pressure ceiling and thread/RSS bounds. This version requires `max_jobs: 1` so
-input hashing cannot delay another job's monitor.
+pressure ceiling and thread/RSS bounds. Concurrent admission uses combined
+resource reservations; input verification preserves monitoring of other jobs.
 Missing, wrong or substituted storage fails before launch. No missing mount
 point is created by this runner. See `host::HostPolicy` for the versioned schema.
 
@@ -207,3 +207,80 @@ inert fixtures under temporary roots; it is not a production bypass. Production
 smokes must have real task/attempt reservations and a verified host policy.
 Test execution, daemon installation, client continuation handshakes and recovery
 receipts are reported separately. No model qualification follows from them.
+
+## Small CPU validation under warning memory pressure
+
+Keep production `admission_pressure_max: 1`. A yellow/warning observation (2)
+may admit an independently reviewed small CPU validation attempt by adding its
+canonical reservation `spec_sha256` to host-policy `warning_validation_specs`.
+This optional list defaults empty; legacy policies retain their normal-only
+behavior. The exact spec must declare at most two threads, 2 GiB RSS and 600
+seconds, with no GPU. Changing the command, inputs, source, limits or attempt ID
+requires a new digest approval. Do not use this exception for model training or
+quality evaluation; reviewers check that scope before adding the digest.
+
+The deployment steward may approve qualifying checks from their work cards and
+independent review without another owner prompt. Record the reason, digest and
+policy before/after identities on the owning issue; atomically update the host
+policy. The daemon reloads it each cycle, so future approvals need no restart.
+Remove obsolete digests after finalization. The global warning override remains
+backward compatible but is not needed for this small-check policy.
+
+This exception skips only the warning-pressure rejection. Lane/Cargo-cache
+ownership, reservations, source/input provenance, cumulative budget, volume
+identities, physical storage floors and measured RSS/wall enforcement remain.
+Critical (4) and unknown pressure values block admission even with an override;
+critical pressure retains the existing runtime stop/hold behavior. Declared RSS
+is a monitored ceiling, not a guarantee of spare host RAM. If a check needs more,
+preserve the failed attempt and revise the projection rather than relabeling it.
+Rollback removes the new list (normal-pressure policy); it does not cancel an
+already admitted bounded job. Preserve the previous binary and policy when
+first deploying this additive runner change, and switch only after jobs drain.
+
+## Resource-based concurrency and direct small checks (owner correction, September 30)
+
+Small development checks do not require this runner or a heavy-job reservation.
+Formatting, static checks, warm-cache builds and focused unit tests may run
+from an owned worktree directly with honest bounded resources, separate build
+caches and source-bound results. Monitor actual pressure and storage; stop only
+your own work on critical pressure or exhausted physical reserves. Record costs
+once. This does not authorize hidden model campaigns or exclusive timing claims.
+
+For supervised jobs, concurrency follows combined CPU, memory and storage
+reservations. Set `max_jobs` up to the declared CPU capacity (eight on this host);
+there is no ordinary/validation lane quota. Aggregate ceilings remain eight
+workers and 11 GiB including GPU unified memory, with measured pressure/RSS
+monitoring. The optional `validation_lane` classification retains its small-job
+bounds and serialization compatibility; it does not allocate an exclusive lane.
+
+Reserve and start the first attempt before reserving its partner in the same
+canonical runner root. Unknown or queued reservations absent from the daemon's
+running set remain a reconciliation fence; do not create two waiting reservations.
+Legacy clients must use the delivered runner binary to submit the additive lane
+field. Each attempt retains its own task, generation, provenance, receipt and
+charge. One failed validation does not turn another job's result into a pass.
+
+Concurrent Cargo jobs require explicit existing absolute `CARGO_TARGET_DIR`
+paths resolving to disjoint directories, including symlink resolution. This
+allows a long model test wrapped by Cargo to coexist with a short build in a
+different cache. Cargo's registry locks may still serialize short dependency
+operations. Source checkouts remain separately owned. Do not set `exclusive`
+for ordinary functional checks merely to obtain the old single slot. Reserve
+it for actual performance/energy measurements or a documented shared-resource
+need; true exclusive jobs still block all concurrent admission.
+
+Warning-memory admission remains the separately reviewed exact-spec policy
+above; concurrency is not permission to ignore pressure or storage. Preserve
+physical floors and new-storage projections, including all jobs. A validation
+that exceeds its envelope stops with its own receipt. The scheduler transition
+must preserve any already running job's identity and immutable specification.
+The initial repair bootstrap is recorded on #1536. The later direct owner
+correction permits the bounded direct development checks described above.
+
+For an additional job, source/input hashing runs inside its owned supervisor before
+`payload.go` is opened. The same job wall/RSS/identity monitor remains active
+for all attempts during verification. Verification failures never execute the
+payload; verification output has separate logs, and late ownership/resources/
+budget are checked again before the payload gate opens. An uncertain restart
+keeps the existing fail-closed reconciliation behavior; this change does not
+claim live production-worker adoption across daemon replacement.

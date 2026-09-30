@@ -126,6 +126,15 @@ fn run() -> Result<(), RunnerError> {
             );
             Ok(())
         }
+        // Internal read-only child command. It verifies the exact canonical
+        // spec admitted by the parent; it cannot queue, launch or finalize work.
+        Some("verify-inputs") if rest.len() == 3 => {
+            let spec = lab_runner::spec::JobSpec::parse(&std::fs::read(&rest[1])?)?;
+            if coord::digest(&serde_json::to_vec(&spec)?) != rest[2] {
+                return Err(invalid("input verifier spec digest mismatch"));
+            }
+            spec.verify_provenance()
+        }
         Some("submit") if rest.len() == 2 => {
             let id = jobs::submit(&globals.root, PathBuf::from(&rest[1]).as_path())?;
             println!("{id}");

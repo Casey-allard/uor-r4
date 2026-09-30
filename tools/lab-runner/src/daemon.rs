@@ -8,7 +8,7 @@ use crate::spec::{JobSpec, KillKind};
 use crate::{invalid, Result};
 use serde_json::json;
 use std::fs;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -33,6 +33,11 @@ struct RunningJob {
     peak_rss_kib: u64,
     log_offsets: [u64; 2],
     log_carry: String,
+    /// The owned supervisor is verifying inputs; payload.go remains closed.
+    preflight_pending: bool,
+    /// Exact peers observed before asynchronous verification, for safe waiting
+    /// when local DONE precedes their shared reservation finalization.
+    preflight_peers: Vec<(JobSpec, Identity)>,
 }
 
 fn preflight_or_record_failure(
@@ -66,11 +71,51 @@ impl RunningJob {
     }
 }
 
+// Carry the same running set through the late, post-hashing check. Passing an
+// empty set here would trigger the coordinator's missing-reservation fence.
+fn recheck_resources(
+    spec: &JobSpec,
+    running: &[JobSpec],
+    host_check: impl FnOnce(&[JobSpec]) -> Result<()>,
+    budget_check: impl FnOnce(u64) -> Result<()>,
+) -> Result<()> {
+    host_check(running)?;
+    let reserved = running.iter().try_fold(spec.reserved_ms()?, |sum, job| {
+        sum.checked_add(job.reserved_ms()?)
+            .ok_or_else(|| invalid("wall reservation overflow"))
+    })?;
+    budget_check(reserved)
+}
+
 fn spawn_job(
     root: &Path,
     spec: &JobSpec,
     test_mode: bool,
     ledger_dir: &Path,
+    running: &[JobSpec],
+) -> Result<RunningJob> {
+    let verifier = if !test_mode && !running.is_empty() {
+        Some(std::env::current_exe()?)
+    } else {
+        None
+    };
+    spawn_job_with_verifier(
+        root,
+        spec,
+        test_mode,
+        ledger_dir,
+        running,
+        verifier.as_deref(),
+    )
+}
+
+fn spawn_job_with_verifier(
+    root: &Path,
+    spec: &JobSpec,
+    test_mode: bool,
+    ledger_dir: &Path,
+    running: &[JobSpec],
+    verifier: Option<&Path>,
 ) -> Result<RunningJob> {
     let started = Instant::now();
     let dir = jobs::running_dir(root).join(&spec.id);
@@ -84,13 +129,17 @@ fn spawn_job(
         &spec.id,
         spec.coordination.as_ref().map(|c| c.attempt_id.as_str()),
     )?;
-    if !test_mode {
+    if !test_mode && verifier.is_none() {
         preflight_or_record_failure(root, spec, &attempt, started, || {
             spec.verify_provenance()?;
             // Hashing can outlive ownership. Refresh authority/resources here.
             let policy = HostPolicy::load(root)?;
-            host::check_admission(root, &policy, spec, &[])?;
-            crate::ledger::check_budget(ledger_dir, spec.reserved_ms()?)?;
+            recheck_resources(
+                spec,
+                running,
+                |peers| host::check_admission(root, &policy, spec, peers),
+                |reserved| crate::ledger::check_budget(ledger_dir, reserved).map(|_| ()),
+            )?;
             if started.elapsed() >= Duration::from_secs(spec.wall_s) {
                 return Err(invalid("preflight exhausted the reserved job wall time"));
             }
@@ -99,6 +148,27 @@ fn spawn_job(
         // A failure while consuming an existing/uncertain tombstone cannot
         // assert globally that this attempt never ran; retain the normal hold.
         jobs::consume_attempt(ledger_dir, root, spec)?;
+    }
+    let spec_digest = crate::coord::digest(&serde_json::to_vec(spec)?);
+    let preflight_peers = if verifier.is_some() {
+        running
+            .iter()
+            .map(|peer| {
+                Ok((
+                    peer.clone(),
+                    jobs::read_identity(&jobs::running_dir(root).join(&peer.id))?,
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?
+    } else {
+        vec![]
+    };
+    if verifier.is_some() {
+        crate::write_json_atomic(
+            &dir.join("verification-required.json"),
+            &json!({"schema":"uor-r4.input-verification/1", "spec_sha256":spec_digest,
+                "state":"pending", "payload_started":false, "peers":preflight_peers}),
+        )?;
     }
     let stdout = fs::OpenOptions::new()
         .write(true)
@@ -109,13 +179,18 @@ fn spawn_job(
         .create_new(true)
         .open(dir.join("stderr.log"))?;
     let hold_fifo = dir.join("supervisor-hold.fifo");
-    let fifo = Command::new("/usr/bin/mkfifo").arg(&hold_fifo).status()?;
+    let mut fifo_command = Command::new("/usr/bin/mkfifo");
+    fifo_command.arg(&hold_fifo);
+    if verifier.is_some() {
+        fifo_command.arg(dir.join("payload.go.fifo"));
+    }
+    let fifo = fifo_command.status()?;
     if !fifo.success() {
         return Err(invalid("could not create supervisor hold FIFO"));
     }
     // Positional arguments avoid shell interpolation of job input. Before
     // launch.go exists this wrapper cannot execute the requested workload.
-    let script="shift; gate=$1; result=$2; hold=$3; shift 3; n=0; while [ ! -f \"$gate\" ]; do n=$((n+1)); [ \"$n\" -lt 200 ] || exit 125; /bin/sleep 0.05; done; \"$@\" & child=$!; wait \"$child\"; status=$?; printf '%s\\n' \"$status\" > \"$result\"; exec 3<> \"$hold\"; IFS= read -r ack <&3; exit \"$status\"";
+    let script = "shift; gate=$1; result=$2; hold=$3; verifier=$4; spec=$5; digest=$6; verified=$7; payload_gate=$8; shift 8; n=0; while [ ! -f \"$gate\" ]; do n=$((n+1)); [ \"$n\" -lt 200 ] || exit 125; /bin/sleep 0.05; done; status=0; if [ -n \"$verifier\" ]; then \"$verifier\" verify-inputs \"$spec\" \"$digest\" > \"$verified.stdout\" 2> \"$verified.stderr\" & child=$!; wait \"$child\"; status=$?; if [ \"$status\" -eq 0 ]; then exec 4<> \"$payload_gate.fifo\"; fi; printf '%s\\n' \"$status\" > \"$verified\"; if [ \"$status\" -eq 0 ]; then IFS= read -r go <&4; if [ \"$go\" != \"$digest\" ] || [ ! -f \"$payload_gate\" ]; then status=125; fi; exec 4>&-; fi; fi; if [ \"$status\" -eq 0 ]; then \"$@\" & child=$!; wait \"$child\"; status=$?; fi; printf '%s\\n' \"$status\" > \"$result\"; exec 3<> \"$hold\"; IFS= read -r ack <&3; exit \"$status\"";
     let mut argv = spec.argv.clone();
     if test_mode {
         argv[0] = match Path::new(&argv[0]).file_name().and_then(|s| s.to_str()) {
@@ -134,6 +209,11 @@ fn spawn_job(
         .arg(dir.join("launch.go"))
         .arg(dir.join("payload.exit"))
         .arg(&hold_fifo)
+        .arg(verifier.unwrap_or_else(|| Path::new("")))
+        .arg(dir.join("spec.json"))
+        .arg(&spec_digest)
+        .arg(dir.join("verification.exit"))
+        .arg(dir.join("payload.go"))
         .args(&argv)
         .current_dir(&spec.cwd)
         .env_clear();
@@ -190,6 +270,8 @@ fn spawn_job(
         peak_rss_kib: 0,
         log_offsets: [0, 0],
         log_carry: String::new(),
+        preflight_pending: verifier.is_some(),
+        preflight_peers,
     })
 }
 fn finalize_job(
@@ -206,7 +288,11 @@ fn finalize_job(
         &Finalization {
             outcome: outcome.into(),
             exit_status: code,
-            reason,
+            reason: if job.preflight_pending {
+                format!("input verification phase; payload launch not confirmed: {reason}")
+            } else {
+                reason
+            },
             peak_rss_kib: job.peak_rss_kib,
             started_utc: job.attempt.started_utc.clone(),
             elapsed_ms: job.elapsed_ms(),
@@ -331,6 +417,11 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
             peak_rss_kib: 0,
             log_offsets: [0, 0],
             log_carry: String::new(),
+            preflight_pending: dir.join("verification-required.json").is_file()
+                && !dir.join("payload.go").is_file(),
+            // Production recovery stops pending attempts; it never resumes a
+            // verifier or manufactures its old in-memory peer observation.
+            preflight_peers: vec![],
         };
         if dir.join("exit.json").is_file() || job.identity.host.is_empty() {
             recovery_required(root, &dir, "unresolved receipt or legacy host identity; preserve runtime paths for stopped reconciliation")?;
@@ -391,6 +482,191 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
     }
     Ok(running)
 }
+/// An exact previously observed peer may finish locally before its GitHub
+/// reservation is finalized. This proves only that waiting is safe: the actual
+/// production validator must subsequently pass before the payload gate opens.
+fn defer_completed_peer(
+    root: &Path,
+    candidate_dir: &Path,
+    captured: &[(JobSpec, Identity)],
+    error: &crate::RunnerError,
+) -> Result<bool> {
+    let crate::RunnerError::Invalid(message) = error else {
+        return Ok(false);
+    };
+    for (spec, identity) in captured {
+        let Some(claim) = &spec.coordination else {
+            continue;
+        };
+        if message != &format!("unresolved host reservation {} absent from local running set; reconcile before admission", claim.attempt_id) {
+            continue;
+        }
+        let proof = (|| -> Result<serde_json::Value> {
+            let dir = jobs::done_dir(root).join(&spec.id);
+            if jobs::running_dir(root).join(&spec.id).exists()
+                || identity.host != process::host_id()?
+                || jobs::read_identity(&dir)? != *identity
+            {
+                return Err(invalid(
+                    "completed peer identity is not the observed local peer",
+                ));
+            }
+            let digest = crate::coord::digest(&serde_json::to_vec(spec)?);
+            if crate::coord::digest(&serde_json::to_vec(&jobs::read_spec(&dir)?)?) != digest {
+                return Err(invalid("completed peer specification changed"));
+            }
+            let attempt = jobs::read_attempt(&dir)?;
+            if attempt.attempt_id != claim.attempt_id || attempt.process_token != identity.token {
+                return Err(invalid("completed peer launch identity changed"));
+            }
+            let bytes = fs::read(dir.join("exit.json"))?;
+            let exit: serde_json::Value = serde_json::from_slice(&bytes)?;
+            if exit["schema"] != jobs::EXIT_SCHEMA
+                || exit["id"] != spec.id
+                || exit["attempt_id"] != claim.attempt_id
+                || exit["host"] != identity.host
+                || exit["spec_sha256"] != digest
+                || exit["coordination"] != serde_json::to_value(claim)?
+                || exit["process_state"] != "confirmed_stopped"
+                || !matches!(
+                    exit["outcome"].as_str(),
+                    Some(
+                        "completed"
+                            | "failed"
+                            | "cancelled"
+                            | "wall_killed"
+                            | "resource_killed"
+                            | "criterion_killed"
+                            | "interrupted"
+                    )
+                )
+                || !process::owned_members(identity)?.is_empty()
+            {
+                return Err(invalid(
+                    "completed peer lacks exact positive stopped evidence",
+                ));
+            }
+            Ok(
+                json!({"schema":"uor-r4.verification-wait/1", "state":"awaiting_peer_reservation_finalization",
+                "peer_attempt":claim.attempt_id, "spec_sha256":digest,
+                "exit_sha256":crate::coord::digest(&bytes), "payload_gate_open":false}),
+            )
+        })();
+        let Ok(proof) = proof else {
+            return Ok(false);
+        };
+        let path = candidate_dir.join("verification-wait.json");
+        let unchanged = fs::read(&path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+            .is_some_and(|old| old == proof);
+        if !unchanged {
+            crate::write_json_atomic(&path, &proof)?;
+        }
+        return Ok(true);
+    }
+    Ok(false)
+}
+
+/// Finish the one pending verification only after the normal monitor has run.
+/// The verifier shares the candidate's owned supervisor, resource bounds and
+/// durable attempt. It cannot launch the workload before this second gate.
+fn advance_preflight(config: &DaemonConfig, running: &mut [RunningJob]) -> Result<()> {
+    let Some(index) = running.iter().position(|job| job.preflight_pending) else {
+        return Ok(());
+    };
+    let dir = running[index].dir(&config.root);
+    let Ok(bytes) = fs::read(dir.join("verification.exit")) else {
+        return Ok(());
+    };
+    // A partial/nonzero record never authorizes the workload. The ordinary
+    // monitor records verifier failure, wall exhaustion or unknown identity.
+    if bytes != b"0\n" {
+        return Ok(());
+    }
+    let peers: Vec<_> = running
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i != index)
+        .map(|(_, job)| job.spec.clone())
+        .collect();
+    let job = &mut running[index];
+    let checked = (|| -> Result<bool> {
+        if dir.join("exit.json").exists() || dir.join("recovery-required.json").exists() {
+            return Err(invalid("verification has an unresolved execution receipt"));
+        }
+        if config.stop_file.as_ref().is_some_and(|path| path.exists())
+            || config.root.join("admissions-held.json").exists()
+        {
+            return Err(invalid("admission held during input verification"));
+        }
+        if !process::matches(&job.identity) {
+            return Err(invalid("verifier supervisor identity unavailable"));
+        }
+        let saved = jobs::read_spec(&dir)?;
+        if crate::coord::digest(&serde_json::to_vec(&saved)?)
+            != crate::coord::digest(&serde_json::to_vec(&job.spec)?)
+        {
+            return Err(invalid("spec changed during input verification"));
+        }
+        if config.require_host_policy {
+            let policy = HostPolicy::load(&config.root)?;
+            if let Err(error) = recheck_resources(
+                &job.spec,
+                &peers,
+                |others| host::check_admission(&config.root, &policy, &job.spec, others),
+                |reserved| crate::ledger::check_budget(&config.ledger_dir, reserved).map(|_| ()),
+            ) {
+                if defer_completed_peer(&config.root, &dir, &job.preflight_peers, &error)? {
+                    // Keep the ordinary wall/RSS monitor active. A normal wait
+                    // neither fails this candidate nor imposes a host-wide hold.
+                    return Ok(false);
+                }
+                return Err(error);
+            }
+        }
+        if job.elapsed_ms() >= job.spec.wall_s.saturating_mul(1000) {
+            return Err(invalid("input verification exhausted reserved wall time"));
+        }
+        // Source/executable/input verification has completed successfully.
+        // Preserve the original consume-before-payload ordering, not before hashing.
+        if config.require_host_policy {
+            jobs::consume_attempt(&config.ledger_dir, &config.root, &job.spec)?;
+        }
+        crate::atomic_write(&dir.join("payload.go"), job.attempt.attempt_id.as_bytes())?;
+        // RDWR open cannot wait for a reader. One short digest line releases
+        // the builtin shell read; no poll children can defeat bounded stop.
+        let mut gate = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(dir.join("payload.go.fifo"))?;
+        writeln!(
+            gate,
+            "{}",
+            crate::coord::digest(&serde_json::to_vec(&job.spec)?)
+        )?;
+        Ok(true)
+    })();
+    match checked {
+        Ok(true) => job.preflight_pending = false,
+        Ok(false) => {}
+        Err(error) => {
+            host::hold(
+                &config.root,
+                &format!("input verification admission failed: {error}"),
+            )?;
+            stop_job(
+                &config.root,
+                &config.ledger_dir,
+                job,
+                "failed",
+                format!("late admission failed: {error}"),
+            )?;
+        }
+    }
+    Ok(())
+}
+
 fn new_log_bytes(job: &mut RunningJob, root: &Path) -> String {
     let mut fresh = std::mem::take(&mut job.log_carry);
     for (index, name) in ["stdout.log", "stderr.log"].iter().enumerate() {
@@ -675,7 +951,8 @@ fn admit_pending(
     running: &mut Vec<RunningJob>,
 ) -> Result<()> {
     let root = &config.root;
-    if root.join("admissions-held.json").exists() {
+    if root.join("admissions-held.json").exists() || running.iter().any(|job| job.preflight_pending)
+    {
         return Ok(());
     }
     if config.require_host_policy && policy.is_none() {
@@ -736,12 +1013,22 @@ fn admit_pending(
         }
         jobs::durable_rename(&dir, &jobs::running_dir(root).join(&spec.id))?;
         let launch_started = Instant::now();
-        let launched = spawn_job(root, &spec, !config.require_host_policy, &config.ledger_dir);
+        let launched = spawn_job(
+            root,
+            &spec,
+            !config.require_host_policy,
+            &config.ledger_dir,
+            &specs,
+        );
         drop(guard);
         match launched {
             Ok(job) => {
+                let verifying = job.preflight_pending;
                 running.push(job);
                 let _ = fs::remove_file(root.join("admission-blocked.json"));
+                if verifying {
+                    break;
+                }
             }
             Err(error) => {
                 let running_dir = jobs::running_dir(root).join(&spec.id);
@@ -907,6 +1194,12 @@ pub fn run(config: &DaemonConfig) -> Result<()> {
             }
         }
         running = still;
+        if let Err(error) = advance_preflight(config, &mut running) {
+            host::hold(
+                &config.root,
+                &format!("input verification needs reconciliation: {error}"),
+            )?;
+        }
         admit_pending(config, policy.as_ref(), &mut running)?;
         std::thread::sleep(config.poll_interval.min(Duration::from_secs(1)));
     }
@@ -962,6 +1255,263 @@ mod tests {
         let _guard = jobs::job_lock(&root, &id).unwrap();
         let attempt = jobs::prepare_attempt(&dir, &id).unwrap();
         (root, ledger, spec, attempt)
+    }
+
+    fn verification_fixture(
+        label: &str,
+        verifier_body: &str,
+        wall_s: u64,
+    ) -> (PathBuf, PathBuf, RunningFixture, PathBuf) {
+        use std::os::unix::fs::PermissionsExt;
+        let (root, ledger, mut spec, _) = fixture(label);
+        let dir = jobs::running_dir(&root).join(&spec.id);
+        fs::remove_file(dir.join("attempt.json")).unwrap();
+        let marker = root.join("payload-marker");
+        spec.argv = vec![
+            "/bin/sh".into(),
+            "-c".into(),
+            "printf x >> \"$1\"".into(),
+            "payload".into(),
+            marker.to_string_lossy().into_owned(),
+        ];
+        spec.wall_s = wall_s;
+        spec.stop_grace_ms = 20;
+        fs::write(dir.join("spec.json"), serde_json::to_vec(&spec).unwrap()).unwrap();
+        let verifier = root.join("verifier-fixture");
+        fs::write(&verifier, format!("#!/bin/sh\n{verifier_body}\n")).unwrap();
+        fs::set_permissions(&verifier, fs::Permissions::from_mode(0o700)).unwrap();
+        let job =
+            spawn_job_with_verifier(&root, &spec, true, &ledger, &[], Some(&verifier)).unwrap();
+        let identity = job.identity.clone();
+        (root, ledger, RunningFixture { job, identity }, marker)
+    }
+
+    fn test_config(root: &Path, ledger: &Path) -> DaemonConfig {
+        DaemonConfig {
+            root: root.to_path_buf(),
+            ledger_dir: ledger.to_path_buf(),
+            poll_interval: Duration::from_millis(20),
+            monitor_interval: Duration::from_millis(20),
+            stop_file: None,
+            require_host_policy: false,
+        }
+    }
+
+    #[test]
+    fn pending_verifier_keeps_partner_monitored_and_opens_payload_once() {
+        let (root, ledger, mut pending, marker) =
+            verification_fixture("pending-partner", "/bin/sleep 2; exit 0", 8);
+        let dir = pending.job.dir(&root);
+        let mut peer_spec = pending.job.spec.clone();
+        peer_spec.id.push_str("-peer");
+        peer_spec.argv = vec!["/bin/sleep".into(), "10".into()];
+        peer_spec.wall_s = 1;
+        let peer_input = root.join("peer-spec.json");
+        fs::write(&peer_input, serde_json::to_vec(&peer_spec).unwrap()).unwrap();
+        jobs::submit(&root, &peer_input).unwrap();
+        jobs::durable_rename(
+            &jobs::queue_dir(&root).join(&peer_spec.id),
+            &jobs::running_dir(&root).join(&peer_spec.id),
+        )
+        .unwrap();
+        let peer = spawn_job(&root, &peer_spec, true, &ledger, &[]).unwrap();
+        let mut peer = RunningFixture {
+            identity: peer.identity.clone(),
+            job: peer,
+        };
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !dir.join("verification.exit").exists() && Instant::now() < deadline {
+            let _ = monitor(&root, &ledger, &mut peer.job, true, None).unwrap();
+            assert!(monitor(&root, &ledger, &mut pending.job, true, None).unwrap());
+            assert!(!marker.exists());
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let peer_exit: serde_json::Value = serde_json::from_slice(
+            &fs::read(jobs::done_dir(&root).join(&peer_spec.id).join("exit.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(peer_exit["outcome"], "wall_killed");
+        assert!(process::owned_members(&peer.identity).unwrap().is_empty());
+        assert_eq!(fs::read(dir.join("verification.exit")).unwrap(), b"0\n");
+        assert!(!dir.join("payload.go").exists());
+        assert!(!marker.exists());
+        let config = test_config(&root, &ledger);
+        advance_preflight(&config, std::slice::from_mut(&mut pending.job)).unwrap();
+        assert!(!pending.job.preflight_pending);
+        advance_preflight(&config, std::slice::from_mut(&mut pending.job)).unwrap();
+        while monitor(&root, &ledger, &mut pending.job, true, None).unwrap()
+            && Instant::now() < deadline
+        {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert_eq!(fs::read(&marker).unwrap(), b"x");
+        assert!(process::owned_members(&pending.identity)
+            .unwrap()
+            .is_empty());
+        drop(pending);
+        drop(peer);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn failed_or_timed_out_verifier_never_opens_payload_and_preserves_receipt() {
+        for (label, body, wall, outcome) in [
+            ("verify-failed", "exit 7", 5, "failed"),
+            ("verify-timeout", "/bin/sleep 20", 1, "wall_killed"),
+            ("reconciliation-wait-timeout", "exit 0", 1, "wall_killed"),
+        ] {
+            let (root, ledger, mut pending, marker) = verification_fixture(label, body, wall);
+            let id = pending.job.spec.id.clone();
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while monitor(&root, &ledger, &mut pending.job, true, None).unwrap()
+                && Instant::now() < deadline
+            {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            let done = jobs::done_dir(&root).join(id);
+            let receipt: serde_json::Value =
+                serde_json::from_slice(&fs::read(done.join("exit.json")).unwrap()).unwrap();
+            assert_eq!(receipt["outcome"], outcome);
+            assert!(receipt["reason"]
+                .as_str()
+                .unwrap()
+                .contains("input verification"));
+            assert!(!done.join("payload.go").exists());
+            assert!(!marker.exists());
+            assert!(!root.join("admissions-held.json").exists());
+            assert!(process::owned_members(&pending.identity)
+                .unwrap()
+                .is_empty());
+            drop(pending);
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn production_validator_defers_only_exact_completed_peer_until_finalized() {
+        let (root, ledger, mut peer_spec, _) = fixture("completed-peer-reservation");
+        let peer_dir = jobs::running_dir(&root).join(&peer_spec.id);
+        fs::remove_file(peer_dir.join("attempt.json")).unwrap();
+        peer_spec.coordination = Some(crate::spec::CoordinationClaim {
+            issue: 1,
+            session: "fixture".into(),
+            epoch: 1,
+            work_card: format!("sha256:{}", "1".repeat(64)),
+            attempt_id: peer_spec.id.clone(),
+        });
+        fs::write(
+            peer_dir.join("spec.json"),
+            serde_json::to_vec(&peer_spec).unwrap(),
+        )
+        .unwrap();
+        let peer = spawn_job(&root, &peer_spec, true, &ledger, &[]).unwrap();
+        let mut peer = RunningFixture {
+            identity: peer.identity.clone(),
+            job: peer,
+        };
+        let captured = vec![(peer_spec.clone(), peer.identity.clone())];
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while monitor(&root, &ledger, &mut peer.job, true, None).unwrap()
+            && Instant::now() < deadline
+        {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let done = jobs::done_dir(&root).join(&peer_spec.id);
+        assert!(done.join("exit.json").exists());
+        let mut candidate = peer_spec.clone();
+        candidate.id.push_str("-validation");
+        candidate.validation_lane = true;
+        candidate.coordination.as_mut().unwrap().issue = 2;
+        candidate.coordination.as_mut().unwrap().attempt_id = candidate.id.clone();
+        let candidate_dir = jobs::running_dir(&root).join(&candidate.id);
+        fs::create_dir(&candidate_dir).unwrap();
+        let host = process::host_id().unwrap();
+        let mut state =
+            crate::coord::State::new("fixture/repository".into(), "a".repeat(40)).unwrap();
+        for spec in [&peer_spec, &candidate] {
+            let claim = spec.coordination.as_ref().unwrap();
+            state.attempts.insert(
+                spec.id.clone(),
+                crate::coord::Attempt {
+                    issue: claim.issue,
+                    session: claim.session.clone(),
+                    task_epoch: claim.epoch,
+                    host: host.clone(),
+                    phase: "reserved".into(),
+                    receipt: None,
+                    spec: Some(spec.clone()),
+                    spec_sha256: Some(crate::coord::digest(&serde_json::to_vec(spec).unwrap())),
+                    runner_root: Some(root.clone()),
+                },
+            );
+        }
+        // Exercise the production reservation-omission validator, not a fabricated error.
+        let blocked = crate::coord::validate_specs(&state, &candidate, &[], &host).unwrap_err();
+        assert!(defer_completed_peer(&root, &candidate_dir, &captured, &blocked).unwrap());
+        assert!(candidate_dir.join("verification-wait.json").exists());
+        assert!(!candidate_dir.join("payload.go").exists());
+        assert!(!root.join("admissions-held.json").exists());
+        assert!(crate::coord::validate_specs(&state, &candidate, &[], &host).is_err());
+
+        let exit_path = done.join("exit.json");
+        let original_exit = fs::read(&exit_path).unwrap();
+        let mut unknown: serde_json::Value = serde_json::from_slice(&original_exit).unwrap();
+        unknown["outcome"] = json!("unknown");
+        fs::write(&exit_path, serde_json::to_vec(&unknown).unwrap()).unwrap();
+        assert!(!defer_completed_peer(&root, &candidate_dir, &captured, &blocked).unwrap());
+        fs::write(&exit_path, &original_exit).unwrap();
+        let mut changed = captured.clone();
+        changed[0].0.wall_s += 1;
+        assert!(!defer_completed_peer(&root, &candidate_dir, &changed, &blocked).unwrap());
+        let mut foreign = captured.clone();
+        foreign[0].1.host = "another-host".into();
+        assert!(!defer_completed_peer(&root, &candidate_dir, &foreign, &blocked).unwrap());
+
+        let completed = state.attempts.get_mut(&peer_spec.id).unwrap();
+        completed.phase = "finalized".into();
+        completed.receipt = Some(crate::coord::ExitEvidence {
+            host: host.clone(),
+            job_id: peer_spec.id.clone(),
+            attempt_id: peer_spec.id.clone(),
+            path: exit_path,
+            sha256: crate::coord::digest(&original_exit),
+        });
+        crate::coord::validate_specs(&state, &candidate, &[], &host).unwrap();
+        let mut unobserved = state.attempts[&peer_spec.id].clone();
+        unobserved.phase = "reserved".into();
+        unobserved.receipt = None;
+        state
+            .attempts
+            .insert("unobserved-reservation".into(), unobserved);
+        let unknown = crate::coord::validate_specs(&state, &candidate, &[], &host).unwrap_err();
+        assert!(!defer_completed_peer(&root, &candidate_dir, &captured, &unknown).unwrap());
+        drop(peer);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn late_admission_keeps_partner_and_combined_budget() {
+        let (root, _, spec, _) = fixture("two-lane-preflight");
+        let mut peer = spec.clone();
+        peer.id = "running-peer".into();
+        peer.wall_s = 17;
+        let expected = spec.reserved_ms().unwrap() + peer.reserved_ms().unwrap();
+        recheck_resources(
+            &spec,
+            &[peer],
+            |running| {
+                if running.len() != 1 || running[0].id != "running-peer" {
+                    return Err(invalid("running partner lost at late admission"));
+                }
+                Ok(())
+            },
+            |reserved| {
+                assert_eq!(reserved, expected);
+                Ok(())
+            },
+        )
+        .unwrap();
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -1047,7 +1597,7 @@ mod tests {
             ];
             spec.stop_grace_ms = 20;
             fs::write(dir.join("spec.json"), serde_json::to_vec(&spec).unwrap()).unwrap();
-            let spawned = spawn_job(&root, &spec, true, &ledger).unwrap();
+            let spawned = spawn_job(&root, &spec, true, &ledger, &[]).unwrap();
             let mut fixture = RunningFixture {
                 identity: spawned.identity.clone(),
                 job: spawned,
