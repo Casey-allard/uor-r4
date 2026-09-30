@@ -399,6 +399,27 @@ pub fn reconcile_stopped(root: &Path, id: &str, ledger_dir: &Path) -> Result<Pat
     let spec = read_spec(&dir)?;
     spec.validate()?;
     let attempt = read_attempt(&dir)?;
+    let spec_hash = crate::coord::digest(&serde_json::to_vec(&spec)?);
+    let local_host = process::host_id()?;
+    // Validate the original host/attempt before using any receipt as authority
+    // for a legacy identity's local absence observation or sending any signal.
+    let existing_exit: Option<Value> = if dir.join("exit.json").exists() {
+        let exit: Value = serde_json::from_slice(&fs::read(dir.join("exit.json"))?)?;
+        if exit["schema"] != EXIT_SCHEMA
+            || exit["id"] != spec.id
+            || exit["attempt_id"] != attempt.attempt_id
+            || exit["host"] != local_host
+            || exit["spec_sha256"] != spec_hash
+            || exit["outcome"] != "unknown"
+        {
+            return Err(invalid(
+                "reconciliation requires the exact local UNKNOWN receipt",
+            ));
+        }
+        Some(exit)
+    } else {
+        None
+    };
     let pre_spawn = if dir.join("preflight-failure.json").exists() {
         Some(validate_pre_spawn_failure(root, &dir, &spec, &attempt)?)
     } else {
@@ -440,17 +461,22 @@ pub fn reconcile_stopped(root: &Path, id: &str, ledger_dir: &Path) -> Result<Pat
         ));
     }
     if let Some(identity) = &identity {
-        if !process::owned_members(identity)?.is_empty() {
+        let recorded_host = if existing_exit.is_some() {
+            &local_host
+        } else {
+            &identity.host
+        };
+        if !process::confirmed_stopped(identity, recorded_host)? {
             record_stop_request(&dir, spec.stop_grace_ms, "explicit stopped reconciliation")?;
             process::terminate(identity, Duration::from_millis(spec.stop_grace_ms))?;
         }
-        if !process::owned_members(identity)?.is_empty() {
+        if !process::confirmed_stopped(identity, recorded_host)? {
             return Err(invalid(
                 "owned processes still present; reservation remains held",
             ));
         }
     }
-    if stage == "running" {
+    if stage == "running" && existing_exit.is_none() {
         let elapsed_ms = if let Some(proof) = &pre_spawn {
             proof.elapsed_ms
         } else {
@@ -485,7 +511,6 @@ pub fn reconcile_stopped(root: &Path, id: &str, ledger_dir: &Path) -> Result<Pat
     }
     let original = fs::read(dir.join("exit.json"))?;
     let exit: Value = serde_json::from_slice(&original)?;
-    let spec_hash = crate::coord::digest(&serde_json::to_vec(&spec)?);
     if exit["schema"] != EXIT_SCHEMA
         || exit["id"] != spec.id
         || exit["attempt_id"] != attempt.attempt_id
@@ -591,7 +616,15 @@ pub fn reconcile_stopped(root: &Path, id: &str, ledger_dir: &Path) -> Result<Pat
     if !path.exists() {
         durable_rename(&intent, &path)?;
     }
-    Ok(path)
+    if stage == "running" {
+        // Only this positive stopped proof archives an UNKNOWN job. The
+        // receipt and its supplemental debit are durable before paths move.
+        let done = done_dir(root).join(id);
+        durable_rename(&dir, &done)?;
+        Ok(done.join("reconciliation.json"))
+    } else {
+        Ok(path)
+    }
 }
 
 fn charge_exit(ledger_dir: &Path, spec: &JobSpec, exit: &Value) -> Result<()> {
@@ -644,6 +677,11 @@ pub fn finalize(root: &Path, spec: &JobSpec, fin: &Finalization, ledger_dir: &Pa
     let exit = if path.is_file() {
         serde_json::from_slice(&fs::read(&path)?)?
     } else {
+        if let Ok(identity) = read_identity(&dir) {
+            if identity.host != process::host_id()? {
+                return Err(invalid("unbound legacy or foreign identity needs its original host receipt; cannot manufacture local finalization authority"));
+            }
+        }
         let attempt = read_attempt(&dir)?;
         let cancelled = dir.join("cancel.json").exists();
         let stop_request = fs::read(dir.join("stop-request.json"))
@@ -661,7 +699,9 @@ pub fn finalize(root: &Path, spec: &JobSpec, fin: &Finalization, ledger_dir: &Pa
             "measurement":fin.measurement,
             "checkpoint_requested":false,"checkpoint_status":"unavailable_no_verified_payload_protocol",
             "stop_grace_ms":spec.stop_grace_ms,"stop_request":stop_request,
-            "wall_s":spec.wall_s,"outcome":if cancelled && fin.outcome != "unknown" {"cancelled"}else{&fin.outcome},"exit_status":fin.exit_status,
+            "wall_s":spec.wall_s,"outcome":if !stopped {"unknown"}else if cancelled {"cancelled"}else{&fin.outcome},
+            "exit_status":if stopped {fin.exit_status}else{None},
+            "observed_outcome":fin.outcome,"observed_exit_status":fin.exit_status,
             "peak_rss_kib":fin.peak_rss_kib,"reason":fin.reason});
         crate::write_json_atomic(&path, &exit)?;
         exit
@@ -670,8 +710,24 @@ pub fn finalize(root: &Path, spec: &JobSpec, fin: &Finalization, ledger_dir: &Pa
     if exit["attempt_id"].as_str() != Some(launch.attempt_id.as_str()) {
         return Err(invalid("exit receipt attempt differs from launch receipt"));
     }
+    if exit["host"] != process::host_id()? {
+        return Err(invalid("exit receipt belongs to another or unknown host"));
+    }
     charge_exit(ledger_dir, spec, &exit)?;
-    durable_rename(&dir, &done_dir(root).join(&spec.id))?;
+    // Receipt persistence is not execution-stop evidence. In particular an
+    // UNKNOWN receipt is immutable while the payload may still be using its
+    // absolute log/result/FIFO paths. Reconciliation owns its later archival.
+    let stopped = exit["outcome"] != "unknown"
+        && exit["process_state"] == "confirmed_stopped"
+        && read_identity(&dir)
+            .ok()
+            .and_then(|identity| process::owned_members(&identity).ok())
+            .is_some_and(|members| members.is_empty());
+    if stopped {
+        durable_rename(&dir, &done_dir(root).join(&spec.id))?;
+    } else {
+        crate::host::hold(root, "job receipt awaits positive stopped reconciliation")?;
+    }
     Ok(())
 }
 

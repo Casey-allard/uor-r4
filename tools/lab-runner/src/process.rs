@@ -10,6 +10,10 @@ pub struct Identity {
     pub pgid: u32,
     pub started: String,
     pub boot: String,
+    /// New identities bind the physical host. Missing legacy host fields need
+    /// a separate local-host receipt before even a stopped proof is accepted.
+    #[serde(default)]
+    pub host: String,
     pub token: String,
     /// The persistent supervisor anchors process-group membership. Legacy
     /// identities without this field fail closed instead of being adopted.
@@ -39,6 +43,10 @@ pub fn host_state_dir() -> Result<std::path::PathBuf> {
 /// Stable pseudonymous host identity; unrelated to PID or boot identity.
 pub fn host_id() -> Result<String> {
     use sha2::{Digest, Sha256};
+    static HOST: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    if let Some(host) = HOST.get() {
+        return Ok(host.clone());
+    }
     #[cfg(target_os = "macos")]
     let raw = {
         let text = output("/usr/sbin/ioreg", &["-rd1", "-c", "IOPlatformExpertDevice"])?;
@@ -58,19 +66,84 @@ pub fn host_id() -> Result<String> {
     if raw.is_empty() {
         return Err(invalid("stable host identity empty"));
     }
-    Ok(format!("host-{:x}", Sha256::digest(raw.as_bytes())))
+    let host = format!("host-{:x}", Sha256::digest(raw.as_bytes()));
+    let _ = HOST.set(host.clone());
+    Ok(host)
+}
+
+const MACOS_BOOT_SCHEME: &str = "macos-kern.bootsessionuuid-v1:";
+const LINUX_BOOT_SCHEME: &str = "linux-proc-boot-id-v1:";
+
+/// Only UUIDs in an explicitly named stable platform scheme can establish
+/// boot equality or a reboot. Historical kern.boottime strings and untagged
+/// IDs remain readable, but never authorize adoption or signalling.
+fn uuid(value: &str) -> Option<String> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 36
+        || !bytes.iter().enumerate().all(|(i, b)| {
+            if [8, 13, 18, 23].contains(&i) {
+                *b == b'-'
+            } else {
+                b.is_ascii_hexdigit()
+            }
+        })
+        || bytes.iter().all(|b| *b == b'0' || *b == b'-')
+    {
+        return None;
+    }
+    Some(value.to_ascii_lowercase())
+}
+
+fn boot_token(scheme: &str, value: &str) -> Result<String> {
+    if ![MACOS_BOOT_SCHEME, LINUX_BOOT_SCHEME].contains(&scheme) {
+        return Err(invalid("unsupported boot identity scheme"));
+    }
+    Ok(format!(
+        "{scheme}{}",
+        uuid(value.trim()).ok_or_else(|| invalid("stable boot UUID unavailable or malformed"))?
+    ))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum BootRelation {
+    Same,
+    Different,
+    Unverified,
+}
+
+fn boot_relation(saved: &str, current: &str) -> BootRelation {
+    for scheme in [MACOS_BOOT_SCHEME, LINUX_BOOT_SCHEME] {
+        if let (Some(a), Some(b)) = (saved.strip_prefix(scheme), current.strip_prefix(scheme)) {
+            if let (Some(a), Some(b)) = (uuid(a), uuid(b)) {
+                return if a == b {
+                    BootRelation::Same
+                } else {
+                    BootRelation::Different
+                };
+            }
+        }
+    }
+    BootRelation::Unverified
 }
 
 fn boot() -> Result<String> {
     #[cfg(target_os = "macos")]
     {
-        output("/usr/sbin/sysctl", &["-n", "kern.boottime"])
+        boot_token(
+            MACOS_BOOT_SCHEME,
+            &output("/usr/sbin/sysctl", &["-n", "kern.bootsessionuuid"])?,
+        )
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "linux")]
     {
-        Ok(std::fs::read_to_string("/proc/sys/kernel/random/boot_id")?
-            .trim()
-            .to_string())
+        boot_token(
+            LINUX_BOOT_SCHEME,
+            &std::fs::read_to_string("/proc/sys/kernel/random/boot_id")?,
+        )
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    {
+        Err(invalid("stable boot identity unsupported on this platform"))
     }
 }
 
@@ -92,6 +165,7 @@ pub fn capture(pid: u32, token: &str) -> Result<Identity> {
         pgid,
         started,
         boot: boot()?,
+        host: host_id()?,
         token: token.to_string(),
         supervisor_started,
     };
@@ -106,7 +180,10 @@ pub fn capture(pid: u32, token: &str) -> Result<Identity> {
 /// marker, not a secret. An absent supervisor never authorizes a live child.
 pub fn matches(identity: &Identity) -> bool {
     let pid = identity.pid.to_string();
-    if boot().ok().as_ref() != Some(&identity.boot) {
+    if host_id().ok().as_ref() != Some(&identity.host)
+        || !boot()
+            .is_ok_and(|current| boot_relation(&identity.boot, &current) == BootRelation::Same)
+    {
         return false;
     }
     if output("/bin/ps", &["-p", &pid, "-o", "lstart="])
@@ -145,25 +222,62 @@ pub fn matches(identity: &Identity) -> bool {
 /// group membership alone is insufficient: its supervisor must retain the
 /// nonce. Surviving children whose supervisor has vanished remain unknown.
 pub fn owned_members(identity: &Identity) -> Result<Vec<Identity>> {
-    if boot()? != identity.boot {
+    if identity.host != host_id()? {
+        return Err(invalid(
+            "process identity lacks this host binding; no adoption or signal authority",
+        ));
+    }
+    let relation = boot_relation(&identity.boot, &boot()?);
+    members_with_relation(identity, relation)
+}
+
+/// A legacy receipt cannot be adopted or signalled. Its immutable exit's
+/// same-host binding can instead authorize a fresh, strict absence observation.
+/// The old boot string is never upgraded or treated as proof of reboot.
+pub fn confirmed_stopped(identity: &Identity, recorded_host: &str) -> Result<bool> {
+    if recorded_host != host_id()? {
+        return Err(invalid("stopped proof belongs to another or unknown host"));
+    }
+    if identity.host.is_empty() {
+        Ok(members_with_relation(identity, BootRelation::Unverified)?.is_empty())
+    } else {
+        Ok(owned_members(identity)?.is_empty())
+    }
+}
+
+fn members_with_relation(identity: &Identity, relation: BootRelation) -> Result<Vec<Identity>> {
+    if identity.pid < 2 || identity.pgid < 2 || identity.token.len() < 8 {
+        return Err(invalid(
+            "malformed process identity cannot establish a stopped group",
+        ));
+    }
+    if relation == BootRelation::Different {
         // A verified reboot on this host cannot retain a prior boot's process.
         // Callers still bind the identity receipt to the same host and attempt.
         return Ok(Vec::new());
     }
-    let table = output("/bin/ps", &["-Ao", "pid=,pgid="])?;
+    let table = output("/bin/ps", &["-Ao", "pid=,pgid=,stat="])?;
+    let rows = process_rows(&table)?;
     let mut members = Vec::new();
-    for line in table.lines() {
-        let fields: Vec<_> = line.split_whitespace().collect();
-        if fields.len() != 2 {
+    for (pid, pgid, zombie) in rows {
+        // Zombies cannot execute or spawn. Reaping the daemon's Child is a
+        // separate responsibility and must not be lost when recording UNKNOWN.
+        if zombie {
             continue;
         }
-        let (Ok(pid), Ok(pgid)) = (fields[0].parse::<u32>(), fields[1].parse::<u32>()) else {
-            continue;
-        };
+        if relation == BootRelation::Unverified && (pgid == identity.pgid || pid == identity.pid) {
+            return Err(invalid("legacy or malformed boot identity has a live process; no adoption or signal authority"));
+        }
         if pgid == identity.pgid {
             match capture(pid, &identity.token) {
-                Ok(member) => members.push(member),
-                Err(_) => {
+                Ok(member)
+                    if member.pgid == identity.pgid
+                        && member.supervisor_started == identity.supervisor_started
+                        && boot_relation(&identity.boot, &member.boot) == BootRelation::Same =>
+                {
+                    members.push(member)
+                }
+                _ => {
                     // Exiting between enumeration and capture is normal, but
                     // inaccessible/changed ownership is not proof of absence.
                     let state = Command::new("/bin/ps")
@@ -184,6 +298,27 @@ pub fn owned_members(identity: &Identity) -> Result<Vec<Identity>> {
         }
     }
     Ok(members)
+}
+
+fn process_rows(table: &str) -> Result<Vec<(u32, u32, bool)>> {
+    let mut rows = Vec::new();
+    for line in table.lines().filter(|line| !line.trim().is_empty()) {
+        let fields: Vec<_> = line.split_whitespace().collect();
+        if fields.len() != 3 {
+            return Err(invalid("incomplete process table; stop state is unknown"));
+        }
+        let pid = fields[0]
+            .parse::<u32>()
+            .map_err(|_| invalid("invalid process table PID"))?;
+        let pgid = fields[1]
+            .parse::<u32>()
+            .map_err(|_| invalid("invalid process table group"))?;
+        rows.push((pid, pgid, fields[2].starts_with('Z')));
+    }
+    if rows.is_empty() {
+        return Err(invalid("empty process table; stop state is unknown"));
+    }
+    Ok(rows)
 }
 
 /// Recover the actual persistent supervisor, never a bare PID, when a crash
@@ -317,16 +452,101 @@ mod tests {
 
     #[test]
     fn verified_prior_boot_has_no_surviving_process_members() {
+        let current = boot().unwrap();
+        let mut prior = current.clone();
+        let last = prior.pop().unwrap();
+        prior.push(if last == '0' { '1' } else { '0' });
+        assert_eq!(boot_relation(&prior, &current), BootRelation::Different);
         let identity = Identity {
             pid: 2,
             pgid: 2,
             started: "unused".into(),
-            boot: format!("{}-different", boot().unwrap()),
+            boot: prior,
+            host: host_id().unwrap(),
             token: "prior-boot-fixture".into(),
             supervisor_started: "unused".into(),
         };
         assert!(owned_members(&identity).unwrap().is_empty());
         assert!(!matches(&identity));
+    }
+
+    #[test]
+    fn stable_boot_schemes_validate_uuid_and_never_promote_legacy_time_drift() {
+        let id = "763E5ACF-75D5-44F0-9384-F80B31312894";
+        for scheme in [MACOS_BOOT_SCHEME, LINUX_BOOT_SCHEME] {
+            let stable = boot_token(scheme, id).unwrap();
+            assert_eq!(
+                boot_relation(&stable, &stable.to_ascii_lowercase()),
+                BootRelation::Same
+            );
+            for legacy in [
+                "{ sec = 1790723628, usec = 114456 } Tue Sep 29 19:13:48 2026",
+                "{ sec = 1790723628, usec = 41370 } Tue Sep 29 19:13:48 2026",
+                id,
+                "prior-boot-fixture",
+            ] {
+                assert_eq!(boot_relation(legacy, &stable), BootRelation::Unverified);
+            }
+            assert!(boot_token(scheme, "00000000-0000-0000-0000-000000000000").is_err());
+            assert!(boot_token(scheme, "763E5ACF-75D5-44F0-9384-F80B3131289Z").is_err());
+            assert_eq!(
+                boot_relation(&format!("{stable}-different"), &stable),
+                BootRelation::Unverified
+            );
+        }
+        assert_eq!(
+            boot_relation(
+                &boot_token(MACOS_BOOT_SCHEME, id).unwrap(),
+                &boot_token(LINUX_BOOT_SCHEME, id).unwrap()
+            ),
+            BootRelation::Unverified
+        );
+        assert!(process_rows("1 1 Ss\ninvalid row").is_err());
+        assert!(process_rows("").is_err());
+        assert_eq!(
+            process_rows("123 123 Z\n1 1 Ss").unwrap(),
+            vec![(123, 123, true), (1, 1, false)]
+        );
+    }
+
+    #[test]
+    fn legacy_live_identity_cannot_signal_but_same_host_absence_can_be_reconciled() {
+        use std::os::unix::process::CommandExt;
+        let token = format!("legacy-identity-test-{}", std::process::id());
+        let mut child = Command::new("/bin/sh")
+            .args([
+                "-c",
+                "shift; \"$@\" & child=$!; wait \"$child\"",
+                SUPERVISOR_MARKER,
+                &token,
+                "/bin/sleep",
+                "10",
+            ])
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        let original = capture(child.id(), &token).unwrap();
+        let mut legacy = original.clone();
+        legacy.host.clear();
+        legacy.boot = "{ sec = 1790723628, usec = 114456 }".into();
+        assert!(!matches(&legacy));
+        assert!(owned_members(&legacy).is_err());
+        assert!(terminate(&legacy, Duration::ZERO).is_err());
+        assert!(confirmed_stopped(&legacy, &host_id().unwrap()).is_err());
+        assert!(child.try_wait().unwrap().is_none());
+        let mut foreign = original.clone();
+        foreign.host = "another-host".into();
+        assert!(owned_members(&foreign).is_err());
+        let mut reused = original.clone();
+        reused.supervisor_started = "different process at the same PID".into();
+        assert!(!matches(&reused));
+        assert!(owned_members(&reused).is_err());
+        assert!(terminate(&reused, Duration::ZERO).is_err());
+        assert!(child.try_wait().unwrap().is_none());
+        terminate(&original, Duration::from_millis(50)).unwrap();
+        child.wait().unwrap();
+        assert!(confirmed_stopped(&legacy, &host_id().unwrap()).unwrap());
+        assert!(confirmed_stopped(&legacy, "another-host").is_err());
     }
 
     #[test]

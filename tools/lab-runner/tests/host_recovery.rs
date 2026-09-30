@@ -139,10 +139,25 @@ fn durable_exit_replays_charge_once_after_crash() {
     jobs::prepare_attempt(&dir, "receipt").unwrap();
     let attempt = jobs::read_attempt(&dir).unwrap();
     let job = jobs::read_spec(&dir).unwrap();
-    // Simulate crash after charge but before final directory rename.
+    let identity = lab_runner::process::Identity {
+        pid: u32::MAX,
+        pgid: u32::MAX,
+        started: "absent fixture".into(),
+        boot: "unverified-boot-fixture".into(),
+        host: lab_runner::process::host_id().unwrap(),
+        token: attempt.process_token.clone(),
+        supervisor_started: "absent fixture".into(),
+    };
+    fs::write(
+        dir.join("process.json"),
+        serde_json::to_vec(&identity).unwrap(),
+    )
+    .unwrap();
+    // Simulate crash after positive absence, receipt and charge, before rename.
     let exit = json!({"schema":jobs::EXIT_SCHEMA,"id":"receipt","lab":job.lab,"wall_s":job.wall_s,
         "spec_sha256":lab_runner::coord::digest(&serde_json::to_vec(&job).unwrap()),
-        "attempt_id":attempt.attempt_id,"outcome":"completed","elapsed_ms":12,"exit_status":0});
+        "attempt_id":attempt.attempt_id,"host":lab_runner::process::host_id().unwrap(),
+        "process_state":"confirmed_stopped","outcome":"completed","elapsed_ms":12,"exit_status":0});
     fs::write(dir.join("exit.json"), serde_json::to_vec(&exit).unwrap()).unwrap();
     ledger::record_attempt_charge(
         &ledger,
@@ -171,10 +186,11 @@ fn stopped_reconciliation_preserves_unknown_and_charges_supplement_once() {
     jobs::durable_rename(&root.join("queue/reconcile"), &dir).unwrap();
     let attempt = jobs::prepare_attempt(&dir, "reconcile").unwrap();
     let identity = lab_runner::process::Identity {
-        pid: 2,
-        pgid: 2,
-        started: "fixture".into(),
-        boot: "fixture-prior-boot".into(),
+        pid: u32::MAX,
+        pgid: u32::MAX,
+        started: "absent process table fixture".into(),
+        boot: "legacy-boot-time-is-not-reboot-proof".into(),
+        host: lab_runner::process::host_id().unwrap(),
         token: attempt.process_token,
         supervisor_started: "fixture".into(),
     };
@@ -190,7 +206,7 @@ fn stopped_reconciliation_preserves_unknown_and_charges_supplement_once() {
         &jobs::Finalization {
             outcome: "unknown".into(),
             exit_status: None,
-            reason: "simulated reboot interrupted status collection".into(),
+            reason: "unknown observation; later process-table absence is separate".into(),
             peak_rss_kib: 0,
             started_utc: attempt.started_utc,
             elapsed_ms: 12,
@@ -200,7 +216,18 @@ fn stopped_reconciliation_preserves_unknown_and_charges_supplement_once() {
     )
     .unwrap();
     let original_path = root.join("done/reconcile/exit.json");
-    let original = fs::read(&original_path).unwrap();
+    let original = fs::read(dir.join("exit.json")).unwrap();
+    assert!(dir.is_dir());
+    assert!(!original_path.exists());
+    // Preserved legacy fixture: no recorded host in its process identity.
+    // Its original exit does bind this host; no boot UUID is backfilled.
+    let mut legacy = serde_json::to_value(&identity).unwrap();
+    legacy.as_object_mut().unwrap().remove("host");
+    fs::write(
+        dir.join("process.json"),
+        serde_json::to_vec(&legacy).unwrap(),
+    )
+    .unwrap();
     let receipt = jobs::reconcile_stopped(&root, "reconcile", &ledger).unwrap();
     let bytes = fs::read(&receipt).unwrap();
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
@@ -211,7 +238,44 @@ fn stopped_reconciliation_preserves_unknown_and_charges_supplement_once() {
     assert!(charged >= job.reserved_ms().unwrap());
     jobs::reconcile_stopped(&root, "reconcile", &ledger).unwrap();
     assert_eq!(ledger::rebuild(&ledger).unwrap().cumulative_ms, charged);
-    assert_eq!(fs::read(receipt).unwrap(), bytes);
+    assert_eq!(fs::read(&receipt).unwrap(), bytes);
+    // Crash after supplemental debit but before publishing its receipt.
+    let intent = receipt.with_file_name("reconciliation-intent.json");
+    fs::rename(&receipt, &intent).unwrap();
+    jobs::reconcile_stopped(&root, "reconcile", &ledger).unwrap();
+    assert_eq!(ledger::rebuild(&ledger).unwrap().cumulative_ms, charged);
+    assert_eq!(fs::read(&receipt).unwrap(), bytes);
+    // The same persisted intent before debit, in an isolated original-only
+    // ledger, must apply exactly that supplement once without recomputing time.
+    let before_debit = root.join("before-debit-ledger");
+    fs::create_dir(&before_debit).unwrap();
+    ledger::initialize_empty(&before_debit, 100_000, "before-debit fixture").unwrap();
+    for entry in fs::read_dir(&ledger).unwrap().map(|e| e.unwrap()) {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with("charge-v2-")
+        {
+            let record: ledger::ChargeRecord =
+                serde_json::from_slice(&fs::read(entry.path()).unwrap()).unwrap();
+            if record.attempt_id == attempt.attempt_id {
+                fs::copy(entry.path(), before_debit.join(entry.file_name())).unwrap();
+            }
+        }
+    }
+    assert_eq!(ledger::rebuild(&before_debit).unwrap().cumulative_ms, 12);
+    fs::rename(&receipt, &intent).unwrap();
+    jobs::reconcile_stopped(&root, "reconcile", &before_debit).unwrap();
+    assert_eq!(
+        ledger::rebuild(&before_debit).unwrap().cumulative_ms,
+        charged
+    );
+    jobs::reconcile_stopped(&root, "reconcile", &before_debit).unwrap();
+    assert_eq!(
+        ledger::rebuild(&before_debit).unwrap().cumulative_ms,
+        charged
+    );
+    assert_eq!(fs::read(&receipt).unwrap(), bytes);
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -226,10 +290,11 @@ fn running_reconciliation_preserves_estimated_measurement_in_charge() {
     jobs::durable_rename(&root.join("queue/running-estimate"), &dir).unwrap();
     let attempt = jobs::prepare_attempt(&dir, "running-estimate").unwrap();
     let identity = lab_runner::process::Identity {
-        pid: 2,
-        pgid: 2,
-        started: "fixture".into(),
-        boot: "fixture-prior-boot".into(),
+        pid: u32::MAX,
+        pgid: u32::MAX,
+        started: "absent process table fixture".into(),
+        boot: "legacy-boot-time-is-not-reboot-proof".into(),
+        host: lab_runner::process::host_id().unwrap(),
         token: attempt.process_token,
         supervisor_started: "fixture".into(),
     };

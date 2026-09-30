@@ -239,7 +239,7 @@ fn stop_job(
     if process::matches(&job.identity) {
         jobs::record_stop_request(&job.dir(root), job.spec.stop_grace_ms, &reason)?;
         process::terminate(&job.identity, Duration::from_millis(job.spec.stop_grace_ms))?;
-    } else if jobs::pid_alive(job.identity.pid) {
+    } else if !process::owned_members(&job.identity).is_ok_and(|members| members.is_empty()) {
         host::hold(
             root,
             "process identity mismatch during stop; manual reconciliation required",
@@ -260,6 +260,19 @@ fn stop_job(
         .map(code);
     finalize_job(root, ledger, job, outcome, status, reason)
 }
+
+/// Finalization may only have persisted an UNKNOWN receipt. Keep both the
+/// runtime paths and an unreaped Child alive in the monitor until stopped
+/// reconciliation has archived the directory and the known child is reaped.
+fn retain_tracking(root: &Path, job: &mut RunningJob) -> Result<bool> {
+    if let Some(child) = job.child.as_mut() {
+        if child.try_wait()?.is_some() {
+            job.child = None;
+        }
+    }
+    Ok(job.dir(root).is_dir() || job.child.is_some())
+}
+
 fn recovery_required(root: &Path, dir: &Path, reason: &str) -> Result<()> {
     crate::write_json_atomic(
         &dir.join("recovery-required.json"),
@@ -277,7 +290,9 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
         let dir = entry.path();
         if dir.join("exit.json").is_file() {
             jobs::replay_finalization(root, &dir, ledger)?;
-            continue;
+            if !dir.is_dir() {
+                continue;
+            }
         }
         let spec = match jobs::read_spec(&dir) {
             Ok(s) => s,
@@ -317,6 +332,11 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
             log_offsets: [0, 0],
             log_carry: String::new(),
         };
+        if dir.join("exit.json").is_file() || job.identity.host.is_empty() {
+            recovery_required(root, &dir, "unresolved receipt or legacy host identity; preserve runtime paths for stopped reconciliation")?;
+            running.push(job);
+            continue;
+        }
         if !process::matches(&job.identity) {
             if process::owned_members(&job.identity).is_ok_and(|members| !members.is_empty()) {
                 jobs::record_stop_request(&job.dir(root), job.spec.stop_grace_ms, "recovery stop")?;
@@ -364,7 +384,8 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
                 "interrupted",
                 "launch gate was never released".into(),
             )?;
-        } else {
+        }
+        if retain_tracking(root, &mut job)? {
             running.push(job);
         }
     }
@@ -404,16 +425,23 @@ fn monitor(
     if !job.dir(root).is_dir() {
         // A CLI finalizer can move the directory while the daemon still owns
         // the Child handle; reap it before forgetting the job.
-        if let Some(child) = job.child.as_mut() {
-            if child.try_wait()?.is_none() {
-                return Ok(true);
-            }
-        }
-        return Ok(false);
+        return retain_tracking(root, job);
     }
     if job.dir(root).join("exit.json").is_file() {
         jobs::replay_finalization(root, &job.dir(root), ledger)?;
-        return Ok(false);
+        // A transient failed observation must not disable the original wall
+        // and resource bounds forever. Once full current ownership is again
+        // verified, stop the uncertain attempt rather than silently adopt it.
+        // Legacy identities cannot satisfy matches and are never signalled.
+        if job.dir(root).is_dir() && process::matches(&job.identity) {
+            jobs::record_stop_request(
+                &job.dir(root),
+                job.spec.stop_grace_ms,
+                "uncertain attempt ownership reverified; bounded stop",
+            )?;
+            process::terminate(&job.identity, Duration::from_millis(job.spec.stop_grace_ms))?;
+        }
+        return retain_tracking(root, job);
     }
     if job.dir(root).join("cancel.json").is_file() {
         stop_job(
@@ -423,7 +451,7 @@ fn monitor(
             "cancelled",
             "cancel marker received".into(),
         )?;
-        return Ok(false);
+        return retain_tracking(root, job);
     }
     if let Ok(bytes) = fs::read(job.dir(root).join("payload.exit")) {
         // A complete short line is the shell wait result. The supervisor
@@ -460,7 +488,7 @@ fn monitor(
                         format!("payload exited with status {status}; supervisor stopped")
                     },
                 )?;
-                return Ok(false);
+                return retain_tracking(root, job);
             }
         }
     }
@@ -482,7 +510,7 @@ fn monitor(
                     Some(status),
                     "job parent exited with live background children; children terminated".into(),
                 )?;
-                return Ok(false);
+                return retain_tracking(root, job);
             }
             finalize_job(
                 root,
@@ -492,7 +520,7 @@ fn monitor(
                 Some(status),
                 format!("process exited with status {status}"),
             )?;
-            return Ok(false);
+            return retain_tracking(root, job);
         }
     } else if !process::matches(&job.identity) {
         if process::owned_members(&job.identity).is_ok_and(|members| !members.is_empty()) {
@@ -515,7 +543,7 @@ fn monitor(
             None,
             "adopted process ended or identity changed; success unverified".into(),
         )?;
-        return Ok(false);
+        return retain_tracking(root, job);
     }
     if job.elapsed_ms() >= job.spec.wall_s.saturating_mul(1000) {
         stop_job(
@@ -525,14 +553,14 @@ fn monitor(
             "wall_killed",
             "wall bound reached".into(),
         )?;
-        return Ok(false);
+        return retain_tracking(root, job);
     }
     if !sample {
         return Ok(true);
     }
     if let Some(reason) = host_failure {
         stop_job(root, ledger, job, "resource_killed", reason.into())?;
-        return Ok(false);
+        return retain_tracking(root, job);
     }
     if !process::matches(&job.identity) {
         host::hold(root, "running process lost identity")?;
@@ -544,7 +572,7 @@ fn monitor(
             None,
             "identity lost; no signal sent".into(),
         )?;
-        return Ok(false);
+        return retain_tracking(root, job);
     }
     match jobs::tree_rss_kib(job.identity.pid) {
         Some(rss) => {
@@ -557,7 +585,7 @@ fn monitor(
                     "resource_killed",
                     format!("RSS {rss} KiB exceeded declared limit"),
                 )?;
-                return Ok(false);
+                return retain_tracking(root, job);
             }
         }
         None => {
@@ -568,7 +596,7 @@ fn monitor(
                 "resource_killed",
                 "RSS observation unavailable".into(),
             )?;
-            return Ok(false);
+            return retain_tracking(root, job);
         }
     }
     match job.spec.kill_criterion.kind {
@@ -584,7 +612,7 @@ fn monitor(
                     "criterion_killed",
                     "literal log criterion observed".into(),
                 )?;
-                return Ok(false);
+                return retain_tracking(root, job);
             }
             let keep = needle.chars().count().saturating_sub(1);
             let n = fresh.chars().count();
@@ -624,7 +652,7 @@ fn monitor(
                     "criterion_killed",
                     "command criterion failed or exceeded one second".into(),
                 )?;
-                return Ok(false);
+                return retain_tracking(root, job);
             }
         }
     }
@@ -889,6 +917,23 @@ mod tests {
     use super::*;
     use crate::ledger::{self, Measurement};
 
+    struct RunningFixture {
+        job: RunningJob,
+        identity: Identity,
+    }
+
+    impl Drop for RunningFixture {
+        fn drop(&mut self) {
+            // A failing assertion must not strand the fixture's FIFO anchor.
+            if process::matches(&self.identity) {
+                let _ = process::terminate(&self.identity, Duration::from_millis(20));
+            }
+            if let Some(child) = self.job.child.as_mut() {
+                let _ = child.try_wait();
+            }
+        }
+    }
+
     fn fixture(label: &str) -> (PathBuf, PathBuf, JobSpec, Attempt) {
         let unique = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -962,11 +1007,13 @@ mod tests {
             )
             .unwrap();
             let done = jobs::done_dir(&root).join(&spec.id);
-            let original = fs::read(done.join("exit.json")).unwrap();
+            let original = fs::read(dir.join("exit.json")).unwrap();
+            assert!(dir.is_dir());
+            assert!(!done.exists());
             // A marker does not override contradictory launch evidence.
-            fs::write(done.join("launch.go"), b"contradiction").unwrap();
+            fs::write(dir.join("launch.go"), b"contradiction").unwrap();
             assert!(jobs::reconcile_stopped(&root, &spec.id, &ledger).is_err());
-            fs::remove_file(done.join("launch.go")).unwrap();
+            fs::remove_file(dir.join("launch.go")).unwrap();
             let before = ledger::rebuild(&ledger).unwrap().cumulative_ms;
             let receipt = jobs::reconcile_stopped(&root, &spec.id, &ledger).unwrap();
             let value: serde_json::Value =
@@ -984,14 +1031,95 @@ mod tests {
     }
 
     #[test]
+    fn unknown_monitor_preserves_paths_child_and_charge_until_stopped_reconciliation() {
+        for reverified in [false, true] {
+            let (root, ledger, mut spec, _) = fixture(if reverified {
+                "reverified"
+            } else {
+                "unknown-live"
+            });
+            let dir = jobs::running_dir(&root).join(&spec.id);
+            // This fixture creates the actual attempt through the gated spawner.
+            fs::remove_file(dir.join("attempt.json")).unwrap();
+            spec.argv = vec![
+                "/bin/sleep".into(),
+                if reverified { "10" } else { "2" }.into(),
+            ];
+            spec.stop_grace_ms = 20;
+            fs::write(dir.join("spec.json"), serde_json::to_vec(&spec).unwrap()).unwrap();
+            let spawned = spawn_job(&root, &spec, true, &ledger).unwrap();
+            let mut fixture = RunningFixture {
+                identity: spawned.identity.clone(),
+                job: spawned,
+            };
+            let job = &mut fixture.job;
+            let original_identity = job.identity.clone();
+            let child_pid = job.child.as_ref().unwrap().id();
+            // Inject a failed identity observation; a malformed boot token can
+            // neither establish reboot nor authorize a stop of the live group.
+            job.identity.boot = "unverified observation".into();
+            assert!(monitor(&root, &ledger, job, true, None).unwrap());
+            let original_exit = fs::read(dir.join("exit.json")).unwrap();
+            let charged = ledger::rebuild(&ledger).unwrap().cumulative_ms;
+            assert!(dir.join("supervisor-hold.fifo").exists());
+            assert_eq!(job.child.as_ref().unwrap().id(), child_pid);
+            assert!(root.join("admissions-held.json").exists());
+            assert!(monitor(&root, &ledger, job, true, None).unwrap());
+            assert_eq!(job.child.as_ref().unwrap().id(), child_pid);
+            assert_eq!(fs::read(dir.join("exit.json")).unwrap(), original_exit);
+            assert_eq!(ledger::rebuild(&ledger).unwrap().cumulative_ms, charged);
+            if reverified {
+                // Recovery of the full identity must enforce a bounded stop,
+                // not skip wall/resource enforcement forever because exit.json exists.
+                job.identity = original_identity;
+                assert!(monitor(&root, &ledger, job, true, None).unwrap());
+                assert!(process::owned_members(&job.identity).unwrap().is_empty());
+            } else {
+                let deadline = Instant::now() + Duration::from_secs(3);
+                while !dir.join("payload.exit").exists() && Instant::now() < deadline {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                assert_eq!(fs::read(dir.join("payload.exit")).unwrap(), b"0\n");
+                assert!(job.child.as_mut().unwrap().try_wait().unwrap().is_none());
+                // The known fixture owner stops its supervisor only after the
+                // original payload/FIFO paths have demonstrably survived.
+                process::terminate(&original_identity, Duration::from_millis(20)).unwrap();
+            }
+            let deadline = Instant::now() + Duration::from_secs(2);
+            while job.child.is_some() && Instant::now() < deadline {
+                assert!(monitor(&root, &ledger, job, false, None).unwrap());
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            assert!(job.child.is_none());
+            assert!(dir.is_dir());
+            let receipt = jobs::reconcile_stopped(&root, &spec.id, &ledger).unwrap();
+            let done = jobs::done_dir(&root).join(&spec.id);
+            assert!(!dir.exists());
+            assert_eq!(fs::read(done.join("exit.json")).unwrap(), original_exit);
+            let exit: serde_json::Value = serde_json::from_slice(&original_exit).unwrap();
+            assert_eq!(exit["outcome"], "unknown");
+            assert!(exit["exit_status"].is_null());
+            let after = ledger::rebuild(&ledger).unwrap().cumulative_ms;
+            let proof = fs::read(&receipt).unwrap();
+            jobs::reconcile_stopped(&root, &spec.id, &ledger).unwrap();
+            assert_eq!(ledger::rebuild(&ledger).unwrap().cumulative_ms, after);
+            assert_eq!(fs::read(receipt).unwrap(), proof);
+            assert!(!monitor(&root, &ledger, job, true, None).unwrap());
+            drop(fixture);
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
     fn recovered_wall_clock_is_estimated_in_both_exit_and_charge() {
         let (root, ledger, spec, attempt) = fixture("recover-estimate");
         let dir = jobs::running_dir(&root).join(&spec.id);
         let identity = Identity {
-            pid: 2,
-            pgid: 2,
+            pid: u32::MAX,
+            pgid: u32::MAX,
             started: "fixture".into(),
-            boot: "prior-boot-fixture".into(),
+            boot: "legacy-unverified-fixture".into(),
+            host: process::host_id().unwrap(),
             token: attempt.process_token,
             supervisor_started: "fixture".into(),
         };
@@ -1000,7 +1128,9 @@ mod tests {
             serde_json::to_vec(&identity).unwrap(),
         )
         .unwrap();
-        assert!(recover(&root, &ledger, true).unwrap().is_empty());
+        assert_eq!(recover(&root, &ledger, true).unwrap().len(), 1);
+        assert!(dir.join("exit.json").exists());
+        jobs::reconcile_stopped(&root, &spec.id, &ledger).unwrap();
         let receipt: serde_json::Value = serde_json::from_slice(
             &fs::read(jobs::done_dir(&root).join(&spec.id).join("exit.json")).unwrap(),
         )
