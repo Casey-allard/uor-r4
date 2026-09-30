@@ -1467,7 +1467,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     if settings.qat {
         model.set_served_representation(Some(qat_codec()))?;
     }
-    // After `init=` or a resume alike: a saved model holds no snap.
+    // After `init=` or a resume alike: the requested setting replaces any snap the load restored.
     model.set_transport_snap(settings.transport_snap)?;
     // A run from a trained model scores it before any update.
     if settings.init.is_some() && progress.step == 0 {
@@ -1677,6 +1677,7 @@ fn sample_mode(arguments: &[String]) -> Result<()> {
     let seed: u64 = args.number("seed", 1)?;
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
+        // `sample` runs the artifact as saved: the load restores its transport snap by design.
         let model = StackModel::load(&model_dir, &Device::Cpu)?;
         let valid = read_tokens(&valid_path, model.config.vocab_size)?;
         let decoder = Decoder::load(merges.as_deref(), tokenizer.as_deref())?;
@@ -1717,6 +1718,7 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
     let tune_blocks: usize = args.number("tune_blocks", 64)?;
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
+        // `evaluate` runs the artifact as saved: the load restores its transport snap by design.
         let model = StackModel::load(&model_dir, &Device::Cpu)?;
         let time = model.config.context;
         let tokens = read_tokens(&tokens_path, model.config.vocab_size)?;
@@ -2061,7 +2063,9 @@ fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         let started = Instant::now();
-        let model = StackModel::load(&model_dir, &Device::Cpu)?;
+        // `load` restores a trained-in snap; this diagnostic's fused baseline
+        // is the free transport, taken explicitly below.
+        let mut model = StackModel::load(&model_dir, &Device::Cpu)?;
         let valid = read_tokens(&valid_path, model.config.vocab_size)?;
         let time = model.config.context;
         if valid.len() <= time + windows {
@@ -2086,7 +2090,8 @@ fn snap_evaluate_mode(arguments: &[String]) -> Result<()> {
                 targets.extend_from_slice(&valid[start + 1..start + time + 1]);
             }
             let rows = targets.len();
-            let fused = model.forward(&ids, group.len(), time)?;
+            let fused =
+                model.with_unsnapped_transport(|free| free.forward(&ids, group.len(), time))?;
             let snapped = model.logits_with_transport(&ids, group.len(), time, Some(&roots))?;
             if index == 0 {
                 // The composed reference must equal the fused forward, so the
@@ -2162,6 +2167,17 @@ fn rounding_attribution_mode(arguments: &[String]) -> Result<()> {
     let result = (|| -> Result<()> {
         let started = Instant::now();
         let float = StackModel::load(&model_dir, &Device::Cpu)?;
+        // The D10 comparator computes the free transport; a snap-trained
+        // model is served only by the multiplier-free engine.
+        if let Some(snap) = float.transport_snap() {
+            return Err(invalid(format!(
+                "rounding attribution measures the D10 comparator, which computes the free \
+                 transport; {} records the {} transport snap, which only the multiplier-free \
+                 engine serves (use stack-snap-parity or d11-evaluate)",
+                model_dir.display(),
+                snap.name()
+            )));
+        }
         let artifact =
             uor_r4_lut::format::StackArtifact::parse(fs::read(&artifact_path)?).map_err(lut)?;
         let reference = stack_grid_reference(&float, &artifact)?;
@@ -2354,6 +2370,16 @@ fn lut_evaluate_mode(arguments: &[String]) -> Result<()> {
         if let Some(model) = &float {
             if model.config.vocab_size != engine.vocabulary() || model.config.context != time {
                 return Err(invalid("the float model and the artifact differ in shape"));
+            }
+            // The D10 comparator computes the free transport; a snap-trained
+            // model is served only by the multiplier-free engine.
+            if let Some(snap) = model.transport_snap() {
+                return Err(invalid(format!(
+                    "lut-evaluate measures the D10 comparator, which computes the free transport; \
+                     the model records the {} transport snap, which only the multiplier-free \
+                     engine serves (use stack-snap-parity or d11-evaluate)",
+                    snap.name()
+                )));
             }
         }
         let reference = match (&float, use_reference) {
@@ -3207,7 +3233,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             (model, optimizer, progress, Some(state))
         }
     };
-    // After `init=` or a resume alike: a saved model holds neither mode.
+    // After `init=` or a resume alike: the requested settings replace any mode the load restored.
     if s.qat {
         model.set_served_representation(Some(qat_codec()))?;
     }

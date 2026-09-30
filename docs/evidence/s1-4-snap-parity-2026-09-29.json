@@ -1,0 +1,154 @@
+{
+  "schema": "uor-r4.evidence-extract/1",
+  "subject": "#1506 S1.4: D11 icosian transport snap kernel against the artifact own dequantized float reference (arm A, chat-v0 heldout)",
+  "extracted_for": "#1533 (S1.4 safety successor)",
+  "source": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/s1-4-parity-arm-a-5",
+    "files": {
+      "snap-parity.json": "313645996327328adedfee37fd8f3bc78d619ba5e6cd35792ca0966a1342fe6f",
+      "attempt.json": "ddce53b7dc358d8b81142ff074d29235ceb3b39a9e763ba11db5a86793829f04"
+    },
+    "seal": "UNSEALED: the root holds attempt.json and snap-parity.json only, with no report_output manifest; the file hashes above bind this extract",
+    "argv": "stack-snap-parity model=.../kimi-s4-fit-20260929/arm-a-snap-1/model tokens=.../chat-v0-20260925/prepared/heldout/tokens.u16 windows=16 (from attempt.json)"
+  },
+  "result_schema": "uor-r4.stack-snap-parity/2",
+  "windows": 16,
+  "positions": 4096,
+  "transport_snap": {
+    "roots": 120,
+    "roots_sha256": "69c969ebc9cfcf8c56109eb9d6fc853d446361f1d0c80a7b805ecfa65bbbaa2d",
+    "snap": "icosian"
+  },
+  "model": "/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model",
+  "kernel": {
+    "max_abs_logit_gap_nats": 1.2598389610648155,
+    "mean_abs_logit_gap_nats": 0.013782082642708525,
+    "mismatch_margin_below_1e-2": 2335,
+    "mismatch_margin_below_1e-3": 1240,
+    "mismatch_margin_max": 0.09959405660629272,
+    "near_tie_margin_source": "reference",
+    "near_ties": 1770,
+    "root_mismatches": 2477,
+    "selections_compared": 1177878,
+    "top1_agreement": 0.991943359375,
+    "top1_flip_rate": 0.008056640625
+  },
+  "kernel_first_divergence": {
+    "max_reference_margin": 0.0002810955047607422,
+    "per_window": [
+      {
+        "layer": 1,
+        "position": 9,
+        "reference_margin": 0.000007271766662597656,
+        "window": 0
+      },
+      {
+        "layer": 1,
+        "position": 14,
+        "reference_margin": 0.000036597251892089844,
+        "window": 1
+      },
+      {
+        "layer": 0,
+        "position": 159,
+        "reference_margin": 0.0000040531158447265625,
+        "window": 2
+      },
+      {
+        "layer": 1,
+        "position": 14,
+        "reference_margin": 0.000041961669921875,
+        "window": 3
+      },
+      {
+        "layer": 1,
+        "position": 26,
+        "reference_margin": 0.000004172325134277344,
+        "window": 4
+      },
+      {
+        "layer": 1,
+        "position": 21,
+        "reference_margin": 1.7881393432617188E-7,
+        "window": 5
+      },
+      {
+        "layer": 1,
+        "position": 15,
+        "reference_margin": 4.76837158203125E-7,
+        "window": 6
+      },
+      {
+        "layer": 1,
+        "position": 10,
+        "reference_margin": 0.00007581710815429688,
+        "window": 7
+      },
+      {
+        "layer": 1,
+        "position": 45,
+        "reference_margin": 0.0002810955047607422,
+        "window": 8
+      },
+      {
+        "layer": 1,
+        "position": 10,
+        "reference_margin": 0.0001379251480102539,
+        "window": 9
+      },
+      {
+        "layer": 1,
+        "position": 10,
+        "reference_margin": 0.00004690885543823242,
+        "window": 10
+      },
+      {
+        "layer": 1,
+        "position": 47,
+        "reference_margin": 0.000030219554901123047,
+        "window": 11
+      },
+      {
+        "layer": 1,
+        "position": 48,
+        "reference_margin": 0.000038743019104003906,
+        "window": 12
+      },
+      {
+        "layer": 1,
+        "position": 48,
+        "reference_margin": 0.00006645917892456055,
+        "window": 13
+      },
+      {
+        "layer": 1,
+        "position": 35,
+        "reference_margin": 0.00003808736801147461,
+        "window": 14
+      },
+      {
+        "layer": 1,
+        "position": 23,
+        "reference_margin": 0.0000133514404296875,
+        "window": 15
+      }
+    ]
+  },
+  "mean_log_prob_over_window_targets": {
+    "artifact_reference": -3.097624939664698,
+    "integer": -3.097578421792205,
+    "integer_minus_reference": 0.000046517872493101464,
+    "integer_minus_trained": -0.01424199015528238,
+    "reference_minus_trained": -0.014288508027775482,
+    "targets": 4096,
+    "trained_float": -3.0833364316369227
+  },
+  "scope": [
+    "kernel compares the D11 integer engine with the artifact own dequantized float reference: same weights and snap",
+    "first divergences only: each window first root mismatch, in layer-major, position, lane order, has reference margin at most max_reference_margin (2.811e-4); 14 of these 16 are below the report's 1e-4 near-tie criterion (windows 8 and 9 exceed it), all at a snap boundary",
+    "the remaining root mismatches (root_mismatches minus the 16 first divergences, about 2,461) occur after a window diverged and are UNCLASSIFIED: cascade through the recurrence or a kernel error on a rare branch is not distinguished; no claim that every mismatch is a near-tie; broader parity stays open",
+    "near_ties counts selections below the near-tie margin taken from the reference; they are excluded from root_mismatches by construction",
+    "mean log-probability is not NLL; one model, one held-out file, 16 windows",
+    "cost (not in this file): +9.17% ms/token against free transport from three interleaved pairs on a contended host; no quiet absolute latency"
+  ]
+}

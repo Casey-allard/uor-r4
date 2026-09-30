@@ -212,7 +212,8 @@ fn qat_head_compensated_end_to_end_export_and_exactness() -> Result<()> {
 
     // 6. Export stack artifact without calibration (using QAT weights)
     check_export_representation(record.as_ref(), false)?;
-    let (lut_bytes, summary) = export_stack(&model, "head-compensated-qat-test".into(), None)?;
+    let (lut_bytes, summary) =
+        export_stack(&model, "head-compensated-qat-test".into(), None, None)?;
     assert!(!lut_bytes.is_empty());
     assert_eq!(
         summary["method"]["quantizer"],
@@ -352,7 +353,7 @@ fn qat_min_mse_end_to_end_export_and_exactness() -> Result<()> {
 
     // 6. Export stack artifact without calibration (using QAT weights)
     check_export_representation(record.as_ref(), false)?;
-    let (lut_bytes, summary) = export_stack(&model, "qat-min-mse-test".into(), None)?;
+    let (lut_bytes, summary) = export_stack(&model, "qat-min-mse-test".into(), None, None)?;
     assert!(!lut_bytes.is_empty());
     assert_eq!(
         summary["method"]["quantizer"],
@@ -588,7 +589,7 @@ fn test_exported_artifact_dequantized_weights_equal_served_view_element_by_eleme
         model.set_served_representation(Some(codec.clone()))?;
 
         let (lut_bytes, _summary) =
-            export_stack(&model, serde_json::json!({"test": "parity"}), None)?;
+            export_stack(&model, serde_json::json!({"test": "parity"}), None, None)?;
         let artifact = StackArtifact::parse(lut_bytes)
             .map_err(|e| uor_r4_training::TrainingError::Invalid(e.to_string()))?;
 
@@ -778,7 +779,7 @@ fn qat_rec_out_min_mse_end_to_end_export_and_exactness() -> Result<()> {
     // 6. Export stack artifact without calibration (using QAT weights)
     check_export_representation(record.as_ref(), false)?;
     assert!(check_export_representation(record.as_ref(), true).is_err());
-    let (lut_bytes, summary) = export_stack(&model, "rec-out-min-mse-qat-test".into(), None)?;
+    let (lut_bytes, summary) = export_stack(&model, "rec-out-min-mse-qat-test".into(), None, None)?;
     assert!(!lut_bytes.is_empty());
     assert_eq!(
         summary["method"]["quantizer"],
@@ -1007,7 +1008,7 @@ fn test_export_stack_directly_refuses_e8_matched_bit() -> Result<()> {
     let mut model = StackModel::new(config, &device)?;
     model.set_served_representation(Some(Arc::new(E8MatchedBitMapCodec::default())))?;
 
-    let err = export_stack(&model, "e8-direct-refusal-test".into(), None).unwrap_err();
+    let err = export_stack(&model, "e8-direct-refusal-test".into(), None, None).unwrap_err();
     assert!(
         err.to_string().contains("stack export does not write"),
         "expected export refusal for E8 served codec, got: {err}"
@@ -1043,7 +1044,7 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
         model.set_served_representation(Some(codec.clone()))?;
 
         let (lut_bytes, summary) =
-            export_stack(&model, serde_json::json!({"test": "s2_parity"}), None)?;
+            export_stack(&model, serde_json::json!({"test": "s2_parity"}), None, None)?;
         assert_eq!(summary["method"]["quantizer"], codec.name());
 
         let artifact = StackArtifact::parse(lut_bytes.clone())
@@ -1160,8 +1161,12 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
         reloaded.set_served_representation(Some(recovered_codec.clone()))?;
         assert_eq!(reloaded.served_codec().unwrap().name(), codec.name());
 
-        let (reloaded_bytes, reloaded_summary) =
-            export_stack(&reloaded, serde_json::json!({"test": "s2_reloaded"}), None)?;
+        let (reloaded_bytes, reloaded_summary) = export_stack(
+            &reloaded,
+            serde_json::json!({"test": "s2_reloaded"}),
+            None,
+            None,
+        )?;
         assert_eq!(reloaded_summary["method"]["quantizer"], codec.name());
         assert_eq!(
             reloaded_bytes,

@@ -279,6 +279,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // 3. Load model and validation tokens
         let float_model = StackModel::load(&args.model_dir, &Device::Cpu)?;
+        // Every arm below exports for the D10 comparator, which computes the
+        // free transport. `load` restores a trained-in snap, which only the
+        // multiplier-free engine serves, so refuse instead of exporting a
+        // model other than the one that was trained.
+        if let Some(snap) = float_model.transport_snap() {
+            return Err(format!(
+                "d4-float-reference measures the D10 comparator, which computes the free \
+                 transport; {} records the {} transport snap (use stack-snap-parity or d11-evaluate)",
+                args.model_dir.display(),
+                snap.name()
+            )
+            .into());
+        }
         let time = float_model.config.context;
         let vocab_size = float_model.config.vocab_size;
         let tokens = read_u16_tokens(&args.valid_path, vocab_size)?;

@@ -1040,8 +1040,10 @@ impl StackModel {
     /// record existed. With a transport snap set, [`TRANSPORT_RECORD`]
     /// beside them records it ([`Self::saved_transport_snap`]); a save
     /// without one removes a stale record, so the directory never claims a
-    /// snap its weights were not saved with. [`Self::load`] ignores both
-    /// records and loads in float.
+    /// snap its weights were not saved with. [`Self::load`] restores the
+    /// transport snap from its record, so a loaded model's forward pass is the
+    /// one that was trained. It does not restore the served representation;
+    /// its callers read [`Self::saved_served_representation`].
     pub fn save(&self, directory: &Path) -> Result<()> {
         fs::create_dir_all(directory)?;
         let tensors: std::collections::HashMap<String, Tensor> = self
@@ -1113,6 +1115,13 @@ impl StackModel {
         Ok(Some(snap))
     }
 
+    /// Load a saved model. A directory whose [`TRANSPORT_RECORD`] records a
+    /// transport snap loads with it set ([`Self::saved_transport_snap`] checks
+    /// its roots; [`Self::set_transport_snap`] checks the configuration), so
+    /// evaluation and export see the model that was trained. Training modes
+    /// then set the snap their arguments ask for; [`Self::with_unsnapped_transport`]
+    /// gives the free-transport view explicitly. The served representation is
+    /// not restored.
     pub fn load(directory: &Path, device: &Device) -> Result<Self> {
         let config: StackConfig =
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
@@ -1132,13 +1141,15 @@ impl StackModel {
             }
             variables.insert(name, Var::from_tensor(tensor)?);
         }
-        Ok(Self {
+        let mut model = Self {
             config,
             variables,
             device: device.clone(),
             served: None,
             transport: None,
-        })
+        };
+        model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
+        Ok(model)
     }
 }
 
@@ -1446,7 +1457,7 @@ impl TransportSnap {
             scope: "The model was saved with this transport snap set: its forward pass replaced \
                     every unit transport quaternion by the nearest of these roots before its \
                     scaling by lambda, with straight-through gradients. model.safetensors holds \
-                    the float variables; StackModel::load loads them without the snap, and \
+                    the float variables; StackModel::load restores this snap, and \
                     StackModel::saved_transport_snap reads this record."
                 .to_owned(),
         }
@@ -6452,31 +6463,73 @@ mod tests {
             fs::read(free_dir.join("config.json"))?,
             fs::read(snapped_dir.join("config.json"))?
         );
-        // Both load, without the snap, with the saved weights.
+        // Each loads the model that was saved: the free save without a snap,
+        // the snapped save with its snap, and the same forward pass.
         let ids = token_ids(12, 37, 137);
         let free = bits(&model.with_unsnapped_transport(|m| m.forward(&ids, 1, 12))?)?;
-        for directory in [&free_dir, &snapped_dir] {
-            let loaded = StackModel::load(directory, &cpu())?;
-            assert_eq!(loaded.transport_snap(), None);
-            assert_eq!(bits(&loaded.forward(&ids, 1, 12)?)?, free);
-        }
-        // Setting the recorded snap restores the snapped forward.
+        let snapped = bits(&model.forward(&ids, 1, 12)?)?;
+        let loaded_free = StackModel::load(&free_dir, &cpu())?;
+        assert_eq!(loaded_free.transport_snap(), None);
+        assert_eq!(bits(&loaded_free.forward(&ids, 1, 12)?)?, free);
         let mut loaded = StackModel::load(&snapped_dir, &cpu())?;
-        loaded.set_transport_snap(StackModel::saved_transport_snap(&snapped_dir)?)?;
+        assert_eq!(loaded.transport_snap(), Some(TransportSnap::Icosian));
+        assert_eq!(bits(&loaded.forward(&ids, 1, 12)?)?, snapped);
+        // The free-transport view of the snapped save is explicit.
         assert_eq!(
-            bits(&loaded.forward(&ids, 1, 12)?)?,
-            bits(&model.forward(&ids, 1, 12)?)?
+            bits(&loaded.with_unsnapped_transport(|m| m.forward(&ids, 1, 12))?)?,
+            free
         );
-        // A save without the snap over a snapped one removes the record.
-        StackModel::load(&snapped_dir, &cpu())?.save(&snapped_dir)?;
+        // A load and save round trip keeps the record; dropping the snap is
+        // explicit, and a save without it removes the record.
+        loaded.save(&snapped_dir)?;
+        assert_eq!(
+            StackModel::saved_transport_snap(&snapped_dir)?,
+            Some(TransportSnap::Icosian)
+        );
+        loaded.set_transport_snap(None)?;
+        loaded.save(&snapped_dir)?;
         assert_eq!(StackModel::saved_transport_snap(&snapped_dir)?, None);
-        // A record of other roots is refused.
+        assert_eq!(
+            StackModel::load(&snapped_dir, &cpu())?.transport_snap(),
+            None
+        );
+        // A record of other roots is refused, by the reader and by the load.
         fs::write(
             free_dir.join(TRANSPORT_RECORD),
             br#"{"schema":"uor-r4.stack-transport/1","snap":"icosian","roots":120,"roots_sha256":"00","scope":""}"#,
         )?;
         assert!(StackModel::saved_transport_snap(&free_dir).is_err());
+        assert!(StackModel::load(&free_dir, &cpu()).is_err());
         fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// The exact bypass #1506's review found: a snapped export read through
+    /// the offline `parse_for_reference` must not construct the D10 engine,
+    /// which computes the free transport. The multiplier-free engine serves
+    /// the same bytes.
+    #[test]
+    fn the_d10_engine_refuses_a_snapped_export_read_for_reference() -> Result<()> {
+        // A LUT-format-valid width (multiple of GROUP=32) so the artifact
+        // parses and the D10 snap refusal is the path exercised.
+        let mut model = spread_transport(exportable("rrarra", ReadScore::Lorentz, true), 149)?;
+        model.set_transport_snap(Some(TransportSnap::Icosian))?;
+        let (bytes, _) = crate::stack_export::export_stack(
+            &model,
+            serde_json::json!({"test": "d10-bypass"}),
+            None,
+            Some(TransportSnap::Icosian),
+        )?;
+        uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
+            .map_err(|e| invalid(e.to_string()))?;
+        let reference = uor_r4_lut::format::StackArtifact::parse_for_reference(bytes)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert!(reference.header.transport_snap.is_some());
+        let refusal = match uor_r4_lut::stack::StackModel::from_artifact(reference) {
+            Err(error) => error.to_string(),
+            Ok(_) => return Err(invalid("the D10 engine accepted a snapped artifact")),
+        };
+        assert!(refusal.contains("transport_snap=icosian"), "{refusal}");
         Ok(())
     }
 
@@ -6525,8 +6578,9 @@ mod tests {
     fn a_served_and_snapped_model_saves_both_records_for_explicit_reapplication() -> Result<()> {
         // The combined-mode save/metadata/reapply contract: a model saved
         // with the served representation and a transport snap records both;
-        // `load` re-applies neither (raw float); reading the recorded modes
-        // and reapplying them restores the saved forward bit for bit.
+        // `load` restores the recorded snap but not the served representation,
+        // and free transport stays available explicitly; reading the recorded
+        // modes and reapplying them restores the saved forward bit for bit.
         let mut model = StackModel::new(exportable("rar", ReadScore::Lorentz, true), &cpu())?;
         spread(&model, 139)?;
         for (name, var) in model.variables() {
@@ -6560,10 +6614,15 @@ mod tests {
                 codec: D11Interim.name().to_owned()
             })
         );
-        // A raw load enables neither mode: the float forward is restored.
+        // A raw load restores the recorded snap but not the served
+        // representation; the free-transport view is requested explicitly.
         let mut loaded = StackModel::load(&dir, &cpu())?;
-        assert!(loaded.served_codec().is_none() && loaded.transport_snap().is_none());
-        assert_eq!(bits(&loaded.forward(&ids, 1, time)?)?, float_free);
+        assert!(loaded.served_codec().is_none());
+        assert_eq!(loaded.transport_snap(), Some(TransportSnap::Icosian));
+        assert_eq!(
+            bits(&loaded.with_unsnapped_transport(|m| m.forward(&ids, 1, time))?)?,
+            float_free
+        );
         assert_ne!(bits(&loaded.forward(&ids, 1, time)?)?, both_logits);
         // Reapplying the recorded modes restores the saved forward exactly.
         loaded.set_served_representation(Some(Arc::new(D11Interim)))?;

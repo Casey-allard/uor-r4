@@ -161,6 +161,18 @@ impl StackModel {
     }
 
     pub fn from_artifact(artifact: StackArtifact) -> Result<Self> {
+        // This engine computes the free transport. An artifact that records a
+        // trained-in transport snap is served only by the multiplier-free
+        // engine, so refuse it here as well as in the serving parse: an
+        // artifact from the offline `StackArtifact::parse_for_reference` must
+        // not reach this engine.
+        if let Some(snap) = &artifact.header.transport_snap {
+            return Err(format_error(format!(
+                "the artifact records transport_snap={} ({} roots), which only the \
+                 multiplier-free stack engine serves; this engine computes the free transport",
+                snap.name, snap.roots
+            )));
+        }
         let shape = artifact.header.shape.clone();
         let numerics = artifact.header.numerics.clone();
         let (d, heads, mlp) = (shape.width, shape.heads, shape.mlp);
@@ -880,6 +892,59 @@ fn read(
 mod tests {
     use super::*;
     use crate::kernels::{arcosh_grid, grid_encode, ARCOSH_FRACTION_BITS};
+
+    /// A header-only stack artifact, with or without a transport snap record.
+    fn header_only(snapped: bool) -> Vec<u8> {
+        use crate::format::{Fixed, StackArtifactBuilder};
+        let shape = StackShape {
+            vocab: 64,
+            width: 64,
+            heads: 2,
+            mlp: 64,
+            pattern: "ra".to_owned(),
+            read: "lorentz".to_owned(),
+            rotation: true,
+            context: 8,
+        };
+        let numerics = StackNumerics {
+            rms_eps: Fixed {
+                mantissa: 1,
+                exp: -48,
+            },
+            score_scale_q30: 1 << 28,
+            exp_step_log2: -8,
+            silu_step_log2: -8,
+            silu_range_log2: 4,
+            gelu_step_log2: -8,
+            gelu_range_log2: 4,
+        };
+        let mut builder = StackArtifactBuilder::new(shape, numerics, serde_json::json!({}))
+            .expect("a valid shape");
+        if snapped {
+            builder.set_transport_snap("icosian".to_owned(), 120, "ab".repeat(32));
+        }
+        builder.finish().expect("the header writes")
+    }
+
+    /// The offline reference parse keeps a snapped artifact, but this engine
+    /// refuses it at construction, before reading any matrix. An unsnapped
+    /// header-only artifact fails later, on its first missing matrix.
+    #[test]
+    fn from_artifact_refuses_a_snapped_artifact_from_the_reference_parse() {
+        let snapped = StackArtifact::parse_for_reference(header_only(true))
+            .expect("the reference parse accepts the snap record");
+        let refusal = match StackModel::from_artifact(snapped) {
+            Err(error) => error.to_string(),
+            Ok(_) => panic!("the D10 engine must refuse a snapped artifact"),
+        };
+        assert!(refusal.contains("transport_snap=icosian"), "{refusal}");
+        let unsnapped = StackArtifact::parse(header_only(false)).expect("a snap-free parse");
+        let other = match StackModel::from_artifact(unsnapped) {
+            Err(error) => error.to_string(),
+            Ok(_) => panic!("a header-only artifact has no matrices"),
+        };
+        assert!(!other.contains("transport_snap"), "{other}");
+    }
 
     #[test]
     fn hamilton_product_matches_floats() {

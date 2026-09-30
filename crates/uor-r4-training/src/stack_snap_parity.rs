@@ -3,13 +3,18 @@
 //! root selection and logit by logit, on evenly spaced windows of given
 //! tokens.
 //!
-//! This is the S1.4 acceptance vehicle, decomposed as in
+//! This is the S1.4 parity vehicle, decomposed as in
 //! `docs/integration/s1-stack-serving-measurements-2026-09-28.md`:
 //!
 //! - `kernel`: the D11 engine against the artifact's own dequantized float
-//!   reference (same weights, snap set) — the residual is fixed-point
-//!   arithmetic only. This is the acceptance gate. Near-ties are counted
-//!   from the same-weights reference margin (float margin < 1e-4).
+//!   reference (same weights, snap set). Weights and snap are shared, so a
+//!   divergence comes from the integer arithmetic of the kernel or from a
+//!   near-tie at a snap boundary; `kernel_first_divergence` isolates each
+//!   window's first one, cascade-free. Mismatches after a window has
+//!   diverged are not classified here: they may be cascade through the
+//!   recurrence or a kernel error on a rare branch. No numeric acceptance
+//!   threshold is coded. Near-ties are counted from the same-weights
+//!   reference margin (float margin < 1e-4).
 //! - `serving_profile.weight_rounding`: the reference against the trained
 //!   unquantized float model — the 4-bit weight-rounding cost. Near-ties use
 //!   the trained model's margin.
@@ -378,8 +383,8 @@ mod tests {
         let tokens: Vec<u32> = (0..40).map(|i| (i * 5 + 1) % 64).collect();
         let report = snap_parity_report(&dir, &tokens, 2).expect("report");
         assert_eq!(report["schema"], "uor-r4.stack-snap-parity/2");
-        // The kernel block is the acceptance gate: same weights, so only
-        // fixed-point arithmetic separates the two engines.
+        // Same weights and snap: on this tiny model the kernel block shows no
+        // root mismatch and full top-1 agreement.
         let kernel = &report["kernel"];
         assert_eq!(kernel["root_mismatches"], 0);
         assert_eq!(kernel["top1_agreement"], 1.0);
