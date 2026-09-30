@@ -24,8 +24,11 @@ Read these in order:
 Start with the [extended joining goal](prompts/join.md). Available client packets
 are [Codex](prompts/codex.md), [Claude](prompts/claude.md),
 [Anti-Gravity](prompts/antigravity.md) and [OpenCode/DeepSeek](prompts/opencode-deepseek.md).
-They are standing goals; each task still needs its live claim, dependencies and
-resource admission. Additional labs use the same joining goal with their own
+They are persistent missions with finite child tasks; each child still needs its
+live claim, dependencies and resource admission. The
+[client continuation notes](client-continuation.md) distinguish installed hooks,
+manual activation, quota loss and verified live continuation. OpenCode can use
+its [continuous startup packet](prompts/opencode-continuous-start.md). Additional labs use the same joining goal with their own
 capability declaration and board. The [client adapter contract](adapters.md)
 keeps the packets portable. [Operations](operations.md) covers the host,
 recovery, storage, rollout and administrative checks.

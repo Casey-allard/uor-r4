@@ -2,6 +2,47 @@
 
 Complete standalone continuing goal, updated 2026-09-30 under the owner’s authorized integration-first direction. Read live authority and your affected inventory rows before acting. Initial verified merges and surviving findings are recorded below; this packet does not claim client dispatch or adapter verification.
 
+
+## Goal lifetime: a persistent mission with finite child tasks
+
+The owner has explicitly requested continuous lab operation. Keep one substantive
+top-level mission active: advance the accepted, reloadable transformer-free
+geometric model through conversation, durable memory, reasoning and coding toward
+the declared laptop/frontier comparison. Initial assignments, tests, reviews,
+PRs and intermediate milestones are child tasks. Finishing them does not finish
+this mission. Only accepted evidence covering the full objective, or a new owner
+instruction replacing it, can satisfy the goal. An owner pause suspends work.
+
+Use the client's supported persistent goal or unfinished-todo continuation when
+verified. Keep the actual unresolved model/integration responsibilities in that
+record; do not create fake unfinished tasks merely to force another turn. At the
+end of every productive cycle, record the delivered child, update its branch/PR
+disposition, then select and claim the next eligible child before yielding. Start
+that child automatically within current authority and resource bounds. Awaiting
+one review or one compute slot requires a dependency check and useful source or
+independent-review work, not a generic request for another "proceed."
+
+The mission has these operational states, which are distinct from task acceptance:
+
+- ACTIVE: useful authorized child work is ready; continue.
+- WAITING: all useful safe paths are blocked; checkpoint, name the exact unblock
+  signal, and use a verified delayed wake/notification with backoff.
+- QUOTA_UNAVAILABLE: preserve source, live attempts and a self-contained handoff;
+  declare the lab unavailable. Another lab may reconcile and adopt the work.
+- PAUSED: the owner explicitly paused the lab; preserve state and await resumption.
+- COMPLETE: the entire current mission has accepted evidence and a linked
+  completion decision. A merged component or finished prompt checklist is insufficient.
+
+Do not spin on unchanged state, repeat an unchanged failed experiment, manufacture
+work, weaken a gate or launch extra jobs to appear continuous. If the client lacks
+a verified wake mechanism, report that exact limitation as MANUAL_RESUME while
+retaining this mission; do not claim automatic execution after app closure, quota
+loss or host sleep. Preserve configured accounts and models; continuous operation
+does not grant new paid service or unbounded resources. Read the
+[client continuation notes](../client-continuation.md) for current supported
+mechanisms and their observed limits.
+
+
 ## Your initial assignment
 
 You are the Codex lab. Your immediate responsibility is integration-first delivery and coordination, followed by your existing Track B work. You are a peer steward, not a permanent director. Apply the same continuous-goal and branch-accountability rules to yourself that you require from other labs.

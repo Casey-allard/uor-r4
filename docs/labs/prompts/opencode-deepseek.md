@@ -1,27 +1,97 @@
-# Extended goal: OpenCode–DeepSeek lab — deliver the recorded negative and shared flock implementation
+# Persistent goal: OpenCode–DeepSeek — advance and integrate the geometric model
 
 Complete standalone continuing goal, updated 2026-09-30 under the owner’s authorized integration-first direction. Read live authority and your affected inventory rows before acting. Initial verified merges and surviving findings are recorded below; this packet does not claim client dispatch or adapter verification.
 
-## Your initial assignment
 
-You are the OpenCode–DeepSeek lab. Your first implementation is a narrow corrective successor to merged #1505, followed by opening or completing protected delivery of the existing shared flock implementation at 5b7d1685. #1505 merged as ae7f70fd, but two independent readers confirmed all four required wording findings still survive in main. Do not claim the merge resolved them or attempt to re-enqueue the closed PR. Refresh exact main and review comments; preserve the old record and correct it through a successor PR.
+## Goal lifetime: a persistent mission with finite child tasks
 
-Apply all four evidence corrections consistently in docs/evidence/g2-key-probe-2026-09-29.md, its JSON and the successor PR description, without changing measurements:
+The owner has explicitly requested continuous lab operation. Keep one substantive
+top-level mission active: advance the accepted, reloadable transformer-free
+geometric model through conversation, durable memory, reasoning and coding toward
+the declared laptop/frontier comparison. Initial assignments, tests, reviews,
+PRs and intermediate milestones are child tasks. Finishing them does not finish
+this mission. Only accepted evidence covering the full objective, or a new owner
+instruction replacing it, can satisfy the goal. An owner pause suspends work.
 
-- A: replace the claim that the joint key is not linearly exposed with the actual held-out relation-transfer failure and readable in-distribution joint key. Label the arms: 0.88–0.91 versus 0.27–0.33 describes 2I; softmax in-distribution is 0.9799/0.9792.
-- B: quote the original #973 preregistration comment 5890046442 from its authoritative text, including identical updates and the both-splits lexical rule. State that it fixes no steps, learning rate or episode counts and names no arm. The exposure amendment/comment 5892575118 precedes the rerun only, not keys-1 or decode-1; correct JSON recorded_before_fit semantics accordingly. Preserve the original registration and deviation rather than rewriting it.
-- C: replace trained-to-convergence with up to 30,000 updates and plateau early-stop; 2I did not plateau. Correct the JSON design-amendment claim as well.
-- D: replace uncontended with no peer-duplicate contention; keys-11 overlapped keys-9 for 142.6 seconds. Correct both prose occurrences and the keys_4 JSON claim.
+Use the client's supported persistent goal or unfinished-todo continuation when
+verified. Keep the actual unresolved model/integration responsibilities in that
+record; do not create fake unfinished tasks merely to force another turn. At the
+end of every productive cycle, record the delivered child, update its branch/PR
+disposition, then select and claim the next eligible child before yielding. Start
+that child automatically within current authority and resource bounds. Awaiting
+one review or one compute slot requires a dependency check and useful source or
+independent-review work, not a generic request for another "proceed."
 
-Read the exact surviving finding record and source lines; do not introduce a new model experiment to fix wording. Preserve the existing negative, split/arm scopes, gate failure, historical provenance limitations and accepted numerical measurements. Run applicable diff/claim-wording checks and obtain an independent exact-line reread on the new head, with a fresh head-bound delivery receipt, then complete protected merge. Optional clarified labels such as sampled RSS versus peak must remain evidence-backed, not silently manufactured measurements.
+The mission has these operational states, which are distinct from task acceptance:
 
-Next resolve 5b7d1685 to its full commit, branch/worktree, source status and owning issue. Reuse the shared inventory and inspect whether a PR already contains its patch or main already includes part of it. Publish or finish the existing canonical flock PR, rather than create a competing selector. Bind current source checks and non-author review. Keep this as the next implementation after the wording successor's source work has delivered or been explicitly transferred; one implementation plus one review is the default.
+- ACTIVE: useful authorized child work is ready; continue.
+- WAITING: all useful safe paths are blocked; checkpoint, name the exact unblock
+  signal, and use a verified delayed wake/notification with backoff.
+- QUOTA_UNAVAILABLE: preserve source, live attempts and a self-contained handoff;
+  declare the lab unavailable. Another lab may reconcile and adopt the work.
+- PAUSED: the owner explicitly paused the lab; preserve state and await resumption.
+- COMPLETE: the entire current mission has accepted evidence and a linked
+  completion decision. A merged component or finished prompt checklist is insufficient.
 
-Coordinate the canonical floating/training selector with Claude's A1 caller, which expects top_k_select absent from B0. Inspect and agree the actual API, deduplicated causal support, sink/window overlap, deterministic position ties, Lorentz ranking and unnormalized raw-weight convention; align consumers, do not invent a second specification. Coordinate Antigravity's #1528 integer implementation: private-field integration tests do not compile; unordered partition cutoff invalidates tie accounting; divisions violate its declared divider-free contract; capacity/stable sorting can allocate; MAX_FLOCK_CONTEXT is unenforced. The training/integer numerical bridge needs one explicit contract, focused parity/tie/allocation checks and applicable compiled-opcode evidence. No language run is required to repair this interface.
+Do not spin on unchanged state, repeat an unchanged failed experiment, manufacture
+work, weaken a gate or launch extra jobs to appear continuous. If the client lacks
+a verified wake mechanism, report that exact limitation as MANUAL_RESUME while
+retaining this mission; do not claim automatic execution after app closure, quota
+loss or host sleep. Preserve configured accounts and models; continuous operation
+does not grant new paid service or unbounded resources. Read the
+[client continuation notes](../client-continuation.md) for current supported
+mechanisms and their observed limits.
 
-Codex's harmonic hybrid correction depends on consistent numerator and denominator semantics. Keep rank weights distinct from softmax-over-support arms, preserve occurrence/version/value identity, and do not treat prime/hash identity as semantic distance. Count full scan and index build, candidate recall and complete bytes/operations; returning top-k does not prove O(k) search.
 
-Use configured economical DeepSeek specialists with independent task packets and explicit file ownership. Do not silently change paid providers to evade quota. The OpenCode long-command limit calls for quick submission/status queries to a verified admitted runner, never a bare background PID or direct bypass of a hold. Keep durable host/job/attempt/source identity in checkpoints. After both existing deliveries and branch dispositions, choose the next justified B0/B1/native-read dependency from live state, with an immutable causal work card, ordinary controls and preserved negative evidence. A waiting review leads to a bounded independent review/investigation, not another orphan implementation branch.
+## Current children and immediate next action
+
+Treat earlier implementation as completed source work where the evidence says
+so; do not rerun the old goal from the beginning. At the September 30 snapshot,
+your corrective evidence is already in PR [#1531](https://github.com/UOR-Foundation/uor-r4/pull/1531)
+at 9d54366d, and the canonical selector/transport is already in
+[#1532](https://github.com/UOR-Foundation/uor-r4/pull/1532) at bd14a279.
+Refresh both heads and reviews. Their review, applicable executed validation and
+protected delivery remain child responsibilities; source publication is not a
+verified merge or scientific promotion.
+
+Start with this [paste-ready continuation goal](opencode-continuous-start.md).
+Use the installed unfinished-todo continuation only after inspecting the actual
+configuration. The local old /proceed-uor-r4 command explicitly stops after one
+milestone. Its instruction to wait for another owner command is superseded by
+the owner's current continuous-operation request. The installed 4.19.4 native
+/goal handler has a reproduced ordinary-message replacement defect, so do not
+enable it or use a broad stop/restart command to force this launch.
+
+For #1531, collect exact-head evidence/wording review and apply any surviving
+required finding without changing numbers or starting a model experiment. Claude
+has now exhausted its quota; arrange a capable non-author replacement for its
+pending reread. For #1532, collect the existing selector experts' reports,
+resolve actual consumer signatures and causal support semantics, apply findings
+and execute only the admitted focused checks. Do not create another selector.
+
+Before submitting a B0 check, repair the recorded admission problem: the old
+queued opencode-b0-flock-unit-20260930-a spec had coordination:null and no actual
+OpenCode session/claim/reservation. Pressure becoming healthy alone cannot admit
+it. Verify its current stage, retain its original bytes and disposition, prove
+it never launched before cancelling an obsolete queued copy, then register your
+real session and claim a current immutable work card. Create a fresh fully bound
+spec, reserve it before submission and keep one execution. Never edit a live
+attempt. Read the supported schema/commands on main; do not invent CLI options.
+
+Coordinate A1's absent top_k_select alias with the actual canonical API and the
+unavailable Claude handoff on #1533. The A1 source branches have integration and
+causal-data findings; preserve them, assign a successor explicitly if needed,
+and do not interpret quota loss as permission to discard work or duplicate a
+surviving check. Codex's B2 hybrid needs raw, unnormalized 1/(rank+1) weights in
+both numerator and denominator. Antigravity's #1528 integer bridge retains its
+own scoped numerical/allocation contract and required review findings.
+
+After delivery or explicit transfer, select the highest-value unblocked
+B0/B1/native-read dependency or independent review from live GitHub. Keep one
+active implementation and one review by default. Trace source, history and
+callers; require a causal change and decision-bearing measurement before compute.
+Account for complete scan/index/read cost and preserve the actual scope of every
+negative and not-run result.
 
 ## Continuing objective and authority
 
