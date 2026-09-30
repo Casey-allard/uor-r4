@@ -246,6 +246,8 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         rotation: true,
         seed: 0,
         memory: None,
+        select: None,
+        pointer: None,
     };
     template.validate()?;
     let train_template = AermConfig {

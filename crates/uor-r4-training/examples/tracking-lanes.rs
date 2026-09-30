@@ -357,6 +357,8 @@ fn mixed(args: &Args, out: &Path) -> Result<()> {
         rotation: true,
         seed: 0,
         memory: None,
+        select: None,
+        pointer: None,
     };
     stack_template.validate()?;
     let mixed_template = MixedConfig {
@@ -599,6 +601,8 @@ fn stories(args: &Args, out: &Path) -> Result<()> {
         rotation: true,
         seed: 0,
         memory: None,
+        select: None,
+        pointer: None,
     };
     stack_template.validate()?;
     let story_template = StoryConfig {

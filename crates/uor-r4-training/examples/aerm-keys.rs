@@ -2758,6 +2758,8 @@ mod tests {
             rotation: true,
             seed: 7,
             memory: None,
+            select: None,
+            pointer: None,
         };
         config.validate()?;
         StackModel::new(config, &Device::Cpu)

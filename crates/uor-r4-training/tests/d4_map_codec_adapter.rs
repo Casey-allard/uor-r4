@@ -88,6 +88,8 @@ fn qat_adapters_integrate_with_stack_model_and_export_contract() -> Result<()> {
         rotation: true,
         seed: 29,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -156,6 +158,8 @@ fn qat_head_compensated_end_to_end_export_and_exactness() -> Result<()> {
         rotation: false,
         seed: 77,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -303,6 +307,8 @@ fn qat_min_mse_end_to_end_export_and_exactness() -> Result<()> {
         rotation: false,
         seed: 42,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -491,6 +497,8 @@ fn test_e8_matched_bit_map_codec_qat_and_export_refusal() -> Result<()> {
         rotation: false,
         seed: 88,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -583,6 +591,8 @@ fn test_exported_artifact_dequantized_weights_equal_served_view_element_by_eleme
             rotation: true,
             seed: 42,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let device = Device::Cpu;
         let mut model = StackModel::new(config.clone(), &device)?;
@@ -722,6 +732,8 @@ fn qat_rec_out_min_mse_end_to_end_export_and_exactness() -> Result<()> {
         rotation: false,
         seed: 88,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -1003,6 +1015,8 @@ fn test_export_stack_directly_refuses_e8_matched_bit() -> Result<()> {
         rotation: false,
         seed: 42,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;
@@ -1031,6 +1045,8 @@ fn test_s2_real_proportions_exported_artifact_dequantized_weights_equal_served_v
         rotation: true,
         seed: 42,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
 
@@ -1261,6 +1277,8 @@ fn test_saved_model_export_restores_codec_not_rtn() -> Result<()> {
         rotation: false,
         seed: 42,
         memory: None,
+        select: None,
+        pointer: None,
     };
     let device = Device::Cpu;
     let mut model = StackModel::new(config, &device)?;

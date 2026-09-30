@@ -91,7 +91,7 @@ pub struct Conversation {
     pub turns: Vec<Turn>,
 }
 
-fn words(text: &str) -> Vec<String> {
+pub(crate) fn words(text: &str) -> Vec<String> {
     text.replace(['\u{2018}', '\u{2019}'], "'")
         .split(|c: char| !(c.is_alphanumeric() || c == '\''))
         .map(|w| w.trim_matches('\''))
@@ -100,7 +100,7 @@ fn words(text: &str) -> Vec<String> {
         .collect()
 }
 
-fn contains_phrase(haystack: &[String], phrase: &str) -> bool {
+pub(crate) fn contains_phrase(haystack: &[String], phrase: &str) -> bool {
     let needle = words(phrase);
     !needle.is_empty()
         && haystack.len() >= needle.len()
@@ -133,7 +133,7 @@ const NUMBER_WORDS: [&str; 21] = [
     "twenty",
 ];
 
-fn number(word: &str) -> Option<u32> {
+pub(crate) fn number(word: &str) -> Option<u32> {
     word.parse::<u32>().ok().or_else(|| {
         NUMBER_WORDS
             .iter()
@@ -238,18 +238,18 @@ fn last_letter(reply: &str) -> Option<char> {
     }
 }
 
-fn pick<'a, T>(rng: &mut Rng, items: &'a [T]) -> &'a T {
+pub(crate) fn pick<'a, T>(rng: &mut Rng, items: &'a [T]) -> &'a T {
     &items[rng.below(items.len())]
 }
 
 /// Phrasings of one intent, split once.
-struct Phrasings {
-    train: &'static [&'static str],
-    development: &'static [&'static str],
+pub(crate) struct Phrasings {
+    pub(crate) train: &'static [&'static str],
+    pub(crate) development: &'static [&'static str],
 }
 
 impl Phrasings {
-    fn pick(&self, rng: &mut Rng, split: Split) -> &'static str {
+    pub(crate) fn pick(&self, rng: &mut Rng, split: Split) -> &'static str {
         match split {
             Split::Train => pick(rng, self.train),
             Split::Development => pick(rng, self.development),
@@ -257,7 +257,7 @@ impl Phrasings {
     }
 }
 
-fn fill(template: &str, slots: &[(&str, &str)]) -> String {
+pub(crate) fn fill(template: &str, slots: &[(&str, &str)]) -> String {
     let mut text = template.to_owned();
     for (name, value) in slots {
         text = text.replace(&format!("{{{name}}}"), value);
@@ -265,7 +265,7 @@ fn fill(template: &str, slots: &[(&str, &str)]) -> String {
     text
 }
 
-fn strings(items: &[&str]) -> Vec<String> {
+pub(crate) fn strings(items: &[&str]) -> Vec<String> {
     items.iter().map(|s| (*s).to_owned()).collect()
 }
 
@@ -432,6 +432,17 @@ fn social(rng: &mut Rng, split: Split, intent: &Social) -> Turn {
         reply: (*pick(rng, intent.replies)).into(),
         checks,
     }
+}
+
+/// The greeting that may open a conversation ([`MWorld::conversation`]).
+pub(crate) fn opener(rng: &mut Rng, split: Split) -> Turn {
+    social(rng, split, &SOCIAL[0])
+}
+
+/// The thanks or farewell that may close a conversation.
+pub(crate) fn closer(rng: &mut Rng, split: Split) -> Turn {
+    let index = 2 + rng.below(2);
+    social(rng, split, &SOCIAL[index])
 }
 
 const THINGS: &[&str] = &[
@@ -718,14 +729,14 @@ fn fact(rng: &mut Rng, split: Split, relation: &Fact) -> Turn {
     }
 }
 
-fn capitalize(text: &mut String) {
+pub(crate) fn capitalize(text: &mut String) {
     if let Some(first) = text.chars().next() {
         let upper: String = first.to_uppercase().collect();
         text.replace_range(..first.len_utf8(), &upper);
     }
 }
 
-fn responsive(rng: &mut Rng, split: Split) -> Turn {
+pub(crate) fn responsive(rng: &mut Rng, split: Split) -> Turn {
     match rng.below(10) {
         0..=3 => {
             let relation = pick(rng, FACTS);
@@ -964,7 +975,7 @@ const SENTENCE_WORDS: &[&str] = &[
     "dog", "rain", "happy", "school", "apple", "garden", "music", "friend", "river", "blue",
 ];
 
-fn instruction(rng: &mut Rng, split: Split) -> Turn {
+pub(crate) fn instruction(rng: &mut Rng, split: Split) -> Turn {
     let (name, user, reply, checks) = match rng.below(10) {
         0 => {
             let phrase = *pick(rng, REPEAT_PHRASES);
@@ -1150,18 +1161,18 @@ fn instruction(rng: &mut Rng, split: Split) -> Turn {
 // ---------------------------------------------------------------------------
 // Relations: assert, optionally update, then query, in context.
 
-struct Relation {
-    name: &'static str,
-    train_values: &'static [&'static str],
-    development_values: &'static [&'static str],
-    assert: Phrasings,
-    update: Phrasings,
-    query: Phrasings,
-    acks: &'static [&'static str],
-    answers: &'static [&'static str],
+pub(crate) struct Relation {
+    pub(crate) name: &'static str,
+    pub(crate) train_values: &'static [&'static str],
+    pub(crate) development_values: &'static [&'static str],
+    pub(crate) assert: Phrasings,
+    pub(crate) update: Phrasings,
+    pub(crate) query: Phrasings,
+    pub(crate) acks: &'static [&'static str],
+    pub(crate) answers: &'static [&'static str],
 }
 
-const RELATIONS: &[Relation] = &[
+pub(crate) const RELATIONS: &[Relation] = &[
     Relation {
         name: "name",
         train_values: &[
@@ -1363,7 +1374,7 @@ fn relation_turn(
 /// Acknowledgment phrases for an assertion or an update, beside the stated
 /// value itself. Generic praise ("great", "nice") is not an acknowledgment:
 /// filler replies are full of it.
-const ACK_WORDS: &[&str] = &[
+pub(crate) const ACK_WORDS: &[&str] = &[
     "got it",
     "okay",
     "ok",
@@ -1459,13 +1470,13 @@ fn relation_conversation(rng: &mut Rng, split: Split) -> Vec<Turn> {
     turns
 }
 
-const ABSENT_REPLIES: &[&str] = &[
+pub(crate) const ABSENT_REPLIES: &[&str] = &[
     "I don't know. You haven't told me yet.",
     "You haven't told me that yet.",
     "I'm not sure, you didn't tell me.",
 ];
 
-const ABSENT_ACCEPT: &[&str] = &[
+pub(crate) const ABSENT_ACCEPT: &[&str] = &[
     "don't know",
     "do not know",
     "haven't told",
@@ -1602,7 +1613,7 @@ impl MWorld {
 /// "a" before a word that begins with a vowel letter becomes "an" ("an owl",
 /// "an apple"). The world's vocabulary has no vowel letter sounded as a
 /// consonant.
-fn articles(text: &str) -> String {
+pub(crate) fn articles(text: &str) -> String {
     let pieces: Vec<&str> = text.split(' ').collect();
     let mut out = Vec::with_capacity(pieces.len());
     for (i, piece) in pieces.iter().enumerate() {

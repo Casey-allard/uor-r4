@@ -3578,6 +3578,11 @@ impl AermModel {
         if split == 0 || split >= config.layers() {
             return Err(invalid("the split must leave layers on both sides"));
         }
+        if config.pointer.is_some() {
+            return Err(invalid(
+                "the AERM model does not carry the pointer-copy head",
+            ));
+        }
         let width = config.width;
         let stack = StackModel::new(config, device)?;
         let mut rng = Rng::new(seed ^ 0x6165_726D_2D64_3221);
@@ -3604,6 +3609,11 @@ impl AermModel {
     pub fn from_stack(stack: StackModel, split: usize, memory: bool, seed: u64) -> Result<Self> {
         if split == 0 || split >= stack.config.layers() {
             return Err(invalid("the split must leave layers on both sides"));
+        }
+        if stack.config.pointer.is_some() {
+            return Err(invalid(
+                "the AERM model does not carry the pointer-copy head",
+            ));
         }
         let width = stack.config.width;
         let device = stack.device().clone();
@@ -3816,6 +3826,13 @@ impl AermModel {
             ));
         }
         let mut stack = StackModel::load(&stack_directory, device)?;
+        // As `new` and `from_stack` refuse a pointer head, so does a saved
+        // checkpoint: the wrapper reads the stack's raw logits, not the mixture.
+        if stack.config.pointer.is_some() {
+            return Err(invalid(
+                "the AERM model does not carry the pointer-copy head",
+            ));
+        }
         if let Some(snap) = StackModel::saved_transport_snap(&stack_directory)? {
             stack.set_transport_snap(Some(snap))?;
         }
@@ -5217,6 +5234,8 @@ mod tests {
             rotation: true,
             seed: 3,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let model = AermModel::new(config, 2, true, 3, &device)?;
         let ids: Vec<u32> = (0..32).map(|i| (i * 7 % 400) as u32).collect();
@@ -5248,6 +5267,8 @@ mod tests {
             rotation: true,
             seed: 17,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let stack = StackModel::new(config.clone(), &device)?;
         let ids: Vec<u32> = (0..32).map(|i| (i * 11 % 400) as u32).collect();
@@ -5342,6 +5363,8 @@ mod tests {
             rotation: true,
             seed: 5,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let model = AermModel::new(config, 2, true, 5, &device)?;
         let mut rng = Rng::new(3);
@@ -5389,6 +5412,8 @@ mod tests {
             rotation: true,
             seed: 19,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let mut stack = StackModel::new(config.clone(), &device)?;
         stack.set_transport_snap(Some(TransportSnap::Icosian))?;
@@ -5441,6 +5466,64 @@ mod tests {
     }
 
     #[test]
+    fn load_refuses_a_checkpoint_whose_stack_has_a_pointer_head() -> Result<()> {
+        use crate::geometric_stack::PointerConfig;
+        let device = Device::Cpu;
+        let directory = std::env::temp_dir().join(format!("aerm-pointer-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&directory);
+        let config = StackConfig {
+            arch: StackArch::Geometric,
+            vocab_size: 400,
+            width: 32,
+            heads: 2,
+            mlp_hidden: 48,
+            context: 16,
+            pattern: "rrar".into(),
+            read: ReadScore::Dot,
+            rotation: true,
+            seed: 23,
+            memory: None,
+            select: None,
+            pointer: None,
+        };
+        // A checkpoint saved as usual loads.
+        AermModel::new(config.clone(), 2, true, 23, &device)?.save(&directory)?;
+        AermModel::load(&directory, &device)?;
+        // `new` and `from_stack` refuse a pointer stack, so graft one onto the
+        // saved checkpoint: load must refuse it too, for either score.
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let mut pointer_config = config.clone();
+            pointer_config.pointer = Some(PointerConfig {
+                score,
+                ..PointerConfig::new(8)
+            });
+            assert!(AermModel::new(pointer_config.clone(), 2, true, 23, &device).is_err());
+            let stack = StackModel::new(pointer_config, &device)?;
+            assert!(AermModel::from_stack(stack, 2, true, 23).is_err());
+            let stack = StackModel::new(
+                StackConfig {
+                    pointer: Some(PointerConfig {
+                        score,
+                        ..PointerConfig::new(8)
+                    }),
+                    ..config.clone()
+                },
+                &device,
+            )?;
+            stack.save(&directory.join("stack"))?;
+            match AermModel::load(&directory, &device) {
+                Ok(_) => panic!("a saved pointer head must be refused ({score:?})"),
+                Err(error) => assert!(
+                    format!("{error}").contains("pointer-copy head"),
+                    "unexpected error: {error}"
+                ),
+            }
+        }
+        fs::remove_dir_all(&directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn aerm_save_and_load_reproduce_logits() -> Result<()> {
         let device = Device::Cpu;
         let directory = std::env::temp_dir().join(format!("aerm-save-{}", std::process::id()));
@@ -5457,6 +5540,8 @@ mod tests {
             rotation: true,
             seed: 11,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let mut model = AermModel::new(config.clone(), 2, true, 11, &device)?;
         // Non-zero, deterministic head and memory values: an all-zero branch

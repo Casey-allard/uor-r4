@@ -2129,6 +2129,8 @@ mod tests {
             rotation: true,
             seed: 5,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let tracked = TrackedStack::new(config, None, &task, 5, &device)?;
         let ids: Vec<u32> = (0..16).map(|i| (i * 257 % 4099) as u32).collect();
@@ -2225,6 +2227,8 @@ mod tests {
             rotation: true,
             seed: 7,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let tracked = TrackedStack::new(config, None, &task, 7, &device)?.with_context_lanes(
             LaneKind::ReflectionPair,

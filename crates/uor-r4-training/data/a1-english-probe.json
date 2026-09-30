@@ -1,0 +1,360 @@
+{
+  "schema": "uor-r4.a1-english-probe/1",
+  "description": "The A1 sealed English retrieval probe (council amendment, issue 1511): 40 items of natural English whose names, places and numbers lie outside every syllable, v1 and v2 pool and whose phrasings match no v2 template. Never trained on: corpora exclude any conversation that shares an 8-word user-turn n-gram with it. The last turn of every item is the scored turn; its checks are derived from its typed fields (answer and stale for recall, copy for exact copying) with the same Check2 machinery the M-world v2 oracle uses. The file is authored data pinned by SHA-256 in milestone_world_v2_probe.rs.",
+  "items": [
+    {
+      "id": "mqar-short-01",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Notes for the trip: Ingrid booked flight UA772, the hotel confirmation number is 48213, and our driver will be Okafor.", "reply": "Thanks, I have the flight, the confirmation number and the driver.", "values": ["UA772", "48213", "Okafor"]},
+        {"user": "Sorry, which number was the hotel confirmation again?", "reply": "The hotel confirmation number is 48213.", "answer": "48213", "stale": ["UA772", "Okafor"]}
+      ]
+    },
+    {
+      "id": "mqar-short-02",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Two things for my records: my cousin Astrid lives in Tucson, and her wedding will be in Bologna.", "reply": "Understood, I have both facts.", "values": ["Tucson", "Bologna"]},
+        {"user": "Where does Astrid live?", "reply": "Astrid lives in Tucson.", "answer": "Tucson", "stale": ["Bologna"]}
+      ]
+    },
+    {
+      "id": "mqar-short-03",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Please keep these handy: the storage unit is number 30554, the alarm code is 81456, the plumber is called Lindqvist, and the spare key is with Yolanda.", "reply": "Understood, I will keep all four handy.", "values": ["30554", "81456", "Lindqvist", "Yolanda"]},
+        {"user": "What is the alarm code again?", "reply": "The alarm code is 81456.", "answer": "81456", "stale": ["30554", "Lindqvist", "Yolanda"]}
+      ]
+    },
+    {
+      "id": "mqar-short-04",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Two items for the newsletter: the new intern is Emeka and the parking pass number is 60614.", "reply": "Got it, I will pass both along.", "values": ["Emeka", "60614"]},
+        {"user": "What was the parking pass number?", "reply": "The parking pass number is 60614.", "answer": "60614", "stale": ["Emeka"]}
+      ]
+    },
+    {
+      "id": "mqar-short-05",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Some details about my week: I fly to Reykjavik on Thursday, my dentist is Nakamura, and my locker combination is 93820.", "reply": "I have all three details noted.", "values": ["Reykjavik", "Nakamura", "93820"]},
+        {"user": "Which city am I flying to this week?", "reply": "You are flying to Reykjavik on Thursday.", "answer": "Reykjavik", "stale": ["Nakamura", "93820"]}
+      ]
+    },
+    {
+      "id": "mqar-short-06",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Reminders for Saturday: Wendell is bringing the cake and Ottoline is bringing the folding tables.", "reply": "Sounds good, I will remember who is bringing what.", "values": ["Wendell", "Ottoline"]},
+        {"user": "Who is bringing the folding tables?", "reply": "Ottoline is bringing the folding tables.", "answer": "Ottoline", "stale": ["Wendell"]}
+      ]
+    },
+    {
+      "id": "mqar-short-07",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Here are the details for the move: the truck is booked for Savannah, the crew leader is Zainab, and the storage code is 77120.", "reply": "Thanks, all three details are saved.", "values": ["Savannah", "Zainab", "77120"]},
+        {"user": "What was the storage code again?", "reply": "The storage code is 77120.", "answer": "77120", "stale": ["Savannah", "Zainab"]}
+      ]
+    },
+    {
+      "id": "mqar-short-08",
+      "group": "mqar-short",
+      "turns": [
+        {"user": "Here is who covers which shift: Anders takes Monday, Idris takes Tuesday, Amara takes Wednesday, and Esperanza takes Thursday.", "reply": "Thanks, I have the whole rota.", "values": ["Anders", "Idris", "Amara", "Esperanza"]},
+        {"user": "Who covers Wednesday?", "reply": "Amara covers Wednesday.", "answer": "Amara", "stale": ["Anders", "Idris", "Esperanza"]}
+      ]
+    },
+    {
+      "id": "mqar-long-01",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "Before I forget: Ulrich booked seat 12B for the ferry, the ticket reference is 90731, and we dock in Antwerp.", "reply": "Noted, I have the seat, the reference and the port.", "values": ["12B", "90731", "Antwerp"]},
+        {"user": "The weather has been strange lately.", "reply": "It has been. Are you dressing in layers?"},
+        {"user": "I think I will bake bread tonight.", "reply": "Sounds lovely. Fresh bread is hard to beat."},
+        {"user": "My neighbor finally fixed his fence.", "reply": "Good news. That should keep things tidy."},
+        {"user": "Which reference number is on our ferry ticket?", "reply": "The ticket reference is 90731.", "answer": "90731", "stale": ["12B", "Antwerp"]}
+      ]
+    },
+    {
+      "id": "mqar-long-02",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "Two facts for the hiking trip: the trailhead is near Duluth and the permit number is 25036.", "reply": "Got both, the trailhead and the permit.", "values": ["Duluth", "25036"]},
+        {"user": "The bus was late again this morning.", "reply": "That is frustrating. Did you still get there on time?"},
+        {"user": "I started reading a mystery novel.", "reply": "Mysteries are fun. Do you have a favorite author?"},
+        {"user": "My phone battery dies so quickly now.", "reply": "An older battery can do that. Maybe check its health."},
+        {"user": "Sorry, what was the permit number?", "reply": "The permit number is 25036.", "answer": "25036", "stale": ["Duluth"]}
+      ]
+    },
+    {
+      "id": "mqar-long-03",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "Assignments for the workshop: Cormac runs registration, Delphine handles catering, Ottmar manages the projector, and Isaac collects feedback forms.", "reply": "Thanks, I will remember who does what.", "values": ["Cormac", "Delphine", "Ottmar", "Isaac"]},
+        {"user": "We saw a fox behind the shed.", "reply": "How exciting. Foxes are usually shy around people."},
+        {"user": "The soup needs a little more salt.", "reply": "Add a pinch and taste it again."},
+        {"user": "I need new running shoes soon.", "reply": "A proper fit matters. Try a few pairs first."},
+        {"user": "Who runs registration?", "reply": "Cormac runs registration.", "answer": "Cormac", "stale": ["Delphine", "Ottmar", "Isaac"]}
+      ]
+    },
+    {
+      "id": "mqar-long-04",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "My sister's new details: she lives in Fairbanks, her badge number is 47718, and her manager is Petrov.", "reply": "Thanks, I have her city, badge number and manager.", "values": ["Fairbanks", "47718", "Petrov"]},
+        {"user": "The garden is full of tomatoes.", "reply": "What a harvest. Tomato sauce might be a good plan."},
+        {"user": "It is quiet in the library today.", "reply": "Quiet days are good for focus."},
+        {"user": "I found an old photo album.", "reply": "Old albums hold great memories. Enjoy flipping through it."},
+        {"user": "Who was her manager again?", "reply": "Her manager is Petrov.", "answer": "Petrov", "stale": ["Fairbanks", "47718"]}
+      ]
+    },
+    {
+      "id": "mqar-long-05",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "Kitchen notes: the flour supplier is Whitfield and the delivery door code is 84302.", "reply": "Understood, I have the supplier and the code.", "values": ["Whitfield", "84302"]},
+        {"user": "The train station was crowded.", "reply": "Rush hour can be busy. I hope you found a seat."},
+        {"user": "I am learning a few chords on guitar.", "reply": "That is great. Practice a little every day."},
+        {"user": "There was a beautiful sunrise today.", "reply": "Lovely. Mornings like that are worth waking up for."},
+        {"user": "Who supplies the flour?", "reply": "Whitfield supplies the flour.", "answer": "Whitfield", "stale": ["84302"]}
+      ]
+    },
+    {
+      "id": "mqar-long-06",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "Book club picks: January is set in Kyoto, February is set in Nagoya, March is set in Sapporo, and April is set in Yakima.", "reply": "Nice mix, I have all four picks.", "values": ["Kyoto", "Nagoya", "Sapporo", "Yakima"]},
+        {"user": "My laptop fan is getting loud.", "reply": "Dust often causes that. A gentle cleaning may help."},
+        {"user": "We repainted the hallway blue.", "reply": "Blue can look calm and bright. How did it turn out?"},
+        {"user": "The bakery on my street closed.", "reply": "That is sad. A good bakery is a real loss."},
+        {"user": "Where is the April book set?", "reply": "The April book is set in Yakima.", "answer": "Yakima", "stale": ["Kyoto", "Nagoya", "Sapporo"]}
+      ]
+    },
+    {
+      "id": "mqar-long-07",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "For the clinic visit: the doctor is Kowalski, the appointment code is 19675, and the pharmacy is Ashworth Drugs.", "reply": "Got it, the doctor, the code and the pharmacy are saved.", "values": ["Kowalski", "19675", "Ashworth"]},
+        {"user": "I keep forgetting my umbrella.", "reply": "Keep one by the door so it is always handy."},
+        {"user": "Our cat sleeps in the sun all day.", "reply": "That sounds like a perfect life."},
+        {"user": "The museum has a new exhibit.", "reply": "Exhibits are worth a visit. What is it about?"},
+        {"user": "Who is the doctor for the clinic visit?", "reply": "The doctor is Kowalski.", "answer": "Kowalski", "stale": ["19675", "Ashworth"]}
+      ]
+    },
+    {
+      "id": "mqar-long-08",
+      "group": "mqar-long",
+      "turns": [
+        {"user": "Two more for the list: my flight home departs from Vancouver, and the confirmation code is 38810.", "reply": "Both are saved.", "values": ["Vancouver", "38810"]},
+        {"user": "I burned the toast this morning.", "reply": "It happens. Turning the dial down a notch may help."},
+        {"user": "The lake looked calm at dusk.", "reply": "Calm water at dusk is peaceful."},
+        {"user": "I want to try swimming again.", "reply": "Swimming is gentle exercise. Start slowly."},
+        {"user": "Which city does my flight home leave from?", "reply": "Your flight home leaves from Vancouver.", "answer": "Vancouver", "stale": ["38810"]}
+      ]
+    },
+    {
+      "id": "relation-01",
+      "group": "relation",
+      "turns": [
+        {"user": "My sister just moved to Calgary for a new job.", "reply": "That is a big change. I hope she settles in quickly.", "values": ["Calgary"]},
+        {"user": "Small correction: she ended up in Halifax instead.", "reply": "Thanks, I will remember Halifax.", "values": ["Halifax"]},
+        {"user": "By the way, my brother lives in Glasgow.", "reply": "Glasgow is a lovely city.", "values": ["Glasgow"]},
+        {"user": "Just checking, which city is my sister living in these days?", "reply": "Your sister is living in Halifax.", "answer": "Halifax", "stale": ["Calgary", "Glasgow"]}
+      ]
+    },
+    {
+      "id": "relation-02",
+      "group": "relation",
+      "turns": [
+        {"user": "I have been seeing a new tailor named Beaumont.", "reply": "A good tailor is worth keeping.", "values": ["Beaumont"]},
+        {"user": "Actually, I switched again, and my tailor is Quigley now.", "reply": "Understood, your tailor is Quigley now.", "values": ["Quigley"]},
+        {"user": "Who is my tailor these days?", "reply": "Your tailor is Quigley.", "answer": "Quigley", "stale": ["Beaumont"]}
+      ]
+    },
+    {
+      "id": "relation-03",
+      "group": "relation",
+      "turns": [
+        {"user": "Our conference is in Edmonton this year.", "reply": "Edmonton should be lovely.", "values": ["Edmonton"]},
+        {"user": "The keynote speaker is Ilse, by the way.", "reply": "Nice, I will remember Ilse.", "values": ["Ilse"]},
+        {"user": "Where is the conference this year?", "reply": "The conference is in Edmonton this year.", "answer": "Edmonton", "stale": ["Ilse"]}
+      ]
+    },
+    {
+      "id": "relation-04",
+      "group": "relation",
+      "turns": [
+        {"user": "My apartment number is 20983.", "reply": "Thanks, I have your apartment number.", "values": ["20983"]},
+        {"user": "Sorry, I misread the sign, and it is actually 54167.", "reply": "Thanks for correcting that, I have 54167.", "values": ["54167"]},
+        {"user": "The building code is 66041, by the way.", "reply": "Noted, I have the building code too.", "values": ["66041"]},
+        {"user": "What was the building code again?", "reply": "The building code is 66041.", "answer": "66041", "stale": ["20983", "54167"]}
+      ]
+    },
+    {
+      "id": "relation-05",
+      "group": "relation",
+      "turns": [
+        {"user": "My favorite cafe is called Halcyon.", "reply": "Halcyon is a pretty name for a cafe.", "values": ["Halcyon"]},
+        {"user": "I go there every Sunday morning.", "reply": "That sounds like a lovely routine."},
+        {"user": "What was the name of that cafe?", "reply": "The cafe is called Halcyon.", "answer": "Halcyon", "stale": []}
+      ]
+    },
+    {
+      "id": "relation-06",
+      "group": "relation",
+      "turns": [
+        {"user": "I share the flat with a roommate named Ansel.", "reply": "Sharing a flat can be fun.", "values": ["Ansel"]},
+        {"user": "Ansel moved out, so now my roommate is Osric.", "reply": "Understood, your roommate is Osric now.", "values": ["Osric"]},
+        {"user": "My landlord is Ashcroft, by the way.", "reply": "Thanks, noted.", "values": ["Ashcroft"]},
+        {"user": "Who is sharing the flat with me?", "reply": "Osric is sharing the flat with you.", "answer": "Osric", "stale": ["Ansel", "Ashcroft"]}
+      ]
+    },
+    {
+      "id": "relation-07",
+      "group": "relation",
+      "turns": [
+        {"user": "I am flying out of Osaka next week.", "reply": "Osaka has a very busy airport.", "values": ["Osaka"]},
+        {"user": "My connecting flight is KL4410.", "reply": "Thanks, I have the flight number.", "values": ["KL4410"]},
+        {"user": "From which city is my flight leaving?", "reply": "You are flying out of Osaka.", "answer": "Osaka", "stale": ["KL4410"]}
+      ]
+    },
+    {
+      "id": "relation-08",
+      "group": "relation",
+      "turns": [
+        {"user": "The reunion is going to be in Spokane.", "reply": "A reunion is always fun.", "values": ["Spokane"]},
+        {"user": "The organizers changed it to Omaha.", "reply": "Thanks, the reunion is in Omaha now.", "values": ["Omaha"]},
+        {"user": "Where is the reunion again?", "reply": "The reunion is in Omaha.", "answer": "Omaha", "stale": ["Spokane"]}
+      ]
+    },
+    {
+      "id": "relation-09",
+      "group": "relation",
+      "turns": [
+        {"user": "My bike lock code is 35098.", "reply": "I have your lock code.", "values": ["35098"]},
+        {"user": "I reset the lock, and the new code is 70264.", "reply": "Thanks, the new code is 70264.", "values": ["70264"]},
+        {"user": "My mailbox number is 402715.", "reply": "Noted, I have your mailbox number.", "values": ["402715"]},
+        {"user": "What was the code for my bike lock?", "reply": "The code for your bike lock is 70264.", "answer": "70264", "stale": ["35098", "402715"]}
+      ]
+    },
+    {
+      "id": "relation-10",
+      "group": "relation",
+      "turns": [
+        {"user": "My grandmother lives in Cordoba.", "reply": "Cordoba is beautiful in spring.", "values": ["Cordoba"]},
+        {"user": "My grandfather grew up in Krakow.", "reply": "That is a historic city.", "values": ["Krakow"]},
+        {"user": "Where does my grandmother live?", "reply": "Your grandmother lives in Cordoba.", "answer": "Cordoba", "stale": ["Krakow"]}
+      ]
+    },
+    {
+      "id": "relation-11",
+      "group": "relation",
+      "turns": [
+        {"user": "The bakery down the street is run by Imogen.", "reply": "Good to know.", "values": ["Imogen"]},
+        {"user": "It changed hands, and Quentin runs it now.", "reply": "Thanks, Quentin runs the bakery now.", "values": ["Quentin"]},
+        {"user": "The florist next door is run by Gwen.", "reply": "Noted.", "values": ["Gwen"]},
+        {"user": "Who runs the florist these days?", "reply": "Gwen runs the florist.", "answer": "Gwen", "stale": ["Imogen", "Quentin"]}
+      ]
+    },
+    {
+      "id": "relation-12",
+      "group": "relation",
+      "turns": [
+        {"user": "Our new neighbor is named Xavier.", "reply": "Welcome to the neighborhood, Xavier.", "values": ["Xavier"]},
+        {"user": "He plays the cello in the evenings.", "reply": "That must be lovely to hear."},
+        {"user": "Who lives next door now?", "reply": "Your new neighbor is Xavier.", "answer": "Xavier", "stale": []}
+      ]
+    },
+    {
+      "id": "relation-13",
+      "group": "relation",
+      "turns": [
+        {"user": "My cousin studies in Florence.", "reply": "Florence is a great place to study.", "values": ["Florence"]},
+        {"user": "She transferred, so she studies in Zurich now.", "reply": "Understood, she studies in Zurich now.", "values": ["Zurich"]},
+        {"user": "Her roommate studies in Perth.", "reply": "Thanks for telling me.", "values": ["Perth"]},
+        {"user": "Where does my cousin study these days?", "reply": "Your cousin studies in Zurich.", "answer": "Zurich", "stale": ["Florence", "Perth"]}
+      ]
+    },
+    {
+      "id": "relation-14",
+      "group": "relation",
+      "turns": [
+        {"user": "The password for the guest wifi is Marigold.", "reply": "I have the wifi password.", "values": ["Marigold"]},
+        {"user": "The printer password is Tamarack.", "reply": "Noted, that is saved too.", "values": ["Tamarack"]},
+        {"user": "What was the guest wifi password?", "reply": "The guest wifi password is Marigold.", "answer": "Marigold", "stale": ["Tamarack"]}
+      ]
+    },
+    {
+      "id": "copy-01",
+      "group": "copy",
+      "turns": [
+        {"user": "Could you type back exactly what I write here: The ferry to Tacoma leaves from gate 12B at dawn.", "reply": "The ferry to Tacoma leaves from gate 12B at dawn.", "copy": "The ferry to Tacoma leaves from gate 12B at dawn."}
+      ]
+    },
+    {
+      "id": "copy-02",
+      "group": "copy",
+      "turns": [
+        {"user": "I am going to paste a line, and I would like it returned unchanged: Ask for Odalys at the front desk of the clinic on Ash Street.", "reply": "Ask for Odalys at the front desk of the clinic on Ash Street.", "copy": "Ask for Odalys at the front desk of the clinic on Ash Street."}
+      ]
+    },
+    {
+      "id": "copy-03",
+      "group": "copy",
+      "turns": [
+        {"user": "Send this sentence straight back to me without any edits: Order number 918264 will ship to Anchorage on Friday.", "reply": "Order number 918264 will ship to Anchorage on Friday.", "copy": "Order number 918264 will ship to Anchorage on Friday."}
+      ]
+    },
+    {
+      "id": "copy-04",
+      "group": "copy",
+      "turns": [
+        {"user": "Please give me the following line back word for word: Yusuf said the concert in Auckland starts after sunset.", "reply": "Yusuf said the concert in Auckland starts after sunset.", "copy": "Yusuf said the concert in Auckland starts after sunset."}
+      ]
+    },
+    {
+      "id": "copy-05",
+      "group": "copy",
+      "turns": [
+        {"user": "Read this back to me and change nothing: Please bring warm clothes to the cabin near Marseille.", "reply": "Please bring warm clothes to the cabin near Marseille.", "copy": "Please bring warm clothes to the cabin near Marseille."}
+      ]
+    },
+    {
+      "id": "copy-06",
+      "group": "copy",
+      "turns": [
+        {"user": "I need this exact line returned as is: My locker code is 47026 and the spare is under the mat.", "reply": "My locker code is 47026 and the spare is under the mat.", "copy": "My locker code is 47026 and the spare is under the mat."}
+      ]
+    },
+    {
+      "id": "copy-07",
+      "group": "copy",
+      "turns": [
+        {"user": "Copy the next line into your reply without changing it: Priya will meet us at the bus station in Florence.", "reply": "Priya will meet us at the bus station in Florence.", "copy": "Priya will meet us at the bus station in Florence."}
+      ]
+    },
+    {
+      "id": "copy-08",
+      "group": "copy",
+      "turns": [
+        {"user": "Return the sentence below exactly as I typed it: Gwen's flight, KL2290, lands in Edmonton before noon.", "reply": "Gwen's flight, KL2290, lands in Edmonton before noon.", "copy": "Gwen's flight, KL2290, lands in Edmonton before noon."}
+      ]
+    },
+    {
+      "id": "copy-09",
+      "group": "copy",
+      "turns": [
+        {"user": "Here is a line to mirror back to me: The museum in Savannah opens its new wing on Saturday.", "reply": "The museum in Savannah opens its new wing on Saturday.", "copy": "The museum in Savannah opens its new wing on Saturday."}
+      ]
+    },
+    {
+      "id": "copy-10",
+      "group": "copy",
+      "turns": [
+        {"user": "Echo the following exactly, please: Quentin left the blue folder with reference 30217 on the counter.", "reply": "Quentin left the blue folder with reference 30217 on the counter.", "copy": "Quentin left the blue folder with reference 30217 on the counter."}
+      ]
+    }
+  ]
+}

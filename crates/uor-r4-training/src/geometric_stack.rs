@@ -51,6 +51,45 @@
 //! (straight-through, `u + (snap(u) - u).detach()`). The fused recurrence core
 //! applies it, so training runs at the fused path's speed; with no snap set the
 //! core computes exactly what it computed before the snap existed.
+//!
+//! Flock selection (A1): with [`StackConfig::select`] set, every read row `t`
+//! of every `a` layer and head (and of the control's attention) softmaxes over
+//! a kept subset of the sources `0..=t` only. The subset is the shared
+//! selector's ([`crate::flock::flock_select`], sink 0): the sink, the last
+//! `window` positions and the `k` best-scoring remaining sources on the same
+//! total score the softmax uses (ties to the lowest position); the NoRead slot
+//! is not a position and stays outside the selection. Unkept sources get
+//! weight exactly 0 and, in the backward, gradient exactly 0; the backward
+//! calls the same function on the same scores, so its selection is identical.
+//! Selection is compare and select only, so it has a D11 port in principle; no
+//! port exists yet, so the exports refuse a model with a flock. With `select:
+//! None`, or a selection that keeps every source of a row, the read computes
+//! what it computed before the flock existed, bit for bit. The reads' `select`
+//! never applies to the pointer.
+//!
+//! Pointer-copy head (A1): with [`StackConfig::pointer`] set, the final hidden
+//! state `h_t` also drives a copy distribution. `q_t = W_q h_t` and
+//! `k_j = W_k h_j` (width to `dim`, no bias) give the pointer's own score of
+//! each source `j <= t`: `q_t . k_j / sqrt(dim)` for [`ReadScore::Dot`], and
+//! for [`ReadScore::Lorentz`] `-beta arcosh(1 + e)` with the excess `e =
+//! lift(q_t) lift(k_j) - q_t . k_j - 1`, `lift(x) = sqrt(1 + |x|^2)` (the form
+//! of the fused Lorentz read) and the learned positive scale `beta =
+//! exp(pointer.log_beta)`. The attention `a_t` is the softmax of the scores
+//! over the sources the pointer's **own** [`PointerConfig::select`] keeps
+//! ([`PointerSelect`]: the shared flock, or the `k` best alone, `TopK(1)`
+//! being the single-source pointer; `None` keeps every source), so a single
+//! kept source has weight 1. `p_copy(v | t) = sum_j a_tj [x_j = v]` copies the
+//! input tokens at the attended positions. A gate `g_t = sigmoid(w_g . h_t +
+//! b_g)` (`b_g` starts at -2) mixes it with the ordinary distribution: `p(v |
+//! t) = (1 - g_t) softmax(z_t)[v] + g_t p_copy(v | t)`. When no kept source
+//! holds the target, `p_copy` is exactly 0 and the mixture is `(1 - g_t)
+//! softmax(z_t)[v]`; there is no probability floor. [`StackModel::weighted_loss`],
+//! [`StackModel::loss`] and [`StackModel::target_nll`] score that mixture (in
+//! log space), and [`StackModel::next_scores`] is the greedy generation entry
+//! point. [`StackModel::forward`] still returns the raw logits `z`. Training
+//! may stay soft (`select: None`); [`StackModel::set_pointer_select`] applies a
+//! selection to the same weights afterwards. The pointer has no served
+//! representation: `qat=true` and the integer exports refuse a model with one.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -68,6 +107,7 @@ use sha2::{Digest, Sha256};
 use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_lut::GROUP;
 
+use crate::flock::{self, FlockSelect};
 use crate::lut_export::{dequantize_matrix, quantize_matrix};
 use crate::stack_export::{
     block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
@@ -104,6 +144,154 @@ pub enum ReadScore {
     Dot,
 }
 
+/// Refuse a flock the reads cannot evaluate. The selection itself is the shared
+/// selector's ([`crate::flock::flock_select`]); a read row's sink is its first
+/// source (position 0), the window keeps at least the row's own position, and
+/// at least one older source is kept by score (`flock_select` rejects a zero
+/// window or `k`, and a sink beyond the first row's position, at run time).
+pub fn validate_flock(select: &FlockSelect) -> Result<()> {
+    if select.sink != 0 {
+        return Err(invalid(
+            "a flock's sink is position 0, the first source of every row",
+        ));
+    }
+    if select.window == 0 {
+        return Err(invalid("a flock window is at least 1 position"));
+    }
+    if select.k == 0 {
+        return Err(invalid(
+            "a flock keeps at least 1 top-scoring source (k >= 1)",
+        ));
+    }
+    Ok(())
+}
+
+/// Parse `none` or `flock:<window>:<k>` (the reads' selection, sink 0).
+pub fn parse_flock_select(text: &str) -> Result<Option<FlockSelect>> {
+    let bad = || {
+        invalid(format!(
+            "invalid flock selection {text:?} (none or flock:<window>:<k>)"
+        ))
+    };
+    if text == "none" {
+        return Ok(None);
+    }
+    match text.split(':').collect::<Vec<_>>().as_slice() {
+        ["flock", window, k] => {
+            let select = FlockSelect {
+                sink: 0,
+                window: window.parse().map_err(|_| bad())?,
+                k: k.parse().map_err(|_| bad())?,
+            };
+            validate_flock(&select)?;
+            Ok(Some(select))
+        }
+        _ => Err(bad()),
+    }
+}
+
+/// Which of a pointer's sources `0..=t` its own softmax runs over (A1): the
+/// shared flock (sink 0, the last `window` positions and the `k` best of the
+/// rest), or only the `k` best-scoring sources with no sink and no window
+/// ([`crate::flock::top_k_select`]). `TopK(1)` is the single-source pointer,
+/// whose attention is 1 on the best-scoring source. The selection is the
+/// pointer's own: [`StackConfig::select`] never applies to it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PointerSelect {
+    Flock(FlockSelect),
+    TopK(usize),
+}
+
+impl PointerSelect {
+    pub fn validate(&self) -> Result<()> {
+        match self {
+            Self::Flock(select) => validate_flock(select),
+            Self::TopK(0) => Err(invalid("a pointer keeps at least 1 source (k >= 1)")),
+            Self::TopK(_) => Ok(()),
+        }
+    }
+
+    /// The sources of `scores[..=t]` this selection keeps, by the shared
+    /// selector on the pointer's own scores.
+    fn kept(&self, scores: &[f32], t: usize) -> Result<flock::FlockSelection> {
+        match *self {
+            Self::Flock(select) => flock::flock_select(scores, t, select),
+            Self::TopK(k) => flock::top_k_select(scores, t, k),
+        }
+    }
+}
+
+/// Parse `none`, `flock:<window>:<k>` or `top:<k>` (a pointer's selection).
+pub fn parse_pointer_select(text: &str) -> Result<Option<PointerSelect>> {
+    let bad = || {
+        invalid(format!(
+            "invalid pointer selection {text:?} (none, flock:<window>:<k> or top:<k>)"
+        ))
+    };
+    if text == "none" {
+        return Ok(None);
+    }
+    let select = match text.split(':').collect::<Vec<_>>().as_slice() {
+        ["flock", _, _] => PointerSelect::Flock(parse_flock_select(text)?.ok_or_else(|| bad())?),
+        ["top", k] => PointerSelect::TopK(k.parse().map_err(|_| bad())?),
+        _ => return Err(bad()),
+    };
+    select.validate()?;
+    Ok(Some(select))
+}
+
+/// The pointer-copy head (A1): `dim` is the width of its query and key.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PointerConfig {
+    pub dim: usize,
+    /// The pointer's own score of a source: `Dot` (the default, and the only
+    /// score a configuration saved before this field can mean) or `Lorentz`,
+    /// the fused read's hyperboloid form with the learned scale
+    /// `pointer.log_beta`.
+    #[serde(default = "default_pointer_score", skip_serializing_if = "is_dot")]
+    pub score: ReadScore,
+    /// The sources the pointer softmaxes over; `None` keeps them all. It is the
+    /// pointer's own: [`StackConfig::select`] never applies to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub select: Option<PointerSelect>,
+    /// The seed the head's weights were drawn from when the head was added to
+    /// a model that had none ([`StackModel::add_pointer`]); absent when the
+    /// head was built with its model. A resume verifies it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub init_seed: Option<u64>,
+}
+
+fn default_pointer_score() -> ReadScore {
+    ReadScore::Dot
+}
+
+fn is_dot(score: &ReadScore) -> bool {
+    *score == ReadScore::Dot
+}
+
+impl PointerConfig {
+    /// A Dot pointer of width `dim` that softmaxes over every source.
+    pub fn new(dim: usize) -> Self {
+        Self {
+            dim,
+            score: ReadScore::Dot,
+            select: None,
+            init_seed: None,
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        if self.dim == 0 {
+            return Err(invalid("the pointer head needs a positive query width"));
+        }
+        if let Some(select) = &self.select {
+            select.validate()?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StackConfig {
     pub arch: StackArch,
@@ -124,6 +312,17 @@ pub struct StackConfig {
     /// ([`crate::stack_memory`]); absent from configurations without one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub memory: Option<MemoryConfig>,
+    /// Flock selection of every read (the geometric reads and the control's
+    /// attention) by [`crate::flock::flock_select`], its sink at position 0;
+    /// absent from configurations without one, which read every source as
+    /// before. It does not apply to the pointer, which has its own
+    /// ([`PointerConfig::select`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub select: Option<FlockSelect>,
+    /// The pointer-copy head after the final norm; absent from configurations
+    /// without one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pointer: Option<PointerConfig>,
 }
 
 impl StackConfig {
@@ -141,6 +340,8 @@ impl StackConfig {
             rotation: false,
             seed,
             memory: None,
+            select: None,
+            pointer: None,
         }
     }
 
@@ -176,6 +377,8 @@ impl StackConfig {
             rotation: false,
             seed,
             memory: None,
+            select: None,
+            pointer: None,
         };
         config.validate()?;
         Ok(config)
@@ -246,6 +449,12 @@ impl StackConfig {
         }
         if let Some(memory) = &self.memory {
             memory.validate(self.layers())?;
+        }
+        if let Some(select) = &self.select {
+            validate_flock(select)?;
+        }
+        if let Some(pointer) = &self.pointer {
+            pointer.validate()?;
         }
         Ok(())
     }
@@ -333,6 +542,15 @@ impl StackConfig {
                         shapes.insert(name("read.offset"), vec![self.heads]);
                     }
                 }
+            }
+        }
+        if let Some(pointer) = &self.pointer {
+            shapes.insert("pointer.query.weight".to_owned(), vec![pointer.dim, d]);
+            shapes.insert("pointer.key.weight".to_owned(), vec![pointer.dim, d]);
+            shapes.insert("pointer.gate.weight".to_owned(), vec![1, d]);
+            shapes.insert("pointer.gate.bias".to_owned(), vec![1]);
+            if pointer.score == ReadScore::Lorentz {
+                shapes.insert("pointer.log_beta".to_owned(), vec![1]);
             }
         }
         shapes
@@ -432,6 +650,51 @@ impl Initializer {
     }
 }
 
+/// Names of the pointer head's variables start with this.
+const POINTER_PREFIX: &str = "pointer.";
+/// The pointer gate's initial bias: `sigmoid(-2)`, about 0.12.
+const POINTER_GATE_BIAS: f32 = -2.0;
+/// Initial scale of the pointer query and key, times `1 / sqrt(width)`.
+const POINTER_INITIAL_SCALE: f64 = 0.5;
+/// Mixed into the seed of the pointer head's initializer.
+const POINTER_SEED_MIX: u64 = 0x504F_494E_5445_5221;
+
+/// The pointer head's variables for `config`, drawn from a stream seeded by
+/// `seed` alone: query and key at `POINTER_INITIAL_SCALE / sqrt(width)`, the
+/// gate weight zero, its bias `POINTER_GATE_BIAS` and (Lorentz) the log scale
+/// `pointer.log_beta` zero, as `read.log_beta` starts. The scale draws nothing
+/// from the stream, so a Dot and a Lorentz head of one seed share their query
+/// and key. Empty without a pointer.
+fn pointer_variables(
+    config: &StackConfig,
+    seed: u64,
+    device: &Device,
+) -> Result<BTreeMap<String, Var>> {
+    let mut variables = BTreeMap::new();
+    let mut rng = Initializer(seed ^ POINTER_SEED_MIX);
+    let std = POINTER_INITIAL_SCALE / (config.width as f64).sqrt();
+    for (name, shape) in config.shapes() {
+        if !name.starts_with(POINTER_PREFIX) {
+            continue;
+        }
+        let count: usize = shape.iter().product();
+        let values: Vec<f32> = match name.as_str() {
+            "pointer.gate.weight" | "pointer.log_beta" => vec![0.0; count],
+            "pointer.gate.bias" => vec![POINTER_GATE_BIAS; count],
+            _ => (0..count).map(|_| (rng.normal() * std) as f32).collect(),
+        };
+        variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
+    }
+    Ok(variables)
+}
+
+fn pointer_served_refusal() -> crate::TrainingError {
+    invalid(
+        "the pointer head has no served representation yet; train it in float (no qat=true) and \
+         it has no D11 port",
+    )
+}
+
 pub struct StackModel {
     pub config: StackConfig,
     variables: BTreeMap<String, Var>,
@@ -452,6 +715,11 @@ impl StackModel {
         let lanes = config.width / 4;
         let mut variables = BTreeMap::new();
         for (name, shape) in config.shapes() {
+            // The pointer head draws from its own stream, so adding one to a
+            // saved model gives the weights a fresh construction would.
+            if name.starts_with(POINTER_PREFIX) {
+                continue;
+            }
             let count: usize = shape.iter().product();
             let suffix = name
                 .rsplit_once("layers.")
@@ -528,6 +796,7 @@ impl StackModel {
             };
             variables.insert(name, Var::from_vec(values, shape.as_slice(), device)?);
         }
+        variables.extend(pointer_variables(&config, config.seed, device)?);
         Ok(Self {
             config,
             variables,
@@ -535,6 +804,67 @@ impl StackModel {
             served: None,
             transport: None,
         })
+    }
+
+    /// Give the model a pointer-copy head ([`PointerConfig`]) whose weights are
+    /// initialised fresh from `seed` (the weights a new model with that
+    /// configuration and seed would start with), and record `seed` in the
+    /// head's [`PointerConfig::init_seed`] so that a resume can verify it.
+    /// `Ok(false)` if the model already has a head of that width and score
+    /// (its weights, selection and recorded seed are untouched; see
+    /// [`Self::set_pointer_select`]); a head of another width or score is
+    /// refused. The optimizer of a model must be built after this.
+    pub fn add_pointer(&mut self, pointer: PointerConfig, seed: u64) -> Result<bool> {
+        if let Some(existing) = self.config.pointer {
+            if existing.dim == pointer.dim && existing.score == pointer.score {
+                return Ok(false);
+            }
+            return Err(invalid(format!(
+                "the model has a {:?} pointer head of width {}, not a {:?} one of width {}",
+                existing.score, existing.dim, pointer.score, pointer.dim
+            )));
+        }
+        if self.served.is_some() {
+            return Err(pointer_served_refusal());
+        }
+        let mut config = self.config.clone();
+        config.pointer = Some(PointerConfig {
+            init_seed: Some(seed),
+            ..pointer
+        });
+        config.validate()?;
+        self.variables
+            .extend(pointer_variables(&config, seed, &self.device)?);
+        self.config = config;
+        Ok(true)
+    }
+
+    /// Replace the flock selection of the reads. The parameters do not change.
+    pub fn set_select(&mut self, select: Option<FlockSelect>) -> Result<()> {
+        if let Some(select) = &select {
+            validate_flock(select)?;
+        }
+        self.config.select = select;
+        Ok(())
+    }
+
+    /// Replace the pointer's own selection of its sources (the pointer never
+    /// reads [`StackConfig::select`]). The parameters do not change, so this
+    /// applies a selection to weights trained without one, and clearing it
+    /// restores the soft pointer bit for bit. `Some` is refused on a model
+    /// without a pointer head; `None` on one is a no-op.
+    pub fn set_pointer_select(&mut self, select: Option<PointerSelect>) -> Result<()> {
+        if let Some(select) = &select {
+            select.validate()?;
+        }
+        match self.config.pointer.as_mut() {
+            Some(pointer) => pointer.select = select,
+            None if select.is_some() => {
+                return Err(invalid("the model has no pointer head to select for"))
+            }
+            None => {}
+        }
+        Ok(())
     }
 
     pub fn device(&self) -> &Device {
@@ -698,7 +1028,7 @@ impl StackModel {
         };
         let (query, key, value) = (project("q")?, project("k")?, project("v")?);
         let aux = Tensor::zeros(1, DType::F32, &self.device)?;
-        let read = fused_read(
+        let read = fused_read_selected(
             &query,
             &key,
             &value,
@@ -707,6 +1037,7 @@ impl StackModel {
             false,
             false,
             true,
+            self.config.select,
         )?;
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
@@ -749,7 +1080,7 @@ impl StackModel {
         if aux.dim(0)? != fused_aux_len(batch, heads, time, self.config.read, true, true) {
             return Err(invalid("fused read auxiliary layout differs"));
         }
-        let read = fused_read(
+        let read = fused_read_selected(
             &query,
             &key,
             &value,
@@ -758,6 +1089,7 @@ impl StackModel {
             true,
             true,
             false,
+            self.config.select,
         )?;
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
@@ -964,7 +1296,83 @@ impl StackModel {
         Ok(x.reshape((batch * time, self.config.width))?)
     }
 
-    /// Mean next-token negative log-likelihood (nats) over all targets.
+    /// The pointer head's per-position outputs [rows, 2 * dim + 1] from final
+    /// states [rows, width]: query, key and gate logit (`w_g . h + b_g`), by one
+    /// matrix product of the three maps stacked.
+    fn pointer_side(&self, p: &Params<'_>, hidden: &Tensor) -> Result<Tensor> {
+        let pointer = self
+            .config
+            .pointer
+            .ok_or_else(|| invalid("the model has no pointer head"))?;
+        let weight = Tensor::cat(
+            &[
+                p.get("pointer.query.weight")?,
+                p.get("pointer.key.weight")?,
+                p.get("pointer.gate.weight")?,
+            ],
+            0,
+        )?;
+        let bias = Tensor::cat(
+            &[
+                &Tensor::zeros(2 * pointer.dim, DType::F32, &self.device)?,
+                p.get("pointer.gate.bias")?,
+            ],
+            0,
+        )?;
+        Ok(hidden.matmul(&weight.t()?)?.broadcast_add(&bias)?)
+    }
+
+    /// The pointer's Lorentz scale `exp(pointer.log_beta)` as a one-element
+    /// tensor (a zero for Dot, which has none): the mixture's third input,
+    /// through which the scale receives its gradient.
+    fn pointer_beta(&self, p: &Params<'_>) -> Result<Tensor> {
+        let pointer = self
+            .config
+            .pointer
+            .ok_or_else(|| invalid("the model has no pointer head"))?;
+        match pointer.score {
+            ReadScore::Dot => Ok(Tensor::zeros(1, DType::F32, &self.device)?),
+            ReadScore::Lorentz => Ok(p.get("pointer.log_beta")?.exp()?),
+        }
+    }
+
+    /// The mixture loss of a pointer model (see the module documentation): the
+    /// weighted mean, or with no `weights` the mean, of `-log((1 - g)
+    /// softmax(z)[y] + g p_copy(y))` over the targets.
+    fn pointer_loss(
+        &self,
+        ids: &[u32],
+        targets: &[u32],
+        weights: Option<&[f32]>,
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        let pointer = self
+            .config
+            .pointer
+            .ok_or_else(|| invalid("the model has no pointer head"))?;
+        let p = self.params()?;
+        let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
+        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let side = self.pointer_side(&p, &hidden)?;
+        let beta = self.pointer_beta(&p)?;
+        Ok(logits.contiguous()?.apply_op3(
+            &side.contiguous()?,
+            &beta.contiguous()?,
+            PointerMixture {
+                time,
+                dim: pointer.dim,
+                score: pointer.score,
+                select: pointer.select,
+                ids: ids.to_vec(),
+                targets: targets.to_vec(),
+                weights: weights.map(<[f32]>::to_vec),
+            },
+        )?)
+    }
+
+    /// Mean next-token negative log-likelihood (nats) over all targets. For a
+    /// pointer model, the mixture's.
     pub fn loss(&self, ids: &[u32], targets: &[u32], batch: usize, time: usize) -> Result<Tensor> {
         if targets.len() != ids.len() {
             return Err(invalid("one target per input id"));
@@ -974,6 +1382,9 @@ impl StackModel {
             .any(|&id| id as usize >= self.config.vocab_size)
         {
             return Err(invalid("target id outside the vocabulary"));
+        }
+        if self.config.pointer.is_some() {
+            return self.pointer_loss(ids, targets, None, batch, time);
         }
         let logits = self.forward(ids, batch, time)?;
         Ok(logits.apply_op1(CrossEntropy {
@@ -1010,6 +1421,9 @@ impl StackModel {
                 "loss weights must be finite, nonnegative and not all zero",
             ));
         }
+        if self.config.pointer.is_some() {
+            return self.pointer_loss(ids, targets, Some(weights), batch, time);
+        }
         let logits = self.forward(ids, batch, time)?;
         Ok(logits.apply_op1(CrossEntropy {
             targets: targets.to_vec(),
@@ -1018,6 +1432,7 @@ impl StackModel {
     }
 
     /// Per-target negative log-likelihoods (nats), without a backward graph.
+    /// For a pointer model, the mixture's.
     pub fn target_nll(
         &self,
         ids: &[u32],
@@ -1025,13 +1440,142 @@ impl StackModel {
         batch: usize,
         time: usize,
     ) -> Result<Vec<f64>> {
+        Ok(self.score_targets(ids, targets, None, batch, time)?.nll)
+    }
+
+    /// [`target_nll`](Self::target_nll), and for a pointer model what the head
+    /// did at each position. With `weights`, a pointer model scores only the
+    /// positions of nonzero weight (the others read `nll` 0 and no statistics);
+    /// a model without a pointer scores every position.
+    pub fn score_targets(
+        &self,
+        ids: &[u32],
+        targets: &[u32],
+        weights: Option<&[f32]>,
+        batch: usize,
+        time: usize,
+    ) -> Result<TargetScores> {
+        if targets.len() != ids.len() || weights.is_some_and(|w| w.len() != ids.len()) {
+            return Err(invalid("one target and one weight per input id"));
+        }
         if targets
             .iter()
             .any(|&id| id as usize >= self.config.vocab_size)
         {
             return Err(invalid("target id outside the vocabulary"));
         }
-        row_nll(&self.forward(ids, batch, time)?.detach(), targets)
+        let Some(pointer) = self.config.pointer else {
+            return Ok(TargetScores {
+                nll: row_nll(&self.forward(ids, batch, time)?.detach(), targets)?,
+                pointer: None,
+            });
+        };
+        let p = self.params()?;
+        let hidden = self
+            .hidden_hooked(&p, ids, batch, time, &mut None)?
+            .detach();
+        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let side = self.pointer_side(&p, &hidden)?;
+        let beta = one_value(&self.pointer_beta(&p)?)?;
+        let (logits, side) = (
+            logits.flatten_all()?.to_vec1::<f32>()?,
+            side.flatten_all()?.to_vec1::<f32>()?,
+        );
+        let vocabulary = self.config.vocab_size;
+        let op = PointerMixture {
+            time,
+            dim: pointer.dim,
+            score: pointer.score,
+            select: pointer.select,
+            ids: ids.to_vec(),
+            targets: targets.to_vec(),
+            weights: weights.map(<[f32]>::to_vec),
+        };
+        let rows: Vec<(f64, Option<PointerRowStats>)> = (0..ids.len())
+            .into_par_iter()
+            .map(|n| -> candle_core::Result<(f64, Option<PointerRowStats>)> {
+                if op.weight(n) == 0.0 {
+                    return Ok((0.0, None));
+                }
+                let row = op.evaluate(
+                    &logits[n * vocabulary..(n + 1) * vocabulary],
+                    &side,
+                    beta,
+                    n,
+                )?;
+                let first = n - n % time;
+                let target = targets[n];
+                let mut best = 0;
+                for (j, &a) in row.attention.iter().enumerate() {
+                    if a > row.attention[best] {
+                        best = j;
+                    }
+                }
+                let stats = PointerRowStats {
+                    gate: row.gate,
+                    copy_mass: row.copy,
+                    hit: ids[first + best] == target,
+                    reachable: row
+                        .attention
+                        .iter()
+                        .zip(&ids[first..])
+                        .any(|(&a, &id)| a > 0.0 && id == target),
+                };
+                Ok((-row.log_mixture, Some(stats)))
+            })
+            .collect::<candle_core::Result<_>>()?;
+        Ok(TargetScores {
+            nll: rows.iter().map(|row| row.0).collect(),
+            pointer: Some(rows.into_iter().map(|row| row.1).collect()),
+        })
+    }
+
+    /// Scores of the token after `ids` (one window, at most the context):
+    /// the raw logits of its last position, or for a pointer model the log of
+    /// the mixture `(1 - g) softmax(z) + g p_copy` there. The greedy token is
+    /// the highest score, the lowest id on a tie.
+    pub fn next_scores(&self, ids: &[u32]) -> Result<Vec<f32>> {
+        let time = ids.len();
+        if time == 0 {
+            return Err(invalid("next_scores needs at least one input id"));
+        }
+        let Some(pointer) = self.config.pointer else {
+            let logits = self.forward(ids, 1, time)?.detach();
+            return Ok(logits.get(time - 1)?.to_vec1::<f32>()?);
+        };
+        let p = self.params()?;
+        let hidden = self.hidden_hooked(&p, ids, 1, time, &mut None)?.detach();
+        let logits = hidden
+            .narrow(0, time - 1, 1)?
+            .matmul(&p.head()?.t()?)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let side = self
+            .pointer_side(&p, &hidden)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let rule = PointerRule {
+            dim: pointer.dim,
+            score: pointer.score,
+            select: pointer.select,
+            beta: one_value(&self.pointer_beta(&p)?)?,
+        };
+        let attention = pointer_attention(&side, 0, time - 1, &rule)?;
+        let gate = sigmoid_f64(f64::from(
+            side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
+        ));
+        let lse = row_log_sum_exp(&logits);
+        let mut mixture: Vec<f64> = logits
+            .iter()
+            .map(|&z| (1.0 - gate) * (f64::from(z) - lse).exp())
+            .collect();
+        for (&a, &id) in attention.iter().zip(ids) {
+            mixture[id as usize] += gate * a;
+        }
+        Ok(mixture
+            .into_iter()
+            .map(|probability| probability.max(f64::MIN_POSITIVE).ln() as f32)
+            .collect())
     }
 
     /// Per-target negative log-likelihoods (nats), using an explicit output head tensor
@@ -2231,6 +2775,7 @@ impl StackModel {
     pub fn set_served_representation(&mut self, codec: Option<Arc<dyn MapCodec>>) -> Result<()> {
         self.served = match codec {
             None => None,
+            Some(_) if self.config.pointer.is_some() => return Err(pointer_served_refusal()),
             Some(codec) => {
                 let plan = served_plan(&self.config)?;
                 self.check_served_plan(&plan)?;
@@ -3399,6 +3944,8 @@ struct FusedRead {
     age: bool,
     /// Rotary position embedding of queries and keys (the control's attention).
     rope: bool,
+    /// Flock selection of the sources each row softmaxes over.
+    select: Option<FlockSelect>,
 }
 
 /// One (window, head) block: queries and keys (rotated with RoPE) in row
@@ -3425,6 +3972,8 @@ struct Scratch {
     excess: Vec<f64>,
     distance: Vec<f64>,
     dp: Vec<f32>,
+    /// Which sources of the current row its flock selection keeps.
+    keep: Vec<bool>,
 }
 
 impl Scratch {
@@ -3433,8 +3982,42 @@ impl Scratch {
             excess: vec![0f64; TILE * time],
             distance: vec![0f64; TILE * time],
             dp: vec![0f32; TILE * time],
+            keep: Vec::new(),
         }
     }
+}
+
+/// A selector failure (a non-finite score it cannot rank) as the error of the
+/// op that met it.
+fn selection_error(error: crate::TrainingError) -> candle_core::Error {
+    candle_core::Error::msg(error)
+}
+
+/// Apply a selection of the shared selector ([`crate::flock`]) to one row:
+/// every entry of `scores` (the row's positions `0..=t`) that `selection` does
+/// not keep becomes `-inf`, so its softmax weight is exactly 0. Returns
+/// whether any was dropped; when none is (the selection keeps every position)
+/// `scores` is untouched, so a selection that covers the row is the plain row
+/// bit for bit. `keep` is scratch. Comparisons and moves only.
+fn drop_unkept(
+    selection: &flock::FlockSelection,
+    scores: &mut [f32],
+    keep: &mut Vec<bool>,
+) -> bool {
+    if selection.len() >= scores.len() {
+        return false;
+    }
+    keep.clear();
+    keep.resize(scores.len(), false);
+    for entry in &selection.entries {
+        keep[entry.position] = true;
+    }
+    for (score, &kept) in scores.iter_mut().zip(keep.iter()) {
+        if !kept {
+            *score = f32::NEG_INFINITY;
+        }
+    }
+    true
 }
 
 /// Rows of a register tile of the read's products.
@@ -3702,7 +4285,11 @@ impl FusedRead {
 
     /// Row `t`'s key probabilities, in place of its inner products
     /// `row[..=t]`; for Lorentz, `z - 1` in `excess[..=t]` and the distances
-    /// in `distance[..=t]`. Returns the NoRead probability.
+    /// in `distance[..=t]`. Returns the NoRead probability. With a flock
+    /// selection the probabilities are those of the kept sources and exactly
+    /// zero elsewhere; `keep` is the selection's scratch. The selection is the
+    /// shared selector's on the row's total scores, so a row it cannot rank (a
+    /// non-finite score) is an error here, not a silent NaN.
     fn transform(
         &self,
         block: &Block,
@@ -3710,7 +4297,8 @@ impl FusedRead {
         row: &mut [f32],
         excess: &mut [f64],
         distance: &mut [f64],
-    ) -> f32 {
+        keep: &mut Vec<bool>,
+    ) -> candle_core::Result<f32> {
         let row = &mut row[..=t];
         let scale = 1.0 / (self.key as f32).sqrt();
         let mut maximum = block.null.map_or(f32::NEG_INFINITY, |null| null[t]);
@@ -3729,6 +4317,18 @@ impl FusedRead {
             row[j] = score;
             maximum = maximum.max(score);
         }
+        if let Some(select) = self.select {
+            // Unkept scores become -inf, so their weight is exactly zero
+            // (`exp(-inf - maximum)`), and the maximum is over the kept ones
+            // and the NoRead slot, which is not a position and is not selected.
+            let selection = flock::flock_select(&*row, t, select).map_err(selection_error)?;
+            if drop_unkept(&selection, row, keep) {
+                maximum = block.null.map_or(f32::NEG_INFINITY, |null| null[t]);
+                for &score in row.iter() {
+                    maximum = maximum.max(score);
+                }
+            }
+        }
         let null_weight = block.null.map_or(0.0, |null| (null[t] - maximum).exp());
         let mut total = null_weight;
         for value in row.iter_mut() {
@@ -3739,7 +4339,7 @@ impl FusedRead {
         for value in row.iter_mut() {
             *value *= inverse;
         }
-        null_weight * inverse
+        Ok(null_weight * inverse)
     }
 
     /// Probabilities of the tile of rows `t0..t0 + rows` in `probabilities`
@@ -3752,7 +4352,7 @@ impl FusedRead {
         rows: usize,
         probabilities: &mut [f32],
         scratch: &mut Scratch,
-    ) -> [f32; TILE] {
+    ) -> candle_core::Result<[f32; TILE]> {
         let (key, time) = (self.key, self.time);
         tile_product(
             &block.query[t0 * key..],
@@ -3774,9 +4374,10 @@ impl FusedRead {
                 &mut probabilities[span.clone()],
                 &mut scratch.excess[span.clone()],
                 &mut scratch.distance[span],
-            );
+                &mut scratch.keep,
+            )?;
         }
-        null
+        Ok(null)
     }
 }
 
@@ -3843,15 +4444,14 @@ impl CustomOp3 for FusedRead {
         let (time, value) = (self.time, self.value);
         let tables = self.rope.then(|| rope_tables(time, self.key));
         let mut out = vec![0f32; self.batch * self.heads * time * value];
-        out.par_chunks_mut(time * value)
-            .enumerate()
-            .for_each(|(index, out)| {
+        out.par_chunks_mut(time * value).enumerate().try_for_each(
+            |(index, out)| -> candle_core::Result<()> {
                 let block = self.block(query, kv, aux, tables.as_ref(), index);
                 let mut scratch = Scratch::new(time);
                 let mut probabilities = vec![0f32; TILE * time];
                 for t0 in (0..time).step_by(TILE) {
                     let rows = TILE.min(time - t0);
-                    self.tile(&block, t0, rows, &mut probabilities, &mut scratch);
+                    self.tile(&block, t0, rows, &mut probabilities, &mut scratch)?;
                     causal_rows(
                         &probabilities,
                         time,
@@ -3863,7 +4463,9 @@ impl CustomOp3 for FusedRead {
                         &mut out[t0 * value..],
                     );
                 }
-            });
+                Ok(())
+            },
+        )?;
         Ok((
             CpuStorage::F32(out),
             Shape::from((self.batch, self.heads, time, value)),
@@ -3959,7 +4561,7 @@ impl CustomOp3 for FusedRead {
             .par_chunks_mut(time * key)
             .zip(dkv.par_chunks_mut(time * width))
             .enumerate()
-            .map(|(index, (dq, dkv))| {
+            .map(|(index, (dq, dkv))| -> candle_core::Result<Partial> {
                 let block = self.block(&q_values, &kv_values, &aux_values, tables.as_ref(), index);
                 let d_block = &d_out[index * time * value..(index + 1) * time * value];
                 let mut partial = Partial {
@@ -3987,7 +4589,7 @@ impl CustomOp3 for FusedRead {
                         rows,
                         &mut probabilities[t0 * time..],
                         &mut scratch,
-                    );
+                    )?;
                     tile_product(
                         &d_block[t0 * value..],
                         value,
@@ -4090,9 +4692,9 @@ impl CustomOp3 for FusedRead {
                     dkv[t * width + key..(t + 1) * width]
                         .copy_from_slice(&dv_rows[t * value..(t + 1) * value]);
                 }
-                partial
+                Ok(partial)
             })
-            .collect();
+            .collect::<candle_core::Result<Vec<Partial>>>()?;
         let mut d_aux = vec![0f64; aux_values.len()];
         let null_len = if self.null {
             self.batch * self.heads * time
@@ -4139,12 +4741,39 @@ pub fn fused_read(
     age: bool,
     rope: bool,
 ) -> Result<Tensor> {
+    fused_read_selected(query, key, value, aux, score, null, age, rope, None)
+}
+
+/// [`fused_read`] whose rows softmax over a flock-selected subset of the
+/// sources `0..=t` ([`FlockSelect`], selected by [`crate::flock::flock_select`]
+/// with the sink at 0) when `select` is set: the sink, the last `window`
+/// positions, the `k` best-scoring other sources by the same total score the
+/// softmax uses (ties to the lowest position) and the NoRead slot, which is
+/// not a position and is never selected away. Unkept sources have weight
+/// exactly 0 and receive gradient exactly 0. With `None`, or where a row's
+/// selection keeps every source, it is [`fused_read`], bit for bit. A row with
+/// a non-finite score cannot be ranked and is an error.
+#[allow(clippy::too_many_arguments)]
+pub fn fused_read_selected(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    aux: &Tensor,
+    score: ReadScore,
+    null: bool,
+    age: bool,
+    rope: bool,
+    select: Option<FlockSelect>,
+) -> Result<Tensor> {
     if query.dtype() != DType::F32
         || key.dtype() != DType::F32
         || value.dtype() != DType::F32
         || aux.dtype() != DType::F32
     {
         return Err(invalid("fused_read requires F32 tensors"));
+    }
+    if let Some(select) = &select {
+        validate_flock(select)?;
     }
     let (batch, heads, time, key_width) = query.dims4()?;
     let (b2, h2, t2, k2) = key.dims4()?;
@@ -4171,6 +4800,7 @@ pub fn fused_read(
         null,
         age,
         rope,
+        select,
     };
     if rope && key_width % 2 != 0 {
         return Err(invalid("RoPE needs an even head width"));
@@ -4904,6 +5534,494 @@ fn row_nll(logits: &Tensor, targets: &[u32]) -> Result<Vec<f64>> {
         .collect())
 }
 
+// ---------------------------------------------------------------------------
+// Pointer-copy head: the mixture of the ordinary distribution and a copy of the
+// input tokens at the attended positions.
+
+/// `ln(1 + e^x)`, stable for large `|x|`.
+fn softplus(x: f64) -> f64 {
+    if x > 0.0 {
+        x + (-x).exp().ln_1p()
+    } else {
+        x.exp().ln_1p()
+    }
+}
+
+fn sigmoid_f64(x: f64) -> f64 {
+    1.0 / (1.0 + (-x).exp())
+}
+
+/// The one f32 of a one-element tensor, as f64.
+fn one_value(tensor: &Tensor) -> Result<f64> {
+    tensor
+        .flatten_all()?
+        .to_vec1::<f32>()?
+        .first()
+        .map(|&value| f64::from(value))
+        .ok_or_else(|| invalid("expected a one-element tensor"))
+}
+
+/// How a pointer scores and selects its sources for one op or one generation
+/// step.
+#[derive(Clone, Copy, Debug)]
+struct PointerRule {
+    /// Width of the pointer's query and key.
+    dim: usize,
+    score: ReadScore,
+    /// The pointer's own selection; the reads' flock is not consulted.
+    select: Option<PointerSelect>,
+    /// The Lorentz scale `exp(pointer.log_beta)`; Dot has none.
+    beta: f64,
+}
+
+/// Query row `row` of a pointer's `side` (rows `[query | key | gate logit]`,
+/// `2 * dim + 1` wide).
+fn pointer_query(side: &[f32], dim: usize, row: usize) -> &[f32] {
+    let at = row * (2 * dim + 1);
+    &side[at..at + dim]
+}
+
+/// Key row `row` of a pointer's `side`.
+fn pointer_key(side: &[f32], dim: usize, row: usize) -> &[f32] {
+    let at = row * (2 * dim + 1) + dim;
+    &side[at..at + dim]
+}
+
+/// `sqrt(1 + |x|^2)` in f64: the hyperboloid lift of a pointer query or key,
+/// the lift of the fused read (`FusedRead::block`).
+fn pointer_lift(x: &[f32]) -> f64 {
+    (1.0 + x.iter().map(|&v| f64::from(v) * f64::from(v)).sum::<f64>()).sqrt()
+}
+
+/// The Lorentz terms of one pointer query and key, in the fused read's form:
+/// the excess `e = lift(q) lift(k) - <q, k> - 1`, the distance `arcosh(1 + e)`
+/// clamped below at `LORENTZ_MIN_EXCESS` ([`lorentz_distance`]), and the two
+/// lifts. The arithmetic is f64 throughout (the read's inner products are f32
+/// sums); the function is the same.
+struct LorentzTerms {
+    excess: f64,
+    distance: f64,
+    query_lift: f64,
+    key_lift: f64,
+}
+
+fn lorentz_terms(query: &[f32], key: &[f32]) -> LorentzTerms {
+    let (query_lift, key_lift) = (pointer_lift(query), pointer_lift(key));
+    let inner: f64 = query
+        .iter()
+        .zip(key)
+        .map(|(&a, &b)| f64::from(a) * f64::from(b))
+        .sum();
+    let excess = query_lift * key_lift - inner - 1.0;
+    LorentzTerms {
+        excess,
+        distance: lorentz_distance(excess),
+        query_lift,
+        key_lift,
+    }
+}
+
+/// The pointer's scores of position `t` (row `first + t` of `side`) over the
+/// sources `0..=t`: `q_t . k_j / sqrt(dim)` for Dot, `-beta arcosh(1 + e)` for
+/// Lorentz, rounded to f32 as the reads' scores are.
+fn pointer_scores(side: &[f32], first: usize, t: usize, rule: &PointerRule) -> Vec<f32> {
+    let query = pointer_query(side, rule.dim, first + t);
+    match rule.score {
+        ReadScore::Dot => {
+            let scale = 1.0 / (rule.dim as f32).sqrt();
+            (0..=t)
+                .map(|j| dot(query, pointer_key(side, rule.dim, first + j)) * scale)
+                .collect()
+        }
+        ReadScore::Lorentz => (0..=t)
+            .map(|j| {
+                let key = pointer_key(side, rule.dim, first + j);
+                (-rule.beta * lorentz_terms(query, key).distance) as f32
+            })
+            .collect(),
+    }
+}
+
+/// The pointer's attention over the sources `0..=t` (`t + 1 = scores.len()`):
+/// the softmax of `scores` over the sources `select` keeps, exactly 0 on the
+/// others, or over every source when `select` is `None`. The selection is the
+/// shared selector's ([`crate::flock`]), taken on these same scores, and the
+/// sums run in position order, so a selection that keeps every source equals
+/// `None` bit for bit. A kept single source has weight 1.
+fn pointer_weights(
+    mut scores: Vec<f32>,
+    select: Option<PointerSelect>,
+) -> candle_core::Result<Vec<f64>> {
+    if let Some(select) = select {
+        let t = scores.len().saturating_sub(1);
+        let selection = select.kept(&scores, t).map_err(selection_error)?;
+        drop_unkept(&selection, &mut scores, &mut Vec::new());
+    }
+    let maximum = scores.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+    let mut weights: Vec<f64> = scores
+        .iter()
+        .map(|&score| f64::from(score - maximum).exp())
+        .collect();
+    let total: f64 = weights.iter().sum();
+    for weight in &mut weights {
+        *weight /= total;
+    }
+    Ok(weights)
+}
+
+/// The pointer's attention of position `t` of the window whose first row is
+/// row `first` of `side` (rows `[query | key | gate logit]`, `2 * dim + 1`
+/// wide), by `rule`'s own score and selection (unkept sources exactly 0).
+fn pointer_attention(
+    side: &[f32],
+    first: usize,
+    t: usize,
+    rule: &PointerRule,
+) -> candle_core::Result<Vec<f64>> {
+    pointer_weights(pointer_scores(side, first, t, rule), rule.select)
+}
+
+/// One scored position of the mixture.
+struct MixtureRow {
+    /// The pointer's attention over sources `0..=t`.
+    attention: Vec<f64>,
+    /// `p_copy(target | t)`: exactly 0 when no source with attention holds the
+    /// target.
+    copy: f64,
+    /// The gate `g_t`.
+    gate: f64,
+    /// `log((1 - g) softmax(z)[target] + g p_copy)`, with no floor on
+    /// `p_copy`.
+    log_mixture: f64,
+    /// The shares of the mixture that came from each branch (sum to 1).
+    generate_share: f64,
+    copy_share: f64,
+    /// Log-sum-exp of the logits row.
+    lse: f64,
+}
+
+/// The mixture loss of a batch of windows: for a scored target `y_t`,
+/// `NLL_t = -log((1 - g_t) softmax(z_t)[y_t] + g_t p_copy(y_t | t))`, averaged
+/// with the response weights as [`CrossEntropy`] does. Inputs are the logits
+/// `z` [rows, vocabulary], the pointer's per-row `[query | key | gate logit]`
+/// [rows, 2 * dim + 1] and its Lorentz scale `beta` [1] (`exp(pointer.log_beta)`;
+/// ignored by Dot, which gets a zero gradient for it); the backward is exact
+/// and gives no work to rows of weight zero.
+struct PointerMixture {
+    time: usize,
+    dim: usize,
+    score: ReadScore,
+    select: Option<PointerSelect>,
+    /// The input token of every position: what the head copies.
+    ids: Vec<u32>,
+    targets: Vec<u32>,
+    weights: Option<Vec<f32>>,
+}
+
+impl PointerMixture {
+    fn weight(&self, row: usize) -> f64 {
+        self.weights.as_ref().map_or(1.0, |w| f64::from(w[row]))
+    }
+
+    fn total(&self) -> f64 {
+        match &self.weights {
+            None => self.targets.len() as f64,
+            Some(weights) => weights.iter().map(|&w| f64::from(w)).sum(),
+        }
+    }
+
+    fn rule(&self, beta: f64) -> PointerRule {
+        PointerRule {
+            dim: self.dim,
+            score: self.score,
+            select: self.select,
+            beta,
+        }
+    }
+
+    /// Row `n` (window `n / time`, position `n % time`).
+    fn evaluate(
+        &self,
+        logits: &[f32],
+        side: &[f32],
+        beta: f64,
+        n: usize,
+    ) -> candle_core::Result<MixtureRow> {
+        let (first, t) = (n - n % self.time, n % self.time);
+        let target = self.targets[n];
+        let attention = pointer_attention(side, first, t, &self.rule(beta))?;
+        let copy: f64 = attention
+            .iter()
+            .zip(&self.ids[first..=first + t])
+            .filter(|(_, &id)| id == target)
+            .map(|(&a, _)| a)
+            .sum();
+        let logit = f64::from(side[n * (2 * self.dim + 1) + 2 * self.dim]);
+        let lse = row_log_sum_exp(logits);
+        let generate = -softplus(logit) + f64::from(logits[target as usize]) - lse;
+        // No kept source holds the target: the copy branch has probability 0
+        // exactly, so the row is the generated probability alone (no floor).
+        let copied = if copy > 0.0 {
+            -softplus(-logit) + copy.ln()
+        } else {
+            f64::NEG_INFINITY
+        };
+        let high = generate.max(copied);
+        let log_mixture = high + ((generate - high).exp() + (copied - high).exp()).ln();
+        Ok(MixtureRow {
+            attention,
+            copy,
+            gate: sigmoid_f64(logit),
+            log_mixture,
+            generate_share: (generate - log_mixture).exp(),
+            copy_share: (copied - log_mixture).exp(),
+            lse,
+        })
+    }
+
+    fn check(
+        &self,
+        logits: &Layout,
+        side: &Layout,
+        beta: &Layout,
+    ) -> candle_core::Result<(usize, usize)> {
+        let (rows, vocabulary) = logits.shape().dims2()?;
+        if side.shape().dims() != [rows, 2 * self.dim + 1]
+            || beta.shape().dims() != [1usize]
+            || self.ids.len() != rows
+            || self.targets.len() != rows
+            || self.weights.as_ref().is_some_and(|w| w.len() != rows)
+            || self.time == 0
+            || !rows.is_multiple_of(self.time)
+        {
+            candle_core::bail!("pointer mixture inputs disagree in shape");
+        }
+        Ok((rows, vocabulary))
+    }
+}
+
+impl CustomOp3 for PointerMixture {
+    fn name(&self) -> &'static str {
+        "geometric-stack-pointer-mixture"
+    }
+
+    fn cpu_fwd(
+        &self,
+        s1: &CpuStorage,
+        l1: &Layout,
+        s2: &CpuStorage,
+        l2: &Layout,
+        s3: &CpuStorage,
+        l3: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        let (rows, vocabulary) = self.check(l1, l2, l3)?;
+        let (logits, side, beta) = (
+            contiguous(s1, l1)?,
+            contiguous(s2, l2)?,
+            contiguous(s3, l3)?,
+        );
+        let beta = beta
+            .first()
+            .map(|&value| f64::from(value))
+            .ok_or_else(|| candle_core::Error::msg("pointer mixture needs its scale"))?;
+        // Each row's loss in row order, summed in that order: the mean does
+        // not depend on how the threads split the rows.
+        let losses: Vec<f64> = (0..rows)
+            .into_par_iter()
+            .map(|n| -> candle_core::Result<f64> {
+                if self.weight(n) == 0.0 {
+                    return Ok(0.0);
+                }
+                let row =
+                    self.evaluate(&logits[n * vocabulary..(n + 1) * vocabulary], side, beta, n)?;
+                Ok(-self.weight(n) * row.log_mixture)
+            })
+            .collect::<candle_core::Result<_>>()?;
+        let sum: f64 = losses.iter().sum();
+        Ok((
+            CpuStorage::F32(vec![(sum / self.total()) as f32]),
+            Shape::from(()),
+        ))
+    }
+
+    fn bwd(
+        &self,
+        logits: &Tensor,
+        side: &Tensor,
+        beta: &Tensor,
+        _loss: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+        let (rows, vocabulary) = logits.dims2()?;
+        let (time, dim) = (self.time, self.dim);
+        let stride = 2 * dim + 1;
+        let scale = 1.0 / (dim as f64).sqrt();
+        let lorentz = self.score == ReadScore::Lorentz;
+        let z = logits.flatten_all()?.to_vec1::<f32>()?;
+        let s = side.flatten_all()?.to_vec1::<f32>()?;
+        let beta_value = beta
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .first()
+            .map(|&value| f64::from(value))
+            .ok_or_else(|| candle_core::Error::msg("pointer mixture needs its scale"))?;
+        let grad = f64::from(grad.to_scalar::<f32>()?);
+        let total = self.total();
+        let mut d_logits = vec![0f32; rows * vocabulary];
+        let mut d_side = vec![0f32; rows * stride];
+        // d loss / d score of every (row, source) for Dot, and for Lorentz
+        // d loss / d excess (the score's derivative through `-beta arcosh(1 +
+        // e)` applied), for the keys' gradients.
+        let mut d_scores = vec![0f64; rows * time];
+        // d loss / d beta of every row.
+        let mut d_beta_rows = vec![0f64; rows];
+        d_logits
+            .par_chunks_mut(vocabulary)
+            .zip(d_side.par_chunks_mut(stride))
+            .zip(d_scores.par_chunks_mut(time))
+            .zip(d_beta_rows.par_chunks_mut(1))
+            .enumerate()
+            .filter(|(n, _)| self.weight(*n) != 0.0)
+            .try_for_each(
+                |(n, (((d_z, d_row), d_score), d_beta))| -> candle_core::Result<()> {
+                    let row =
+                        self.evaluate(&z[n * vocabulary..(n + 1) * vocabulary], &s, beta_value, n)?;
+                    let first = n - n % time;
+                    let target = self.targets[n];
+                    let c = grad * self.weight(n) / total;
+                    // d NLL / d z_v = share_generate (softmax_v - [v = target]).
+                    let k = c * row.generate_share;
+                    for (v, slot) in d_z.iter_mut().enumerate() {
+                        *slot = (k * (f64::from(z[n * vocabulary + v]) - row.lse).exp()) as f32;
+                    }
+                    d_z[target as usize] -= k as f32;
+                    // d NLL / d gate logit = share_generate g - share_copy (1 - g),
+                    // which is `g` when no source holds the target.
+                    d_row[2 * dim] = (c
+                        * (row.generate_share * row.gate - row.copy_share * (1.0 - row.gate)))
+                        as f32;
+                    // d loss / d score_j = -(g / mixture) a_j (m_j - p_copy).
+                    // g / mixture overflows once the mixture is below about
+                    // exp(-709.78), so the product is taken through the copy
+                    // share g p_copy / mixture (at most 1): -copy_share
+                    // (a_j / p_copy) (1 - p_copy) for a source holding the
+                    // target (a_j / p_copy is at most 1 there) and copy_share
+                    // a_j for the others. When no source holds the target,
+                    // p_copy is 0 whatever the scores are, so this row gives
+                    // them no gradient (and none is formed: zero times the
+                    // overflow would be NaN).
+                    let sources: &[f64] = if row.copy > 0.0 { &row.attention } else { &[] };
+                    let query = pointer_query(&s, dim, n);
+                    let mut d_query = vec![0f64; dim];
+                    let mut d_beta_sum = 0.0;
+                    for (j, &a) in sources.iter().enumerate() {
+                        if a == 0.0 {
+                            continue;
+                        }
+                        let d_source = if self.ids[first + j] == target {
+                            -c * row.copy_share * (a / row.copy) * (1.0 - row.copy)
+                        } else {
+                            c * row.copy_share * a
+                        };
+                        let key = pointer_key(&s, dim, first + j);
+                        if lorentz {
+                            let terms = lorentz_terms(query, key);
+                            d_beta_sum -= d_source * terms.distance;
+                            // The clamped distance carries no gradient to the
+                            // query and key, as in the fused read.
+                            if terms.excess > LORENTZ_MIN_EXCESS {
+                                let d_excess = -beta_value * d_source
+                                    / (terms.excess * (terms.excess + 2.0)).sqrt();
+                                d_score[j] = d_excess;
+                                // e = lift_q lift_k - <q, k> - 1, so
+                                // d e / d q = (lift_k / lift_q) q - k.
+                                let own = d_excess * terms.key_lift / terms.query_lift;
+                                for ((slot, &q), &kv) in d_query.iter_mut().zip(query).zip(key) {
+                                    *slot += own * f64::from(q) - d_excess * f64::from(kv);
+                                }
+                            }
+                        } else {
+                            d_score[j] = d_source;
+                            for (slot, &value) in d_query.iter_mut().zip(key) {
+                                *slot += d_source * scale * f64::from(value);
+                            }
+                        }
+                    }
+                    for (slot, value) in d_row[..dim].iter_mut().zip(d_query) {
+                        *slot = value as f32;
+                    }
+                    if let Some(slot) = d_beta.first_mut() {
+                        *slot = d_beta_sum;
+                    }
+                    Ok(())
+                },
+            )?;
+        d_side
+            .par_chunks_mut(stride)
+            .enumerate()
+            .for_each(|(n, d_row)| {
+                let (first, j) = (n - n % time, n % time);
+                let key = pointer_key(&s, dim, n);
+                let key_lift = if lorentz { pointer_lift(key) } else { 1.0 };
+                let mut d_key = vec![0f64; dim];
+                for t in j..time {
+                    let c = d_scores[(first + t) * time + j];
+                    if c == 0.0 {
+                        continue;
+                    }
+                    let query = pointer_query(&s, dim, first + t);
+                    if lorentz {
+                        // d e / d k = (lift_q / lift_k) k - q.
+                        let own = c * pointer_lift(query) / key_lift;
+                        for ((slot, &q), &kv) in d_key.iter_mut().zip(query).zip(key) {
+                            *slot += own * f64::from(kv) - c * f64::from(q);
+                        }
+                    } else {
+                        for (slot, &value) in d_key.iter_mut().zip(query) {
+                            *slot += c * scale * f64::from(value);
+                        }
+                    }
+                }
+                for (slot, value) in d_row[dim..2 * dim].iter_mut().zip(d_key) {
+                    *slot = value as f32;
+                }
+            });
+        let d_beta: f64 = d_beta_rows.iter().sum();
+        Ok((
+            Some(Tensor::from_vec(d_logits, logits.shape(), logits.device())?),
+            Some(Tensor::from_vec(d_side, side.shape(), side.device())?),
+            Some(Tensor::from_vec(
+                vec![d_beta as f32],
+                beta.shape(),
+                beta.device(),
+            )?),
+        ))
+    }
+}
+
+/// What the pointer head did at one scored position.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PointerRowStats {
+    /// The gate `g_t`.
+    pub gate: f64,
+    /// `p_copy(target | t)` before the gate.
+    pub copy_mass: f64,
+    /// Whether the most attended source (the lowest on a tie) holds the target.
+    pub hit: bool,
+    /// Whether any source with attention holds the target: what a hit can
+    /// reach.
+    pub reachable: bool,
+}
+
+/// Per-position scores of a batch: the negative log-likelihood of each target
+/// (nats; the mixture's for a pointer model) and, for a pointer model, what its
+/// head did at each scored position.
+#[derive(Clone, Debug)]
+pub struct TargetScores {
+    pub nll: Vec<f64>,
+    pub pointer: Option<Vec<Option<PointerRowStats>>>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4933,6 +6051,8 @@ mod tests {
             rotation: false,
             seed: 42,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2, 3, 4];
@@ -4975,6 +6095,8 @@ mod tests {
             rotation: false,
             seed: 42,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let model = StackModel::new(config, &Device::Cpu)?;
         let ids = vec![1, 2];
@@ -5109,6 +6231,20 @@ mod tests {
         age: Option<&Tensor>,
         lorentz: Option<(&Tensor, &Tensor)>,
     ) -> Result<Tensor> {
+        reference_read_masked(query, key, value, null, age, lorentz, None)
+    }
+
+    /// [`reference_read`] with an additive mask [batch, heads, time, time] on
+    /// the scores (0 keeps a source, -inf drops it), for a fixed selection.
+    fn reference_read_masked(
+        query: &Tensor,
+        key: &Tensor,
+        value: &Tensor,
+        null: Option<&Tensor>,
+        age: Option<&Tensor>,
+        lorentz: Option<(&Tensor, &Tensor)>,
+        keep: Option<&Tensor>,
+    ) -> Result<Tensor> {
         let (batch, heads, time, width) = query.dims4()?;
         let inner = query.matmul(&key.transpose(2, 3)?)?;
         let mut scores = match lorentz {
@@ -5152,6 +6288,9 @@ mod tests {
             scores = scores.broadcast_add(&table)?;
         }
         scores = scores.broadcast_add(&Tensor::from_vec(mask, (1, 1, time, time), &cpu())?)?;
+        if let Some(keep) = keep {
+            scores = scores.add(keep)?;
+        }
         let (scores, values) = match null {
             Some(null) => (
                 Tensor::cat(&[&null.reshape((batch, heads, time, 1))?, &scores], 3)?,
@@ -5675,6 +6814,8 @@ mod tests {
             rotation,
             seed: 5,
             memory: None,
+            select: None,
+            pointer: None,
         }
     }
 
@@ -5976,6 +7117,8 @@ mod tests {
             rotation,
             seed: 29,
             memory: None,
+            select: None,
+            pointer: None,
         }
     }
 
@@ -7559,6 +8702,1951 @@ mod tests {
              snap {snapped:.4} s ({:+.1}%)",
             100.0 * (snapped / free - 1.0)
         );
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // A1: flock selection of the reads and the pointer-copy head.
+
+    /// Random inputs of a fused read, as `read_shape` draws them.
+    struct ReadInputs {
+        q: Var,
+        k: Var,
+        v: Var,
+        null: Var,
+        age: Var,
+        beta: Var,
+        offset: Var,
+    }
+
+    impl ReadInputs {
+        fn draw(
+            seed: u64,
+            (batch, heads, time, width, value_width): (usize, usize, usize, usize, usize),
+            spread: f64,
+        ) -> Result<Self> {
+            let mut rng = Initializer(seed);
+            Ok(Self {
+                q: Var::from_tensor(&random(&mut rng, &[batch, heads, time, width], spread))?,
+                k: Var::from_tensor(&random(&mut rng, &[batch, heads, time, width], spread))?,
+                v: Var::from_tensor(&random(&mut rng, &[batch, heads, time, value_width], 1.0))?,
+                null: Var::from_tensor(&random(&mut rng, &[batch, heads, time], 1.0))?,
+                age: Var::from_tensor(&random(&mut rng, &[heads, time], 0.5))?,
+                beta: Var::from_tensor(&random(&mut rng, &[heads], 0.3).affine(1.0, 1.0)?)?,
+                offset: Var::from_tensor(&random(&mut rng, &[heads], 0.5).affine(1.0, 2.0)?)?,
+            })
+        }
+
+        fn aux(&self, lorentz: bool) -> Result<Tensor> {
+            let mut parts = vec![
+                self.null.as_tensor().flatten_all()?,
+                self.age.as_tensor().flatten_all()?,
+            ];
+            if lorentz {
+                parts.push(self.beta.as_tensor().clone());
+                parts.push(self.offset.as_tensor().clone());
+            }
+            Ok(Tensor::cat(&parts, 0)?)
+        }
+
+        fn vars(&self, lorentz: bool) -> Vec<Var> {
+            let mut vars = vec![
+                self.q.clone(),
+                self.k.clone(),
+                self.v.clone(),
+                self.null.clone(),
+                self.age.clone(),
+            ];
+            if lorentz {
+                vars.push(self.beta.clone());
+                vars.push(self.offset.clone());
+            }
+            vars
+        }
+
+        fn lorentz(&self, lorentz: bool) -> Option<(&Tensor, &Tensor)> {
+            lorentz.then(|| (self.beta.as_tensor(), self.offset.as_tensor()))
+        }
+    }
+
+    /// The total score (the softmax's argument, before the NoRead slot) of every
+    /// source of every row, in f64 by plain loops: entry
+    /// `((b * heads + h) * time + t) * time + j` for `j <= t`.
+    fn read_scores(x: &ReadInputs, lorentz: bool) -> Result<Vec<f64>> {
+        let (batch, heads, time, width) = x.q.dims4()?;
+        let q = x.q.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+        let k = x.k.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+        let age = x.age.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+        let beta = x.beta.as_tensor().to_vec1::<f32>()?;
+        let offset = x.offset.as_tensor().to_vec1::<f32>()?;
+        let lift =
+            |row: &[f32]| (1.0 + row.iter().map(|&v| f64::from(v).powi(2)).sum::<f64>()).sqrt();
+        let mut out = vec![0f64; batch * heads * time * time];
+        for row in 0..batch * heads {
+            let (block, h) = (row * time * width, row % heads);
+            for t in 0..time {
+                for j in 0..=t {
+                    let query = &q[block + t * width..block + (t + 1) * width];
+                    let key = &k[block + j * width..block + (j + 1) * width];
+                    let inner: f64 = query
+                        .iter()
+                        .zip(key)
+                        .map(|(&a, &b)| f64::from(a) * f64::from(b))
+                        .sum();
+                    let age = f64::from(age[h * time + (t - j)]);
+                    out[(row * time + t) * time + j] = if lorentz {
+                        let excess = lift(query) * lift(key) - inner - 1.0;
+                        let distance = lorentz_distance(excess);
+                        -f64::from(beta[h]) * (distance - f64::from(offset[h])) + age
+                    } else {
+                        inner / (width as f64).sqrt() + age
+                    };
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    /// The kept sources of one row by an independent implementation (a full
+    /// sort): the sink, the last `window` positions and the `k` best of the
+    /// rest, ties to the lowest position.
+    fn kept_sources(select: FlockSelect, t: usize, scores: &[f64]) -> Vec<bool> {
+        let mut keep = vec![false; t + 1];
+        keep[0] = true;
+        let recent = (t + 1).saturating_sub(select.window);
+        for slot in &mut keep[recent..] {
+            *slot = true;
+        }
+        let mut rest: Vec<usize> = (1..recent).collect();
+        rest.sort_by(|&a, &b| scores[b].total_cmp(&scores[a]).then(a.cmp(&b)));
+        for &j in rest.iter().take(select.k) {
+            keep[j] = true;
+        }
+        keep
+    }
+
+    /// The `k` best sources of one row by an independent implementation (a
+    /// full sort), with no sink and no window; ties to the lowest position.
+    fn kept_top_k(k: usize, scores: &[f64]) -> Vec<bool> {
+        let mut order: Vec<usize> = (0..scores.len()).collect();
+        order.sort_by(|&a, &b| scores[b].total_cmp(&scores[a]).then(a.cmp(&b)));
+        let mut keep = vec![false; scores.len()];
+        for &j in order.iter().take(k) {
+            keep[j] = true;
+        }
+        keep
+    }
+
+    /// The smallest gap, over all rows, between the `k`-th and `(k + 1)`-th
+    /// best remaining source (infinite when no row has to choose).
+    fn selection_gap(select: FlockSelect, scores: &[f64], rows: usize, time: usize) -> f64 {
+        let mut gap = f64::INFINITY;
+        for row in 0..rows {
+            for t in 0..time {
+                let recent = (t + 1).saturating_sub(select.window);
+                let s = &scores[(row * time + t) * time..(row * time + t) * time + t + 1];
+                let mut rest: Vec<f64> = (1..recent).map(|j| s[j]).collect();
+                rest.sort_by(|a, b| b.total_cmp(a));
+                if select.k > 0 && rest.len() > select.k {
+                    gap = gap.min(rest[select.k - 1] - rest[select.k]);
+                }
+            }
+        }
+        gap
+    }
+
+    /// The A1 prototype's selection of one read row, verbatim (its own
+    /// `FlockSelect { window, k }` and `flock_mask`, before the shared
+    /// selector replaced them), as an independent reference: keeps the sink
+    /// `0`, the positions `t + 1 - window..=t` and the `k` highest of
+    /// `scores[1..t + 1 - window]` (ties to the lowest position), and sets
+    /// every other entry of `scores[..=t]` to `floor`. Returns whether any was
+    /// dropped.
+    fn legacy_flock_mask<T: Copy + PartialOrd>(
+        window: usize,
+        k: usize,
+        t: usize,
+        scores: &mut [T],
+        floor: T,
+        top: &mut Vec<(T, usize)>,
+    ) -> bool {
+        debug_assert!(scores.len() == t + 1 && window >= 1);
+        let recent = (t + 1).saturating_sub(window);
+        if recent <= 1 || recent - 1 <= k {
+            return false;
+        }
+        if k == 0 {
+            scores[1..recent].fill(floor);
+            return true;
+        }
+        top.clear();
+        for (j, &score) in scores.iter().enumerate().take(recent).skip(1) {
+            if top.len() == k {
+                if score.partial_cmp(&top[k - 1].0) != Some(std::cmp::Ordering::Greater) {
+                    continue;
+                }
+                top.pop();
+            }
+            let at = top.partition_point(|&(kept, _)| kept >= score);
+            top.insert(at, (score, j));
+        }
+        scores[1..recent].fill(floor);
+        for &(score, j) in top.iter() {
+            scores[j] = score;
+        }
+        true
+    }
+
+    #[test]
+    fn the_shared_selector_keeps_what_the_prototypes_flock_mask_kept() -> Result<()> {
+        // A hand-built row (its best remaining sources are positions 1 and 3)
+        // and random rows.
+        let by_hand = vec![0.0f32, 5.0, 1.0, 4.0, 2.0, 3.0, 0.5, 0.2, 0.1, 0.3];
+        let mut rng = Initializer(2024);
+        let mut rows = vec![by_hand];
+        for _ in 0..40 {
+            rows.push((0..14).map(|_| (rng.normal() * 2.0) as f32).collect());
+        }
+        for scores in &rows {
+            for (window, k) in [(1, 1), (2, 2), (3, 4), (1, 9), (4, 2), (5, 1), (20, 3)] {
+                for t in 0..scores.len() {
+                    let mut legacy = scores[..=t].to_vec();
+                    let mut top = Vec::new();
+                    legacy_flock_mask(window, k, t, &mut legacy, f32::NEG_INFINITY, &mut top);
+                    let kept_by_mask: Vec<usize> = (0..=t)
+                        .filter(|&j| legacy[j] != f32::NEG_INFINITY)
+                        .collect();
+                    let selection =
+                        flock::flock_select(&scores[..=t], t, FlockSelect { sink: 0, window, k })?;
+                    let mut kept: Vec<usize> = selection.positions().collect();
+                    kept.sort_unstable();
+                    assert_eq!(kept, kept_by_mask, "window {window} k {k} row {t}");
+                    // And the mask the reads apply from that selection is the
+                    // prototype's mask, entry for entry.
+                    let mut masked = scores[..=t].to_vec();
+                    drop_unkept(&selection, &mut masked, &mut Vec::new());
+                    assert_eq!(masked, legacy, "window {window} k {k} row {t}");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_flock_covering_the_context_equals_no_selection_bit_for_bit() -> Result<()> {
+        // Eleven positions of a 20-wide key run full tiles, the causal
+        // triangle and a short last tile.
+        let shape = (2, 3, 11, 20, 33);
+        let (batch, heads, time, _, value_width) = shape;
+        let weights = random(&mut Initializer(9), &[batch, heads, time, value_width], 1.0);
+        let real = FlockSelect {
+            sink: 0,
+            window: 3,
+            k: 2,
+        };
+        let covering = [
+            FlockSelect {
+                sink: 0,
+                window: time,
+                k: 1,
+            },
+            FlockSelect {
+                sink: 0,
+                window: 4 * time,
+                k: 1,
+            },
+            FlockSelect {
+                sink: 0,
+                window: 1,
+                k: time,
+            },
+            FlockSelect {
+                sink: 0,
+                window: 3,
+                k: time,
+            },
+            FlockSelect {
+                sink: 0,
+                window: 1,
+                k: 2 * time,
+            },
+        ];
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let lorentz = score == ReadScore::Lorentz;
+            let x = ReadInputs::draw(3, shape, 0.8)?;
+            let (aux, vars) = (x.aux(lorentz)?, x.vars(lorentz));
+            let run = |select: Option<FlockSelect>| -> Result<Vec<Vec<u32>>> {
+                let out = fused_read_selected(
+                    x.q.as_tensor(),
+                    x.k.as_tensor(),
+                    x.v.as_tensor(),
+                    &aux,
+                    score,
+                    true,
+                    true,
+                    false,
+                    select,
+                )?;
+                let grads = out.mul(&weights)?.sum_all()?.backward()?;
+                let mut all = vec![bits(&out)?];
+                for var in &vars {
+                    all.push(bits(
+                        grads
+                            .get(var.as_tensor())
+                            .ok_or_else(|| invalid("missing gradient"))?,
+                    )?);
+                }
+                Ok(all)
+            };
+            let base = run(None)?;
+            for select in covering {
+                assert!(run(Some(select))? == base, "{score:?} {select:?} differs");
+            }
+            assert!(
+                run(Some(real))? != base,
+                "{score:?}: a real flock changed nothing"
+            );
+            // The control's attention (Dot, RoPE, no NoRead or age).
+            let zero = Tensor::zeros(1, DType::F32, &cpu())?;
+            let rotary = |select: Option<FlockSelect>| -> Result<Vec<Vec<u32>>> {
+                let out = fused_read_selected(
+                    x.q.as_tensor(),
+                    x.k.as_tensor(),
+                    x.v.as_tensor(),
+                    &zero,
+                    ReadScore::Dot,
+                    false,
+                    false,
+                    true,
+                    select,
+                )?;
+                let grads = out.mul(&weights)?.sum_all()?.backward()?;
+                let mut all = vec![bits(&out)?];
+                for var in [&x.q, &x.k, &x.v] {
+                    all.push(bits(
+                        grads
+                            .get(var.as_tensor())
+                            .ok_or_else(|| invalid("missing gradient"))?,
+                    )?);
+                }
+                Ok(all)
+            };
+            let base = rotary(None)?;
+            for select in covering {
+                assert!(rotary(Some(select))? == base, "rotary {select:?} differs");
+            }
+            assert!(rotary(Some(real))? != base);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_flocked_read_matches_the_masked_reference_and_finite_differences() -> Result<()> {
+        let select = FlockSelect {
+            sink: 0,
+            window: 3,
+            k: 2,
+        };
+        let shape = (2, 2, 12, 4, 5);
+        let (batch, heads, time, _, value_width) = shape;
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let lorentz = score == ReadScore::Lorentz;
+            // Draw until every row's k-th and (k + 1)-th candidates are well
+            // apart, so the finite-difference steps cannot move the selection.
+            let mut drawn = None;
+            for seed in 0..400 {
+                let x = ReadInputs::draw(seed, shape, 1.2)?;
+                let scores = read_scores(&x, lorentz)?;
+                if selection_gap(select, &scores, batch * heads, time) > 0.03 {
+                    drawn = Some((x, scores));
+                    break;
+                }
+            }
+            let (x, scores) = drawn.ok_or_else(|| invalid("no draw with a clear selection"))?;
+            let mut mask = vec![0f32; batch * heads * time * time];
+            for row in 0..batch * heads {
+                for t in 0..time {
+                    let start = (row * time + t) * time;
+                    let keep = kept_sources(select, t, &scores[start..start + t + 1]);
+                    for (j, kept) in keep.iter().enumerate() {
+                        if !kept {
+                            mask[start + j] = f32::NEG_INFINITY;
+                        }
+                    }
+                }
+            }
+            let mask = Tensor::from_vec(mask, (batch, heads, time, time), &cpu())?;
+            let (aux, vars) = (x.aux(lorentz)?, x.vars(lorentz));
+            let fused = fused_read_selected(
+                x.q.as_tensor(),
+                x.k.as_tensor(),
+                x.v.as_tensor(),
+                &aux,
+                score,
+                true,
+                true,
+                false,
+                Some(select),
+            )?;
+            let reference = reference_read_masked(
+                x.q.as_tensor(),
+                x.k.as_tensor(),
+                x.v.as_tensor(),
+                Some(x.null.as_tensor()),
+                Some(x.age.as_tensor()),
+                x.lorentz(lorentz),
+                Some(&mask),
+            )?;
+            let gap = fused
+                .sub(&reference)?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?;
+            assert!(gap < 1e-5, "{score:?}: flocked read differs by {gap}");
+            let weights = random(&mut Initializer(4), &[batch, heads, time, value_width], 1.0);
+            let fused_grads = fused.mul(&weights)?.sum_all()?.backward()?;
+            let reference_grads = reference.mul(&weights)?.sum_all()?.backward()?;
+            for var in &vars {
+                let (a, b) = (
+                    fused_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("fused gradient"))?,
+                    reference_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("reference gradient"))?,
+                );
+                let scale = b.abs()?.max_all()?.to_scalar::<f32>()?.max(1.0);
+                let gap = a.sub(b)?.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(
+                    gap < 1e-4 * scale,
+                    "{score:?}: gradient of {:?} differs by {gap} of {scale}",
+                    var.dims()
+                );
+            }
+            check_gradient(
+                &vars,
+                || {
+                    // The auxiliary input is rebuilt from the perturbed variables.
+                    Ok(fused_read_selected(
+                        x.q.as_tensor(),
+                        x.k.as_tensor(),
+                        x.v.as_tensor(),
+                        &x.aux(lorentz)?,
+                        score,
+                        true,
+                        true,
+                        false,
+                        Some(select),
+                    )?
+                    .mul(&weights)?
+                    .sum_all()?)
+                },
+                2e-3,
+            )?;
+        }
+        Ok(())
+    }
+
+    /// The weights of a Dot read with key width 1, query 1 and one-hot values:
+    /// row `t` of the output is row `t`'s weights over the sources.
+    fn one_hot_weights(
+        scores: &[f32],
+        select: Option<FlockSelect>,
+        null_logit: Option<f32>,
+    ) -> Result<Vec<Vec<f32>>> {
+        let time = scores.len();
+        let q = Tensor::ones((1, 1, time, 1), DType::F32, &cpu())?;
+        let k = Tensor::from_vec(scores.to_vec(), (1, 1, time, 1), &cpu())?;
+        let mut eye = vec![0f32; time * time];
+        for t in 0..time {
+            eye[t * time + t] = 1.0;
+        }
+        let v = Tensor::from_vec(eye, (1, 1, time, time), &cpu())?;
+        let aux = match null_logit {
+            Some(logit) => Tensor::from_vec(vec![logit; time], time, &cpu())?,
+            None => Tensor::zeros(1, DType::F32, &cpu())?,
+        };
+        let out = fused_read_selected(
+            &q,
+            &k,
+            &v,
+            &aux,
+            ReadScore::Dot,
+            null_logit.is_some(),
+            false,
+            false,
+            select,
+        )?;
+        Ok(out
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .chunks(time)
+            .map(<[f32]>::to_vec)
+            .collect())
+    }
+
+    #[test]
+    fn a_flock_keeps_the_sink_the_window_and_the_best_and_weighs_nothing_else() -> Result<()> {
+        let c = [0.0f32, 5.0, 1.0, 4.0, 2.0, 3.0, 0.5, 0.2, 0.1, 0.3];
+        let select = FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 2,
+        };
+        let weights = one_hot_weights(&c, Some(select), None)?;
+        // Kept sources by hand: the sink, the two last positions, and the two
+        // best of the rest (positions 1 and 3, scores 5 and 4).
+        let by_hand: [(usize, &[usize]); 6] = [
+            (9, &[0, 1, 3, 8, 9]),
+            (6, &[0, 1, 3, 5, 6]),
+            (5, &[0, 1, 3, 4, 5]),
+            (4, &[0, 1, 2, 3, 4]),
+            (3, &[0, 1, 2, 3]),
+            (1, &[0, 1]),
+        ];
+        for (t, kept) in by_hand {
+            let maximum = kept.iter().map(|&j| c[j]).fold(f32::NEG_INFINITY, f32::max);
+            let total: f32 = kept.iter().map(|&j| (c[j] - maximum).exp()).sum();
+            for j in 0..c.len() {
+                if kept.contains(&j) {
+                    let want = (c[j] - maximum).exp() / total;
+                    assert!((weights[t][j] - want).abs() < 1e-6, "row {t} source {j}");
+                } else {
+                    assert_eq!(weights[t][j], 0.0, "row {t} source {j} is not kept");
+                }
+            }
+        }
+        // The independent implementation agrees on every row.
+        let as_f64: Vec<f64> = c.iter().map(|&v| f64::from(v)).collect();
+        for t in 0..c.len() {
+            let keep = kept_sources(select, t, &as_f64[..=t]);
+            for j in 0..c.len() {
+                assert_eq!(weights[t][j] > 0.0, j <= t && keep[j], "row {t} source {j}");
+            }
+        }
+        // Ties go to the lowest position: sources 1-4 tie at the top.
+        let tied = [0.0f32, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        for (k, kept) in [(1usize, vec![0, 1, 9]), (3, vec![0, 1, 2, 3, 9])] {
+            let weights = one_hot_weights(
+                &tied,
+                Some(FlockSelect {
+                    sink: 0,
+                    window: 1,
+                    k,
+                }),
+                None,
+            )?;
+            for j in 0..tied.len() {
+                assert_eq!(weights[9][j] > 0.0, kept.contains(&j), "k {k} source {j}");
+            }
+        }
+        // The NoRead slot is always in the softmax: the output row loses its
+        // probability.
+        let null_logit = 1.0f32;
+        let with_null = one_hot_weights(&c, Some(select), Some(null_logit))?;
+        for (t, kept) in by_hand {
+            let maximum = kept.iter().map(|&j| c[j]).fold(null_logit, f32::max);
+            let total: f32 = kept.iter().map(|&j| (c[j] - maximum).exp()).sum::<f32>()
+                + (null_logit - maximum).exp();
+            let sum: f32 = with_null[t].iter().sum();
+            let want = 1.0 - (null_logit - maximum).exp() / total;
+            assert!((sum - want).abs() < 1e-6, "row {t}: {sum} against {want}");
+            for j in 0..c.len() {
+                if !kept.contains(&j) {
+                    assert_eq!(with_null[t][j], 0.0);
+                }
+            }
+        }
+        // The backward: a loss on row 9 alone gives zero gradient to unkept
+        // keys and values, and a nonzero one to the kept.
+        let time = c.len();
+        let k = Var::from_vec(c.to_vec(), (1, 1, time, 1), &cpu())?;
+        let mut eye = vec![0f32; time * time];
+        for t in 0..time {
+            eye[t * time + t] = 1.0;
+        }
+        let v = Var::from_vec(eye, (1, 1, time, time), &cpu())?;
+        let q = Tensor::ones((1, 1, time, 1), DType::F32, &cpu())?;
+        let out = fused_read_selected(
+            &q,
+            k.as_tensor(),
+            v.as_tensor(),
+            &Tensor::zeros(1, DType::F32, &cpu())?,
+            ReadScore::Dot,
+            false,
+            false,
+            false,
+            Some(select),
+        )?;
+        let mut row_weights = vec![0f32; time * time];
+        for j in 0..time {
+            row_weights[9 * time + j] = 1.0 + j as f32;
+        }
+        let row_weights = Tensor::from_vec(row_weights, (1, 1, time, time), &cpu())?;
+        let grads = out.mul(&row_weights)?.sum_all()?.backward()?;
+        let dk = grads
+            .get(k.as_tensor())
+            .expect("key gradient")
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let dv = grads
+            .get(v.as_tensor())
+            .expect("value gradient")
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for j in 0..time {
+            let kept = [0, 1, 3, 8, 9].contains(&j);
+            assert_eq!(dk[j] != 0.0, kept, "key {j}");
+            assert_eq!(
+                dv[j * time..(j + 1) * time].iter().any(|&g| g != 0.0),
+                kept,
+                "value {j}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_flocked_read_of_a_row_it_cannot_rank_is_an_error_not_a_silent_nan() -> Result<()> {
+        let (time, width) = (6, 2);
+        let mut q = vec![0.5f32; time * width];
+        // Row 1's second query entry is NaN, so every score of row 1 is.
+        q[3] = f32::NAN;
+        let query = Tensor::from_vec(q, (1, 1, time, width), &cpu())?;
+        let key = Tensor::ones((1, 1, time, width), DType::F32, &cpu())?;
+        let value = Tensor::ones((1, 1, time, 2), DType::F32, &cpu())?;
+        let zero = Tensor::zeros(1, DType::F32, &cpu())?;
+        let select = FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 1,
+        };
+        let error = fused_read_selected(
+            &query,
+            &key,
+            &value,
+            &zero,
+            ReadScore::Dot,
+            false,
+            false,
+            false,
+            Some(select),
+        )
+        .expect_err("a NaN score cannot be ranked");
+        assert!(error.to_string().contains("finite"), "{error}");
+        // Without a selection the read runs (and carries the NaN) as before.
+        assert!(fused_read_selected(
+            &query,
+            &key,
+            &value,
+            &zero,
+            ReadScore::Dot,
+            false,
+            false,
+            false,
+            None,
+        )
+        .is_ok());
+        Ok(())
+    }
+
+    /// The pointer's score of source `j` for the query at position `t`, by
+    /// plain f64 loops over `side`'s `[query | key | gate logit]` rows of a
+    /// window whose first row is `first`.
+    fn reference_pointer_score(
+        side: &[f32],
+        dim: usize,
+        (first, t, j): (usize, usize, usize),
+        score: ReadScore,
+        beta: f64,
+    ) -> f64 {
+        let stride = 2 * dim + 1;
+        let query: Vec<f64> = side[(first + t) * stride..(first + t) * stride + dim]
+            .iter()
+            .map(|&v| f64::from(v))
+            .collect();
+        let key: Vec<f64> = side[(first + j) * stride + dim..(first + j) * stride + 2 * dim]
+            .iter()
+            .map(|&v| f64::from(v))
+            .collect();
+        let inner: f64 = query.iter().zip(&key).map(|(a, b)| a * b).sum();
+        match score {
+            ReadScore::Dot => inner / (dim as f64).sqrt(),
+            ReadScore::Lorentz => {
+                let lift = |x: &[f64]| (1.0 + x.iter().map(|v| v * v).sum::<f64>()).sqrt();
+                -beta * lorentz_distance(lift(&query) * lift(&key) - inner - 1.0)
+            }
+        }
+    }
+
+    #[test]
+    fn the_pointers_attention_uses_its_own_score_and_selection() -> Result<()> {
+        let (dim, time) = (3, 9);
+        let stride = 2 * dim + 1;
+        let mut rng = Initializer(123);
+        let side: Vec<f32> = (0..time * stride)
+            .map(|_| (rng.normal() * 1.3) as f32)
+            .collect();
+        let window_two = FlockSelect {
+            sink: 0,
+            window: 2,
+            k: 2,
+        };
+        for (score, beta) in [(ReadScore::Dot, 0.0), (ReadScore::Lorentz, 1.7)] {
+            for t in 0..time {
+                let scores: Vec<f64> = (0..=t)
+                    .map(|j| reference_pointer_score(&side, dim, (0, t, j), score, beta))
+                    .collect();
+                for select in [
+                    None,
+                    Some(PointerSelect::Flock(window_two)),
+                    Some(PointerSelect::TopK(1)),
+                    Some(PointerSelect::TopK(3)),
+                ] {
+                    let rule = PointerRule {
+                        dim,
+                        score,
+                        select,
+                        beta,
+                    };
+                    let a = pointer_attention(&side, 0, t, &rule)?;
+                    let kept: Vec<bool> = match select {
+                        None => vec![true; t + 1],
+                        Some(PointerSelect::Flock(select)) => kept_sources(select, t, &scores),
+                        Some(PointerSelect::TopK(k)) => kept_top_k(k, &scores),
+                    };
+                    let maximum = (0..=t)
+                        .filter(|&j| kept[j])
+                        .map(|j| scores[j])
+                        .fold(f64::NEG_INFINITY, f64::max);
+                    let total: f64 = (0..=t)
+                        .filter(|&j| kept[j])
+                        .map(|j| (scores[j] - maximum).exp())
+                        .sum();
+                    for j in 0..=t {
+                        if kept[j] {
+                            let want = (scores[j] - maximum).exp() / total;
+                            assert!(
+                                (a[j] - want).abs() < 1e-5,
+                                "{score:?} {select:?} row {t} source {j}"
+                            );
+                        } else {
+                            assert_eq!(a[j], 0.0, "{score:?} {select:?} row {t} source {j}");
+                        }
+                    }
+                    if select == Some(PointerSelect::TopK(1)) {
+                        // The single-source pointer: weight 1 on one source.
+                        assert_eq!(a.iter().filter(|&&w| w > 0.0).count(), 1);
+                        assert!(a.iter().any(|&w| w == 1.0), "row {t}");
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_lorentz_pointer_scores_like_the_fused_read() -> Result<()> {
+        let (time, width) = (7, 3);
+        let mut rng = Initializer(77);
+        let q = random(&mut rng, &[1, 1, time, width], 0.9);
+        let k = random(&mut rng, &[1, 1, time, width], 0.9);
+        let mut eye = vec![0f32; time * time];
+        for t in 0..time {
+            eye[t * time + t] = 1.0;
+        }
+        let eye = Tensor::from_vec(eye, (1, 1, time, time), &cpu())?;
+        let beta = 1.7f64;
+        // The read's auxiliary input without NoRead or age is [beta, offset];
+        // the offset moves every score alike and drops out of the softmax.
+        let aux = Tensor::from_vec(vec![beta as f32, 0.6f32], 2, &cpu())?;
+        let read = fused_read(&q, &k, &eye, &aux, ReadScore::Lorentz, false, false, false)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        // The pointer's `side` rows are [query | key | gate logit].
+        let (qv, kv) = (
+            q.flatten_all()?.to_vec1::<f32>()?,
+            k.flatten_all()?.to_vec1::<f32>()?,
+        );
+        let mut side = Vec::new();
+        for t in 0..time {
+            side.extend_from_slice(&qv[t * width..(t + 1) * width]);
+            side.extend_from_slice(&kv[t * width..(t + 1) * width]);
+            side.push(0.0f32);
+        }
+        let rule = PointerRule {
+            dim: width,
+            score: ReadScore::Lorentz,
+            select: None,
+            beta,
+        };
+        for t in 0..time {
+            let a = pointer_attention(&side, 0, t, &rule)?;
+            for j in 0..=t {
+                assert!(
+                    (a[j] - f64::from(read[t * time + j])).abs() < 1e-5,
+                    "row {t} source {j}: pointer {} against read {}",
+                    a[j],
+                    read[t * time + j]
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// A tiny model with a pointer head whose weights are made large enough
+    /// for the attention and the gate to matter, drawn from `seed`.
+    fn pointer_model(
+        score: ReadScore,
+        select: Option<PointerSelect>,
+        seed: u64,
+    ) -> Result<StackModel> {
+        let mut config = tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true);
+        config.pointer = Some(PointerConfig {
+            score,
+            select,
+            ..PointerConfig::new(4)
+        });
+        let model = StackModel::new(config, &cpu())?;
+        let mut rng = Initializer(31 + seed);
+        for (name, scale) in [
+            ("pointer.query.weight", 0.3),
+            ("pointer.key.weight", 0.3),
+            ("pointer.gate.weight", 0.5),
+        ] {
+            let var = &model.variables()[name];
+            var.set(&random(&mut rng, var.dims(), scale))?;
+        }
+        model.variables()["pointer.gate.bias"].set(&Tensor::from_vec(vec![0.3f32], 1, &cpu())?)?;
+        if score == ReadScore::Lorentz {
+            model.variables()["pointer.log_beta"].set(&Tensor::from_vec(
+                vec![0.4f32],
+                1,
+                &cpu(),
+            )?)?;
+        }
+        Ok(model)
+    }
+
+    /// The variables of a pointer head.
+    fn pointer_names(score: ReadScore) -> Vec<&'static str> {
+        let mut names = vec![
+            "pointer.query.weight",
+            "pointer.key.weight",
+            "pointer.gate.weight",
+            "pointer.gate.bias",
+        ];
+        if score == ReadScore::Lorentz {
+            names.push("pointer.log_beta");
+        }
+        names
+    }
+
+    /// Two windows of 12 over a small alphabet, so targets recur in context
+    /// (and, on other rows, do not: those rows have no copy mass), with
+    /// response weights that include zeros.
+    fn pointer_batch() -> (Vec<u32>, Vec<u32>, Vec<f32>) {
+        let ids: Vec<u32> = (0..24u32).map(|i| (i * 5 + 1) % 6).collect();
+        let targets: Vec<u32> = (0..24u32).map(|i| (i * 3 + 2) % 6).collect();
+        let weights: Vec<f32> = (0..24)
+            .map(|i| {
+                if i % 4 == 1 {
+                    0.0
+                } else {
+                    1.0 + (i % 3) as f32
+                }
+            })
+            .collect();
+        (ids, targets, weights)
+    }
+
+    #[test]
+    fn without_a_pointer_the_loss_is_the_current_loss_bit_for_bit() -> Result<()> {
+        let model = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        assert!(model.config.pointer.is_none() && model.config.select.is_none());
+        let (ids, targets, weights) = pointer_batch();
+        let logits = model.forward(&ids, 2, 12)?;
+        let weighted = model.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        let want = logits_cross_entropy(&logits, &targets, Some(&weights))?;
+        assert_eq!(
+            weighted.to_scalar::<f32>()?.to_bits(),
+            want.to_scalar::<f32>()?.to_bits()
+        );
+        let plain = model.loss(&ids, &targets, 2, 12)?;
+        let want = logits_cross_entropy(&logits, &targets, None)?;
+        assert_eq!(
+            plain.to_scalar::<f32>()?.to_bits(),
+            want.to_scalar::<f32>()?.to_bits()
+        );
+        // The pointer's names are absent, and a config without the two
+        // settings serializes without their keys.
+        assert!(model
+            .variables()
+            .keys()
+            .all(|name| !name.starts_with("pointer.")));
+        let json = serde_json::to_string(&model.config)?;
+        assert!(
+            !json.contains("select") && !json.contains("pointer"),
+            "{json}"
+        );
+        let loaded: StackConfig = serde_json::from_str(&json)?;
+        assert_eq!(loaded, model.config);
+        Ok(())
+    }
+
+    /// The mixture loss of every row by plain f64 loops and direct
+    /// probabilities (no floor), from the model's current variables and its
+    /// final states `hidden`, the smallest gap of the pointer's selection over
+    /// the scored rows (the finite-difference steps must not move it), and
+    /// whether some scored row keeps both a source holding its target and one
+    /// that does not: only such a row lets the pointer's scores move the loss.
+    /// Rows of weight zero read 0.
+    fn reference_mixture(
+        model: &StackModel,
+        hidden: &[Vec<f32>],
+        (ids, targets, weights): (&[u32], &[u32], &[f32]),
+        (batch, time): (usize, usize),
+    ) -> Result<(Vec<f64>, f64, bool)> {
+        let pointer = model
+            .config
+            .pointer
+            .ok_or_else(|| invalid("no pointer head"))?;
+        let variable = |name: &str| model.variables()[name].as_tensor().clone();
+        let embedding = variable("embedding.weight").to_vec2::<f32>()?;
+        let (wq, wk, wg) = (
+            variable("pointer.query.weight").to_vec2::<f32>()?,
+            variable("pointer.key.weight").to_vec2::<f32>()?,
+            variable("pointer.gate.weight").to_vec2::<f32>()?,
+        );
+        let bias = f64::from(variable("pointer.gate.bias").to_vec1::<f32>()?[0]);
+        let beta = match pointer.score {
+            ReadScore::Dot => 0.0,
+            ReadScore::Lorentz => {
+                f64::from(variable("pointer.log_beta").to_vec1::<f32>()?[0]).exp()
+            }
+        };
+        let project = |w: &[Vec<f32>], h: &[f32]| -> Vec<f64> {
+            w.iter()
+                .map(|row| {
+                    row.iter()
+                        .zip(h)
+                        .map(|(&a, &b)| f64::from(a) * f64::from(b))
+                        .sum()
+                })
+                .collect()
+        };
+        let dim = wq.len();
+        let mut gap = f64::INFINITY;
+        let mut contested = false;
+        let mut rows = vec![0.0; batch * time];
+        for n in 0..batch * time {
+            if weights[n] == 0.0 {
+                continue;
+            }
+            let (first, t) = (n - n % time, n % time);
+            let query = project(&wq, &hidden[n]);
+            let scores: Vec<f64> = (0..=t)
+                .map(|j| {
+                    let key = project(&wk, &hidden[first + j]);
+                    let inner: f64 = query.iter().zip(&key).map(|(a, b)| a * b).sum();
+                    match pointer.score {
+                        ReadScore::Dot => inner / (dim as f64).sqrt(),
+                        ReadScore::Lorentz => {
+                            let lift =
+                                |x: &[f64]| (1.0 + x.iter().map(|v| v * v).sum::<f64>()).sqrt();
+                            -beta * lorentz_distance(lift(&query) * lift(&key) - inner - 1.0)
+                        }
+                    }
+                })
+                .collect();
+            let keep = match pointer.select {
+                None => vec![true; t + 1],
+                Some(PointerSelect::Flock(select)) => {
+                    let mut rest: Vec<f64> = (1..(t + 1).saturating_sub(select.window))
+                        .map(|j| scores[j])
+                        .collect();
+                    rest.sort_by(|a, b| b.total_cmp(a));
+                    if rest.len() > select.k {
+                        gap = gap.min(rest[select.k - 1] - rest[select.k]);
+                    }
+                    kept_sources(select, t, &scores)
+                }
+                Some(PointerSelect::TopK(k)) => {
+                    let mut all = scores.clone();
+                    all.sort_by(|a, b| b.total_cmp(a));
+                    if all.len() > k {
+                        gap = gap.min(all[k - 1] - all[k]);
+                    }
+                    kept_top_k(k, &scores)
+                }
+            };
+            let maximum = (0..=t)
+                .filter(|&j| keep[j])
+                .map(|j| scores[j])
+                .fold(f64::NEG_INFINITY, f64::max);
+            let exps: Vec<f64> = (0..=t)
+                .map(|j| {
+                    if keep[j] {
+                        (scores[j] - maximum).exp()
+                    } else {
+                        0.0
+                    }
+                })
+                .collect();
+            let normal: f64 = exps.iter().sum();
+            let copy: f64 = (0..=t)
+                .filter(|&j| ids[first + j] == targets[n])
+                .map(|j| exps[j] / normal)
+                .sum();
+            let holds = |j: usize| ids[first + j] == targets[n];
+            contested |=
+                (0..=t).any(|j| keep[j] && holds(j)) && (0..=t).any(|j| keep[j] && !holds(j));
+            let gate = 1.0 / (1.0 + (-(project(&wg, &hidden[n])[0] + bias)).exp());
+            let logits: Vec<f64> = embedding
+                .iter()
+                .map(|row| {
+                    row.iter()
+                        .zip(&hidden[n])
+                        .map(|(&a, &b)| f64::from(a) * f64::from(b))
+                        .sum()
+                })
+                .collect();
+            let peak = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            let lse = peak + logits.iter().map(|z| (z - peak).exp()).sum::<f64>().ln();
+            let generate = (logits[targets[n] as usize] - lse).exp();
+            rows[n] = -((1.0 - gate) * generate + gate * copy).ln();
+        }
+        Ok((rows, gap, contested))
+    }
+
+    /// The weighted mean of per-row losses.
+    fn weighted_mean(rows: &[f64], weights: &[f32]) -> f64 {
+        let total: f64 = weights.iter().map(|&w| f64::from(w)).sum();
+        rows.iter()
+            .zip(weights)
+            .map(|(&nll, &w)| f64::from(w) * nll)
+            .sum::<f64>()
+            / total
+    }
+
+    /// The derivative of the reference loss with respect to every element of
+    /// the variable `name`, by central differences in f64 over the elements'
+    /// stored f32 values (the reference recomputes everything from them). The
+    /// variable is restored.
+    fn reference_derivative(
+        model: &StackModel,
+        name: &str,
+        hidden: &[Vec<f32>],
+        data: (&[u32], &[u32], &[f32]),
+        shape: (usize, usize),
+    ) -> Result<Vec<f64>> {
+        let var = &model.variables()[name];
+        let original = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+        let loss_at = |values: &[f32]| -> Result<f64> {
+            var.set(&Tensor::from_vec(values.to_vec(), var.dims(), &cpu())?)?;
+            let (rows, _, _) = reference_mixture(model, hidden, data, shape)?;
+            Ok(weighted_mean(&rows, data.2))
+        };
+        let mut derivative = Vec::with_capacity(original.len());
+        for i in 0..original.len() {
+            let (mut plus, mut minus) = (original.clone(), original.clone());
+            plus[i] += 1e-4;
+            minus[i] -= 1e-4;
+            let step = f64::from(plus[i]) - f64::from(minus[i]);
+            derivative.push((loss_at(&plus)? - loss_at(&minus)?) / step);
+        }
+        var.set(&Tensor::from_vec(original, var.dims(), &cpu())?)?;
+        Ok(derivative)
+    }
+
+    #[test]
+    fn the_pointer_loss_is_the_mixture_and_its_gradient_matches_finite_differences() -> Result<()> {
+        let window_three = FlockSelect {
+            sink: 0,
+            window: 3,
+            k: 2,
+        };
+        let arms = [
+            (ReadScore::Dot, None),
+            (ReadScore::Dot, Some(PointerSelect::Flock(window_three))),
+            (ReadScore::Lorentz, None),
+            (ReadScore::Lorentz, Some(PointerSelect::Flock(window_three))),
+            (ReadScore::Lorentz, Some(PointerSelect::TopK(2))),
+            (ReadScore::Lorentz, Some(PointerSelect::TopK(1))),
+        ];
+        let (ids, targets, weights) = pointer_batch();
+        let data = (&ids[..], &targets[..], &weights[..]);
+        for (score, select) in arms {
+            // A single kept source has weight 1 whatever its score, so the
+            // pointer's scoring parameters cannot move the loss and their
+            // gradient is exactly 0 (why the pre-registered arm trains soft and
+            // applies `top:1` post hoc); only the gate learns.
+            let single_source = select == Some(PointerSelect::TopK(1));
+            // Draw until every row's selection is clear, so the finite-difference
+            // steps cannot move it, and (for a pointer with more than one kept
+            // source) some row keeps both a source holding its target and one
+            // that does not, so the scores can move the loss at all.
+            let mut found = None;
+            for seed in 0..200u64 {
+                let model = pointer_model(score, select, seed)?;
+                let hidden = model.hidden(&ids, 2, 12)?.to_vec2::<f32>()?;
+                let (rows, gap, contested) = reference_mixture(&model, &hidden, data, (2, 12))?;
+                if gap > 0.01 && (single_source || contested) {
+                    found = Some((model, hidden, rows));
+                    break;
+                }
+            }
+            let (model, hidden, rows) = found.ok_or_else(|| {
+                invalid(format!(
+                    "{score:?} {select:?}: no draw with a clear selection and a contested row"
+                ))
+            })?;
+            // The loss and every scored row are the unfloored mixture.
+            let loss = model.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+            let got = f64::from(loss.to_scalar::<f32>()?);
+            let want = weighted_mean(&rows, &weights);
+            assert!(
+                (got - want).abs() < 1e-5 * want.abs().max(1.0),
+                "{score:?} {select:?}: {got} against {want}"
+            );
+            let scored = model.score_targets(&ids, &targets, Some(&weights), 2, 12)?;
+            for n in 0..24 {
+                assert!(
+                    (scored.nll[n] - rows[n]).abs() < 1e-5 * rows[n].abs().max(1.0),
+                    "{score:?} {select:?}: row {n} scored {} against {}",
+                    scored.nll[n],
+                    rows[n]
+                );
+            }
+            // Every element of every pointer variable's gradient against the
+            // f64 finite difference of the reference.
+            let names = pointer_names(score);
+            let grads = loss.backward()?;
+            let mut moving = Vec::new();
+            for name in &names {
+                let numeric = reference_derivative(&model, name, &hidden, data, (2, 12))?;
+                let analytic = grads
+                    .get(model.variables()[*name].as_tensor())
+                    .ok_or_else(|| invalid("missing gradient"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                if single_source
+                    && matches!(
+                        *name,
+                        "pointer.query.weight" | "pointer.key.weight" | "pointer.log_beta"
+                    )
+                {
+                    assert!(
+                        analytic.iter().all(|&a| a == 0.0),
+                        "{score:?}: {name} has a gradient under a single-source pointer"
+                    );
+                    assert!(
+                        numeric.iter().all(|&n| n.abs() < 1e-12),
+                        "{score:?}: {name} moves the loss under a single-source pointer"
+                    );
+                    continue;
+                }
+                moving.push(*name);
+                let scale = numeric.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+                assert!(
+                    scale > 0.0,
+                    "{score:?} {select:?}: {name} has no effect on the loss"
+                );
+                for (i, (&a, &n)) in analytic.iter().zip(&numeric).enumerate() {
+                    assert!(
+                        (f64::from(a) - n).abs() < 2e-4 * scale + 2e-6,
+                        "{score:?} {select:?}: {name}[{i}] analytic {a} against numeric {n}"
+                    );
+                }
+            }
+            // The optimizer reaches the pointer's variables that have a
+            // gradient, the scale included.
+            let mut optimizer = StackAdamW::new(&model, 0.0, 1.0)?;
+            let before: Vec<Vec<u32>> = moving
+                .iter()
+                .map(|name| bits(model.variables()[*name].as_tensor()))
+                .collect::<Result<_>>()?;
+            optimizer.update(&model, &grads, 0.01)?;
+            for (name, before) in moving.iter().zip(&before) {
+                assert!(
+                    &bits(model.variables()[*name].as_tensor())? != before,
+                    "{score:?} {select:?}: {name} did not move"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_row_without_copy_mass_is_exactly_the_generated_probability() -> Result<()> {
+        // A vocabulary of 4, one window of 3 positions and a pointer of width 2.
+        let (vocabulary, time, dim) = (4usize, 3usize, 2usize);
+        let stride = 2 * dim + 1;
+        let ids = vec![1u32, 2, 1];
+        // Token 3 is held by no source, so p_copy is 0 on every row.
+        let targets = vec![3u32; time];
+        // Under the plain softmax the target is 60 nats below the rest: the
+        // generated probability is about 3e-27, far below a 1e-8 floor.
+        let logit_rows: Vec<f32> = (0..time).flat_map(|_| [0.0f32, 0.0, 0.0, -60.0]).collect();
+        let gate_logit = 0.5f32;
+        let side_values: Vec<f32> = (0..time)
+            .flat_map(|n| [0.3 + n as f32, -0.2, 0.5, 0.1 * n as f32, gate_logit])
+            .collect();
+        let op = || PointerMixture {
+            time,
+            dim,
+            score: ReadScore::Dot,
+            select: None,
+            ids: ids.clone(),
+            targets: targets.clone(),
+            weights: None,
+        };
+        let g = 1.0 / (1.0 + (-f64::from(gate_logit)).exp());
+        let lse = 3.0f64.ln();
+        let want = -(1.0 - g).ln() - (-60.0 - lse);
+        for n in 0..time {
+            let row = op().evaluate(
+                &logit_rows[n * vocabulary..(n + 1) * vocabulary],
+                &side_values,
+                0.0,
+                n,
+            )?;
+            assert_eq!(row.copy, 0.0, "row {n}");
+            assert_eq!(row.copy_share, 0.0, "row {n}");
+            assert_eq!(row.generate_share, 1.0, "row {n}");
+            assert!(
+                (-row.log_mixture - want).abs() < 1e-9,
+                "row {n}: {} against {want}",
+                -row.log_mixture
+            );
+        }
+        // Through the autodiff op: the loss is that row, the gate logit's
+        // gradient is g / 3 (the mean over three rows) and nothing reaches the
+        // copy branch (the query and key).
+        let logits = Var::from_vec(logit_rows.clone(), (time, vocabulary), &cpu())?;
+        let side = Var::from_vec(side_values.clone(), (time, stride), &cpu())?;
+        let beta = Var::from_vec(vec![0.0f32], 1, &cpu())?;
+        let loss = logits
+            .as_tensor()
+            .apply_op3(side.as_tensor(), beta.as_tensor(), op())?;
+        let value = f64::from(loss.to_scalar::<f32>()?);
+        assert!((value - want).abs() < 1e-4, "{value} against {want}");
+        let grads = loss.backward()?;
+        let d_side = grads
+            .get(side.as_tensor())
+            .ok_or_else(|| invalid("no side gradient"))?
+            .to_vec2::<f32>()?;
+        for (n, row) in d_side.iter().enumerate() {
+            assert!(
+                (f64::from(row[2 * dim]) - g / 3.0).abs() < 1e-7,
+                "row {n}: gate gradient {} against {}",
+                row[2 * dim],
+                g / 3.0
+            );
+            assert!(
+                row[..2 * dim].iter().all(|&v| v == 0.0),
+                "row {n}: the copy branch received gradient"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_mixture_backward_stays_finite_past_the_f64_exponent_range() -> Result<()> {
+        // g / mixture overflows f64 once a row's NLL passes about 709.78 nats.
+        // Rows that no source serves, 747 nats down: the scores and the scale
+        // get exactly no gradient, the gate its `g` (the mean over 3 rows).
+        let (vocabulary, time, dim) = (4usize, 3usize, 2usize);
+        let stride = 2 * dim + 1;
+        let ids = vec![1u32, 2, 1];
+        let targets = vec![3u32; time];
+        let logit_rows: Vec<f32> = (0..time).flat_map(|_| [0.0f32, 0.0, 0.0, -745.0]).collect();
+        let gate_logit = 0.5f32;
+        let side_values: Vec<f32> = (0..time)
+            .flat_map(|n| [0.3 + n as f32, -0.2, 0.5, 0.1 * n as f32, gate_logit])
+            .collect();
+        let g = 1.0 / (1.0 + (-f64::from(gate_logit)).exp());
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let op = PointerMixture {
+                time,
+                dim,
+                score,
+                select: None,
+                ids: ids.clone(),
+                targets: targets.clone(),
+                weights: None,
+            };
+            let logits = Var::from_vec(logit_rows.clone(), (time, vocabulary), &cpu())?;
+            let side = Var::from_vec(side_values.clone(), (time, stride), &cpu())?;
+            let beta = Var::from_vec(vec![1.0f32], 1, &cpu())?;
+            let loss = logits
+                .as_tensor()
+                .apply_op3(side.as_tensor(), beta.as_tensor(), op)?;
+            let value = f64::from(loss.to_scalar::<f32>()?);
+            assert!(
+                value.is_finite() && value > 709.78,
+                "{score:?}: loss {value}"
+            );
+            let grads = loss.backward()?;
+            let d_side = grads
+                .get(side.as_tensor())
+                .ok_or_else(|| invalid("no side gradient"))?
+                .to_vec2::<f32>()?;
+            for (n, row) in d_side.iter().enumerate() {
+                assert!(
+                    (f64::from(row[2 * dim]) - g / 3.0).abs() < 1e-7,
+                    "{score:?} row {n}: gate gradient {}",
+                    row[2 * dim]
+                );
+                assert!(
+                    row[..2 * dim].iter().all(|&v| v == 0.0),
+                    "{score:?} row {n}: the query or key received {row:?}"
+                );
+            }
+            let d_beta = grads
+                .get(beta.as_tensor())
+                .ok_or_else(|| invalid("no scale gradient"))?
+                .to_vec1::<f32>()?;
+            assert_eq!(d_beta, vec![0.0], "{score:?}");
+            let d_logits = grads
+                .get(logits.as_tensor())
+                .ok_or_else(|| invalid("no logit gradient"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(d_logits.iter().all(|v| v.is_finite()), "{score:?}");
+        }
+        // A copy mass below f64's normal range at a moderate NLL: row 1's query
+        // scores source 0, which holds the target, 713 below source 1, so
+        // source 0's attention is about 2e-310.
+        let ids = vec![3u32, 1];
+        let targets = vec![3u32, 3];
+        let side_values = vec![1.0f32, -713.0, gate_logit, 1.0, 0.0, gate_logit];
+        let op = || PointerMixture {
+            time: 2,
+            dim: 1,
+            score: ReadScore::Dot,
+            select: None,
+            ids: ids.clone(),
+            targets: targets.clone(),
+            weights: None,
+        };
+        let row = op().evaluate(&[0.0; 4], &side_values, 1.0, 1)?;
+        assert!(
+            row.copy > 0.0 && row.copy < f64::MIN_POSITIVE,
+            "copy mass {}",
+            row.copy
+        );
+        let logits = Var::from_vec(vec![0.0f32; 2 * vocabulary], (2, vocabulary), &cpu())?;
+        let side = Var::from_vec(side_values, (2, 3), &cpu())?;
+        let beta = Var::from_vec(vec![1.0f32], 1, &cpu())?;
+        let loss = logits
+            .as_tensor()
+            .apply_op3(side.as_tensor(), beta.as_tensor(), op())?;
+        let grads = loss.backward()?;
+        for (name, var) in [("logits", &logits), ("side", &side), ("beta", &beta)] {
+            let values = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid(format!("no {name} gradient")))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(values.iter().all(|v| v.is_finite()), "{name}: {values:?}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_gate_forced_to_zero_leaves_the_plain_loss() -> Result<()> {
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let model = pointer_model(score, None, 0)?;
+            model.variables()["pointer.gate.weight"].set(&Tensor::zeros(
+                (1, 16),
+                DType::F32,
+                &cpu(),
+            )?)?;
+            model.variables()["pointer.gate.bias"].set(&Tensor::from_vec(
+                vec![-60.0f32],
+                1,
+                &cpu(),
+            )?)?;
+            let (ids, targets, weights) = pointer_batch();
+            let mixture = model
+                .weighted_loss(&ids, &targets, &weights, 2, 12)?
+                .to_scalar::<f32>()?;
+            let plain =
+                logits_cross_entropy(&model.forward(&ids, 2, 12)?, &targets, Some(&weights))?
+                    .to_scalar::<f32>()?;
+            assert!(
+                (mixture - plain).abs() < 1e-5,
+                "{score:?}: {mixture} against {plain}"
+            );
+            // And the scored rows read the plain NLL too.
+            let scores = model.score_targets(&ids, &targets, Some(&weights), 2, 12)?;
+            assert!(scores.pointer.is_some());
+            let plain_rows = model.target_nll(&ids, &targets, 2, 12)?;
+            assert_eq!(plain_rows.len(), 24);
+            for (n, (&row, &weight)) in scores.nll.iter().zip(&weights).enumerate() {
+                if weight == 0.0 {
+                    assert_eq!(row, 0.0);
+                } else {
+                    assert!((row - plain_rows[n]).abs() < 1e-5, "row {n}");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// A toy pointer model whose residual stream is the token's normalized
+    /// embedding (3 I, so h = 4 e_v) because its reads and MLPs add nothing.
+    /// The pointer's key is 2 I, so the key of a source holding token `v` is
+    /// `8 e_v`; its query maps token 5 to `4 * query_scale` times the direction
+    /// of token 9 and every other token to 0; its gate weight is 0 and its bias
+    /// `gate_bias`.
+    fn toy_pointer(pointer: PointerConfig, query_scale: f32, gate_bias: f32) -> Result<StackModel> {
+        let mut config = tiny(StackArch::Geometric, "a", ReadScore::Dot, false);
+        config.vocab_size = 16;
+        config.pointer = Some(pointer);
+        let toy = StackModel::new(config, &cpu())?;
+        for name in ["layers.00.read.out.weight", "layers.00.mlp.down.weight"] {
+            let var = &toy.variables()[name];
+            var.set(&Tensor::zeros(var.dims(), DType::F32, &cpu())?)?;
+        }
+        let matrix = |entry: &dyn Fn(usize, usize) -> f32| -> Result<Tensor> {
+            let values: Vec<f32> = (0..16 * 16).map(|i| entry(i / 16, i % 16)).collect();
+            Ok(Tensor::from_vec(values, (16, 16), &cpu())?)
+        };
+        toy.variables()["embedding.weight"].set(&matrix(&|r, c| {
+            if r == c {
+                3.0
+            } else {
+                0.0
+            }
+        })?)?;
+        toy.variables()["pointer.key.weight"].set(&matrix(&|r, c| {
+            if r == c {
+                2.0
+            } else {
+                0.0
+            }
+        })?)?;
+        toy.variables()["pointer.query.weight"].set(&matrix(&|r, c| {
+            if r == 9 && c == 5 {
+                query_scale
+            } else {
+                0.0
+            }
+        })?)?;
+        toy.variables()["pointer.gate.weight"].set(&Tensor::zeros((1, 16), DType::F32, &cpu())?)?;
+        toy.variables()["pointer.gate.bias"].set(&Tensor::from_vec(vec![gate_bias], 1, &cpu())?)?;
+        Ok(toy)
+    }
+
+    fn argmax(scores: &[f32]) -> usize {
+        let mut best = 0;
+        for (i, v) in scores.iter().enumerate() {
+            if *v > scores[best] {
+                best = i;
+            }
+        }
+        best
+    }
+
+    #[test]
+    fn generation_agrees_with_the_loss_and_a_forced_gate_copies_the_attended_token() -> Result<()> {
+        // The mixture the loss scores at position t is the one generation
+        // scores after the prefix, for each score and selection of the pointer.
+        for (score, select) in [
+            (
+                ReadScore::Dot,
+                Some(PointerSelect::Flock(FlockSelect {
+                    sink: 0,
+                    window: 3,
+                    k: 1,
+                })),
+            ),
+            (ReadScore::Lorentz, Some(PointerSelect::TopK(2))),
+            (ReadScore::Lorentz, None),
+        ] {
+            let model = pointer_model(score, select, 0)?;
+            let (ids, targets, _) = pointer_batch();
+            let scores = model.score_targets(&ids, &targets, None, 2, 12)?;
+            for t in [0usize, 4, 9, 11] {
+                let next = model.next_scores(&ids[..=t])?;
+                let sum: f64 = next.iter().map(|&s| f64::from(s).exp()).sum();
+                assert!(
+                    (sum - 1.0).abs() < 1e-4,
+                    "{score:?} {select:?} position {t}: mixture sums to {sum}"
+                );
+                let nll = -f64::from(next[targets[t] as usize]);
+                assert!(
+                    (nll - scores.nll[t]).abs() < 1e-4,
+                    "{score:?} {select:?} position {t}: {nll} against {}",
+                    scores.nll[t]
+                );
+            }
+        }
+        // The toy's query maps token 5 to the direction of token 9 and its key
+        // is the identity, so a query at token 5 attends the positions holding
+        // 9; its raw logits favour the current token.
+        let history = [1u32, 9, 2, 5];
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let pointer = PointerConfig {
+                score,
+                ..PointerConfig::new(16)
+            };
+            // Gate near 1: the attended token (9) is copied; the raw logits
+            // favour the current token (5).
+            let toy = toy_pointer(pointer, 2.0, 30.0)?;
+            assert_eq!(argmax(&toy.next_scores(&history)?), 9, "{score:?}");
+            assert_eq!(
+                argmax(&toy.forward(&history, 1, 4)?.get(3)?.to_vec1::<f32>()?),
+                5
+            );
+            // Gate near 0: the plain distribution.
+            let toy = toy_pointer(pointer, 2.0, -30.0)?;
+            assert_eq!(argmax(&toy.next_scores(&history)?), 5, "{score:?}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_top_one_pointer_puts_all_its_copy_mass_on_the_argmax_source() -> Result<()> {
+        // A soft pointer (query scale 1/4) spreads its attention; the gate is
+        // 1/2. Sources hold tokens 1, 9, 2 and 5, and the argmax holds 9.
+        let history = [1u32, 9, 2, 5];
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let pointer = PointerConfig {
+                score,
+                ..PointerConfig::new(16)
+            };
+            let mut toy = toy_pointer(pointer, 0.25, 0.0)?;
+            let logits = toy.forward(&history, 1, 4)?.get(3)?.to_vec1::<f32>()?;
+            let peak = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+            let lse = f64::from(peak)
+                + logits
+                    .iter()
+                    .map(|&z| f64::from(z - peak).exp())
+                    .sum::<f64>()
+                    .ln();
+            // The generated part of the mixture: (1 - g) softmax(z)[v].
+            let generated = |v: usize| 0.5 * (f64::from(logits[v]) - lse).exp();
+            let probability = |scores: &[f32], v: usize| f64::from(scores[v]).exp();
+            let soft = toy.next_scores(&history)?;
+            toy.set_pointer_select(Some(PointerSelect::TopK(1)))?;
+            let hard = toy.next_scores(&history)?;
+            for v in [1usize, 2, 5] {
+                // The sources that are not the argmax receive no copy mass.
+                assert!(
+                    (probability(&hard, v) - generated(v)).abs() <= 1e-4 * generated(v),
+                    "{score:?}: token {v}: {} against {}",
+                    probability(&hard, v),
+                    generated(v)
+                );
+                // The soft pointer gives them some.
+                assert!(
+                    probability(&soft, v) > generated(v) + 0.01,
+                    "{score:?}: token {v}: soft {} against {}",
+                    probability(&soft, v),
+                    generated(v)
+                );
+            }
+            // The argmax source takes the whole copy branch: g * 1.
+            assert!(
+                (probability(&hard, 9) - (generated(9) + 0.5)).abs() < 1e-6,
+                "{score:?}: token 9: {} against {}",
+                probability(&hard, 9),
+                generated(9) + 0.5
+            );
+            assert!(
+                probability(&soft, 9) < generated(9) + 0.5 - 0.01,
+                "{score:?}: soft {} kept the whole copy branch",
+                probability(&soft, 9)
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_reads_flock_never_applies_to_the_pointer() -> Result<()> {
+        // The toy's reads add nothing to the residual stream, so its final
+        // states do not depend on the flock; only the pointer could feel it.
+        let history = [1u32, 9, 2, 5];
+        let plain = toy_pointer(PointerConfig::new(16), 0.25, 0.0)?;
+        let mut flocked = toy_pointer(PointerConfig::new(16), 0.25, 0.0)?;
+        flocked.set_select(Some(FlockSelect {
+            sink: 0,
+            window: 1,
+            k: 1,
+        }))?;
+        assert_eq!(
+            flocked.next_scores(&history)?,
+            plain.next_scores(&history)?,
+            "the reads' flock changed the pointer's attention"
+        );
+        // The two selections are separate settings of one model.
+        assert!(flocked.config.select.is_some());
+        assert_eq!(flocked.config.pointer.and_then(|p| p.select), None);
+        // The pointer's own selection is not the reads' either.
+        let mut own = toy_pointer(PointerConfig::new(16), 0.25, 0.0)?;
+        own.set_pointer_select(Some(PointerSelect::TopK(1)))?;
+        assert_eq!(own.config.select, None);
+        assert_ne!(own.next_scores(&history)?, plain.next_scores(&history)?);
+        Ok(())
+    }
+
+    #[test]
+    fn a_post_hoc_pointer_selection_changes_generation_and_not_the_weights() -> Result<()> {
+        let mut model = pointer_model(ReadScore::Lorentz, None, 0)?;
+        let (ids, targets, weights) = pointer_batch();
+        let weight_bits = |model: &StackModel| -> Result<Vec<Vec<u32>>> {
+            model
+                .variables()
+                .values()
+                .map(|var| bits(var.as_tensor()))
+                .collect()
+        };
+        let loss_bits = |model: &StackModel| -> Result<u32> {
+            Ok(model
+                .weighted_loss(&ids, &targets, &weights, 2, 12)?
+                .to_scalar::<f32>()?
+                .to_bits())
+        };
+        let before = weight_bits(&model)?;
+        let soft = model.next_scores(&ids[..9])?;
+        let soft_loss = loss_bits(&model)?;
+        model.set_pointer_select(Some(PointerSelect::TopK(1)))?;
+        let hard = model.next_scores(&ids[..9])?;
+        assert!(hard != soft, "the selection changed nothing");
+        assert_eq!(weight_bits(&model)?, before, "the weights changed");
+        // The same weights with the selection built in give the same model.
+        let twin = pointer_model(ReadScore::Lorentz, Some(PointerSelect::TopK(1)), 0)?;
+        assert_eq!(model.config, twin.config);
+        assert_eq!(loss_bits(&model)?, loss_bits(&twin)?);
+        assert_eq!(hard, twin.next_scores(&ids[..9])?);
+        // Clearing it restores the soft pointer bit for bit.
+        model.set_pointer_select(None)?;
+        assert_eq!(model.next_scores(&ids[..9])?, soft);
+        assert_eq!(loss_bits(&model)?, soft_loss);
+        // A refused selection leaves the model as it was.
+        assert!(model
+            .set_pointer_select(Some(PointerSelect::TopK(0)))
+            .is_err());
+        assert!(model
+            .set_pointer_select(Some(PointerSelect::Flock(FlockSelect {
+                sink: 0,
+                window: 0,
+                k: 1,
+            })))
+            .is_err());
+        assert_eq!(model.config.pointer.and_then(|p| p.select), None);
+        // Without a head there is nothing to select for.
+        let mut plain = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        assert!(plain
+            .set_pointer_select(Some(PointerSelect::TopK(1)))
+            .is_err());
+        assert!(plain.set_pointer_select(None).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn an_old_pointer_config_deserializes_to_a_dot_pointer_without_selection() -> Result<()> {
+        // A configuration saved before the pointer had a score, a selection or
+        // a recorded seed.
+        let old = r#"{"arch":"geometric","vocab_size":37,"width":16,"heads":2,
+            "mlp_hidden":24,"context":12,"pattern":"ar","read":"lorentz",
+            "rotation":true,"seed":5,"pointer":{"dim":4}}"#;
+        let config: StackConfig = serde_json::from_str(old)?;
+        config.validate()?;
+        let pointer = config
+            .pointer
+            .ok_or_else(|| invalid("the old config lost its pointer"))?;
+        assert_eq!(pointer, PointerConfig::new(4));
+        assert_eq!(pointer.score, ReadScore::Dot);
+        assert_eq!(pointer.select, None);
+        assert_eq!(pointer.init_seed, None);
+        assert_eq!(config.select, None);
+        // Its tensors are the old four: no scale for a Dot pointer.
+        let names: Vec<String> = config
+            .shapes()
+            .keys()
+            .filter(|name| name.starts_with("pointer."))
+            .cloned()
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "pointer.gate.bias",
+                "pointer.gate.weight",
+                "pointer.key.weight",
+                "pointer.query.weight"
+            ]
+        );
+        // And it serializes as it was: the defaults are not written.
+        let json = serde_json::to_string(&config)?;
+        assert!(json.contains(r#""pointer":{"dim":4}"#), "{json}");
+        // A configuration that uses the new fields round-trips through JSON.
+        let mut new = config.clone();
+        new.select = Some(FlockSelect {
+            sink: 0,
+            window: 3,
+            k: 2,
+        });
+        new.pointer = Some(PointerConfig {
+            dim: 4,
+            score: ReadScore::Lorentz,
+            select: Some(PointerSelect::TopK(1)),
+            init_seed: Some(7),
+        });
+        let json = serde_json::to_string(&new)?;
+        assert!(json.contains(r#""score":"lorentz""#), "{json}");
+        assert!(json.contains(r#""select":{"top_k":1}"#), "{json}");
+        assert!(json.contains(r#""init_seed":7"#), "{json}");
+        assert_eq!(serde_json::from_str::<StackConfig>(&json)?, new);
+        assert!(new.shapes().contains_key("pointer.log_beta"));
+        Ok(())
+    }
+
+    #[test]
+    fn selection_parameters_the_reads_cannot_evaluate_are_refused() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true);
+        for bad in [
+            FlockSelect {
+                sink: 1,
+                window: 3,
+                k: 2,
+            },
+            FlockSelect {
+                sink: 0,
+                window: 0,
+                k: 2,
+            },
+            FlockSelect {
+                sink: 0,
+                window: 3,
+                k: 0,
+            },
+        ] {
+            config.select = Some(bad);
+            assert!(config.validate().is_err(), "{bad:?}");
+            assert!(StackModel::new(config.clone(), &cpu()).is_err(), "{bad:?}");
+        }
+        config.select = None;
+        for bad in [
+            PointerSelect::TopK(0),
+            PointerSelect::Flock(FlockSelect {
+                sink: 0,
+                window: 0,
+                k: 1,
+            }),
+        ] {
+            config.pointer = Some(PointerConfig {
+                select: Some(bad),
+                ..PointerConfig::new(4)
+            });
+            assert!(config.validate().is_err(), "{bad:?}");
+        }
+        config.pointer = Some(PointerConfig::new(0));
+        assert!(config.validate().is_err());
+        // The command-line grammar of both selections.
+        assert_eq!(parse_flock_select("none")?, None);
+        assert_eq!(
+            parse_flock_select("flock:64:7")?,
+            Some(FlockSelect {
+                sink: 0,
+                window: 64,
+                k: 7
+            })
+        );
+        for bad in ["flock:0:7", "flock:4:0", "flock:4", "top:1", "flock:a:1"] {
+            assert!(parse_flock_select(bad).is_err(), "{bad}");
+        }
+        assert_eq!(parse_pointer_select("none")?, None);
+        assert_eq!(parse_pointer_select("top:1")?, Some(PointerSelect::TopK(1)));
+        assert_eq!(
+            parse_pointer_select("flock:32:16")?,
+            Some(PointerSelect::Flock(FlockSelect {
+                sink: 0,
+                window: 32,
+                k: 16
+            }))
+        );
+        for bad in ["top:0", "top", "top:x", "flock:0:1", "flock:1", "window:3"] {
+            assert!(parse_pointer_select(bad).is_err(), "{bad}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_pointer_model_saves_loads_and_gains_a_head_from_a_seed() -> Result<()> {
+        let select = Some(PointerSelect::Flock(FlockSelect {
+            sink: 0,
+            window: 3,
+            k: 2,
+        }));
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let mut model = pointer_model(score, select, 0)?;
+            model.config.select = Some(FlockSelect {
+                sink: 0,
+                window: 4,
+                k: 2,
+            });
+            let directory = std::env::temp_dir().join(format!(
+                "geometric-stack-pointer-{}-{score:?}",
+                std::process::id()
+            ));
+            model.save(&directory)?;
+            let loaded = StackModel::load(&directory, &cpu())?;
+            let config_json = fs::read_to_string(directory.join("config.json"))?;
+            assert!(config_json.contains("\"pointer\"") && config_json.contains("\"select\""));
+            assert_eq!(
+                loaded.variables().contains_key("pointer.log_beta"),
+                score == ReadScore::Lorentz
+            );
+            assert_eq!(loaded.config, model.config);
+            let (ids, targets, weights) = pointer_batch();
+            assert_eq!(
+                model
+                    .weighted_loss(&ids, &targets, &weights, 2, 12)?
+                    .to_scalar::<f32>()?
+                    .to_bits(),
+                loaded
+                    .weighted_loss(&ids, &targets, &weights, 2, 12)?
+                    .to_scalar::<f32>()?
+                    .to_bits()
+            );
+            assert_eq!(
+                model.next_scores(&ids[..8])?,
+                loaded.next_scores(&ids[..8])?
+            );
+            fs::remove_dir_all(&directory)?;
+        }
+        // A model saved without a pointer gains one from a seed, with the
+        // weights a new model of that configuration and seed starts with, and
+        // records the seed.
+        let plain = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        let directory =
+            std::env::temp_dir().join(format!("geometric-stack-plain-{}", std::process::id()));
+        plain.save(&directory)?;
+        let mut grown = StackModel::load(&directory, &cpu())?;
+        fs::remove_dir_all(&directory)?;
+        let seed = grown.config.seed;
+        assert!(grown.add_pointer(PointerConfig::new(4), seed)?);
+        assert_eq!(
+            grown.config.pointer.and_then(|pointer| pointer.init_seed),
+            Some(seed)
+        );
+        // The same head again is a no-op; another width or score is refused.
+        assert!(!grown.add_pointer(PointerConfig::new(4), seed + 1)?);
+        assert_eq!(
+            grown.config.pointer.and_then(|pointer| pointer.init_seed),
+            Some(seed),
+            "an existing head keeps the seed it was drawn from"
+        );
+        assert!(grown.add_pointer(PointerConfig::new(8), seed).is_err());
+        assert!(grown
+            .add_pointer(
+                PointerConfig {
+                    score: ReadScore::Lorentz,
+                    ..PointerConfig::new(4)
+                },
+                seed
+            )
+            .is_err());
+        let mut config = plain.config.clone();
+        config.pointer = Some(PointerConfig {
+            init_seed: Some(seed),
+            ..PointerConfig::new(4)
+        });
+        let fresh = StackModel::new(config, &cpu())?;
+        assert_eq!(grown.config, fresh.config);
+        assert_eq!(grown.parameter_count(), fresh.parameter_count());
+        for (name, var) in fresh.variables() {
+            if name.starts_with("pointer.") {
+                assert_eq!(
+                    bits(var.as_tensor())?,
+                    bits(grown.variables()[name].as_tensor())?,
+                    "{name}"
+                );
+            }
+        }
+        // The old parameters are untouched and the gate starts at sigmoid(-2).
+        assert_eq!(
+            bits(plain.variables()["embedding.weight"].as_tensor())?,
+            bits(fresh.variables()["embedding.weight"].as_tensor())?
+        );
+        assert_eq!(
+            grown.variables()["pointer.gate.bias"]
+                .as_tensor()
+                .to_vec1::<f32>()?,
+            vec![-2.0]
+        );
+        // A Lorentz head starts with a zero log scale, and shares its query
+        // and key with the Dot head of the same seed.
+        let mut lorentz = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        assert!(lorentz.add_pointer(
+            PointerConfig {
+                score: ReadScore::Lorentz,
+                ..PointerConfig::new(4)
+            },
+            seed
+        )?);
+        assert_eq!(
+            lorentz.variables()["pointer.log_beta"]
+                .as_tensor()
+                .to_vec1::<f32>()?,
+            vec![0.0]
+        );
+        for name in ["pointer.query.weight", "pointer.key.weight"] {
+            assert_eq!(
+                bits(lorentz.variables()[name].as_tensor())?,
+                bits(fresh.variables()[name].as_tensor())?,
+                "{name}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn a_pointer_has_no_served_representation_and_no_export() -> Result<()> {
+        let mut config = exportable("rar", ReadScore::Lorentz, true);
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            config.pointer = Some(PointerConfig {
+                score,
+                ..PointerConfig::new(8)
+            });
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            let refusal = model
+                .set_served_representation(Some(Arc::new(D11Interim)))
+                .expect_err("qat with a pointer is refused");
+            assert!(refusal.to_string().contains("pointer"), "{refusal}");
+            let refusal =
+                crate::stack_export::export_stack(&model, serde_json::json!({}), None, None)
+                    .expect_err("a pointer model is not exported");
+            assert!(refusal.to_string().contains("no D11 port"), "{refusal}");
+        }
+        // A flock is refused by the exports too, but trains in QAT.
+        config.pointer = None;
+        config.select = Some(FlockSelect {
+            sink: 0,
+            window: 4,
+            k: 2,
+        });
+        let mut model = StackModel::new(config, &cpu())?;
+        let refusal = crate::stack_export::export_stack(&model, serde_json::json!({}), None, None)
+            .expect_err("a flock model is not exported");
+        assert!(refusal.to_string().contains("flock"), "{refusal}");
+        model.set_served_representation(Some(Arc::new(D11Interim)))?;
         Ok(())
     }
 }

@@ -46,6 +46,8 @@ pub mod kappa_llama;
 pub mod lut_export;
 pub mod metal_stack_kernels;
 pub mod milestone_world;
+pub mod milestone_world_v2;
+pub mod milestone_world_v2_probe;
 pub mod ngram;
 pub mod read_localize;
 pub mod reference_campaign;

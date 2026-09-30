@@ -32,7 +32,7 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 use crate::dialogue_episodes::{
     EpisodeBatch, EpisodeContract, EpisodeIndex, PrefixPolicy, SourceSpan, EPISODE_CONTEXT,
 };
-use crate::geometric_stack::StackModel;
+use crate::geometric_stack::{PointerRowStats, StackModel, TargetScores};
 use crate::reference_eval::short_cycle_period;
 use crate::{invalid, Result};
 
@@ -171,6 +171,52 @@ pub fn trim(batch: &EpisodeBatch) -> Trimmed {
     }
 }
 
+/// What a pointer head did over the scored targets of a panel.
+#[derive(Clone, Default)]
+struct PointerTotals {
+    scored: usize,
+    gate: f64,
+    copy_mass: f64,
+    hits: usize,
+    reachable: usize,
+}
+
+impl PointerTotals {
+    fn add(&mut self, row: &PointerRowStats) {
+        self.scored += 1;
+        self.gate += row.gate;
+        self.copy_mass += row.copy_mass;
+        self.hits += usize::from(row.hit);
+        self.reachable += usize::from(row.reachable);
+    }
+
+    fn merge(&mut self, other: &Self) {
+        self.scored += other.scored;
+        self.gate += other.gate;
+        self.copy_mass += other.copy_mass;
+        self.hits += other.hits;
+        self.reachable += other.reachable;
+    }
+
+    fn report(&self) -> Option<Value> {
+        (self.scored != 0).then(|| {
+            let n = self.scored as f64;
+            json!({
+                "scored_targets": self.scored,
+                "mean_gate": self.gate / n,
+                "pointer_hit_rate": self.hits as f64 / n,
+                "target_reachable_rate": self.reachable as f64 / n,
+                "mean_copy_mass": self.copy_mass / n,
+                "definitions": "over the scored targets: mean_gate is the mean gate g_t; \
+                    pointer_hit_rate is the fraction whose most attended source (lowest position \
+                    on a tie) holds the target token; target_reachable_rate is the fraction \
+                    whose target token is held by any source with attention (the hit rate's \
+                    ceiling); mean_copy_mass is the mean p_copy(target) before the gate",
+            })
+        })
+    }
+}
+
 #[derive(Clone, Default)]
 struct Totals {
     responses: usize,
@@ -179,6 +225,7 @@ struct Totals {
     first_targets: usize,
     first_nll: f64,
     eos_targets: usize,
+    pointer: PointerTotals,
 }
 
 impl Totals {
@@ -189,10 +236,11 @@ impl Totals {
         self.first_targets += other.first_targets;
         self.first_nll += other.first_nll;
         self.eos_targets += other.eos_targets;
+        self.pointer.merge(&other.pointer);
     }
 
     fn report(&self) -> Value {
-        json!({
+        let mut report = json!({
             "selected_responses": self.responses,
             "supervised_targets": self.targets,
             "eos_targets": self.eos_targets,
@@ -200,7 +248,11 @@ impl Totals {
             "first_four_targets": self.first_targets,
             "first_four_response_targets_mean_nll":
                 (self.first_targets != 0).then(|| self.first_nll / self.first_targets as f64),
-        })
+        });
+        if let Some(pointer) = self.pointer.report() {
+            report["pointer"] = pointer;
+        }
+        report
     }
 }
 
@@ -208,7 +260,9 @@ impl Totals {
 /// prefixes: the token-mean response NLL and the NLL of each response's first
 /// four targets, pooled and per source. The fields are those of the retained
 /// study's panel report (`dialogue_development::evaluate`); here every
-/// target's NLL is computed in f64 and summed in f64.
+/// target's NLL is computed in f64 and summed in f64. `score_fn` scores one
+/// batch of `(inputs, targets, response weights, batch, time)`; the pointer
+/// statistics it returns, if any, are pooled over the response targets.
 fn evaluate_development_nll<F>(
     model: &StackModel,
     index: &EpisodeIndex<'_>,
@@ -218,7 +272,7 @@ fn evaluate_development_nll<F>(
     mut score_fn: F,
 ) -> Result<Value>
 where
-    F: FnMut(&[u32], &[u32], usize, usize) -> Result<Vec<f64>>,
+    F: FnMut(&[u32], &[u32], &[f32], usize, usize) -> Result<TargetScores>,
 {
     let contract = index.contract();
     if !(1..=64).contains(&batch)
@@ -240,7 +294,14 @@ where
         let episodes = index.materialize(chunk, PrefixPolicy::FullPrefix)?;
         let trimmed = trim(&episodes);
         let time = trimmed.time;
-        let nll = score_fn(&trimmed.inputs, &trimmed.targets, episodes.batch, time)?;
+        let scores = score_fn(
+            &trimmed.inputs,
+            &trimmed.targets,
+            &trimmed.weights,
+            episodes.batch,
+            time,
+        )?;
+        let nll = &scores.nll;
         for (lane, row) in episodes.rows.iter().enumerate() {
             let total = &mut totals[row.source_index];
             selected[row.source_index].push(row.response_id);
@@ -248,11 +309,15 @@ where
             total.eos_targets += row.counts.eos_targets;
             let start = lane * time;
             let mut first = 0usize;
-            for (weight, value) in trimmed.weights[start..start + time]
+            for (offset, (weight, value)) in trimmed.weights[start..start + time]
                 .iter()
                 .zip(&nll[start..start + time])
+                .enumerate()
             {
                 if *weight == 1.0 {
+                    if let Some(Some(stats)) = scores.pointer.as_ref().map(|p| &p[start + offset]) {
+                        total.pointer.add(stats);
+                    }
                     total.targets += 1;
                     total.nll += value;
                     if first < 4 {
@@ -288,6 +353,8 @@ where
 /// Score a stack on the development responses `ids` under their full original
 /// prefixes using an explicit output head tensor: the token-mean response NLL
 /// and the NLL of each response's first four targets, pooled and per source.
+/// The explicit head scores raw logits, which are not a pointer model's
+/// distribution (the mixture), so a pointer model is refused.
 pub fn development_with_head(
     model: &StackModel,
     head: &Tensor,
@@ -295,14 +362,23 @@ pub fn development_with_head(
     ids: &[usize],
     batch: usize,
 ) -> Result<Value> {
+    if model.config.pointer.is_some() {
+        return Err(invalid(
+            "development_with_head scores raw logits through an explicit head; a pointer \
+             model's distribution is its mixture (use development)",
+        ));
+    }
     evaluate_development_nll(
         model,
         index,
         ids,
         batch,
         "Token means over the selected development responses using an explicit output head, not the full corpus or an equal-source mean.",
-        |inputs, targets, batch_size, time| {
-            model.target_nll_with_head(inputs, targets, head, batch_size, time)
+        |inputs, targets, _weights, batch_size, time| {
+            Ok(TargetScores {
+                nll: model.target_nll_with_head(inputs, targets, head, batch_size, time)?,
+                pointer: None,
+            })
         },
     )
 }
@@ -324,8 +400,11 @@ pub fn development(
         ids,
         batch,
         "Token means over the selected development responses, not the full corpus or an equal-source mean.",
-        |inputs, targets, batch_size, time| {
-            model.target_nll(inputs, targets, batch_size, time)
+        // Only the response targets are read, so a pointer head is run on them
+        // alone (the mixture, with its statistics); a model without one scores
+        // every position, as `target_nll` does.
+        |inputs, targets, weights, batch_size, time| {
+            model.score_targets(inputs, targets, Some(weights), batch_size, time)
         },
     )
 }
@@ -520,8 +599,8 @@ pub fn greedy_reply(model: &StackModel, history: &[u32], cap: usize, eos: u32) -
         if window.len() > model.config.context {
             return Err(invalid("the reply outgrew the context"));
         }
-        let logits = model.forward(&window, 1, window.len())?.detach();
-        let last = logits.get(window.len() - 1)?.to_vec1::<f32>()?;
+        // The last position's logits, or a pointer model's mixture scores.
+        let last = model.next_scores(&window)?;
         let mut best = 0usize;
         for (i, v) in last.iter().enumerate() {
             if *v > last[best] {
@@ -785,6 +864,111 @@ mod tests {
             tokenizer.decode(&history),
             "<|bos|>User: sky?\nAssistant: blue<|eos|>\nUser: grass?\nAssistant: green<|eos|>"
         );
+        let _ = fs::remove_dir_all(&directory);
+    }
+
+    #[test]
+    fn a_pointer_stack_learns_the_split_and_reports_its_gate_and_hits() {
+        use crate::flock::FlockSelect;
+        use crate::geometric_stack::PointerConfig;
+        let directory = std::env::temp_dir().join(format!(
+            "uor-r4-stack-dialogue-pointer-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        let _ = fs::remove_dir_all(&directory);
+        fs::create_dir_all(&directory).unwrap();
+        let tokenizer = tokenizer();
+        let split = split(&directory, &tokenizer);
+        let (protocol, contract) = episode_contract(&tokenizer, split.vocab_size()).unwrap();
+        let index = split.index(contract).unwrap();
+        let panel = dialogue_development::select(&index, 7, 2).unwrap();
+        let mut config = stack().config.clone();
+        // A Lorentz pointer that softmaxes over every source (its own
+        // selection is none), beside a flock on the reads, which the pointer
+        // does not use.
+        config.pointer = Some(PointerConfig {
+            score: ReadScore::Lorentz,
+            ..PointerConfig::new(8)
+        });
+        config.select = Some(FlockSelect {
+            sink: 0,
+            window: 8,
+            k: 2,
+        });
+        let mut model = StackModel::new(config, &Device::Cpu).unwrap();
+        let before = development(&model, &index, &panel, 4).unwrap();
+        let pointer = &before["pointer"];
+        // The head is scored on exactly the supervised targets, and its gate
+        // starts near sigmoid(-2).
+        assert_eq!(pointer["scored_targets"], before["supervised_targets"]);
+        let gate = pointer["mean_gate"].as_f64().unwrap();
+        assert!((0.05..0.3).contains(&gate), "initial mean gate {gate}");
+        assert!(before["per_source"][0]["pointer"]["pointer_hit_rate"].is_number());
+        let mut optimizer = StackAdamW::new(&model, 0.0, 1.0).unwrap();
+        for step in 0..240u64 {
+            let ids = index.sample_ids(3, step, 8).unwrap();
+            let batch = index.materialize(&ids, PrefixPolicy::FullPrefix).unwrap();
+            let trimmed = trim(&batch);
+            let loss = model
+                .weighted_loss(
+                    &trimmed.inputs,
+                    &trimmed.targets,
+                    &trimmed.weights,
+                    batch.batch,
+                    trimmed.time,
+                )
+                .unwrap();
+            let grads = loss.backward().unwrap();
+            optimizer.update(&model, &grads, 0.01).unwrap();
+        }
+        let after = development(&model, &index, &panel, 4).unwrap();
+        let nll = |report: &Value| report["response_mean_nll"].as_f64().unwrap();
+        assert!(
+            nll(&after) < 0.5 * nll(&before),
+            "response NLL {} -> {}",
+            nll(&before),
+            nll(&after)
+        );
+        assert!(after["pointer"]["mean_gate"].is_number());
+        // The same weights scored with the single-source pointer, post hoc: a
+        // single kept source copies with weight 1 or 0, so on every scored
+        // target the copy mass is the hit and the reachable indicator.
+        model
+            .set_pointer_select(Some(crate::geometric_stack::PointerSelect::TopK(1)))
+            .unwrap();
+        let single = development(&model, &index, &panel, 4).unwrap();
+        assert_eq!(
+            single["pointer"]["scored_targets"],
+            after["pointer"]["scored_targets"]
+        );
+        let rate = |key: &str| single["pointer"][key].as_f64().unwrap();
+        assert!(
+            (rate("mean_copy_mass") - rate("pointer_hit_rate")).abs() < 1e-9,
+            "copy mass {} against hit rate {}",
+            rate("mean_copy_mass"),
+            rate("pointer_hit_rate")
+        );
+        assert!((rate("target_reachable_rate") - rate("pointer_hit_rate")).abs() < 1e-9);
+        model.set_pointer_select(None).unwrap();
+        // Greedy replies come from the mixture and stop at EOS.
+        let requests = vec![Request {
+            id: "r1".into(),
+            category: "test".into(),
+            user_turns: vec!["sky?".into()],
+        }];
+        let encoder = protocol.bind(&tokenizer).unwrap();
+        let replies = reply_panel(
+            &encoder,
+            &protocol,
+            &requests,
+            model.config.context,
+            8,
+            &|ids| tokenizer.decode(ids),
+            &mut |history, cap| greedy_reply(&model, history, cap, protocol.eos_id),
+        )
+        .unwrap();
+        assert_eq!(replies["rows"][0]["turns"][0]["reply"], "blue");
         let _ = fs::remove_dir_all(&directory);
     }
 

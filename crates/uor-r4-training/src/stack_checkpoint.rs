@@ -789,6 +789,8 @@ mod tests {
             rotation: true,
             seed: 5,
             memory: None,
+            select: None,
+            pointer: None,
         };
         StackModel::new(config, &Device::Cpu).expect("tiny stack")
     }
@@ -1101,6 +1103,8 @@ mod tests {
             rotation: true,
             seed: 7,
             memory: None,
+            select: None,
+            pointer: None,
         };
         let mut model = StackModel::new(config, &Device::Cpu).expect("stack");
         model
