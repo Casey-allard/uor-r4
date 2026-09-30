@@ -52,6 +52,7 @@ pub mod ngram;
 pub mod read_localize;
 pub mod reference_campaign;
 pub mod reference_eval;
+pub mod s8_panel_count;
 pub mod stack_aerm;
 pub mod stack_checkpoint;
 pub mod stack_dialogue;
