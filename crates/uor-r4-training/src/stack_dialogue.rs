@@ -22,6 +22,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+use candle_core::Tensor;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::mmap_corpus::MmapCorpusReader;
@@ -208,12 +209,17 @@ impl Totals {
 /// four targets, pooled and per source. The fields are those of the retained
 /// study's panel report (`dialogue_development::evaluate`); here every
 /// target's NLL is computed in f64 and summed in f64.
-pub fn development(
+fn evaluate_development_nll<F>(
     model: &StackModel,
     index: &EpisodeIndex<'_>,
     ids: &[usize],
     batch: usize,
-) -> Result<Value> {
+    scope_description: &'static str,
+    mut score_fn: F,
+) -> Result<Value>
+where
+    F: FnMut(&[u32], &[u32], usize, usize) -> Result<Vec<f64>>,
+{
     let contract = index.contract();
     if !(1..=64).contains(&batch)
         || ids.is_empty()
@@ -234,7 +240,7 @@ pub fn development(
         let episodes = index.materialize(chunk, PrefixPolicy::FullPrefix)?;
         let trimmed = trim(&episodes);
         let time = trimmed.time;
-        let nll = model.target_nll(&trimmed.inputs, &trimmed.targets, episodes.batch, time)?;
+        let nll = score_fn(&trimmed.inputs, &trimmed.targets, episodes.batch, time)?;
         for (lane, row) in episodes.rows.iter().enumerate() {
             let total = &mut totals[row.source_index];
             selected[row.source_index].push(row.response_id);
@@ -275,10 +281,53 @@ pub fn development(
     report["response_ids"] = json!(ids);
     report["per_source"] = json!(sources);
     report["conditioning"] = json!("full_original_prefix");
-    report["scope"] = json!(
-        "Token means over the selected development responses, not the full corpus or an equal-source mean."
-    );
+    report["scope"] = json!(scope_description);
     Ok(report)
+}
+
+/// Score a stack on the development responses `ids` under their full original
+/// prefixes using an explicit output head tensor: the token-mean response NLL
+/// and the NLL of each response's first four targets, pooled and per source.
+pub fn development_with_head(
+    model: &StackModel,
+    head: &Tensor,
+    index: &EpisodeIndex<'_>,
+    ids: &[usize],
+    batch: usize,
+) -> Result<Value> {
+    evaluate_development_nll(
+        model,
+        index,
+        ids,
+        batch,
+        "Token means over the selected development responses using an explicit output head, not the full corpus or an equal-source mean.",
+        |inputs, targets, batch_size, time| {
+            model.target_nll_with_head(inputs, targets, head, batch_size, time)
+        },
+    )
+}
+
+/// Score a stack on the development responses `ids` under their full original
+/// prefixes: the token-mean response NLL and the NLL of each response's first
+/// four targets, pooled and per source. The fields are those of the retained
+/// study's panel report (`dialogue_development::evaluate`); here every
+/// target's NLL is computed in f64 and summed in f64.
+pub fn development(
+    model: &StackModel,
+    index: &EpisodeIndex<'_>,
+    ids: &[usize],
+    batch: usize,
+) -> Result<Value> {
+    evaluate_development_nll(
+        model,
+        index,
+        ids,
+        batch,
+        "Token means over the selected development responses, not the full corpus or an equal-source mean.",
+        |inputs, targets, batch_size, time| {
+            model.target_nll(inputs, targets, batch_size, time)
+        },
+    )
 }
 
 /// One request of a reply panel: user turns answered in order, the format of

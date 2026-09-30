@@ -1,0 +1,105 @@
+{
+  "schema": "uor-r4.d4-qat-geometric-s1/1",
+  "parent_model": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model",
+    "model_sha256": "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a",
+    "config_sha256": "2db5da637cc806d992aa56869ad462fdf6902e6d5515de90b457b4ac2f23ac1c",
+    "float_nll": 1.9981126841902181
+  },
+  "data": {
+    "train_c3": {
+      "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cloud-data-20260928/c3/data/code/train.u16",
+      "sha256": "b12707b012e5447f0c613236ea7f8819f2cc123861dafe49f7f8226ccc457137"
+    },
+    "train_c4": {
+      "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cloud-data-20260928/c4/data/registry.u16",
+      "sha256": "af93ca73e51a798e4a19e1a470e97037939c95f7499e65ffb8e3526748026f65"
+    },
+    "valid": {
+      "path": "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16",
+      "sha256": "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8"
+    }
+  },
+  "training_settings": {
+    "steps": 1000,
+    "batch": 16,
+    "lr": 0.0005,
+    "warmup": 100,
+    "min_lr": 0.1,
+    "weight_decay": 0.1,
+    "clip": 1.0,
+    "seed": 1,
+    "eval_every": 250,
+    "eval_windows": 64,
+    "final_windows": 512,
+    "checkpoint_every": 250
+  },
+  "arm1_qat": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000",
+    "manifest_sha256": "2c08ac78f6fbc1ffa361321f8315308cd57db031253dd86697b3f395947e06e3",
+    "final_served_nll": 1.9731257528302433,
+    "final_float_nll": 1.9624902710088492,
+    "train_seconds": 2343.740426339001,
+    "export_root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_export",
+    "export_manifest_sha256": "9b6864fefcc0625c6fb5728110412e6bf7322e0049a96a14f187cdc733478c03",
+    "artifact_lut": {
+      "path": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_export/model.lut",
+      "sha256": "3331fd2c50f7dc01f0a4d83738349dc35fa5bfb1b0d5c27dd451b98fdd6991c4",
+      "bytes": 4969988,
+      "bits_per_weight_raw_parameter": 4.2500,
+      "bits_per_weight_total_container": 4.723389291851041
+    },
+    "lut_eval_root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_lut_eval",
+    "lut_eval_manifest_sha256": "de6f640c16e9a88d4420e84eab6ad9e733aeba248a9281a5d793246517c602aa",
+    "lut_eval_integer_nll": 1.973126532068867,
+    "lut_eval_reference_nll": 1.9731257528228003,
+    "lut_eval_float_nll": 1.9624902710114909,
+    "lut_eval_integer_arithmetic_nll": 7.792460665623224e-7,
+    "lut_eval_top1_agreement": 0.90277099609375,
+    "d11_eval_root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_qat_d11_1000_d11_eval",
+    "d11_eval_manifest_sha256": "ab550d4cce7fc514077b671044f4a229dc97eb28b633aa5dfcf2e3fb3c668fba",
+    "d11_eval_d11_nll": 1.973126532068867,
+    "d11_eval_d10_nll": 1.973126532068867,
+    "d11_max_abs_logit_difference": 0,
+    "d11_top1_agreement": 1.0,
+    "served_vs_integer_gap": 7.792386e-7,
+    "own_float_model_sha256": "f4caf562824abf53257d7d7d60c81c43949529e3eacf5aed4a8e6b33b7f20093",
+    "quantization_gap_vs_own_float": 0.0106362610600178
+  },
+  "arm2_float_continuation": {
+    "root": "/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/geometric_s1_float_ctrl_1000",
+    "manifest_sha256": "1821dda2ab2ad006a373f30e2f4bff8c6ca650c1801d9ff5fd3a8a90d5550e07",
+    "final_float_nll": 1.9551148883912632,
+    "train_seconds": 2918.734688005
+  },
+  "gates": {
+    "gate_d4_own_float_gap": {
+      "description": "Arm 1 exported integer NLL <= Arm 1 own float NLL (1.962490) + 0.0200 nats",
+      "arm1_exported_nll": 1.973126532068867,
+      "arm1_own_float_nll": 1.9624902710088492,
+      "delta_vs_own_float": 0.0106362610600178,
+      "gate_bound": 0.0200,
+      "passed": true
+    },
+    "gate_1": {
+      "description": "Arm 1 exported NLL <= Arm 2 float continuation + 0.0200 nats",
+      "arm1_exported_nll": 1.973126532068867,
+      "arm2_float_nll_plus_0_02": 1.9751148883912632,
+      "delta": 0.018011643677603784,
+      "passed": true
+    },
+    "gate_2": {
+      "description": "Arm 1 exported NLL <= original float (1.998113) + 0.02 = 2.018113 nats",
+      "arm1_exported_nll": 1.973126532068867,
+      "original_float_plus_0_02": 2.0181126841902181,
+      "delta_vs_orig_float": -0.0249861521213511,
+      "passed": true
+    },
+    "gate_integer_parity": {
+      "description": "Integer engine must equal final served NLL within 1e-5 nats",
+      "observed_difference": 7.792386e-7,
+      "passed": true
+    }
+  },
+  "decision": "reported; Lab 1 re-run pending"
+}
