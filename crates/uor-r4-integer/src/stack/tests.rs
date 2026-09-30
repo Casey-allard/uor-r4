@@ -1102,3 +1102,242 @@ fn session_restore_validates_and_restores_snap_trace() {
         late_reset_session.snap_trace().unwrap()
     );
 }
+
+#[test]
+fn test_pointer_copy_boosts_prior_token_logits_and_preserves_across_save_restore() {
+    let model = IntegerStackModel::parse(&artifact(42)).expect("parse model");
+
+    // 1. Baseline stepping with copy_scale_q16 == 0
+    let mut baseline_session = model.session();
+    assert_eq!(baseline_session.copy_scale(), 0);
+    assert!(baseline_session.pointer_weights().is_empty());
+
+    let prompt = [3u32, 7u32, 11u32, 7u32];
+    let mut baseline_logits = Vec::new();
+    for &tok in &prompt {
+        let logits = baseline_session.step(tok).expect("step baseline").to_vec();
+        baseline_logits.push(logits);
+    }
+    assert_eq!(baseline_session.position(), prompt.len());
+    // When copy_scale is 0, capture is bypassed in stack_read, so weights remain 0
+    assert!(
+        baseline_session.pointer_weights().iter().all(|&w| w == 0),
+        "when copy_scale is 0, capture is bypassed and weights remain 0"
+    );
+
+    // 2. Stepping with pointer copy enabled (scale = 1.0 in Q16 = 1 << 16)
+    let mut copy_session = model.session();
+    copy_session.set_copy_scale(1 << 16);
+    assert_eq!(copy_session.copy_scale(), 1 << 16);
+
+    let mut copy_logits = Vec::new();
+    let mut step_weights_snapshots = Vec::new();
+    for &tok in &prompt {
+        let logits = copy_session.step(tok).expect("step copy").to_vec();
+        step_weights_snapshots.push(copy_session.pointer_weights().to_vec());
+        copy_logits.push(logits);
+    }
+    assert_eq!(copy_session.position(), prompt.len());
+    assert_eq!(copy_session.pointer_weights().len(), prompt.len());
+    assert!(
+        copy_session.pointer_weights().iter().any(|&w| w > 0),
+        "with copy_scale > 0, non-zero attention weights must be captured"
+    );
+
+    // Step 0: prompt[0] has no preceding context tokens, so logits must match baseline bit-for-bit
+    assert_eq!(
+        copy_logits[0], baseline_logits[0],
+        "step 0 has no preceding context, logits must match baseline exactly"
+    );
+
+    // Subsequent steps: tokens present in prompt[..step_idx] receive non-negative pointer copy boost;
+    // tokens NOT present in prompt[..step_idx] must remain strictly equal to baseline logits.
+    for step_idx in 1..prompt.len() {
+        let prefix = &prompt[..step_idx];
+        let prefix_set: std::collections::BTreeSet<u32> = prefix.iter().copied().collect();
+
+        // Any token not in prefix must have bit-identical logit to baseline
+        for v in 0..VOCAB as u32 {
+            if !prefix_set.contains(&v) {
+                assert_eq!(
+                    copy_logits[step_idx][v as usize], baseline_logits[step_idx][v as usize],
+                    "unseen token {v} at step {step_idx} must have unchanged logits"
+                );
+            }
+        }
+
+        // Pointer weights must be valid normalized values (sum <= Q31)
+        let weights = &step_weights_snapshots[step_idx][..step_idx];
+        for &w in weights {
+            assert!(
+                w <= (1u64 << 31),
+                "normalized pointer weight must be <= Q31"
+            );
+        }
+
+        // Any seen token with non-zero attention mass must receive a non-negative boost
+        for (pos, &tok) in prefix.iter().enumerate() {
+            let pw = step_weights_snapshots[step_idx][pos];
+            if pw > 0 {
+                assert!(
+                    copy_logits[step_idx][tok as usize] >= baseline_logits[step_idx][tok as usize],
+                    "seen token {tok} must receive non-negative boost"
+                );
+            }
+        }
+    }
+
+    // 3. Save / restore state roundtrip preserves copy_scale_q16 and produces bit-identical continuation
+    let saved = copy_session.save_state();
+    assert_eq!(saved.copy_scale_q16, 1 << 16);
+    assert_eq!(saved.position, prompt.len() as u64);
+
+    let mut restored_session = model.session();
+    restored_session
+        .restore_state(&saved)
+        .expect("restore state");
+    assert_eq!(restored_session.copy_scale(), 1 << 16);
+    assert_eq!(restored_session.position(), prompt.len());
+    // On restore, pointer_weights buffer is zeroed until the next step
+    assert!(
+        restored_session.pointer_weights().iter().all(|&w| w == 0),
+        "pointer_weights should be zeroed upon restore"
+    );
+    assert_eq!(
+        restored_session.logits(),
+        copy_session.logits(),
+        "restored logits must match saved session logits"
+    );
+
+    let continuation_token = 5u32;
+    let next_copy = copy_session
+        .step(continuation_token)
+        .expect("next copy")
+        .to_vec();
+    let next_rest = restored_session
+        .step(continuation_token)
+        .expect("next restored")
+        .to_vec();
+    assert_eq!(
+        next_copy, next_rest,
+        "continuation logits after restore must be bit-for-bit identical"
+    );
+
+    // 4. Disabling copy scale clears pointer weights buffer
+    assert!(copy_session.pointer_weights().iter().any(|&w| w > 0));
+    copy_session.set_copy_scale(0);
+    assert_eq!(copy_session.copy_scale(), 0);
+    assert!(
+        copy_session.pointer_weights().iter().all(|&w| w == 0),
+        "disabling copy scale must clear pointer weights buffer"
+    );
+
+    // 5. Session reset clears pointer weights and position but allows clean reuse
+    copy_session.reset();
+    assert_eq!(copy_session.position(), 0);
+    assert_eq!(copy_session.tokens().len(), 0);
+    assert!(copy_session.pointer_weights().is_empty());
+    let reset_step0 = copy_session
+        .step(prompt[0])
+        .expect("step after reset")
+        .to_vec();
+    assert_eq!(
+        reset_step0, baseline_logits[0],
+        "step 0 after reset must match baseline step 0"
+    );
+}
+
+#[test]
+fn test_pointer_copy_retrieval_boost_argmax_override_and_duplicate_accumulation() {
+    let model = IntegerStackModel::parse(&artifact(42)).expect("parse model");
+
+    // Stepping prompt with duplicate tokens: token 7 at pos 1 and pos 3
+    let prompt = [3u32, 7u32, 11u32, 7u32];
+
+    // Baseline stepping
+    let mut baseline = model.session();
+    for &tok in &prompt {
+        baseline.step(tok).expect("baseline step");
+    }
+    let baseline_continuation = baseline.step(5).expect("baseline step 5").to_vec();
+
+    // Copy session with scale = 1.0 (Q16 = 1 << 16)
+    let mut copy = model.session();
+    copy.set_copy_scale(1 << 16);
+    for &tok in &prompt {
+        copy.step(tok).expect("copy step");
+    }
+    let copy_continuation = copy.step(5).expect("copy step 5").to_vec();
+
+    // Verify duplicate token accumulation: token 7 was present at pos 1 and pos 3
+    let pw1 = i128::from(copy.pointer_weights()[1]);
+    let pw3 = i128::from(copy.pointer_weights()[3]);
+    assert!(
+        pw1 > 0,
+        "token 7 at pos 1 must have non-zero attention weight"
+    );
+    assert!(
+        pw3 > 0,
+        "token 7 at pos 3 must have non-zero attention weight"
+    );
+    let expected_boost_pos1 = (pw1 * (1i128 << 16)) >> 31;
+    let expected_boost_pos3 = (pw3 * (1i128 << 16)) >> 31;
+    assert!(
+        expected_boost_pos1 > 0,
+        "expected boost at pos 1 must be strictly positive"
+    );
+    assert!(
+        expected_boost_pos3 > 0,
+        "expected boost at pos 3 must be strictly positive"
+    );
+    let expected_total_boost = (expected_boost_pos1 + expected_boost_pos3) as i32;
+    assert!(
+        expected_total_boost < i32::MAX,
+        "expected total boost must be non-saturating"
+    );
+
+    let actual_diff = copy_continuation[7] - baseline_continuation[7];
+    assert_eq!(
+        actual_diff, expected_total_boost,
+        "duplicate token 7 must accumulate exact sum of pointer boosts from all prefix occurrences"
+    );
+
+    // Large scale: test retrieval override where pointer boost drives argmax
+    let mut strong_copy = model.session();
+    // Use large scale (Q16 = 1 << 30) to test argmax override
+    strong_copy.set_copy_scale(1 << 30);
+    for &tok in &prompt {
+        strong_copy.step(tok).expect("strong copy step");
+    }
+    let strong_continuation = strong_copy.step(5).expect("strong copy step 5").to_vec();
+    let winner = super::stack_argmax(&strong_continuation) as u32;
+    assert!(
+        prompt.contains(&winner),
+        "under strong copy scale, a prefix token ({winner}) must win argmax through pointer retrieval"
+    );
+
+    // Distance retrieval: token 3 at distance 4 still receives non-negative boost
+    let pw0 = i128::from(strong_copy.pointer_weights()[0]);
+    if pw0 > 0 {
+        assert!(
+            strong_continuation[3] > baseline_continuation[3],
+            "prefix token 3 at distance 4 must receive positive boost"
+        );
+    }
+
+    // Extremal scale test: i32::MAX scale saturates cleanly via saturating_add without overflow or panic
+    let mut max_scale_session = model.session();
+    max_scale_session.set_copy_scale(i32::MAX);
+    for &tok in &prompt {
+        max_scale_session
+            .step(tok)
+            .expect("step with i32::MAX scale");
+    }
+    let max_continuation = max_scale_session
+        .step(5)
+        .expect("step 5 with i32::MAX scale");
+    assert!(
+        max_continuation[7] > copy_continuation[7],
+        "under extremal i32::MAX scale, boosted logits must exceed unit-scale copy logits"
+    );
+}

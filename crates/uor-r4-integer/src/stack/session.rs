@@ -349,6 +349,7 @@ impl IntegerStackModel {
             position: 0,
             cache_at: 0,
             lift_at: 0,
+            copy_scale_q16: 0,
             tokens: Vec::with_capacity(context),
             states,
             b: Buffers {
@@ -368,6 +369,7 @@ impl IntegerStackModel {
                 query_tables: vec![[0; 16]; self.head_dim],
                 scores: vec![0; context],
                 weights: vec![0; context],
+                pointer_weights: vec![0; context],
                 mix: vec![0; self.head_dim],
                 proj: vec![0; d],
                 gate: vec![0; s.mlp],
@@ -437,6 +439,9 @@ pub struct SerializedStackSession {
     pub cache_at: u64,
     /// Lifts cache length (`position * heads`).
     pub lift_at: u64,
+    /// Scale for direct pointer copy from attention weights to output logits, in Q16.
+    #[serde(default)]
+    pub copy_scale_q16: i32,
     /// Pending next-token logits produced by the last step (length equals vocab when position > 0).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub logits: Vec<i32>,
@@ -501,6 +506,8 @@ struct Buffers {
     gate: Vec<i32>,
     up: Vec<i32>,
     logits: Vec<i32>,
+    /// Pointer copy weights for previous positions, normalized to Q31.
+    pointer_weights: Vec<u64>,
     /// The opt-in snap trace; `None` (the default) records nothing.
     snap_trace: Option<SnapTrace>,
 }
@@ -513,6 +520,8 @@ pub struct IntegerStackSession<'m> {
     cache_at: usize,
     /// `position * heads`: where this position's Lorentz key lifts go.
     lift_at: usize,
+    /// Scale for direct pointer copy from attention weights to output logits, in Q16.
+    copy_scale_q16: i32,
     /// Sequence of tokens stepped in this session so far.
     tokens: Vec<u32>,
     /// Boxed, like the model's layers, for a power-of-two stride.
@@ -634,6 +643,40 @@ impl IntegerStackSession<'_> {
         &self.tokens
     }
 
+    /// Set the pointer copy scale in Q16 (`scale * 2^-16`).
+    ///
+    /// When greater than zero, normalized attention weights from head 0 of the final
+    /// read layer directly boost the output logits of previously stepped prefix tokens
+    /// via integer shift-add operations (`shift_wide(mul_i128(pw, scale), 31)`).
+    ///
+    /// This operates as a dense soft-attention token-identity boost: every historical
+    /// token position contributes according to its soft attention mass without discrete
+    /// argmax/top-k selection. It provides an integer-serving precursor scaffold for
+    /// learned copy policies (such as the AERM `copy_boost` in `stack_aerm.rs`).
+    ///
+    /// When zero (the default), attention weight capture is bypassed in `stack_read` to
+    /// ensure zero overhead for default serving.
+    pub fn set_copy_scale(&mut self, scale_q16: i32) {
+        self.copy_scale_q16 = scale_q16.max(0);
+        if self.copy_scale_q16 == 0 {
+            self.b.pointer_weights.fill(0);
+        }
+    }
+
+    /// The active pointer copy scale in Q16.
+    pub fn copy_scale(&self) -> i32 {
+        self.copy_scale_q16
+    }
+
+    /// Normalized Q31 attention weights from head 0 of the final read layer across historical positions.
+    ///
+    /// Valid only immediately after a [`Self::step`] call where [`Self::copy_scale`] > 0.
+    /// When copy scale is 0 (the default), capture is bypassed and this buffer holds zeros.
+    /// After [`Self::restore_state`] or [`Self::reset`], this buffer is zeroed.
+    pub fn pointer_weights(&self) -> &[u64] {
+        &self.b.pointer_weights[..self.position]
+    }
+
     /// Start a new stream.
     pub fn reset(&mut self) {
         self.position = 0;
@@ -641,6 +684,7 @@ impl IntegerStackSession<'_> {
         self.lift_at = 0;
         self.tokens.clear();
         self.b.logits.fill(0);
+        self.b.pointer_weights.fill(0);
         if let Some(trace) = &mut self.b.snap_trace {
             let s = &self.model.shape;
             let recurrences = s.pattern.bytes().filter(|&c| c == b'r').count();
@@ -749,6 +793,7 @@ impl IntegerStackSession<'_> {
             position: self.position as u64,
             cache_at: self.cache_at as u64,
             lift_at: self.lift_at as u64,
+            copy_scale_q16: self.copy_scale_q16,
             logits,
             tokens: self.tokens.clone(),
             snap_trace,
@@ -931,6 +976,8 @@ impl IntegerStackSession<'_> {
         self.position = position;
         self.cache_at = cache_at;
         self.lift_at = lift_at;
+        self.copy_scale_q16 = saved.copy_scale_q16;
+        self.b.pointer_weights.fill(0);
 
         // Restore pending logits
         if position > 0 {
@@ -1086,7 +1133,11 @@ impl IntegerStackSession<'_> {
         }
         let b = &mut self.b;
         stack_dequant_row(&model.embed, token as usize, &mut b.x);
-        for (layer, state) in model.layers.iter().zip(self.states.iter_mut()) {
+        let last_read_idx = model
+            .layers
+            .iter()
+            .rposition(|l| matches!(l.mixer, Mixer::Read(_)));
+        for (idx, (layer, state)) in model.layers.iter().zip(self.states.iter_mut()).enumerate() {
             let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
             stack_activation_tables(&b.norm, &mut b.tables[..d]);
             stack_pair_tables(&b.tables[..d], &mut b.pairs);
@@ -1114,6 +1165,7 @@ impl IntegerStackSession<'_> {
                     },
                     b,
                     norm_exp,
+                    Some(idx) == last_read_idx && self.copy_scale_q16 > 0,
                 ),
                 _ => {
                     // `session` builds every layer's state from the model's
@@ -1146,6 +1198,16 @@ impl IntegerStackSession<'_> {
         stack_activation_tables(&b.norm, &mut b.tables[..d]);
         stack_pair_tables(&b.tables[..d], &mut b.pairs);
         stack_gemv_pairs(&model.head, &b.pairs, norm_exp, &mut b.logits);
+        if self.copy_scale_q16 > 0 {
+            let scale = i128::from(self.copy_scale_q16);
+            for (j, &tok) in self.tokens[..self.position].iter().enumerate() {
+                if (tok as usize) < s.vocab {
+                    let pw = i128::from(self.b.pointer_weights[j]);
+                    let boost = shift_wide(mul_i128(pw, scale), 31) as i32;
+                    self.b.logits[tok as usize] = self.b.logits[tok as usize].saturating_add(boost);
+                }
+            }
+        }
         self.position += 1;
         self.cache_at += d;
         self.lift_at += heads;
@@ -1306,6 +1368,7 @@ fn stack_read(
     cache: Cache<'_>,
     b: &mut Buffers,
     norm_exp: i32,
+    capture_pointer: bool,
 ) {
     let (s, n) = (&model.shape, &model.numerics);
     let (d, heads, hd, context) = (s.width, s.heads, model.head_dim, s.context);
@@ -1390,6 +1453,13 @@ fn stack_read(
         }
         // Q31-weighted sum over the Q31 total, back to exponent -16.
         let reciprocal = i128::from(stack_div_u128(1u128 << 62, u128::from(total.max(1))) as u64);
+        if capture_pointer && h == 0 {
+            for j in 0..positions {
+                let w = b.weights[j];
+                let norm_w = shift_wide(mul_i128(i128::from(w), reciprocal), 31) as u64;
+                b.pointer_weights[j] = norm_w;
+            }
+        }
         for (slot, &m) in b.wide[head_at..head_at + hd].iter_mut().zip(&b.mix) {
             *slot = shift_wide(mul_i128(m, reciprocal), 62);
         }
