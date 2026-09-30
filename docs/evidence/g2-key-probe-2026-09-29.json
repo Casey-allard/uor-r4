@@ -1,0 +1,185 @@
+{
+  "schema": "uor-r4.geometric-read-negative/1",
+  "created_at": "2026-09-29T20:05:00+00:00",
+  "re_read_revision": {
+    "requested_at": "2026-09-29T20:22:45+00:00",
+    "applied": "2026-09-30",
+    "scope": "wording and evidence labels only, per the Lab 1 re-read; no re-run, no metric changed"
+  },
+  "title": "G v2 frozen-trunk key probe — recorded negative (D12)",
+  "lab": "Lab 2 (DeepSeek/OpenCode)",
+  "board": "https://github.com/UOR-Foundation/uor-r4/issues/1512",
+  "pr": "https://github.com/UOR-Foundation/uor-r4/pull/1505",
+  "branch": "lab/opencode/g2-keys",
+  "source_commit": "750c9f8fa01ae6946a7bd7053f98d653a64786de",
+  "executable": {
+    "path": "/Volumes/UOR-Workspace/BuildCaches/opencode-g2/release/examples/aerm-keys",
+    "sha256": "be345c048d3490f1ee10239d381b02b08ff21cb7d25119070df17b70d1447660",
+    "bytes": 5960128,
+    "built_local": "2026-09-29T13:34:00-04:00",
+    "build_provenance": "not clean at build: commit 750c9f8f (14:38:49 -04:00) committed the cache fix the built binary already executed; no UOR_BUILD_SOURCE_COMMIT or clean-tree record; byte-equality of built source and commit not witnessed; no rebuild after (same binary mtime before keys-9's seal)"
+  },
+  "trunk": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/kimi-s4-fit-20260929/arm-a-snap-1/model",
+    "model_safetensors_sha256": "2b3b568141dfe213dd85e4d67e9ce0018e802f0654ee73ea10c7e552fc327b96",
+    "pin_status": "matched",
+    "icosian_snap_restored": true,
+    "frozen": true,
+    "layers": 6,
+    "width": 288
+  },
+  "tokenizer": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1017/tokenizer/tokenizer.json",
+  "pre_registration": [
+    "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5890046442",
+    "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5890604495",
+    "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5892575118"
+  ],
+  "headline_root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g2/keys-9",
+  "headline": {
+    "role": "full-exposure run under the amended pre-registration (the record)",
+    "manifest_blake3_result": "c37974df8d05ef311e62876df0c1b76b7114cc4e58ddc60c56d4daebe7a707a3",
+    "manifest_blake3_attempt": "620cb0a0b2798afe11ac65d595812f31686ed362aa8fd87fec3eda86ed5ac1a5",
+    "sealed_at_utc": "2026-09-29T19:43:23+00:00",
+    "config": {
+      "steps": 30000,
+      "train_episodes": 1024,
+      "eval_episodes": 512,
+      "dev_episodes": 256,
+      "learning_rate": 0.01,
+      "weight_decay": 0.0,
+      "batch": 16,
+      "context": 256,
+      "splits": [2, 4],
+      "seeds": [9001, 9002, 9003, 9004]
+    },
+    "config_source": "design: #973 comment 5890046442; steps/lr/wd: the decode-1 exposure amendment (comment 5892575118); 1024/512/256 episodes are run-cached code defaults",
+    "guard": {
+      "in_distribution_key_accuracy_at_least": 0.98,
+      "passes": false,
+      "two_i_in_distribution": { "split_2": 0.884, "split_4": 0.906 },
+      "softmax_in_distribution": { "split_2": 0.9799, "split_4": 0.9792 },
+      "note": "fails for the 2I arm and narrowly for the softmax arm; the instrument is not validated at the 2I arm and the negative is scoped accordingly"
+    },
+    "decision_flags": {
+      "lexical_below_0_5_at_both_splits": true,
+      "lexical_flag_computed_on": "two_i arm only",
+      "lexical_flag_history": { "keys_1": true, "keys_11": false },
+      "control_lexical_split_4": { "synonyms_morphology": 0.5247, "wh_carried": 0.6146 },
+      "all_phenomena_at_least_0_90": false,
+      "geometric_atoms_used": false,
+      "heads_to_integration": false,
+      "report_to_lab_1": true
+    },
+    "arms": {
+      "two_i_held_key_accuracy": 0.3269666558756879,
+      "softmax_held_key_accuracy": 0.4910974425380382,
+      "softmax_minus_two_i_gap": 0.16413078666235031,
+      "two_i_lead_over_softmax": false,
+      "per_split_held_key_accuracy": {
+        "split_2": { "two_i": 0.266, "softmax": 0.433, "note": "keys-9 re-read values; the superseded keys-4 run recorded 0.2664 / 0.4331 and reproduced them" },
+        "split_4": { "two_i": 0.3269666558756879, "softmax": 0.4910974425380382, "note": "keys-9 result.json; this is the headline split and the best split for both arms" }
+      },
+      "per_arm_facts": {
+        "two_i": { "learnable_params": 6069, "steps_split_2": 30000, "steps_split_4": 30000, "early_stopped": false, "stopped_improving": false },
+        "softmax": { "learnable_params": 8959, "steps_split_2": 4251, "steps_split_4": 24001, "early_stopped": true, "stopped_improving": true, "deviation": "the pre-registration asked for identical update counts; the softmax arm early-stopped" }
+      }
+    },
+    "per_phenomenon_two_i_held_key_accuracy": {
+      "absent": 0.3227222832052689,
+      "distractors_chatter": 0.4,
+      "hypernym": 0.2692307692307692,
+      "implicit_attribute": 0.46296296296296297,
+      "possessed_pronoun": 0.3191489361702128,
+      "previous": 0.2638888888888889,
+      "synonyms_morphology": 0.3468354430379747,
+      "update": 0.2079646017699115,
+      "wh_carried": 0.3541666666666667
+    },
+    "costs": { "wall_seconds": 1682.5, "peak_rss_kib": 169120, "source": "keys-9 sealed root" }
+  },
+  "exploratory_roots": [
+    {
+      "path": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g2/keys-1",
+      "role": "the pre-registered probe (first execution), 1500 steps at lr 0.003 — under-exposed; not the record",
+      "manifest_blake3_result": "ca44ae104a837ac24c762d275f7adf775e2d46037e7e5266a9a032eec530dfe2",
+      "sealed_at_utc": "2026-09-29T13:54:22+00:00",
+      "wall_seconds": 2383.79,
+      "peak_rss_bytes": 462176256,
+      "cost_source": "external session record (not in the sealed root)",
+      "guard_passes": false,
+      "two_i_held_key_accuracy": 0.2113952735513111,
+      "softmax_held_key_accuracy": 0.4111362900615086
+    },
+    {
+      "path": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g2/keys-11",
+      "role": "exploratory: reduced calibration, 6000 steps, 256 train episodes; not the record",
+      "manifest_blake3_result": "bfeb60b018f55bef7c92424428d2556c380a155a41789f75e46b3f09aa1ed00d",
+      "sealed_at_utc": "2026-09-29T19:27:32+00:00",
+      "wall_seconds": 142.569287667,
+      "peak_rss_bytes": 133824512,
+      "cost_source": "external session record (not in the sealed root)",
+      "guard_passes": false,
+      "two_i_held_key_accuracy": 0.2862694300518135,
+      "softmax_held_key_accuracy": 0.4326424870466321
+    }
+  ],
+  "diagnostic": {
+    "path": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g2/decode-1",
+    "role": "decodability diagnostic resolving the first guard failure",
+    "manifest_blake3_result": "4e8faa710a25f7a257c5ce1e65377521587d3b928a015052596e0432c20f8c6f",
+    "sealed_at_utc": "2026-09-29T14:29:31+00:00",
+    "wall_seconds": 541.36530175,
+    "peak_rss_kib": 63344,
+    "conclusion": "exposure_limited",
+    "guard_prediction": "the rerun's in-distribution guard should now pass — falsified by keys-9 (2I 0.884/0.906)",
+    "per_head": {
+      "entity_split_2": { "train": 0.994, "held_out": 0.963, "chance": 0.125 },
+      "entity_split_4": { "train": 1.0, "held_out": 0.994, "chance": 0.125 },
+      "relation_split_2": { "train": 1.0, "held_out": 0.45, "chance": 0.07142857142857142 },
+      "relation_split_4": { "train": 1.0, "held_out": 0.491, "chance": 0.07142857142857142 }
+    }
+  },
+  "design_amendments": [
+    {
+      "name": "root bound",
+      "recorded_before_fit": true,
+      "detail": "pairwise |q.r| <= 1/2 is infeasible for 14 roots; at most 12 mutually separated icosians exist (24-cell 2T antipodal quotient). 14 relation roots at the best feasible greedy min-max bound RELATION_ROOT_MAX_INNER = phi/2 ~= 0.809017, indices [0,2,4,6,8,9,10,11,12,13,14,15,24,25]; entity head plain softmax in both arms."
+    },
+    {
+      "name": "exposure",
+      "recorded_before_fit": true,
+      "detail": "first run diagnosed exposure-limited (decode-1); supervision-row feature cache, heads trained to convergence; metrics, guard and decision rules unchanged."
+    }
+  ],
+  "sequence": {
+    "order": ["keys-1", "decode-1", "keys-2.failed-attempt-1..5", "keys-3", "keys-4", "keys-5..keys-8", "keys-9", "keys-10 (gap)", "keys-11"],
+    "keys_4": "completed 30k run under peer-duplicate contention (wall 2206 s); superseded by the uncontended keys-9 re-run, which reproduces its numbers at reported precision",
+    "keys_10": "numbering gap: no root under this name in the branch record, either preserved-attempt list, or the two session transcripts; the concurrent duplicate sessions (keys-2, keys-5..keys-8) are the likely source of an additional claimed-but-unsealed attempt; a claimed root is never reused, so the next completed run took keys-11; the store cannot be re-listed while /Volumes/UOR-Workspace is detached (#1520), so this absence is recorded, not re-verified"
+  },
+  "conclusion": {
+    "statement": "Linear per-head readouts trained on training phrasings do not transfer relation atoms to held-out phrasings at splits 2 and 4. Whether the limit is the trunk, the readout, or template diversity (about 5 training templates per family vs 1-2 held out) is unresolved.",
+    "separating_experiment": "an MLP probe, other layers or positions, and an untrained-trunk baseline",
+    "scope": "not promoted; parked at this scope (D12: gates promote, they never kill): reading v2 entity/relation atoms and the semiprime joint key from the frozen S4 arm A trunk with linear heads at splits 2 and 4",
+    "not_covered": "joint training of trunk and heads; other trunks, splits, or read paths",
+    "geometric_verdict": "2I parametrization neither promoted nor demoted (both arms under a failing guard)",
+    "instrument_validation": "not validated at the 2I arm: in-distribution guard fails for 2I (0.884/0.906) and narrowly for softmax (0.9799/0.9792) against >= 0.98",
+    "corrections": [
+      "the earlier guard sentence conflated the in-distribution guard with held-out transfer; decode-1's guard-pass prediction was falsified",
+      "'the joint key is not recoverable' is contradicted by in-distribution key accuracy ~0.98; softmax split-4 key-correct 1517/3089 equals decode-1's relation-correct: the failure is held-out relation transfer"
+    ],
+    "integration": "none"
+  },
+  "attempts_preserved": [
+    "keys-2.failed-attempt-1..5",
+    "keys-3 (claimed; attempt-only)",
+    "keys-4 (completed; superseded by keys-9)",
+    "keys-5 (abandoned duplicate; abandoned.json)",
+    "keys-6",
+    "keys-7",
+    "keys-8",
+    "keys-small-1",
+    "diag-mem",
+    "diag-mem-1..5"
+  ],
+  "limitations": "One frozen trunk, two splits, one world, one head family. A frozen-trunk probe decides only whether the atoms are readable there; it cannot show that a jointly trained model would fail. Held-out numbers are under the failing in-distribution guard unless stated otherwise. The executable-to-source binding is consistent but not independently verified (see executable.build_provenance)."
+}

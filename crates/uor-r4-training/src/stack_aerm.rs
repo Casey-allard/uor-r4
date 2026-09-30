@@ -124,6 +124,99 @@ pub mod relation_atom {
     pub const CITY: u32 = 14;
 }
 
+/// The natural-world phenomenon a clause exercises. The G v2 key probe reports
+/// held-out key and register accuracy per phenomenon, so this label is fixed at
+/// clause emission from the emission kind, the query's distractor status and
+/// the canonical key (never from a model prediction). Ids are stable and are
+/// never renumbered.
+///
+/// Assignment rules (documented in [`NaturalBuilder::emit_statement`] and
+/// [`NaturalBuilder::emit_query`]):
+/// - a write whose value differs from the stored current value is `Update`;
+/// - every other write is `SynonymsMorphology`;
+/// - a read of the previous distinct value is `Previous`;
+/// - a read of a never-asserted fact is `Absent`;
+/// - a read whose most recent mention was another entity's is
+///   `DistractorsChatter`;
+/// - a read of a category relation (`PET`, `TOY`, `FRIEND`) is `Hypernym`;
+/// - a read of a verb/number attribute (`COUNT`, `CAR_COLOR`, `AGE`) is
+///   `ImplicitAttribute`;
+/// - otherwise a read whose entity is a possessed non-speaker noun is
+///   `PossessedPronoun`;
+/// - every remaining read is `WhCarried`.
+///
+/// Chatter turns carry no clause, so they have no phenomenon of their own;
+/// their effect is measured inside the phenomena of the episodes that contain
+/// them, most directly in the `DistractorsChatter` recency-trap reads.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Phenomenon {
+    /// A statement or restatement phrased with one of the family's synonyms or
+    /// morphological variants ("named"/"called"/"name").
+    #[default]
+    SynonymsMorphology,
+    /// A question that carries the relation surface as a wh-fronted noun.
+    WhCarried,
+    /// A question whose attribute is expressed by a verb, number or adjective
+    /// (`work`, `how many`, `how old`) rather than a named noun.
+    ImplicitAttribute,
+    /// A question over a category relation (`pet`, `toy`, `friend`) whose value
+    /// is a member or instance.
+    Hypernym,
+    /// A clause whose entity is a possessed non-speaker noun ("my cat").
+    PossessedPronoun,
+    /// A read whose most recent same-relation mention was another entity's.
+    DistractorsChatter,
+    /// A write that changed the stored current value.
+    Update,
+    /// A read of the previous distinct value.
+    Previous,
+    /// A read of a fact that was never asserted.
+    Absent,
+}
+
+impl Phenomenon {
+    /// The stable report name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::SynonymsMorphology => "synonyms_morphology",
+            Self::WhCarried => "wh_carried",
+            Self::ImplicitAttribute => "implicit_attribute",
+            Self::Hypernym => "hypernym",
+            Self::PossessedPronoun => "possessed_pronoun",
+            Self::DistractorsChatter => "distractors_chatter",
+            Self::Update => "update",
+            Self::Previous => "previous",
+            Self::Absent => "absent",
+        }
+    }
+
+    /// Every phenomenon in report order.
+    pub const ALL: [Phenomenon; 9] = [
+        Phenomenon::SynonymsMorphology,
+        Phenomenon::WhCarried,
+        Phenomenon::ImplicitAttribute,
+        Phenomenon::Hypernym,
+        Phenomenon::PossessedPronoun,
+        Phenomenon::DistractorsChatter,
+        Phenomenon::Update,
+        Phenomenon::Previous,
+        Phenomenon::Absent,
+    ];
+}
+
+/// The phenomenon a read of this canonical relation atom exercises, before the
+/// distractor and possessed-entity overrides.
+fn relation_phenomenon(relation: u32) -> Phenomenon {
+    match relation {
+        relation_atom::PET | relation_atom::TOY | relation_atom::FRIEND => Phenomenon::Hypernym,
+        relation_atom::COUNT | relation_atom::CAR_COLOR | relation_atom::AGE => {
+            Phenomenon::ImplicitAttribute
+        }
+        _ => Phenomenon::WhCarried,
+    }
+}
+
 /// One natural-world clause: a write at a statement end, or a read at a
 /// question end. `trigger_position` is the document position that closes the
 /// clause (`TRIGGER_WRITE` for a statement, `TRIGGER_READ`/`TRIGGER_READ_PREVIOUS`
@@ -131,6 +224,7 @@ pub mod relation_atom {
 /// read value for a read (`None` when the read is absent); `previous` marks a
 /// read of the previous distinct value; `class` is the fact's history class at
 /// the clause. `entity_atom`/`relation_atom` are the canonical key.
+/// `phenomenon` is the fixed evaluation label.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Clause {
     pub trigger_position: usize,
@@ -139,6 +233,8 @@ pub struct Clause {
     pub value: Option<u32>,
     pub previous: bool,
     pub class: QueryClass,
+    #[serde(default)]
+    pub phenomenon: Phenomenon,
 }
 
 /// The change history of one canonical key in the v2 gold store.
@@ -3024,6 +3120,11 @@ impl<'a> NaturalBuilder<'a> {
         );
         self.latest_relation_write
             .insert(family.relation, (self.events, family.entity));
+        let phenomenon = if class == QueryClass::Updated {
+            Phenomenon::Update
+        } else {
+            Phenomenon::SynonymsMorphology
+        };
         self.clauses.push(Clause {
             trigger_position,
             entity_atom: family.entity,
@@ -3031,6 +3132,7 @@ impl<'a> NaturalBuilder<'a> {
             value: Some(value.id),
             previous: false,
             class,
+            phenomenon,
         });
         Ok(true)
     }
@@ -3085,6 +3187,20 @@ impl<'a> NaturalBuilder<'a> {
             value_position: reply.value_offset.map(|o| start + o),
             value: value_word.as_ref().map(|w| w.id),
         });
+        let phenomenon = if previous {
+            Phenomenon::Previous
+        } else if class == QueryClass::Absent {
+            Phenomenon::Absent
+        } else if recency_trap {
+            Phenomenon::DistractorsChatter
+        } else {
+            let base = relation_phenomenon(family.relation);
+            if base == Phenomenon::WhCarried && family.entity != entity_atom::SPEAKER {
+                Phenomenon::PossessedPronoun
+            } else {
+                base
+            }
+        };
         self.clauses.push(Clause {
             trigger_position,
             entity_atom: family.entity,
@@ -3092,6 +3208,7 @@ impl<'a> NaturalBuilder<'a> {
             value: value_word.map(|w| w.id),
             previous,
             class,
+            phenomenon,
         });
         Ok(true)
     }
@@ -5513,6 +5630,51 @@ mod tests {
                     TRIGGER_WRITE | TRIGGER_READ | TRIGGER_READ_PREVIOUS
                 ));
             }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn natural_clauses_carry_consistent_phenomena() -> Result<()> {
+        let world = natural_world()?;
+        let mut rng = Rng::new(0x0D2_2A);
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..5_000 {
+            let episode = world.episode(&mut rng, false, 257)?;
+            for clause in &episode.clauses {
+                seen.insert(clause.phenomenon.as_str());
+                match clause.phenomenon {
+                    Phenomenon::Update => {
+                        assert!(clause.value.is_some());
+                        assert_eq!(clause.class, QueryClass::Updated);
+                    }
+                    Phenomenon::SynonymsMorphology => assert!(clause.value.is_some()),
+                    Phenomenon::Previous => assert!(clause.previous),
+                    Phenomenon::Absent => assert_eq!(clause.class, QueryClass::Absent),
+                    Phenomenon::DistractorsChatter => {
+                        assert!(!clause.previous && !clause.class.abstains())
+                    }
+                    Phenomenon::PossessedPronoun => {
+                        assert_ne!(clause.entity_atom, entity_atom::SPEAKER)
+                    }
+                    Phenomenon::Hypernym => assert!(matches!(
+                        clause.relation_atom,
+                        relation_atom::PET | relation_atom::TOY | relation_atom::FRIEND
+                    )),
+                    Phenomenon::ImplicitAttribute => assert!(matches!(
+                        clause.relation_atom,
+                        relation_atom::COUNT | relation_atom::CAR_COLOR | relation_atom::AGE
+                    )),
+                    Phenomenon::WhCarried => {}
+                }
+            }
+        }
+        for phenomenon in Phenomenon::ALL {
+            assert!(
+                seen.contains(phenomenon.as_str()),
+                "phenomenon {} never appeared",
+                phenomenon.as_str()
+            );
         }
         Ok(())
     }
