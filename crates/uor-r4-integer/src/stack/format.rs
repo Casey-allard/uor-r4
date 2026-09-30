@@ -216,6 +216,16 @@ struct TableEntry {
     span: Span,
 }
 
+/// The transport snap a stack artifact records (`transport_snap` in the
+/// header): the served recurrence replaces every unit transport quaternion
+/// by the nearest of these roots before its scaling by lambda.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct StackTransportSnap {
+    pub name: String,
+    pub roots: usize,
+    pub roots_sha256: String,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 struct Header {
     schema: String,
@@ -227,6 +237,9 @@ struct Header {
     /// Provenance recorded by the exporter; never read by serving arithmetic.
     #[allow(dead_code)]
     source: serde_json::Value,
+    /// The trained-in transport snap; absent on a free-transport artifact.
+    #[serde(default)]
+    transport_snap: Option<StackTransportSnap>,
 }
 
 /// One 4-bit matrix of a parsed container, borrowed from its bytes.
@@ -243,6 +256,8 @@ pub(crate) struct Container<'a> {
     pub shape: StackShape,
     pub numerics: StackNumerics,
     pub sha256: String,
+    /// The validated transport snap record, if the header carries one.
+    pub transport_snap: Option<StackTransportSnap>,
     data: &'a [u8],
     /// Sections by name (unique within each kind).
     matrices: HashMap<String, MatrixEntry>,
@@ -285,6 +300,22 @@ impl<'a> Container<'a> {
             return Err(StackError::Group(header.group));
         }
         header.shape.validate()?;
+        if let Some(snap) = &header.transport_snap {
+            let known = snap.name == "icosian"
+                && snap.roots == 120
+                && snap.roots_sha256 == super::ICOSIAN_ROOTS_SHA256;
+            if !known {
+                return Err(StackError::TransportSnap(format!(
+                    "transport_snap={} with {} roots, sha256 {}",
+                    snap.name, snap.roots, snap.roots_sha256
+                )));
+            }
+            if !header.shape.rotation {
+                return Err(StackError::TransportSnap(
+                    "transport_snap=icosian on a stack without learned rotations".to_owned(),
+                ));
+            }
+        }
         let data_start = header_end
             .checked_add((ALIGN - header_end % ALIGN) % ALIGN)
             .filter(|start| *start <= bytes.len())
@@ -331,6 +362,7 @@ impl<'a> Container<'a> {
             shape: header.shape,
             numerics: header.numerics,
             sha256: hex::encode(Sha256::digest(bytes)),
+            transport_snap: header.transport_snap,
             data,
             matrices,
             tables,

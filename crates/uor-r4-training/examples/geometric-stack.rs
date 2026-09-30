@@ -173,8 +173,8 @@ use uor_r4_training::stack_dialogue::{
     DialogueSplit, Reply, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
-    check_export_representation, check_export_transport, control_checkpoint,
-    control_grid_reference, export_stack, stack_grid_reference, StackCalibration,
+    check_export_representation, control_checkpoint, control_grid_reference, export_stack,
+    stack_grid_reference, StackCalibration,
 };
 use uor_r4_training::stack_memory::{Codebook, MemoryConfig, MemoryScore};
 use uor_r4_training::{sha256_file, Result, TrainingError};
@@ -1800,7 +1800,9 @@ fn export_mode(arguments: &[String]) -> Result<()> {
             "calibration_windows must be positive and damp >= 0",
         ));
     }
-    check_export_transport(&model_dir)?;
+    // A model saved with a transport snap exports with the snap recorded;
+    // a malformed record refuses the export here.
+    let transport_snap = StackModel::saved_transport_snap(&model_dir)?;
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         let started = Instant::now();
@@ -1850,6 +1852,7 @@ fn export_mode(arguments: &[String]) -> Result<()> {
                 &model,
                 source.clone(),
                 calibration.as_ref().map(|c| (c, damp)),
+                transport_snap,
             )?,
             StackArch::Transformer => {
                 let checkpoint = control_checkpoint(&model, sha256_file(&weights)?)?;
@@ -1869,6 +1872,7 @@ fn export_mode(arguments: &[String]) -> Result<()> {
             out.join("export.json"),
             serde_json::to_vec_pretty(&json!({
                 "schema": "uor-r4.geometric-stack-export/1",
+                "transport_snap": transport_snap.map(|s| s.record()),
                 "source": source,
                 "artifact": identity(&artifact)?,
                 "quantization": report,
@@ -2494,11 +2498,14 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
     use uor_r4_integer::stack::IntegerStackModel;
     let args = Args::parse(
         arguments,
-        &["artifact", "valid", "out", "windows", "threads", "lens"],
+        &[
+            "artifact", "valid", "out", "windows", "threads", "lens", "model",
+        ],
     )?;
     let artifact_path = PathBuf::from(args.required("artifact")?);
     let valid_path = PathBuf::from(args.required("valid")?);
     let lens_path = args.optional("lens").map(PathBuf::from);
+    let model_dir = args.optional("model").map(PathBuf::from);
     let windows: usize = args.number("windows", 8)?;
     let threads: usize = args.number("threads", 1)?;
     let out = PathBuf::from(args.required("out")?);
@@ -2508,6 +2515,24 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
         let clock = Instant::now();
         let d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
         let d11_load_seconds = clock.elapsed().as_secs_f64();
+        if let Some(snap) = d11.transport_snap() {
+            // The D10 comparator serves the free transport and refuses this
+            // artifact; compare against the snapped float forward instead.
+            let snap = snap.clone();
+            return d11_evaluate_snapped(
+                &d11,
+                &snap,
+                model_dir
+                    .as_ref()
+                    .ok_or_else(|| invalid("a snapped artifact needs model= for its float side"))?,
+                &valid_path,
+                lens_path.as_ref(),
+                windows,
+                d11_load_seconds,
+                &artifact_path,
+                &out,
+            );
+        }
         let mut d10 = uor_r4_lut::stack::StackModel::from_artifact(
             uor_r4_lut::format::StackArtifact::parse(bytes).map_err(lut)?,
         )
@@ -2621,6 +2646,123 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
         Ok(())
     })();
     finish(&out, result)
+}
+
+/// The snapped-artifact arm of [`d11_evaluate_mode`]: the D11 engine against
+/// the float model's snapped forward (the artifact records the snap, so the
+/// D10 comparator's free transport is not the model that was trained), on the
+/// same evenly spaced windows, position by position: both sides' NLL, the
+/// largest absolute logit gap (integer quanta and nats) and top-1 agreement.
+#[allow(clippy::too_many_arguments)]
+fn d11_evaluate_snapped(
+    d11: &uor_r4_integer::stack::IntegerStackModel,
+    snap: &uor_r4_integer::stack::StackTransportSnap,
+    model_dir: &std::path::Path,
+    valid_path: &std::path::Path,
+    lens_path: Option<&PathBuf>,
+    windows: usize,
+    d11_load_seconds: f64,
+    artifact_path: &std::path::Path,
+    out: &std::path::Path,
+) -> Result<()> {
+    let mut float = StackModel::load(model_dir, &Device::Cpu)?;
+    float.set_transport_snap(Some(match snap.name.as_str() {
+        "icosian" => TransportSnap::Icosian,
+        other => return Err(invalid(format!("unknown transport snap {other}"))),
+    }))?;
+    let (vocab, time) = (d11.shape().vocab, d11.shape().context);
+    if float.config.vocab_size != vocab || float.config.context != time {
+        return Err(invalid("the float model and the artifact differ in shape"));
+    }
+    let valid = read_tokens(valid_path, vocab)?;
+    let lens = lens_path
+        .map(|path| read_tokens(path, u16::MAX as usize + 1))
+        .transpose()?;
+    if windows == 0 || valid.len() <= time + windows {
+        return Err(invalid("too few development tokens for the windows"));
+    }
+    let stride = (valid.len() - time - 1) / windows;
+    let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
+    let mut session = d11.session();
+    let (mut d11_seconds, mut float_seconds) = (0f64, 0f64);
+    let (mut max_gap, mut agree) = (0i64, 0usize);
+    let mut sums: Vec<(f64, f64, f64)> = Vec::with_capacity(starts.len());
+    for &start in &starts {
+        let ids = &valid[start..start + time];
+        let next = &valid[start + 1..start + time + 1];
+        session.reset();
+        let clock = Instant::now();
+        let float_logits = float.forward(ids, 1, time)?.to_vec2::<f32>()?;
+        float_seconds += clock.elapsed().as_secs_f64();
+        let (mut nll11, mut nllf) = (0f64, 0f64);
+        for (t, &id) in ids.iter().enumerate() {
+            let clock = Instant::now();
+            let logits11 = session.step(id).map_err(|e| invalid(e.to_string()))?;
+            d11_seconds += clock.elapsed().as_secs_f64();
+            let (n11, top11) = score_row(
+                logits11.iter().map(|&v| f64::from(v) / 65536.0),
+                next[t] as usize,
+            );
+            let (nf, topf) = score_row(
+                float_logits[t].iter().map(|&v| f64::from(v)),
+                next[t] as usize,
+            );
+            for (&a, &b) in logits11.iter().zip(&float_logits[t]) {
+                max_gap =
+                    max_gap.max((i64::from(a) - (f64::from(b) * 65536.0).round() as i64).abs());
+            }
+            agree += usize::from(top11 == topf);
+            nll11 += n11;
+            nllf += nf;
+        }
+        let bytes = lens.as_ref().map_or(0.0, |lens| {
+            next.iter().map(|&id| f64::from(lens[id as usize])).sum()
+        });
+        sums.push((nll11, nllf, bytes));
+    }
+    let targets = starts.len() * time;
+    let (nll11, nllf, target_bytes) = sums
+        .iter()
+        .fold((0.0, 0.0, 0.0), |a, s| (a.0 + s.0, a.1 + s.1, a.2 + s.2));
+    let bits = |nll: f64| {
+        lens.as_ref()
+            .map(|_| nll / std::f64::consts::LN_2 / target_bytes)
+    };
+    let record = json!({
+        "schema": "uor-r4.geometric-stack-d11-evaluation/1",
+        "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh D11 session per window, position by position; the comparator is the float model's snapped forward, not the free-transport D10 engine",
+        "comparator": "float-snapped",
+        "transport_snap": {"name": snap.name, "roots": snap.roots, "roots_sha256": snap.roots_sha256},
+        "artifact": identity(artifact_path)?,
+        "artifact_sha256": d11.artifact_sha256(),
+        "float_model": identity(&model_dir.join("model.safetensors"))?,
+        "valid": identity(valid_path)?,
+        "windows": starts.len(),
+        "targets": targets,
+        "d11": {"nll": nll11 / targets as f64, "bits_per_byte": bits(nll11)},
+        "float": {"nll": nllf / targets as f64, "bits_per_byte": bits(nllf)},
+        "d11_minus_float_nll": (nll11 - nllf) / targets as f64,
+        "max_abs_logit_gap_quanta": max_gap,
+        "max_abs_logit_gap_nats": max_gap as f64 / 65536.0,
+        "top1_agreement": agree as f64 / targets as f64,
+        "weights_read_per_token": d11.weights_per_token(),
+        "engine": {
+            "d11_step_seconds": d11_seconds,
+            "d11_tokens_per_second": targets as f64 / d11_seconds,
+            "d11_threads": 1,
+            "d11_load_seconds": d11_load_seconds,
+            "float_forward_seconds": float_seconds,
+            "scope": "the D11 step calls only, timed separately from the float forward",
+        },
+        "per_window": starts.iter().zip(&sums).map(|(start, s)| json!({
+            "start": start, "d11_nll": s.0 / time as f64, "float_nll": s.1 / time as f64,
+        })).collect::<Vec<_>>(),
+    });
+    fs::write(
+        out.join("evaluation.json"),
+        serde_json::to_vec_pretty(&record)?,
+    )?;
+    Ok(())
 }
 
 /// Continuations generated by an integer engine, greedy and sampled, from

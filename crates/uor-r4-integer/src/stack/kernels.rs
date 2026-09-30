@@ -27,6 +27,8 @@
 use core::hint::black_box;
 
 use super::format::Fixed;
+use super::PHI_Q32;
+use crate::h4_classifier::H4_ROOT_COEFFICIENTS;
 
 /// Exponent of the residual stream and of projection outputs: `v * 2^-16`.
 pub(crate) const RESIDUAL_EXP: i32 = -16;
@@ -816,6 +818,144 @@ pub(crate) fn stack_hamilton(a: [i64; 4], b: [i64; 4]) -> [i128; 4] {
             .wrapping_sub(p(a2, b1))
             .wrapping_add(p(a3, b0)),
     ]
+}
+
+// ---------------------------------------------------------------------------
+// The icosian transport snap (S1.4): exact selection over the 120 roots of
+// 2I and the snapped transition, both multiplier-free.
+//
+// Root `j` has coordinates `(a_c + b_c phi) / 2` with `a_c, b_c` the small
+// signed coefficients of [`H4_ROOT_COEFFICIENTS`] (in `-2..=2`), so a dot
+// product with the raw rotation logits is `A + B phi` over
+// `A = sum a_c raw_c`, `B = sum b_c raw_c` (the factor 1/2 cancels from every
+// comparison), and the scaled transition is `(lambda a + lambda_phi b) / 2`
+// per coordinate. Selection replaces the best root only on a strictly
+// greater exact score, so ties keep the lowest index, the rule of the float
+// reference's `nearest_root`.
+
+/// `v k` for a root coefficient `k` in `-2..=2`: shifts and negation only.
+#[inline(always)]
+pub(crate) fn small_mul(v: i64, k: i8) -> i64 {
+    match k {
+        -2 => (v << 1).wrapping_neg(),
+        -1 => v.wrapping_neg(),
+        0 => 0,
+        1 => v,
+        2 => v << 1,
+        // Unreachable for the icosian coefficient table (|k| <= 2); the
+        // shift-add product keeps even a corrupted table multiplier-free.
+        _ => {
+            debug_assert!(false, "small_mul: coefficient {k} outside -2..=2");
+            let mut remaining = k.unsigned_abs();
+            let mut addend = v;
+            let mut term = 0i64;
+            while remaining != 0 {
+                if remaining & 1 != 0 {
+                    term = term.wrapping_add(addend);
+                }
+                remaining >>= 1;
+                if remaining != 0 {
+                    addend <<= 1;
+                }
+            }
+            if k < 0 {
+                term.wrapping_neg()
+            } else {
+                term
+            }
+        }
+    }
+}
+
+/// `left + right` modulo 2^128 behind a call boundary, so the compiler
+/// cannot recognize `4 s + s` at the call site as a product by five and emit
+/// a multiplier instruction (the h4 classifier's `checked_add_square_terms`
+/// observed exactly that).
+#[inline(never)]
+fn snap_add_square_terms(left: u128, right: u128) -> u128 {
+    left.wrapping_add(right)
+}
+
+/// Whether `da + db phi > 0`, exactly, for the bounded score differences of
+/// [`stack_snap_select`] (`|da| <= 2^35, |db| <= 2^34`): with
+/// `P = 2 da + db`, `2 (da + db phi) = P + db sqrt(5)`, and `sqrt(5)` is
+/// irrational, so the sign is decided by `P` and by `P^2` against
+/// `5 db^2` (never equal for nonzero `P, db`).
+fn snap_difference_positive(da: i64, db: i64) -> bool {
+    let p = (da << 1).wrapping_add(db);
+    if db == 0 {
+        return p > 0;
+    }
+    if db > 0 {
+        // P + db sqrt(5) > 0 iff P >= 0, or -P < db sqrt(5).
+        if p >= 0 {
+            return true;
+        }
+        let b_square = stack_mul_u128(db as u128, db as u128);
+        let p_square = stack_mul_u128(p.unsigned_abs() as u128, p.unsigned_abs() as u128);
+        return snap_add_square_terms(b_square << 2, b_square) > p_square;
+    }
+    // db < 0: P + db sqrt(5) > 0 iff P > 0 and P > -db sqrt(5).
+    if p <= 0 {
+        return false;
+    }
+    let b_square = stack_mul_u128(db.unsigned_abs() as u128, db.unsigned_abs() as u128);
+    let p_square = stack_mul_u128(p as u128, p as u128);
+    p_square > snap_add_square_terms(b_square << 2, b_square)
+}
+
+/// The index of the icosian root with the largest exact dot product with the
+/// raw rotation logits `raw` (any common scale; the float reference snaps the
+/// unit quaternion `raw / sqrt(|raw|^2 + 1e-6)`, a positive rescaling, so the
+/// argmax is the same), the lowest index on an exact tie. Exact integer
+/// arithmetic throughout: no normalization, no float, no multiply.
+#[inline(never)]
+pub fn stack_snap_select(raw: [i32; 4]) -> usize {
+    let mut best = 0usize;
+    let (mut best_a, mut best_b) = (0i64, 0i64);
+    for (index, root) in H4_ROOT_COEFFICIENTS.iter().enumerate() {
+        let (mut a, mut b) = (0i64, 0i64);
+        for (coefficient, &value) in root.iter().zip(&raw) {
+            let v = i64::from(value);
+            a = a.wrapping_add(small_mul(v, coefficient[0]));
+            b = b.wrapping_add(small_mul(v, coefficient[1]));
+        }
+        if index == 0 || snap_difference_positive(a.wrapping_sub(best_a), b.wrapping_sub(best_b)) {
+            best = index;
+            best_a = a;
+            best_b = b;
+        }
+    }
+    best
+}
+
+/// The snapped transition quaternion: the root [`stack_snap_select`] chooses
+/// for `raw`, scaled by `lambda` (Q31), at Q31 — per coordinate
+/// `shift(lambda a + lambda_phi b, 1)` with `lambda_phi = lambda phi` at the
+/// same scale, matching `stack_rotation`'s `lambda unit` for `unit` replaced
+/// by the root. The Hamilton product that consumes it is unchanged.
+#[inline(never)]
+pub(crate) fn stack_snap_rotation(raw: [i32; 4], lambda: u64) -> [i64; 4] {
+    let root = &H4_ROOT_COEFFICIENTS[stack_snap_select(raw)];
+    // lambda phi at Q31, rounded: with PHI_Q32 = 2^32 + PHI_LO,
+    // (lambda PHI_Q32 + 2^31) >> 32 = lambda + ((lambda PHI_LO + 2^31) >> 32)
+    // in u64 (lambda < 2^32, so lambda PHI_LO + 2^31 < 2^64). A u128 shift
+    // here would compile to NEON register moves the audit forbids.
+    debug_assert!(lambda < (1 << 32));
+    let lambda_phi = lambda.wrapping_add(
+        stack_mul_u64(lambda, (PHI_Q32 - (1 << 32)) as u64).wrapping_add(1 << 31) >> 32,
+    );
+    // An explicit loop, not `root.map`: the closure of `map` compiles to a
+    // `core::array` symbol of its own, outside the audited `stack_` names.
+    let mut transition = [0i64; 4];
+    for (slot, coefficient) in transition.iter_mut().zip(root) {
+        let sum = small_mul(lambda as i64, coefficient[0])
+            .wrapping_add(small_mul(lambda_phi as i64, coefficient[1]));
+        // `black_box` keeps LLVM from packing the four lanes into a NEON
+        // pair (`fmov`/`dup`), which the serving audit forbids.
+        *slot = std::hint::black_box(shift(sum, 1));
+    }
+    transition
 }
 
 /// Index of the largest value (first on ties).

@@ -1391,6 +1391,14 @@ impl TransportSnap {
         nearest_root(unit, self.roots())
     }
 
+    /// The index of the root the snapped forward pass selects for raw
+    /// rotation logits `raw`: [`Self::nearest`] of their unit quaternion
+    /// (`raw / sqrt(|raw|^2 + 1e-6)`). The D11 snap parity tests compare the
+    /// integer kernel against exactly this.
+    pub fn nearest_for_raw(self, raw: [f32; 4]) -> usize {
+        nearest_root(unit_quaternion(raw).0, self.roots())
+    }
+
     /// SHA-256 of the roots' little-endian f32 bytes, row by row.
     pub fn roots_sha256(self) -> String {
         let mut digest = Sha256::new();
@@ -1468,6 +1476,16 @@ fn icosian_roots() -> &'static [[f32; 4]] {
             })
             .collect()
     })
+}
+
+/// One snap selection of [`StackModel::snap_selections`]: the root index and
+/// the float margin to the runner-up dot product (`>= 0`; near zero on a
+/// near-tie, where the integer kernel's exact comparison can legitimately
+/// break an f32 tie the other way).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SnapSelection {
+    pub index: usize,
+    pub margin: f32,
 }
 
 /// How often a snapped forward pass selected each root
@@ -1619,11 +1637,77 @@ impl StackModel {
         result
     }
 
+    /// The root the snapped forward pass selects at every (recurrence layer,
+    /// position, lane) for `ids` (as [`forward`](Self::forward) takes them):
+    /// per recurrence layer, one [`SnapSelection`] per selection, window by
+    /// window, then position, then lane. The selections are those of the
+    /// fused core: its gates, normalization and nearest root. The D11 snap
+    /// parity checks compare the integer engine's trace against this.
+    pub fn snap_selections(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<BTreeMap<usize, Vec<SnapSelection>>> {
+        let snap = self
+            .transport
+            .ok_or_else(|| invalid("snap selections need a transport snap"))?;
+        let roots = snap.roots();
+        let (width, lanes) = (self.config.width, self.config.width / 4);
+        let gate_width = lanes + width;
+        let mut selections: BTreeMap<usize, Vec<SnapSelection>> = (0..self.config.layers())
+            .filter(|&layer| self.config.layer_kind(layer) == 'r')
+            .map(|layer| (layer, Vec::with_capacity(batch * time * lanes)))
+            .collect();
+        let last = selections.keys().next_back().copied().unwrap_or(0);
+        let p = self.params()?;
+        let mut x = self.embed_with(&p, ids, batch, time)?;
+        for layer in 0..=last {
+            if let Some(selected) = selections.get_mut(&layer) {
+                let u = self.norm(&p, &x, &layer_name(layer, "rec_norm.weight"))?;
+                let gates = self
+                    .recurrence_gates(&p, layer, &u)?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                if gates.len() != batch * time * gate_width {
+                    return Err(invalid("recurrence gates differ from their layout"));
+                }
+                for row in gates.chunks_exact(gate_width) {
+                    for lane in 0..lanes {
+                        let (unit, _) = unit_quaternion(quad(row, lanes + 4 * lane));
+                        let (mut best, mut second) = (f32::NEG_INFINITY, f32::NEG_INFINITY);
+                        let mut index = 0;
+                        for (j, root) in roots.iter().enumerate() {
+                            let dot = unit[0] * root[0]
+                                + unit[1] * root[1]
+                                + unit[2] * root[2]
+                                + unit[3] * root[3];
+                            if dot > best {
+                                second = best;
+                                best = dot;
+                                index = j;
+                            } else if dot > second {
+                                second = dot;
+                            }
+                        }
+                        selected.push(SnapSelection {
+                            index,
+                            margin: best - second,
+                        });
+                    }
+                }
+            }
+            x = self.layer_range_hooked(&p, x, layer..layer + 1, &mut None)?;
+        }
+        Ok(selections)
+    }
+
     /// The roots the snapped forward pass selects for `ids` (as
     /// [`forward`](Self::forward) takes them), counted per recurrence layer
     /// over every lane and, in window `w`, its first `lengths[w]` positions
     /// (all `time` without `lengths`). The selections are those of the fused
-    /// core: its gates, normalization and nearest root.
+    /// core: its gates, normalization and nearest root
+    /// ([`Self::snap_selections`]).
     pub fn transport_usage(
         &self,
         ids: &[u32],
@@ -1641,45 +1725,20 @@ impl StackModel {
                 ));
             }
         }
-        let roots = snap.roots();
-        let (width, lanes) = (self.config.width, self.config.width / 4);
-        let gate_width = lanes + width;
+        let lanes = self.config.width / 4;
+        let selections = self.snap_selections(ids, batch, time)?;
         let mut usage = TransportUsage::new(snap, &self.config);
-        let last = usage.layers.keys().next_back().copied().unwrap_or(0);
-        let p = self.params()?;
-        let mut x = self.embed_with(&p, ids, batch, time)?;
-        for layer in 0..=last {
-            if let Some(counts) = usage.layers.get_mut(&layer) {
-                let u = self.norm(&p, &x, &layer_name(layer, "rec_norm.weight"))?;
-                let gates = self
-                    .recurrence_gates(&p, layer, &u)?
-                    .flatten_all()?
-                    .to_vec1::<f32>()?;
-                if gates.len() != batch * time * gate_width {
-                    return Err(invalid("recurrence gates differ from their layout"));
-                }
-                let windows: Vec<Vec<u64>> = gates
-                    .par_chunks(time * gate_width)
-                    .enumerate()
-                    .map(|(window, gates)| {
-                        let mut counts = vec![0u64; roots.len()];
-                        let counted = lengths.map_or(time, |lengths| lengths[window]);
-                        for row in gates.chunks_exact(gate_width).take(counted) {
-                            for lane in 0..lanes {
-                                let (unit, _) = unit_quaternion(quad(row, lanes + 4 * lane));
-                                counts[nearest_root(unit, roots)] += 1;
-                            }
-                        }
-                        counts
-                    })
-                    .collect();
-                for window in &windows {
-                    for (a, b) in counts.iter_mut().zip(window) {
-                        *a += b;
-                    }
+        for (layer, selected) in &selections {
+            let counts = usage
+                .layers
+                .get_mut(layer)
+                .ok_or_else(|| invalid("snap selections of an unknown layer"))?;
+            for (window, selected) in selected.chunks_exact(time * lanes).enumerate() {
+                let counted = lengths.map_or(time, |lengths| lengths[window]);
+                for selection in &selected[..counted * lanes] {
+                    counts[selection.index] += 1;
                 }
             }
-            x = self.layer_range_hooked(&p, x, layer..layer + 1, &mut None)?;
         }
         Ok(usage)
     }
@@ -5100,8 +5159,12 @@ mod tests {
     /// The export of `model` (round to nearest, no calibration) and its grid
     /// reference.
     fn exported_reference(model: &StackModel) -> Result<crate::stack_export::GridReference> {
-        let (bytes, _) =
-            crate::stack_export::export_stack(model, serde_json::json!({"test": "qat"}), None)?;
+        let (bytes, _) = crate::stack_export::export_stack(
+            model,
+            serde_json::json!({"test": "qat"}),
+            None,
+            None,
+        )?;
         let artifact = uor_r4_lut::format::StackArtifact::parse(bytes)
             .map_err(|error| invalid(error.to_string()))?;
         crate::stack_export::stack_grid_reference(model, &artifact)

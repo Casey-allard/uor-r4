@@ -5,13 +5,14 @@
 
 use std::path::Path;
 
-use super::format::{Container, Fixed, MatrixView, StackNumerics, StackShape};
+use super::format::{Container, Fixed, MatrixView, StackNumerics, StackShape, StackTransportSnap};
 use super::kernels::{
     grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
     stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv, stack_gemv_pairs,
     stack_hamilton, stack_isqrt, stack_lift, stack_lorentz_distance, stack_mix_row, stack_mul_u64,
     stack_pair_tables, stack_quantize16, stack_query_tables, stack_rms_norm, stack_sigmoid_q31,
-    stack_square, PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP, RESIDUAL_EXP,
+    stack_snap_rotation, stack_snap_select, stack_square, PackedMatrix, ARCOSH_TABLE_LEN,
+    PRODUCT_EXP, RESIDUAL_EXP,
 };
 use super::StackError;
 
@@ -81,6 +82,10 @@ pub struct IntegerStackModel {
     /// Derived at load so that a step never divides: `width / heads`.
     head_dim: usize,
     lorentz: bool,
+    /// The artifact records the icosian transport snap: the recurrence
+    /// transports by the nearest root instead of the free unit quaternion.
+    snapped: bool,
+    transport_snap: Option<StackTransportSnap>,
     sha256: String,
     embed: PackedMatrix,
     head: PackedMatrix,
@@ -261,6 +266,8 @@ impl IntegerStackModel {
         Ok(Self {
             head_dim: shape.head_dim(),
             lorentz: shape.lorentz(),
+            snapped: artifact.transport_snap.is_some(),
+            transport_snap: artifact.transport_snap.clone(),
             shape,
             numerics,
             sha256: artifact.sha256,
@@ -292,6 +299,13 @@ impl IntegerStackModel {
     /// SHA-256 of the artifact bytes.
     pub fn artifact_sha256(&self) -> &str {
         &self.sha256
+    }
+
+    /// The transport snap the artifact records (the served recurrence snaps
+    /// every unit transport quaternion to the nearest of these roots before
+    /// its scaling by lambda), or `None` for the free transport.
+    pub fn transport_snap(&self) -> Option<&StackTransportSnap> {
+        self.transport_snap.as_ref()
     }
 
     /// Learned 4-bit weights read per token: every weight map in full plus one
@@ -358,6 +372,7 @@ impl IntegerStackModel {
                 gate: vec![0; s.mlp],
                 up: vec![0; s.mlp],
                 logits: vec![0; s.vocab],
+                snap_trace: None,
             },
         }
     }
@@ -377,6 +392,33 @@ enum LayerState {
         /// Lorentz key lifts `[position][head]` at exponent -32.
         lifts: Vec<u64>,
     },
+}
+
+/// One entry of the opt-in snap trace ([`IntegerStackSession::enable_snap_trace`]):
+/// the root index the snapped transport selected at (layer, position, lane).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SnapTraceEntry {
+    pub layer: usize,
+    pub position: usize,
+    pub lane: usize,
+    pub root: usize,
+}
+
+/// The trace buffer: one root index per (position, recurrence layer, lane),
+/// in step order. Writes are plain stores — no allocation in a step.
+struct SnapTrace {
+    selected: Vec<u32>,
+    written: usize,
+}
+
+impl SnapTrace {
+    #[inline(always)]
+    fn record(&mut self, index: usize) {
+        if let Some(slot) = self.selected.get_mut(self.written) {
+            *slot = index as u32;
+        }
+        self.written += 1;
+    }
 }
 
 struct Buffers {
@@ -402,6 +444,8 @@ struct Buffers {
     gate: Vec<i32>,
     up: Vec<i32>,
     logits: Vec<i32>,
+    /// The opt-in snap trace; `None` (the default) records nothing.
+    snap_trace: Option<SnapTrace>,
 }
 
 /// Incremental decoding of one stream of at most `context` positions.
@@ -423,11 +467,63 @@ impl IntegerStackSession<'_> {
         self.position
     }
 
+    /// Enable the diagnostic snap trace (default off): each step records the
+    /// root index the snapped transport selected at every (recurrence layer,
+    /// lane), so [`Self::snap_trace`] reads them back per (layer, position,
+    /// lane). Tracing allocates its buffer here, once (context x recurrence
+    /// layers x lanes entries); it is a diagnostic only and does not change
+    /// the served arithmetic. On a model without a snap nothing is recorded.
+    pub fn enable_snap_trace(&mut self) {
+        let s = &self.model.shape;
+        let recurrences = s.pattern.bytes().filter(|&c| c == b'r').count();
+        let entries = s.context * recurrences * s.lanes();
+        self.b.snap_trace = Some(SnapTrace {
+            selected: vec![u32::MAX; entries],
+            written: 0,
+        });
+    }
+
+    /// The recorded snap trace as (layer, position, lane, root) entries in
+    /// step order, if tracing is enabled. Allocates; diagnostic only, never
+    /// called by a step.
+    pub fn snap_trace(&self) -> Option<Vec<SnapTraceEntry>> {
+        let trace = self.b.snap_trace.as_ref()?;
+        let s = &self.model.shape;
+        let lanes = s.lanes();
+        let recurrences: Vec<usize> = s
+            .pattern
+            .bytes()
+            .enumerate()
+            .filter(|(_, c)| *c == b'r')
+            .map(|(layer, _)| layer)
+            .collect();
+        let per_position = recurrences.len() * lanes;
+        if per_position == 0 {
+            return Some(Vec::new());
+        }
+        let written = trace.written.min(trace.selected.len());
+        let entries = (0..written)
+            .map(|slot| {
+                let (position, rem) = (slot / per_position, slot % per_position);
+                SnapTraceEntry {
+                    layer: recurrences[rem / lanes],
+                    position,
+                    lane: rem % lanes,
+                    root: trace.selected[slot] as usize,
+                }
+            })
+            .collect();
+        Some(entries)
+    }
+
     /// Start a new stream.
     pub fn reset(&mut self) {
         self.position = 0;
         self.cache_at = 0;
         self.lift_at = 0;
+        if let Some(trace) = &mut self.b.snap_trace {
+            trace.written = 0;
+        }
         for state in &mut self.states {
             match state.as_mut() {
                 LayerState::Recurrence { state, history } => {
@@ -611,7 +707,16 @@ fn stack_recurrence(
                 rotations[at + 2],
                 rotations[at + 3],
             ];
-            stack_rotation(raw, lambda)
+            if model.snapped {
+                let transition = stack_snap_rotation(raw, lambda);
+                if let Some(trace) = &mut b.snap_trace {
+                    // The same deterministic selection the transition used.
+                    trace.record(stack_snap_select(raw));
+                }
+                transition
+            } else {
+                stack_rotation(raw, lambda)
+            }
         } else {
             [lambda as i64, 0, 0, 0]
         };

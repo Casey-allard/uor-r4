@@ -25,11 +25,9 @@ use uor_r4_lut::format::{
     Fixed, StackArtifact, StackArtifactBuilder, StackNumerics, StackShape, TableValues,
 };
 use uor_r4_lut::GROUP;
-use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackModel};
+use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackModel, TransportSnap};
 use uor_r4_training::lut_export::{arcosh_table, quantize_matrix};
-use uor_r4_training::stack_export::{
-    check_export_transport, decay_rate, export_stack, grid_code, stack_grid_reference,
-};
+use uor_r4_training::stack_export::{decay_rate, export_stack, grid_code, stack_grid_reference};
 
 const EXPECTED_MODEL_SHA256: &str =
     "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a";
@@ -261,9 +259,10 @@ fn export_stack_candidate(
     model: &StackModel,
     source: Value,
     head_codec: Option<CodecArm>,
+    snap: Option<TransportSnap>,
 ) -> Result<(Vec<u8>, Value), Box<dyn std::error::Error>> {
     if head_codec.is_none() {
-        let (bytes, rep) = export_stack(model, source, None)?;
+        let (bytes, rep) = export_stack(model, source, None, snap)?;
         return Ok((bytes, rep));
     }
 
@@ -302,6 +301,14 @@ fn export_stack_candidate(
     let lanes = shape.lanes();
     let gate_rows = shape.gate_rows();
     let mut builder = StackArtifactBuilder::new(shape, numerics, source)?;
+    if let Some(snap) = snap {
+        snap.check(&model.config)?;
+        builder.set_transport_snap(
+            snap.name().to_owned(),
+            snap.roots().len(),
+            snap.roots_sha256(),
+        );
+    }
     let mut errors = serde_json::Map::new();
 
     let mut add = |builder: &mut StackArtifactBuilder,
@@ -565,9 +572,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .into());
         }
 
-        // A snapped save would be exported as the free transport; refuse it
-        // here exactly as the geometric-stack export does.
-        check_export_transport(&args.model_dir)?;
+        // A snapped save exports with the snap recorded (the D11 engine
+        // serves it); a malformed record refuses the export here.
+        let transport_snap = StackModel::saved_transport_snap(&args.model_dir)?;
 
         // Load float model
         println!("Loading StackModel into Candle CPU...");
@@ -737,7 +744,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             println!("Exporting stack artifact with codec {:?}...", arm_codec);
             let (artifact_bytes, quant_report) =
-                export_stack_candidate(&model, source_meta, arm_codec)
+                export_stack_candidate(&model, source_meta, arm_codec, transport_snap)
                     .map_err(|e| format!("Export error for {}: {e}", arm_slug))?;
             let export_duration = export_clock.elapsed().as_secs_f64();
 

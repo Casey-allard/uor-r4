@@ -392,7 +392,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // [2/6] Arm (i): RTN (Round to nearest baseline)
         // -------------------------------------------------------------------
         println!("\n[2/6] Arm (i): RTN (Round-To-Nearest baseline)...");
-        let (rtn_artifact_bytes, _) = export_stack(&float_model, json!({"arm": "rtn"}), None)?;
+        let (rtn_artifact_bytes, _) =
+            export_stack(&float_model, json!({"arm": "rtn"}), None, None)?;
         let rtn_stack_artifact = StackArtifact::parse(rtn_artifact_bytes.clone())
             .map_err(|e| format!("parse error: {e}"))?;
         let rtn_grid_ref = stack_grid_reference(&float_model, &rtn_stack_artifact)?;

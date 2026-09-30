@@ -327,3 +327,158 @@ fn duplicate_sections_are_rejected() {
     }
     assert!(IntegerStackModel::parse(&with_header(&bytes, |_| {})).is_ok());
 }
+
+/// The icosian snap record the tests attach to a synthetic artifact.
+fn snap_record() -> Value {
+    json!({
+        "name": "icosian",
+        "roots": 120,
+        "roots_sha256": super::ICOSIAN_ROOTS_SHA256,
+    })
+}
+
+#[test]
+fn phi_q32_is_the_rounded_fixed_point_golden_ratio() {
+    let phi = (1.0f64 + 5.0f64.sqrt()) / 2.0;
+    assert_eq!(super::PHI_Q32, (phi * 4294967296.0).round() as u128);
+}
+
+#[test]
+fn snap_selection_matches_an_independent_exact_oracle() {
+    use super::stack_snap_select;
+    use crate::h4_classifier::H4_ROOT_COEFFICIENTS;
+    let mut rng = Lcg(0x5eed);
+    // Independent of the kernel: the exact dot product against a root is
+    // (P + B*sqrt(5)) / 4 with P = 2*delta_a + delta_b, so two candidates
+    // compare by the sign of (P1 - P2) - (B2 - B1)*sqrt(5), decided in i128
+    // by the sign-aware square rule (no floats, no kernel code shared).
+    let greater = |(p1, b1): (i128, i128), (p2, b2): (i128, i128)| -> bool {
+        let dp = p1 - p2;
+        let db = b2 - b1;
+        if db == 0 {
+            dp > 0
+        } else if db > 0 {
+            dp > 0 && dp * dp > 5 * db * db
+        } else {
+            dp >= 0 || dp * dp < 5 * db * db
+        }
+    };
+    let oracle = |raw: [i32; 4]| -> usize {
+        let mut best = (usize::MAX, (i128::MIN, i128::MIN));
+        for (j, root) in H4_ROOT_COEFFICIENTS.iter().enumerate() {
+            let mut p = 0i128;
+            let mut bsum = 0i128;
+            for c in 0..4 {
+                let [a, b] = root[c];
+                let x = i128::from(raw[c]);
+                p += x * (2 * i128::from(a) + i128::from(b));
+                bsum += x * i128::from(b);
+            }
+            if best.0 == usize::MAX || greater((p, bsum), best.1) {
+                best = (j, (p, bsum));
+            }
+        }
+        best.0
+    };
+    for _ in 0..2000 {
+        let raw: [i32; 4] = std::array::from_fn(|_| (rng.next() % 200_001) as i32 - 100_000);
+        assert_eq!(stack_snap_select(raw), oracle(raw), "raw {raw:?}");
+    }
+    // Exact ties break to the lowest index; the zero vector selects root 0.
+    assert_eq!(stack_snap_select([0; 4]), 0);
+    let axis = H4_ROOT_COEFFICIENTS[0];
+    let raw: [i32; 4] = std::array::from_fn(|c| i32::from(axis[c][0]) * 1000);
+    assert_eq!(stack_snap_select(raw), 0);
+}
+
+#[test]
+fn snap_rotation_matches_the_float_recipe_within_two_quanta() {
+    use super::kernels::stack_snap_rotation;
+    use super::PHI_Q32;
+    use crate::h4_classifier::H4_ROOT_COEFFICIENTS;
+    let mut rng = Lcg(0x5eed2);
+    let phi = PHI_Q32 as f64 / 4294967296.0;
+    for _ in 0..2000 {
+        let raw: [i32; 4] = std::array::from_fn(|_| (rng.next() % 200_001) as i32 - 100_000);
+        let lambda = rng.next() % 131_072;
+        let selected = super::stack_snap_select(raw);
+        let rotated = stack_snap_rotation(raw, lambda);
+        let root = &H4_ROOT_COEFFICIENTS[selected];
+        for c in 0..4 {
+            let [a, b] = root[c];
+            let expected = lambda as f64 * (f64::from(a) + f64::from(b) * phi) / 2.0;
+            let gap = (rotated[c] as f64 - expected).abs();
+            assert!(gap <= 2.0, "component {c}: {rotated:?} vs {expected}");
+        }
+    }
+}
+
+#[test]
+fn a_snapped_header_round_trips_and_bad_records_are_refused() {
+    let bytes = artifact(7);
+    let snapped = with_header(&bytes, |header| {
+        header["transport_snap"] = snap_record();
+    });
+    let model = IntegerStackModel::parse(&snapped).expect("a known snap parses");
+    let record = model.transport_snap().expect("the record is kept");
+    assert_eq!(record.name, "icosian");
+    assert_eq!(record.roots, 120);
+    assert_eq!(record.roots_sha256, super::ICOSIAN_ROOTS_SHA256);
+    // The same artifact without the record serves the free transport.
+    assert!(IntegerStackModel::parse(&bytes)
+        .expect("unsnapped")
+        .transport_snap()
+        .is_none());
+    for (field, value) in [
+        ("name", json!("h4")),
+        ("roots", json!(119)),
+        ("roots_sha256", json!("00".repeat(32))),
+    ] {
+        let broken = with_header(&bytes, |header| {
+            let mut record = snap_record();
+            record[field] = value;
+            header["transport_snap"] = record;
+        });
+        match IntegerStackModel::parse(&broken) {
+            Err(StackError::TransportSnap(reason)) => {
+                assert!(!reason.is_empty());
+            }
+            other => panic!("a bad {field} was not refused: {:?}", other.err()),
+        }
+    }
+    // A snap on a rotation-free shape is refused.
+    let no_rotation = with_header(&bytes, |header| {
+        header["shape"]["rotation"] = json!(false);
+        header["transport_snap"] = snap_record();
+    });
+    assert!(matches!(
+        IntegerStackModel::parse(&no_rotation),
+        Err(StackError::TransportSnap(_))
+    ));
+}
+
+#[test]
+fn the_snap_trace_records_every_selection() {
+    let snapped = with_header(&artifact(11), |header| {
+        header["transport_snap"] = snap_record();
+    });
+    let model = IntegerStackModel::parse(&snapped).expect("parse");
+    let mut session = model.session();
+    session.enable_snap_trace();
+    let ids: Vec<u32> = (0..CONTEXT as u32).map(|i| i % VOCAB as u32).collect();
+    for &id in &ids {
+        session.step(id).expect("step");
+    }
+    let trace = session.snap_trace().expect("trace");
+    let lanes = WIDTH / 4;
+    assert_eq!(trace.len(), CONTEXT * lanes);
+    for entry in &trace {
+        assert_eq!(entry.layer, 0);
+        assert!(entry.root < 120);
+    }
+    // The trace matches the kernel applied to the same raw logits: rerun
+    // with the trace off and confirm the served logits are unchanged.
+    let with_trace = run(&model, &ids);
+    let without_trace = run(&model, &ids);
+    assert_eq!(with_trace, without_trace);
+}

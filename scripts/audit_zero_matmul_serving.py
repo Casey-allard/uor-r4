@@ -685,6 +685,8 @@ STACK_MANDATORY_SYMBOLS = [
     _stack_kernel("stack_div_u128", "kernels", "Restoring long division (u128)"),
     _stack_kernel("stack_isqrt", "kernels", "Digit-by-digit integer square root"),
     _stack_kernel("stack_argmax", "kernels", "Greedy integer argmax over logits"),
+    _stack_kernel("stack_snap_select", "kernels", "Icosian root selection by exact Z[phi] comparison"),
+    _stack_kernel("stack_snap_rotation", "kernels", "Snapped rotation by shift-add golden-ratio terms"),
 ]
 
 # Call-graph roots of the stack engine (v0-mangled names, as `otool -tvV`

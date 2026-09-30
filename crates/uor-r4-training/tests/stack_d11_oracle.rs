@@ -169,7 +169,8 @@ fn check(
 ) -> usize {
     let model = small(pattern, read, rotation, width, heads, mlp, context, seed);
     perturb(&model, seed + 100, amplify);
-    let (bytes, _) = export_stack(&model, json!({"test": "d11-oracle"}), None).expect("export");
+    let (bytes, _) =
+        export_stack(&model, json!({"test": "d11-oracle"}), None, None).expect("export");
     let (d10, d11) = engines(&bytes);
     assert_eq!(d11.artifact_sha256(), d10.artifact_sha256());
     let label = format!("{pattern} {read:?} rotation={rotation} width={width} heads={heads}");
@@ -235,7 +236,7 @@ fn d11_logits_equal_d10_logits_on_a_calibrated_export() {
     let calibration =
         StackCalibration::collect(&model, &tokens(16 * 24, 96, 9), 8, 24).expect("calibration");
     let (bytes, report) =
-        export_stack(&model, json!({}), Some((&calibration, 0.01))).expect("export");
+        export_stack(&model, json!({}), Some((&calibration, 0.01)), None).expect("export");
     assert_eq!(report["method"]["quantizer"], "gptq");
     let (d10, d11) = engines(&bytes);
     compare("gptq", &d10, &d11, &sequences(24, 77));
@@ -247,7 +248,7 @@ fn d11_logits_equal_d10_logits_on_a_calibrated_export() {
 fn sessions_refuse_bad_tokens_and_full_contexts() {
     let model = small("rarr", ReadScore::Dot, true, 64, 2, 40, 8, 4);
     perturb(&model, 44, &[]);
-    let (bytes, _) = export_stack(&model, json!({}), None).expect("export");
+    let (bytes, _) = export_stack(&model, json!({}), None, None).expect("export");
     let (d10, d11) = engines(&bytes);
     let mut s10 = d10.session();
     let mut s11 = d11.session();
@@ -326,7 +327,7 @@ fn with_table_value(bytes: &[u8], name: &str, index: usize, value: &[u8]) -> Vec
 fn malformed_containers_are_rejected() {
     let model = small("rarr", ReadScore::Lorentz, true, 64, 2, 40, 16, 8);
     perturb(&model, 88, &[]);
-    let (valid, _) = export_stack(&model, json!({}), None).expect("export");
+    let (valid, _) = export_stack(&model, json!({}), None, None).expect("export");
     assert!(IntegerStackModel::parse(&valid).is_ok());
     // A rebuilt container with an unchanged header is still valid.
     assert!(IntegerStackModel::parse(&with_header(&valid, |_| {})).is_ok());
@@ -535,7 +536,7 @@ fn malformed_containers_are_rejected() {
 fn corrupted_artifacts_never_panic_and_accepted_ones_agree() {
     let model = small("rarr", ReadScore::Lorentz, true, 64, 2, 40, 12, 6);
     perturb(&model, 66, &[]);
-    let (valid, _) = export_stack(&model, json!({}), None).expect("export");
+    let (valid, _) = export_stack(&model, json!({}), None, None).expect("export");
     let header_len = u64::from_le_bytes(valid[8..16].try_into().expect("length")) as usize;
     let mut rng = Rng(1234);
     let (mut accepted, mut compared) = (0, 0);
