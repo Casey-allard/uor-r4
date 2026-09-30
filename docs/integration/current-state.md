@@ -1,9 +1,31 @@
 # Current UOR-R4 research state
 
-Updated September 29, 2026. **Pre-alpha; no useful general-language, coding,
+Updated September 30, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 
+## Active execution contract — D18, 1–14 October
+
+The owner approved [D18](DECISIONS.md#d18--one-retrieval-question-for-114-october-track-b-cost-and-memory-port-work-parked-with-re-entry-conditions) on 30 September. It follows the [direction review](direction-review-2026-09-30.md) and is tracked on [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552).
+
+**The question.** For two weeks both labs answer one question: can the native geometric stack copy a value it was just told, and does that survive D11 serving? The day-14 memo names outcome A (served retrieval, then §8), B (scale or phrasing), C (a read defect) or D (no learned retrieval, including the transformer control).
+
+**Labs.** Only the Claude lab and the OpenCode/DeepSeek lab remain; the owner removed Codex, Kimi and Anti-Gravity.
+- Claude: the A1 instrument freeze and arms (#1541's source is merged in #1548 as `302e0ad7`).
+- DeepSeek: R1-X, the `TruncatedPrefix` data unlock, a one-day D5 design memo, and the D11 pointer port if A1's pointer wins.
+
+**Rules.** A PR merges on a recorded review at its exact head (self-review allowed) plus passing compile/tests executed at that head (#820). PR checks run on GitHub's free runners.
+
+**State of `main` on 30 September.**
+- Every workspace target compiles ([#1547](https://github.com/UOR-Foundation/uor-r4/pull/1547) and [#1538](https://github.com/UOR-Foundation/uor-r4/pull/1538) repaired a main that CI had not been compiling).
+- Known test failures: 3 `joint_campaign` tests ("checkpoint/evaluator binding differs") and the workbench `compiled_authority_has_the_frozen_binding_shape` test. The four legacy low-bit learner tests of #1546 are ignored under D18 §9; the Adam guard is not restored.
+- **Merged on 30 September, each verified as the exact merge of its reviewed head:** #1519, #1526, #1527, #1528, #1532, #1534, #1538, #1539, #1540, #1543, #1547, #1548 and #1549.
+- **Parked:** Track B draft [#1518](https://github.com/UOR-Foundation/uor-r4/pull/1518). Its 1e-4 parity gate failed and that record is immutable.
+
+**No new capability is claimed.** The model cannot chat, in-context retrieval is untrained, and no runtime-cost or energy win is measured (see the direction review).
+
 ## Active execution contract — durable labs, September 29
+
+*Superseded for 1–14 October by the D18 contract above; kept as the September 29 record.*
 
 The owner's current continuation is [the durable-lab plan](../labs/plan-2026-09-29.md)
 under [D14](DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance).
