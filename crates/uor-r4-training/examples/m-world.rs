@@ -3013,7 +3013,7 @@ fn action_kind(action: &CompiledAction) -> &'static str {
     match action {
         CompiledAction::Assert { .. } => "assert",
         CompiledAction::Correct { .. } => "correct",
-        CompiledAction::QueryCurrent { .. } => "query",
+        CompiledAction::QueryCurrent { .. } | CompiledAction::Query { .. } => "query",
         CompiledAction::Unresolved { .. } => "unresolved",
     }
 }

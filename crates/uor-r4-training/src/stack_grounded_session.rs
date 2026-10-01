@@ -3,7 +3,7 @@
 //! The compiler supplies predictions from its bound artifact. This module
 //! validates their source spans and applies them; it neither fits a compiler
 //! nor derives labels from an evaluator. The first interface has one explicit
-//! scope/entity and current-value queries. It is a float development path,
+//! scope/entity and typed versioned queries. It is a float development path,
 //! not a D11 serving kernel or evidence of learned language capability.
 //!
 //! Turns retain the emitter's actual token IDs. Store and history changes
@@ -22,6 +22,7 @@ use std::path::Path;
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
 use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
+use uor_r4_core::native_geometric::learner::scoped_memory::Record;
 use uor_r4_core::report_output;
 use uor_r4_tokenizer::dialogue::{DialogueError, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
@@ -32,10 +33,14 @@ use crate::stack_checkpoint::{
     StackCheckpointError,
 };
 use crate::stack_dialogue::{greedy_reply, Reply};
-use crate::stack_store::{HistoryView, StackStore, StackStoreError, StoreRead, Update, Written};
+use crate::stack_store::{
+    HistoryView, StackStore, StackStoreError, StoreRead, StoreValue, Update, Written,
+};
 use crate::TrainingError;
 
 pub const SESSION_SCHEMA: &str = "uor-r4.grounded-session/1";
+/// Used only when a transcript contains the additive typed `Query` action.
+pub const TEMPORAL_SESSION_SCHEMA: &str = "uor-r4.grounded-session/2";
 pub const SESSION_FILE: &str = "session.json";
 pub const COMPILER_FILE: &str = "compiler.bin";
 pub const TOKENIZER_FILE: &str = "tokenizer.json";
@@ -92,10 +97,36 @@ pub struct SourceSpan {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum CompiledAction {
-    Assert { relation: u32, span: SourceSpan },
-    Correct { relation: u32, span: SourceSpan },
-    QueryCurrent { relation: u32 },
-    Unresolved { reason: String },
+    Assert {
+        relation: u32,
+        span: SourceSpan,
+    },
+    Correct {
+        relation: u32,
+        span: SourceSpan,
+    },
+    /// Legacy current-value action; its serialized form remains unchanged.
+    QueryCurrent {
+        relation: u32,
+    },
+    /// A compiler-predicted historical view, not a language heuristic here.
+    Query {
+        relation: u32,
+        view: HistoryView,
+    },
+    Unresolved {
+        reason: String,
+    },
+}
+
+impl CompiledAction {
+    fn query(&self) -> Option<(u32, HistoryView)> {
+        match self {
+            Self::QueryCurrent { relation } => Some((*relation, HistoryView::Current)),
+            Self::Query { relation, view } => Some((*relation, *view)),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -583,10 +614,15 @@ impl<C: TurnCompiler> GroundedSession<C> {
         turn: u64,
         write: bool,
     ) -> Result<MemoryEffect, GroundedSessionError> {
+        if let Some((relation, view)) = action.query() {
+            self.check_relation(relation)?;
+            return Ok(MemoryEffect::Read {
+                read: store.read(&self.scope.scope, &self.scope.entity, relation, view)?,
+            });
+        }
         let (relation, span, update) = match action {
-            CompiledAction::Assert { relation, span } => (*relation, Some(*span), Update::Assert),
-            CompiledAction::Correct { relation, span } => (*relation, Some(*span), Update::Correct),
-            CompiledAction::QueryCurrent { relation } => (*relation, None, Update::Assert),
+            CompiledAction::Assert { relation, span } => (*relation, *span, Update::Assert),
+            CompiledAction::Correct { relation, span } => (*relation, *span, Update::Correct),
             CompiledAction::Unresolved { reason } => {
                 if reason.trim().is_empty() {
                     return Err(GroundedSessionError::Compiler(
@@ -594,6 +630,11 @@ impl<C: TurnCompiler> GroundedSession<C> {
                     ));
                 }
                 return Ok(MemoryEffect::Unresolved);
+            }
+            CompiledAction::QueryCurrent { .. } | CompiledAction::Query { .. } => {
+                return Err(GroundedSessionError::Compiler(
+                    "unhandled query action".into(),
+                ));
             }
         };
         if !self
@@ -606,34 +647,22 @@ impl<C: TurnCompiler> GroundedSession<C> {
                 "predicted relation is outside the saved label schema".into(),
             ));
         }
-        match span {
-            Some(span) => {
-                let value_tokens = self.value_tokens(source, span)?;
-                if !write {
-                    return Ok(MemoryEffect::WriteDisabled { value_tokens });
-                }
-                let written = store.write_from(
-                    &self.scope.scope,
-                    &self.scope.entity,
-                    relation,
-                    &value_tokens,
-                    update,
-                    turn,
-                )?;
-                Ok(MemoryEffect::Write {
-                    written,
-                    value_tokens,
-                })
-            }
-            None => Ok(MemoryEffect::Read {
-                read: store.read(
-                    &self.scope.scope,
-                    &self.scope.entity,
-                    relation,
-                    HistoryView::Current,
-                )?,
-            }),
+        let value_tokens = self.value_tokens(source, span)?;
+        if !write {
+            return Ok(MemoryEffect::WriteDisabled { value_tokens });
         }
+        let written = store.write_from(
+            &self.scope.scope,
+            &self.scope.entity,
+            relation,
+            &value_tokens,
+            update,
+            turn,
+        )?;
+        Ok(MemoryEffect::Write {
+            written,
+            value_tokens,
+        })
     }
 
     fn emitter_suffix(
@@ -820,7 +849,16 @@ impl<C: TurnCompiler> GroundedSession<C> {
             write_new(&root.join(TOKENIZER_FILE), &self.tokenizer_json)?;
             write_new(&root.join(COMPILER_FILE), self.compiler.artifact_bytes())?;
             let record = SessionRecord {
-                schema: SESSION_SCHEMA.into(),
+                schema: if self
+                    .turns
+                    .iter()
+                    .any(|turn| matches!(turn.action, CompiledAction::Query { .. }))
+                {
+                    TEMPORAL_SESSION_SCHEMA
+                } else {
+                    SESSION_SCHEMA
+                }
+                .into(),
                 checkpoint_manifest_sha256: sealed_manifest_sha256(&checkpoint)?,
                 compiler: self.compiler_identity.clone(),
                 scope: self.scope.clone(),
@@ -884,9 +922,19 @@ impl<C: TurnCompiler> GroundedSession<C> {
             ));
         }
         let record: SessionRecord = serde_json::from_slice(&fs::read(root.join(SESSION_FILE))?)?;
-        if record.schema != SESSION_SCHEMA {
+        if record.schema != SESSION_SCHEMA && record.schema != TEMPORAL_SESSION_SCHEMA {
             return Err(GroundedSessionError::Snapshot(
                 "unsupported session schema".into(),
+            ));
+        }
+        if record.schema == SESSION_SCHEMA
+            && record
+                .turns
+                .iter()
+                .any(|turn| matches!(turn.action, CompiledAction::Query { .. }))
+        {
+            return Err(GroundedSessionError::Snapshot(
+                "typed query requires temporal session schema".into(),
             ));
         }
         let checkpoint = root.join(CHECKPOINT_DIRECTORY);
@@ -1037,33 +1085,20 @@ impl<C: TurnCompiler> GroundedSession<C> {
                         ));
                     }
                 }
-                (CompiledAction::QueryCurrent { relation }, MemoryEffect::Read { read }) => {
-                    self.check_relation(*relation)?;
-                    let key = StackStore::key(&self.scope.scope, &self.scope.entity, *relation)?;
-                    let chain = memory.chain(&key);
-                    let visible = chain.partition_point(|id| {
-                        records
-                            .get(id)
-                            .is_some_and(|record| record.commit <= commit)
-                    });
-                    let head = visible.checked_sub(1).and_then(|i| records.get(&chain[i]));
-                    let matches = match (head, read) {
-                        (None, StoreRead::Absent) => true,
-                        (Some(record), StoreRead::Found(value)) => {
-                            let bytes: Vec<u8> =
-                                value.tokens.iter().flat_map(|t| t.to_le_bytes()).collect();
-                            record.id == value.record
-                                && record.commit == value.commit
-                                && record.action == value.update
-                                && record.conflict == value.conflict
-                                && record.value == bytes
-                        }
-                        _ => false,
-                    };
-                    // Current reads select the latest visible record, which was
-                    // resident at that turn with the store's positive capacity.
-                    // A later eviction must not turn that old Found into Absent.
-                    if !matches {
+                (action, MemoryEffect::Read { read }) if action.query().is_some() => {
+                    let (relation, view) = action.query().ok_or_else(|| {
+                        GroundedSessionError::Snapshot("query action has no view".into())
+                    })?;
+                    self.check_relation(relation)?;
+                    let key = StackStore::key(&self.scope.scope, &self.scope.entity, relation)?;
+                    let expected = read_receipt_at(
+                        memory.chain(&key),
+                        &records,
+                        memory.capacity,
+                        commit,
+                        view,
+                    )?;
+                    if read != &expected {
                         return Err(GroundedSessionError::Snapshot(
                             "query receipt differs from store at pinned turn commit".into(),
                         ));
@@ -1117,6 +1152,81 @@ impl<C: TurnCompiler> GroundedSession<C> {
             ))
         }
     }
+}
+
+/// Reconstruct a receipt, not a live read, from a validated immutable chain.
+/// Current `read_at` intentionally uses today's eviction flags. A saved turn
+/// instead records residency at its original commit, including preloaded
+/// records and the fixed per-chain capacity. Never use tombstone bytes to
+/// cross a predecessor that was already evicted when the turn ran.
+fn read_receipt_at(
+    chain: &[u64],
+    records: &BTreeMap<u64, &Record>,
+    capacity: usize,
+    commit: u64,
+    view: HistoryView,
+) -> Result<StoreRead, GroundedSessionError> {
+    let visible = chain.partition_point(|id| {
+        records
+            .get(id)
+            .is_some_and(|record| record.commit <= commit)
+    });
+    if visible == 0 {
+        return Ok(StoreRead::Absent);
+    }
+    let record_at = |position: usize| {
+        chain
+            .get(position)
+            .and_then(|id| records.get(id))
+            .copied()
+            .ok_or_else(|| {
+                GroundedSessionError::Snapshot("query chain references a missing record".into())
+            })
+    };
+    let resident_start = visible.saturating_sub(capacity);
+    let selected = match view {
+        HistoryView::Current => Some(visible - 1),
+        HistoryView::PreviousAssertion => visible.checked_sub(2),
+        HistoryView::Initial => Some(0),
+        HistoryView::PreviousDistinctValue => {
+            let head = record_at(visible - 1)?;
+            let mut found = None;
+            for position in (0..visible - 1).rev() {
+                if position < resident_start {
+                    return Ok(StoreRead::Evicted);
+                }
+                if record_at(position)?.value != head.value {
+                    found = Some(position);
+                    break;
+                }
+            }
+            found
+        }
+    };
+    let Some(position) = selected else {
+        return Ok(StoreRead::NoHistory);
+    };
+    if position < resident_start {
+        return Ok(StoreRead::Evicted);
+    }
+    let record = record_at(position)?;
+    if record.value.len() % 4 != 0 {
+        return Err(GroundedSessionError::Snapshot(
+            "record value is not whole tokens".into(),
+        ));
+    }
+    let tokens = record
+        .value
+        .chunks_exact(4)
+        .map(|bytes| u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+        .collect();
+    Ok(StoreRead::Found(StoreValue {
+        tokens,
+        record: record.id,
+        commit: record.commit,
+        update: record.action,
+        conflict: record.conflict,
+    }))
 }
 
 fn validate_compiler(
@@ -1268,6 +1378,14 @@ mod tests {
                 },
             );
             actions.insert("ask".into(), CompiledAction::QueryCurrent { relation: 1 });
+            for (source, view) in [
+                ("ask current", HistoryView::Current),
+                ("ask previous", HistoryView::PreviousAssertion),
+                ("ask distinct", HistoryView::PreviousDistinctValue),
+                ("ask initial", HistoryView::Initial),
+            ] {
+                actions.insert(source.into(), CompiledAction::Query { relation: 1, view });
+            }
             actions.insert(
                 "absent".into(),
                 CompiledAction::QueryCurrent { relation: 2 },
@@ -1370,6 +1488,15 @@ mod tests {
         context: usize,
         policy: ContextPolicy,
     ) -> (PathBuf, GroundedSession<TestCompiler>) {
+        fixture_with_capacity(name, context, policy, 8)
+    }
+
+    fn fixture_with_capacity(
+        name: &str,
+        context: usize,
+        policy: ContextPolicy,
+        capacity: usize,
+    ) -> (PathBuf, GroundedSession<TestCompiler>) {
         let base = scratch(name);
         fs::create_dir_all(&base).expect("base");
         let tokenizer = tokenizer_bytes();
@@ -1414,7 +1541,7 @@ mod tests {
             &checkpoint,
             &model,
             &identity,
-            Some(&StackStore::new(41, 8).expect("store")),
+            Some(&StackStore::new(41, capacity).expect("store")),
         )
         .expect("save");
         let compiler = TestCompiler::new(&tokenizer);
@@ -1476,6 +1603,278 @@ mod tests {
                 fs::copy(entry.path(), next).expect("copy test file");
             }
         }
+    }
+
+    fn resealed_snapshot(source: &Path, target: &Path, edit: impl FnOnce(&mut Value)) {
+        report_output::claim(target).expect("claim adversarial fixture");
+        for file in [SESSION_FILE, TOKENIZER_FILE, COMPILER_FILE] {
+            fs::copy(source.join(file), target.join(file)).expect("copy");
+        }
+        copy_test_directory(
+            &source.join(CHECKPOINT_DIRECTORY),
+            &target.join(CHECKPOINT_DIRECTORY),
+        );
+        let path = target.join(SESSION_FILE);
+        let mut record: Value =
+            serde_json::from_slice(&fs::read(&path).expect("record")).expect("json");
+        edit(&mut record);
+        fs::write(&path, serde_json::to_vec_pretty(&record).expect("json")).expect("edit fixture");
+        report_output::seal(target).expect("seal adversarial fixture");
+    }
+
+    #[test]
+    fn temporal_receipts_match_reads_at_each_original_commit() {
+        let views = [
+            HistoryView::Current,
+            HistoryView::PreviousAssertion,
+            HistoryView::PreviousDistinctValue,
+            HistoryView::Initial,
+        ];
+        // Corrections count as versions; same-value assertions do not create
+        // a new distinct value. Other-address writes separate global commits
+        // from this address's chain positions, including preloaded history.
+        let writes = [
+            (21, Update::Assert),
+            (21, Update::Correct),
+            (22, Update::Correct),
+            (22, Update::Assert),
+            (21, Update::Assert),
+        ];
+        for capacity in [1, 2, 4] {
+            let mut store = StackStore::new(41, capacity).expect("store");
+            let mut captured = Vec::new();
+            for prefix in 0..=writes.len() {
+                if prefix > 0 {
+                    store
+                        .write(b"scope", &[11], 2, &[31], Update::Assert)
+                        .expect("other address");
+                    let (token, update) = writes[prefix - 1];
+                    store
+                        .write(b"scope", &[11], 1, &[token], update)
+                        .expect("write");
+                }
+                for view in views {
+                    let read = store.read(b"scope", &[11], 1, view).expect("actual read");
+                    captured.push((store.commit(), view, read));
+                }
+            }
+            // Subsequent writes evict values that earlier reads actually saw.
+            for token in 23..27 {
+                store
+                    .write(b"scope", &[11], 1, &[token], Update::Correct)
+                    .expect("later write");
+            }
+            let loaded =
+                StackStore::from_bytes(&store.to_bytes().expect("bytes"), 41).expect("load");
+            let key = StackStore::key(b"scope", &[11], 1).expect("key");
+            let records = loaded
+                .memory()
+                .records
+                .iter()
+                .map(|record| (record.id, record))
+                .collect();
+            for (commit, view, actual) in captured {
+                assert_eq!(
+                    read_receipt_at(
+                        loaded.memory().chain(&key),
+                        &records,
+                        capacity,
+                        commit,
+                        view
+                    )
+                    .expect("receipt"),
+                    actual,
+                    "capacity={capacity}, commit={commit}, view={view:?}"
+                );
+            }
+            assert_eq!(
+                loaded
+                    .read_at(b"scope", &[11], 1, HistoryView::Initial, 2)
+                    .expect("current residency"),
+                StoreRead::Evicted
+            );
+        }
+    }
+
+    #[test]
+    fn temporal_turns_reload_with_original_residency_and_distinct_barriers() {
+        let (base, mut session) =
+            fixture_with_capacity("temporal", 128, ContextPolicy::WholeCompletedTurns, 2);
+        let empty = fixed_turn(&mut session, "ask initial");
+        assert_eq!(
+            empty.memory,
+            MemoryEffect::Read {
+                read: StoreRead::Absent
+            }
+        );
+        assert_eq!(empty.recall, RecallDisposition::Absent);
+        fixed_turn(&mut session, "put blue");
+        let missing = fixed_turn(&mut session, "ask previous");
+        assert_eq!(
+            missing.memory,
+            MemoryEffect::Read {
+                read: StoreRead::NoHistory
+            }
+        );
+        assert!(matches!(
+            missing.recall,
+            RecallDisposition::Unsupported { .. }
+        ));
+        let initial = fixed_turn(&mut session, "ask initial");
+        assert!(
+            matches!(initial.memory, MemoryEffect::Read { read: StoreRead::Found(ref value) } if value.record == 1)
+        );
+        fixed_turn(&mut session, "fix green");
+        let previous = fixed_turn(&mut session, "ask previous");
+        assert_eq!(previous.memory, initial.memory);
+        fixed_turn(&mut session, "put green");
+        let correction = fixed_turn(&mut session, "ask previous");
+        assert!(
+            matches!(correction.memory, MemoryEffect::Read { read: StoreRead::Found(ref value) }
+            if value.record == 2 && value.update == Update::Correct)
+        );
+        for source in ["ask initial", "ask distinct"] {
+            let evicted = fixed_turn(&mut session, source);
+            assert_eq!(
+                evicted.memory,
+                MemoryEffect::Read {
+                    read: StoreRead::Evicted
+                }
+            );
+            assert!(matches!(
+                evicted.recall,
+                RecallDisposition::Unsupported { .. }
+            ));
+        }
+        let disabled = fixed_controlled(
+            &mut session,
+            "ask previous",
+            TurnControls {
+                read: false,
+                write: true,
+            },
+        );
+        assert_eq!(disabled.memory, correction.memory);
+        assert_eq!(disabled.recall, RecallDisposition::Disabled);
+        let snapshot = base.join("snapshot");
+        session.save(&snapshot).expect("save temporal");
+        let compiler = TestCompiler::new(&session.tokenizer_json);
+        let mut loaded =
+            GroundedSession::load(&snapshot, compiler, &Device::Cpu).expect("reload temporal");
+        assert_eq!(loaded.turns, session.turns);
+        assert_eq!(loaded.history_ids, session.history_ids);
+        assert_eq!(
+            fixed_turn(&mut loaded, "ask distinct"),
+            fixed_turn(&mut session, "ask distinct")
+        );
+
+        // Equal-value evicted predecessors are still barriers. Their retained
+        // identities must not be used to turn this into NoHistory on reload.
+        fixed_turn(&mut session, "put green");
+        assert_eq!(
+            fixed_turn(&mut session, "ask distinct").memory,
+            MemoryEffect::Read {
+                read: StoreRead::Evicted
+            }
+        );
+        let barrier_snapshot = base.join("equal-value-barrier");
+        session.save(&barrier_snapshot).expect("save barrier");
+        GroundedSession::load(
+            &barrier_snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("reload barrier");
+
+        // Disabling this turn's recall leaves its prompt unchanged when only
+        // its receipt is tampered: the store check must reject the mismatch.
+        let disabled_index = session
+            .turns
+            .iter()
+            .position(|turn| !turn.controls.read)
+            .expect("disabled turn");
+        for (name, replacement) in [
+            (
+                "wrong-record",
+                json!({"Found": {"tokens": session.tokenizer.encode("green"), "record": 1, "commit": 2, "update": "Correct", "conflict": false}}),
+            ),
+            ("false-absence", json!("Absent")),
+        ] {
+            let tampered = base.join(name);
+            resealed_snapshot(&snapshot, &tampered, |record| {
+                record["turns"][disabled_index]["memory"]["read"] = replacement;
+            });
+            assert!(matches!(
+                GroundedSession::load(
+                    &tampered,
+                    TestCompiler::new(&session.tokenizer_json),
+                    &Device::Cpu
+                ),
+                Err(GroundedSessionError::Snapshot(_))
+            ));
+        }
+        fs::remove_dir_all(base).expect("clean");
+    }
+
+    #[test]
+    fn temporal_schema_is_additive_and_current_snapshots_keep_schema_one() {
+        let (base, mut session) = fixture("schemas", 128, ContextPolicy::WholeCompletedTurns);
+        assert_eq!(
+            serde_json::to_value(CompiledAction::QueryCurrent { relation: 1 })
+                .expect("legacy action"),
+            json!({"kind":"query_current","relation":1})
+        );
+        fixed_turn(&mut session, "put blue");
+        fixed_turn(&mut session, "ask");
+        let legacy = base.join("legacy");
+        session.save(&legacy).expect("save legacy");
+        let legacy_record: Value =
+            serde_json::from_slice(&fs::read(legacy.join(SESSION_FILE)).expect("record"))
+                .expect("json");
+        assert_eq!(legacy_record["schema"], SESSION_SCHEMA);
+        let mut loaded = GroundedSession::load(
+            &legacy,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("load legacy");
+        assert_eq!(
+            fixed_turn(&mut loaded, "ask"),
+            fixed_turn(&mut session, "ask")
+        );
+
+        // Even Query{Current} uses the additive encoding and must not be
+        // placed under schema1. SavedCompiler still emits QueryCurrent.
+        fixed_turn(&mut session, "ask current");
+        let temporal = base.join("typed-current");
+        session.save(&temporal).expect("save typed current");
+        let record: Value =
+            serde_json::from_slice(&fs::read(temporal.join(SESSION_FILE)).expect("record"))
+                .expect("json");
+        assert_eq!(record["schema"], TEMPORAL_SESSION_SCHEMA);
+        let mut loaded = GroundedSession::load(
+            &temporal,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("load typed current");
+        assert_eq!(
+            fixed_turn(&mut loaded, "ask current"),
+            fixed_turn(&mut session, "ask current")
+        );
+        let disguised = base.join("typed-query-under-schema1");
+        resealed_snapshot(&temporal, &disguised, |record| {
+            record["schema"] = json!(SESSION_SCHEMA)
+        });
+        assert!(matches!(
+            GroundedSession::load(
+                &disguised,
+                TestCompiler::new(&session.tokenizer_json),
+                &Device::Cpu
+            ),
+            Err(GroundedSessionError::Snapshot(_))
+        ));
+        fs::remove_dir_all(base).expect("clean");
     }
 
     #[test]
@@ -1773,11 +2172,18 @@ mod tests {
     fn actual_pointer_emitter_continues_identically_in_a_fresh_process() {
         let (base, mut session) = fixture("fresh-process", 128, ContextPolicy::WholeCompletedTurns);
         fixed_turn(&mut session, "put blue");
+        fixed_turn(&mut session, "fix green");
+        fixed_turn(&mut session, "ask initial");
         let snapshot = base.join("snapshot");
         session.save(&snapshot).expect("save");
-        let expected = session
-            .turn("ask")
-            .expect("actual pointer-aware generation");
+        let expected = ["ask", "ask initial"]
+            .into_iter()
+            .map(|source| {
+                session
+                    .turn(source)
+                    .expect("actual pointer-aware generation")
+            })
+            .collect::<Vec<_>>();
         let output = base.join("child-result.json");
         let status = std::process::Command::new(std::env::current_exe().expect("test executable"))
             .args([
@@ -1790,7 +2196,7 @@ mod tests {
             .status()
             .expect("child process");
         assert!(status.success());
-        let actual: TurnOutcome =
+        let actual: Vec<TurnOutcome> =
             serde_json::from_slice(&fs::read(output).expect("child result")).expect("outcome");
         assert_eq!(actual, expected);
         fs::remove_dir_all(base).expect("clean");
@@ -1809,7 +2215,10 @@ mod tests {
         let mut session = GroundedSession::load(&root, compiler, &Device::Cpu).expect("load");
         assert_eq!(session.model.transport_snap(), Some(TransportSnap::Icosian));
         assert!(session.model.config.pointer.is_some());
-        let result = session.turn("ask").expect("actual generation");
+        let result = ["ask", "ask initial"]
+            .into_iter()
+            .map(|source| session.turn(source).expect("actual generation"))
+            .collect::<Vec<_>>();
         write_new(&output, &serde_json::to_vec(&result).expect("json")).expect("result");
     }
 }
