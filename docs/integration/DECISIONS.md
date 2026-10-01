@@ -800,3 +800,83 @@ This line claims no chat, no geometric advantage and no runtime or energy saving
   - The 7M fit (item 4) and the pointer's D11 port (item 5) do not run.
   - The pointer head stays in the toolbox (D12).
 - **Item 1's premise also failed.** The owner-run §8 count needs up to 317 positions with a 32-token reply budget, against 256. The owner kept this decision and re-entered A2 as source work (#1557).
+
+## D19 — Grounded conversation and durable memory first
+
+**Authority, October 1:** the owner requested: “Please solidify your plan as the
+active plan for the project and restructure the github roadmap and issues list
+as you recommend”, protect mechanisms from poorly planned/executed tests,
+“always merge your prs”, and proceed autonomously with Claude and
+OpenCode–DeepSeek working concurrently. The owner's selected first product
+priority is **“Grounded conversation and durable memory first.”** The retained
+public work card is [#1563](https://github.com/UOR-Foundation/uor-r4/issues/1563);
+the [programme coordination record](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5925730048)
+publishes the authorization and division of work. This entry records that
+direction; it does not attribute every implementation detail to an owner quote.
+
+1. **One active plan.** [project-track.md](project-track.md) now owns the active
+   scientific sequence and capability obligations; current-state owns changing
+   results; ROADMAP/STATUS/lab entry are navigation. The September 29 schedules
+   and D18's fortnight-only next-action/roster restrictions are superseded where
+   they conflict. D18 outcome D, A1's stopped training, original failed gates
+   and Track B's parked disposition remain. No sealed panel is opened.
+2. **Next useful mechanism.** Complete a learned saved compiler/store/emitter
+   path, then durable grounded conversation on the same model. Retain geometric
+   query/write alignment, compositional state and selected-access discovery as
+   shared-interface research. D11/D0-b/D5, Rust-native implementation, exact
+   identity and typed geometry are unchanged. Full alpha still requires useful
+   coding/reasoning; frontier capability remains an objective.
+3. **Admissibility.** The [October policy](mechanism-admissibility-2026-10.md)
+   makes D12/D17/D9 operational: assess the learning opportunity, instrument,
+   information, control and consumer before interpreting a negative. A failed
+   promotion stays failed. A materially changed successor may re-enter with a
+   causal prediction and bounded work card; no automatic family retirement or
+   blind retry follows. D17v2's exact prospective retention rule remains in
+   force. Existing E3 thresholds and §8 acceptance are not weakened.
+4. **Development integration is not promotion.** E3 v11 and a small lexical
+   compiler may enter a labelled end-to-end diagnostic to localize failures
+   before reaching their old component gate. This is consistent with the
+   concurrent owner-authorized E4 v12 on #1552. Source/category/answer oracles
+   cannot stand in for predicted-input capability. Changes to semantic labels
+   must preserve Assert/Correct/reassertion/query behavior or explicitly declare
+   a narrower development scope, not silently discard temporal obligations.
+5. **Coordination and delivery.** Codex is reauthorized by this direct request
+   alongside Claude and OpenCode–DeepSeek. Kimi/Anti-Gravity remain historical;
+   this does not restart clients or transfer live source/jobs. Live issue claims
+   and verified workers decide ownership. The current owner rule from D18 §8–9
+   remains: recorded exact-head review (self-review allowed), actual relevant
+   compile/tests, then protected merge; delivery-evidence is advisory. This
+   owner-authorized plan gets adversarial specialist review with authorship
+   disclosed; it does not fabricate non-author council votes. Future ordinary
+   decisions follow the shared protocol subject to the newer owner rules.
+6. **Cadence and resources.** Keep GitHub updates, five-minute active heartbeat
+   and thirty-minute recoverable checkpoints; use the documented manual
+   coordination fallback when the deployed coordinator/policy is unverified.
+   Owner-directed FIFO starts within the aggregate eight-thread/11 GiB envelope,
+   cumulative charges, physical storage/RAM checks and prospective local
+   extensions remain. Small bounded checks do not require a heavy-job slot;
+   preserve existing runs' declared reservations and verified host limits. No paid compute, unique-material
+   deletion, protected-branch bypass or new universal test/timer regime is
+   authorized. A PR's passing transport statuses are not test execution.
+7. **Issue structure.** Reopen transferred capability tracking where needed and
+   give each obligation a current parent, dependencies, explicit acceptance and
+   ready/blocked/parked status. Preserve original bodies/results in history.
+   Do not close a capability because a component or its tracking migration
+   completed. Close a delivered scoped task only against its complete evidence.
+
+**Alternatives and objections.** More frozen E3 fits do not repair missing spans,
+persistence or autoregressive integration; a whole new learner would duplicate
+the exact-store work. A fixed ten-relation compiler risks becoming a scripted
+assistant, so it is the first integration boundary only, with explicit later
+scope/compositional/language obligations. Geometry parity is not superiority;
+exact storage is not language understanding. Preserve these objections in the
+acceptance and use measured consumer behavior to choose successors.
+
+**Effect, review and rollback.** Effective on protected delivery of this change;
+exact-head reviews/checks and merge identity are recorded on its PR/#1563.
+The documentation task adds no model compute or new numerical result. Reverting
+this scheduling change would restore the prior ordering, not invalidate new
+evidence, delete artifacts or restore obsolete serving exceptions. Any later
+working change records the affected interface, costs and next discriminator
+prospectively. The existing sealed milestone stays fixed unless the owner
+explicitly changes it before a new candidate.

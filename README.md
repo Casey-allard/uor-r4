@@ -13,33 +13,24 @@ measured position of every active line of work.
 
 ## Approach
 
-The work runs on two tracks that share one set of geometric mechanisms. The
-[continuation plan](docs/labs/plan-2026-09-29.md) sets their dependencies and
-evidence gates.
+The [active canonical plan](docs/integration/project-track.md) prioritizes
+**grounded conversation and durable memory** on the native geometric path.
+The next integration connects a learned, saved language-to-memory compiler,
+exact versioned storage and the actual emitter, using generated conversation
+history. The same model then advances broader language, coding and reasoning.
 
-- **Track A: a native geometric chat model.** A small (≤ 30M parameter) model,
-  trained from scratch and served without floating point or a hardware
-  multiplier. Its first milestone is a sealed conversation panel: multi-turn
-  replies, recall of updated facts, and new instruction wordings.
-- **Track B: geometric conversion of pretrained transformers.** Distill open
-  models (SmolLM2 135M → 360M → 1.7B) into a geometric runtime, and measure the
-  quality gap to the teacher and the bytes and operations per token.
-  - It is approved in D13 and continues under D14's shared workflow.
-  - Under D11 the source transformers stay offline teachers and comparators.
-  - A converted model is served only if it meets D11.
+Geometry remains primary: prime/UOR identity and ordered n-lets, R4/S3/2I
+state and directed transport, exact Z[phi] and typed paired-H4 representations.
+Useful components and historical negatives remain in the
+[geometric toolbox](docs/integration/geometric-toolbox-2026-09-28.md).
+[Admissibility](docs/integration/mechanism-admissibility-2026-10.md) distinguishes
+component utility, promotion and family-wide conclusions. D17v2's prospective
+paired retention rule is unchanged; retention does not establish advantage.
 
-The four geometric mechanisms under test:
-
-| Mechanism | Idea | Status |
-| --- | --- | --- |
-| Flock attention | Each query selects a sink, a local window and its *k* nearest keys. A pointer/copy path must separately preserve the selected payload | Being built (A1, B0) |
-| Spherical-harmonic attention | Harmonic features of normalized queries and keys give a fixed-size recurrent state | Planned (B2) |
-| Quaternion / 2I transport | Recurrent state carried by unit quaternions, snapped to the 120-element binary icosahedral group | Trained into the main-line model; D11 kernel in review |
-| E8 / 2I lattice codes | Weights stored as lattice codewords and read by table lookup | B3 has a reported negative awaiting review; the geometric toolbox is preserved |
-
-A geometric mechanism stays when it is within 0.02 nats of its ordinary matrix
-equivalent. The rule was set by the owner on 29 September and is judged on
-paired arms with at least two seeds.
+Track B conversion is parked under the current plan. Its source transformers
+remain offline teachers/comparators; no transformer backbone is adopted for
+serving. Current results and lineage limitations are in the
+[October evidence review](docs/integration/grounded-memory-evidence-2026-10-01.md).
 
 ## Architecture
 
@@ -54,7 +45,7 @@ paired arms with at least two seeds.
   runs 4-bit weights with integer add, shift, compare and table reads only: no
   floating point, no multiply or divide instruction, and an instruction-level
   audit of the binary.
-  - Every weight is still read for every token.
+  - Dense layer maps and the full vocabulary head still read their weights per token; input embedding lookup reads the selected row.
   - A measured product-table emulator used 4.3× the energy of its float comparator;
     no general energy advantage is established.
 - **Training:** offline in Rust (Candle), with floating point allowed.

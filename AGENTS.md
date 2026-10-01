@@ -1,5 +1,15 @@
 # AGENTS.md — UOR-R4 Geometric Language Model
 
+> **Current owner direction, October 1 — D19:** grounded conversation and durable
+> memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
+> for the owner-authorized continuation; other historical lab assignments are
+> not reactivated. The owner's newer exact-head review rule (self-review allowed),
+> actual scoped compile/tests and protected merges supersede conflicting older
+> council/coordinator delivery prerequisites below. The delivery-evidence check
+> is advisory; use the documented manual fallback when deployment is unverified.
+> Scientific integrity, D11/D5, unique-material preservation, live job ownership
+> and resource admission remain. See [D19](docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+
 **Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. Offline Rust training may use matrix multiplication. The [takeover review](docs/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
 
 The owner-directed mode is `native_geometric_ai`. Build a learned local language model using the project's prime/zeta/R4 geometry, exact addressed memory and shared typed operators. The objective is useful conversation/memory and coding/reasoning, ultimately frontier capability on consumer M1-class laptops with lower energy and wasted compute. The model remains pre-alpha.
@@ -10,7 +20,7 @@ The owner-directed mode is `native_geometric_ai`. Build a learned local language
 
 ## Authority and recovery
 
-Read [README](README.md) → [STATUS](STATUS.md) → [lab entry](docs/labs/README.md) and [current plan](docs/labs/plan-2026-09-29.md) → live lab board/epic/#820 → relevant [current state](docs/integration/current-state.md) and [decisions](docs/integration/DECISIONS.md) → task source, artifacts and nearest relevant history via the [project map](docs/PROJECT_MAP.md). The [canonical plan](docs/integration/project-track.md) preserves capability responsibilities and the earlier ladders. Current owner instructions and shared policy override dated scheduling. Do not repeat a broad historical audit for each task.
+Read [README](README.md) → [STATUS](STATUS.md) → [lab entry](docs/labs/README.md) and [current plan](docs/integration/project-track.md) → live lab board/epic/#820 → relevant [current state](docs/integration/current-state.md) and [decisions](docs/integration/DECISIONS.md) → task source, artifacts and nearest relevant history via the [project map](docs/PROJECT_MAP.md). The [canonical plan](docs/integration/project-track.md) preserves capability responsibilities and the earlier ladders. Current owner instructions and shared policy override dated scheduling. Do not repeat a broad historical audit for each task.
 
 Register and claim work before mutation; heartbeat every five minutes, use twenty-minute leases and checkpoint recoverable source/jobs/artifacts at least every thirty minutes and before quota/compaction/disconnect. Expiry means suspect: verify worker liveness before takeover. Use the admitted runner only after its deployment is verified; adapter/manual/UNVERIFIED status must be explicit. Check live recovery issue #1520 before affected SSD work. Resource admission limits jobs, not the number of labs. Publish completed work and the next dependency on GitHub continuously, using protected PRs and exact-head independent review. README remains a curated research overview, not the running journal.
 

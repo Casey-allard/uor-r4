@@ -1,38 +1,44 @@
 # Status
 
-Updated 1 October 2026: [D18](docs/integration/DECISIONS.md#d18--one-retrieval-question-for-114-october-track-b-cost-and-memory-port-work-parked-with-re-entry-conditions) reached outcome D, and the owner confirmed it.
-- This is a compact navigation view. Live GitHub boards and claims own assignment.
-- The [current state](docs/integration/current-state.md) owns measured results and artifacts.
-- The [direction review](docs/integration/direction-review-2026-09-30.md) of 30 September set the plan for 1–14 October.
+Updated October 1, 2026. **Pre-alpha: useful conversation, broad reasoning,
+frontier capability and lower complete-path energy remain unestablished.**
 
-## The position in one line
+The owner-adopted [active plan](docs/integration/project-track.md) prioritizes
+**grounded conversation and durable memory**, then the same model's broader
+language, coding/reasoning and efficient D11/D5 laptop execution.
+[Current state](docs/integration/current-state.md) and live [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552)
+own results. This page is navigation, not an independent results ledger.
 
-The main-line model cannot hold a conversation yet.
-- **Measured:** no trained read at about 2M parameters binds a query to its key in context. Geometric and transformer reads were tested, with and without a pointer head.
-- **Next:** retrieval moves to an exact log of the conversation plus a prime sieve (D18 outcome D), starting with a design memo.
+| Boundary | Current evidence and remaining work |
+|---|---|
+| Exact retrieval and emission | E1 lexical sieve reports 747/747 development MQAR and independent reproduction. emit-1 (2.1M, context 384) gets 106/109 with supplied recall; oracle open relation 48/52 versus lexical sieve 1/52. These are harness results with reference history/category assistance, not a served memory assistant. |
+| Semantic compiler | E3 v11 R1 + 373 paraphrases: relation 1737/2098 (0.828), act 0.772; lexical relation 1756/2098 (0.837). Original 0.9/0.95 gate fails. Heads/typed spans and a complete saved predicted-input session are unfinished. E3 training includes development-value identities, so this is not unseen-value evidence. |
+| Durable grounding | Exact store components exist. Learned input → correct versions/scopes → actual generated-history answers → fresh-process reload is unfinished. Six of 14 emit-1 absence cases still emit unsupported values. |
+| Integer serving | Existing D11 stack has scoped opcode/parity evidence. emit-1's learned pointer is not exported; head-0 copy boost is a different mechanism. Dense layer/output access remains and no valid complete-path J/token win is established. |
+| Geometry | Exact tables, quaternion state, trained-in 2I and historical binding components remain available. Their semantic and efficiency contribution needs matched consumer evidence; failed promotion does not retire a family. |
+| Track B | Parked. #1518's original 1e-4 parity failure stands; no automatic retry or transformer serving follows. |
 
-| Question | Answer now | Evidence |
-| --- | --- | --- |
-| Can it chat? | **No.** R1 (7M, trained on chat-v0 and M-world v1), development phrasings: Responsive 0.52, Instruction 0.27, Relation 0.01 (recall 0/64). Memory requests score 0/10 for every checkpoint | [#1503](https://github.com/UOR-Foundation/uor-r4/pull/1503), [#1492](https://github.com/UOR-Foundation/uor-r4/pull/1492) |
-| In-context retrieval? | **Not learned (D18 outcome D, 1 October).** A1, development cell, one seed per arm:<br>• Arms without a pointer (Lorentz, trained flock, transformer at 2× steps) score MQAR 1/109.<br>• Pointer arms score 0.28–0.44 MQAR, about 1/N, matching the untrained "most recent value" rule (0.36). They copy recency, not the queried key.<br>• No arm reaches 0.5 at distance 16, so the pre-registered kill applies | [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552) |
-| Does §8 fit the window? | **No.** The sealed panel needs up to 317 positions with a 32-token reply budget (owner-run count, panel `220cbdbe…`). A 384-position window is merged as training source only ([#1557](https://github.com/UOR-Foundation/uor-r4/pull/1557)); no model is trained at 384 | [#1554](https://github.com/UOR-Foundation/uor-r4/pull/1554), [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552) |
-| Runtime cost? | **No win measured.** D11 serving has no multiplier, divider or float in its audited path, and equals D10 exactly. It is about 3–5× slower than D10 NEON (*self-reported*), reads 100% of its weights per token, and has no valid J/token. Selected weight access (D5) is unbuilt | [current state](docs/integration/current-state.md) |
-| What works | Exact keyed storage (D2 in distribution: 1.000). The trained-in 2I transport snap (+0.011 nats, one seed). QAT Result B on `geometric_s1` passed its gate by 0.002 nats (one seed). Result C kept served NLL but not greedy behaviour | [#1527](https://github.com/UOR-Foundation/uor-r4/pull/1527), [#1506](https://github.com/UOR-Foundation/uor-r4/pull/1506) |
-| Track B | **Parked under D18.** [#1518](https://github.com/UOR-Foundation/uor-r4/pull/1518)'s 1e-4 parity gate failed and that record is immutable. A successor host gate is defined but not run | [D18 §6](docs/integration/DECISIONS.md) |
+Read the [evidence review](docs/integration/grounded-memory-evidence-2026-10-01.md)
+for scope, hashes and primary result links. D18's A1 outcome D is preserved;
+old A1 training does not resume. E4 v12 now reports 25/52 open relations, 2/17 closed and 106/109 MQAR, with no
+paraphrase gain in that sparse table; its extraction drops fixed-vocabulary
+values. This is a diagnostic, not promotion. The owner-authorized v13 teacher
+batch/classifier follow-up is current; reconcile it before selecting another fit.
 
-## Labs
+## Coordination
 
-| Lab | Board | Current items | Next gate |
-| --- | --- | --- | --- |
-| **Claude** | [#1511](https://github.com/UOR-Foundation/uor-r4/issues/1511), [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552) | The exact-log plus prime-sieve retrieval design memo (D18 outcome D, started 1 October) | The memo, then the owner's choice of its first experiment |
-| **DeepSeek** (Lab 2) | [#1512](https://github.com/UOR-Foundation/uor-r4/issues/1512) | The one-day D5 selected-weight-access design memo. A1 training is stopped, and the D11 pointer port does not apply (it was for outcome A only) | The memo |
+- Claude: #1511 / #1552, current compiler/emitter integration.
+- OpenCode–DeepSeek: #1512, current data/read research and shared interfaces.
+- Codex: #1515 / #1563, owner-reauthorized roadmap/admissibility adoption and
+  complementary integration. Kimi and Anti-Gravity boards remain historical.
 
-Codex, Kimi and Anti-Gravity were removed by the owner on 30 September. Their boards (#1513, #1514, #1515) are historical. Their merged work keeps its stated scope.
+Live GitHub claims and actual process handles determine activity and ownership.
+Use the [shared protocol](docs/labs/protocol.md), [host guide](docs/labs/operations.md)
+and prospective resource work card before compute. Current FIFO admission uses
+aggregate host limits; small bounded checks need no heavy-job reservation.
+Preserve live runs' reservations. No paid compute or destruction of unique
+material is authorized.
 
-## Rules in force
-
-- **Merging.** A recorded review at the exact head (self-review allowed) plus passing compile/tests executed at that head, then the protected merge queue. The delivery-evidence check is advisory. See [#820](https://github.com/UOR-Foundation/uor-r4/issues/820).
-- **Checks.** PR compile and test runs use GitHub's free runners. `main` compiles every workspace target ([#1547](https://github.com/UOR-Foundation/uor-r4/pull/1547)).
-  - The three `joint_campaign` tests pass when the build binds `UOR_BUILD_SOURCE_COMMIT`, as the evidence runs now do. Unbound, a checkpoint records `UNBOUND` and its loader refuses it by design.
-  - The workbench frozen-identity test is a known failure.
-- **Laptop.** 8 cores and 16 GB of unified memory, used for model runs. One heavy job holds `/Volumes/UOR-Workspace/locks/model-slot.json`. A run's wall time is sized from its rate measured under the current load; the wall is a stop, not a budget.
+Protected PRs require recorded exact-head review and actual scoped checks.
+Historical queue status names are acknowledgements, not compile/test evidence;
+the delivery-evidence check remains advisory under the owner's current rule.

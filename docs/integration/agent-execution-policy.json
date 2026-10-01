@@ -54,7 +54,8 @@
     "preserve_unique_evidence_and_user_material": true,
     "reentry": "materially_versioned_successor_with_named_change_and_causal_rationale",
     "routine_record": "pull_request_or_active_issue_summary",
-    "unavailable_is_model_evidence": false
+    "unavailable_is_model_evidence": false,
+    "admissibility": "docs/integration/mechanism-admissibility-2026-10.md"
   },
   "execution": {
     "allowed": [
@@ -127,7 +128,7 @@
     "progress_control": {
       "required_before_model_compute": true,
       "authority": "docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25",
-      "active_contract": "docs/integration/current-state.md#active-execution-contract--durable-labs-september-29",
+      "active_contract": "docs/integration/current-state.md#active-execution-contract--grounded-conversation-and-durable-memory-october-1",
       "record": "one_short_work_card_in_existing_active_issue_or_current_state",
       "work_card": [
         "integrated_deliverable",
@@ -175,8 +176,10 @@
     "current_state": "docs/integration/current-state.md",
     "status": "development_no_alpha_claim",
     "direction": "docs/integration/model-direction-2026-09.md",
-    "active_continuation_plan": "docs/labs/plan-2026-09-29.md",
-    "lab_entry": "docs/labs/README.md"
+    "active_continuation_plan": "docs/integration/project-track.md",
+    "lab_entry": "docs/labs/README.md",
+    "first_product_priority": "grounded_conversation_and_durable_memory",
+    "adoption": "docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first"
   },
   "research": {
     "broad_mapping_default": "reuse_existing_history_and_source_audits_expand_only_for_a_decision_relevant_unknown",
@@ -228,11 +231,10 @@
     "permanent_provider_director": false,
     "currently_available": [
       "claude",
-      "codex",
-      "anti_gravity",
-      "opencode_deepseek"
+      "opencode_deepseek",
+      "codex"
     ],
-    "claims": "renewable_atomic_git_coordination",
+    "claims": "live_github_and_verified_coordination_with_manual_fallback",
     "heartbeat_seconds": 300,
     "lease_seconds": 1200,
     "checkpoint_seconds": 1800,
@@ -245,7 +247,8 @@
       "retrospective_gate_weakening_allowed": false
     },
     "single_shared_policy_on_main": true,
-    "charter_record": "docs/integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance"
+    "charter_record": "docs/integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance",
+    "availability_semantics": "owner_authorized_roster_not_verified_process_liveness"
   },
   "merge_review": {
     "classes": {
@@ -268,10 +271,12 @@
       ]
     },
     "owner_approval_per_merge_required": false,
-    "merge_path": "head_bound_delivery_receipt_then_protected_merge_queue_then_verify_delivered_patch",
-    "server_required_gate": "requires_administrator_configuration_and_observed_smoke_before_claiming_enforced",
+    "merge_path": "recorded_exact_head_review_and_actual_scoped_checks_then_protected_merge_queue_then_verify_delivered_patch",
+    "server_required_gate": "delivery_evidence_advisory_under_current_owner_rule",
     "failed_gate_merges_as_negative_without_promotion": true,
     "result_readers_fail_on_missing_keys": true,
-    "review_listing_required_fixes_is_not_approval_until_they_land": true
+    "review_listing_required_fixes_is_not_approval_until_they_land": true,
+    "current_owner_rule": "D18 sections 8-9 retained by D19: recorded exact-head review (self-review allowed), actual scoped compile/tests, protected merge; delivery-evidence advisory",
+    "classes_status": "historical stricter defaults where superseded by current_owner_rule"
   }
 }

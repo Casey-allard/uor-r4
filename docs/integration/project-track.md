@@ -1,5 +1,210 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Active programme — grounded conversation and durable memory, October 1
+
+**Owner-adopted direction:** [D19](DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+This section is the active plan. It supersedes earlier schedules, fixed lab
+assignments and automatic fit instructions below, and the September 29
+[continuation plan](../labs/plan-2026-09-29.md). Historical results, original gates
+and unmet capability obligations remain intact. Live GitHub owns task status;
+[current state](current-state.md) owns changing artifacts and next actions.
+
+The first useful product is **grounded conversation with durable memory**. The
+full alpha still includes useful conversation/memory **and** executable
+coding/reasoning on the same native path. Frontier intelligence on a laptop is
+the long-term research objective, not an established feasibility or scaling
+result. Rust offline training may use floats and matrix multiplication. Final
+serving follows D11/D0-b; D5 selected parameter access remains the final cost
+target. No transformer backbone, hidden teacher answers or new Python model
+dependency is adopted. Geometry remains the preferred representation and
+operator family throughout the programme.
+
+### What changes and why
+
+The [October 1 evidence review](grounded-memory-evidence-2026-10-01.md) separates
+the useful components from the missing integration. Exact identity retrieval
+works on its bounded tests. emit-1 can use a supplied value, but semantic recall,
+absence, spans, generated-history conversation and faithful integer export are
+unfinished. E3 v11 improves relation classification without meeting its existing
+relation/act gates; it is a frozen-feature diagnostic, not a saved language
+compiler. E3's development-value exposure also prevents calling that classifier
+result unseen-value transfer. These findings choose the next interface, not a
+family-wide verdict against geometric attention.
+
+The next milestone is **one saved compiler/store/emitter path**, not another
+isolated reader score. Reuse existing source and retained artifacts. Separate
+module diagnosis from integrated capability qualification. Development wiring
+may proceed with an imperfect compiler to reveal the limiting stage; this does
+not promote it or waive any old threshold. A repeat frozen-probe fit, more
+teacher text or a larger model needs a new causal case under the
+[mechanism-admissibility policy](mechanism-admissibility-2026-10.md).
+
+### Architecture and first implementation
+
+```text
+user text + actual conversation history
+  -> learned typed compiler: relation, act, value/source span, query view
+  -> stable exact identities + versioned event log / existing StackStore
+  -> bounded candidate access and geometric compatibility/transport
+  -> actual trained memory-conditioned emitter/copy distribution
+  -> saved model + memory + tokenizer/protocol + session continuation
+  -> same computation lowered to the D11 integer session
+```
+
+Start with the existing ten relations and default user scope, exposing the
+boundary explicitly. Save the learned heads/encoder and their label/tokenizer
+schema; add token-aligned value-span supervision and learned query/write intent.
+Do not feed gold category, relation, act, value or prior assistant answers into
+the deployed path. Gold/oracle paths remain labelled diagnostic upper bounds.
+Do not silently equate Assert, Correct, reassertion and temporal views merely
+because the present lexical sieve uses the latest matching clause.
+
+Use direct relation/act/span credit, query/write consistency and binding hard
+negatives, plus answer loss where the interface permits it. Inspect actual
+gradients or another declared learning signal through each learned component;
+an exact store may be nondifferentiable and need supervised interface credit.
+Choose between a small compiler encoder and limited joint trunk adaptation from
+observed confusions and cost, with the ordinary lexical probe retained as a
+control. Do not assume poor frozen linear decodability proves information absent
+from the trunk. Teacher paraphrases need meaning/label validation as well as
+overlap screening. Evaluation separates phrasing, value identity, relation type,
+entity/scope and compositional transfer; only claim axes actually held out.
+
+The first integration must save/reload, process the model's **own** preceding
+replies, and demonstrate changed-source dependence, exact copied spans including
+BPE boundaries, correct updates and an absent-fact response. Report the whole
+answer and per-stage errors, including spurious writes from questions. These
+small construction/development checks establish the seam; they do not qualify
+general language or the sealed product panel. Independent values and wordings
+are required for later promotion.
+
+### Ordered deliverables and dependency graph
+
+Each row is an obligation, not a claim that its predecessor is complete. Safe
+engineering and bounded discovery may proceed in parallel with explicit file
+ownership. Resource admission is separate from scientific priority.
+
+| Stage | Integrated deliverable / issue | Evidence and next decision |
+|---|---|---|
+| 1. Learned language-to-memory interface | #1552 under #1508/#973: saved compiler, typed span/intent, existing store and emitter; minimal generated-history session | Fit → save → independent reload → actual predicted-input replies. Compare predicted/oracle/off on the same prompts as diagnostics; score transfer axes and source changes. On an act/span/semantic failure, repair that boundary; do not restart all readers. |
+| 2. Durable grounded conversation | #962 with grounding #954: versions, temporal views, conflict/absence, scope and restart in the same session | Preserve exact occurrence/value identity; mixed-session isolation, correction versus reassertion, current/previous/initial and verified eviction, reload-equal greedy continuation. Train/measure nonasserting and unsupported-input handling. Add multiple entities, explicit scopes/polarity and clauses as versioned extensions to the first ten-relation interface. |
+| 2G. Geometric semantic addressing and working state | #973/#1512, parallel to stage 2 using stage 1's shared interface | Directed multi-channel 2I/H4 or R4 query/write representations retain required norm, fiber, orientation and exact IDs. Matched information/capacity/training/cost controls distinguish useful geometry from extra features. Start with one causal change; do not hold durable integration hostage to geometric superiority. |
+| 3. Faithful native serving | #964, with #1533/#1476 where their contracts apply | Export the actual selected compiler, memory and emitter, preserving the trained pointer mixture or measuring a deliberately retrained replacement. Bounded arena/caps, serialization/versioning, generated-history reload and declared-kernel instruction audit. Separate parameter, interface and arithmetic error; preserve D17 retention and consumer behavior. |
+| 4. Useful conversation and instructions | #1508/#973, grounding #954 | Natural language and instructional learning on the same artifact, retrieval/absence preserved. Learning curves and changed wordings/values on development; then the existing sealed §8 product milestone after readiness. No category oracle or teacher response at runtime. |
+| 5. Compositional reasoning and executable Rust | #955 and #1088 | Reuse typed operations and memory across changed constraints; execute generated Rust on semantic tests in a controlled workspace. Report failures, source dependence, generalization axes and abstention. Familiar arithmetic/fixture code alone is insufficient. |
+| 6. Selected-access efficiency and scaling | #963 with #1512; narrow D5 design/source work can proceed in parallel | End-to-end parameter/state bytes touched, index build/update, fallback, output head, latency/RSS and quality-matched measured energy. Mechanism selection precedes a larger fit; throughput alone or fewer score terms cannot establish D5 or lower J/token. |
+| 7. Distribution and full alpha | #1172 API/WASM → #1173 Studio; #965 integrated release | Load the same qualified native artifacts through real public interfaces; portable format/error contracts, offline operation, declared machine limits and release/recovery. Full alpha requires conversation/memory and coding/reasoning evidence, not interface readiness. |
+
+The precise current stage and active claim belong in current-state and GitHub,
+not a duplicate status table here. Infrastructure #1510 unblocks actual users
+and jobs; it is not an indefinite prerequisite campaign. Track B #1509/#1518
+remains parked: its original 1e-4 failure stands and no unchanged parity chase,
+teacher conversion or third engine follows from this plan. Re-entry requires
+an explicit decision for a concrete native-path consumer and its own bounded
+evidence contract; merely being in the backlog does not admit compute.
+
+### Geometry, exactness and novelty
+
+Prime/UOR addresses preserve exact identity. Ordered n-lets and typed roles
+preserve order that a commutative product cannot. R4/S3 and relative 2I transport
+are candidates for learned role binding and composition. Retain exact Z[phi],
+chirality/polarity and typed golden/Galois pairing; the companion is not an
+independent learned state. Hopf observations retain the fiber when the consumer
+needs it. Fixed zeta phases are a structural prior, not a semantic oracle.
+
+A shared isometry cannot change an otherwise identical ranking. A 120-state
+code cannot injectively encode an arbitrary vocabulary, and multiplication of
+many codes back into one element loses tuple capacity. Relative-element and
+class-function scores have different invariances; do not collapse direction
+without a task reason. Exact arbitrary-key/value recall needs distinguishable
+persistent state growing with the stored information. Working summaries,
+harmonic state or VSA may aid bounded reasoning but cannot substitute for that
+exact log without a measured approximation contract.
+
+Discovery remains open at three useful boundaries: learned query/write
+alignment, compositional recurrent state, and selected parameter access. A new
+idea needs a consumer and distinguishable prediction, not an immediate
+whole-language win. [D12's toolbox](geometric-toolbox-2026-09-28.md) and the
+[historical reconciliation](roadmap-reconciliation-2026-10-01.md) locate reusable
+mechanisms. Root-cause evidence can reopen a configuration; failed promotion
+does not erase it, and no generic family-retirement label is inferred.
+
+### Admissibility and pacing
+
+Use the [detailed admissibility policy](mechanism-admissibility-2026-10.md)
+proportionately for the actual unknown. Before a new learning comparison, bind
+the representation, causal input, target, loss/credit, data axes, context,
+candidate access, retained state and export interface. Verify the instrument
+can distinguish the proposed explanations. If every architecture fails, a
+common bottleneck remains possible; it is not proof of one specific cause.
+
+Freeze promotion criteria before evaluating the chosen candidate. Keep existing
+A1, E3, D17 and §8 verdicts immutable. Set learning dose in updates/examples or
+targets using measured throughput and loss/behavior curves; project wall/RAM/
+storage for current concurrency. A wall timeout is incomplete exposure, not a
+matched model comparison. No universal tiny timer, automatic long sweep or
+endless retry is prescribed. Continue a run only under its prospectively stated
+rule or record a new successor with preserved prior outcome. A negative without
+a new causal intervention advances an independent dependency.
+
+Counts and error strata accompany rates. Distances, candidate counts and actual
+context must be reported jointly; a long distance with two keys does not
+establish eight-key retrieval. Small noisy cells can guide development but
+cannot establish a robust advantage. Existing D17 parity rule v2 remains the
+promotion comparison, including its predeclared third draw for a split pair.
+No new full proof campaign or blanket suite is required for a routine edit.
+
+The existing sealed §8 milestone remains unchanged: 40 responsive multi-turn,
+30 updated-relation and 30 instruction conversations, at least 80% scored turns
+in each category, identical greedy continuation after fresh-process reload,
+declared context/eviction/output limits and a cost report. The owner-held panel
+stays unavailable to development; the reported 317-position need must fit the
+actual tokenizer/output policy. An intermediate component gate is not this
+milestone, and this milestone is not the complete coding/reasoning alpha.
+
+### Cost and cross-lab execution
+
+Claude and OpenCode–DeepSeek remain concurrent peers. The owner's October 1
+request reauthorizes Codex for roadmap integration and successive necessary
+work; it does not reactivate Kimi or Anti-Gravity. Live boards #1511, #1512 and
+#1515 carry current claims. Refresh them and main before editing; do not
+reassign another lab's live job based on a stale lease or this table. Publish
+exact source/file ownership, handoff and result on the owning issue. Heartbeats
+and recovery checkpoints follow the existing shared cadence.
+
+Use the current owner-directed FIFO admission within the aggregate eight-thread,
+11 GiB envelope and verified host limits; small bounded checks need no heavy-job
+reservation. Existing runs retain their declared reservations. A daemon or
+advisory check alone is not evidence of successful admission. When deployment
+is unverified, use the documented manual resource accounting fallback without
+inventing a new global serial-job gate. Before model or
+build work, project full preparation/build/fit/control/evaluation/retry/delivery
+cost against the live cumulative ledger, physical disks and RAM. Necessary
+local extensions retain the standing owner authorization and prospective
+record; no paid/external compute or destructive cleanup is implied.
+
+For D5, count all dense layer maps, routing overhead, updates, selected/fallback
+rows and full vocabulary/copy output. Distinguish logical row inspections from
+physical bytes and joules. A sparse score result after a full scan is not
+sparse search. Preserve dense interim paths with their true cost while testing
+learned geometric routing; neither prime IDs nor post-hoc row truncation alone
+is a learned parameter selector. An energy claim needs measured, comparable
+useful work and instrumentation, not a byte-count proxy.
+
+Deliver through protected PRs, review the exact head, run the checks relevant to
+changed code and preserve actual compile/test evidence separately from queue
+acknowledgements. The owner has authorized merges without another permission
+round. Verify merged patch/main, update consumers and issues, release the claim,
+and take the next ready dependency. Do not close an umbrella because one
+component passed or because its tracking moved. The issue reconciliation is
+an ownership map, not a new capability result.
+
+## Historical programme entries
+
+The dated sections below preserve evidence and former decisions. Their next
+actions apply only when explicitly re-entered by the active plan above.
+
+
 ## Current programme entry point, September 29
 
 Before reading the historical plans below, read:

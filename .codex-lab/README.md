@@ -1,5 +1,11 @@
 # Fourth research lab — UOR-R4 Geometric Language Model
 
+> **October 1 reauthorization:** the owner's current request returns Codex for
+> [grounded-model integration and roadmap delivery](../docs/integration/project-track.md)
+> alongside Claude and OpenCode–DeepSeek. Use board #1515, current D19, and live
+> source/job claims. The earlier Track B assignment and roster statements below
+> are historical. This entry is authorization, not proof of a running client.
+
 > **Current entry, September 29:** use the [shared lab protocol](../docs/labs/protocol.md)
 > and [Codex extended goal](../docs/labs/prompts/codex.md). Codex is an active peer
 > under D14, with no permanent director or fixed lab count. The older instructions

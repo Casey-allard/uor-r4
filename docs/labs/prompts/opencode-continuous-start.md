@@ -1,5 +1,17 @@
 # OpenCode–DeepSeek: persistent autonomous research lab
 
+> **Active restart, October 1:** read the [canonical plan](../../integration/project-track.md),
+> [current state](../../integration/current-state.md), live #1552 and your board
+> before using the historical task list below. Grounded conversation and durable
+> memory lead; Claude, OpenCode–DeepSeek and owner-reauthorized Codex coordinate
+> current claims. D18 A1 training stays stopped and Track B stays parked.
+> Preserve current E4/classifier/data work; do not launch a duplicate from an old
+> prompt. The owner authorizes protected merges after recorded exact-head review
+> (self-review allowed) and actual relevant checks; advisory coordinator gates
+> do not supersede that rule. D11/D5, unique artifacts and resource admission
+> remain. The [admissibility policy](../../integration/mechanism-admissibility-2026-10.md)
+> governs successor experiments. These instructions do not assert client liveness.
+
 Paste this whole packet into the existing lab session. It supersedes the old
 one-milestone stop instruction; it does not claim the client has already run it.
 

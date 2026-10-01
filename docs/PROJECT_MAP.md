@@ -1,5 +1,11 @@
 # UOR-R4 Geometric Language Model — project map
 
+> **October 1 navigation:** [active plan](integration/project-track.md),
+> [current evidence](integration/grounded-memory-evidence-2026-10-01.md),
+> [admissibility](integration/mechanism-admissibility-2026-10.md), and
+> [issue/history map](integration/roadmap-reconciliation-2026-10-01.md).
+> Earlier dated next-action statements below are source navigation, not the active queue.
+
 ## Current navigation, September 25 UTC
 
 The [current state](integration/current-state.md) and [canonical plan](integration/project-track.md) own current results and sequencing. [D8](integration/DECISIONS.md#d8--correct-the-training-method-and-reference-ladder) corrects D7's learning method while retaining exact event memory, learned admission/ranking, shared geometric operators and a matched ordinary arm. [`crates/uor-r4-training`](../crates/uor-r4-training/README.md) now owns the offline Rust autodiff reference and common likelihood/generation evaluator. `reference_eval.rs` and `reference_campaign.rs` implement actual reference execution; `ngram.rs` and `baseline_counts.rs` implement the normalized count/cache comparator; [evaluator v2](integration/reference-evaluator-v2.json) binds their common data and selection protocol. No serving crate depends on this offline tool.

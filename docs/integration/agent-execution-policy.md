@@ -1,7 +1,17 @@
 # Native geometric AI execution policy
 
+> **Current owner direction, October 1 — D19:** grounded conversation and durable
+> memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
+> for the owner-authorized continuation; other historical lab assignments are
+> not reactivated. The owner's newer exact-head review rule (self-review allowed),
+> actual scoped compile/tests and protected merges supersede conflicting older
+> council/coordinator delivery prerequisites below. The delivery-evidence check
+> is advisory; use the documented manual fallback when deployment is unverified.
+> Scientific integrity, D11/D5, unique-material preservation, live job ownership
+> and resource admission remain. See [D19](DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+
 The owner-directed mode is `native_geometric_ai`. The
-[current continuation plan](../labs/plan-2026-09-29.md) orders the work;
+[current canonical plan](project-track.md) orders the work;
 [project-track.md](project-track.md) retains capability responsibilities and
 historical ladders; [current-state.md](current-state.md) owns measured results.
 The [machine policy](agent-execution-policy.json) captures stable invariants.

@@ -1,30 +1,34 @@
-# UOR-R4 Geometric Language Model — multi-lab roadmap
+# UOR-R4 Geometric Language Model — roadmap
 
-## Current programme — durable labs, September 29
+## Active programme — October 1
 
-The [adopted continuation plan](docs/labs/plan-2026-09-29.md) orders scientific
-work; the [shared protocol](docs/labs/protocol.md) governs every lab; and
-[operations](docs/labs/operations.md) governs host admission, cleanup and recovery.
-[D14](docs/integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance)
-supersedes fixed director/lab-count and provider-specific workflow rules.
+The owner adopted **grounded conversation and durable memory first** under
+[D19](docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+The [canonical plan](docs/integration/project-track.md) owns the implementation
+sequence and acceptance; [current state](docs/integration/current-state.md) owns
+changing evidence. [Admissibility](docs/integration/mechanism-admissibility-2026-10.md)
+protects valid discovery without weakening past gates. [Issue reconciliation](docs/integration/roadmap-reconciliation-2026-10-01.md)
+preserves every transferred capability obligation.
 
-The ready-work graph is recovery/control plane (#1510/#1520), native retrieval
-and integrated chat (#1508), and independent offline conversion research (#1509).
-The scientific ladder is retrieval → exact memory/context → faithful integer
-serving → useful conversation → executable coding/reasoning and measured laptop
-efficiency. Mission D11/D5 is unchanged. Preserve accepted artifacts and scoped
-negative results; prospective council corrections do not change old verdicts.
+Ready work follows this dependency graph: learned saved compiler/store/emitter
+(#1552, #1508, #973) → durable grounded conversation (#962, #954) → faithful
+integer serving (#964) → useful language → executable reasoning/coding (#955,
+#1088) → API/WASM/Studio and full alpha (#1172, #1173, #965). Geometric semantic
+addressing (#973/#1512) and selected-access design (#963) share that path and may
+advance in parallel. Infrastructure #1510 serves concrete execution needs.
+Track B #1509/#1518 remains parked, with its original failed parity preserved.
 
-Initial four-lab claims are Claude/A1, DeepSeek/shared read and addressing,
-Anti-Gravity/fidelity and kernels, and Codex/recovery plus Track B parity.
-Refresh live boards #1511–#1515 before taking work. No board is a permanent
-monopoly; the former Kimi steward obligations are recoverable by available labs.
-Use the [joining packet](docs/labs/prompts/join.md) for additional labs.
+Claude, OpenCode–DeepSeek and owner-reauthorized Codex coordinate via #1511,
+#1512 and #1515. These are authorized participants, not assertions of process
+liveness. Refresh live claims/jobs before mutation. The owner's protected-merge
+authorization removes per-merge permission requests; exact-head checks and
+review, evidence integrity, storage preservation and resource admission remain.
 
-Below is the preserved earlier roadmap. Its dated “next”, fixed leadership and
-operating rules are **historical wherever superseded above**; source/evidence
-links and unmet capability obligations remain useful. No broad documentation
-move or deletion is needed to recover that history.
+The historical snapshot below is retained for source/evidence links and old
+contracts. Its fixed leadership, dated next tasks, retirement labels and broad
+cost assertions do not supersede D19, D12 or current measured evidence. In
+particular, bytes/row inspections are not joules and a tracking closure does not
+mean the corresponding capability was delivered.
 
 ## Historical roadmap snapshot
 

@@ -1,5 +1,7 @@
 # Integration queue and branch dispositions
 
+> **October 1 supersession:** the [active canonical plan](../integration/project-track.md) under D19 owns current priorities and dependencies. This document preserves its dated evidence and former schedule; live issue claims must be refreshed.
+
 This is the concise routing index for existing work. Live issues, exact PR heads
 and `codex/lab-state` own changing status. Refresh an entry before acting; a merge
 does not imply that every review finding or scientific gate passed. The research

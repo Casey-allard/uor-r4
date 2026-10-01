@@ -1,5 +1,7 @@
 # UOR-R4 Geometric Language Model: direction and capability assessment
 
+> **October 1 supersession:** the [active canonical plan](project-track.md) under D19 owns current priorities and dependencies. This document preserves its dated evidence and former schedule; live issue claims must be refreshed.
+
 > **September 24 supersession:** [D8 and the canonical ladder](project-track.md)
 > now own implementation direction following the [stuck-point assessment](stuck-point-review-response-2026-09-24.md).
 > The [short current state](current-state.md) owns current artifacts/results.

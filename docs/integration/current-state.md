@@ -1,5 +1,50 @@
 # Current UOR-R4 research state
 
+## Active execution contract — grounded conversation and durable memory, October 1
+
+The owner adopted the [canonical plan](project-track.md) under
+[D19](DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+This supersedes the old scheduling and roster below, preserving all historical
+results. The first product priority is grounded conversation and durable memory;
+full alpha retains coding/reasoning on the same native geometric model.
+
+Source baseline for this adoption: `b06b46a35142c219a3946209c3ffa03db8499e22`.
+The [source/artifact evidence review](grounded-memory-evidence-2026-10-01.md)
+records E1/emit-1/E3/v11 and their actual interfaces. Live #1552 is ahead of the
+older D18 entries: the memo, emission fit at 384 positions and teacher-paraphrase
+classifier fits are already executed. No D11 export of that emitter is claimed.
+E3 v11 still fails its original gate. Treat its held-out phrasing separately
+from value exposure; do not infer a controlled model-size effect across lineages.
+
+**Next integrated deliverable:** saved learned relation/act/span compiler →
+existing exact versioned store → real emitter, using predicted inputs and the
+model's actual generated history. Minimal integration/reload comes before a
+large qualification campaign. Add scope/temporal/conflict coverage as the same
+interface grows. Reuse exact identity/store components; do not spawn a new
+engine. A development integration can diagnose an imperfect compiler without
+promoting it or rewriting E3's failed gate.
+
+**Concurrent work:** the owner authorized Claude's E4 end-to-end diagnostic
+(v12 on #1552, after v11) while this roadmap was drafted. Its reported result is open relation 25/52, closed 2/17 and MQAR 106/109;
+paraphrases did not change that sparse-table route. Closed values are dropped
+by its extraction rule, so this is an interface defect, not evidence against
+exact memory. The owner then authorized v13 teacher data plus classifier work.
+Preserve that current work and consume its outputs before selecting another fit. Claude owns its
+compiler/emitter source; DeepSeek owns its current data/read task. Codex's
+#1563 owns plan/issue adoption, then separately claims a complementary code
+boundary. No model slot or another lab's source is claimed by this document.
+
+**Qualification and cost:** D11/D5, existing §8 and D17v2 remain unchanged.
+A1 training stays stopped; Track B stays parked. Compile/test/check receipts,
+model behavior and queue acknowledgements are different evidence. No useful
+chat, generalized reasoning, geometric advantage or energy improvement is
+claimed by this plan. See [admissibility](mechanism-admissibility-2026-10.md).
+
+## Historical current-state entries
+
+Dated next tasks and lab assignments below are historical unless re-entered
+by the active contract above. Their measurements and original verdicts stand.
+
 Updated October 1, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 

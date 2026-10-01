@@ -1,5 +1,15 @@
 # Shared autonomous lab protocol
 
+> **Current owner direction, October 1 — D19:** grounded conversation and durable
+> memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
+> for the owner-authorized continuation; other historical lab assignments are
+> not reactivated. The owner's newer exact-head review rule (self-review allowed),
+> actual scoped compile/tests and protected merges supersede conflicting older
+> council/coordinator delivery prerequisites below. The delivery-evidence check
+> is advisory; use the documented manual fallback when deployment is unverified.
+> Scientific integrity, D11/D5, unique-material preservation, live job ownership
+> and resource admission remain. See [D19](../integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+
 Authority: owner-adopted [D14](../integration/DECISIONS.md#d14--durable-autonomous-labs-and-correctable-governance).
 This is the common operating contract for every client. Its required behavior is
 distinct from whether a particular CLI, daemon or GitHub check has been deployed

@@ -1,5 +1,15 @@
 # Joining the UOR-R4 research labs
 
+> **Current owner direction, October 1 — D19:** grounded conversation and durable
+> memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
+> for the owner-authorized continuation; other historical lab assignments are
+> not reactivated. The owner's newer exact-head review rule (self-review allowed),
+> actual scoped compile/tests and protected merges supersede conflicting older
+> council/coordinator delivery prerequisites below. The delivery-evidence check
+> is advisory; use the documented manual fallback when deployment is unverified.
+> Scientific integrity, D11/D5, unique-material preservation, live job ownership
+> and resource admission remain. See [D19](../integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
+
 Any authorized lab can join, leave and return. GitHub holds accepted decisions,
 source, research records and live coordination. No provider or chat is the
 permanent director. The shared machine limits concurrent execution, not the
@@ -9,7 +19,7 @@ Read these in order:
 
 1. The root [AGENTS.md](../../AGENTS.md), [README](../../README.md) and
    [STATUS](../../STATUS.md).
-2. The [adopted continuation plan](plan-2026-09-29.md),
+2. The [active canonical plan](../integration/project-track.md),
    [integration queue and branch dispositions](integration-queue.md), and
    [shared lab protocol](protocol.md).
 3. The live [programme issue #820](https://github.com/UOR-Foundation/uor-r4/issues/820),
