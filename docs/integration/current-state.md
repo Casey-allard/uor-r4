@@ -159,7 +159,25 @@ existing generator still supplies current-only gold intents; it is not a tempora
 qualification set. Ordinary-text consumers do not receive gold query views.
 Construction checks and delivery are recorded on #962. A selected trained-emitter
 temporal complete-answer witness is **NOT_RUN** during the SSD pause. Unsupported
-phrasing, scope/conflict/reset/forget and full capability acceptance remain open.
+phrasing, learned scope/conflict/forget and full capability acceptance remain open.
+
+**Conversation lifecycle (#962):** `GroundedSession::start_conversation` and
+`grounded-session restart` start an empty conversation over the unchanged exact
+store. Both prior turns and generated-token context are cleared, and the new
+conversation begins at the current store commit. The caller can retain the
+current scope/entity or explicitly supply another address. Invalid identities
+are refused before mutation. Model, compiler, tokenizer, store versions and
+admission limits remain bound; store-record limits continue across restarts.
+New turns count from the fresh conversation while record IDs and commits remain
+global. The existing sealed envelope format already represents this baseline.
+
+The lifecycle is explicit caller-controlled addressing, not authentication,
+learned entity resolution or forgetting. Old envelopes and store value bytes,
+including eviction tombstones, remain available. This operation does not claim
+an erasure guarantee or a parent-to-child lifecycle audit trail. Focused
+construction checks use an initialized geometric emitter and saved learned
+compiler; they do not qualify unseen conversation or the selected trained-emitter
+scope/reset witness. Executed validation and delivery belong to #962.
 
 **Combined relation head: a recorded negative (#1552 card v20).** Dense heads
 over the R1 trunk and words name relations better than the table (0.922

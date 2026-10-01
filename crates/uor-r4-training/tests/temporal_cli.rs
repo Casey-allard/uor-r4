@@ -365,5 +365,132 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
         root = next;
     }
     // Every turn was a different process, loading the composite from compiler.bin.
+    let parent = root.clone();
+    let parent_manifest = fs::read(parent.join(report_output::MANIFEST_FILE)).expect("parent seal");
+    let retained_store = expected.store().to_bytes().expect("retained store");
+    // Exact scope and entity vary independently. Every restart uses the actual
+    // composite compiler and model; none receives a gold action or query view.
+    for (index, (scope_text, entity_text, wanted_value)) in [
+        ("cli-test", "user", Some("Dunmere")),
+        ("other-project", "user", None),
+        ("cli-test", "other-user", None),
+        ("other-project", "other-user", None),
+        ("cli-test", "user", Some("Dunmere")),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let scope = SessionScope {
+            scope: scope_text.as_bytes().to_vec(),
+            entity: tokenizer.encode(entity_text),
+        };
+        expected.start_conversation(scope.clone()).expect("restart");
+        assert!(expected.turns().is_empty());
+        assert_eq!(expected.history_ids(), &[0]);
+        assert_eq!(expected.store().to_bytes().expect("store"), retained_store);
+        let restarted = base.join(format!("restarted-{index}"));
+        let receipt = invoke(
+            env!("CARGO_BIN_EXE_grounded-session"),
+            &[
+                "restart".into(),
+                pair("session", &root),
+                pair("out", &restarted),
+                format!("scope={scope_text}"),
+                format!("entity={entity_text}"),
+            ],
+        );
+        assert_eq!(
+            receipt["scope"],
+            serde_json::to_value(scope).expect("scope")
+        );
+        assert_eq!(receipt["turns"], 0);
+        assert_eq!(receipt["memory_commit"], 4);
+        let loaded = load_session(&restarted);
+        assert!(loaded.turns().is_empty());
+        assert_eq!(loaded.history_ids(), &[0]);
+        assert_eq!(
+            loaded.store().to_bytes().expect("loaded store"),
+            retained_store
+        );
+        let outcome = expected
+            .turn(queries[0].0)
+            .expect("actual restarted emission");
+        match wanted_value {
+            Some(value) => assert!(matches!(&outcome.memory,
+                MemoryEffect::Read { read: StoreRead::Found(found) }
+                if found.record == 4 && found.tokens == tokenizer.encode(value))),
+            None => assert_eq!(
+                outcome.memory,
+                MemoryEffect::Read {
+                    read: StoreRead::Absent
+                }
+            ),
+        }
+        // The first input of each conversation excludes old user sources,
+        // old recall values and replies, even when durable memory supplies A.
+        let input = tokenizer.decode(&outcome.emitter_input_ids);
+        assert!(!input.contains("Zorvak"));
+        assert!(!input.contains("Plimbo"));
+        assert!(!input.contains("My name is"));
+        assert!(!input.contains("What was the first"));
+        let continued = base.join(format!("restarted-turn-{index}"));
+        invoke(
+            env!("CARGO_BIN_EXE_grounded-session"),
+            &[
+                "turn".into(),
+                pair("session", &restarted),
+                pair("out", &continued),
+                format!("text={}", queries[0].0),
+            ],
+        );
+        let loaded = load_session(&continued);
+        assert_eq!(loaded.turns(), expected.turns());
+        assert_eq!(loaded.history_ids(), expected.history_ids());
+        root = continued;
+    }
+    // Default identity is retained; attempts to overwrite an envelope or use
+    // an invalid identity fail without changing the sealed parent.
+    let reset_default = base.join("restart-default");
+    invoke(
+        env!("CARGO_BIN_EXE_grounded-session"),
+        &[
+            "restart".into(),
+            pair("session", &root),
+            pair("out", &reset_default),
+        ],
+    );
+    assert_eq!(load_session(&reset_default).scope(), expected.scope());
+    for (out, extra) in [
+        (base.join("invalid-scope"), "scope="),
+        (base.join("invalid-entity"), "entity="),
+        (root.clone(), "scope=cli-test"),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_grounded-session"))
+            .args([
+                "restart".into(),
+                pair("session", &root),
+                pair("out", &out),
+                extra.into(),
+            ])
+            .output()
+            .expect("invalid restart process");
+        assert!(!output.status.success());
+        report_output::verify(&root).expect("parent unchanged");
+    }
+    assert_eq!(
+        fs::read(parent.join(report_output::MANIFEST_FILE)).expect("parent seal"),
+        parent_manifest
+    );
+    report_output::verify(&parent).expect("original parent preserved");
     fs::remove_dir_all(base).expect("clean generated test fixture");
+}
+
+fn load_session(root: &Path) -> GroundedSession<GroundedCompiler> {
+    GroundedSession::load(
+        root,
+        GroundedCompiler::from_bytes(fs::read(root.join("compiler.bin")).expect("compiler"))
+            .expect("saved compiler"),
+        &Device::Cpu,
+    )
+    .expect("validate restarted session")
 }

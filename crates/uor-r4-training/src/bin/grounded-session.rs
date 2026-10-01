@@ -7,6 +7,7 @@
 //!   [context=whole_turns|strict]
 //! grounded-session turn session=SESSION out=NEW_SESSION text=TEXT [read=true] [write=true]
 //! grounded-session chat session=SESSION out=NEW_SESSION
+//! grounded-session restart session=SESSION out=NEW_SESSION [scope=SCOPE] [entity=ENTITY]
 //! grounded-session show session=SESSION
 //! ```
 //!
@@ -20,6 +21,10 @@
 //! loaded from the envelope's own `compiler.bin`, so a session resumes only
 //! with its exact saved compiler, and loading replays the whole transcript
 //! against the store before any new turn.
+//! `restart` begins an empty conversation over the retained exact store,
+//! optionally at another caller-supplied scope/entity. It clears the prior
+//! transcript and generated context, not durable records or old envelopes.
+//! These identities address memory; they provide no authentication or erasure.
 //!
 //! This is a floating-point development path, not a D11 serving kernel, and
 //! makes no capability claim.
@@ -34,10 +39,11 @@ use std::process::ExitCode;
 
 use candle_core::Device;
 use serde_json::json;
+use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::stack_grounded_session::{
     ContextPolicy, GroundedSession, SessionLimits, SessionScope, TurnControls, TurnOutcome,
-    COMPILER_FILE,
+    COMPILER_FILE, TOKENIZER_FILE,
 };
 use uor_r4_training::temporal_compiler::GroundedCompiler;
 
@@ -94,7 +100,7 @@ impl Args {
 fn run() -> Result<(), Error> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     let Some((mode, rest)) = arguments.split_first() else {
-        return Err("usage: grounded-session init|turn|chat|show key=value ...".into());
+        return Err("usage: grounded-session init|turn|chat|restart|show key=value ...".into());
     };
     match mode.as_str() {
         "init" => init(&Args::parse(
@@ -119,6 +125,7 @@ fn run() -> Result<(), Error> {
             &["session", "out", "text", "read", "write"],
         )?),
         "chat" => chat(&Args::parse(rest, &["session", "out"])?),
+        "restart" => restart(&Args::parse(rest, &["session", "out", "scope", "entity"])?),
         "show" => show(&Args::parse(rest, &["session"])?),
         other => Err(format!("unknown mode {other}").into()),
     }
@@ -224,5 +231,38 @@ fn show(args: &Args) -> Result<(), Error> {
     for (index, outcome) in session.turns().iter().enumerate() {
         println!("{}", outcome_json(index, outcome));
     }
+    Ok(())
+}
+
+fn restart(args: &Args) -> Result<(), Error> {
+    let out = args.path("out")?;
+    let mut session = open(&args.path("session")?)?;
+    let mut scope = session.scope().clone();
+    if let Some(value) = args.0.get("scope") {
+        scope.scope = value.as_bytes().to_vec();
+    }
+    if let Some(value) = args.0.get("entity") {
+        let tokenizer_json = fs::read(args.path("session")?.join(TOKENIZER_FILE))?;
+        if sha256_hex(&tokenizer_json) != session.compiler_identity().tokenizer_sha256 {
+            return Err("saved tokenizer changed after loading the session".into());
+        }
+        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json)
+            .ok_or("unreadable saved tokenizer.json")?;
+        scope.entity = tokenizer.encode(value);
+    }
+    session.start_conversation(scope)?;
+    session.save(&out)?;
+    println!(
+        "{}",
+        json!({
+            "session":out.display().to_string(),
+            "scope":session.scope(),
+            "turns":session.turns().len(),
+            "memory_commit":session.store().commit(),
+            "memory_records":session.store().records(),
+            "compiler_sha256":session.compiler_identity().artifact_sha256,
+            "durable_memory_retained":true,
+        })
+    );
     Ok(())
 }

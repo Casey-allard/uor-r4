@@ -407,16 +407,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
             compiler.artifact_bytes(),
             &checkpoint.record.identity,
         )?;
-        if scope.scope.is_empty() || scope.entity.is_empty() {
-            return Err(GroundedSessionError::Binding(
-                "scope and entity must be explicit and nonempty".into(),
-            ));
-        }
-        validate_plain_ids(
-            &scope.entity,
-            &checkpoint.model,
-            &checkpoint.record.identity,
-        )?;
+        validate_scope(&scope, &checkpoint.model, &checkpoint.record.identity)?;
         if limits.max_new_tokens == 0
             || limits.max_new_tokens >= checkpoint.model.config.context
             || limits.max_turns == 0
@@ -468,6 +459,25 @@ impl<C: TurnCompiler> GroundedSession<C> {
     }
     pub fn limits(&self) -> &SessionLimits {
         &self.limits
+    }
+
+    /// Start an empty conversation at the caller's explicit scope/entity,
+    /// retaining the complete exact store and every model/compiler/limit
+    /// binding. Previous transcript IDs no longer enter the emitter. Store
+    /// versions, conflicts, evictions and record limits remain unchanged.
+    ///
+    /// This is caller-controlled identity selection, not authentication or
+    /// forgetting. Earlier saved snapshots are unchanged. New write sources
+    /// count from turn one in this conversation; record IDs and commits remain
+    /// global to the retained store. An error leaves the conversation intact.
+    pub fn start_conversation(&mut self, scope: SessionScope) -> Result<(), GroundedSessionError> {
+        self.check_compiler()?;
+        validate_scope(&scope, &self.model, &self.identity)?;
+        self.scope = scope;
+        self.initial_commit = self.store.commit();
+        self.history_ids = vec![self.identity.protocol.bos_id];
+        self.turns.clear();
+        Ok(())
     }
 
     /// Predict, stage the exact memory action, then emit through the model's
@@ -1275,6 +1285,19 @@ fn is_sha256(value: &str) -> bool {
             .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
+fn validate_scope(
+    scope: &SessionScope,
+    model: &StackModel,
+    identity: &CheckpointIdentity,
+) -> Result<(), GroundedSessionError> {
+    if scope.scope.is_empty() || scope.entity.is_empty() {
+        return Err(GroundedSessionError::Binding(
+            "scope and entity must be explicit and nonempty".into(),
+        ));
+    }
+    validate_plain_ids(&scope.entity, model, identity)
+}
+
 fn validate_plain_ids(
     ids: &[u32],
     model: &StackModel,
@@ -1874,6 +1897,274 @@ mod tests {
             ),
             Err(GroundedSessionError::Snapshot(_))
         ));
+        fs::remove_dir_all(base).expect("clean");
+    }
+
+    #[test]
+    fn conversation_restart_reclaims_transcript_limits_but_preserves_exact_memory() {
+        let (base, mut session) =
+            fixture_with_capacity("restart-limits", 128, ContextPolicy::WholeCompletedTurns, 2);
+        for source in ["put blue", "put red", "fix green", "put green", "put red"] {
+            fixed_turn(&mut session, source);
+        }
+        let views = [
+            HistoryView::Current,
+            HistoryView::PreviousAssertion,
+            HistoryView::PreviousDistinctValue,
+            HistoryView::Initial,
+        ];
+        let before_reads: Vec<_> = views
+            .iter()
+            .map(|view| {
+                session
+                    .store
+                    .read(&session.scope.scope, &session.scope.entity, 1, *view)
+                    .expect("read")
+            })
+            .collect();
+        assert!(matches!(&before_reads[0], StoreRead::Found(value) if value.conflict));
+        assert!(matches!(&before_reads[1], StoreRead::Found(value) if value.record == 4));
+        assert!(matches!(&before_reads[2], StoreRead::Found(value) if value.record == 4));
+        assert_eq!(before_reads[3], StoreRead::Evicted);
+        session.limits.max_turns = session.turns.len();
+        session.limits.max_source_bytes = session.turns.iter().map(|turn| turn.source.len()).sum();
+        session.limits.max_history_tokens = session.history_ids.len();
+        session.limits.max_store_records = session.store.records();
+        let limits = session.limits.clone();
+        let store_bytes = session.store.to_bytes().expect("store");
+        let compiler = session.compiler_identity.clone();
+        let identity = session.identity.clone();
+        assert!(matches!(
+            session.turn("ask"),
+            Err(GroundedSessionError::StorageLimit {
+                resource: "turns",
+                ..
+            })
+        ));
+        session
+            .start_conversation(session.scope.clone())
+            .expect("restart");
+        assert_eq!(session.store.to_bytes().expect("store"), store_bytes);
+        assert_eq!(session.initial_commit, 5);
+        assert_eq!(session.history_ids, [session.identity.protocol.bos_id]);
+        assert!(session.turns.is_empty());
+        assert_eq!(session.limits, limits);
+        assert_eq!(session.compiler_identity, compiler);
+        assert_eq!(session.identity, identity);
+        for (view, expected) in views.into_iter().zip(before_reads) {
+            assert_eq!(
+                session
+                    .store
+                    .read(&session.scope.scope, &session.scope.entity, 1, view)
+                    .expect("read"),
+                expected
+            );
+        }
+        // Restarting cannot evade the retained store's total-record admission.
+        assert!(matches!(
+            session.turn("put blue"),
+            Err(GroundedSessionError::StorageLimit {
+                resource: "store records",
+                ..
+            })
+        ));
+        assert_eq!(session.store.to_bytes().expect("store"), store_bytes);
+        assert!(session.turns.is_empty());
+
+        let snapshot = base.join("empty-conversation");
+        session.save(&snapshot).expect("save restart");
+        let mut loaded = GroundedSession::load(
+            &snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("reload restart baseline");
+        assert_eq!(loaded.initial_commit, 5);
+        assert_eq!(loaded.history_ids, session.history_ids);
+        let expected = session.turn("ask").expect("actual post-restart emission");
+        let actual = loaded.turn("ask").expect("actual reloaded emission");
+        assert_eq!(actual, expected);
+        assert!(matches!(
+            expected.recall,
+            RecallDisposition::Unsupported { .. }
+        ));
+        let input = session.tokenizer.decode(&expected.emitter_input_ids);
+        assert_eq!(input, "<|bos|>User: ask\nAssistant: ");
+        assert_eq!(expected.retained_from_turn, 0);
+        assert_eq!(session.store.to_bytes().expect("store"), store_bytes);
+        fs::remove_dir_all(base).expect("clean");
+    }
+
+    #[test]
+    fn conversation_restart_isolates_scope_and_entity_and_reloads_new_write_sources() {
+        let (base, mut session) =
+            fixture("restart-addresses", 128, ContextPolicy::StrictFullHistory);
+        let original = session.scope.clone();
+        fixed_turn(&mut session, "put blue");
+        let original_snapshot = base.join("original");
+        session
+            .save(&original_snapshot)
+            .expect("preserve original snapshot");
+        let original_manifest = sealed_manifest_sha256(&original_snapshot).expect("manifest");
+
+        let other_scope = SessionScope {
+            scope: b"other-project".to_vec(),
+            entity: original.entity.clone(),
+        };
+        session
+            .start_conversation(other_scope.clone())
+            .expect("change scope");
+        let absent = fixed_turn(&mut session, "ask");
+        assert!(matches!(
+            absent.memory,
+            MemoryEffect::Read {
+                read: StoreRead::Absent
+            }
+        ));
+        assert!(!session
+            .tokenizer
+            .decode(&absent.emitter_input_ids)
+            .contains("blue"));
+        fixed_turn(&mut session, "put red");
+
+        let other_entity = SessionScope {
+            scope: original.scope.clone(),
+            entity: vec![4],
+        };
+        session
+            .start_conversation(other_entity.clone())
+            .expect("change entity");
+        assert_eq!(session.initial_commit, 2);
+        assert_eq!(session.history_ids, [session.identity.protocol.bos_id]);
+        assert_eq!(current(&session), StoreRead::Absent);
+        let before_write = base.join("before-epoch-write");
+        session
+            .save(&before_write)
+            .expect("save preloaded baseline");
+        let mut loaded = GroundedSession::load(
+            &before_write,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("load preloaded baseline");
+        assert_eq!(
+            fixed_turn(&mut session, "fix green"),
+            fixed_turn(&mut loaded, "fix green")
+        );
+        let written = &session.store.memory().records[2];
+        assert_eq!((written.id, written.commit, written.source), (3, 3, 1));
+        let after_write = base.join("after-epoch-write");
+        session.save(&after_write).expect("save epoch-local write");
+        let mut reloaded = GroundedSession::load(
+            &after_write,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("reload validates epoch-local source and global commit");
+        assert_eq!(
+            session.turn("ask").expect("actual emission"),
+            reloaded.turn("ask").expect("actual reloaded emission")
+        );
+        let after_query = base.join("after-epoch-query");
+        session.save(&after_query).expect("save epoch-local query");
+        let queried = GroundedSession::load(
+            &after_query,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("reload validates query after epoch-local write");
+        assert_eq!(queried.turns, session.turns);
+        assert_eq!(queried.history_ids, session.history_ids);
+
+        for (scope, value) in [
+            (original.clone(), "blue"),
+            (other_scope, "red"),
+            (other_entity, "green"),
+        ] {
+            let store_bytes = session.store.to_bytes().expect("store");
+            session
+                .start_conversation(scope)
+                .expect("return to address");
+            let query = fixed_turn(&mut session, "ask");
+            let MemoryEffect::Read {
+                read: StoreRead::Found(found),
+            } = &query.memory
+            else {
+                panic!("retained address")
+            };
+            assert_eq!(session.tokenizer.decode(&found.tokens), value);
+            assert_eq!(query.recall, RecallDisposition::Value);
+            let input = session.tokenizer.decode(&query.emitter_input_ids);
+            assert_eq!(
+                input,
+                format!("<|bos|>User: ask\nSystem: Memory: {value}.\nAssistant: ")
+            );
+            assert_eq!(session.turns.len(), 1);
+            assert_eq!(session.store.to_bytes().expect("store"), store_bytes);
+        }
+        assert_eq!(
+            sealed_manifest_sha256(&original_snapshot).expect("unchanged manifest"),
+            original_manifest
+        );
+        let original_loaded = GroundedSession::load(
+            &original_snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("earlier snapshot is still usable");
+        assert_eq!(original_loaded.store.commit(), 1);
+        assert_eq!(original_loaded.scope, original);
+        fs::remove_dir_all(base).expect("clean");
+    }
+
+    #[test]
+    fn invalid_conversation_restart_leaves_the_complete_session_unchanged() {
+        let (base, mut session) =
+            fixture("restart-invalid", 128, ContextPolicy::WholeCompletedTurns);
+        fixed_turn(&mut session, "put blue");
+        fixed_turn(&mut session, "ask");
+        let state = |session: &GroundedSession<TestCompiler>| {
+            (
+                session.scope.clone(),
+                session.initial_commit,
+                session.store.to_bytes().expect("store"),
+                session.history_ids.clone(),
+                session.turns.clone(),
+                session.limits.clone(),
+            )
+        };
+        let before = state(&session);
+        let mut invalid = vec![
+            SessionScope {
+                scope: Vec::new(),
+                entity: vec![3],
+            },
+            SessionScope {
+                scope: b"valid".to_vec(),
+                entity: Vec::new(),
+            },
+        ];
+        for token in [
+            session.identity.protocol.bos_id,
+            session.identity.protocol.eos_id,
+            session.identity.protocol.unk_id,
+            session.model.config.vocab_size as u32,
+        ] {
+            invalid.push(SessionScope {
+                scope: b"valid".to_vec(),
+                entity: vec![token],
+            });
+        }
+        for scope in invalid {
+            assert!(session.start_conversation(scope).is_err());
+            assert_eq!(state(&session), before);
+        }
+        session.compiler.bytes.push(b' ');
+        assert!(matches!(
+            session.start_conversation(session.scope.clone()),
+            Err(GroundedSessionError::Binding(_))
+        ));
+        assert_eq!(state(&session), before);
         fs::remove_dir_all(base).expect("clean");
     }
 
