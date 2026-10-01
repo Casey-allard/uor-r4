@@ -1,0 +1,535 @@
+{
+  "schema": "uor-r4.attention-hard-bridge-evidence/1",
+  "scope": "saved development models; hard-gate override only; no integer/language qualification",
+  "identity": {
+    "base_commit": "115c74c958e8b848c9e2de7afa02e19a882fba9a",
+    "timestamp": "2026-10-01T19:46:12.607390+00:00",
+    "binary_sha256": "abc03eb99bd3ae41b97fa210d1b1446b77a73131893df9195406587453272890",
+    "source_files": {
+      "crates/uor-r4-training/src/geometric_stack.rs": "6aecb745de3194eed49badbc0fa58326594acba6b4b85d0cf60cc2c786183642",
+      "crates/uor-r4-training/examples/attention-hard-bridge.rs": "75ca2f38ab72c85803a52e1f924e3329721cd04e059f72a4fab0818a9c632630"
+    },
+    "source_status": "base plus retained implementation diff; gate mechanism frozen; tests may be appended after build"
+  },
+  "elapsed_seconds": 125.778757375,
+  "measurements": [
+    {
+      "name": "Held-s1",
+      "panel": "evaluation.json",
+      "soft_answers": 128,
+      "hard_answers": 128,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        128,
+        0
+      ],
+      "hard_min_source_mass": [
+        0.9904420971870422,
+        0.012760883197188377
+      ],
+      "max_source_mass_delta": [
+        6.496906280517578e-06,
+        5.010515451431274e-06
+      ],
+      "max_answer_logit_delta": 5.650520324707031e-05,
+      "minimum_hard_top_logit_margin": 8.025359153747559,
+      "capture_classification": [
+        4168,
+        4168
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 128,
+          "groups": 32,
+          "answers_correct": 128,
+          "head0_majorities": 128
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Held-s1",
+      "panel": "stress.json",
+      "soft_answers": 128,
+      "hard_answers": 128,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        128,
+        0
+      ],
+      "hard_min_source_mass": [
+        0.9819274544715881,
+        0.009530968964099884
+      ],
+      "max_source_mass_delta": [
+        1.1205673217773438e-05,
+        4.023313522338867e-06
+      ],
+      "max_answer_logit_delta": 8.809566497802734e-05,
+      "minimum_hard_top_logit_margin": 7.980015277862549,
+      "capture_classification": [
+        6224,
+        6224
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 45,
+          "groups": 15,
+          "answers_correct": 45,
+          "head0_majorities": 45
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 23,
+          "groups": 11,
+          "answers_correct": 23,
+          "head0_majorities": 23
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 32,
+          "groups": 10,
+          "answers_correct": 32,
+          "head0_majorities": 32
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 28,
+          "groups": 9,
+          "answers_correct": 28,
+          "head0_majorities": 28
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Held-s2",
+      "panel": "evaluation.json",
+      "soft_answers": 128,
+      "hard_answers": 128,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        128,
+        0
+      ],
+      "hard_min_source_mass": [
+        0.9971733093261719,
+        0.0008044374990276992
+      ],
+      "max_source_mass_delta": [
+        3.874301910400391e-06,
+        1.0532326996326447e-05
+      ],
+      "max_answer_logit_delta": 3.170967102050781e-05,
+      "minimum_hard_top_logit_margin": 6.461636543273926,
+      "capture_classification": [
+        4168,
+        4168
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 128,
+          "groups": 32,
+          "answers_correct": 128,
+          "head0_majorities": 128
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Held-s2",
+      "panel": "stress.json",
+      "soft_answers": 128,
+      "hard_answers": 128,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        128,
+        0
+      ],
+      "hard_min_source_mass": [
+        0.9866709113121033,
+        0.0007858824101276696
+      ],
+      "max_source_mass_delta": [
+        1.0192394256591797e-05,
+        6.509944796562195e-06
+      ],
+      "max_answer_logit_delta": 9.60230827331543e-05,
+      "minimum_hard_top_logit_margin": 6.492753982543945,
+      "capture_classification": [
+        6224,
+        6224
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 45,
+          "groups": 15,
+          "answers_correct": 45,
+          "head0_majorities": 45
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 23,
+          "groups": 11,
+          "answers_correct": 23,
+          "head0_majorities": 23
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 32,
+          "groups": 10,
+          "answers_correct": 32,
+          "head0_majorities": 32
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 28,
+          "groups": 9,
+          "answers_correct": 28,
+          "head0_majorities": 28
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Local-s1",
+      "panel": "evaluation.json",
+      "soft_answers": 47,
+      "hard_answers": 47,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        24,
+        8
+      ],
+      "hard_min_source_mass": [
+        0.05057971552014351,
+        0.03376130759716034
+      ],
+      "max_source_mass_delta": [
+        0.0034534335136413574,
+        0.0012852847576141357
+      ],
+      "max_answer_logit_delta": 0.021594524383544922,
+      "minimum_hard_top_logit_margin": 0.011174440383911133,
+      "capture_classification": [
+        4168,
+        4168
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 128,
+          "groups": 32,
+          "answers_correct": 47,
+          "head0_majorities": 24
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Local-s1",
+      "panel": "stress.json",
+      "soft_answers": 59,
+      "hard_answers": 59,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        37,
+        2
+      ],
+      "hard_min_source_mass": [
+        0.020071109756827354,
+        0.030430320650339127
+      ],
+      "max_source_mass_delta": [
+        0.0024982094764709473,
+        0.0015770792961120605
+      ],
+      "max_answer_logit_delta": 0.022378861904144287,
+      "minimum_hard_top_logit_margin": 0.03207206726074219,
+      "capture_classification": [
+        6224,
+        6224
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 45,
+          "groups": 15,
+          "answers_correct": 18,
+          "head0_majorities": 13
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 23,
+          "groups": 11,
+          "answers_correct": 17,
+          "head0_majorities": 10
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 32,
+          "groups": 10,
+          "answers_correct": 13,
+          "head0_majorities": 7
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 28,
+          "groups": 9,
+          "answers_correct": 11,
+          "head0_majorities": 7
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Local-s2",
+      "panel": "evaluation.json",
+      "soft_answers": 54,
+      "hard_answers": 54,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        29,
+        0
+      ],
+      "hard_min_source_mass": [
+        0.06325303018093109,
+        0.009478369727730751
+      ],
+      "max_source_mass_delta": [
+        0.0029759109020233154,
+        0.00011635571718215942
+      ],
+      "max_answer_logit_delta": 0.03412628173828125,
+      "minimum_hard_top_logit_margin": 0.00991511344909668,
+      "capture_classification": [
+        4168,
+        4168
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 128,
+          "groups": 32,
+          "answers_correct": 54,
+          "head0_majorities": 29
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 0,
+          "groups": 0,
+          "answers_correct": 0,
+          "head0_majorities": 0
+        }
+      ],
+      "prior_soft_reproduced": true
+    },
+    {
+      "name": "Local-s2",
+      "panel": "stress.json",
+      "soft_answers": 49,
+      "hard_answers": 49,
+      "answer_losses": [],
+      "answer_gains": [],
+      "prediction_changes": 0,
+      "hard_source_majorities": [
+        36,
+        0
+      ],
+      "hard_min_source_mass": [
+        0.022797897458076477,
+        0.009545888751745224
+      ],
+      "max_source_mass_delta": [
+        0.0037001073360443115,
+        0.00012431293725967407
+      ],
+      "max_answer_logit_delta": 0.026926517486572266,
+      "minimum_hard_top_logit_margin": 0.005849361419677734,
+      "capture_classification": [
+        6224,
+        6224
+      ],
+      "cohorts": [
+        {
+          "write_gt4": false,
+          "query_gt4": false,
+          "rows": 45,
+          "groups": 15,
+          "answers_correct": 16,
+          "head0_majorities": 15
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": false,
+          "rows": 23,
+          "groups": 11,
+          "answers_correct": 14,
+          "head0_majorities": 6
+        },
+        {
+          "write_gt4": false,
+          "query_gt4": true,
+          "rows": 32,
+          "groups": 10,
+          "answers_correct": 13,
+          "head0_majorities": 7
+        },
+        {
+          "write_gt4": true,
+          "query_gt4": true,
+          "rows": 28,
+          "groups": 9,
+          "answers_correct": 6,
+          "head0_majorities": 8
+        }
+      ],
+      "prior_soft_reproduced": true
+    }
+  ],
+  "minimum_absolute_gate_logits": {
+    "Held-s1/evaluation.json": 5.649386405944824,
+    "Held-s1/stress.json": 5.591119766235352,
+    "Held-s2/evaluation.json": 6.051016807556152,
+    "Held-s2/stress.json": 6.340917587280273,
+    "Local-s1/evaluation.json": 2.540858268737793,
+    "Local-s1/stress.json": 2.280109405517578,
+    "Local-s2/evaluation.json": 0.8317056894302368,
+    "Local-s2/stress.json": 1.021418809890747
+  },
+  "source_commit_containing_implementation": "77271969dda9862e8c76a5089b51d229b168e0ed",
+  "binary_embedded_source_commit": "UNAVAILABLE; exact source and executable hashes supplied separately",
+  "validation": {
+    "focused_latch_tests": 9,
+    "failures": 0,
+    "test_seconds": 0.54,
+    "rustfmt": "PASS",
+    "diff_check": "PASS",
+    "claim_wording": "PASS",
+    "test_log_sha256": "334ac274d8270e385bbe0924388033c3e5d113e7dc068933dec06543eb2a8a6d"
+  },
+  "subsequent_evaluator_change": "Fixed geometric configuration validation only; measured executable and evaluator retained."
+}

@@ -154,6 +154,35 @@ pub enum ReadIdentityLatch {
     Local,
 }
 
+/// Per-call research counterfactual, deliberately absent from model state and
+/// saved metadata. Hard decisions have no surrogate gate gradient.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LatchGates {
+    Soft,
+    Hard,
+}
+
+impl LatchGates {
+    fn apply(self, logits: &Tensor) -> Result<Tensor> {
+        match self {
+            Self::Soft => Ok(candle_nn::ops::sigmoid(logits)?),
+            Self::Hard => {
+                if logits
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .any(|z| !z.is_finite())
+                {
+                    return Err(invalid("hard read identity latch needs finite gate logits"));
+                }
+                // Compare the logit itself: a tiny negative logit can have a
+                // rounded sigmoid of exactly 0.5. Both signed zeros capture.
+                Ok(logits.detach().ge(0.0)?.to_dtype(logits.dtype())?)
+            }
+        }
+    }
+}
+
 fn read_identity_latch_shapes(config: &StackConfig) -> BTreeMap<String, Vec<usize>> {
     let mut shapes = BTreeMap::new();
     for layer in 0..config.layers() {
@@ -1180,6 +1209,7 @@ impl StackModel {
         x: &Tensor,
         capture: &mut Capture<'_>,
         binding: &mut Option<BindingCapture<'_>>,
+        gates: LatchGates,
     ) -> Result<Tensor> {
         let (batch, time, _) = x.dims3()?;
         let heads = self.config.heads;
@@ -1187,7 +1217,7 @@ impl StackModel {
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let identity = self.read_identity_input(&u)?;
         let latched = match self.read_identity_latch {
-            Some(mode) => Some(self.read_latch_inputs(p, layer, &u, mode)?.0),
+            Some(mode) => Some(self.read_latch_inputs(p, layer, &u, mode, gates)?.0),
             None => None,
         };
         let project = |part: &str| -> Result<Tensor> {
@@ -1404,14 +1434,29 @@ impl StackModel {
         layer: usize,
         u: &Tensor,
         mode: ReadIdentityLatch,
+        gate_policy: LatchGates,
     ) -> Result<(Tensor, Tensor)> {
         let (batch, time, width) = u.dims3()?;
-        let gates = candle_nn::ops::sigmoid(&self.read_latch_gate_logits(p, layer, u)?)?;
+        let gates = gate_policy.apply(&self.read_latch_gate_logits(p, layer, u)?)?;
         let mut state = Tensor::zeros((batch, 1, width), u.dtype(), u.device())?;
+        let zero = state.clone();
         let mut identities = Vec::with_capacity(time);
         for t in 0..time {
             identities.push(state.clone());
             let gate = gates.narrow(1, t, 1)?;
+            if gate_policy == LatchGates::Hard {
+                // A hard action copies the existing state or current content
+                // exactly, without renormalizing or blending either value.
+                let no_capture = match mode {
+                    ReadIdentityLatch::Held => &state,
+                    ReadIdentityLatch::Local => &zero,
+                };
+                state = gate
+                    .broadcast_as((batch, 1, width))?
+                    .to_dtype(DType::U8)?
+                    .where_cond(&u.narrow(1, t, 1)?, no_capture)?;
+                continue;
+            }
             let update = u.narrow(1, t, 1)?.broadcast_mul(&gate)?;
             state = match mode {
                 ReadIdentityLatch::Held => state
@@ -1450,6 +1495,39 @@ impl StackModel {
         time: usize,
         layer: usize,
     ) -> Result<Tensor> {
+        self.latch_gate_logits_with_policy(ids, batch, time, layer, LatchGates::Soft)
+    }
+
+    /// Actual binary actions [batch,time] for the hard-latch counterfactual.
+    /// All preceding read layers also use hard gates in this call. This differs
+    /// from thresholding the ordinary soft getter in a stack with earlier reads.
+    /// A finite logit >= 0 captures, including a tie; a negative logit holds the
+    /// prior Held identity or sets the Local identity to zero for the next row.
+    pub fn read_identity_latch_hard_gates(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        layer: usize,
+    ) -> Result<Tensor> {
+        self.require_hard_read_identity_latch()?;
+        LatchGates::Hard.apply(&self.latch_gate_logits_with_policy(
+            ids,
+            batch,
+            time,
+            layer,
+            LatchGates::Hard,
+        )?)
+    }
+
+    fn latch_gate_logits_with_policy(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        layer: usize,
+        gates: LatchGates,
+    ) -> Result<Tensor> {
         if self.read_identity_latch.is_none() {
             return Err(invalid("read identity latch is disabled"));
         }
@@ -1460,7 +1538,7 @@ impl StackModel {
         }
         let p = self.params()?;
         let x = self.embed_with(&p, ids, batch, time)?;
-        let x = self.layer_range_hooked(&p, x, 0..layer, &mut None)?;
+        let x = self.layer_range_bound(&p, x, 0..layer, &mut None, &mut None, gates)?;
         let u = self.norm(&p, &x, &layer_name(layer, "read_norm.weight"))?;
         Ok(self.read_latch_gate_logits(&p, layer, &u)?.squeeze(2)?)
     }
@@ -1518,6 +1596,45 @@ impl StackModel {
         let p = self.params()?;
         let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
         Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Raw vocabulary logits with every learned read latch's gate replaced by
+    /// the diagnostic action `logit >= 0`. The selected Held/Local recurrence,
+    /// learned content, q/k/value maps and read scorer are otherwise unchanged.
+    /// Like [`Self::forward`], this does not mix in a pointer head.
+    ///
+    /// This is a per-call floating-point research counterfactual, not a served
+    /// model or a training STE. It changes no parameters or persistent options;
+    /// [`Self::save`] still saves the original soft model. Reports must record
+    /// this override separately; loading that model never enables hard gates.
+    pub fn forward_hard_read_identity_latch(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        self.require_hard_read_identity_latch()?;
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_bound(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Hard,
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    fn require_hard_read_identity_latch(&self) -> Result<()> {
+        if self.read_identity_latch.is_none() || self.served.is_some() {
+            return Err(invalid(
+                "hard read identity latch diagnostic needs an enabled float latch",
+            ));
+        }
+        Ok(())
     }
 
     /// The final normalized states [batch * time, width], which the tied
@@ -1641,7 +1758,7 @@ impl StackModel {
         layers: std::ops::Range<usize>,
         capture: &mut Capture<'_>,
     ) -> Result<Tensor> {
-        self.layer_range_bound(p, x, layers, capture, &mut None)
+        self.layer_range_bound(p, x, layers, capture, &mut None, LatchGates::Soft)
     }
 
     fn layer_range_bound(
@@ -1651,12 +1768,15 @@ impl StackModel {
         layers: std::ops::Range<usize>,
         capture: &mut Capture<'_>,
         binding: &mut Option<BindingCapture<'_>>,
+        gates: LatchGates,
     ) -> Result<Tensor> {
         for layer in layers {
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
                 (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
                 (StackArch::Geometric, 'r') => self.recurrence(p, layer, &x, capture)?,
-                (StackArch::Geometric, _) => self.geometric_read(p, layer, &x, capture, binding)?,
+                (StackArch::Geometric, _) => {
+                    self.geometric_read(p, layer, &x, capture, binding, gates)?
+                }
             };
             x = x.add(&mixed)?;
             x = x.add(&self.mlp(p, layer, &x, capture)?)?;
@@ -1826,13 +1946,32 @@ impl StackModel {
         time: usize,
         target: &ReadBindingTarget,
     ) -> Result<(Tensor, Tensor)> {
+        self.hidden_with_binding_policy(p, ids, batch, time, target, LatchGates::Soft)
+    }
+
+    fn hidden_with_binding_policy(
+        &self,
+        p: &Params<'_>,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        gates: LatchGates,
+    ) -> Result<(Tensor, Tensor)> {
         self.validate_binding(batch, time, target)?;
         let x = self.embed_with(p, ids, batch, time)?;
         let mut binding = Some(BindingCapture {
             target,
             masses: None,
         });
-        let x = self.layer_range_bound(p, x, 0..self.config.layers(), &mut None, &mut binding)?;
+        let x = self.layer_range_bound(
+            p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            gates,
+        )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
         let masses = binding
             .and_then(|binding| binding.masses)
@@ -1853,6 +1992,23 @@ impl StackModel {
     ) -> Result<Tensor> {
         let p = self.params()?;
         Ok(self.hidden_with_binding(&p, ids, batch, time, binding)?.1)
+    }
+
+    /// Exact source-set probabilities under the same per-call hard override as
+    /// [`Self::forward_hard_read_identity_latch`]. Labels only select observed
+    /// masses and do not enter the hard gate, hidden states or language logits.
+    pub fn read_binding_masses_hard_read_identity_latch(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        binding: &ReadBindingTarget,
+    ) -> Result<Tensor> {
+        self.require_hard_read_identity_latch()?;
+        let p = self.params()?;
+        Ok(self
+            .hidden_with_binding_policy(&p, ids, batch, time, binding, LatchGates::Hard)?
+            .1)
     }
 
     /// Joint language and exact-source binding losses from one forward graph.
@@ -2491,7 +2647,7 @@ impl StackModel {
         for layer in 0..self.config.layers() {
             let mixed = match self.config.layer_kind(layer) {
                 'r' => self.composed_recurrence(&p, layer, &x, transport)?,
-                _ => self.geometric_read(&p, layer, &x, &mut None, &mut None)?,
+                _ => self.geometric_read(&p, layer, &x, &mut None, &mut None, LatchGates::Soft)?,
             };
             x = x.add(&mixed)?;
             x = x.add(&self.mlp(&p, layer, &x, &mut None)?)?;
@@ -7595,6 +7751,230 @@ mod tests {
     }
 
     #[test]
+    fn hard_read_identity_latch_threshold_and_causal_state_match_reference() -> Result<()> {
+        let z = Tensor::from_vec(
+            vec![-1000.0f32, -1.0, -1e-12, -0.0, 0.0, 1e-12, 1.0, 1000.0],
+            8,
+            &cpu(),
+        )?;
+        assert_eq!(
+            LatchGates::Hard.apply(&z)?.to_vec1::<f32>()?,
+            vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        );
+        // The sigmoid comparison agrees away from its rounding interval; the
+        // signed-zero tie captures. Tiny negative logits must still HOLD.
+        let ordinary = Tensor::from_vec(vec![-2.0f32, -0.1, 0.0, 0.1, 2.0], 5, &cpu())?;
+        assert_eq!(
+            bits(&LatchGates::Hard.apply(&ordinary)?)?,
+            bits(
+                &candle_nn::ops::sigmoid(&ordinary)?
+                    .ge(0.5)?
+                    .to_dtype(DType::F32)?
+            )?
+        );
+        for invalid_logit in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            assert!(LatchGates::Hard
+                .apply(&Tensor::from_vec(vec![invalid_logit], 1, &cpu())?)
+                .is_err());
+        }
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let mut model = StackModel::new(
+                tiny(StackArch::Geometric, "a", ReadScore::Lorentz, false),
+                &cpu(),
+            )?;
+            model.set_read_identity_latch(mode)?;
+            let mut weights = vec![0.0f32; 32];
+            weights[0] = 1.0;
+            weights[16] = 0.5;
+            model.variables()["layers.00.read.identity_gate.weight"].set(&Tensor::from_vec(
+                weights,
+                (1, 32),
+                &cpu(),
+            )?)?;
+            model.variables()["layers.00.read.identity_gate.bias"].set(&Tensor::zeros(
+                1,
+                DType::F32,
+                &cpu(),
+            )?)?;
+            let markers = [2.0f32, -2.0, -2.0, 1.0, 0.0, -2.0, 2.0];
+            let mut values = vec![0.0f32; 7 * 16];
+            for (t, &marker) in markers.iter().enumerate() {
+                values[t * 16] = marker;
+                for c in 1..16 {
+                    values[t * 16 + c] = (16 * t + c) as f32 / 32.0;
+                }
+                values[t * 16 + 15] = -0.0;
+            }
+            let u = Tensor::from_vec(values.clone(), (1, 7, 16), &cpu())?;
+            let (identity, gates) =
+                model.read_latch_inputs(&model.params()?, 0, &u, mode, LatchGates::Hard)?;
+            let identity = identity.flatten_all()?.to_vec1::<f32>()?;
+            let gates = gates.flatten_all()?.to_vec1::<f32>()?;
+            let mut state = vec![0.0f32; 16];
+            for t in 0..7 {
+                assert_eq!(
+                    identity[t * 16..(t + 1) * 16]
+                        .iter()
+                        .map(|x| x.to_bits())
+                        .collect::<Vec<_>>(),
+                    state.iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
+                    "{mode:?}: prior identity at {t}"
+                );
+                let z = markers[t] + if t == 0 { 0.0 } else { 0.5 * markers[t - 1] };
+                assert_eq!(gates[t], if z >= 0.0 { 1.0 } else { 0.0 });
+                if z >= 0.0 {
+                    state.copy_from_slice(&values[t * 16..(t + 1) * 16]);
+                } else if mode == ReadIdentityLatch::Local {
+                    state.fill(0.0);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn hard_read_identity_latch_forward_binding_and_later_gates_share_policy() -> Result<()> {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 5 + 1) % 37).collect();
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let mut model = StackModel::new(
+                tiny(StackArch::Geometric, "raa", ReadScore::Lorentz, true),
+                &cpu(),
+            )?;
+            assert!(model.forward_hard_read_identity_latch(&ids, 2, 8).is_err());
+            assert!(model.read_identity_latch_hard_gates(&ids, 2, 8, 1).is_err());
+            assert!(model
+                .read_binding_masses_hard_read_identity_latch(&ids, 2, 8, &binding_rows(2))
+                .is_err());
+            model.set_read_identity_latch(mode)?;
+            for layer in 1..3 {
+                let w = &model.variables()[&layer_name(layer, "read.identity_gate.weight")];
+                w.set(&random(
+                    &mut Initializer(791 + layer as u64),
+                    w.dims(),
+                    0.15,
+                ))?;
+                model.variables()[&layer_name(layer, "read.identity_gate.bias")]
+                    .set(&Tensor::zeros(1, DType::F32, &cpu())?)?;
+            }
+            let before: BTreeMap<String, Vec<u32>> = model
+                .variables()
+                .iter()
+                .map(|(name, var)| Ok((name.clone(), bits(var.as_tensor())?)))
+                .collect::<Result<_>>()?;
+            let soft = bits(&model.forward(&ids, 2, 8)?)?;
+            let hard = model.forward_hard_read_identity_latch(&ids, 2, 8)?;
+            let p = model.params()?;
+            let mut x = model.embed(&ids, 2, 8)?;
+            for layer in 0..3 {
+                if layer > 0 {
+                    let u = model.norm(&p, &x, &layer_name(layer, "read_norm.weight"))?;
+                    let expected = LatchGates::Hard
+                        .apply(&model.read_latch_gate_logits(&p, layer, &u)?)?
+                        .squeeze(2)?;
+                    assert_eq!(
+                        bits(&model.read_identity_latch_hard_gates(&ids, 2, 8, layer)?)?,
+                        bits(&expected)?
+                    );
+                }
+                let mixed = if layer == 0 {
+                    model.recurrence(&p, layer, &x, &mut None)?
+                } else {
+                    model.geometric_read(&p, layer, &x, &mut None, &mut None, LatchGates::Hard)?
+                };
+                x = x.add(&mixed)?;
+                x = x.add(&model.mlp(&p, layer, &x, &mut None)?)?;
+            }
+            assert_eq!(bits(&hard)?, bits(&model.head(&model.finish(x)?)?)?);
+            // The auxiliary mask observes the same hard read and is removed
+            // before its output map; changing the label cannot change logits.
+            let mut target = binding_rows(2);
+            for source in [1, 3] {
+                target.rows[0].sources = vec![source];
+                let (hidden, mass) =
+                    model.hidden_with_binding_policy(&p, &ids, 2, 8, &target, LatchGates::Hard)?;
+                assert_eq!(bits(&hard)?, bits(&model.head(&hidden)?)?);
+                assert_eq!(
+                    bits(&mass)?,
+                    bits(
+                        &model.read_binding_masses_hard_read_identity_latch(&ids, 2, 8, &target,)?
+                    )?
+                );
+            }
+            let mut future = ids.clone();
+            future[6] = (future[6] + 1) % 37;
+            let changed = model.forward_hard_read_identity_latch(&future, 2, 8)?;
+            assert_eq!(
+                bits(&hard.narrow(0, 0, 6)?)?,
+                bits(&changed.narrow(0, 0, 6)?)?
+            );
+            for layer in 1..3 {
+                assert_eq!(
+                    bits(
+                        &model
+                            .read_identity_latch_hard_gates(&ids, 2, 8, layer)?
+                            .narrow(1, 0, 6)?
+                    )?,
+                    bits(
+                        &model
+                            .read_identity_latch_hard_gates(&future, 2, 8, layer)?
+                            .narrow(1, 0, 6)?
+                    )?
+                );
+            }
+            assert_eq!(soft, bits(&model.forward(&ids, 2, 8)?)?);
+            for (name, var) in model.variables() {
+                assert_eq!(before[name], bits(var.as_tensor())?, "mutated {name}");
+            }
+            assert!(model.read_identity_latch_hard_gates(&ids, 2, 8, 0).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn hard_read_identity_latch_is_per_call_and_save_remains_soft() -> Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("stack-hard-read-latch-{}", std::process::id()));
+        let ids = [1, 7, 3, 9, 11, 4, 6, 8];
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let dir = root.join(format!("{mode:?}"));
+            let mut model = StackModel::new(
+                tiny(StackArch::Geometric, "ra", ReadScore::Lorentz, true),
+                &cpu(),
+            )?;
+            model.set_read_identity_latch(mode)?;
+            model.save(&dir)?;
+            let names = [
+                "config.json",
+                "model.safetensors",
+                READ_IDENTITY_LATCH_RECORD,
+            ];
+            let saved: Vec<Vec<u8>> = names
+                .iter()
+                .map(|name| fs::read(dir.join(name)))
+                .collect::<std::io::Result<_>>()?;
+            let soft = bits(&model.forward(&ids, 1, 8)?)?;
+            let hard = bits(&model.forward_hard_read_identity_latch(&ids, 1, 8)?)?;
+            // Initial bias -2 makes the hard state exactly zero; the ordinary
+            // model retains its nonzero soft contribution after the call.
+            assert_ne!(soft, hard);
+            assert_eq!(bits(&model.forward(&ids, 1, 8)?)?, soft);
+            model.save(&dir)?;
+            for (name, expected) in names.iter().zip(&saved) {
+                assert_eq!(&fs::read(dir.join(name))?, expected, "changed {name}");
+            }
+            let loaded = StackModel::load(&dir, &cpu())?;
+            assert_eq!(loaded.read_identity_latch(), Some(mode));
+            assert_eq!(bits(&loaded.forward(&ids, 1, 8)?)?, soft);
+            assert_eq!(
+                bits(&loaded.forward_hard_read_identity_latch(&ids, 1, 8)?)?,
+                hard
+            );
+        }
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
     fn read_identity_latch_held_and_local_match_causal_reference_and_gradients() -> Result<()> {
         let ids: Vec<u32> = (0..16).map(|i| (i * 5 + 1) % 37).collect();
         for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
@@ -7625,7 +8005,8 @@ mod tests {
                 let p = model.params()?;
                 let x = model.run_layers(model.embed(&ids, 2, 8)?, 0..1)?;
                 let u = model.norm(&p, &x, &layer_name(1, "read_norm.weight"))?;
-                let (identity, gates) = model.read_latch_inputs(&p, 1, &u, mode)?;
+                let (identity, gates) =
+                    model.read_latch_inputs(&p, 1, &u, mode, LatchGates::Soft)?;
                 let uv = u.to_vec3::<f32>()?;
                 let gv = gates.squeeze(2)?.to_vec2::<f32>()?;
                 let hv = identity.to_vec3::<f32>()?;
@@ -7691,7 +8072,8 @@ mod tests {
                     &model.merge_heads(&read, 2, 8)?,
                     p.layer(1, "read.out.weight")?,
                 )?;
-                let got = model.geometric_read(&p, 1, &x, &mut None, &mut None)?;
+                let got =
+                    model.geometric_read(&p, 1, &x, &mut None, &mut None, LatchGates::Soft)?;
                 assert_eq!(max_abs_gap(&got, &want)?, 0.0);
                 // Future changes cannot reach any prior prediction or gate.
                 let mut future = ids.clone();
@@ -7819,7 +8201,10 @@ mod tests {
             .broadcast_add(p.layer(1, "read.identity_gate.bias")?)?
             .squeeze(2)?;
             assert_eq!(bits(&logits)?, bits(&expected)?);
-            let actual_gates = model.read_latch_inputs(&p, 1, &u, mode)?.1.squeeze(2)?;
+            let actual_gates = model
+                .read_latch_inputs(&p, 1, &u, mode, LatchGates::Soft)?
+                .1
+                .squeeze(2)?;
             assert_eq!(
                 bits(&candle_nn::ops::sigmoid(&logits)?)?,
                 bits(&actual_gates)?
@@ -8039,7 +8424,7 @@ mod tests {
                 &model.merge_heads(&reference, 2, 8)?,
                 p.layer(1, "read.out.weight")?,
             )?;
-            let actual = model.geometric_read(&p, 1, &x, &mut None, &mut None)?;
+            let actual = model.geometric_read(&p, 1, &x, &mut None, &mut None, LatchGates::Soft)?;
             assert_eq!(max_abs_gap(&actual, &reference)?, 0.0);
             let target = binding_rows(1);
             let (_, observed) = model.hidden_with_binding(&p, &ids, 2, 8, &target)?;
