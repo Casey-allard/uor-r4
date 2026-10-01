@@ -1,0 +1,726 @@
+{
+  "schema": "uor-r4.integer-latch-evidence/1",
+  "identity": {
+    "source_commit": "918c50097f7b88349e01a881fbee95a4828e2cb3",
+    "compiled_embedded_commit": "UNAVAILABLE; exact source hash binding supplied separately",
+    "timestamp": "2026-10-01T20:22:28.930085+00:00",
+    "binary_sha256": "6d7ed3ecb14bb9cc6eb2e30b31f2b018ba633d27a8952f7b38d5d09a9b6dc71b",
+    "source_hashes": {
+      "crates/uor-r4-integer/src/identity_latch.rs": "a971acc635dd84be005edbbcb845562c4b0835ab8d13daba82496ec44fc6045b",
+      "crates/uor-r4-integer/src/lib.rs": "8e43eaf1ca4ddb25ea40bea96d2a5dbef13ea816b1ea0989749044c5942bb18d",
+      "crates/uor-r4-training/src/geometric_stack.rs": "8e4ee04a4dbb3f4ffc6ed4673930b6159a65f9dc86111edbd40501de249110fe",
+      "crates/uor-r4-training/examples/attention-integer-latch.rs": "932c661eabad517ae79d68cfbba8d5ef4211e23f15de9aa41a4d0af6695a6407"
+    }
+  },
+  "scope": "integer gate/retainedcontent; float surrounding model, authored development/fullprefix",
+  "summary": {
+    "elapsed_seconds": 167.799390667,
+    "measurements": [
+      {
+        "name": "Held-s1",
+        "panel": "evaluation.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_minima": [
+          0.990444004535675,
+          0.012760971672832966
+        ],
+        "max_source_mass_delta": [
+          1.9073486328125e-06,
+          3.948807716369629e-07
+        ],
+        "max_answer_logit_delta": 2.1576881408691406e-05,
+        "action_disagreements": [],
+        "positions": 4168,
+        "max_gate_logit_error": 0.7240791320800781,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -13
+        ],
+        "prior_exponents": [
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          29,
+          29
+        ],
+        "same_value_distinct_source_pairs": [
+          3,
+          3
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Held-s1",
+        "panel": "stress.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_minima": [
+          0.9819281101226807,
+          0.00953102856874466
+        ],
+        "max_source_mass_delta": [
+          2.9802322387695312e-06,
+          5.327165126800537e-07
+        ],
+        "max_answer_logit_delta": 2.193450927734375e-05,
+        "action_disagreements": [],
+        "positions": 6224,
+        "max_gate_logit_error": 0.7189311981201172,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -13
+        ],
+        "prior_exponents": [
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          27,
+          27
+        ],
+        "same_value_distinct_source_pairs": [
+          5,
+          5
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Held-s2",
+        "panel": "evaluation.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_minima": [
+          0.9971730709075928,
+          0.0008044400601647794
+        ],
+        "max_source_mass_delta": [
+          7.152557373046875e-07,
+          2.766028046607971e-07
+        ],
+        "max_answer_logit_delta": 6.67572021484375e-06,
+        "action_disagreements": [],
+        "positions": 4168,
+        "max_gate_logit_error": 1.0908994674682617,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -13
+        ],
+        "prior_exponents": [
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          29,
+          29
+        ],
+        "same_value_distinct_source_pairs": [
+          3,
+          3
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Held-s2",
+        "panel": "stress.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_minima": [
+          0.9866688251495361,
+          0.0007858856115490198
+        ],
+        "max_source_mass_delta": [
+          2.086162567138672e-06,
+          1.555308699607849e-07
+        ],
+        "max_answer_logit_delta": 1.33514404296875e-05,
+        "action_disagreements": [],
+        "positions": 6224,
+        "max_gate_logit_error": 1.1117563247680664,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -13
+        ],
+        "prior_exponents": [
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          27,
+          27
+        ],
+        "same_value_distinct_source_pairs": [
+          5,
+          5
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Local-s1",
+        "panel": "evaluation.json",
+        "reference_answers": 47,
+        "integer_answers": 47,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          24,
+          8
+        ],
+        "source_minima": [
+          0.05057971552014351,
+          0.03376132249832153
+        ],
+        "max_source_mass_delta": [
+          5.960464477539062e-07,
+          1.6391277313232422e-06
+        ],
+        "max_answer_logit_delta": 8.58306884765625e-06,
+        "action_disagreements": [],
+        "positions": 4168,
+        "max_gate_logit_error": 0.7408182621002197,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -14,
+          -13
+        ],
+        "prior_exponents": [
+          -14,
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          0,
+          29
+        ],
+        "same_value_distinct_source_pairs": [
+          0,
+          3
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Local-s1",
+        "panel": "stress.json",
+        "reference_answers": 59,
+        "integer_answers": 59,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          37,
+          2
+        ],
+        "source_minima": [
+          0.020071109756827354,
+          0.030430320650339127
+        ],
+        "max_source_mass_delta": [
+          8.344650268554688e-07,
+          1.1920928955078125e-06
+        ],
+        "max_answer_logit_delta": 7.974915206432343e-06,
+        "action_disagreements": [],
+        "positions": 6224,
+        "max_gate_logit_error": 0.7542355060577393,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -14,
+          -13
+        ],
+        "prior_exponents": [
+          -14,
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          0,
+          27
+        ],
+        "same_value_distinct_source_pairs": [
+          0,
+          5
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Local-s2",
+        "panel": "evaluation.json",
+        "reference_answers": 54,
+        "integer_answers": 54,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          29,
+          0
+        ],
+        "source_minima": [
+          0.06325303018093109,
+          0.009478388354182243
+        ],
+        "max_source_mass_delta": [
+          1.0728836059570312e-06,
+          7.82310962677002e-08
+        ],
+        "max_answer_logit_delta": 5.8710575103759766e-06,
+        "action_disagreements": [],
+        "positions": 4168,
+        "max_gate_logit_error": 0.8256814479827881,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -14,
+          -13
+        ],
+        "prior_exponents": [
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          0,
+          29
+        ],
+        "same_value_distinct_source_pairs": [
+          0,
+          3
+        ],
+        "prior_hard_reproduced": true
+      },
+      {
+        "name": "Local-s2",
+        "panel": "stress.json",
+        "reference_answers": 49,
+        "integer_answers": 49,
+        "prediction_changes": 0,
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          36,
+          0
+        ],
+        "source_minima": [
+          0.022797901183366776,
+          0.009545889683067799
+        ],
+        "max_source_mass_delta": [
+          1.3113021850585938e-06,
+          1.2665987014770508e-07
+        ],
+        "max_answer_logit_delta": 9.059906005859375e-06,
+        "action_disagreements": [],
+        "positions": 6224,
+        "max_gate_logit_error": 0.8272566795349121,
+        "max_prior_content_error": 6.103515625e-05,
+        "input_exponents": [
+          -14,
+          -13
+        ],
+        "prior_exponents": [
+          -14,
+          -13,
+          0
+        ],
+        "changing_pairs": [
+          0,
+          27
+        ],
+        "same_value_distinct_source_pairs": [
+          0,
+          5
+        ],
+        "prior_hard_reproduced": true
+      }
+    ]
+  },
+  "local_validation": {
+    "integer_tests": 4,
+    "stack_tests": 10,
+    "failures": 0,
+    "test_profile": "dev",
+    "rustfmt": "PASS",
+    "diff_check": "PASS",
+    "claim_wording": "PASS"
+  },
+  "instruction_audit": {
+    "binary_sha256": "6d7ed3ecb14bb9cc6eb2e30b31f2b018ba633d27a8952f7b38d5d09a9b6dc71b",
+    "profile": "dev unoptimized; measured executable",
+    "scope": "direct named numerical latch and dyadic helpers only, generic callees not certified; not whole serving/release",
+    "symbols": [
+      "uor_r4_integer::math::scale_pow2",
+      "<uor_r4_integer::identity_latch::IdentityGate>::width",
+      "<uor_r4_integer::identity_latch::IdentityGate>::evaluate",
+      "<uor_r4_integer::identity_latch::IdentityLatch>::previous_input",
+      "<uor_r4_integer::identity_latch::IdentityLatch>::step",
+      "<uor_r4_integer::identity_latch::IdentityLatch>::identity",
+      "uor_r4_integer::identity_latch::validate_vector",
+      "uor_r4_integer::identity_latch::identity_gate_dot",
+      "uor_r4_integer::identity_latch::identity_gate_sum",
+      "uor_r4_integer::identity_latch::validate_exponent",
+      "uor_r4_integer::identity_latch::identity_gate_sum::{closure#0}",
+      "uor_r4_integer::identity_latch::identity_gate_sum::{closure#2}",
+      "uor_r4_integer::identity_latch::identity_gate_sum::{closure#1}",
+      "uor_r4_integer::math::signed_magnitude::{closure#0}"
+    ],
+    "forbidden_hits": [
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156cf4: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156cfc: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156d3c: 9e66002a    \tfmov\tx10, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156d48: 9e66000b    \tfmov\tx11, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156fe8: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156fec: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156ff0: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100156ff4: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157078: 9e660020    \tfmov\tx0, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "10015707c: 9e660001    \tfmov\tx1, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "1001570bc: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "1001570c4: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157150: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157158: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157198: 9e66002a    \tfmov\tx10, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "1001571a4: 9e66000b    \tfmov\tx11, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157228: 9e660020    \tfmov\tx0, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "10015722c: 9e660001    \tfmov\tx1, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "10015726c: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157274: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157300: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157308: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157348: 9e66002a    \tfmov\tx10, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::math::scale_pow2",
+        "opcode": "fmov",
+        "line": "100157354: 9e66000b    \tfmov\tx11, d0"
+      },
+      {
+        "symbol": "<uor_r4_integer::identity_latch::IdentityGate>::evaluate",
+        "opcode": "fmov",
+        "line": "10015bea8: 9e660049    \tfmov\tx9, d2"
+      },
+      {
+        "symbol": "<uor_r4_integer::identity_latch::IdentityGate>::evaluate",
+        "opcode": "fmov",
+        "line": "10015beb4: 9e66002a    \tfmov\tx10, d1"
+      },
+      {
+        "symbol": "<uor_r4_integer::identity_latch::IdentityGate>::evaluate",
+        "opcode": "fmov",
+        "line": "10015bec0: 9e66002b    \tfmov\tx11, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4b4: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4b8: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4bc: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4c0: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4e8: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4ec: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4f0: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c4f4: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c52c: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c530: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c534: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c538: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c5bc: 9e660008    \tfmov\tx8, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c5c4: 9e66002a    \tfmov\tx10, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c5c8: 9e660008    \tfmov\tx8, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c5fc: 9e660048    \tfmov\tx8, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c604: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c618: 9e660020    \tfmov\tx0, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c61c: 9e660001    \tfmov\tx1, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c650: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c654: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c658: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_dot",
+        "opcode": "fmov",
+        "line": "10015c65c: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c7b4: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c7bc: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c7e8: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c7f0: 9e660009    \tfmov\tx9, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c884: 9e660020    \tfmov\tx0, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c888: 9e660001    \tfmov\tx1, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c928: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c92c: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c930: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c934: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c96c: 9e660060    \tfmov\tx0, d3"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c970: 9e660041    \tfmov\tx1, d2"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c974: 9e660022    \tfmov\tx2, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum",
+        "opcode": "fmov",
+        "line": "10015c978: 9e660003    \tfmov\tx3, d0"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum::{closure#0}",
+        "opcode": "fmov",
+        "line": "100161b9c: 9e660028    \tfmov\tx8, d1"
+      },
+      {
+        "symbol": "uor_r4_integer::identity_latch::identity_gate_sum::{closure#0}",
+        "opcode": "fmov",
+        "line": "100161ba4: 9e660009    \tfmov\tx9, d0"
+      }
+    ]
+  }
+}

@@ -156,16 +156,18 @@ pub enum ReadIdentityLatch {
 
 /// Per-call research counterfactual, deliberately absent from model state and
 /// saved metadata. Hard decisions have no surrogate gate gradient.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum LatchGates {
+#[derive(Clone, Copy)]
+enum LatchGates<'a> {
     Soft,
     Hard,
+    Replay(&'a Tensor),
 }
 
-impl LatchGates {
+impl LatchGates<'_> {
     fn apply(self, logits: &Tensor) -> Result<Tensor> {
         match self {
             Self::Soft => Ok(candle_nn::ops::sigmoid(logits)?),
+            Self::Replay(_) => Err(invalid("identity replay has no gate policy")),
             Self::Hard => {
                 if logits
                     .flatten_all()?
@@ -1217,7 +1219,10 @@ impl StackModel {
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let identity = self.read_identity_input(&u)?;
         let latched = match self.read_identity_latch {
-            Some(mode) => Some(self.read_latch_inputs(p, layer, &u, mode, gates)?.0),
+            Some(mode) => Some(match gates {
+                LatchGates::Replay(identity) => identity.clone(),
+                _ => self.read_latch_inputs(p, layer, &u, mode, gates)?.0,
+            }),
             None => None,
         };
         let project = |part: &str| -> Result<Tensor> {
@@ -1444,7 +1449,7 @@ impl StackModel {
         for t in 0..time {
             identities.push(state.clone());
             let gate = gates.narrow(1, t, 1)?;
-            if gate_policy == LatchGates::Hard {
+            if matches!(gate_policy, LatchGates::Hard) {
                 // A hard action copies the existing state or current content
                 // exactly, without renormalizing or blending either value.
                 let no_capture = match mode {
@@ -1626,6 +1631,100 @@ impl StackModel {
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
         Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Actual gained read input for the fixed single-read `rra` diagnostic.
+    /// This observes the preceding floating-point trunk; it is not an integer
+    /// normalizer or a serving export.
+    pub fn read_identity_latch_replay_input(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        self.require_identity_replay()?;
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_hooked(&p, x, 0..2, &mut None)?;
+        self.norm(&p, &x, &layer_name(2, "read_norm.weight"))
+    }
+
+    fn require_identity_replay(&self) -> Result<()> {
+        self.require_hard_read_identity_latch()?;
+        if self.config.pattern != "rra" || self.config.pointer.is_some() {
+            return Err(invalid("identity replay needs rra without a pointer head"));
+        }
+        Ok(())
+    }
+
+    fn validate_identity_replay(&self, prior: &Tensor, batch: usize, time: usize) -> Result<()> {
+        self.require_identity_replay()?;
+        if prior.dims3()? != (batch, time, self.config.width)
+            || prior.dtype() != DType::F32
+            || prior.device().location() != self.device.location()
+            || prior
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .any(|x| !x.is_finite())
+        {
+            return Err(invalid(
+                "identity replay needs finite matching prior vectors",
+            ));
+        }
+        if prior
+            .narrow(1, 0, 1)?
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .any(|x| *x != 0.)
+        {
+            return Err(invalid("identity replay starts at zero"));
+        }
+        Ok(())
+    }
+
+    /// Numerical-component diagnostic: caller supplies the prior gained
+    /// identity reconstructed from its causal latch. The model does not certify
+    /// caller causality. Current-role maps, values, trunk and scorer remain
+    /// floating point. No override is persisted and no parameters are modified.
+    pub fn forward_read_identity_latch_replay(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        prior: &Tensor,
+    ) -> Result<Tensor> {
+        self.validate_identity_replay(prior, batch, time)?;
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_bound(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Replay(prior),
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Observes exact-source mass under the same numerical replay as its
+    /// forward. Labels select probabilities only and do not select identity.
+    pub fn read_binding_masses_identity_latch_replay(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        binding: &ReadBindingTarget,
+        prior: &Tensor,
+    ) -> Result<Tensor> {
+        self.validate_identity_replay(prior, batch, time)?;
+        let p = self.params()?;
+        Ok(self
+            .hidden_with_binding_policy(&p, ids, batch, time, binding, LatchGates::Replay(prior))?
+            .1)
     }
 
     fn require_hard_read_identity_latch(&self) -> Result<()> {
@@ -7927,6 +8026,64 @@ mod tests {
             }
             assert!(model.read_identity_latch_hard_gates(&ids, 2, 8, 0).is_err());
         }
+        Ok(())
+    }
+
+    #[test]
+    fn read_identity_latch_replay_matches_hard_reference_and_rejects_bad_inputs() -> Result<()> {
+        let ids = [1, 7, 3, 9, 11, 4, 6, 8];
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let mut model = StackModel::new(
+                tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true),
+                &cpu(),
+            )?;
+            model.set_read_identity_latch(mode)?;
+            let bias = &model.variables()["layers.02.read.identity_gate.bias"];
+            bias.set(&Tensor::from_vec(vec![1.0f32], 1, &cpu())?)?;
+            let soft = bits(&model.forward(&ids, 1, 8)?)?;
+            let u = model.read_identity_latch_replay_input(&ids, 1, 8)?;
+            let p = model.params()?;
+            let prior = model
+                .read_latch_inputs(&p, 2, &u, mode, LatchGates::Hard)?
+                .0;
+            assert_eq!(
+                bits(&model.forward_hard_read_identity_latch(&ids, 1, 8)?)?,
+                bits(&model.forward_read_identity_latch_replay(&ids, 1, 8, &prior)?)?
+            );
+            let target = ReadBindingTarget {
+                layer: 2,
+                head: 0,
+                rows: vec![ReadBinding {
+                    batch: 0,
+                    query: 7,
+                    sources: vec![3],
+                }],
+            };
+            assert_eq!(
+                bits(&model.read_binding_masses_hard_read_identity_latch(&ids, 1, 8, &target)?)?,
+                bits(
+                    &model
+                        .read_binding_masses_identity_latch_replay(&ids, 1, 8, &target, &prior)?
+                )?
+            );
+            assert_eq!(soft, bits(&model.forward(&ids, 1, 8)?)?);
+            assert!(model
+                .forward_read_identity_latch_replay(&ids, 1, 8, &u)
+                .is_err());
+            let nan = Tensor::full(f32::NAN, (1, 8, 16), &cpu())?;
+            assert!(model
+                .forward_read_identity_latch_replay(&ids, 1, 8, &nan)
+                .is_err());
+            assert!(model
+                .forward_read_identity_latch_replay(&ids, 1, 8, &prior.narrow(1, 0, 7)?)
+                .is_err());
+        }
+        let mut wrong = StackModel::new(
+            tiny(StackArch::Geometric, "raa", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        wrong.set_read_identity_latch(ReadIdentityLatch::Held)?;
+        assert!(wrong.read_identity_latch_replay_input(&ids, 1, 8).is_err());
         Ok(())
     }
 

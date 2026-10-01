@@ -15,6 +15,7 @@ pub mod format;
 pub mod generation;
 pub mod h4_classifier;
 pub mod h4_tables;
+pub mod identity_latch;
 pub mod lorentz;
 pub mod math;
 pub mod model;
