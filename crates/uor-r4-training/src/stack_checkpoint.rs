@@ -464,6 +464,12 @@ pub fn save_checkpoint(
     if model.served_codec().is_some() {
         return Err(StackCheckpointError::ServedMode);
     }
+    if model.read_identity_carry() {
+        return Err(StackCheckpointError::Identity(
+            "read identity carry requires its sidecar; this checkpoint schema does not admit it"
+                .into(),
+        ));
+    }
     if let Some(snap) = model.transport_snap() {
         snap.check(&model.config)?;
     }
@@ -1230,6 +1236,25 @@ mod tests {
                 found: 41
             })
         ));
+        fs::remove_dir_all(&base).expect("clean");
+    }
+
+    #[test]
+    fn read_identity_carry_checkpoint_refuses_before_claim() {
+        let (base, identity) = fixture("read-carry-refused");
+        let mut config = StackConfig::transformer_control(7);
+        config.arch = StackArch::Geometric;
+        config.width = 32;
+        config.heads = 2;
+        config.pattern = "rra".into();
+        let mut model = StackModel::new(config, &Device::Cpu).expect("stack");
+        model.set_read_identity_carry(true).expect("carry");
+        let root = base.join("refused");
+        assert!(matches!(
+            save_checkpoint(&root, &model, &identity, None),
+            Err(StackCheckpointError::Identity(_))
+        ));
+        assert!(!root.exists());
         fs::remove_dir_all(&base).expect("clean");
     }
 

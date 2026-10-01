@@ -84,6 +84,8 @@ Each row is an obligation, not a claim that its predecessor is complete. Safe
 engineering and bounded discovery may proceed in parallel with explicit file
 ownership. Resource admission is separate from scientific priority.
 
+The owner's October 1 immediate correction puts actual geometric attention first while the SSD is restored. The [identity-carry result](geometric-attention-binding-2026-10-01.md) retains the existing Lorentz scorer and identifies key-to-payload alignment as a causal learning bottleneck on a finite synthetic task. Next: typed variable-gap identity capture/hold/commit/reset, with separate current payload roles and full candidate support. Carry-only controls show ordinary answer loss can learn this task; occurrence supervision concentrates a designated head; do not infer language or geometry superiority from this diagnostic.
+
 | Stage | Integrated deliverable / issue | Evidence and next decision |
 |---|---|---|
 | 1. Learned language-to-memory interface | #1552 under #1508/#973: saved compiler, typed span/intent, existing store and emitter; minimal generated-history session | Fit → save → independent reload → actual predicted-input replies. Compare predicted/oracle/off on the same prompts as diagnostics; score transfer axes and source changes. On an act/span/semantic failure, repair that boundary; do not restart all readers. |

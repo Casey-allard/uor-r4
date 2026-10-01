@@ -307,6 +307,9 @@ pub fn export_stack(
     calibration: Option<(&StackCalibration, f64)>,
     snap: Option<TransportSnap>,
 ) -> Result<(Vec<u8>, Value)> {
+    if model.read_identity_carry() {
+        return Err(invalid("read identity carry has no integer export"));
+    }
     let c = &model.config;
     check_export_config(c)?;
     if c.arch != StackArch::Geometric {
@@ -892,6 +895,9 @@ pub fn stack_grid_reference(
     model: &StackModel,
     artifact: &uor_r4_lut::format::StackArtifact,
 ) -> Result<GridReference> {
+    if model.read_identity_carry() {
+        return Err(invalid("read identity carry has no integer grid reference"));
+    }
     let c = model.config.clone();
     // The reference reads raw float logits, and no artifact is exported from a
     // pointer or flock model (its float forward is not what the engine runs).
@@ -1551,6 +1557,17 @@ mod tests {
         let (bytes, _) = export_stack(&reloaded, json!({}), None, None).expect("export");
         assert!(header_of(&bytes).get("transport_snap").is_none());
         fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn read_identity_carry_refuses_export_and_grid_reference() -> Result<()> {
+        let mut model = small("rra", ReadScore::Lorentz, true);
+        let (bytes, _) = export_stack(&model, json!({}), None, None)?;
+        let artifact = StackArtifact::parse(bytes).map_err(lut_error)?;
+        model.set_read_identity_carry(true)?;
+        assert!(export_stack(&model, json!({}), None, None).is_err());
+        assert!(stack_grid_reference(&model, &artifact).is_err());
+        Ok(())
     }
 
     #[test]

@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Immediate owner correction — geometric attention, October 1
+
+The owner redirected current work to actual geometric attention while the SSD is reformatted. Use the internal drive and remove this lab's disposable worktree/build cache after protected delivery, preserving unique research and models. Grounded conversation/memory remains the alpha priority; it does not displace this immediate attention research.
+
+The [occurrence-credit and identity-carry study](geometric-attention-binding-2026-10-01.md) changes the existing Rust native stack, not a separate model. A no-carry negative and saved-state probe motivated supplying predecessor identity to q/k while keeping payload values current. The same Lorentz scorer then learns correct occurrence selection on the finite synthetic task; Dot is an ordinary matched control. Exact results, carry-only credit controls and fresh length diagnostic live in that report. This does not establish natural language, geometric superiority, bounded indexed retrieval or integer serving.
+
+Next research mechanism: variable-gap typed identity capture/hold/commit/reset with separate payload-role state, preserving the scorer and full candidate support. Occurrence supervision remains an optional diagnostic/shaping objective; ordinary answer credit can learn the carry task. Do not restart the prior selector/metric sweep. #1512 remains open for its wider language and serving acceptance.
+
 ## Active execution contract — grounded conversation and durable memory, October 1
 
 The owner adopted the [canonical plan](project-track.md) under
