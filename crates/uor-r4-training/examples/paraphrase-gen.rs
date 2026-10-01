@@ -18,7 +18,7 @@
 //! seal the root. The teacher is the flat-limit checkpoint itself (score=dot,
 //! trainable=scalars, no learned curvature applied).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use candle_core::Device;
@@ -26,7 +26,7 @@ use uor_r4_core::report_output;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 use uor_r4_training::kappa_llama::{load_checkpoint, KappaLlama, ScoreKind, Trainable};
 use uor_r4_training::milestone_world::Split;
-use uor_r4_training::milestone_world_v2::{Category2, Cell, MWorld2, Mix};
+use uor_r4_training::milestone_world_v2::{relation_names, Category2, Cell, MWorld2, Mix};
 use uor_r4_training::stack_tracking::Rng;
 use uor_r4_training::{sha256_file, Result, TrainingError};
 
@@ -112,12 +112,45 @@ fn preserves_values(seed: &str, wording: &str) -> bool {
         && wording_caps.is_subset(&seed_caps)
 }
 
+/// A rewrite must not ask about someone else: reject a newly introduced
+/// second-person address that drops the seed's first-person reference.
+fn flips_person(seed: &str, wording: &str) -> bool {
+    fn count(text: &str, markers: &[&str]) -> usize {
+        words(text)
+            .iter()
+            .filter(|word| markers.contains(&word.as_str()))
+            .count()
+    }
+    const FIRST: [&str; 5] = ["i", "me", "my", "mine", "myself"];
+    const SECOND: [&str; 4] = ["you", "your", "yours", "yourself"];
+    count(wording, &SECOND) > count(seed, &SECOND) && count(wording, &FIRST) < count(seed, &FIRST)
+}
+
 fn ngram_set(text: &str, n: usize) -> BTreeSet<Vec<String>> {
     let w = words(text);
     if w.len() < n {
         return BTreeSet::new();
     }
     w.windows(n).map(|window| window.to_vec()).collect()
+}
+
+/// Maps a typed intent to the relation and act the E3 compiler assigns.
+fn relation_act(intent: &str) -> Option<(String, &'static str)> {
+    for name in relation_names() {
+        if let Some(act) = intent
+            .strip_prefix(name)
+            .and_then(|rest| rest.strip_prefix('_'))
+        {
+            let act = match act {
+                "assert" => "assert",
+                "update" => "update",
+                "query" | "absent" => "query",
+                _ => continue,
+            };
+            return Some((name.to_owned(), act));
+        }
+    }
+    None
 }
 
 fn main() -> Result<()> {
@@ -144,6 +177,7 @@ fn main() -> Result<()> {
     let mut world = MWorld2::new(&count, Mix::default())?;
     let mut rng = Rng::new(seed);
     let mut seeds: Vec<(String, String)> = Vec::new();
+    let mut seen_texts: BTreeSet<String> = BTreeSet::new();
     let train_cells = [
         Cell::new(Split::Train, Split::Train),
         Cell::new(Split::Train, Split::Development),
@@ -153,7 +187,10 @@ fn main() -> Result<()> {
             let conversation = world.conversation_in(&mut rng, cell)?;
             for turn in &conversation.turns {
                 if turn.category == Category2::Relation && !turn.user.trim().is_empty() {
-                    seeds.push((turn.intent.clone(), turn.user.clone()));
+                    let text = turn.user.trim().to_owned();
+                    if seen_texts.insert(words(&text).join(" ")) {
+                        seeds.push((turn.intent.clone(), text));
+                    }
                 }
             }
         }
@@ -194,6 +231,7 @@ fn main() -> Result<()> {
     let mut sampler = Rng::new(seed ^ 0x9E37_79B9_7F4A_7C15);
 
     let mut rows: Vec<serde_json::Value> = Vec::new();
+    let mut accepted_seen: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let (mut accepted, mut rejected_exact, mut rejected_ngram) = (0usize, 0usize, 0usize);
     for (intent, seed_text) in &seeds {
         for draw in 0..per_item {
@@ -239,17 +277,30 @@ fn main() -> Result<()> {
                 Some("copied_seed")
             } else if seed_text.trim_end().ends_with('?') != wording.trim_end().ends_with('?') {
                 Some("kind_changed")
+            } else if flips_person(seed_text, &wording) {
+                Some("person_flipped")
             } else if held_out_texts.contains(&normalized) {
                 Some("development_template_exact")
             } else if !ngram_set(&wording, 4).is_disjoint(&held_out_ngrams) {
                 Some("development_ngram4_overlap")
             } else if !preserves_values(seed_text, &wording) {
                 Some("value_changed")
+            } else if accepted_seen
+                .get(seed_text)
+                .is_some_and(|wordings| wordings.contains(&normalized))
+            {
+                Some("duplicate_wording")
             } else {
                 None
             };
             match rejection {
-                None => accepted += 1,
+                None => {
+                    accepted_seen
+                        .entry(seed_text.clone())
+                        .or_default()
+                        .insert(normalized.clone());
+                    accepted += 1;
+                }
                 Some("development_template_exact") => rejected_exact += 1,
                 Some("development_ngram4_overlap") => rejected_ngram += 1,
                 Some(_) => {}
@@ -272,6 +323,31 @@ fn main() -> Result<()> {
         jsonl.push('\n');
     }
     std::fs::write(out.join("paraphrase.jsonl"), jsonl)?;
+    let mut paraphrases = String::new();
+    let (mut consumer_rows, mut unmapped, mut duplicates) = (0usize, 0usize, 0usize);
+    let mut consumer_seen: BTreeSet<(String, &'static str, String)> = BTreeSet::new();
+    for row in &rows {
+        if row["accepted"].as_bool() != Some(true) {
+            continue;
+        }
+        let Some((relation, act)) = relation_act(row["intent"].as_str().unwrap_or_default()) else {
+            unmapped += 1;
+            continue;
+        };
+        let wording = row["wording"].as_str().unwrap_or_default();
+        if !consumer_seen.insert((relation.clone(), act, words(wording).join(" "))) {
+            duplicates += 1;
+            continue;
+        }
+        paraphrases.push_str(&serde_json::to_string(&serde_json::json!({
+            "relation": relation,
+            "act": act,
+            "text": wording,
+        }))?);
+        paraphrases.push('\n');
+        consumer_rows += 1;
+    }
+    std::fs::write(out.join("paraphrases.jsonl"), paraphrases)?;
     let manifest = serde_json::json!({
         "schema": "uor-r4.paraphrase-gen/1",
         "ruling": "owner 2026-10-01T04:14Z: teacher paraphrase data for the relation channel",
@@ -294,6 +370,13 @@ fn main() -> Result<()> {
             "guard": "reject exact normalized match, or any shared 4-word sequence",
         },
         "sampling": { "temperature": temperature, "top_p": top_p, "max_tokens": max_tokens },
+        "consumer": {
+            "file": "paraphrases.jsonl",
+            "schema": "relation, act, text for relation_compiler::paraphrase_examples",
+            "rows": consumer_rows,
+            "skipped_unmapped": unmapped,
+            "skipped_duplicate": duplicates,
+        },
         "counts": {
             "rows": rows.len(),
             "accepted": accepted,
@@ -312,12 +395,13 @@ fn main() -> Result<()> {
         return Err(invalid(format!("unlisted files: {unlisted:?}")));
     }
     println!(
-        "{} rows ({} accepted, {} exact-rejected, {} ngram-rejected) from {} seeds",
+        "{} rows ({} accepted, {} exact-rejected, {} ngram-rejected) from {} seeds; {} consumer rows",
         rows.len(),
         accepted,
         rejected_exact,
         rejected_ngram,
-        seeds.len()
+        seeds.len(),
+        consumer_rows
     );
     Ok(())
 }
@@ -327,6 +411,9 @@ fn sample(logits: &[f32], temperature: f64, top_p: f64, rng: &mut Rng) -> Result
     if logits.is_empty() || !temperature.is_finite() || temperature <= 0.0 {
         return Err(invalid("sampler needs logits and a positive temperature"));
     }
+    if !top_p.is_finite() || top_p <= 0.0 || top_p > 1.0 {
+        return Err(invalid("sampler needs top_p in (0, 1]"));
+    }
     let mut ranked: Vec<(u32, f64)> = logits
         .iter()
         .enumerate()
@@ -334,13 +421,17 @@ fn sample(logits: &[f32], temperature: f64, top_p: f64, rng: &mut Rng) -> Result
         .collect();
     ranked.sort_by(|a, b| b.1.total_cmp(&a.1));
     let maximum = ranked[0].1;
+    let weights: Vec<(u32, f64)> = ranked
+        .into_iter()
+        .map(|(index, score)| (index, (score - maximum).exp()))
+        .collect();
+    let mass: f64 = weights.iter().map(|(_, weight)| weight).sum();
     let mut total = 0.0f64;
-    let mut probs: Vec<(u32, f64)> = Vec::with_capacity(ranked.len());
-    for (index, score) in ranked {
-        let weight = (score - maximum).exp();
+    let mut probs: Vec<(u32, f64)> = Vec::with_capacity(weights.len());
+    for (index, weight) in weights {
         total += weight;
         probs.push((index, weight));
-        if total >= top_p {
+        if total >= top_p * mass {
             break;
         }
     }
@@ -353,4 +444,59 @@ fn sample(logits: &[f32], temperature: f64, top_p: f64, rng: &mut Rng) -> Result
         }
     }
     Ok(probs.last().expect("nonempty nucleus").0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nucleus_keeps_both_leading_tokens_and_validates_top_p() -> Result<()> {
+        let logits = [2.0f32, 1.9, 1.8, -12.0];
+        let mut rng = Rng::new(11);
+        let (mut first, mut second) = (false, false);
+        for _ in 0..64 {
+            let index = sample(&logits, 1.0, 0.9, &mut rng)?;
+            first |= index == 0;
+            second |= index == 1;
+        }
+        assert!(first && second);
+        assert!(sample(&logits, 1.0, 0.0, &mut rng).is_err());
+        assert!(sample(&logits, 1.0, 1.5, &mut rng).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn person_flip_needs_a_new_second_person_and_a_lost_first_person() {
+        assert!(flips_person("Where do I live?", "Where do you live?"));
+        assert!(flips_person(
+            "What's my friend called?",
+            "What is the name of your friend?"
+        ));
+        assert!(!flips_person(
+            "Do you remember my lucky number?",
+            "Can you recall my number?"
+        ));
+        assert!(!flips_person(
+            "What's my friend called?",
+            "What is the name of my friend?"
+        ));
+    }
+
+    #[test]
+    fn intents_map_to_the_compilers_relation_acts() {
+        assert_eq!(
+            relation_act("friend_name_absent"),
+            Some(("friend_name".to_owned(), "query"))
+        );
+        assert_eq!(
+            relation_act("home_assert"),
+            Some(("home".to_owned(), "assert"))
+        );
+        assert_eq!(
+            relation_act("user_name_update"),
+            Some(("user_name".to_owned(), "update"))
+        );
+        assert_eq!(relation_act("none"), None);
+    }
 }
