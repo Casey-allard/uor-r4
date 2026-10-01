@@ -17,8 +17,8 @@
 //! m-world evaluate world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
-//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] [recall=off|oracle|sieve] \
-//!   [recall_at=reply|query]
+//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] [recall=off|oracle|sieve|route] \
+//!   [recall_at=reply|query] [route_paraphrases=A.jsonl[,B.jsonl...]] [route_acts=fact|any] [route_trunk=MODEL_DIR]
 //! m-world rejudge out=NEW_REPORT_ROOT report=OLD_ROOT/m_world_evaluation.json [tokenizer=T.json]
 //! m-world evaluate-cells [world=v2] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [conversations=300] [seed=9101] [max_new_tokens=32] [teacher_forced=true] \
@@ -32,7 +32,7 @@
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
 //! m-world compiler world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [train_conversations=2000] [eval_conversations=1000] [seed=9101] [steps=400] [rate=0.5] [l2=0.0001] \
-//!   [lexical=true|false] [paraphrases=PARAPHRASES.jsonl]
+//!   [lexical=true|false] [paraphrases=A.jsonl[,B.jsonl...]]
 //! m-world probe out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json [max_new_tokens=48] \
 //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
 //! m-world probe-static out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [context=256]
@@ -156,9 +156,9 @@ use uor_r4_training::{sha256_file, Result, TrainingError};
 
 // The council's A1 amendments: cells, rule baselines, the sealed English probe.
 use uor_r4_training::milestone_world_v2::{
-    freeze_report, is_retrieval, oracle_recall, recall_line, relation_names, run_route, run_rules,
-    sieve_value, takes_recall, Category2, Cell, CellScores, Meter, RuleRun, Tag, FREEZE_LIMIT,
-    REFERENCE, REVISION,
+    freeze_report, is_retrieval, oracle_recall, recall_line, relation_names, reserved_words,
+    run_route, run_rules, sieve_value, takes_recall, Category2, Cell, CellScores, Meter, RuleRun,
+    Tag, FREEZE_LIMIT, REFERENCE, REVISION,
 };
 // E3 of the log-sieve design: the relation compiler.
 use uor_r4_training::milestone_world_v2_probe::{
@@ -167,8 +167,8 @@ use uor_r4_training::milestone_world_v2_probe::{
     EXCLUSION_NGRAM,
 };
 use uor_r4_training::relation_compiler::{
-    collect, paraphrase_examples, score, trunk_features, Example, Lexicon, Softmax, ACTS,
-    NONE as RC_NONE,
+    collect, label, paraphrase_examples, score, trunk_features, Example, Lexicon, RelationRoute,
+    Softmax, SparseSoftmax, ACTS, NONE as RC_NONE,
 };
 
 fn invalid(message: impl Into<String>) -> TrainingError {
@@ -303,6 +303,9 @@ enum Recall {
     Off,
     Oracle,
     Sieve,
+    /// The whole route: the identity channel, then the relation channel
+    /// (`uor_r4_training::relation_compiler::RelationRoute`).
+    Route,
 }
 
 /// `recall_at=` of `evaluate world=v2`: where the recall line goes, just
@@ -312,6 +315,17 @@ enum Recall {
 enum RecallAt {
     Reply,
     Query,
+}
+
+/// `route_acts=` of `evaluate recall=route`: whether the route's lookup needs
+/// a statement the table names an assert or update (`fact`, the default), or
+/// only one that holds a value (`any`). Returns whether `fact` applies.
+fn route_acts_of(args: &Args) -> Result<bool> {
+    match args.optional("route_acts").as_deref() {
+        None | Some("fact") => Ok(true),
+        Some("any") => Ok(false),
+        Some(other) => Err(invalid(format!("unknown route_acts={other}: fact or any"))),
+    }
 }
 
 fn recall_at_of(args: &Args) -> Result<RecallAt> {
@@ -329,8 +343,9 @@ fn recall_of(args: &Args) -> Result<Recall> {
         None | Some("off") => Ok(Recall::Off),
         Some("oracle") => Ok(Recall::Oracle),
         Some("sieve") => Ok(Recall::Sieve),
+        Some("route") => Ok(Recall::Route),
         Some(other) => Err(invalid(format!(
-            "unknown recall={other}: off, oracle or sieve"
+            "unknown recall={other}: off, oracle, sieve or route"
         ))),
     }
 }
@@ -1027,7 +1042,8 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
                 .enumerate()
                 .map(|(i, turn)| match recall {
                     _ if !takes_recall(turn) => None,
-                    Recall::Off => None,
+                    // Refused for a corpus before the root is claimed.
+                    Recall::Off | Recall::Route => None,
                     Recall::Oracle => Some(recall_line(oracle_recall(turn))),
                     Recall::Sieve => Some(recall_line(
                         sieve_value(&conversation.turns[..i], turn).as_deref(),
@@ -1589,10 +1605,56 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     let context = model.config.context;
     let recall = recall_of(args)?;
     let recall_at = recall_at_of(args)?;
+    let route_fact_acts = route_acts_of(args)?;
     let decode = |ids: &[u32]| tokenizer.decode(ids);
     let mut reply =
         |history: &[u32], cap: usize| greedy_reply(&model, history, cap, protocol.eos_id);
     let count = |text: &str| tokenizer.encode(text).len();
+    // recall=route fits the relation channel's word table first, from the
+    // training-phrasing draws `compiler` uses (and any teacher paraphrases),
+    // with `route_trunk=`'s features of each turn beside its words.
+    let route_trunk = match args.optional("route_trunk") {
+        Some(directory) => {
+            let (trunk, identity, _) =
+                load_model(Path::new(&directory), &device, &Selection::default())?;
+            Some((
+                trunk,
+                json!({"model": directory, "model_identity": identity}),
+            ))
+        }
+        None => None,
+    };
+    let trunk_cache: std::cell::RefCell<BTreeMap<String, Vec<f64>>> = Default::default();
+    let trunk_of = |text: &str| -> Result<Option<Vec<f64>>> {
+        let Some((trunk, _)) = &route_trunk else {
+            return Ok(None);
+        };
+        if let Some(features) = trunk_cache.borrow().get(text) {
+            return Ok(Some(features.clone()));
+        }
+        let features = trunk_features(trunk, &encoder, protocol.bos_id, text)?;
+        trunk_cache
+            .borrow_mut()
+            .insert(text.to_owned(), features.clone());
+        Ok(Some(features))
+    };
+    let (route, route_record) = if recall == Recall::Route {
+        let features =
+            |text: &str| -> Result<Vec<f64>> { trunk_of(text)?.ok_or_else(|| invalid("no trunk")) };
+        let trunk = route_trunk.as_ref().map(|(_, identity)| {
+            (
+                &features as &dyn Fn(&str) -> Result<Vec<f64>>,
+                identity.clone(),
+            )
+        });
+        let (route, record) = fit_route(&count, args.optional("route_paraphrases"), trunk)?;
+        (Some(route), Some(record))
+    } else {
+        (None, None)
+    };
+    let reserved = reserved_words();
+    // Relation queries the route's table named correctly, of those evaluated.
+    let mut route_named = (0usize, 0usize);
     let mut world = MWorld2::new(&count, mix)?;
     let mut rng = Rng::new(seed);
     let mut card = Scorecard::default();
@@ -1604,13 +1666,30 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
         let mut all = true;
         let mut turns = Vec::with_capacity(conversation.turns.len());
         for (t, turn) in conversation.turns.iter().enumerate() {
-            let line = match recall {
-                Recall::Off => None,
+            let history = &conversation.turns[..t];
+            let line = match (recall, &route) {
+                (Recall::Off, _) => None,
                 _ if !takes_recall(turn) => None,
-                Recall::Oracle => Some(recall_line(oracle_recall(turn))),
-                Recall::Sieve => Some(recall_line(
-                    sieve_value(&conversation.turns[..t], turn).as_deref(),
-                )),
+                (Recall::Oracle, _) => Some(recall_line(oracle_recall(turn))),
+                (Recall::Sieve, _) => Some(recall_line(sieve_value(history, turn).as_deref())),
+                (Recall::Route, Some(route)) => {
+                    if turn.category == Category2::Relation {
+                        let dense = trunk_of(&turn.user)?;
+                        route_named.1 += 1;
+                        route_named.0 += usize::from(
+                            route.classify(&turn.user, dense.as_deref())?.0 == label(turn).0,
+                        );
+                    }
+                    let value = match sieve_value(history, turn) {
+                        Some(value) => Some(value),
+                        None => {
+                            let mut trunk = |text: &str| trunk_of(text);
+                            route.value(history, turn, reserved, route_fact_acts, &mut trunk)?
+                        }
+                    };
+                    Some(recall_line(value.as_deref()))
+                }
+                (Recall::Route, None) => return Err(invalid("recall=route without a route")),
             };
             let mut messages = messages_through(&conversation.turns, t);
             if let Some(line) = &line {
@@ -1747,6 +1826,17 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
             "overflow_rule": "a query whose recall line leaves no room to reply is \
                               answered empty and fails",
         });
+        if let Some(record) = route_record {
+            report["recall"]["route"] = record;
+            report["recall"]["route"]["lookup_acts"] =
+                json!(if route_fact_acts { "fact" } else { "any" });
+            report["recall"]["route"]["relation_queries_named"] =
+                rate_json((route_named.0, route_named.1));
+            println!(
+                "route: the word table named the relation of {}/{} relation queries",
+                route_named.0, route_named.1
+            );
+        }
     }
     // Written before the panel, so a panel error cannot discard it.
     fs::write(
@@ -2397,6 +2487,89 @@ fn route(args: &Args, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Teacher paraphrases from a comma-separated list of `teacher-paraphrase`
+/// files, filled with `train`'s values (`paraphrase_examples`), with each
+/// file's SHA-256 and counts.
+fn load_paraphrases(list: &str, train: &[Example]) -> Result<(Vec<Example>, Value)> {
+    let (mut all, mut files) = (Vec::new(), Vec::new());
+    for path in list.split(',').filter(|p| !p.trim().is_empty()) {
+        let path = PathBuf::from(path.trim());
+        let (examples, skipped) = paraphrase_examples(&fs::read_to_string(&path)?, train)?;
+        files.push(json!({
+            "path": path.display().to_string(),
+            "sha256": sha256_file(&path)?,
+            "examples": examples.len(),
+            "skipped_without_a_value": skipped,
+        }));
+        all.extend(examples);
+    }
+    if files.is_empty() {
+        return Err(invalid("paraphrases= names no file"));
+    }
+    let record = json!({"files": files, "examples": all.len()});
+    Ok((all, record))
+}
+
+/// The relation channel's word table for `evaluate recall=route`: fitted on
+/// every user turn of relation-heavy draws with training phrasings (both value
+/// splits, 2,000 conversations each, seed 9,101: `compiler`'s draw), plus any
+/// teacher paraphrases, by 400 sparse gradient steps (rate 0.5, l2 1e-4).
+fn fit_route(
+    count: &dyn Fn(&str) -> usize,
+    paraphrases: Option<String>,
+    trunk: Option<(&dyn Fn(&str) -> Result<Vec<f64>>, Value)>,
+) -> Result<(RelationRoute, Value)> {
+    let mix = Mix {
+        mqar: 0.15,
+        copy: 0.05,
+        relation: 0.60,
+        other: 0.20,
+        ..Mix::default()
+    };
+    let mut train = Vec::new();
+    for value in [Split::Train, Split::Development] {
+        let mut world = MWorld2::new(count, mix)?;
+        let mut rng = Rng::new(9_101);
+        train.extend(collect(
+            &mut world,
+            &mut rng,
+            Cell::new(Split::Train, value),
+            2_000,
+        )?);
+    }
+    let turns = train.len();
+    let paraphrase_record = match paraphrases {
+        Some(list) => {
+            let (examples, record) = load_paraphrases(&list, &train)?;
+            train.extend(examples);
+            Some(record)
+        }
+        None => None,
+    };
+    let (route, trunk_record) = match trunk {
+        None => (RelationRoute::fit(&train, 400, 0.5, 1e-4)?, Value::Null),
+        Some((features, identity)) => {
+            let x: Vec<Vec<f64>> = train
+                .iter()
+                .map(|e| features(&e.text))
+                .collect::<Result<_>>()?;
+            (
+                RelationRoute::fit_with(&train, Some(&x), 400, 0.5, 1e-4)?,
+                identity,
+            )
+        }
+    };
+    let record = json!({
+        "trunk": trunk_record,
+        "channels": "identity (R-sieve) first; then the relation channel: the latest earlier user turn the word table names as asserting or updating the asked relation, and its words outside the world's fixed vocabulary",
+        "table": "sparse softmax over the words of a turn, 400 full-batch steps, rate 0.5, l2 1e-4",
+        "training_turns": turns,
+        "draw": "relation-heavy mix (MQAR .15, copy .05, relation .60, other .20), training phrasings, both value splits, 2,000 conversations each, seed 9101",
+        "paraphrases": paraphrase_record,
+    });
+    Ok((route, record))
+}
+
 /// `compiler` (E3 of the log-sieve design): softmax heads that name a user
 /// turn's relation and act, fitted on turns with training phrasings and scored
 /// on turns with development phrasings, from the frozen trunk's states and,
@@ -2450,15 +2623,8 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
     // Teacher paraphrases (`teacher-paraphrase`), filled with training values,
     // join the training turns; the development turns are untouched.
     let paraphrases = match args.optional("paraphrases") {
-        Some(path) => {
-            let path = PathBuf::from(path);
-            let (examples, skipped) = paraphrase_examples(&fs::read_to_string(&path)?, &train)?;
-            let record = json!({
-                "path": path.display().to_string(),
-                "sha256": sha256_file(&path)?,
-                "examples": examples.len(),
-                "skipped_without_a_value": skipped,
-            });
+        Some(list) => {
+            let (examples, record) = load_paraphrases(&list, &train)?;
             train.extend(examples);
             Some(record)
         }
@@ -2501,32 +2667,72 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
     };
     let train_relation: Vec<usize> = train.iter().map(relation_index).collect();
     let train_act: Vec<usize> = train.iter().map(act_index).collect();
+    // The dense heads: the trunk's states; and, unless `lexical=false` (the
+    // word heads depend on the turns alone, not on the trunk), the turn's
+    // words and both together. The sparse `table` head is the route's word
+    // table (`recall=route`): present words at their standardized scale.
+    let dense = |name: &str, trunk_x: &[Vec<f64>], examples: &[Example]| -> Vec<Vec<f64>> {
+        match name {
+            "trunk" => trunk_x.to_vec(),
+            "lexical" => lexical(examples),
+            _ => trunk_x
+                .iter()
+                .zip(lexical(examples))
+                .map(|(t, w)| t.iter().copied().chain(w).collect())
+                .collect(),
+        }
+    };
+    let dense_names: &[&str] = if lexical_head {
+        &["trunk", "lexical", "combined"]
+    } else {
+        &["trunk"]
+    };
+    let train_trunk = trunk(&train)?;
     let mut heads = BTreeMap::new();
-    let mut features = vec![("trunk", trunk(&train)?)];
-    // The lexical control depends on the turns alone, not on the trunk, so a
-    // second trunk on the same draw may skip it (`lexical=false`).
-    if lexical_head {
-        features.push(("lexical", lexical(&train)));
-    }
-    for (name, x) in features {
+    for name in dense_names {
+        let x = dense(name, &train_trunk, &train);
         let relation_head = Softmax::fit(&x, &train_relation, relations.len(), steps, rate, l2)?;
         let act_head = Softmax::fit(&x, &train_act, acts.len(), steps, rate, l2)?;
-        heads.insert(name, (relation_head, act_head));
+        heads.insert(*name, (relation_head, act_head));
     }
+    let table_rows: Vec<Vec<(usize, f64)>> =
+        train.iter().map(|e| lexicon.scaled(&e.text)).collect();
+    let dim = lexicon.len().max(1);
+    let table = (
+        SparseSoftmax::fit(
+            &table_rows,
+            &train_relation,
+            relations.len(),
+            dim,
+            steps,
+            rate,
+            l2,
+        )?,
+        SparseSoftmax::fit(&table_rows, &train_act, acts.len(), dim, steps, rate, l2)?,
+    );
     let mut cells_json = BTreeMap::new();
     for (cell, examples) in &tests {
         let truth_relation: Vec<usize> = examples.iter().map(relation_index).collect();
         let truth_act: Vec<usize> = examples.iter().map(act_index).collect();
-        let mut rows = BTreeMap::new();
+        let test_trunk = trunk(examples)?;
+        let mut predictions: Vec<(&str, Vec<usize>, Vec<usize>)> = Vec::new();
         for (name, (relation_head, act_head)) in &heads {
-            let x = if *name == "trunk" {
-                trunk(examples)?
-            } else {
-                lexical(examples)
-            };
-            let predicted_relation: Vec<usize> =
-                x.iter().map(|row| relation_head.predict(row)).collect();
-            let predicted_act: Vec<usize> = x.iter().map(|row| act_head.predict(row)).collect();
+            let x = dense(name, &test_trunk, examples);
+            predictions.push((
+                *name,
+                x.iter().map(|row| relation_head.predict(row)).collect(),
+                x.iter().map(|row| act_head.predict(row)).collect(),
+            ));
+        }
+        let rows_x: Vec<Vec<(usize, f64)>> =
+            examples.iter().map(|e| lexicon.scaled(&e.text)).collect();
+        predictions.push((
+            "table",
+            rows_x.iter().map(|row| table.0.predict(row)).collect(),
+            rows_x.iter().map(|row| table.1.predict(row)).collect(),
+        ));
+        let mut rows = BTreeMap::new();
+        for (name, predicted_relation, predicted_act) in predictions {
             let relation_turns = score(&relations, &truth_relation, &predicted_relation, |t| {
                 t != none
             });
@@ -2583,6 +2789,8 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
         "fit": {"steps": steps, "rate": rate, "l2": l2, "lexical_head": lexical_head, "features": {
             "trunk": "final normalized state at the assistant marker and its mean over the turn read alone (2 x width)",
             "lexical": "binary words of the training turns (a control)",
+            "combined": "trunk and lexical features together (dense, standardized)",
+            "table": "the route's sparse word table: present words at their standardized scale sqrt((1-p)/p), fitted without standardizing absent ones",
         }},
         "labels": {"relations": relations, "acts": acts},
         "gate": {
@@ -2889,6 +3097,9 @@ fn main() -> Result<()> {
                 "pointer_select",
                 "recall",
                 "recall_at",
+                "route_paraphrases",
+                "route_acts",
+                "route_trunk",
             ],
         )?,
         "rejudge" => Args::parse(rest, &["out", "report", "tokenizer"])?,
@@ -2910,6 +3121,11 @@ fn main() -> Result<()> {
         if recall == Recall::Off && args.optional("recall_at").is_some() {
             return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));
         }
+        if recall == Recall::Route {
+            return Err(invalid(
+                "a corpus takes recall=oracle or recall=sieve; route is for evaluate",
+            ));
+        }
         if args.number("context", CONTEXT)? < CONTEXT {
             return Err(invalid(format!("context must be at least {CONTEXT}")));
         }
@@ -2923,6 +3139,15 @@ fn main() -> Result<()> {
         if recall == Recall::Off && args.optional("recall_at").is_some() {
             return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));
         }
+        if recall != Recall::Route
+            && (args.optional("route_paraphrases").is_some()
+                || args.optional("route_acts").is_some())
+        {
+            return Err(invalid(
+                "route_paraphrases=, route_acts= and route_trunk= need recall=route",
+            ));
+        }
+        route_acts_of(&args)?;
     }
     let world = if mode == "rejudge" {
         World::V1
