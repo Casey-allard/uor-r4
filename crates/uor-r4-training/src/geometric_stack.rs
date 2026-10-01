@@ -839,6 +839,61 @@ impl StackModel {
         Ok(true)
     }
 
+    /// Let the model read `context` positions. Each read's age table
+    /// (`read.age`, `[heads, context]`, indexed by age) keeps every learned
+    /// entry, and each head continues past the saved context along its initial
+    /// slope from its last learned value, so a sequence no longer than the
+    /// saved context scores exactly as before. The transformer control has no
+    /// age table (its RoPE tables are computed per call). `Ok(false)` if the
+    /// context is unchanged; a smaller one is refused, as is a model with a
+    /// served representation set. The optimizer of a model must be built
+    /// after this.
+    pub fn extend_context(&mut self, context: usize) -> Result<bool> {
+        let saved = self.config.context;
+        if context == saved {
+            return Ok(false);
+        }
+        if context < saved {
+            return Err(invalid(format!(
+                "the model reads {saved} positions; a context of {context} would drop learned ages"
+            )));
+        }
+        if self.served.is_some() {
+            return Err(invalid(
+                "extend the context before setting a served representation",
+            ));
+        }
+        let mut config = self.config.clone();
+        config.context = context;
+        config.validate()?;
+        let heads = config.heads;
+        let mut extended = BTreeMap::new();
+        for (name, var) in &self.variables {
+            if !name.ends_with(".read.age") {
+                continue;
+            }
+            let learned = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            if learned.len() != heads * saved {
+                return Err(invalid(format!("{name} is not [heads, context]")));
+            }
+            let mut values = Vec::with_capacity(heads * context);
+            for (head, row) in learned.chunks(saved).enumerate() {
+                values.extend_from_slice(row);
+                // The initial slope of this head ("read.age" in `new`).
+                let slope = 2f64.powf(-8.0 * (head + 1) as f64 / heads as f64);
+                let last = f64::from(row[saved - 1]);
+                values.extend(
+                    (saved..context).map(|age| (last - slope * (age - (saved - 1)) as f64) as f32),
+                );
+            }
+            let tensor = Tensor::from_vec(values, (heads, context), &self.device)?;
+            extended.insert(name.clone(), Var::from_tensor(&tensor)?);
+        }
+        self.variables.extend(extended);
+        self.config = config;
+        Ok(true)
+    }
+
     /// Replace the flock selection of the reads. The parameters do not change.
     pub fn set_select(&mut self, select: Option<FlockSelect>) -> Result<()> {
         if let Some(select) = &select {
@@ -6817,6 +6872,82 @@ mod tests {
             select: None,
             pointer: None,
         }
+    }
+
+    #[test]
+    fn extending_the_context_keeps_every_learned_age_and_reads_further() -> Result<()> {
+        let ids: Vec<u32> = (0..20).map(|i| (i * 7 + 3) % 37).collect();
+        for (arch, pattern, read) in [
+            (StackArch::Geometric, "ar", ReadScore::Lorentz),
+            (StackArch::Geometric, "ra", ReadScore::Dot),
+            (StackArch::Transformer, "aa", ReadScore::Dot),
+        ] {
+            let rotation = arch == StackArch::Geometric;
+            let mut model = StackModel::new(tiny(arch, pattern, read, rotation), &cpu())?;
+            let before = model
+                .forward(&ids[..12], 1, 12)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let ages_before: BTreeMap<String, Vec<f32>> = model
+                .variables
+                .iter()
+                .filter(|(name, _)| name.ends_with(".read.age"))
+                .map(|(name, var)| Ok((name.clone(), var.as_tensor().flatten_all()?.to_vec1()?)))
+                .collect::<Result<_>>()?;
+            assert_eq!(ages_before.is_empty(), arch == StackArch::Transformer);
+            assert!(model.forward(&ids, 1, 20).is_err());
+            assert!(
+                model.extend_context(8).is_err(),
+                "a smaller context is refused"
+            );
+            assert!(!model.extend_context(12)?);
+            assert!(model.extend_context(20)?);
+            assert_eq!(model.config.context, 20);
+            // Within the saved context nothing changes, bit for bit.
+            let after = model
+                .forward(&ids[..12], 1, 12)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert_eq!(
+                before.iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
+                after.iter().map(|x| x.to_bits()).collect::<Vec<_>>()
+            );
+            assert!(model.forward(&ids, 1, 20).is_ok());
+            // Learned ages are kept; each head continues along its initial slope.
+            for (name, old) in &ages_before {
+                let new = model.variables[name]
+                    .as_tensor()
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                for head in 0..2 {
+                    assert_eq!(
+                        new[head * 20..head * 20 + 12],
+                        old[head * 12..head * 12 + 12]
+                    );
+                    let slope = 2f64.powf(-8.0 * (head + 1) as f64 / 2.0);
+                    for age in 12..20 {
+                        let expected = f64::from(old[head * 12 + 11]) - slope * (age - 11) as f64;
+                        assert_eq!(new[head * 20 + age], expected as f32);
+                    }
+                }
+            }
+            // The extended model saves and loads at its new context.
+            let directory = std::env::temp_dir().join(format!(
+                "geometric-stack-extend-{}-{}",
+                std::process::id(),
+                arch == StackArch::Transformer
+            ));
+            model.save(&directory)?;
+            let loaded = StackModel::load(&directory, &cpu())?;
+            fs::remove_dir_all(&directory)?;
+            assert_eq!(loaded.config, model.config);
+            assert_eq!(
+                loaded.next_scores(&ids)?,
+                model.next_scores(&ids)?,
+                "the saved model reads all 20 positions"
+            );
+        }
+        Ok(())
     }
 
     /// `config` with a small product-key memory in place of layer 1's MLP.

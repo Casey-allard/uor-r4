@@ -10,7 +10,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{invalid, Result};
 
+/// The retained study's context, the default episode context.
 pub const EPISODE_CONTEXT: usize = 256;
+/// The longest episode context a contract admits (the stack's own limit).
+pub const MAX_EPISODE_CONTEXT: usize = 4096;
 pub const SAMPLER_ID: &str = "uor-r4.dialogue-response-uniform/splitmix64-counter-rejection-v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -32,11 +35,12 @@ pub enum PrefixPolicy {
 
 impl PrefixPolicy {
     /// A command-line policy: `full_prefix` (also the default, `None`),
-    /// `role_only`, `truncated_prefix:KEEP` with KEEP from 1 to 254, or
-    /// `truncated_prefix` alone for as many prefix IDs as fit (254). The
-    /// index checks KEEP against the assistant marker's length.
+    /// `role_only`, `truncated_prefix:KEEP` with KEEP from 1 to 4,094, or
+    /// `truncated_prefix` alone for as many prefix IDs as fit at any context
+    /// (KEEP 4,094; at 256 it keeps exactly what KEEP 254 keeps). The index
+    /// checks KEEP against the assistant marker's length.
     pub fn parse(value: Option<&str>) -> Result<Self> {
-        let most = EPISODE_CONTEXT - 2;
+        let most = MAX_EPISODE_CONTEXT - 2;
         match value {
             None | Some("full_prefix") => Ok(Self::FullPrefix),
             Some("role_only") => Ok(Self::RoleOnly),
@@ -74,7 +78,7 @@ pub struct EpisodeContract {
 impl EpisodeContract {
     fn validate(&self) -> Result<()> {
         let specials = [self.bos_id, self.eos_id, self.unk_id];
-        if self.context != EPISODE_CONTEXT
+        if !(2..=MAX_EPISODE_CONTEXT).contains(&self.context)
             || self.vocab_size == 0
             || self.vocab_size > usize::from(u16::MAX) + 1
             || specials.iter().any(|&id| id as usize >= self.vocab_size)
@@ -89,7 +93,7 @@ impl EpisodeContract {
                 .iter()
                 .any(|&id| id as usize >= self.vocab_size || specials.contains(&id))
         {
-            return Err(invalid("dialogue episode protocol/256-ID context contract"));
+            return Err(invalid("dialogue episode protocol/context contract"));
         }
         Ok(())
     }
@@ -261,11 +265,11 @@ impl<'a> EpisodeIndex<'a> {
             PrefixPolicy::FullPrefix | PrefixPolicy::RoleOnly => None,
             PrefixPolicy::TruncatedPrefix { keep_last } => {
                 if keep_last < contract.assistant_marker_ids.len()
-                    || keep_last > contract.context - 2
+                    || keep_last > MAX_EPISODE_CONTEXT - 2
                 {
                     return Err(invalid(
-                        "truncated_prefix keep_last must cover the assistant marker and leave one \
-                         response ID in the context",
+                        "truncated_prefix keep_last must cover the assistant marker and be at most \
+                         4,094",
                     ));
                 }
                 Some(keep_last)
@@ -363,7 +367,7 @@ impl<'a> EpisodeIndex<'a> {
         }
         if index.episodes.is_empty() {
             return Err(invalid(
-                "dialogue corpus has no complete response fitting 256 total IDs",
+                "dialogue corpus has no complete response fitting the context",
             ));
         }
         Ok(index)
@@ -939,8 +943,8 @@ mod tests {
         let other = PrefixPolicy::TruncatedPrefix { keep_last: 65 };
         assert!(truncated.materialize(&[0], other).is_err());
         assert!(truncated.materialize(&[0], policy).is_ok());
-        // keep_last must cover the two-ID marker and leave a response ID.
-        for keep_last in [0, 1, 255, 256] {
+        // keep_last must cover the two-ID marker and be at most 4,094.
+        for keep_last in [0, 1, 4095, 4096] {
             let bad = PrefixPolicy::TruncatedPrefix { keep_last };
             assert!(EpisodeIndex::with_policy(&tokens, &mask, contract(), &sources, bad).is_err());
         }
@@ -966,15 +970,19 @@ mod tests {
         );
         assert_eq!(
             PrefixPolicy::parse(Some("truncated_prefix"))?,
-            PrefixPolicy::TruncatedPrefix { keep_last: 254 }
+            PrefixPolicy::TruncatedPrefix { keep_last: 4094 }
         );
         assert_eq!(
             PrefixPolicy::parse(Some("truncated_prefix:96"))?,
             PrefixPolicy::TruncatedPrefix { keep_last: 96 }
         );
+        assert_eq!(
+            PrefixPolicy::parse(Some("truncated_prefix:382"))?,
+            PrefixPolicy::TruncatedPrefix { keep_last: 382 }
+        );
         for bad in [
             "truncated_prefix:0",
-            "truncated_prefix:255",
+            "truncated_prefix:4095",
             "truncated_prefix:",
             "truncated_prefix:x",
             "truncated",
@@ -982,6 +990,45 @@ mod tests {
         ] {
             assert!(PrefixPolicy::parse(Some(bad)).is_err(), "{bad}");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn a_longer_context_admits_longer_documents_and_bare_truncation_fits_any() -> Result<()> {
+        // A 300-ID history: too long at 256, whole at 384.
+        let (tokens, mask) = corpus(&[(0, 3), (300, 10)]);
+        let sources = source(tokens.len());
+        let at = |context: usize| EpisodeContract {
+            context,
+            ..contract()
+        };
+        let short = EpisodeIndex::new(&tokens, &mask, at(256), &sources)?;
+        let long = EpisodeIndex::new(&tokens, &mask, at(384), &sources)?;
+        assert_eq!(short.population().eligible_responses, 1);
+        assert_eq!(long.population().eligible_responses, 2);
+        let batch = long.materialize(&[1], PrefixPolicy::FullPrefix)?;
+        assert_eq!(batch.time, 384);
+        assert_eq!(batch.rows[0].counts.prefix_positions, 1 + 302);
+        assert_eq!(batch.rows[0].counts.real_input_positions, 312);
+        // Bare truncated_prefix keeps as much as fits at either context: at
+        // 256 exactly what KEEP 254 keeps.
+        let bare = PrefixPolicy::parse(Some("truncated_prefix"))?;
+        let narrow = PrefixPolicy::TruncatedPrefix { keep_last: 254 };
+        let a = EpisodeIndex::with_policy(&tokens, &mask, at(256), &sources, bare)?;
+        let b = EpisodeIndex::with_policy(&tokens, &mask, at(256), &sources, narrow)?;
+        assert_eq!(
+            lanes(&a.materialize(&[0, 1], bare)?),
+            lanes(&b.materialize(&[0, 1], narrow)?)
+        );
+        assert_eq!(a.population(), b.population());
+        let wide = EpisodeIndex::with_policy(&tokens, &mask, at(384), &sources, bare)?;
+        assert_eq!(wide.population().truncated_prefixes, 0);
+        assert_eq!(
+            lanes(&wide.materialize(&[1], bare)?),
+            lanes(&long.materialize(&[1], PrefixPolicy::FullPrefix)?)
+        );
+        // A contract outside 2..=4096 is refused.
+        assert!(EpisodeIndex::new(&tokens, &mask, at(4097), &sources).is_err());
         Ok(())
     }
 }

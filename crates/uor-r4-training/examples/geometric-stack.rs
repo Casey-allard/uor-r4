@@ -42,7 +42,7 @@
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [transport_snap=none|icosian] [select=none|flock:WINDOW:K] [pointer=none|DIM] \
-//!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
+//!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] [context=256] \
 //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
@@ -161,6 +161,14 @@
 //! fit beside it (`truncated_prefix` alone: as many as fit). No response is
 //! cut. Its eligible population is recorded as `train_population`.
 //!
+//! `context=N` (`dialogue-train`) sets the positions the model reads (default
+//! 256, at least 256). For a new model it is a shape option; after `init=` it
+//! may only grow the saved context (`StackModel::extend_context`: every
+//! learned age is kept, and each read head continues along its initial slope,
+//! so the model scores sequences up to the saved context exactly as before).
+//! Training episodes fill the model's context; the development panel stays
+//! the retained study's 256-ID panel.
+//!
 //! `select=flock:WINDOW:K`, `pointer=DIM`, `pointer_score=dot|lorentz` and
 //! `pointer_select=none|flock:WINDOW:K|top:K` (`dialogue-train`, for fresh
 //! shapes and after `init=` alike) are the A1 retrieval mechanisms of
@@ -216,8 +224,8 @@ use uor_r4_training::geometric_stack::{
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
-    check_panel, development, episode_contract, greedy_reply, load_requests, reply_panel, trim,
-    DialogueSplit, Reply, MAX_NEW_TOKENS,
+    check_panel, development, episode_contract, episode_contract_at, greedy_reply, load_requests,
+    reply_panel, trim, DialogueSplit, Reply, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
     check_export_config, check_export_representation, check_raw_logit_evaluation,
@@ -3277,6 +3285,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "layers",
             "mlp",
             "stack_mlp",
+            "context",
             "seed",
             "policy",
             "data_seed",
@@ -3415,6 +3424,15 @@ fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig
     if let Some(select) = select_arg(args)? {
         config.select = select;
     }
+    // `context=` may only grow the saved context (`StackModel::extend_context`).
+    let context: usize = args.number("context", saved.context)?;
+    if context < saved.context {
+        return Err(invalid(format!(
+            "context={context} is shorter than the saved model's {}; a context can only grow",
+            saved.context
+        )));
+    }
+    config.context = context;
     let asked = pointer_args(args)?;
     let mut added = false;
     match saved.pointer {
@@ -3532,14 +3550,10 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     if dev_split.vocab_size() != vocab {
         return Err(invalid("the splits declare different vocabularies"));
     }
-    let (protocol, contract) = episode_contract(&tokenizer, vocab)?;
-    let train = train_split.index_for(contract.clone(), s.policy)?;
-    let dev = dev_split.index(contract)?;
-    let panel = dialogue_development::select(&dev, s.dev_seed, s.dev_per_source)?;
-    let requests = s.requests.as_deref().map(load_requests).transpose()?;
-    // After `init=`, `select=` and the pointer options extend the saved model; a
-    // pointer added to a model saved without one draws its weights from `seed=`
-    // (the saved seed by default), which its `init_seed` records.
+    // After `init=`, `select=`, `context=` and the pointer options extend the
+    // saved model; a pointer added to a model saved without one draws its
+    // weights from `seed=` (the saved seed by default), which its `init_seed`
+    // records.
     let (config, pointer_added) = match &s.init {
         Some(directory) => {
             check_init_tokenizer(directory, &s.tokenizer)?;
@@ -3556,11 +3570,20 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     } else {
         config.seed
     };
-    if config.context != EPISODE_CONTEXT || config.vocab_size != vocab {
+    if config.context < EPISODE_CONTEXT || config.vocab_size != vocab {
         return Err(invalid(
-            "the model's context must be the episodes' 256 and its vocabulary the corpus's",
+            "the model's context must be at least the development panel's 256 and its \
+             vocabulary the corpus's",
         ));
     }
+    // Training episodes fill the model's context; the development panel stays
+    // the retained study's 256-ID panel, so its scores stay comparable.
+    let (protocol, contract) = episode_contract_at(&tokenizer, vocab, config.context)?;
+    let train = train_split.index_for(contract, s.policy)?;
+    let (_, dev_contract) = episode_contract(&tokenizer, vocab)?;
+    let dev = dev_split.index(dev_contract)?;
+    let panel = dialogue_development::select(&dev, s.dev_seed, s.dev_per_source)?;
+    let requests = s.requests.as_deref().map(load_requests).transpose()?;
     if s.qat {
         check_qat_config(&config)?;
     }
@@ -3577,6 +3600,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             let model = match &s.init {
                 Some(directory) => {
                     let mut model = StackModel::load(directory, &device)?;
+                    model.extend_context(config.context)?;
                     model.set_select(config.select)?;
                     if let Some(pointer) = config.pointer {
                         // A saved head keeps its weights, its recorded seed and
@@ -4177,7 +4201,8 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   (init=ROOT/model | arch=geometric|transformer [width= heads= layers= pattern= read= rotation= \\
   stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] \\
   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
-  [pointer_select=none|flock:WINDOW:K|top:K] [seed=] [policy=] [data_seed=] [steps=] \\
+  [pointer_select=none|flock:WINDOW:K|top:K] [seed=] [context=] [policy=] [data_seed=] \\
+  [steps=] \\
   [batch=] [lr=] [warmup=] [min_lr=] [weight_decay=] [clip=] [eval_every=] [dev_seed=] \\
   [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=]
 

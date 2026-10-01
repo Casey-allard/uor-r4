@@ -123,10 +123,20 @@ impl DialogueSplit {
 }
 
 /// The literal-role protocol of `tokenizer` and the episode contract the
-/// retained study builds from it.
+/// retained study builds from it, at its 256-ID context.
 pub fn episode_contract(
     tokenizer: &ByteBpeTokenizer,
     vocab_size: usize,
+) -> Result<(DialogueProtocol, EpisodeContract)> {
+    episode_contract_at(tokenizer, vocab_size, EPISODE_CONTEXT)
+}
+
+/// [`episode_contract`] at another context: a longer one admits every
+/// response whose document fits it.
+pub fn episode_contract_at(
+    tokenizer: &ByteBpeTokenizer,
+    vocab_size: usize,
+    context: usize,
 ) -> Result<(DialogueProtocol, EpisodeContract)> {
     let protocol =
         DialogueProtocol::literal_roles_v1(tokenizer).map_err(|e| invalid(e.to_string()))?;
@@ -140,7 +150,7 @@ pub fn episode_contract(
         ));
     }
     let contract = EpisodeContract {
-        context: EPISODE_CONTEXT,
+        context,
         vocab_size,
         bos_id: protocol.bos_id,
         eos_id: protocol.eos_id,
@@ -279,7 +289,9 @@ impl Totals {
 /// study's panel report (`dialogue_development::evaluate`); here every
 /// target's NLL is computed in f64 and summed in f64. `score_fn` scores one
 /// batch of `(inputs, targets, response weights, batch, time)`; the pointer
-/// statistics it returns, if any, are pooled over the response targets.
+/// statistics it returns, if any, are pooled over the response targets. A
+/// model may read more positions than the panel's context (a context extended
+/// after the panel was fixed), so the same panel stays comparable.
 fn evaluate_development_nll<F>(
     model: &StackModel,
     index: &EpisodeIndex<'_>,
@@ -294,11 +306,12 @@ where
     let contract = index.contract();
     if !(1..=64).contains(&batch)
         || ids.is_empty()
-        || model.config.context != contract.context
+        || model.config.context < contract.context
         || model.config.vocab_size != contract.vocab_size
     {
         return Err(invalid(
-            "development needs responses, a batch of 1..64 and the model's context and vocabulary",
+            "development needs responses, a batch of 1..64, a model context of at least the \
+             panel's and the model's vocabulary",
         ));
     }
     let unique: BTreeSet<_> = ids.iter().collect();
