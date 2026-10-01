@@ -67,6 +67,7 @@ pub mod stack_prime_route;
 pub mod stack_snap_parity;
 pub mod stack_store;
 pub mod stack_tracking;
+pub mod temporal_compiler;
 
 #[cfg(test)]
 mod native_h4_contract;

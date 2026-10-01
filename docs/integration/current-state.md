@@ -138,6 +138,29 @@ current queries: this interface does not establish learned temporal intent or
 complete temporal answers. Scope/conflict/reset/forget and capability
 acceptance remain open; executed checks and delivery are recorded on #962.
 
+**Learned temporal producer (#962):** `TemporalCompiler` fits a five-class
+query-view head on supplied text/intent rows using source word identities and
+ordered adjacent-word pairs. It reuses the existing sparse cross-entropy
+learner and embeds the selected `SavedCompiler` bytes unchanged. Only a base
+predicted query is decorated; statements, corrections and unresolved base
+actions pass through unchanged. Current predictions retain `QueryCurrent`;
+historical predictions use the typed view, and a learned unresolved prediction
+requests no memory. Labels refer to recorded history, not presumed real-world
+chronology. Ordered features preserve distinctions an unordered word set loses;
+this is an interim lexical interface, not geometric-advantage evidence.
+
+The `temporal-compiler fit|score` CLI saves the complete composite artifact and
+reports isolated view selection separately from composite action accuracy,
+including base relation/act failures in the denominator. Training rows, group
+identities, feature/label order, parameters, fit settings and original base bytes
+are bound in the artifact. `grounded-session` and `m-world session` explicitly
+load legacy or composite schemas, without malformed-artifact fallback. M-world's
+existing generator still supplies current-only gold intents; it is not a temporal
+qualification set. Ordinary-text consumers do not receive gold query views.
+Construction checks and delivery are recorded on #962. A selected trained-emitter
+temporal complete-answer witness is **NOT_RUN** during the SSD pause. Unsupported
+phrasing, scope/conflict/reset/forget and full capability acceptance remain open.
+
 **Combined relation head: a recorded negative (#1552 card v20).** Dense heads
 over the R1 trunk and words name relations better than the table (0.922
 against 0.900 on development phrasings × development values). But the combined

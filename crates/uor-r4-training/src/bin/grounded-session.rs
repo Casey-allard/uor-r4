@@ -11,7 +11,8 @@
 //! ```
 //!
 //! `init` binds a sealed inference checkpoint (model and store), its
-//! tokenizer and a saved relation compiler (`m-world compiler-save`) into an
+//! tokenizer and a saved relation compiler (`m-world compiler-save`) or its
+//! learned temporal adapter (`temporal-compiler fit`) into an
 //! empty session envelope. `turn` loads an envelope in this fresh process,
 //! answers one user turn and prints its outcome as JSON; `chat` answers one
 //! user turn per line of standard input. Both save the continued session to
@@ -34,11 +35,11 @@ use std::process::ExitCode;
 use candle_core::Device;
 use serde_json::json;
 use uor_r4_tokenizer::ByteBpeTokenizer;
-use uor_r4_training::relation_compiler::SavedCompiler;
 use uor_r4_training::stack_grounded_session::{
     ContextPolicy, GroundedSession, SessionLimits, SessionScope, TurnControls, TurnOutcome,
     COMPILER_FILE,
 };
+use uor_r4_training::temporal_compiler::GroundedCompiler;
 
 type Error = Box<dyn std::error::Error>;
 
@@ -128,7 +129,7 @@ fn init(args: &Args) -> Result<(), Error> {
     let tokenizer_json = fs::read(args.path("tokenizer")?)?;
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json)
         .ok_or("unreadable tokenizer.json")?;
-    let compiler = SavedCompiler::from_bytes(fs::read(args.path("compiler")?)?)?;
+    let compiler = GroundedCompiler::from_bytes(fs::read(args.path("compiler")?)?)?;
     let scope = SessionScope {
         scope: args.or("scope", "default").as_bytes().to_vec(),
         entity: tokenizer.encode(args.or("entity", "user")),
@@ -163,8 +164,8 @@ fn init(args: &Args) -> Result<(), Error> {
 }
 
 /// Load an envelope with the compiler saved inside it.
-fn open(root: &Path) -> Result<GroundedSession<SavedCompiler>, Error> {
-    let compiler = SavedCompiler::from_bytes(fs::read(root.join(COMPILER_FILE))?)?;
+fn open(root: &Path) -> Result<GroundedSession<GroundedCompiler>, Error> {
+    let compiler = GroundedCompiler::from_bytes(fs::read(root.join(COMPILER_FILE))?)?;
     Ok(GroundedSession::load(root, compiler, &Device::Cpu)?)
 }
 

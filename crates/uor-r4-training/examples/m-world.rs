@@ -178,6 +178,7 @@ use uor_r4_training::stack_grounded_session::{
     SourceSpan, TurnCompiler, TurnControls, TurnOutcome,
 };
 use uor_r4_training::stack_store::StackStore;
+use uor_r4_training::temporal_compiler::GroundedCompiler;
 
 fn invalid(message: impl Into<String>) -> TrainingError {
     TrainingError::Invalid(message.into())
@@ -3260,7 +3261,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
     let tokenizer_json = fs::read(&tokenizer_path)?;
     let tokenizer = load_tokenizer(&tokenizer_path)?;
     let compiler_bytes = fs::read(&compiler_path)?;
-    let compiler = SavedCompiler::from_bytes(compiler_bytes.clone())?;
+    let compiler = GroundedCompiler::from_bytes(compiler_bytes.clone())?;
     let device = Device::Cpu;
     // The emitter as a sealed inference checkpoint with an empty store. Its
     // data identities are the training report's recorded inputs, bound by
@@ -3315,7 +3316,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         max_store_records: 4_096,
         context_policy: ContextPolicy::WholeCompletedTurns,
     };
-    let open = |compiler: SavedCompiler| {
+    let open = |compiler: GroundedCompiler| {
         GroundedSession::from_checkpoint_path(
             &checkpoint,
             tokenizer_json.clone(),
@@ -3353,7 +3354,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
             let mut rows = Vec::new();
             let mut outcomes = Vec::new();
             for turn in &conversation.turns {
-                let gold = gold_action(&compiler, &turn.user, turn)?;
+                let gold = gold_action(compiler.base(), &turn.user, turn)?;
                 let (pass, row, outcome) = match session.turn_with_controls(&turn.user, controls) {
                     Ok(outcome) => {
                         let pass = judge_v2(&turn.checks, &turn.user, &outcome.reply_text);
@@ -3450,7 +3451,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         let root = out.join(format!("reload-{index:04}"));
         first.save(&root).map_err(|e| invalid(e.to_string()))?;
         drop(first);
-        let reloaded = SavedCompiler::from_bytes(compiler_bytes.clone())?;
+        let reloaded = GroundedCompiler::from_bytes(compiler_bytes.clone())?;
         let mut second =
             GroundedSession::load(&root, reloaded, &device).map_err(|e| invalid(e.to_string()))?;
         for turn in &conversation.turns[middle..] {
