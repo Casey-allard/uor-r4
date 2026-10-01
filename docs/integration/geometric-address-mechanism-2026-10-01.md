@@ -1,6 +1,6 @@
 # Geometry-primary attention address mechanism, October 1
 
-References #1512, #973 and #820. Owner correction supersedes this lab's numerical-lowering next action. **Status: source-backed design; integrated address replacement and model results NOT_RUN.** Principal engineering, mathematics and independent architecture reviews agree on the separation below. Arithmetic approval of the unfinished Lorentz port is not architectural qualification.
+References #1512, #973 and #820. Owner correction supersedes this lab's numerical-lowering next action. **Status: integrated offline address replacement implemented; bounded learning results are recorded in the companion result report.** Principal engineering, mathematics and independent architecture reviews agree on the separation below. Arithmetic approval of the unfinished Lorentz port is not architectural qualification.
 
 ## Problem and retained evidence
 
@@ -32,7 +32,7 @@ The learned compatibility has unary terms and an explicit content/context cross-
 
 `score(t,j) = sum_l (Uc[l,delta_c] + Ur[l,delta_r] + P[l,delta_c,delta_r]) + radial/zero contribution + age(t-j)`.
 
-This is a new learned finite score, not a factorization or faithful numerical lowering of the old Lorentz score. Independent radial terms cannot reproduce its globally coupled lift. This is a design expression, not an implemented equation. The radial/zero contribution must be specified and compiled before model compute; merely retaining radius in metadata while the scorer ignores it is insufficient. Declare its resolution, units, rounding and factorization. Preserve NoRead and full causal support, including self, so a hidden candidate mask cannot supply the answer. Keep the current payload/value and output interfaces for the first attribution comparison and disclose their remaining dense/float work.
+This is a new learned finite score, not a factorization or faithful numerical lowering of the old Lorentz score. Independent radial terms cannot reproduce its globally coupled lift. The offline implementation executes this expression with hard signed-root relations, two 32-by-32 radial tables and ordered presence terms per lane. Radius bins are nearest physical radius to powers of two from exponents -16 through 15, with midpoint ties to the lower bin and explicit clipping and zero. The backward pass uses a declared biased directional/local radial surrogate; it is not the derivative of hard quantization. Finite potential export and the final served code producer remain unfinished. Preserve NoRead and full causal support, including self, so a hidden candidate mask cannot supply the answer. Keep the current payload/value and output interfaces for the first attribution comparison and disclose their remaining dense/float work.
 
 An empty identity is not the unit group element. Signed antipodes remain distinct. Multiple lanes retain a tuple; do not multiply all lanes into one root. A paired-H4 companion remains the fixed golden/Galois-coupled representation, never an independent second learned channel. This first signed-2I consumer does not assert a complete paired-H4 or zeta language mechanism. A Hopf observation is insufficient if the consumer needs the discarded fiber.
 
@@ -80,3 +80,15 @@ Outcomes change the next action:
 - Execution unavailable: no quality conclusion.
 
 Natural language, complete integer serving, bounded candidate indexing, energy and frontier intelligence remain separate unfinished obligations. The first geometric addressing result is an intermediate mechanism, not a redefinition of the programme goal.
+
+## Donor compilation boundary
+
+The owner reaffirmed weight-informed compilation. Learned donor token embeddings can initialize geometric placement, while donor contextual behavior can supervise capture, selection and state transitions offline. Static token coordinates alone are not a demonstrated reasoning transfer. Feed-forward layers also contain pattern-sensitive vocabulary information ([Geva et al.](https://arxiv.org/abs/2012.14913)); behavior distillation motivates transferring learned knowledge to a different student ([Hinton et al.](https://arxiv.org/abs/1503.02531)), but neither source establishes lossless geometric compilation.
+
+Preserve native and donor-informed lineages with explicit tokenizer, donor, training data and operator identities. Require independently loaded native artifacts, donor-free generated outputs, causal intervention-dependent retention and complete runtime operation/cost evidence. Donor-ranking agreement is a diagnostic with its exact scope, not the sole admission gate for a newly learned geometric mechanism. The first address fit uses no donor and makes no retained-donor-reasoning claim.
+
+## Expressivity and the next discriminating mechanism
+
+The implemented angular potential is coordinate-linear in each signed relative root: `u·delta_c + v·delta_r + delta_c^T W delta_r`. Its 120-by-120 cross matrix has rank at most four; including unary terms gives angular matrix rank at most five. It is not an arbitrary 14,400-entry conditional table. Radial terms add separately and do not condition the angular interaction on radius. These are candidate restrictions to diagnose, not assumptions of universal semantic expressivity.
+
+The next composition interface should reuse predicted role actions in their actual order. A minimum source-selection task stores the same entity with both A→B and B→A paths and distinct payloads, varies multi-token spans and gaps, and swaps the query path. An unconstrained contextual encoder can encode order under a cyclic algebra too; therefore an answer win alone cannot establish noncommutative-group advantage. Attribute algebra only after the executed path producer reuses fixed learned role actions through ordered composition with information/capacity/cost-matched controls. First retain or repair the present address artifact on its own scoped evidence.

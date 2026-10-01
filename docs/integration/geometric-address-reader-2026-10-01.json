@@ -1,0 +1,359 @@
+{
+  "source_commit": "0b2274ab4de1d9384e4391f498d4b72943fab509",
+  "elapsed_seconds": 521.679307166,
+  "schema": "uor-r4.geometric-address-result/1",
+  "executable_sha256": "16312e7d34cc6000c91f7139c56a35223a4919819db17b22f0267f1c5b662b54",
+  "seeds": [
+    {
+      "name": "Geometric-Held-s1",
+      "steps": 320,
+      "requested_steps": 320,
+      "parameters": 48131,
+      "model_sha256": "5b69b4040a002f9c87629a648c5aa7aac3de5c58070762961d5004c908ae4aa7",
+      "reload_identical": true,
+      "training_positions": 163874,
+      "padded_positions": 214080,
+      "measured": true,
+      "restoration_identical": true,
+      "panels": {
+        "rows": {
+          "rows": 128,
+          "answers": 128,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.9724154472351074,
+            0.002781494753435254
+          ],
+          "prediction_changes_from_base": 0,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 32
+            }
+          }
+        },
+        "stress_rows": {
+          "rows": 128,
+          "answers": 128,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.8375574946403503,
+            0.0021411648485809565
+          ],
+          "prediction_changes_from_base": null,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 32
+            }
+          }
+        },
+        "read_output_disabled_rows": {
+          "rows": 128,
+          "answers": 4,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.9724154472351074,
+            0.002781494753435254
+          ],
+          "prediction_changes_from_base": 124,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 1
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 1
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 1
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 1
+            }
+          }
+        },
+        "cross_factor_disabled_rows": {
+          "rows": 128,
+          "answers": 124,
+          "source_majorities": [
+            126,
+            0
+          ],
+          "min_source_mass": [
+            0.4270167350769043,
+            0.0037401090376079082
+          ],
+          "prediction_changes_from_base": 4,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 30
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 30
+            }
+          }
+        },
+        "context_factors_disabled_rows": {
+          "rows": 128,
+          "answers": 13,
+          "source_majorities": [
+            0,
+            0
+          ],
+          "min_source_mass": [
+            0.04323027655482292,
+            0.006772682536393404
+          ],
+          "prediction_changes_from_base": 115,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 4
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 2
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 2
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 5
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Geometric-Held-s2",
+      "steps": 320,
+      "requested_steps": 320,
+      "parameters": 48131,
+      "model_sha256": "b00628ad964c4ac158d00beed2fb3874be73ccfaea189a0a70db097a02c8efca",
+      "reload_identical": true,
+      "training_positions": 164068,
+      "padded_positions": 212544,
+      "measured": true,
+      "restoration_identical": true,
+      "panels": {
+        "rows": {
+          "rows": 128,
+          "answers": 128,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.9720512628555298,
+            0.0009862553561106324
+          ],
+          "prediction_changes_from_base": 0,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 32
+            }
+          }
+        },
+        "stress_rows": {
+          "rows": 128,
+          "answers": 128,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.8226754665374756,
+            0.0010949431452900171
+          ],
+          "prediction_changes_from_base": null,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 32
+            }
+          }
+        },
+        "read_output_disabled_rows": {
+          "rows": 128,
+          "answers": 9,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.9720512628555298,
+            0.0009862553561106324
+          ],
+          "prediction_changes_from_base": 119,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 0
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 4
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 4
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 1
+            }
+          }
+        },
+        "cross_factor_disabled_rows": {
+          "rows": 128,
+          "answers": 124,
+          "source_majorities": [
+            125,
+            0
+          ],
+          "min_source_mass": [
+            0.46388670802116394,
+            0.0014076132792979479
+          ],
+          "prediction_changes_from_base": 4,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 31
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 31
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 30
+            }
+          }
+        },
+        "context_factors_disabled_rows": {
+          "rows": 128,
+          "answers": 21,
+          "source_majorities": [
+            0,
+            0
+          ],
+          "min_source_mass": [
+            0.023139821365475655,
+            0.0033175921998918056
+          ],
+          "prediction_changes_from_base": 107,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 8
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 4
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 3
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 6
+            }
+          }
+        }
+      }
+    }
+  ],
+  "scope": "synthetic geometric occurrence-address feasibility in mixed offline stack; no learned-role interpretation, clear/absence qualification, natural language, integer serving, geometry superiority or energy qualification",
+  "raw_root": "/Users/casey.allard/.local/share/uor-r4/research/geometric-address-reader-20261001/run-1",
+  "checks": {
+    "address": 10,
+    "retained_latch": 10,
+    "ordinary_fused_gradient": 1
+  },
+  "panel_hashes": {
+    "evaluation.json": "eda8eaaa6ee068fd4a77463c706b5c3ec4dc2311cb1f01376feec994ac881db2",
+    "stress.json": "d1a35276cd61abbbd1b672bb7a36f30786370a942a366141b17805a414d8bfcf",
+    "report.json": "92f67ca4f4fb0fbe16e09b175e18ca0da0df4d7d05f9bbccf6c56db320cd1a4e",
+    "manifest.json": "bac5d10a9a2da59269a4f69ff4eb0496647972ca572e08e4a26c65bae1f544eb"
+  }
+}

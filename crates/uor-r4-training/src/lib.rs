@@ -23,6 +23,7 @@ pub mod dialogue_rounding;
 pub mod dialogue_rounding_artifact;
 pub mod flock;
 pub mod flock_transport;
+pub mod geometric_address;
 pub mod geometric_read;
 pub mod geometric_stack;
 pub mod grounded_session_eval;
