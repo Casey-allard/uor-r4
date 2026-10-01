@@ -13,17 +13,20 @@
 //!   [recall=off|oracle|sieve] [recall_at=reply|query] [context=256]
 //! m-world evaluate [world=v1] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
-//!   [panel=REQUESTS.json] [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
+//!   [panel=REQUESTS.json] [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
+//!   [pointer_route=none|prime:W]
 //! m-world evaluate world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
-//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] [recall=off|oracle|sieve|route] \
+//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
+//!   [pointer_route=none|prime:W] [recall=off|oracle|sieve|route] \
 //!   [recall_at=reply|query] [route_paraphrases=A.jsonl[,B.jsonl...]] [route_acts=fact|any] [route_trunk=MODEL_DIR]
 //! m-world rejudge out=NEW_REPORT_ROOT report=OLD_ROOT/m_world_evaluation.json [tokenizer=T.json]
 //! m-world evaluate-cells [world=v2] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [conversations=300] [seed=9101] [max_new_tokens=32] [teacher_forced=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
-//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
+//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
+//!   [pointer_route=none|prime:W]
 //! m-world baselines world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=2000] [seed=9101] [cells=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
@@ -34,7 +37,8 @@
 //!   [train_conversations=2000] [eval_conversations=1000] [seed=9101] [steps=400] [rate=0.5] [l2=0.0001] \
 //!   [lexical=true|false] [paraphrases=A.jsonl[,B.jsonl...]]
 //! m-world probe out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json [max_new_tokens=48] \
-//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
+//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
+//!   [pointer_route=none|prime:W]
 //! m-world probe-static out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [context=256]
 //! ```
 //!
@@ -83,6 +87,9 @@
 //! excepted), which is known only once the model is loaded. The report's
 //! `selection_override` records what was given, what the saved model had and
 //! what applied; it is null without an override.
+//! `pointer_route=prime:W` likewise replaces the pointer head's learned scores
+//! by the exact prime route (`geometric_stack::PrimeRoute`) on the loaded
+//! weights; it excludes a pointer selection (`none` clears a saved route).
 //!
 //! The council's A1 amendments (issue 1511), all world=v2:
 //!
@@ -140,7 +147,8 @@ use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
-    parse_flock_select, parse_pointer_select, PointerSelect, StackModel,
+    parse_flock_select, parse_pointer_route, parse_pointer_select, PointerSelect, PrimeRoute,
+    StackModel,
 };
 use uor_r4_training::milestone_world::{judge, normalized, Category, MWorld, Split};
 use uor_r4_training::milestone_world_v2::{
@@ -194,6 +202,8 @@ struct Selection {
     select: Option<(String, Option<FlockSelect>)>,
     /// The pointer head's own selection, likewise.
     pointer_select: Option<(String, Option<PointerSelect>)>,
+    /// The pointer head's prime route, likewise.
+    pointer_route: Option<(String, Option<PrimeRoute>)>,
 }
 
 impl Selection {
@@ -206,9 +216,14 @@ impl Selection {
             Some(text) => Some((text.clone(), parse_pointer_select(text)?)),
             None => None,
         };
+        let pointer_route = match pairs.get("pointer_route") {
+            Some(text) => Some((text.clone(), parse_pointer_route(text)?)),
+            None => None,
+        };
         Ok(Self {
             select,
             pointer_select,
+            pointer_route,
         })
     }
 
@@ -218,7 +233,7 @@ impl Selection {
     /// saved selection and the one that applies; it is `null` when neither was
     /// given.
     fn apply(&self, model: &mut StackModel) -> Result<Value> {
-        if self.select.is_none() && self.pointer_select.is_none() {
+        if self.select.is_none() && self.pointer_select.is_none() && self.pointer_route.is_none() {
             return Ok(Value::Null);
         }
         let mut record = serde_json::Map::new();
@@ -239,6 +254,17 @@ impl Selection {
                 json!({
                     "given": text, "saved": saved,
                     "effective": model.config.pointer.and_then(|pointer| pointer.select),
+                }),
+            );
+        }
+        if let Some((text, parsed)) = &self.pointer_route {
+            let saved = model.config.pointer.and_then(|pointer| pointer.route);
+            model.set_pointer_route(*parsed)?;
+            record.insert(
+                "pointer_route".into(),
+                json!({
+                    "given": text, "saved": saved,
+                    "effective": model.config.pointer.and_then(|pointer| pointer.route),
                 }),
             );
         }
@@ -3506,6 +3532,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "teacher_forced",
         "select",
         "pointer_select",
+        "pointer_route",
         "mqar_share",
         "copy_share",
         "relation_share",
@@ -3531,6 +3558,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "max_new_tokens",
         "select",
         "pointer_select",
+        "pointer_route",
     ];
     let static_probe: &[&str] = &["out", "tokenizer", "context"];
     let relation_compiler: &[&str] = &[
@@ -3548,6 +3576,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "paraphrases",
         "select",
         "pointer_select",
+        "pointer_route",
     ];
     let compiler_save_keys: &[&str] = &[
         "out",
@@ -3647,6 +3676,7 @@ fn main() -> Result<()> {
                 "other_share",
                 "select",
                 "pointer_select",
+                "pointer_route",
                 "recall",
                 "recall_at",
                 "route_paraphrases",
@@ -3730,7 +3760,14 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    const MODEL_KEYS: &[&str] = &["out", "model", "tokenizer", "select", "pointer_select"];
+    const MODEL_KEYS: &[&str] = &[
+        "out",
+        "model",
+        "tokenizer",
+        "select",
+        "pointer_select",
+        "pointer_route",
+    ];
 
     fn parse(arguments: &[&str], allowed: &[&str]) -> Result<Args> {
         let owned: Vec<String> = arguments.iter().map(|a| (*a).to_owned()).collect();
@@ -3772,9 +3809,16 @@ mod tests {
             "pointer_select=top:0",
             "pointer_select=flock:x:2",
             "pointer_select=sideways",
+            "pointer_route=prime:0",
+            "pointer_route=prime:9",
+            "pointer_route=cosine:2",
         ] {
             assert!(parse(&["out=r", bad], MODEL_KEYS).is_err(), "{bad}");
         }
+        let routed = parse(&["out=r", "pointer_route=prime:4"], MODEL_KEYS).expect("a route");
+        let (text, parsed) = routed.selection.pointer_route.as_ref().expect("a route");
+        assert_eq!(text, "prime:4");
+        assert_eq!(*parsed, Some(PrimeRoute { window: 4 }));
         // A mode that does not take them refuses them as unknown arguments.
         assert!(parse(&["out=r", "select=none"], &["out", "tokenizer"]).is_err());
     }

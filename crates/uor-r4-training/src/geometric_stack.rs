@@ -114,6 +114,7 @@ use crate::stack_export::{
     block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
 };
 use crate::stack_memory::{keys_aux_len, product_key_memory, MemoryConfig, MemoryScore};
+use crate::stack_prime_route::PrimeRegistry;
 use crate::{invalid, Result};
 
 /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
@@ -343,6 +344,29 @@ pub fn parse_pointer_select(text: &str) -> Result<Option<PointerSelect>> {
     Ok(Some(select))
 }
 
+/// A pointer route from its command-line form: `none` or `prime:<window>`.
+pub fn parse_pointer_route(text: &str) -> Result<Option<PrimeRoute>> {
+    if text == "none" {
+        return Ok(None);
+    }
+    let route = match text.split_once(':') {
+        Some(("prime", window)) => PrimeRoute {
+            window: window.parse().map_err(|_| {
+                invalid(format!(
+                    "invalid pointer route {text:?} (none or prime:<window>)"
+                ))
+            })?,
+        },
+        _ => {
+            return Err(invalid(format!(
+                "invalid pointer route {text:?} (none or prime:<window>)"
+            )))
+        }
+    };
+    route.validate()?;
+    Ok(Some(route))
+}
+
 /// The pointer-copy head (A1): `dim` is the width of its query and key.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PointerConfig {
@@ -362,6 +386,124 @@ pub struct PointerConfig {
     /// head was built with its model. A resume verifies it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub init_seed: Option<u64>,
+    /// Exact prime routing of the pointer's sources ([`PrimeRoute`]); `None`
+    /// (the default, and what a configuration saved before this field means)
+    /// keeps the learned scores.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub route: Option<PrimeRoute>,
+}
+
+/// Exact prime routing for the pointer (the prime router of ADR-0003,
+/// `docs/adr/0003-fixed-zeta-prime-route-attention.md`): its sources come from
+/// arithmetic on registered primes, not from learned query/key scores.
+///
+/// Every token id has a registered prime ([`token_prime`]; frequent, low ids
+/// get small primes). A position's key is the product of the distinct primes
+/// of its last `window` tokens. At position `t`, a source `j` is admitted when
+/// the key ending at `j - 1` lies wholly before the query's own tokens
+/// (`j - 1 <= t - window`; an overlapping key shares the query's positions,
+/// not an earlier occurrence) and shares a factor with the key ending at `t`
+/// (`gcd > 1`), and the pointer then copies the token at `j`: the value that
+/// followed a matching key. An admitted source is scored by `ln gcd` (shared
+/// rare atoms weigh more than shared common ones) plus a recency term below
+/// `ln 2`, which only orders sources with the same shared atoms; the
+/// attention is the softmax of [`ROUTE_SHARPNESS`] times that score over the
+/// admitted sources, and all zero when none is admitted. The pointer's gate,
+/// which mixes the route's copy with the generated distribution, stays
+/// learned; the route has no learned parameters of its own (its query and
+/// key widths are unused and receive no gradient).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PrimeRoute {
+    /// Tokens in each key, 1 to [`MAX_ROUTE_WINDOW`].
+    pub window: usize,
+}
+
+/// The longest key: six distinct primes below the table's bound fit a u128.
+pub const MAX_ROUTE_WINDOW: usize = 6;
+/// The fixed sharpness of the route's softmax over `ln gcd` scores.
+pub const ROUTE_SHARPNESS: f64 = 4.0;
+/// The weight of recency in a route score, below `ln 2`.
+const ROUTE_RECENCY: f64 = 0.5;
+/// How many token ids have a registered prime.
+const ROUTE_PRIMES: usize = 65_536;
+
+impl PrimeRoute {
+    pub fn validate(&self) -> Result<()> {
+        if self.window == 0 || self.window > MAX_ROUTE_WINDOW {
+            return Err(invalid(format!(
+                "a prime route's key window is 1 to {MAX_ROUTE_WINDOW} tokens"
+            )));
+        }
+        Ok(())
+    }
+}
+
+/// The registered prime of token `id` (the relation store's
+/// [`PrimeRegistry`]: the `(id + 1)`-th prime), for ids below
+/// [`ROUTE_PRIMES`]; `None` above (such a token is no atom).
+pub fn token_prime(id: u32) -> Option<u64> {
+    static REGISTRY: OnceLock<Option<PrimeRegistry>> = OnceLock::new();
+    REGISTRY
+        .get_or_init(|| PrimeRegistry::new(ROUTE_PRIMES).ok())
+        .as_ref()?
+        .prime(id)
+        .ok()
+}
+
+/// The product of the distinct primes of the `window` tokens of `ids` ending
+/// at `end` (fewer at the start).
+fn route_key(ids: &[u32], end: usize, window: usize) -> u128 {
+    let start = (end + 1).saturating_sub(window);
+    let mut key = 1u128;
+    for &id in &ids[start..=end] {
+        if let Some(p) = token_prime(id) {
+            let p = u128::from(p);
+            if !key.is_multiple_of(p) {
+                key *= p;
+            }
+        }
+    }
+    key
+}
+
+fn gcd(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        (a, b) = (b, a % b);
+    }
+    a
+}
+
+/// The route's attention of position `t` of a window whose tokens are
+/// `ids[..=t]` (see [`PrimeRoute`]): weights over the sources `0..=t`.
+fn route_attention(ids: &[u32], t: usize, route: PrimeRoute) -> Vec<f64> {
+    let mut weights = vec![0f64; t + 1];
+    let query = route_key(ids, t, route.window);
+    // Sources whose key ends before the query's first token.
+    let last = (t + 1).saturating_sub(route.window);
+    let scores: Vec<(usize, f64)> = (1..=last)
+        .filter_map(|j| {
+            let shared = gcd(query, route_key(ids, j - 1, route.window));
+            (shared > 1).then(|| {
+                (
+                    j,
+                    (shared as f64).ln() + ROUTE_RECENCY * j as f64 / (t + 1) as f64,
+                )
+            })
+        })
+        .collect();
+    let Some(top) = scores.iter().map(|&(_, s)| s).reduce(f64::max) else {
+        return weights;
+    };
+    let mut total = 0.0;
+    for &(j, score) in &scores {
+        weights[j] = (ROUTE_SHARPNESS * (score - top)).exp();
+        total += weights[j];
+    }
+    for weight in &mut weights {
+        *weight /= total;
+    }
+    weights
 }
 
 fn default_pointer_score() -> ReadScore {
@@ -380,6 +522,7 @@ impl PointerConfig {
             score: ReadScore::Dot,
             select: None,
             init_seed: None,
+            route: None,
         }
     }
 
@@ -389,6 +532,12 @@ impl PointerConfig {
         }
         if let Some(select) = &self.select {
             select.validate()?;
+        }
+        if let Some(route) = &self.route {
+            route.validate()?;
+            if self.select.is_some() {
+                return Err(invalid("a routed pointer has no selection"));
+            }
         }
         Ok(())
     }
@@ -1036,16 +1185,44 @@ impl StackModel {
         Ok(())
     }
 
+    /// Route the pointer's sources by exact prime arithmetic ([`PrimeRoute`])
+    /// instead of its learned scores, or clear the route. The parameters do
+    /// not change: the gate and the generated branch keep their weights, and
+    /// clearing the route restores the learned scores. `Some` is refused on a
+    /// model without a pointer head, or whose pointer has a selection (a
+    /// route admits its own sources).
+    pub fn set_pointer_route(&mut self, route: Option<PrimeRoute>) -> Result<()> {
+        if let Some(route) = &route {
+            route.validate()?;
+        }
+        match self.config.pointer.as_mut() {
+            Some(pointer) if route.is_some() && pointer.select.is_some() => {
+                return Err(invalid("a routed pointer has no selection; clear it first"))
+            }
+            Some(pointer) => pointer.route = route,
+            None if route.is_some() => {
+                return Err(invalid("the model has no pointer head to route"))
+            }
+            None => {}
+        }
+        Ok(())
+    }
+
     /// Replace the pointer's own selection of its sources (the pointer never
     /// reads [`StackConfig::select`]). The parameters do not change, so this
     /// applies a selection to weights trained without one, and clearing it
     /// restores the soft pointer bit for bit. `Some` is refused on a model
-    /// without a pointer head; `None` on one is a no-op.
+    /// without a pointer head or with a routed one; `None` on one is a no-op.
     pub fn set_pointer_select(&mut self, select: Option<PointerSelect>) -> Result<()> {
         if let Some(select) = &select {
             select.validate()?;
         }
         match self.config.pointer.as_mut() {
+            Some(pointer) if select.is_some() && pointer.route.is_some() => {
+                return Err(invalid(
+                    "a routed pointer has no selection; clear the route first",
+                ))
+            }
             Some(pointer) => pointer.select = select,
             None if select.is_some() => {
                 return Err(invalid("the model has no pointer head to select for"))
@@ -2275,6 +2452,7 @@ impl StackModel {
                 dim: pointer.dim,
                 score: pointer.score,
                 select: pointer.select,
+                route: pointer.route,
                 ids: ids.to_vec(),
                 targets: targets.to_vec(),
                 weights: weights.map(<[f32]>::to_vec),
@@ -2589,6 +2767,7 @@ impl StackModel {
             dim: pointer.dim,
             score: pointer.score,
             select: pointer.select,
+            route: pointer.route,
             ids: ids.to_vec(),
             targets: targets.to_vec(),
             weights: weights.map(<[f32]>::to_vec),
@@ -2661,8 +2840,9 @@ impl StackModel {
             score: pointer.score,
             select: pointer.select,
             beta: one_value(&self.pointer_beta(&p)?)?,
+            route: pointer.route,
         };
-        let attention = pointer_attention(&side, 0, time - 1, &rule)?;
+        let attention = pointer_attention(&side, 0, time - 1, &rule, ids)?;
         let gate = sigmoid_f64(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
@@ -7013,6 +7193,8 @@ struct PointerRule {
     select: Option<PointerSelect>,
     /// The Lorentz scale `exp(pointer.log_beta)`; Dot has none.
     beta: f64,
+    /// Exact prime routing, which replaces the scores and selection.
+    route: Option<PrimeRoute>,
 }
 
 /// Query row `row` of a pointer's `side` (rows `[query | key | gate logit]`,
@@ -7118,8 +7300,16 @@ fn pointer_attention(
     first: usize,
     t: usize,
     rule: &PointerRule,
+    ids: &[u32],
 ) -> candle_core::Result<Vec<f64>> {
-    pointer_weights(pointer_scores(side, first, t, rule), rule.select)
+    match rule.route {
+        // The window's tokens: `ids` is indexed like `side`'s rows.
+        Some(route) => match ids.get(first..=first + t) {
+            Some(window) => Ok(route_attention(window, t, route)),
+            None => candle_core::bail!("a routed pointer needs the window's token ids"),
+        },
+        None => pointer_weights(pointer_scores(side, first, t, rule), rule.select),
+    }
 }
 
 /// One scored position of the mixture.
@@ -7153,6 +7343,8 @@ struct PointerMixture {
     dim: usize,
     score: ReadScore,
     select: Option<PointerSelect>,
+    /// Exact prime routing of the sources ([`PrimeRoute`]): no score gradient.
+    route: Option<PrimeRoute>,
     /// The input token of every position: what the head copies.
     ids: Vec<u32>,
     targets: Vec<u32>,
@@ -7177,6 +7369,7 @@ impl PointerMixture {
             score: self.score,
             select: self.select,
             beta,
+            route: self.route,
         }
     }
 
@@ -7190,7 +7383,7 @@ impl PointerMixture {
     ) -> candle_core::Result<MixtureRow> {
         let (first, t) = (n - n % self.time, n % self.time);
         let target = self.targets[n];
-        let attention = pointer_attention(side, first, t, &self.rule(beta))?;
+        let attention = pointer_attention(side, first, t, &self.rule(beta), &self.ids)?;
         let copy: f64 = attention
             .iter()
             .zip(&self.ids[first..=first + t])
@@ -7351,7 +7544,11 @@ impl CustomOp3 for PointerMixture {
                     // p_copy is 0 whatever the scores are, so this row gives
                     // them no gradient (and none is formed: zero times the
                     // overflow would be NaN).
-                    let sources: &[f64] = if row.copy > 0.0 { &row.attention } else { &[] };
+                    let sources: &[f64] = if row.copy > 0.0 && self.route.is_none() {
+                        &row.attention
+                    } else {
+                        &[]
+                    };
                     let query = pointer_query(&s, dim, n);
                     let mut d_query = vec![0f64; dim];
                     let mut d_beta_sum = 0.0;
@@ -12510,8 +12707,9 @@ mod tests {
                         score,
                         select,
                         beta,
+                        route: None,
                     };
-                    let a = pointer_attention(&side, 0, t, &rule)?;
+                    let a = pointer_attention(&side, 0, t, &rule, &[])?;
                     let kept: Vec<bool> = match select {
                         None => vec![true; t + 1],
                         Some(PointerSelect::Flock(select)) => kept_sources(select, t, &scores),
@@ -12581,9 +12779,10 @@ mod tests {
             score: ReadScore::Lorentz,
             select: None,
             beta,
+            route: None,
         };
         for t in 0..time {
-            let a = pointer_attention(&side, 0, t, &rule)?;
+            let a = pointer_attention(&side, 0, t, &rule, &[])?;
             for j in 0..=t {
                 assert!(
                     (a[j] - f64::from(read[t * time + j])).abs() < 1e-5,
@@ -12799,11 +12998,18 @@ mod tests {
                 })
                 .collect();
             let normal: f64 = exps.iter().sum();
-            let copy: f64 = (0..=t)
-                .filter(|&j| ids[first + j] == targets[n])
-                .map(|j| exps[j] / normal)
-                .sum();
+            // A routed pointer attends by the exact route, which keeps the
+            // sources it admits.
+            let (attention, keep): (Vec<f64>, Vec<bool>) = match pointer.route {
+                Some(route) => {
+                    let attention = route_attention(&ids[first..=first + t], t, route);
+                    let admitted = attention.iter().map(|&a| a > 0.0).collect();
+                    (attention, admitted)
+                }
+                None => (exps.iter().map(|e| e / normal).collect(), keep),
+            };
             let holds = |j: usize| ids[first + j] == targets[n];
+            let copy: f64 = (0..=t).filter(|&j| holds(j)).map(|j| attention[j]).sum();
             contested |=
                 (0..=t).any(|j| keep[j] && holds(j)) && (0..=t).any(|j| keep[j] && !holds(j));
             let gate = 1.0 / (1.0 + (-(project(&wg, &hidden[n])[0] + bias)).exp());
@@ -12983,6 +13189,210 @@ mod tests {
     }
 
     #[test]
+    fn token_primes_are_the_registered_primes_in_order() {
+        assert_eq!(token_prime(0), Some(2));
+        assert_eq!(token_prime(1), Some(3));
+        assert_eq!(token_prime(9), Some(29));
+        assert_eq!(token_prime(65_535), Some(821_641));
+        assert_eq!(token_prime(65_536), None);
+        // An unregistered token is no atom of a key.
+        assert_eq!(route_key(&[65_536, 0], 1, 2), 2);
+        assert_eq!(route_key(&[1, 1, 0], 2, 3), 6);
+    }
+
+    #[test]
+    fn a_route_copies_the_value_after_the_matching_key() {
+        let two = PrimeRoute { window: 2 };
+        // "10 11 50" earlier; the query ends with "10 11".
+        let ids = [5u32, 10, 11, 50, 6, 7, 10, 11];
+        let attention = route_attention(&ids, 7, two);
+        assert_eq!(attention.len(), 8);
+        assert!(attention[3] > 0.999, "{attention:?}");
+        assert!((attention.iter().sum::<f64>() - 1.0).abs() < 1e-12);
+        // The key ending at 6 overlaps the query's own tokens: not a match.
+        assert_eq!(attention[7], 0.0);
+    }
+
+    #[test]
+    fn a_route_without_a_shared_atom_attends_nowhere() {
+        let one = PrimeRoute { window: 1 };
+        let two = PrimeRoute { window: 2 };
+        assert!(route_attention(&[1, 2, 3, 4], 3, one)
+            .iter()
+            .all(|&a| a == 0.0));
+        // The only key wholly before `[5, 6]` is `[4]`: nothing shared,
+        // although the overlapping key `[4, 5]` shares 5.
+        assert!(route_attention(&[4, 5, 6], 2, two)
+            .iter()
+            .all(|&a| a == 0.0));
+        assert_eq!(route_attention(&[9], 0, one), vec![0.0]);
+    }
+
+    #[test]
+    fn a_route_orders_by_shared_rarity_then_recency() {
+        let one = PrimeRoute { window: 1 };
+        // Two earlier 9s: the later one's successor gets more mass, by the
+        // recency term only.
+        let a = route_attention(&[9, 1, 9, 2, 9], 4, one);
+        assert!(a[1] > 0.0 && a[3] > a[1], "{a:?}");
+        let ratio = (ROUTE_SHARPNESS * ROUTE_RECENCY * 2.0 / 5.0).exp();
+        assert!((a[3] / a[1] - ratio).abs() < 1e-9);
+        assert_eq!(a[0] + a[2] + a[4], 0.0);
+        // A shared rare atom (id 300) outweighs a later shared common one
+        // (id 1).
+        let two = PrimeRoute { window: 2 };
+        let b = route_attention(&[300, 50, 1, 60, 8, 9, 1, 300], 7, two);
+        assert!(b[1] + b[2] > 0.999, "{b:?}");
+        assert!(b[2] > b[1]);
+    }
+
+    #[test]
+    fn a_route_is_validated_and_excludes_a_selection() -> Result<()> {
+        assert!(PrimeRoute { window: 0 }.validate().is_err());
+        assert!(PrimeRoute {
+            window: MAX_ROUTE_WINDOW + 1
+        }
+        .validate()
+        .is_err());
+        let route = PrimeRoute { window: 2 };
+        let mut config = PointerConfig::new(4);
+        config.route = Some(route);
+        config.validate()?;
+        config.select = Some(PointerSelect::TopK(1));
+        assert!(config.validate().is_err());
+        let mut model = pointer_model(ReadScore::Dot, Some(PointerSelect::TopK(2)), 0)?;
+        assert!(model.set_pointer_route(Some(route)).is_err());
+        model.set_pointer_select(None)?;
+        model.set_pointer_route(Some(route))?;
+        assert!(model
+            .set_pointer_select(Some(PointerSelect::TopK(2)))
+            .is_err());
+        let mut plain = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        assert!(plain.set_pointer_route(Some(route)).is_err());
+        plain.set_pointer_route(None)?;
+        // The route round-trips through the saved configuration, and a
+        // pointer without one has no key.
+        let json = serde_json::to_string(&model.config)?;
+        assert!(json.contains(r#""route":{"window":2}"#), "{json}");
+        let back: StackConfig = serde_json::from_str(&json)?;
+        assert_eq!(back.pointer.and_then(|p| p.route), Some(route));
+        model.set_pointer_route(None)?;
+        assert!(!serde_json::to_string(&model.config)?.contains("route"));
+        Ok(())
+    }
+
+    #[test]
+    fn a_routed_pointer_trains_its_gate_and_leaves_its_scores_alone() -> Result<()> {
+        // Two windows of 12 in which a token recurs with different successors,
+        // so a row admits sources that hold its target and sources that do
+        // not; the target is the next token (the window's first at its end).
+        let ids: Vec<u32> = vec![
+            1, 2, 1, 3, 1, 2, 4, 1, 3, 5, 1, 0, 7, 8, 7, 9, 7, 8, 6, 7, 9, 5, 7, 4,
+        ];
+        let targets: Vec<u32> = (0..24)
+            .map(|n| {
+                if n % 12 == 11 {
+                    ids[n - 11]
+                } else {
+                    ids[n + 1]
+                }
+            })
+            .collect();
+        let (_, _, weights) = pointer_batch();
+        let data = (&ids[..], &targets[..], &weights[..]);
+        let route = PrimeRoute { window: 1 };
+        let soft = pointer_model(ReadScore::Dot, None, 0)?;
+        let soft_loss = soft.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        let mut model = pointer_model(ReadScore::Dot, None, 0)?;
+        model.set_pointer_route(Some(route))?;
+        // The loss and every scored row are the mixture with the route's
+        // attention, and some row keeps sources with and without its target.
+        let hidden = model.hidden(&ids, 2, 12)?.to_vec2::<f32>()?;
+        let (rows, _, contested) = reference_mixture(&model, &hidden, data, (2, 12))?;
+        assert!(contested);
+        let loss = model.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        let got = f64::from(loss.to_scalar::<f32>()?);
+        let want = weighted_mean(&rows, &weights);
+        assert!(
+            (got - want).abs() < 1e-5 * want.abs().max(1.0),
+            "{got} against {want}"
+        );
+        assert_ne!(
+            got.to_bits(),
+            f64::from(soft_loss.to_scalar::<f32>()?).to_bits()
+        );
+        let scored = model.score_targets(&ids, &targets, Some(&weights), 2, 12)?;
+        for n in 0..24 {
+            assert!(
+                (scored.nll[n] - rows[n]).abs() < 1e-5 * rows[n].abs().max(1.0),
+                "row {n} scored {} against {}",
+                scored.nll[n],
+                rows[n]
+            );
+        }
+        // Generation mixes the same routed copy: the next-token score of the
+        // target is minus the row's loss.
+        for t in 0..12 {
+            if weights[t] == 0.0 {
+                continue;
+            }
+            let next = model.next_scores(&ids[..=t])?;
+            let score = f64::from(next[targets[t] as usize]);
+            assert!(
+                (score + rows[t]).abs() < 1e-4 * rows[t].abs().max(1.0),
+                "position {t}: next score {score} against {}",
+                -rows[t]
+            );
+        }
+        // The gate's gradient is the reference's; the unused query and key
+        // move nothing and get none.
+        let grads = loss.backward()?;
+        for name in ["pointer.gate.weight", "pointer.gate.bias"] {
+            let numeric = reference_derivative(&model, name, &hidden, data, (2, 12))?;
+            let analytic = grads
+                .get(model.variables()[name].as_tensor())
+                .ok_or_else(|| invalid("missing gradient"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let scale = numeric.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+            assert!(scale > 0.0, "{name} has no effect on the routed loss");
+            for (i, (&a, &n)) in analytic.iter().zip(&numeric).enumerate() {
+                assert!(
+                    (f64::from(a) - n).abs() < 2e-4 * scale + 2e-6,
+                    "{name}[{i}] analytic {a} against numeric {n}"
+                );
+            }
+        }
+        for name in ["pointer.query.weight", "pointer.key.weight"] {
+            let numeric = reference_derivative(&model, name, &hidden, data, (2, 12))?;
+            assert!(
+                numeric.iter().all(|&n| n.abs() < 1e-12),
+                "{name} moves the loss"
+            );
+            if let Some(grad) = grads.get(model.variables()[name].as_tensor()) {
+                assert!(
+                    grad.flatten_all()?
+                        .to_vec1::<f32>()?
+                        .iter()
+                        .all(|&g| g == 0.0),
+                    "{name} has a gradient under the route"
+                );
+            }
+        }
+        // Clearing the route restores the learned scores bit for bit.
+        model.set_pointer_route(None)?;
+        let cleared = model.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert_eq!(
+            cleared.to_scalar::<f32>()?.to_bits(),
+            soft_loss.to_scalar::<f32>()?.to_bits()
+        );
+        Ok(())
+    }
+
+    #[test]
     fn a_row_without_copy_mass_is_exactly_the_generated_probability() -> Result<()> {
         // A vocabulary of 4, one window of 3 positions and a pointer of width 2.
         let (vocabulary, time, dim) = (4usize, 3usize, 2usize);
@@ -13002,6 +13412,7 @@ mod tests {
             dim,
             score: ReadScore::Dot,
             select: None,
+            route: None,
             ids: ids.clone(),
             targets: targets.clone(),
             weights: None,
@@ -13077,6 +13488,7 @@ mod tests {
                 dim,
                 score,
                 select: None,
+                route: None,
                 ids: ids.clone(),
                 targets: targets.clone(),
                 weights: None,
@@ -13131,6 +13543,7 @@ mod tests {
             dim: 1,
             score: ReadScore::Dot,
             select: None,
+            route: None,
             ids: ids.clone(),
             targets: targets.clone(),
             weights: None,
@@ -13503,6 +13916,7 @@ mod tests {
             score: ReadScore::Lorentz,
             select: Some(PointerSelect::TopK(1)),
             init_seed: Some(7),
+            route: None,
         });
         let json = serde_json::to_string(&new)?;
         assert!(json.contains(r#""score":"lorentz""#), "{json}");

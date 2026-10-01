@@ -42,7 +42,8 @@
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [transport_snap=none|icosian] [select=none|flock:WINDOW:K] [pointer=none|DIM] \
-//!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] [context=256] \
+//!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
+//!   [pointer_route=none|prime:WINDOW] [context=256] \
 //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
@@ -195,6 +196,13 @@
 //! drawn fresh from `seed=` (default: the saved model's seed). That seed is
 //! recorded in the head's `init_seed` and in the report (`flock_and_pointer`);
 //! a resume verifies it (a different one is refused) and carries it forward.
+//! `pointer_route=prime:WINDOW` (`dialogue-train`) replaces the pointer's
+//! learned scores by the exact prime route of ADR-0003
+//! (`uor_r4_training::geometric_stack::PrimeRoute`): a source is admitted when
+//! the registered primes of the WINDOW tokens before it share a factor with
+//! the query's last WINDOW, and the pointer copies the token that followed;
+//! the gate still learns, the query and key get no gradient. It excludes
+//! `pointer_select=`, and `none` clears a saved route.
 //! Each evaluation reports the pointer's mean gate and hit rate on the scored
 //! targets (`dev_pointer_*` in the curve, `pointer` in the developments). The
 //! pointer has no served representation: `qat=true` and `export` refuse it,
@@ -218,9 +226,9 @@ use uor_r4_training::dialogue_development;
 use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CONTEXT};
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
-    logits_cross_entropy, parse_flock_select, parse_pointer_select, D11Interim, MapCodec,
-    PointerConfig, PointerSelect, ReadScore, ServedStatistics, StackAdamW, StackArch, StackConfig,
-    StackModel, TransportSnap, TransportUsage,
+    logits_cross_entropy, parse_flock_select, parse_pointer_route, parse_pointer_select,
+    D11Interim, MapCodec, PointerConfig, PointerSelect, PrimeRoute, ReadScore, ServedStatistics,
+    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -688,6 +696,9 @@ struct PointerArgs {
     /// `pointer_select=`: `Some(None)` is `none` (it clears a saved selection),
     /// `None` is not given.
     select: Option<Option<PointerSelect>>,
+    /// `pointer_route=`: `Some(None)` is `none` (it clears a saved route),
+    /// `None` is not given.
+    route: Option<Option<PrimeRoute>>,
 }
 
 impl PointerArgs {
@@ -702,16 +713,17 @@ impl PointerArgs {
             score: self.score.unwrap_or(ReadScore::Dot),
             select: self.select.flatten(),
             init_seed: seed,
+            route: self.route.flatten(),
         })
     }
 
-    /// `pointer_score=` and `pointer_select=` have nothing to configure
-    /// without a head, given or saved.
+    /// `pointer_score=`, `pointer_select=` and `pointer_route=` have nothing
+    /// to configure without a head, given or saved.
     fn refuse_without_head(&self) -> Result<()> {
-        if self.score.is_some() || self.select.is_some() {
+        if self.score.is_some() || self.select.is_some() || self.route.is_some() {
             return Err(invalid(
-                "pointer_score= and pointer_select= configure a pointer head: give pointer=<dim> \
-                 (the model has none)",
+                "pointer_score=, pointer_select= and pointer_route= configure a pointer head: \
+                 give pointer=<dim> (the model has none)",
             ));
         }
         Ok(())
@@ -745,10 +757,15 @@ fn pointer_args(args: &Args) -> Result<PointerArgs> {
         .optional("pointer_select")
         .map(|text| parse_pointer_select(&text))
         .transpose()?;
+    let route = args
+        .optional("pointer_route")
+        .map(|text| parse_pointer_route(&text))
+        .transpose()?;
     Ok(PointerArgs {
         head,
         score,
         select,
+        route,
     })
 }
 
@@ -3137,12 +3154,13 @@ struct DialogueSettings {
     qat: bool,
     /// Train with the transport snapped (`transport_snap=`), as `train` does.
     transport_snap: Option<TransportSnap>,
-    /// `select=`, `pointer=`, `pointer_score=` and `pointer_select=` as given
-    /// (the A1 read mechanisms).
+    /// `select=`, `pointer=`, `pointer_score=`, `pointer_select=` and
+    /// `pointer_route=` as given (the A1 read mechanisms and the prime route).
     select: Option<String>,
     pointer: Option<String>,
     pointer_score: Option<String>,
     pointer_select: Option<String>,
+    pointer_route: Option<String>,
     policy: PrefixPolicy,
     data_seed: u64,
     steps: usize,
@@ -3189,6 +3207,9 @@ impl DialogueSettings {
         }
         if let Some(select) = &self.pointer_select {
             record["pointer_select"] = json!(select);
+        }
+        if let Some(route) = &self.pointer_route {
+            record["pointer_route"] = json!(route);
         }
         record
     }
@@ -3310,6 +3331,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "pointer",
             "pointer_score",
             "pointer_select",
+            "pointer_route",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
@@ -3335,6 +3357,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         pointer: args.optional("pointer"),
         pointer_score: args.optional("pointer_score"),
         pointer_select: args.optional("pointer_select"),
+        pointer_route: args.optional("pointer_route"),
         policy: PrefixPolicy::parse(args.optional("policy").as_deref())?,
         data_seed: args.number("data_seed", 1)?,
         steps: args.number("steps", 1024)?,
@@ -3462,6 +3485,11 @@ fn init_extended_config(args: &Args, saved: &StackConfig) -> Result<(StackConfig
             }
             if let Some(select) = asked.select {
                 config.pointer = Some(PointerConfig { select, ..existing });
+            }
+            if let Some(route) = asked.route {
+                config.pointer = config
+                    .pointer
+                    .map(|pointer| PointerConfig { route, ..pointer });
             }
         }
         None => match asked.new_head(Some(args.number("seed", saved.seed)?)) {
@@ -3604,9 +3632,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                     model.set_select(config.select)?;
                     if let Some(pointer) = config.pointer {
                         // A saved head keeps its weights, its recorded seed and
-                        // (unless the run replaces it) its selection.
+                        // (unless the run replaces them) its selection and route.
                         model.add_pointer(pointer, pointer_seed)?;
+                        model.set_pointer_route(None)?;
                         model.set_pointer_select(pointer.select)?;
+                        model.set_pointer_route(pointer.route)?;
                     }
                     if model.config != config {
                         return Err(invalid(
@@ -3909,6 +3939,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "pointer": model.config.pointer,
             "pointer_score": model.config.pointer.map(|pointer| score_name(pointer.score)),
             "pointer_select": model.config.pointer.and_then(|pointer| pointer.select),
+            "pointer_route": model.config.pointer.and_then(|pointer| pointer.route),
             "pointer_head_added_to_init": pointer_added,
             // The seed the model itself records: a resumed run reports the
             // head's seed, which the resume verified, not one it was given.
@@ -4201,7 +4232,8 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   (init=ROOT/model | arch=geometric|transformer [width= heads= layers= pattern= read= rotation= \\
   stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] \\
   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
-  [pointer_select=none|flock:WINDOW:K|top:K] [seed=] [context=] [policy=] [data_seed=] \\
+  [pointer_select=none|flock:WINDOW:K|top:K] [pointer_route=none|prime:WINDOW] [seed=] \\
+  [context=] [policy=] [data_seed=] \\
   [steps=] \\
   [batch=] [lr=] [warmup=] [min_lr=] [weight_decay=] [clip=] [eval_every=] [dev_seed=] \\
   [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=]
@@ -4230,6 +4262,12 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          scale no gradient); m-world evaluate applies any selection, top:1
                          included, to saved weights afterwards. With init=, replaces the saved
                          head's selection (the weights do not change).
+  pointer_route=...      none (default) or prime:WINDOW, the exact prime route (ADR-0003): a
+                         source is admitted when the registered primes of the WINDOW tokens
+                         before it share a factor with the query's last WINDOW (1..6), scored by
+                         ln gcd plus recency, and the pointer copies the token that followed. The
+                         gate learns; the query and key get no gradient. Excludes
+                         pointer_select=. With init=, replaces the saved head's route.
   reports                each eval adds dev_pointer_mean_gate / dev_pointer_hit_rate /
                          dev_pointer_reachable_rate to the curve; all settings are in the saved
                          config.json and the report's config and flock_and_pointer.
@@ -4324,11 +4362,12 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    const KEYS: [&str; 5] = [
+    const KEYS: [&str; 6] = [
         "select",
         "pointer",
         "pointer_score",
         "pointer_select",
+        "pointer_route",
         "seed",
     ];
 
@@ -4381,9 +4420,63 @@ mod tests {
             "pointer_select=top:0",
             "pointer_select=flock:0:1",
             "pointer_select=window:3",
+            "pointer_route=prime:0",
+            "pointer_route=prime:7",
+            "pointer_route=gcd:2",
+            "pointer_route=prime",
         ] {
             assert!(pointer_args(&args(&[bad])).is_err(), "{bad}");
         }
+        assert_eq!(
+            pointer_args(&args(&["pointer_route=prime:2"]))
+                .expect("a route")
+                .route,
+            Some(Some(PrimeRoute { window: 2 }))
+        );
+        assert_eq!(
+            pointer_args(&args(&["pointer_route=none"]))
+                .expect("cleared")
+                .route,
+            Some(None)
+        );
+    }
+
+    #[test]
+    fn a_saved_head_takes_a_prime_route_without_a_selection() {
+        let with_head = saved_with_head();
+        let route = PrimeRoute { window: 2 };
+        let (config, added) = init_extended_config(&args(&["pointer_route=prime:2"]), &with_head)
+            .expect("a routed head");
+        assert!(!added);
+        assert_eq!(
+            config.pointer,
+            Some(PointerConfig {
+                route: Some(route),
+                init_seed: Some(3),
+                ..PointerConfig::new(8)
+            })
+        );
+        let mut routed = with_head.clone();
+        routed.pointer = config.pointer;
+        let (config, _) =
+            init_extended_config(&args(&["pointer_route=none"]), &routed).expect("a cleared route");
+        assert_eq!(config.pointer, with_head.pointer);
+        // A route admits its own sources: no selection with it.
+        assert!(init_extended_config(
+            &args(&["pointer_route=prime:2", "pointer_select=top:2"]),
+            &with_head
+        )
+        .is_err());
+        // A new head may be routed from the start; a route needs a head.
+        let (config, added) =
+            init_extended_config(&args(&["pointer=8", "pointer_route=prime:1"]), &saved())
+                .expect("a new routed head");
+        assert!(added);
+        assert_eq!(
+            config.pointer.and_then(|pointer| pointer.route),
+            Some(PrimeRoute { window: 1 })
+        );
+        assert!(init_extended_config(&args(&["pointer_route=prime:1"]), &saved()).is_err());
     }
 
     #[test]
@@ -4504,6 +4597,7 @@ mod tests {
                 score: ReadScore::Lorentz,
                 select: Some(PointerSelect::TopK(1)),
                 init_seed: Some(9),
+                route: None,
             })
         );
         // Without seed= it is the saved model's seed, as the weights are.
