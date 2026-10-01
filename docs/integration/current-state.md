@@ -40,6 +40,22 @@ model behavior and queue acknowledgements are different evidence. No useful
 chat, generalized reasoning, geometric advantage or energy improvement is
 claimed by this plan. See [admissibility](mechanism-admissibility-2026-10.md).
 
+**Checkpoint boundary (#1565):** `stack_checkpoint` now has a version-2
+inference format for the declared icosian transport snap, model parameters
+and optional exact `StackStore`. Unsnapped saves retain the original version-1
+fields. The loader binds `transport.json` by digest, validates its root set
+through the model loader, and rejects missing or inconsistent declarations.
+Unpersisted served/QAT state remains refused on save and load. Focused tests
+cover loaded logits, short greedy continuation and store updates; executed
+exact-head validation and delivery receipts belong to
+[#1565](https://github.com/UOR-Foundation/uor-r4/issues/1565).
+This is a library persistence interface, currently without a dialogue CLI
+consumer. A trained R1/S4 artifact witness is **NOT_RUN**. The checkpoint
+does not include the learned compiler, transcript or live session cache, and
+does not establish generated-history dialogue or D11 export. The next
+integration must consume the saved compiler and preserve the actual session
+history alongside this model/store boundary.
+
 ## Historical current-state entries
 
 Dated next tasks and lab assignments below are historical unless re-entered
