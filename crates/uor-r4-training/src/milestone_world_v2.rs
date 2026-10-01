@@ -2038,15 +2038,26 @@ pub enum Rule {
     /// words and reply with the words that follow it up to the clause end;
     /// with no such occurrence, reply "I don't know.".
     Nlet,
+    /// R-sieve: the untrained identity channel of the log-sieve design
+    /// (`docs/integration/log-sieve-retrieval-design-2026-10-01.md` §2.2,
+    /// E1), [`sieve_value`]: "It's {value}." or "I don't know.". It is a
+    /// retrieval route under test, **not** one of the instrument's freeze rules
+    /// ([`Rule::ALL`]), which it is built to pass.
+    Sieve,
 }
 
 impl Rule {
+    /// The instrument's freeze rules: [`freeze_report`] and the probe read
+    /// these alone.
     pub const ALL: [Rule; 2] = [Rule::Recency, Rule::Nlet];
+    /// Retrieval routes scored beside the reference ([`run_route`]).
+    pub const ROUTES: [Rule; 1] = [Rule::Sieve];
 
     pub const fn name(self) -> &'static str {
         match self {
             Self::Recency => "R-recency",
             Self::Nlet => "R-nlet",
+            Self::Sieve => "R-sieve",
         }
     }
 
@@ -2059,7 +2070,96 @@ impl Rule {
                 .find_map(|turn| turn.tag.values.last().cloned())
                 .unwrap_or_else(|| DONT_KNOW.to_owned()),
             Self::Nlet => nlet_reply(history, query),
+            Self::Sieve => match sieve_value(history, query) {
+                Some(value) => format!("It's {value}."),
+                None => DONT_KNOW.to_owned(),
+            },
         }
+    }
+}
+
+/// The untrained identity channel of the log-sieve design (§2.2 of
+/// `docs/integration/log-sieve-retrieval-design-2026-10-01.md`): the value
+/// an exact log of the user turns in `history` gives for `query`, or `None`.
+///
+/// - **Log.** Each earlier *user* turn, split into clauses at punctuation;
+///   replies are the model's own and are not logged as facts.
+/// - **Atoms.** The query's content words: its words outside the world's fixed
+///   vocabulary ([`reserved_words`], instrument knowledge that a learned stop
+///   list stands in for in English).
+/// - **Admission.** A clause sharing at least one query atom (exactly
+///   `gcd > 1` of the two squarefree prime products, computed as a set
+///   intersection).
+/// - **Ranking**, separate from admission: more shared atoms, then the latest
+///   clause, so the latest version wins.
+/// - **Value.** The words after the clause's first query atom up to the clause
+///   end, without a leading copula; `None` if nothing follows.
+pub fn sieve_value(history: &[Turn2], query: &Turn2) -> Option<String> {
+    let reserved = reserved_words();
+    let atoms: BTreeSet<String> = words(&query.user)
+        .into_iter()
+        .filter(|word| !reserved.contains(word))
+        .collect();
+    if atoms.is_empty() {
+        return None;
+    }
+    // (shared atoms, turn, clause) of the best clause so far, and its words.
+    let mut best: Option<((usize, usize, usize), Vec<String>)> = None;
+    for (turn_index, turn) in history.iter().enumerate() {
+        let mut clause = Vec::new();
+        let mut clause_index = 0;
+        for (word, end) in clause_words(&turn.user) {
+            clause.push(word);
+            if !end {
+                continue;
+            }
+            let shared = clause
+                .iter()
+                .filter(|word| atoms.contains(*word))
+                .collect::<BTreeSet<_>>()
+                .len();
+            let rank = (shared, turn_index, clause_index);
+            if shared > 0 && best.as_ref().is_none_or(|(top, _)| rank > *top) {
+                best = Some((rank, std::mem::take(&mut clause)));
+            }
+            clause.clear();
+            clause_index += 1;
+        }
+    }
+    let (_, clause) = best?;
+    let at = clause.iter().position(|word| atoms.contains(word))?;
+    let mut value = &clause[at + 1..];
+    if value
+        .first()
+        .is_some_and(|word| matches!(word.as_str(), "is" | "was" | "are" | "were"))
+    {
+        value = &value[1..];
+    }
+    (!value.is_empty()).then(|| value.join(" "))
+}
+
+/// The recall line of the log-sieve design's emission (§2.4): one system
+/// turn stating the found value, or that none was found.
+pub fn recall_line(value: Option<&str>) -> String {
+    match value {
+        Some(value) => format!("Memory: {value}."),
+        None => "Memory: none.".to_owned(),
+    }
+}
+
+/// Whether a turn takes a recall line: MQAR and relation queries (copy reads
+/// its own turn and takes none).
+pub fn takes_recall(turn: &Turn2) -> bool {
+    matches!(turn.category, Category2::Mqar | Category2::Relation)
+}
+
+/// The oracle's recall value for a turn that takes one ([`takes_recall`]):
+/// the value the reply must state, or `None` for an abstention.
+pub fn oracle_recall(turn: &Turn2) -> Option<&str> {
+    if turn.tag.abstain {
+        None
+    } else {
+        turn.tag.answer.as_deref()
     }
 }
 
@@ -2178,8 +2278,30 @@ pub fn run_rules(
     cell: Cell,
     conversations: usize,
 ) -> Result<BTreeMap<&'static str, RuleRun>> {
+    run_rows(world, rng, cell, conversations, &Rule::ALL)
+}
+
+/// The retrieval routes ([`Rule::ROUTES`]) and the reference replies over
+/// `conversations` episodes of `cell`, exactly as [`run_rules`] scores the
+/// freeze rules (same draws for the same world, seed and cell).
+pub fn run_route(
+    world: &mut MWorld2<'_>,
+    rng: &mut Rng,
+    cell: Cell,
+    conversations: usize,
+) -> Result<BTreeMap<&'static str, RuleRun>> {
+    run_rows(world, rng, cell, conversations, &Rule::ROUTES)
+}
+
+fn run_rows(
+    world: &mut MWorld2<'_>,
+    rng: &mut Rng,
+    cell: Cell,
+    conversations: usize,
+    rules: &[Rule],
+) -> Result<BTreeMap<&'static str, RuleRun>> {
     let mut runs: BTreeMap<&'static str, RuleRun> = BTreeMap::new();
-    for rule in Rule::ALL {
+    for rule in rules {
         runs.entry(rule.name()).or_default();
     }
     runs.entry(REFERENCE).or_default();
@@ -2190,8 +2312,8 @@ pub fn run_rules(
                 continue;
             }
             let history = &conversation.turns[..index];
-            let mut replies: Vec<(&'static str, String)> = Vec::with_capacity(3);
-            for rule in Rule::ALL {
+            let mut replies: Vec<(&'static str, String)> = Vec::with_capacity(rules.len() + 1);
+            for rule in rules {
                 replies.push((rule.name(), rule.reply(history, turn)));
             }
             replies.push((REFERENCE, turn.reply.clone()));
@@ -3077,6 +3199,61 @@ mod tests {
                 ..Tag::default()
             },
         }
+    }
+
+    #[test]
+    fn the_sieve_route_binds_by_exact_identity_and_the_latest_version() {
+        let history = [
+            hand_turn(
+                "Please remember: bol is 47, tamir is kavu.",
+                // A reply is the model's own text, never a logged fact.
+                "Sure, bol is 99.",
+                &["47", "kavu"],
+            ),
+            hand_turn("The weather is nice.", "It is.", &[]),
+        ];
+        let ask = |text: &str| hand_turn(text, "", &[]);
+        // The query's content atom admits its clause; the value follows it.
+        assert_eq!(
+            sieve_value(&history, &ask("What is bol?")).as_deref(),
+            Some("47")
+        );
+        assert_eq!(
+            sieve_value(&history, &ask("Say what tamir was.")).as_deref(),
+            Some("kavu")
+        );
+        assert_eq!(
+            Rule::Sieve.reply(&history, &ask("What is bol?")),
+            "It's 47."
+        );
+        // Unlike R-recency, the asked key decides, not the latest value.
+        assert_eq!(Rule::Recency.reply(&history, &ask("What is bol?")), "kavu");
+        // The latest version of a key wins.
+        let later = [
+            history[0].clone(),
+            hand_turn("Correction: bol is 52.", "Noted.", &["52"]),
+        ];
+        assert_eq!(
+            sieve_value(&later, &ask("What is bol?")).as_deref(),
+            Some("52")
+        );
+        // No content atom, or no clause sharing one: nothing is found.
+        assert_eq!(sieve_value(&history, &ask("What is my name?")), None);
+        assert_eq!(sieve_value(&history, &ask("What is zorpleem?")), None);
+        assert_eq!(sieve_value(&[], &ask("What is bol?")), None);
+        assert_eq!(Rule::Sieve.reply(&[], &ask("What is bol?")), DONT_KNOW);
+        // The route is not a freeze rule.
+        assert!(!Rule::ALL.contains(&Rule::Sieve));
+        assert_eq!(Rule::ROUTES, [Rule::Sieve]);
+        // Recall lines.
+        assert_eq!(recall_line(Some("47")), "Memory: 47.");
+        assert_eq!(recall_line(None), "Memory: none.");
+        let mut query = recall_item(Pool::Open);
+        query.tag.answer = Some("Zelpur".into());
+        assert!(takes_recall(&query));
+        assert_eq!(oracle_recall(&query), Some("Zelpur"));
+        query.tag.abstain = true;
+        assert_eq!(oracle_recall(&query), None);
     }
 
     #[test]

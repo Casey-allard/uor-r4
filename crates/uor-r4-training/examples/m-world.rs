@@ -9,20 +9,25 @@
 //!   exclude=REQUESTS.json [conversations=5600] [seed=1]
 //! m-world corpus world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [chat=CHAT_V0_TRAIN_DIR] \
 //!   [exclude=REQUESTS.json] [conversations=5600] [seed=1] \
-//!   [mqar_share=0.35] [copy_share=0.10] [relation_share=0.30] [other_share=0.25]
+//!   [mqar_share=0.35] [copy_share=0.10] [relation_share=0.30] [other_share=0.25] \
+//!   [recall=off|oracle|sieve] [recall_at=reply|query] [context=256]
 //! m-world evaluate [world=v1] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
 //! m-world evaluate world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
-//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
+//!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] [recall=off|oracle|sieve] \
+//!   [recall_at=reply|query]
 //! m-world rejudge out=NEW_REPORT_ROOT report=OLD_ROOT/m_world_evaluation.json [tokenizer=T.json]
 //! m-world evaluate-cells [world=v2] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [conversations=300] [seed=9101] [max_new_tokens=32] [teacher_forced=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
 //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
 //! m-world baselines world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
+//!   [split=development|train] [conversations=2000] [seed=9101] [cells=true] \
+//!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
+//! m-world route world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=2000] [seed=9101] [cells=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
 //! m-world probe out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json [max_new_tokens=48] \
@@ -102,6 +107,19 @@
 //!   `corpus world=v2` redraws any conversation that shares an 8-word user-turn
 //!   n-gram with the probe, and drops any `chat=` document whose user turns do.
 //!
+//! The log-sieve design (`docs/integration/log-sieve-retrieval-design-2026-10-01.md`,
+//! D18 outcome D), without training:
+//!
+//! - `route` (E1) scores R-sieve, the untrained identity channel, and the
+//!   reference over the episodes `baselines` draws. It is not a freeze rule.
+//! - `evaluate world=v2 recall=oracle|sieve` (E2) puts one system turn, "Memory:
+//!   {value}." or "Memory: none.", before each MQAR and relation query's reply:
+//!   the oracle's value, or R-sieve's. A query whose line leaves no room to
+//!   reply is answered empty and counted in `recall.overflow`. `recall=off`
+//!   (the default) leaves the report unchanged. `recall_at=query` puts the
+//!   line just before the query's own user turn instead, so that the question
+//!   stays the last turn.
+//!
 //! A saved transport snap is restored; a saved served representation is
 //! refused. Every root is claimed before anything is loaded and sealed at the
 //! end. Set RAYON_NUM_THREADS to bound the threads.
@@ -135,8 +153,9 @@ use uor_r4_training::{sha256_file, Result, TrainingError};
 
 // The council's A1 amendments: cells, rule baselines, the sealed English probe.
 use uor_r4_training::milestone_world_v2::{
-    freeze_report, is_retrieval, run_rules, Category2, Cell, CellScores, Meter, RuleRun, Tag,
-    FREEZE_LIMIT, REFERENCE, REVISION,
+    freeze_report, is_retrieval, oracle_recall, recall_line, run_route, run_rules, sieve_value,
+    takes_recall, Category2, Cell, CellScores, Meter, RuleRun, Tag, FREEZE_LIMIT, REFERENCE,
+    REVISION,
 };
 use uor_r4_training::milestone_world_v2_probe::{
     answer_layout, conversation_excluding_probe, history_messages, probe, probe_ngrams,
@@ -263,6 +282,49 @@ impl Args {
 enum World {
     V1,
     V2,
+}
+
+/// `recall=` of `evaluate world=v2`: the emission of the log-sieve design
+/// (`docs/integration/log-sieve-retrieval-design-2026-10-01.md` §2.4, E2).
+/// Before each MQAR and relation query's reply, one system turn states a
+/// value: none (`off`, the default), the oracle's own (`oracle`), or what the
+/// untrained identity channel finds (`sieve`, [`sieve_value`]); "none" when
+/// there is none to state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Recall {
+    Off,
+    Oracle,
+    Sieve,
+}
+
+/// `recall_at=` of `evaluate world=v2`: where the recall line goes, just
+/// before the reply (`reply`, the default) or just before the query's own
+/// user turn (`query`), so that the question stays the last turn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RecallAt {
+    Reply,
+    Query,
+}
+
+fn recall_at_of(args: &Args) -> Result<RecallAt> {
+    match args.optional("recall_at").as_deref() {
+        None | Some("reply") => Ok(RecallAt::Reply),
+        Some("query") => Ok(RecallAt::Query),
+        Some(other) => Err(invalid(format!(
+            "unknown recall_at={other}: reply or query"
+        ))),
+    }
+}
+
+fn recall_of(args: &Args) -> Result<Recall> {
+    match args.optional("recall").as_deref() {
+        None | Some("off") => Ok(Recall::Off),
+        Some("oracle") => Ok(Recall::Oracle),
+        Some("sieve") => Ok(Recall::Sieve),
+        Some(other) => Err(invalid(format!(
+            "unknown recall={other}: off, oracle or sieve"
+        ))),
+    }
 }
 
 /// The arguments only world=v2 reads.
@@ -563,6 +625,38 @@ fn messages_through(turns: &[Turn2], upto: usize) -> Vec<Message<'_>> {
     messages
 }
 
+/// A whole episode's messages with each turn's recall line (`lines[i]` for
+/// turn `i`) as a system turn just before its reply or just before its user
+/// turn, as `evaluate world=v2 recall=` places it.
+fn recalled_messages<'a>(
+    turns: &'a [Turn2],
+    lines: &'a [Option<String>],
+    at: RecallAt,
+) -> Vec<Message<'a>> {
+    let mut messages = Vec::with_capacity(3 * turns.len());
+    for (turn, line) in turns.iter().zip(lines) {
+        let system = line.as_deref().map(|content| Message {
+            role: "system",
+            content,
+        });
+        if at == RecallAt::Query {
+            messages.extend(system);
+        }
+        messages.push(Message {
+            role: "user",
+            content: &turn.user,
+        });
+        if at == RecallAt::Reply {
+            messages.extend(system);
+        }
+        messages.push(Message {
+            role: "assistant",
+            content: &turn.reply,
+        });
+    }
+    messages
+}
+
 /// The user turns of a decoded literal-role document ("User: ..." lines, with
 /// "Assistant: " and "System: " turns between them): a line that begins (after
 /// optional spaces) with a role marker opens a turn of that role, and any other
@@ -820,6 +914,15 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
     let conversations: usize = args.number("conversations", 5_600)?;
     let seed: u64 = args.number("seed", 1)?;
     let mix = mix_of(args)?;
+    // The log-sieve emission curriculum: each retrieval turn's recall line in
+    // the training episode, which the reply then answers from.
+    let recall = recall_of(args)?;
+    let recall_at = recall_at_of(args)?;
+    let context: usize = args.number("context", CONTEXT)?;
+    if context < CONTEXT {
+        return Err(invalid(format!("context must be at least {CONTEXT}")));
+    }
+    let mut recall_lines = 0usize;
     let tokenizer = load_tokenizer(&tokenizer_path)?;
     let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
@@ -905,9 +1008,37 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
                 encoded.tokens.len()
             )));
         }
-        if encoded.tokens.len() > CONTEXT {
+        // The meter checks the plain episode; with recall lines the corpus
+        // holds the episode with each retrieval turn's line added.
+        let encoded = if recall == Recall::Off {
+            encoded
+        } else {
+            let lines: Vec<Option<String>> = conversation
+                .turns
+                .iter()
+                .enumerate()
+                .map(|(i, turn)| match recall {
+                    _ if !takes_recall(turn) => None,
+                    Recall::Off => None,
+                    Recall::Oracle => Some(recall_line(oracle_recall(turn))),
+                    Recall::Sieve => Some(recall_line(
+                        sieve_value(&conversation.turns[..i], turn).as_deref(),
+                    )),
+                })
+                .collect();
+            recall_lines += lines.iter().flatten().count();
+            let messages = recalled_messages(&conversation.turns, &lines, recall_at);
+            let recalled = encoder.encode_document(&messages);
+            if recalled.emitted_turns != messages.len() || recalled.special_token_occurrences != 0 {
+                return Err(invalid(format!(
+                    "M-world v2 conversation {index} with recall lines did not encode"
+                )));
+            }
+            recalled
+        };
+        if encoded.tokens.len() > context {
             return Err(invalid(format!(
-                "M-world v2 conversation {index} has {} tokens, over the {CONTEXT}-token context",
+                "M-world v2 conversation {index} has {} tokens, over the {context}-token context",
                 encoded.tokens.len()
             )));
         }
@@ -1093,6 +1224,14 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
             "mqar_achieved_distance_by_bucket": distance_report,
             "mqar_n_requested_to_achieved": n_matrix,
             "episode_tokens_max": longest,
+            "recall": (recall != Recall::Off).then(|| json!({
+                "mode": format!("{recall:?}").to_lowercase(),
+                "at": format!("{recall_at:?}").to_lowercase(),
+                "lines": recall_lines,
+                "context": context,
+                "rule": "one system turn per MQAR and relation query, \"Memory: {value}.\" or \
+                         \"Memory: none.\"; the plain episode is the one the meter checks",
+            })),
             "episode_tokens_histogram_by_32": length_histogram
                 .iter()
                 .map(|(bucket, n)| (format!("{bucket}-{}", bucket + 31), *n))
@@ -1440,6 +1579,8 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     let device = Device::Cpu;
     let (model, identity, selection_override) = load_model(&model_dir, &device, &args.selection)?;
     let context = model.config.context;
+    let recall = recall_of(args)?;
+    let recall_at = recall_at_of(args)?;
     let decode = |ids: &[u32]| tokenizer.decode(ids);
     let mut reply =
         |history: &[u32], cap: usize| greedy_reply(&model, history, cap, protocol.eos_id);
@@ -1448,34 +1589,66 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     let mut rng = Rng::new(seed);
     let mut card = Scorecard::default();
     let (mut whole, mut judged) = (0usize, Vec::with_capacity(conversations));
+    // Queries whose recall line left no room to reply (failed, not skipped).
+    let mut recall_overflow = 0usize;
     for index in 0..conversations {
         let conversation = world.conversation(&mut rng, split)?;
         let mut all = true;
         let mut turns = Vec::with_capacity(conversation.turns.len());
         for (t, turn) in conversation.turns.iter().enumerate() {
-            let messages = messages_through(&conversation.turns, t);
+            let line = match recall {
+                Recall::Off => None,
+                _ if !takes_recall(turn) => None,
+                Recall::Oracle => Some(recall_line(oracle_recall(turn))),
+                Recall::Sieve => Some(recall_line(
+                    sieve_value(&conversation.turns[..t], turn).as_deref(),
+                )),
+            };
+            let mut messages = messages_through(&conversation.turns, t);
+            if let Some(line) = &line {
+                let system = Message {
+                    role: "system",
+                    content: line,
+                };
+                match recall_at {
+                    RecallAt::Reply => messages.push(system),
+                    // Before the query's own user turn, the last message.
+                    RecallAt::Query => messages.insert(messages.len() - 1, system),
+                }
+            }
             let prefix = encoder.encode_assistant_prefix(&messages);
             if prefix.emitted_turns != messages.len() || prefix.special_token_occurrences != 0 {
                 return Err(invalid(format!("mw2-{index:04}: turn {t} did not encode")));
             }
-            let cap = max_new_tokens.min(context.saturating_sub(prefix.tokens.len()));
-            let generated = greedy_reply(&model, &prefix.tokens, cap, protocol.eos_id)?;
-            let text_ids: Vec<u32> = generated
-                .ids
-                .iter()
-                .copied()
-                .filter(|&id| id != protocol.eos_id)
-                .collect();
-            let text = decode(&text_ids);
+            let overflow = prefix.tokens.len() >= context;
+            let (text, stop) = if overflow {
+                // Only a recall line can push an episode past the context.
+                recall_overflow += 1;
+                (String::new(), json!("recall_overflow"))
+            } else {
+                let cap = max_new_tokens.min(context - prefix.tokens.len());
+                let generated = greedy_reply(&model, &prefix.tokens, cap, protocol.eos_id)?;
+                let text_ids: Vec<u32> = generated
+                    .ids
+                    .iter()
+                    .copied()
+                    .filter(|&id| id != protocol.eos_id)
+                    .collect();
+                (decode(&text_ids), generated.stop_record())
+            };
             let pass = judge_v2(&turn.checks, &turn.user, &text);
             all &= pass;
             card.record(turn, pass);
-            turns.push(json!({
+            let mut row = json!({
                 "intent": turn.intent, "category": turn.category, "user": turn.user,
                 "reference_reply": turn.reply, "reply": text, "pass": pass,
-                "checks": turn.checks, "tag": turn.tag, "stop": generated.stop_record(),
+                "checks": turn.checks, "tag": turn.tag, "stop": stop,
                 "history_tokens": prefix.tokens.len(),
-            }));
+            });
+            if let Some(line) = &line {
+                row["recall"] = json!(line);
+            }
+            turns.push(row);
         }
         whole += usize::from(all);
         judged.push(json!({
@@ -1552,6 +1725,20 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     });
     if let (Some(report), Some(scores)) = (report.as_object_mut(), scores.as_object()) {
         report.extend(scores.clone());
+    }
+    // Only when given, so other evaluations' reports are unchanged.
+    if recall != Recall::Off {
+        println!("recall={recall:?}: {recall_overflow} queries had no room to reply");
+        report["recall"] = json!({
+            "mode": format!("{recall:?}").to_lowercase(),
+            "at": format!("{recall_at:?}").to_lowercase(),
+            "line": "one system turn per MQAR and relation query, \"Memory: {value}.\" or \
+                     \"Memory: none.\", just before the reply (at=reply) or just before the \
+                     query's own user turn (at=query)",
+            "overflow": recall_overflow,
+            "overflow_rule": "a query whose recall line leaves no room to reply is \
+                              answered empty and fails",
+        });
     }
     // Written before the panel, so a panel error cannot discard it.
     fs::write(
@@ -2128,6 +2315,80 @@ fn baselines(args: &Args, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// `route`: the untrained retrieval routes ([`Rule::ROUTES`]: R-sieve, the
+/// identity channel of the log-sieve design, E1) and the reference replies
+/// over the same episodes `baselines` draws, judged by the v2 oracle, per cell.
+/// A route is not a freeze rule and no freeze is computed; its `a1_gate`
+/// reads the keys a model's does. It tests the instrument (whether its keys
+/// repeat verbatim), not a model.
+fn route(args: &Args, out: &Path) -> Result<()> {
+    let started = Instant::now();
+    if args.optional("world").as_deref() != Some("v2") {
+        return Err(invalid("route needs world=v2"));
+    }
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let split = split_of(args)?;
+    let conversations: usize = args.number("conversations", 2_000)?;
+    let seed: u64 = args.number("seed", 9_101)?;
+    let cells: bool = args.number("cells", true)?;
+    let mix = mix_of(args)?;
+    let tokenizer = load_tokenizer(&tokenizer_path)?;
+    let count = |text: &str| tokenizer.encode(text).len();
+    let to_run: Vec<Cell> = if cells {
+        Cell::ALL.to_vec()
+    } else {
+        vec![Cell::same(split)]
+    };
+    let mut cells_json: BTreeMap<&str, Value> = BTreeMap::new();
+    for cell in &to_run {
+        let mut world = MWorld2::new(&count, mix)?;
+        let mut rng = Rng::new(seed);
+        let runs = run_route(&mut world, &mut rng, *cell, conversations)?;
+        let rows: BTreeMap<&str, Value> = runs
+            .iter()
+            .map(|(name, run)| (*name, run.card.to_json()))
+            .collect();
+        if let Some(sieve) = rows.get("R-sieve") {
+            println!(
+                "{} R-sieve: MQAR d16 {} d64 {} d200 {}; open relation {}; a1_gate {}",
+                cell.key(),
+                sieve["mqar"]["by_distance"]["16"]["rate"],
+                sieve["mqar"]["by_distance"]["64"]["rate"],
+                sieve["mqar"]["by_distance"]["200"]["rate"],
+                sieve["relation"]["open"]["rate"],
+                sieve["a1_gate"]
+            );
+        }
+        cells_json.insert(cell.key(), json!(rows));
+    }
+    let report = json!({
+        "schema": "uor-r4.m-world-route/1",
+        "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+        "world": "m-world-v2",
+        "world_digest": MWorld2::digest(),
+        "revision": REVISION,
+        "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+        "split": split,
+        "seed": seed,
+        "mix": mix,
+        "conversations_per_cell": conversations,
+        "cells_run": to_run.iter().map(|c| c.key()).collect::<Vec<_>>(),
+        "history": "reference: every retrieval turn is answered after the episode's own earlier replies",
+        "routes": {
+            "R-sieve": "the identity channel of docs/integration/log-sieve-retrieval-design-2026-10-01.md §2.2, untrained: the latest user clause sharing the most query content words (outside the world's fixed vocabulary) gives the words after the first shared one, as \"It's {value}.\"; otherwise \"I don't know.\"",
+            "reference": "the world's own reference replies through the oracle: 1.0 unless the harness is broken",
+        },
+        "scope": "an untrained route over the instrument: it tests whether the instrument's keys repeat verbatim, not a model; no freeze is computed",
+        "cells": cells_json,
+        "wall_seconds": started.elapsed().as_secs_f64(),
+    });
+    fs::write(
+        out.join("m_world_route.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    Ok(())
+}
+
 /// `probe`: the sealed 40-item English retrieval probe, answered greedily after
 /// each item's reference history and teacher-forced.
 fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
@@ -2330,6 +2591,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
     match mode {
         "evaluate-cells" => Some(claimed(rest, cells, evaluate_cells)),
         "baselines" => Some(claimed(rest, baseline, baselines)),
+        "route" => Some(claimed(rest, baseline, route)),
         "probe" => Some(claimed(rest, evaluate_probe, probe_evaluate)),
         "probe-static" => Some(claimed(rest, static_probe, probe_static)),
         _ => None,
@@ -2375,6 +2637,9 @@ fn main() -> Result<()> {
                 "copy_share",
                 "relation_share",
                 "other_share",
+                "recall",
+                "recall_at",
+                "context",
             ],
         )?,
         "evaluate" => Args::parse(
@@ -2395,11 +2660,43 @@ fn main() -> Result<()> {
                 "other_share",
                 "select",
                 "pointer_select",
+                "recall",
+                "recall_at",
             ],
         )?,
         "rejudge" => Args::parse(rest, &["out", "report", "tokenizer"])?,
         other => return Err(invalid(format!("unknown mode {other}"))),
     };
+    // `recall=` and `recall_at=` are checked before the root is claimed: a
+    // malformed value, or one given to world=v1, claims nothing.
+    if mode == "corpus" {
+        let recall = recall_of(&args)?;
+        recall_at_of(&args)?;
+        let v1 = world_of(&args)? == World::V1;
+        if v1
+            && (recall != Recall::Off
+                || args.optional("recall_at").is_some()
+                || args.optional("context").is_some())
+        {
+            return Err(invalid("recall=, recall_at= and context= need world=v2"));
+        }
+        if recall == Recall::Off && args.optional("recall_at").is_some() {
+            return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));
+        }
+        if args.number("context", CONTEXT)? < CONTEXT {
+            return Err(invalid(format!("context must be at least {CONTEXT}")));
+        }
+    }
+    if mode == "evaluate" {
+        let recall = recall_of(&args)?;
+        recall_at_of(&args)?;
+        if recall != Recall::Off && world_of(&args)? != World::V2 {
+            return Err(invalid("recall= needs world=v2"));
+        }
+        if recall == Recall::Off && args.optional("recall_at").is_some() {
+            return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));
+        }
+    }
     let world = if mode == "rejudge" {
         World::V1
     } else {
