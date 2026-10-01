@@ -125,6 +125,32 @@ development conversations replayed this way, one process per turn, match the
 in-process run on 14/14 turns: reply, action and recall. Full #962
 temporal/scope/conflict and capability acceptance stays open.
 
+**Combined relation head: a recorded negative (#1552 card v20).** Dense heads
+over the R1 trunk and words name relations better than the table (0.922
+against 0.900 on development phrasings × development values). But the combined
+act head almost never chooses an update (Correct exact 41/313, against 272/313
+for the table). Corrections then become bare asserts, which the store marks as
+conflicts. In the session the default arm falls to 26/52 open relation,
+against 34/52 for v19, so the v19 table compiler stays integrated. The source
+stays unmerged on `codex/compiler-combined`. The run stopped at its reload
+step on an SSD read fault, so v20 reload continuity was not measured.
+
+**Reviewed paraphrase labels (#1573).** Each of the 776 raw teacher
+paraphrases was judged against a rubric frozen before review. The outcome was
+372 keep, 22 relabel, 260 drop and 122 exact duplicates, giving a 394-row
+derivative over all ten relations; `hometown/update` is empty. The
+`paraphrase-review` tool checks every decision against the raw text and
+recomputes duplicates. The paired fit (reviewed against raw, everything else
+fixed) is the next causal test of label quality. It waits for the storage
+repair below.
+
+**Storage incident, 1 October (#820).** A region of at most 1 MiB in one band of
+`UOR-Workspace.sparsebundle` on the exFAT X10 Pro returns I/O errors. Four
+regenerable Claude roots written about 09:10–09:30 UTC are unreadable:
+`compiler-save-1/2` and `session-1/2`. Their numbers above were recorded on
+#1552 before the fault. By owner ruling, all labs pause SSD writes until the
+owner has backed up unique material and run First Aid.
+
 **Learning-data diagnosis:** a deterministic 40-row stratified audit of the
 373 accepted `paraphrases-1` rows found actual inherited-label errors, including
 user/addressee reversal and hometown/current-home confusion. The
