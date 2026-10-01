@@ -26,7 +26,7 @@ use uor_r4_core::report_output;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 use uor_r4_training::kappa_llama::{load_checkpoint, KappaLlama, ScoreKind, Trainable};
 use uor_r4_training::milestone_world::Split;
-use uor_r4_training::milestone_world_v2::{relation_names, Category2, Cell, MWorld2, Mix};
+use uor_r4_training::milestone_world_v2::{relation_names, Cell, MWorld2, Mix};
 use uor_r4_training::stack_tracking::Rng;
 use uor_r4_training::{sha256_file, Result, TrainingError};
 
@@ -79,6 +79,24 @@ fn words(text: &str) -> Vec<String> {
         .filter(|w| !w.is_empty())
         .map(str::to_owned)
         .collect()
+}
+
+fn strip_prompt_labels(text: &str) -> String {
+    let mut rest = text.trim().to_owned();
+    loop {
+        rest = rest
+            .trim_matches(|c: char| c == '"' || c == '\u{201c}' || c == '\u{201d}' || c == '\'')
+            .trim()
+            .to_owned();
+        let lowered = rest.to_lowercase();
+        let label = ["rewrite:", "rewritten:", "paraphrase:", "paraphrased:"]
+            .iter()
+            .find(|label| lowered.starts_with(**label));
+        match label {
+            Some(label) => rest = rest[label.len()..].to_owned(),
+            None => return rest,
+        }
+    }
 }
 
 /// Every digit run and capitalized non-initial token of the seed must survive the
@@ -186,7 +204,7 @@ fn main() -> Result<()> {
         for _ in 0..conversations {
             let conversation = world.conversation_in(&mut rng, cell)?;
             for turn in &conversation.turns {
-                if turn.category == Category2::Relation && !turn.user.trim().is_empty() {
+                if relation_act(&turn.intent).is_some() && !turn.user.trim().is_empty() {
                     let text = turn.user.trim().to_owned();
                     if seen_texts.insert(words(&text).join(" ")) {
                         seeds.push((turn.intent.clone(), text));
@@ -264,12 +282,7 @@ fn main() -> Result<()> {
                 },
                 None => generated,
             };
-            let wording = tokenizer.decode(&generated);
-            let wording = wording
-                .trim()
-                .trim_matches(|c: char| c == '"' || c == '\u{201c}' || c == '\u{201d}' || c == '\'')
-                .trim()
-                .to_owned();
+            let wording = strip_prompt_labels(&tokenizer.decode(&generated));
             let normalized = words(&wording).join(" ");
             let rejection = if normalized.is_empty() {
                 Some("empty")
@@ -481,6 +494,22 @@ mod tests {
             "What's my friend called?",
             "What is the name of my friend?"
         ));
+    }
+
+    #[test]
+    fn prompt_labels_are_stripped_from_wordings() {
+        assert_eq!(
+            strip_prompt_labels("\"Rewrite: I am from Dulseestfield.\""),
+            "I am from Dulseestfield."
+        );
+        assert_eq!(
+            strip_prompt_labels("Paraphrased: Where do I live?"),
+            "Where do I live?"
+        );
+        assert_eq!(
+            strip_prompt_labels("  What is my name?  "),
+            "What is my name?"
+        );
     }
 
     #[test]
