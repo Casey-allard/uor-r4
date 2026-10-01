@@ -25,11 +25,25 @@ engine. A development integration can diagnose an imperfect compiler without
 promoting it or rewriting E3's failed gate.
 
 **Concurrent work:** the owner authorized Claude's E4 end-to-end diagnostic
-(v12 on #1552, after v11) while this roadmap was drafted. Its reported result is open relation 25/52, closed 2/17 and MQAR 106/109;
-paraphrases did not change that sparse-table route. Closed values are dropped
-by its extraction rule, so this is an interface defect, not evidence against
-exact memory. The owner then authorized v13 teacher data plus classifier work.
-Preserve that current work and consume its outputs before selecting another fit. Claude owns its
+(v12 on #1552, after v11) while this roadmap was drafted, then v13 teacher
+data plus classifier work. Every figure below is a development-cell diagnostic
+(`m-world evaluate world=v2 conversations=300 seed=9101`, `emit-1`, one draw),
+not a gate claim:
+
+| Card | Result |
+|---|---|
+| v13 | Second SmolLM2 batch: 403 kept, 23 screened (`b9a5f451…`); raw union 776 wordings |
+| v14 | E3 with both batches: the gated R1 trunk head stays below its gate (relation 1,754/2,098 = 0.836, act 0.766). Dense combined head 0.949, word table 0.900 on relations |
+| v12 → v15 → v16 | E4 open relation 25/52 → 30/52 (fixed table scale, both batches) → **36/52** (`route_acts=any`). MQAR 106/109 throughout. Oracle recall line 48/52; best trained read 27/52 |
+| v17 | R1 trunk features appended to the table: 33/52, a recorded negative variant |
+
+v16's 16 open-relation misses are 14 lookups and 2 emissions. The lookups are
+earlier statements in development wording, mostly `user_name` and `hometown`,
+named as another relation. Closed values (2/17) are dropped by the extraction
+rule, so this is an interface defect, not evidence against exact memory. No
+further route variant runs without new causal evidence. v14–v16 trained on the
+raw union, which carries audited label errors (below), so they measure that raw
+recipe, not validated supervision. Claude owns its
 compiler/emitter source; DeepSeek owns its current data/read task. Codex delivered
 plan/issue adoption in #1564 and checkpoint persistence in #1566, and now owns
 the complementary #962 session consumer. No model slot or another lab's source

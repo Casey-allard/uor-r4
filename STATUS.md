@@ -12,7 +12,7 @@ own results. This page is navigation, not an independent results ledger.
 | Boundary | Current evidence and remaining work |
 |---|---|
 | Exact retrieval and emission | E1 lexical sieve reports 747/747 development MQAR and independent reproduction. emit-1 (2.1M, context 384) gets 106/109 with supplied recall; oracle open relation 48/52 versus lexical sieve 1/52. These are harness results with reference history/category assistance, not a served memory assistant. |
-| Semantic compiler | E3 v11 R1 + 373 paraphrases: relation 1737/2098 (0.828), act 0.772; lexical relation 1756/2098 (0.837). Original 0.9/0.95 gate fails. Heads/typed spans and a complete saved predicted-input session are unfinished. E3 training includes development-value identities, so this is not unseen-value evidence. |
+| Semantic compiler | E3 v14 R1 + 776 raw teacher paraphrases: gated trunk head relation 1754/2098 (0.836), act 0.766; dense combined head 0.949 and word table 0.900 on relations. Original 0.9/0.95 gate fails. The raw paraphrases carry audited label errors. Typed spans and a saved predicted-input compiler are unfinished. E3 training includes development-value identities, so this is not unseen-value evidence. |
 | Durable grounding | Exact store components exist. Learned input → correct versions/scopes → actual generated-history answers → fresh-process reload is unfinished. Six of 14 emit-1 absence cases still emit unsupported values. |
 | Integer serving | Existing D11 stack has scoped opcode/parity evidence. emit-1's learned pointer is not exported; head-0 copy boost is a different mechanism. Dense layer/output access remains and no valid complete-path J/token win is established. |
 | Geometry | Exact tables, quaternion state, trained-in 2I and historical binding components remain available. Their semantic and efficiency contribution needs matched consumer evidence; failed promotion does not retire a family. |
@@ -20,10 +20,10 @@ own results. This page is navigation, not an independent results ledger.
 
 Read the [evidence review](docs/integration/grounded-memory-evidence-2026-10-01.md)
 for scope, hashes and primary result links. D18's A1 outcome D is preserved;
-old A1 training does not resume. E4 v12 now reports 25/52 open relations, 2/17 closed and 106/109 MQAR, with no
-paraphrase gain in that sparse table; its extraction drops fixed-vocabulary
-values. This is a diagnostic, not promotion. The owner-authorized v13 teacher
-batch/classifier follow-up is current; reconcile it before selecting another fit.
+old A1 training does not resume. The best E4 route (v16) reports 36/52 open relations, 2/17 closed and 106/109
+MQAR, against 48/52 with the oracle recall line and 27/52 for the best trained
+read; its extraction drops fixed-vocabulary values. v17 (trunk features in the
+table) is a recorded negative at 33/52. These are diagnostics, not promotion.
 
 ## Coordination
 
