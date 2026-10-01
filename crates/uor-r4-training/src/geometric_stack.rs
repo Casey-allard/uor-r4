@@ -161,13 +161,16 @@ enum LatchGates<'a> {
     Soft,
     Hard,
     Replay(&'a Tensor),
+    Projections(&'a Tensor, &'a Tensor),
 }
 
 impl LatchGates<'_> {
     fn apply(self, logits: &Tensor) -> Result<Tensor> {
         match self {
             Self::Soft => Ok(candle_nn::ops::sigmoid(logits)?),
-            Self::Replay(_) => Err(invalid("identity replay has no gate policy")),
+            Self::Replay(_) | Self::Projections(..) => {
+                Err(invalid("numerical replay has no gate policy"))
+            }
             Self::Hard => {
                 if logits
                     .flatten_all()?
@@ -1218,14 +1221,22 @@ impl StackModel {
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let identity = self.read_identity_input(&u)?;
-        let latched = match self.read_identity_latch {
-            Some(mode) => Some(match gates {
+        let latched = match (self.read_identity_latch, gates) {
+            (_, LatchGates::Projections(..)) => None,
+            (Some(mode), _) => Some(match gates {
                 LatchGates::Replay(identity) => identity.clone(),
                 _ => self.read_latch_inputs(p, layer, &u, mode, gates)?.0,
             }),
-            None => None,
+            (None, _) => None,
         };
         let project = |part: &str| -> Result<Tensor> {
+            if let LatchGates::Projections(query, key) = gates {
+                match part {
+                    "query" => return self.heads(query, batch, time),
+                    "key" => return self.heads(key, batch, time),
+                    _ => {}
+                }
+            }
             let input = if part == "value" { &u } else { &identity };
             let mut projected =
                 Self::linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?;
@@ -1724,6 +1735,84 @@ impl StackModel {
         let p = self.params()?;
         Ok(self
             .hidden_with_binding_policy(&p, ids, batch, time, binding, LatchGates::Replay(prior))?
+            .1)
+    }
+
+    fn validate_projection_replay(
+        &self,
+        query: &Tensor,
+        key: &Tensor,
+        batch: usize,
+        time: usize,
+    ) -> Result<()> {
+        self.require_identity_replay()?;
+        for projection in [query, key] {
+            if projection.dims3()? != (batch, time, self.config.width)
+                || projection.dtype() != DType::F32
+                || projection.device().location() != self.device.location()
+                || projection
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .any(|x| !x.is_finite())
+            {
+                return Err(invalid(
+                    "projection replay needs finite matching q/k vectors",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Per-call numerical q/k diagnostic for the fixed single-read rra stack.
+    /// Caller supplies projected vectors, before splitting heads. Their causal
+    /// construction is the caller's obligation. Values, scorer and surrounding
+    /// model stay unchanged; no projection override enters saved model state.
+    pub fn forward_read_projection_replay(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        query: &Tensor,
+        key: &Tensor,
+    ) -> Result<Tensor> {
+        self.validate_projection_replay(query, key, batch, time)?;
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_bound(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Projections(query, key),
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Observe source mass with the same supplied projections as the forward.
+    /// Binding labels select measured probabilities and never supply q/k.
+    pub fn read_binding_masses_projection_replay(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        binding: &ReadBindingTarget,
+        query: &Tensor,
+        key: &Tensor,
+    ) -> Result<Tensor> {
+        self.validate_projection_replay(query, key, batch, time)?;
+        let p = self.params()?;
+        Ok(self
+            .hidden_with_binding_policy(
+                &p,
+                ids,
+                batch,
+                time,
+                binding,
+                LatchGates::Projections(query, key),
+            )?
             .1)
     }
 
@@ -8084,6 +8173,95 @@ mod tests {
         )?;
         wrong.set_read_identity_latch(ReadIdentityLatch::Held)?;
         assert!(wrong.read_identity_latch_replay_input(&ids, 1, 8).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn read_projection_replay_matches_identity_reference_and_is_per_call() -> Result<()> {
+        let ids = [1, 7, 3, 9, 11, 4, 6, 8];
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let mut model = StackModel::new(
+                tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true),
+                &cpu(),
+            )?;
+            model.set_read_identity_latch(mode)?;
+            let ordinary = bits(&model.forward(&ids, 1, 8)?)?;
+            let before: BTreeMap<_, _> = model
+                .variables()
+                .iter()
+                .map(|(name, var)| Ok((name.clone(), bits(var.as_tensor())?)))
+                .collect::<Result<_>>()?;
+            let u = model.read_identity_latch_replay_input(&ids, 1, 8)?;
+            let p = model.params()?;
+            let prior = model
+                .read_latch_inputs(&p, 2, &u, mode, LatchGates::Hard)?
+                .0;
+            let project = |part: &str| -> Result<Tensor> {
+                Ok(
+                    StackModel::linear(&u, p.layer(2, &format!("read.{part}.weight"))?)?.add(
+                        &StackModel::linear(
+                            &prior,
+                            p.layer(2, &format!("read.{part}_identity.weight"))?,
+                        )?,
+                    )?,
+                )
+            };
+            let query = project("query")?;
+            let key = project("key")?;
+            assert_eq!(
+                bits(&model.forward_read_identity_latch_replay(&ids, 1, 8, &prior)?)?,
+                bits(&model.forward_read_projection_replay(&ids, 1, 8, &query, &key)?)?
+            );
+            for head in 0..model.config.heads {
+                let target = ReadBindingTarget {
+                    layer: 2,
+                    head,
+                    rows: vec![ReadBinding {
+                        batch: 0,
+                        query: 7,
+                        sources: vec![3],
+                    }],
+                };
+                assert_eq!(
+                    bits(
+                        &model.read_binding_masses_identity_latch_replay(
+                            &ids, 1, 8, &target, &prior
+                        )?
+                    )?,
+                    bits(&model.read_binding_masses_projection_replay(
+                        &ids, 1, 8, &target, &query, &key
+                    )?)?
+                );
+            }
+            let zero = query.zeros_like()?;
+            model.forward_read_projection_replay(&ids, 1, 8, &zero, &zero)?;
+            assert_eq!(ordinary, bits(&model.forward(&ids, 1, 8)?)?);
+            for (name, var) in model.variables() {
+                assert_eq!(before[name], bits(var.as_tensor())?);
+            }
+            let nan = Tensor::full(f32::NAN, (1, 8, 16), &cpu())?;
+            assert!(model
+                .forward_read_projection_replay(&ids, 1, 8, &nan, &key)
+                .is_err());
+            assert!(model
+                .forward_read_projection_replay(&ids, 1, 8, &query, &nan)
+                .is_err());
+            assert!(model
+                .forward_read_projection_replay(&ids, 1, 8, &query.narrow(1, 0, 7)?, &key)
+                .is_err());
+            assert!(model
+                .forward_read_projection_replay(&ids, 1, 8, &query.to_dtype(DType::F64)?, &key)
+                .is_err());
+        }
+        let mut wrong = StackModel::new(
+            tiny(StackArch::Geometric, "raa", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        wrong.set_read_identity_latch(ReadIdentityLatch::Held)?;
+        let zero = Tensor::zeros((1, 8, 16), DType::F32, &cpu())?;
+        assert!(wrong
+            .forward_read_projection_replay(&ids, 1, 8, &zero, &zero)
+            .is_err());
         Ok(())
     }
 

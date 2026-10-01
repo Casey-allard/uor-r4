@@ -20,6 +20,7 @@ pub mod lorentz;
 pub mod math;
 pub mod model;
 mod packed_rows;
+pub mod paired_projection;
 pub mod report_output;
 pub mod sampling;
 pub mod session;

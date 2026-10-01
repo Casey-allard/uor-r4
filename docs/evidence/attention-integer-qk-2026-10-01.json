@@ -1,0 +1,347 @@
+{
+  "schema": "uor-r4.integer-qk-evidence/1",
+  "identity": {
+    "source_commit": "168ad7e46d876636ce03544712a94b0e123da7ca",
+    "binary_sha256": "d2549baf3f01a8ce6049ebad72856b6b14522e5eb562067bcd654279aca1ff20",
+    "source_hashes": {
+      "crates/uor-r4-integer/src/paired_projection.rs": "216e76bc9453bddea6c2eca8287d6d3910c1edf24b596a97978dba8031f54fb7",
+      "crates/uor-r4-integer/src/lib.rs": "fa7c75ef50f24e22ef78d744daab4336f1f2adb23b16a58af7db2c9723fd3cfd",
+      "crates/uor-r4-integer/src/identity_latch.rs": "a971acc635dd84be005edbbcb845562c4b0835ab8d13daba82496ec44fc6045b",
+      "crates/uor-r4-training/src/geometric_stack.rs": "0b6362f5adf58f29a5fb153ba1c166c5a43c3b7668c9fb58fe26fcf2ad63fd9c",
+      "crates/uor-r4-training/examples/attention-integer-qk.rs": "4e338a926fef9e2695b343578b459c0976a0bda553b8c8fb149b2011bfb8dfd1"
+    },
+    "timestamp": "2026-10-01T20:53:07.933540+00:00",
+    "profile": "dev unoptimized",
+    "executable": "/Users/casey.allard/.cache/uor-r4-integer-qk-target/debug/examples/attention-integer-qk",
+    "retained_compressed_executable": "/Users/casey.allard/.local/share/uor-r4/research/attention-integer-qk-20261001/attention-integer-qk.gz"
+  },
+  "summary": {
+    "source_commit": "168ad7e46d876636ce03544712a94b0e123da7ca",
+    "elapsed_seconds": 112.082659958,
+    "training_updates": 0,
+    "measurements": [
+      {
+        "name": "Held-s1",
+        "panel": "evaluation.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "disabled_answers": 4,
+        "prediction_changes": [],
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_majority_changes": [
+          [],
+          []
+        ],
+        "source_minima": [
+          0.974881112575531,
+          0.012999499216675758
+        ],
+        "max_source_mass_delta": [
+          0.01582247018814087,
+          0.0012633614242076874
+        ],
+        "max_answer_logit_delta": 0.1644216775894165,
+        "max_query_projection_error": 0.36210691928863525,
+        "max_key_projection_error": 0.44734442234039307,
+        "action_disagreements": 0,
+        "positions": 4168,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Held-s1",
+        "panel": "stress.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "disabled_answers": 6,
+        "prediction_changes": [],
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_majority_changes": [
+          [],
+          []
+        ],
+        "source_minima": [
+          0.9718010425567627,
+          0.009790933690965176
+        ],
+        "max_source_mass_delta": [
+          0.01629471778869629,
+          0.0009402185678482056
+        ],
+        "max_answer_logit_delta": 0.08484184741973877,
+        "max_query_projection_error": 0.36736953258514404,
+        "max_key_projection_error": 0.451416015625,
+        "action_disagreements": 0,
+        "positions": 6224,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Held-s2",
+        "panel": "evaluation.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "disabled_answers": 8,
+        "prediction_changes": [],
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_majority_changes": [
+          [],
+          []
+        ],
+        "source_minima": [
+          0.9913823008537292,
+          0.0007982114912010729
+        ],
+        "max_source_mass_delta": [
+          0.0059302449226379395,
+          0.0006776824593544006
+        ],
+        "max_answer_logit_delta": 0.04568052291870117,
+        "max_query_projection_error": 0.4027440547943115,
+        "max_key_projection_error": 0.3899822235107422,
+        "action_disagreements": 0,
+        "positions": 4168,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Held-s2",
+        "panel": "stress.json",
+        "reference_answers": 128,
+        "integer_answers": 128,
+        "disabled_answers": 14,
+        "prediction_changes": [],
+        "answer_losses": [],
+        "answer_gains": [],
+        "source_majorities": [
+          128,
+          0
+        ],
+        "source_majority_changes": [
+          [],
+          []
+        ],
+        "source_minima": [
+          0.9686089754104614,
+          0.0007803017506375909
+        ],
+        "max_source_mass_delta": [
+          0.020344972610473633,
+          0.0004608035087585449
+        ],
+        "max_answer_logit_delta": 0.07645046710968018,
+        "max_query_projection_error": 0.3820316791534424,
+        "max_key_projection_error": 0.3774075508117676,
+        "action_disagreements": 0,
+        "positions": 6224,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Local-s1",
+        "panel": "evaluation.json",
+        "reference_answers": 47,
+        "integer_answers": 49,
+        "disabled_answers": 14,
+        "prediction_changes": [
+          11,
+          115,
+          119
+        ],
+        "answer_losses": [],
+        "answer_gains": [
+          11,
+          119
+        ],
+        "source_majorities": [
+          23,
+          7
+        ],
+        "source_majority_changes": [
+          [
+            4,
+            8,
+            24,
+            29,
+            50
+          ],
+          [
+            34
+          ]
+        ],
+        "source_minima": [
+          0.050813227891922,
+          0.03315122798085213
+        ],
+        "max_source_mass_delta": [
+          0.04195117950439453,
+          0.0297146737575531
+        ],
+        "max_answer_logit_delta": 0.302254319190979,
+        "max_query_projection_error": 0.2362527847290039,
+        "max_key_projection_error": 0.24921226501464844,
+        "action_disagreements": 0,
+        "positions": 4168,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Local-s1",
+        "panel": "stress.json",
+        "reference_answers": 59,
+        "integer_answers": 55,
+        "disabled_answers": 8,
+        "prediction_changes": [
+          14,
+          51,
+          92,
+          93,
+          94
+        ],
+        "answer_losses": [
+          14,
+          51,
+          93,
+          94
+        ],
+        "answer_gains": [],
+        "source_majorities": [
+          38,
+          2
+        ],
+        "source_majority_changes": [
+          [
+            4,
+            5,
+            38,
+            40,
+            85
+          ],
+          []
+        ],
+        "source_minima": [
+          0.019385315477848053,
+          0.03055424988269806
+        ],
+        "max_source_mass_delta": [
+          0.05022835731506348,
+          0.02631610631942749
+        ],
+        "max_answer_logit_delta": 0.4238414764404297,
+        "max_query_projection_error": 0.22829675674438477,
+        "max_key_projection_error": 0.24947071075439453,
+        "action_disagreements": 0,
+        "positions": 6224,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Local-s2",
+        "panel": "evaluation.json",
+        "reference_answers": 54,
+        "integer_answers": 53,
+        "disabled_answers": 5,
+        "prediction_changes": [
+          3,
+          22,
+          64,
+          65
+        ],
+        "answer_losses": [
+          3,
+          22
+        ],
+        "answer_gains": [
+          64
+        ],
+        "source_majorities": [
+          29,
+          0
+        ],
+        "source_majority_changes": [
+          [
+            35,
+            112
+          ],
+          []
+        ],
+        "source_minima": [
+          0.06379862874746323,
+          0.009405151940882206
+        ],
+        "max_source_mass_delta": [
+          0.03211978077888489,
+          0.0023034214973449707
+        ],
+        "max_answer_logit_delta": 0.5045652389526367,
+        "max_query_projection_error": 0.3959789276123047,
+        "max_key_projection_error": 0.353757381439209,
+        "action_disagreements": 0,
+        "positions": 4168,
+        "prior_integer_latch_reproduced": true
+      },
+      {
+        "name": "Local-s2",
+        "panel": "stress.json",
+        "reference_answers": 49,
+        "integer_answers": 51,
+        "disabled_answers": 7,
+        "prediction_changes": [
+          10,
+          11,
+          26,
+          27
+        ],
+        "answer_losses": [],
+        "answer_gains": [
+          10,
+          27
+        ],
+        "source_majorities": [
+          37,
+          0
+        ],
+        "source_majority_changes": [
+          [
+            43
+          ],
+          []
+        ],
+        "source_minima": [
+          0.022890664637088776,
+          0.009553933516144753
+        ],
+        "max_source_mass_delta": [
+          0.03213873505592346,
+          0.0017512217164039612
+        ],
+        "max_answer_logit_delta": 0.49048900604248047,
+        "max_query_projection_error": 0.3926973342895508,
+        "max_key_projection_error": 0.3635978698730469,
+        "action_disagreements": 0,
+        "positions": 6224,
+        "prior_integer_latch_reproduced": true
+      }
+    ]
+  },
+  "local_validation": {
+    "integer_tests": 5,
+    "projection_replay_tests": 1,
+    "retained_stack_tests": 10,
+    "failures_after_fixture_repair": 0,
+    "profile": "dev",
+    "rustfmt": "PASS",
+    "diff_check": "PASS",
+    "claim_wording": "PASS"
+  },
+  "scope": "integer gate/state/current-role and identity qk; remaining trunk/value/Lorentz/head float; fixed authored development/fullprefix"
+}
