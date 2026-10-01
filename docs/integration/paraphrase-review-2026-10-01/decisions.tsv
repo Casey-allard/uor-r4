@@ -42,7 +42,7 @@ p1:41	keep			-	The shade {v} is my favorite.
 p1:42	keep			-	The color {v} is my passion.
 p1:43	drop			slot: an article and no colour cue	I am enchanted by the {v}.
 p1:44	keep			-	The color I love the most is {v}.
-p1:45	keep			-	{v} is my favorite color.
+p1:45	duplicate			duplicate of p1:38	{v} is my favorite color.
 p1:46	keep			-	I have a color that I adore, and it's {v}.
 p1:47	keep			-	What color do I adore?
 p1:48	keep			-	What shade of color do I fancy?
@@ -170,7 +170,7 @@ p1:169	drop			slot: an article before the value	I've relocated to a {v}.
 p1:170	drop			slot: an article before the value	I've made the move to a {v}.
 p1:171	drop			slot: an article before the value	I've just settled into a {v}.
 p1:172	drop			slot: an article before the value	I've switched to a {v}.
-p1:173	drop			slot: an article before the value	I've moved into a {v}.
+p1:173	duplicate			duplicate of p1:166	I've moved into a {v}.
 p1:174	drop			slot: an article before the value	I've just moved to a {v}.
 p1:175	drop			slot: an article before the value	I've changed my location to a {v}.
 p1:176	duplicate			duplicate of p1:149	{v} is my home.
@@ -325,7 +325,7 @@ p1:324	keep			-	I've given my dog a new name, {v}.
 p1:325	keep			-	We've renamed my dog to {v}.
 p1:326	keep			-	I'd like to be called {v}.
 p1:327	keep			-	I'd appreciate it if you called me {v}.
-p1:328	drop			slot: an article before the value	I am a {v}.
+p1:328	duplicate			duplicate of p1:225	I am a {v}.
 p1:329	keep			-	I am {v}.
 p1:330	keep			-	I am called {v}.
 p1:331	keep			-	I go by {v}.
@@ -357,10 +357,10 @@ p1:356	drop			meaning: a real name as opposed to an alias	What's my real name?
 p1:357	keep			-	What's my full name, please?
 p1:358	drop			meaning: an identity	What is my personal identity?
 p1:359	drop			person: the assistant's name	What's your name?
-p1:360	drop			meaning: an identity	What's my identity?
+p1:360	duplicate			duplicate of p1:353	What's my identity?
 p1:361	keep			-	What's my personal name?
 p1:362	keep			-	What's my moniker?
-p1:363	drop			meaning: a real name as opposed to an alias	What's my real name?
+p1:363	duplicate			duplicate of p1:356	What's my real name?
 p1:364	drop			meaning: a surname	What's my surname?
 p1:365	drop			meaning: a title	What's my personal title?
 p1:366	keep			-	What's my full name?
@@ -501,7 +501,7 @@ p2:127	drop			meaning: an acquaintance, not a friend	I know someone named {v}.
 p2:128	duplicate			duplicate of p1:109	The person I know is named {v}.
 p2:129	duplicate			duplicate of p1:110	{v} is my friend's name.
 p2:130	drop			ungrammatical	{v}'s name is the one I know.
-p2:131	drop			meaning: a surname	What's my friend's surname?
+p2:131	duplicate			duplicate of p1:126	What's my friend's surname?
 p2:132	duplicate			duplicate of p1:119	What's my friend's last name?
 p2:133	keep			-	What is the name of my friend?
 p2:134	duplicate			duplicate of p1:122	What's my friend's name?
@@ -650,7 +650,7 @@ p2:276	duplicate			duplicate of p1:258	My number that brings me good fortune is 
 p2:277	duplicate			duplicate of p1:263	{v} is the number I hold dear.
 p2:278	duplicate			duplicate of p1:260	I consider {v} my lucky number.
 p2:279	drop			meaning: a liked number	The number I am particularly fond of is {v}.
-p2:280	duplicate			duplicate of p1:261	The number that brings me good fortune is {v}.
+p2:280	keep			-	The number that brings me good fortune is {v}.
 p2:281	keep			-	I have a lucky number which is {v}.
 p2:282	keep			-	{v} is the number that makes me feel lucky.
 p2:283	keep			-	{v} is the number I associate with luck.
@@ -679,7 +679,7 @@ p2:305	keep			-	What number do I consider lucky?
 p2:306	drop			meaning: a favourite number	What's my favorite number?
 p2:307	duplicate			duplicate of p1:276	What's my lucky number again?
 p2:308	drop			slot: an article before the value	I've changed my lucky number, it's a {v} now.
-p2:309	drop			slot: an article before the value	I've switched to a {v}.
+p2:309	duplicate			duplicate of p1:172	I've switched to a {v}.
 p2:310	drop			meaning: a negative preference	I'm not a fan of {v}.
 p2:311	drop			meaning: a negative preference	I've never been fond of {v}.
 p2:312	drop			meaning: a negative preference	I'm not into {v}.
@@ -713,7 +713,7 @@ p2:339	keep			-	What is my dog called?
 p2:340	duplicate			duplicate of p1:305	What's my dog's name?
 p2:341	duplicate			duplicate of p1:311	What's my pet's name?
 p2:342	duplicate			duplicate of p1:312	What's my furry friend's name?
-p2:343	drop			meaning: a real name as opposed to an alias	What's my dog's real name?
+p2:343	duplicate			duplicate of p1:307	What's my dog's real name?
 p2:344	drop			meaning: an official name	What's my dog's official name?
 p2:345	duplicate			duplicate of p1:313	What's the name of my dog?
 p2:346	drop			meaning: an identity	What's the identity of my dog?
@@ -734,7 +734,7 @@ p2:360	keep			-	My dog's name is now {v}.
 p2:361	duplicate			duplicate of p1:326	I'd like to be called {v}.
 p2:362	keep			-	I'd like to be addressed as {v}.
 p2:363	keep			-	{v} is my preferred name.
-p2:364	duplicate			duplicate of p1:328	I am a {v}.
+p2:364	duplicate			duplicate of p1:225	I am a {v}.
 p2:365	duplicate			duplicate of p1:329	I am {v}.
 p2:366	keep			-	I am named {v}.
 p2:367	duplicate			duplicate of p1:331	I go by {v}.
@@ -758,7 +758,7 @@ p2:384	duplicate			duplicate of p1:348	Do you know my name?
 p2:385	drop			meaning: a legal name	What's my legal name?
 p2:386	drop			meaning: a family name	What's my family name?
 p2:387	drop			not a plausible user turn	What's my full, full name?
-p2:388	duplicate			duplicate of p1:363	What's my real name?
+p2:388	duplicate			duplicate of p1:356	What's my real name?
 p2:389	duplicate			duplicate of p1:361	What's my personal name?
 p2:390	keep			-	Can you tell me my full name?
 p2:391	keep			-	What's my given name?
