@@ -25,6 +25,7 @@ pub mod flock;
 pub mod flock_transport;
 pub mod geometric_read;
 pub mod geometric_stack;
+pub mod grounded_session_eval;
 pub mod joint_admission;
 pub mod joint_bounded_campaign;
 pub mod joint_campaign;

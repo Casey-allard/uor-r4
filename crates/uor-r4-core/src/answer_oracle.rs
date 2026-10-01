@@ -21,6 +21,78 @@ pub enum Intent {
     Abstain,
 }
 
+/// The recorded-memory request or outcome described by an authored answer set.
+/// These distinguish record order from the chronology of the outside world.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecordedValueIntent {
+    Current,
+    Initial,
+    PreviousAssertion,
+    PreviousDistinctValue,
+    Absent,
+    NoHistory,
+    Evicted,
+    Unresolved,
+}
+
+/// Complete forms authored once for a typed case, before candidate replies exist.
+/// Validation checks the list's structure, not the semantic truth of its forms.
+/// The caller binds these forms to the case's events and original file bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FrozenAnswers {
+    pub intent: RecordedValueIntent,
+    pub accepted: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FrozenAnswersError {
+    Empty,
+    BlankAnswer { index: usize },
+    DuplicateAnswer { first: usize, index: usize },
+}
+
+impl std::fmt::Display for FrozenAnswersError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "a frozen answer set needs at least one complete form"),
+            Self::BlankAnswer { index } => write!(f, "frozen answer {index} is blank"),
+            Self::DuplicateAnswer { first, index } => {
+                write!(f, "frozen answer {index} duplicates answer {first}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for FrozenAnswersError {}
+
+impl FrozenAnswers {
+    /// Reject missing, blank or byte-identical duplicate forms. Leading and
+    /// trailing whitespace remains significant; no normalization is applied.
+    pub fn validate(&self) -> Result<(), FrozenAnswersError> {
+        if self.accepted.is_empty() {
+            return Err(FrozenAnswersError::Empty);
+        }
+        let mut seen = std::collections::BTreeMap::new();
+        for (index, answer) in self.accepted.iter().enumerate() {
+            if answer.trim().is_empty() {
+                return Err(FrozenAnswersError::BlankAnswer { index });
+            }
+            if let Some(first) = seen.insert(answer.as_str(), index) {
+                return Err(FrozenAnswersError::DuplicateAnswer { first, index });
+            }
+        }
+        Ok(())
+    }
+
+    /// Exact membership only. Validate the authored case before execution;
+    /// candidate text never creates or changes an accepted alternative.
+    pub fn accepts(&self, text: &str) -> bool {
+        accepts(&self.accepted, text)
+    }
+}
+
 /// Accepted complete answer strings for one request. A plain request (no owner-first
 /// instruction) accepts the bare value or the frozen emitter's owner sentence in the
 /// tense of the intent; an owner-first request accepts only that sentence.
@@ -63,6 +135,62 @@ pub fn accepts(accepted: &[String], text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn frozen_answers_validate_structure_without_normalizing_forms() {
+        let mut answers = FrozenAnswers {
+            intent: RecordedValueIntent::PreviousDistinctValue,
+            accepted: Vec::new(),
+        };
+        assert_eq!(answers.validate(), Err(FrozenAnswersError::Empty));
+        for blank in ["", " \t\r\n"] {
+            answers.accepted = vec![blank.into()];
+            assert_eq!(
+                answers.validate(),
+                Err(FrozenAnswersError::BlankAnswer { index: 0 })
+            );
+        }
+        answers.accepted = vec!["Aster.".into(), "Aster.".into()];
+        assert_eq!(
+            answers.validate(),
+            Err(FrozenAnswersError::DuplicateAnswer { first: 0, index: 1 })
+        );
+        answers.accepted = vec!["Aster.".into(), " Aster.\n".into()];
+        let before = answers.clone();
+        assert_eq!(answers.validate(), Ok(()));
+        assert_eq!(answers, before);
+    }
+
+    #[test]
+    fn frozen_answers_require_the_complete_authored_reply_and_strict_schema() {
+        let answers = FrozenAnswers {
+            intent: RecordedValueIntent::Initial,
+            accepted: vec![" You first recorded Aster.\n".into()],
+        };
+        assert_eq!(answers.validate(), Ok(()));
+        assert!(answers.accepts(" You first recorded Aster.\n"));
+        for wrong in [
+            "You first recorded Aster.",
+            " Aster.\n",
+            " You currently record Aster.\n",
+            " You first recorded Aster.\nActually, no.",
+        ] {
+            assert!(!answers.accepts(wrong));
+        }
+        let encoded = serde_json::to_vec(&answers).expect("answer set");
+        assert_eq!(
+            serde_json::from_slice::<FrozenAnswers>(&encoded).expect("reload"),
+            answers
+        );
+        assert!(serde_json::from_str::<FrozenAnswers>(
+            r#"{"intent":"initial","accepted":["Aster."],"extra":true}"#
+        )
+        .is_err());
+        assert!(serde_json::from_str::<FrozenAnswers>(
+            r#"{"intent":"previous","accepted":["Aster."]}"#
+        )
+        .is_err());
+    }
 
     #[test]
     fn answer_oracle_explanatory_owner_first_requires_present_tense_owner_sentence() {

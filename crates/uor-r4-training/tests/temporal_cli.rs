@@ -482,6 +482,7 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
         parent_manifest
     );
     report_output::verify(&parent).expect("original parent preserved");
+    scripted_evaluation_witness(&base, &base.join("session-0"), &queries);
     fs::remove_dir_all(base).expect("clean generated test fixture");
 }
 
@@ -493,4 +494,425 @@ fn load_session(root: &Path) -> GroundedSession<GroundedCompiler> {
         &Device::Cpu,
     )
     .expect("validate restarted session")
+}
+
+/// Golden annotations are authored from this event sequence before execution.
+/// The initialized emitter has a two-token cap; complete names cannot fit.
+/// Answer membership must therefore report misses, independently of correct
+/// compilation/reads. A miss here is intentional scorer-construction evidence.
+fn scripted_evaluation_witness(base: &Path, baseline: &Path, queries: &[(&str, &str)]) {
+    let scope = json!({"scope":"cli-test","entity":"user"});
+    let restart = || json!({"kind":"start_conversation","scope":scope});
+    let write = |id: &str,
+                 text: &str,
+                 kind: &str,
+                 value: &str,
+                 record: u64,
+                 enabled: bool,
+                 conflict: bool| {
+        let start = text.find(value).expect("authored value role");
+        json!({
+            "kind":"user","id":id,"text":text,
+            "controls":{"read":true,"write":enabled},
+            "expected":{
+                "action":{"kind":kind,"relation":"user_name","span":{"start":start,"end":start+value.len()}},
+                "memory":if enabled {
+                    json!({"kind":"write","value":value,"id":record,"commit":record,"conflict":conflict})
+                } else {json!({"kind":"write_disabled","value":value})},
+                "answers":null,"intervention_answers":null
+            }
+        })
+    };
+    let query = |id: &str, index: usize, status: Value, answer: &str, enabled: bool| {
+        let view = [
+            "Current",
+            "Initial",
+            "PreviousAssertion",
+            "PreviousDistinctValue",
+        ][index];
+        json!({
+            "kind":"user","id":id,"text":queries[index].0,
+            "controls":{"read":enabled,"write":true},
+            "expected":{
+                "action":{"kind":"query","relation":"user_name","view":view},
+                "memory":{"kind":"read","status":status},
+                "answers":{"intent":queries[index].1,"accepted":[format!("{answer}.")]},
+                "intervention_answers":null
+            }
+        })
+    };
+    let found = |value: &str, record: u64, conflict: bool| json!({"kind":"found","value":value,"record":record,"commit":record,"conflict":conflict});
+    let case = |id: &str, condition: &str, events: Vec<Value>, cuts: Vec<&str>| {
+        json!({
+            "id":id,"source_group":"authored-script-construction","condition":condition,
+            "scope":scope,"baseline_commit":0,"baseline_records":0,
+            "events":events,"reload_after":cuts
+        })
+    };
+    let prefix = vec![
+        write(
+            "a",
+            "My name is Zorvak.",
+            "assert",
+            "Zorvak",
+            1,
+            true,
+            false,
+        ),
+        write(
+            "b",
+            "Actually, my name is Plimbo.",
+            "correct",
+            "Plimbo",
+            2,
+            true,
+            false,
+        ),
+        write(
+            "b-again",
+            "My name is Plimbo.",
+            "assert",
+            "Plimbo",
+            3,
+            true,
+            false,
+        ),
+        write(
+            "c",
+            "Actually, my name is Dunmere.",
+            "correct",
+            "Dunmere",
+            4,
+            true,
+            false,
+        ),
+        write(
+            "c-again",
+            "My name is Dunmere.",
+            "assert",
+            "Dunmere",
+            5,
+            true,
+            false,
+        ),
+    ];
+    let mut cases = Vec::new();
+    for (id, clean, read) in [
+        ("temporal-continuous", false, true),
+        ("temporal-clean", true, true),
+        ("temporal-no-read-clean", true, false),
+    ] {
+        let mut events = prefix.clone();
+        for (index, (value, record)) in
+            [("Dunmere", 5), ("Zorvak", 1), ("Dunmere", 4), ("Plimbo", 3)]
+                .into_iter()
+                .enumerate()
+        {
+            if clean {
+                events.push(restart());
+            }
+            events.push(query(
+                &format!("q{index}"),
+                index,
+                found(value, record, false),
+                value,
+                read,
+            ));
+        }
+        cases.push(case(id, id, events, vec!["b-again", "q1"]));
+    }
+    let mut suppressed = vec![
+        write(
+            "a",
+            "My name is Zorvak.",
+            "assert",
+            "Zorvak",
+            1,
+            true,
+            false,
+        ),
+        write(
+            "b",
+            "Actually, my name is Plimbo.",
+            "correct",
+            "Plimbo",
+            2,
+            true,
+            false,
+        ),
+        write(
+            "c-disabled",
+            "Actually, my name is Dunmere.",
+            "correct",
+            "Dunmere",
+            0,
+            false,
+            false,
+        ),
+        restart(),
+    ];
+    let mut probe = query("q", 0, found("Plimbo", 2, false), "Dunmere", true);
+    probe["expected"]["intervention_answers"] = json!({"intent":"current","accepted":["Plimbo."]});
+    suppressed.push(probe);
+    cases.push(case(
+        "selected-update-disabled",
+        "selected_write_disabled_clean",
+        suppressed,
+        vec!["c-disabled"],
+    ));
+    let mut identity_events = vec![
+        write(
+            "a",
+            "My name is Zorvak.",
+            "assert",
+            "Zorvak",
+            1,
+            true,
+            false,
+        ),
+        json!({"kind":"start_conversation","scope":{"scope":"other-project","entity":"user"}}),
+        write(
+            "b",
+            "My name is Plimbo.",
+            "assert",
+            "Plimbo",
+            2,
+            true,
+            false,
+        ),
+        query("b-read", 0, found("Plimbo", 2, false), "Plimbo", true),
+        json!({"kind":"start_conversation","scope":{"scope":"cli-test","entity":"other-user"}}),
+        write(
+            "c",
+            "My name is Dunmere.",
+            "assert",
+            "Dunmere",
+            3,
+            true,
+            false,
+        ),
+        query("c-read", 0, found("Dunmere", 3, false), "Dunmere", true),
+        restart(),
+        query("a-return", 0, found("Zorvak", 1, false), "Zorvak", true),
+    ];
+    cases.push(case(
+        "scope-entity-return",
+        "explicit_caller_identities",
+        std::mem::take(&mut identity_events),
+        vec!["c"],
+    ));
+    let mut absent = query("absent", 0, json!({"kind":"absent"}), "Unknown", true);
+    absent["expected"]["answers"]["intent"] = json!("absent");
+    cases.push(case("absent", "clean_absence", vec![absent], vec![]));
+    let mut no_history = query(
+        "no-history",
+        2,
+        json!({"kind":"no_history"}),
+        "Unknown",
+        true,
+    );
+    no_history["expected"]["answers"]["intent"] = json!("no_history");
+    cases.push(case(
+        "no-history",
+        "unsupported_history",
+        vec![
+            write(
+                "a",
+                "My name is Zorvak.",
+                "assert",
+                "Zorvak",
+                1,
+                true,
+                false,
+            ),
+            restart(),
+            no_history,
+        ],
+        vec![],
+    ));
+    cases.push(case(
+        "conflict",
+        "unsupported_conflict",
+        vec![
+            write(
+                "a",
+                "My name is Zorvak.",
+                "assert",
+                "Zorvak",
+                1,
+                true,
+                false,
+            ),
+            write("b", "My name is Plimbo.", "assert", "Plimbo", 2, true, true),
+            restart(),
+            query("conflict", 0, found("Plimbo", 2, true), "Plimbo", true),
+        ],
+        vec![],
+    ));
+    let mut eviction = vec![write(
+        "a",
+        "My name is Zorvak.",
+        "assert",
+        "Zorvak",
+        1,
+        true,
+        false,
+    )];
+    for record in 2..=9 {
+        eviction.push(write(
+            &format!("b{record}"),
+            "My name is Plimbo.",
+            "assert",
+            "Plimbo",
+            record,
+            true,
+            record == 2,
+        ));
+    }
+    eviction.push(restart());
+    let mut evicted = query("evicted", 1, json!({"kind":"evicted"}), "Unknown", true);
+    evicted["expected"]["answers"]["intent"] = json!("evicted");
+    eviction.push(evicted);
+    cases.push(case(
+        "evicted",
+        "unsupported_eviction_capacity8",
+        eviction,
+        vec!["b9"],
+    ));
+    let mut wrong = query(
+        "wrong-relation",
+        0,
+        json!({"kind":"absent"}),
+        "Unknown",
+        true,
+    );
+    wrong["expected"]["action"]["relation"] = json!("home");
+    cases.push(case(
+        "wrong-relation-control",
+        "wrong_annotation_sentinel",
+        vec![wrong],
+        vec![],
+    ));
+    cases.push(case(
+        "failed-turn-reload",
+        "execution_failure_sentinel",
+        vec![json!({
+            "kind":"user","id":"error","text":"x".repeat(5000),
+            "expected":{"action":{"kind":"unresolved"},"memory":{"kind":"unresolved"},
+                        "answers":{"intent":"unresolved","accepted":["Unknown."]},
+                        "intervention_answers":null}
+        })],
+        vec!["error"],
+    ));
+    let input = base.join("script.json");
+    let script = json!({"schema":"uor-r4.grounded-script/1","cases":cases});
+    fs::write(&input, serde_json::to_vec(&script).expect("frozen script")).expect("case file");
+    let out = base.join("script-report");
+    invoke(
+        env!("CARGO_BIN_EXE_grounded-session"),
+        &[
+            "evaluate".into(),
+            pair("session", baseline),
+            pair("cases", &input),
+            pair("out", &out),
+        ],
+    );
+    report_output::verify(&out).expect("sealed script evaluation");
+    let report: Value = serde_json::from_slice(&fs::read(out.join("report.json")).expect("report"))
+        .expect("report JSON");
+    assert_eq!(
+        report["inputs"]["cases_sha256"],
+        sha256_hex(&fs::read(&input).expect("input"))
+    );
+    assert_eq!(
+        fs::read(out.join("cases.json")).expect("frozen retained cases"),
+        fs::read(&input).expect("input")
+    );
+    assert_eq!(report["scores"]["action"], json!({"pass":53,"of":55}));
+    assert_eq!(report["scores"]["memory"], json!({"pass":54,"of":55}));
+    assert_eq!(
+        report["scores"]["frozen_complete_answer_membership"],
+        json!({"pass":0,"of":22})
+    );
+    assert_eq!(
+        report["scores"]["intervention_complete_answer_membership"],
+        json!({"pass":0,"of":1})
+    );
+    assert_eq!(report["scores"]["joint"], json!({"pass":33,"of":55}));
+    let case = |id: &str| {
+        report["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| case["id"] == id)
+            .expect("case")
+    };
+    for id in [
+        "temporal-continuous",
+        "temporal-clean",
+        "temporal-no-read-clean",
+        "selected-update-disabled",
+        "scope-entity-return",
+        "evicted",
+    ] {
+        assert_eq!(case(id)["reload"]["pass"], true, "{id}");
+    }
+    assert_eq!(case("failed-turn-reload")["reload"]["pass"], false);
+    assert_eq!(case("failed-turn-reload")["reload"]["failed_pairs"], 1);
+    assert_eq!(
+        case("absent")["rows"][0]["outcome"],
+        case("wrong-relation-control")["rows"][0]["outcome"]
+    );
+    assert_eq!(case("absent")["rows"][0]["scores"]["action"], true);
+    assert_eq!(
+        case("wrong-relation-control")["rows"][0]["scores"]["action"],
+        false
+    );
+    for row in &case("temporal-no-read-clean")["rows"]
+        .as_array()
+        .expect("rows")[5..]
+    {
+        assert_eq!(row["scores"]["memory"], true);
+        assert_eq!(row["outcome"]["recall"]["kind"], "disabled");
+    }
+    assert_eq!(
+        case("no-history")["rows"][1]["outcome"]["memory"]["read"],
+        "NoHistory"
+    );
+    assert_eq!(
+        case("evicted")["rows"][9]["outcome"]["memory"]["read"],
+        "Evicted"
+    );
+    let invalid = base.join("script-invalid.json");
+    let mut invalid_script = script.clone();
+    invalid_script["cases"][0]["baseline_commit"] = json!(1);
+    fs::write(
+        &invalid,
+        serde_json::to_vec(&invalid_script).expect("invalid"),
+    )
+    .expect("invalid input");
+    let invalid_out = base.join("script-precondition-refusal");
+    let refused = Command::new(env!("CARGO_BIN_EXE_grounded-session"))
+        .args([
+            "evaluate".into(),
+            pair("session", baseline),
+            pair("cases", &invalid),
+            pair("out", &invalid_out),
+        ])
+        .output()
+        .expect("refusal CLI");
+    assert!(!refused.status.success());
+    report_output::verify(&invalid_out).expect("sealed failed attempt");
+    assert!(invalid_out.join("error.json").is_file());
+    let duplicate_out = Command::new(env!("CARGO_BIN_EXE_grounded-session"))
+        .args([
+            "evaluate".into(),
+            pair("session", baseline),
+            pair("cases", &input),
+            pair("out", &out),
+        ])
+        .output()
+        .expect("exclusive report CLI");
+    assert!(!duplicate_out.status.success());
+    report_output::verify(&out).expect("original report intact");
 }
