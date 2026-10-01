@@ -1,0 +1,425 @@
+{
+  "source_commit": "cfdf535a800e343873699ca4693f7b11f9a2e32d",
+  "elapsed_seconds": 1367.946036166,
+  "seeds": [
+    {
+      "name": "GeometricSpan-Ordered-s1",
+      "steps": 320,
+      "requested_steps": 320,
+      "parameters": 48326,
+      "model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+      "reload_identical": true,
+      "training_positions": 245794,
+      "padded_positions": 296000,
+      "measured": true,
+      "restoration_identical": true,
+      "panels": {
+        "rows": {
+          "rows": 128,
+          "answers": 99,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.9139288067817688,
+            0.0010045459493994713
+          ],
+          "prediction_changes_from_base": 0,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 23
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 25
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 25
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 26
+            }
+          }
+        },
+        "last_token_rows": {
+          "rows": 128,
+          "answers": 27,
+          "source_majorities": [
+            41,
+            0
+          ],
+          "min_source_mass": [
+            0.02713828906416893,
+            0.001004804391413927
+          ],
+          "prediction_changes_from_base": 95,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 8
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 7
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 7
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 5
+            }
+          }
+        },
+        "stress_rows": {
+          "rows": 128,
+          "answers": 109,
+          "source_majorities": [
+            126,
+            0
+          ],
+          "min_source_mass": [
+            0.3305858075618744,
+            0.0008737234747968614
+          ],
+          "prediction_changes_from_base": null,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 26
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 29
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 29
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 25
+            }
+          }
+        },
+        "read_output_disabled_rows": {
+          "rows": 128,
+          "answers": 12,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.9139288067817688,
+            0.0010045459493994713
+          ],
+          "prediction_changes_from_base": 116,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 2
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 4
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 4
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 2
+            }
+          }
+        },
+        "cross_factor_disabled_rows": {
+          "rows": 128,
+          "answers": 70,
+          "source_majorities": [
+            117,
+            0
+          ],
+          "min_source_mass": [
+            0.2497624009847641,
+            0.0010919462656602263
+          ],
+          "prediction_changes_from_base": 36,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 21
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 15
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 18
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 16
+            }
+          }
+        },
+        "context_factors_disabled_rows": {
+          "rows": 128,
+          "answers": 8,
+          "source_majorities": [
+            0,
+            0
+          ],
+          "min_source_mass": [
+            0.006724628619849682,
+            0.00219332380220294
+          ],
+          "prediction_changes_from_base": 119,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 1
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 2
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 2
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 3
+            }
+          }
+        }
+      },
+      "controller_correct_positions": 6215,
+      "controller_positions": 6216
+    },
+    {
+      "name": "GeometricSpan-Ordered-s2",
+      "steps": 320,
+      "requested_steps": 320,
+      "parameters": 48326,
+      "model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+      "reload_identical": true,
+      "training_positions": 245988,
+      "padded_positions": 294464,
+      "measured": true,
+      "restoration_identical": true,
+      "panels": {
+        "rows": {
+          "rows": 128,
+          "answers": 128,
+          "source_majorities": [
+            127,
+            0
+          ],
+          "min_source_mass": [
+            0.48954638838768005,
+            0.00281183747574687
+          ],
+          "prediction_changes_from_base": 0,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 32
+            }
+          }
+        },
+        "last_token_rows": {
+          "rows": 128,
+          "answers": 44,
+          "source_majorities": [
+            44,
+            0
+          ],
+          "min_source_mass": [
+            0.009467135183513165,
+            0.002852468518540263
+          ],
+          "prediction_changes_from_base": 84,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 13
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 10
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 9
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 12
+            }
+          }
+        },
+        "stress_rows": {
+          "rows": 128,
+          "answers": 128,
+          "source_majorities": [
+            128,
+            0
+          ],
+          "min_source_mass": [
+            0.707789957523346,
+            0.002754554385319352
+          ],
+          "prediction_changes_from_base": null,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 32
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 32
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 32
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 32
+            }
+          }
+        },
+        "read_output_disabled_rows": {
+          "rows": 128,
+          "answers": 4,
+          "source_majorities": [
+            127,
+            0
+          ],
+          "min_source_mass": [
+            0.48954638838768005,
+            0.00281183747574687
+          ],
+          "prediction_changes_from_base": 124,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 1
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 1
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 1
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 1
+            }
+          }
+        },
+        "cross_factor_disabled_rows": {
+          "rows": 128,
+          "answers": 109,
+          "source_majorities": [
+            109,
+            0
+          ],
+          "min_source_mass": [
+            0.1761404573917389,
+            0.003628089325502515
+          ],
+          "prediction_changes_from_base": 19,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 30
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 25
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 27
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 27
+            }
+          }
+        },
+        "context_factors_disabled_rows": {
+          "rows": 128,
+          "answers": 6,
+          "source_majorities": [
+            0,
+            0
+          ],
+          "min_source_mass": [
+            0.007327627390623093,
+            0.005102374125272036
+          ],
+          "prediction_changes_from_base": 122,
+          "conditions": {
+            "base": {
+              "rows": 32,
+              "answers": 1
+            },
+            "changed_query": {
+              "rows": 32,
+              "answers": 1
+            },
+            "swapped_values": {
+              "rows": 32,
+              "answers": 2
+            },
+            "reversed_order": {
+              "rows": 32,
+              "answers": 2
+            }
+          }
+        }
+      },
+      "controller_correct_positions": 6216,
+      "controller_positions": 6216
+    }
+  ],
+  "schema": "uor-r4.geometric-span-result-summary/1",
+  "executed_source": "cfdf535a800e343873699ca4693f7b11f9a2e32d",
+  "delivery_integration_source": "1ab6e7542873dd7f58e82844caaf5bd020f17d5d",
+  "executable_sha256": "b345cd1b8572197d618dc057e71244d60da73f3f20a22e89948c0c92af8d2e17",
+  "report_sha256": "60f78851dd86b0063cca537eabd50aa2a3c092bd25b29de4f6db7ae5d2ef3db5",
+  "manifest_sha256": "b04148754d9dd70a68f1a0eb600230d3c068524c65aff0235672ce81f632d1a3",
+  "evaluation_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+  "stress_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+  "retained_root": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001",
+  "model_and_evaluation_process_seconds": 1368.529097291,
+  "maximum_rss_bytes": 131301376,
+  "checks_at_executed_source": 35,
+  "decision": "retain ordered geometric span producer; advance exact token-action/register export; preserve seed-one answer errors; no unchanged tuning run",
+  "scope": "authored multi-token occurrence binding in mixed float offline stack; source credit head0; no natural language, matched algebra advantage, full integer serving, donor retention or energy claim",
+  "checks_at_delivery_integration_source": 19
+}

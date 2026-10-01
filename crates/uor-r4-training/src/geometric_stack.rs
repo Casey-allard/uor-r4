@@ -109,6 +109,7 @@ use uor_r4_lut::GROUP;
 
 use crate::flock::{self, FlockSelect};
 use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
+use crate::geometric_span::{self, GeometricSpanConfig, SpanPolicy};
 use crate::lut_export::{dequantize_matrix, quantize_matrix};
 use crate::stack_export::{
     block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
@@ -164,6 +165,23 @@ enum LatchGates<'a> {
     Hard,
     Replay(&'a Tensor),
     Projections(&'a Tensor, &'a Tensor),
+}
+
+/// Original selected token rows are separate from the contextual residual.
+/// A side-channel caller without that provenance cannot construct span actions.
+#[derive(Clone, Copy)]
+struct ReadSource<'a> {
+    tokens: Option<&'a Tensor>,
+    span_policy: SpanPolicy,
+}
+
+impl Default for ReadSource<'_> {
+    fn default() -> Self {
+        Self {
+            tokens: None,
+            span_policy: SpanPolicy::Ordered,
+        }
+    }
 }
 
 impl LatchGates<'_> {
@@ -961,6 +979,18 @@ fn remove_address_projection_parameters<T>(parameters: &mut BTreeMap<String, T>)
     }
 }
 
+fn geometric_span_shapes(config: &StackConfig) -> BTreeMap<String, Vec<usize>> {
+    [
+        (
+            layer_name(2, "read.span_control.weight"),
+            vec![4, 2 * config.width],
+        ),
+        (layer_name(2, "read.span_control.bias"), vec![4]),
+    ]
+    .into_iter()
+    .collect()
+}
+
 pub struct StackModel {
     pub config: StackConfig,
     variables: BTreeMap<String, Var>,
@@ -976,6 +1006,7 @@ pub struct StackModel {
     read_identity_latch: Option<ReadIdentityLatch>,
     /// Direct paired content/context geometry, with no q/k projection maps.
     geometric_address: Option<GeometricAddressConfig>,
+    geometric_span: Option<GeometricSpanConfig>,
 }
 
 impl StackModel {
@@ -1077,6 +1108,7 @@ impl StackModel {
             read_identity_carry: false,
             read_identity_latch: None,
             geometric_address: None,
+            geometric_span: None,
         })
     }
 
@@ -1421,8 +1453,22 @@ impl StackModel {
         binding: &mut Option<BindingCapture<'_>>,
         gates: LatchGates,
     ) -> Result<Tensor> {
+        self.geometric_read_with_source(p, layer, x, capture, binding, gates, ReadSource::default())
+    }
+
+    fn geometric_read_with_source(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        x: &Tensor,
+        capture: &mut Capture<'_>,
+        binding: &mut Option<BindingCapture<'_>>,
+        gates: LatchGates,
+        source: ReadSource<'_>,
+    ) -> Result<Tensor> {
         if let Some(config) = &self.geometric_address {
-            return self.geometric_address_read(p, layer, x, capture, binding, gates, config);
+            return self
+                .geometric_address_read(p, layer, x, capture, binding, gates, config, source);
         }
         let (batch, time, _) = x.dims3()?;
         let heads = self.config.heads;
@@ -1587,7 +1633,7 @@ impl StackModel {
     /// representation; both must refuse it until the corresponding port exists.
     pub fn set_read_identity_carry(&mut self, enabled: bool) -> Result<()> {
         if enabled {
-            if self.read_identity_latch.is_some() {
+            if self.read_identity_latch.is_some() || self.geometric_span.is_some() {
                 return Err(invalid(
                     "read identity carry and latch are mutually exclusive",
                 ));
@@ -1623,6 +1669,11 @@ impl StackModel {
     /// Repeating the same mode is a no-op; changing modes is explicit research
     /// in another model, not a silent reinterpretation of saved parameters.
     pub fn set_read_identity_latch(&mut self, mode: ReadIdentityLatch) -> Result<()> {
+        if self.geometric_span.is_some() {
+            return Err(invalid(
+                "geometric span production replaces the scalar identity latch",
+            ));
+        }
         if let Some(existing) = self.read_identity_latch {
             return if existing == mode {
                 Ok(())
@@ -1709,6 +1760,111 @@ impl StackModel {
         self.geometric_address.as_ref()
     }
 
+    /// Replace the geometric reader's scalar Held latch with an ordered token
+    /// action producer. Enable after geometric addressing and before creating
+    /// the optimizer. Static actions use original selected embedding rows;
+    /// only the four-action controller sees contextual gained read inputs.
+    /// OPEN/APPEND/COMMIT/HOLD are predicted during every forward. Their
+    /// training labels never enter this API. Existing scalar-latch artifacts
+    /// retain their original behavior and tensor inventory.
+    pub fn set_geometric_span(&mut self, config: GeometricSpanConfig) -> Result<()> {
+        config.validate(self.config.width)?;
+        if let Some(existing) = &self.geometric_span {
+            return if existing == &config {
+                Ok(())
+            } else {
+                Err(invalid("geometric span mode is already fixed"))
+            };
+        }
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("geometric spans require geometric addressing"))?;
+        self.validate_geometric_address(address)?;
+        let mut added = BTreeMap::new();
+        for (name, shape) in geometric_span_shapes(&self.config) {
+            added.insert(
+                name,
+                Var::from_tensor(&Tensor::zeros(shape.as_slice(), DType::F32, &self.device)?)?,
+            );
+        }
+        for suffix in ["read.identity_gate.weight", "read.identity_gate.bias"] {
+            self.variables.remove(&layer_name(2, suffix));
+        }
+        self.variables.extend(added);
+        self.read_identity_latch = None;
+        self.geometric_span = Some(config);
+        Ok(())
+    }
+
+    pub fn geometric_span(&self) -> Option<&GeometricSpanConfig> {
+        self.geometric_span.as_ref()
+    }
+
+    fn span_control_logits(&self, p: &Params<'_>, layer: usize, u: &Tensor) -> Result<Tensor> {
+        let (batch, time, width) = u.dims3()?;
+        let zero = Tensor::zeros((batch, 1, width), u.dtype(), u.device())?;
+        let previous = if time == 1 {
+            zero
+        } else {
+            Tensor::cat(&[&zero, &u.narrow(1, 0, time - 1)?], 1)?
+        };
+        let input = Tensor::cat(&[u, &previous], 2)?;
+        Ok(
+            Self::linear(&input, p.layer(layer, "read.span_control.weight")?)?
+                .broadcast_add(p.layer(layer, "read.span_control.bias")?)?,
+        )
+    }
+
+    /// Actual learned controller logits [batch,time,4], ordered as HOLD,
+    /// OPEN, APPEND, COMMIT. A caller may apply a training-only cross entropy;
+    /// the producer itself always follows its predicted earliest argmax.
+    pub fn geometric_span_control_logits(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        if self.geometric_span.is_none() {
+            return Err(invalid("geometric span production is disabled"));
+        }
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_bound(&p, x, 0..2, &mut None, &mut None, LatchGates::Soft)?;
+        let u = self.norm(&p, &x, &layer_name(2, "read_norm.weight"))?;
+        self.span_control_logits(&p, 2, &u)
+    }
+
+    /// Per-call last-token control: the same predicted FSM runs, but APPEND
+    /// replaces working content rather than right-composing a token action.
+    /// Parameters and saved Ordered semantics are unchanged.
+    pub fn forward_geometric_span_last_token(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        if self.geometric_span.is_none() {
+            return Err(invalid("geometric span production is disabled"));
+        }
+        let p = self.params()?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_with_source(
+            &p,
+            tokens.clone(),
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Soft,
+            ReadSource {
+                tokens: Some(&tokens),
+                span_policy: SpanPolicy::LastToken,
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
     fn validate_geometric_address(&self, address: &GeometricAddressConfig) -> Result<()> {
         self.config.validate()?;
         address.validate(self.config.width, self.config.heads)?;
@@ -1719,10 +1875,13 @@ impl StackModel {
             || self.config.pointer.is_some()
             || self.served.is_some()
             || self.read_identity_carry
-            || self.read_identity_latch != Some(ReadIdentityLatch::Held)
+            || !matches!(
+                (&self.geometric_span, self.read_identity_latch),
+                (None, Some(ReadIdentityLatch::Held)) | (Some(_), None)
+            )
         {
             return Err(invalid(
-                "geometric addressing requires CPU rra, a Held latch, full causal support and no pointer, carry or served view",
+                "geometric addressing requires CPU rra, a Held latch or span producer, full causal support and no pointer, carry or served view",
             ));
         }
         Ok(())
@@ -1750,6 +1909,7 @@ impl StackModel {
         binding: &mut Option<BindingCapture<'_>>,
         gates: LatchGates,
         config: &GeometricAddressConfig,
+        source: ReadSource<'_>,
     ) -> Result<Tensor> {
         if layer != 2 || matches!(gates, LatchGates::Replay(_) | LatchGates::Projections(..)) {
             return Err(invalid(
@@ -1760,9 +1920,24 @@ impl StackModel {
         let heads = self.config.heads;
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
-        let prior = self
-            .read_latch_inputs(p, layer, &u, ReadIdentityLatch::Held, gates)?
-            .0;
+        let prior = match &self.geometric_span {
+            Some(span) => {
+                if !matches!(gates, LatchGates::Soft) {
+                    return Err(invalid(
+                        "geometric spans do not use binary latch gate overrides",
+                    ));
+                }
+                let tokens = source.tokens.ok_or_else(|| {
+                    invalid("geometric spans require original selected token rows")
+                })?;
+                let logits = self.span_control_logits(p, layer, &u)?;
+                geometric_span::produce(tokens, &logits, span, source.span_policy)?
+            }
+            None => {
+                self.read_latch_inputs(p, layer, &u, ReadIdentityLatch::Held, gates)?
+                    .0
+            }
+        };
         let mut scores =
             geometric_address::score(&u, &prior, config, &self.address_weights(p, layer)?)?;
         if scores.dims4()? != (batch, heads, time, time) {
@@ -2245,6 +2420,22 @@ impl StackModel {
         capture: &mut Capture<'_>,
     ) -> Result<Tensor> {
         let x = self.embed_with(p, ids, batch, time)?;
+        if self.geometric_span.is_some() {
+            let source = ReadSource {
+                tokens: Some(&x),
+                span_policy: SpanPolicy::Ordered,
+            };
+            let hidden = self.layer_range_with_source(
+                p,
+                x.clone(),
+                0..self.config.layers(),
+                capture,
+                &mut None,
+                LatchGates::Soft,
+                source,
+            )?;
+            return self.finish_hooked(p, hidden, capture);
+        }
         self.layers_hooked(p, x, capture)
     }
 
@@ -2340,18 +2531,31 @@ impl StackModel {
     fn layer_range_bound(
         &self,
         p: &Params<'_>,
+        x: Tensor,
+        layers: std::ops::Range<usize>,
+        capture: &mut Capture<'_>,
+        binding: &mut Option<BindingCapture<'_>>,
+        gates: LatchGates,
+    ) -> Result<Tensor> {
+        self.layer_range_with_source(p, x, layers, capture, binding, gates, ReadSource::default())
+    }
+
+    fn layer_range_with_source(
+        &self,
+        p: &Params<'_>,
         mut x: Tensor,
         layers: std::ops::Range<usize>,
         capture: &mut Capture<'_>,
         binding: &mut Option<BindingCapture<'_>>,
         gates: LatchGates,
+        source: ReadSource<'_>,
     ) -> Result<Tensor> {
         for layer in layers {
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
                 (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
                 (StackArch::Geometric, 'r') => self.recurrence(p, layer, &x, capture)?,
                 (StackArch::Geometric, _) => {
-                    self.geometric_read(p, layer, &x, capture, binding, gates)?
+                    self.geometric_read_with_source(p, layer, &x, capture, binding, gates, source)?
                 }
             };
             x = x.add(&mixed)?;
@@ -2535,19 +2739,44 @@ impl StackModel {
         target: &ReadBindingTarget,
         gates: LatchGates,
     ) -> Result<(Tensor, Tensor)> {
+        self.hidden_with_binding_span_policy(
+            p,
+            ids,
+            batch,
+            time,
+            target,
+            gates,
+            SpanPolicy::Ordered,
+        )
+    }
+
+    fn hidden_with_binding_span_policy(
+        &self,
+        p: &Params<'_>,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        gates: LatchGates,
+        span_policy: SpanPolicy,
+    ) -> Result<(Tensor, Tensor)> {
         self.validate_binding(batch, time, target)?;
         let x = self.embed_with(p, ids, batch, time)?;
         let mut binding = Some(BindingCapture {
             target,
             masses: None,
         });
-        let x = self.layer_range_bound(
+        let x = self.layer_range_with_source(
             p,
-            x,
+            x.clone(),
             0..self.config.layers(),
             &mut None,
             &mut binding,
             gates,
+            ReadSource {
+                tokens: Some(&x),
+                span_policy,
+            },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
         let masses = binding
@@ -2569,6 +2798,33 @@ impl StackModel {
     ) -> Result<Tensor> {
         let p = self.params()?;
         Ok(self.hidden_with_binding(&p, ids, batch, time, binding)?.1)
+    }
+
+    /// The existing exact-source observer under the explicit last-token span
+    /// control. Labels only select observed probabilities, never token actions
+    /// or predicted controller transitions.
+    pub fn read_binding_masses_geometric_span_last_token(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        binding: &ReadBindingTarget,
+    ) -> Result<Tensor> {
+        if self.geometric_span.is_none() {
+            return Err(invalid("geometric span production is disabled"));
+        }
+        let p = self.params()?;
+        Ok(self
+            .hidden_with_binding_span_policy(
+                &p,
+                ids,
+                batch,
+                time,
+                binding,
+                LatchGates::Soft,
+                SpanPolicy::LastToken,
+            )?
+            .1)
     }
 
     /// Exact source-set probabilities under the same per-call hard override as
@@ -2908,6 +3164,14 @@ impl StackModel {
     /// and pins its digest in config.json; a default save removes stale carry
     /// metadata and retains the legacy config byte format.
     pub fn save(&self, directory: &Path) -> Result<()> {
+        if let Some(span) = &self.geometric_span {
+            span.validate(self.config.width)?;
+            if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
+                return Err(invalid(
+                    "geometric span producer and address/latch inventory differ",
+                ));
+            }
+        }
         if let Some(config) = &self.geometric_address {
             self.validate_geometric_address(config)?;
         }
@@ -2993,7 +3257,12 @@ impl StackModel {
         if let Some(address) = &self.geometric_address {
             let record = GeometricAddressRecord {
                 schema: GEOMETRIC_ADDRESS_SCHEMA.to_owned(),
-                operation: GEOMETRIC_ADDRESS_OPERATION.to_owned(),
+                operation: if self.geometric_span.is_some() {
+                    GEOMETRIC_ADDRESS_SPAN_OPERATION
+                } else {
+                    GEOMETRIC_ADDRESS_OPERATION
+                }
+                .to_owned(),
                 address: address.clone(),
                 config_sha256: hex::encode(Sha256::digest(serde_json::to_vec_pretty(
                     &self.config,
@@ -3013,6 +3282,35 @@ impl StackModel {
             fs::write(address_path, bytes)?;
         } else {
             match fs::remove_file(address_path) {
+                Ok(()) => (),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                Err(error) => return Err(error.into()),
+            }
+        }
+        let span_path = directory.join(GEOMETRIC_SPAN_RECORD);
+        if let Some(span) = &self.geometric_span {
+            let record = GeometricSpanRecord {
+                schema: GEOMETRIC_SPAN_SCHEMA.to_owned(),
+                operation: GEOMETRIC_SPAN_OPERATION.to_owned(),
+                span: span.clone(),
+                config_sha256: hex::encode(Sha256::digest(serde_json::to_vec_pretty(
+                    &self.config,
+                )?)),
+                model_sha256: hex::encode(Sha256::digest(fs::read(
+                    directory.join("model.safetensors"),
+                )?)),
+            };
+            let bytes = serde_json::to_vec_pretty(&record)?;
+            let marker = ReadIdentityCarryMarker {
+                schema: GEOMETRIC_SPAN_SCHEMA.to_owned(),
+                record_sha256: hex::encode(Sha256::digest(&bytes)),
+            };
+            let mut with_marker: serde_json::Value = serde_json::from_slice(&config)?;
+            with_marker["geometric_span"] = serde_json::to_value(marker)?;
+            config = serde_json::to_vec_pretty(&with_marker)?;
+            fs::write(span_path, bytes)?;
+        } else {
+            match fs::remove_file(span_path) {
                 Ok(()) => (),
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
                 Err(error) => return Err(error.into()),
@@ -3208,9 +3506,16 @@ impl StackModel {
         let config: StackConfig = serde_json::from_slice(&config_bytes)?;
         config.validate()?;
         record.address.validate(config.width, config.heads)?;
+        let span = Self::saved_geometric_span(directory)?;
+        let expected_operation = if span.is_some() {
+            GEOMETRIC_ADDRESS_SPAN_OPERATION
+        } else {
+            GEOMETRIC_ADDRESS_OPERATION
+        };
+        let latch = Self::saved_read_identity_latch(directory)?;
         if marker.schema != GEOMETRIC_ADDRESS_SCHEMA
             || record.schema != GEOMETRIC_ADDRESS_SCHEMA
-            || record.operation != GEOMETRIC_ADDRESS_OPERATION
+            || record.operation != expected_operation
             || marker.record_sha256 != hex::encode(Sha256::digest(&bytes))
             || record.config_sha256
                 != hex::encode(Sha256::digest(serde_json::to_vec_pretty(&config)?))
@@ -3222,13 +3527,70 @@ impl StackModel {
             || config.pattern != "rra"
             || config.select.is_some()
             || config.pointer.is_some()
-            || Self::saved_read_identity_latch(directory)? != Some(ReadIdentityLatch::Held)
+            || !matches!(
+                (span, latch),
+                (None, Some(ReadIdentityLatch::Held)) | (Some(_), None)
+            )
         {
             return Err(invalid(
                 "saved geometric address operation, parameters or model binding differs",
             ));
         }
         Ok(Some(record.address))
+    }
+
+    /// Verify the distinct ordered-span producer and its exact parameter and
+    /// configuration binding. A scalar latch, missing address mode, orphaned
+    /// sidecar, unknown operation or changed root/action ordering fails closed.
+    pub fn saved_geometric_span(directory: &Path) -> Result<Option<GeometricSpanConfig>> {
+        #[derive(Deserialize)]
+        struct ConfigMarker {
+            #[serde(default)]
+            geometric_span: Option<ReadIdentityCarryMarker>,
+            #[serde(default)]
+            geometric_address: Option<ReadIdentityCarryMarker>,
+        }
+        let config_bytes = fs::read(directory.join("config.json"))?;
+        let marker: ConfigMarker = serde_json::from_slice(&config_bytes)?;
+        let has_address = marker.geometric_address.is_some();
+        let bytes = match fs::read(directory.join(GEOMETRIC_SPAN_RECORD)) {
+            Ok(bytes) => Some(bytes),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => return Err(error.into()),
+        };
+        let (marker, bytes) = match (marker.geometric_span, bytes) {
+            (None, None) => return Ok(None),
+            (Some(marker), Some(bytes)) => (marker, bytes),
+            _ => return Err(invalid("geometric span marker and record presence differ")),
+        };
+        let record: GeometricSpanRecord = serde_json::from_slice(&bytes)?;
+        let config: StackConfig = serde_json::from_slice(&config_bytes)?;
+        config.validate()?;
+        record.span.validate(config.width)?;
+        if marker.schema != GEOMETRIC_SPAN_SCHEMA
+            || record.schema != GEOMETRIC_SPAN_SCHEMA
+            || record.operation != GEOMETRIC_SPAN_OPERATION
+            || !has_address
+            || marker.record_sha256 != hex::encode(Sha256::digest(&bytes))
+            || record.config_sha256
+                != hex::encode(Sha256::digest(serde_json::to_vec_pretty(&config)?))
+            || record.model_sha256
+                != hex::encode(Sha256::digest(fs::read(
+                    directory.join("model.safetensors"),
+                )?))
+            || config.arch != StackArch::Geometric
+            || config.pattern != "rra"
+            || config.select.is_some()
+            || config.pointer.is_some()
+            || Self::saved_read_identity_latch(directory)?.is_some()
+            || Self::saved_read_identity_carry(directory)?
+            || Self::saved_served_representation(directory)?.is_some()
+        {
+            return Err(invalid(
+                "saved geometric span operation, model binding or configuration differs",
+            ));
+        }
+        Ok(Some(record.span))
     }
 
     /// Load a saved model. A directory whose [`TRANSPORT_RECORD`] records a
@@ -3243,6 +3605,7 @@ impl StackModel {
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
         config.validate()?;
         let read_identity_latch = Self::saved_read_identity_latch(directory)?;
+        let geometric_span = Self::saved_geometric_span(directory)?;
         let geometric_address = Self::saved_geometric_address(directory)?;
         if geometric_address.is_some() && !device.is_cpu() {
             return Err(invalid("geometric address models currently require CPU"));
@@ -3258,6 +3621,12 @@ impl StackModel {
             {
                 shapes.insert(layer_name(2, &suffix), shape);
             }
+        }
+        if geometric_span.is_some() {
+            if geometric_address.is_none() {
+                return Err(invalid("geometric span lacks geometric address mode"));
+            }
+            shapes.extend(geometric_span_shapes(&config));
         }
         if tensors.len() != shapes.len() {
             return Err(invalid("saved stack tensors differ from the configuration"));
@@ -3281,6 +3650,7 @@ impl StackModel {
             read_identity_carry: false,
             read_identity_latch,
             geometric_address,
+            geometric_span,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -3333,10 +3703,22 @@ impl StackModel {
     ) -> Result<Tensor> {
         let p = self.params()?;
         let mut x = self.embed_with(&p, ids, batch, time)?;
+        let tokens = x.clone();
         for layer in 0..self.config.layers() {
             let mixed = match self.config.layer_kind(layer) {
                 'r' => self.composed_recurrence(&p, layer, &x, transport)?,
-                _ => self.geometric_read(&p, layer, &x, &mut None, &mut None, LatchGates::Soft)?,
+                _ => self.geometric_read_with_source(
+                    &p,
+                    layer,
+                    &x,
+                    &mut None,
+                    &mut None,
+                    LatchGates::Soft,
+                    ReadSource {
+                        tokens: Some(&tokens),
+                        span_policy: SpanPolicy::Ordered,
+                    },
+                )?,
             };
             x = x.add(&mixed)?;
             x = x.add(&self.mlp(&p, layer, &x, &mut None)?)?;
@@ -3522,6 +3904,23 @@ pub const GEOMETRIC_ADDRESS_RECORD: &str = "geometric-address.json";
 const GEOMETRIC_ADDRESS_SCHEMA: &str = "uor-r4.stack-geometric-address/1";
 const GEOMETRIC_ADDRESS_OPERATION: &str =
     "content=prior_held_h;context=current_gained_u;paired_direct_4d_codes;directed_relatives;separate_radius_presence;learned_unary_bilinear_radius_presence;no_qk_maps;causal_including_self;NoRead_age_value_output=unchanged";
+const GEOMETRIC_ADDRESS_SPAN_OPERATION: &str =
+    "content=prior_committed_ordered_token_span;context=current_gained_u;paired_direct_4d_codes;directed_relatives;separate_radius_presence;learned_unary_bilinear_radius_presence;no_qk_maps;causal_including_self;NoRead_age_value_output=unchanged";
+
+pub const GEOMETRIC_SPAN_RECORD: &str = "geometric-span.json";
+const GEOMETRIC_SPAN_SCHEMA: &str = "uor-r4.stack-geometric-span/1";
+const GEOMETRIC_SPAN_OPERATION: &str =
+    "actions=raw_selected_embedding_4d_roots;controller=W[current_gained_u,previous_gained_u]+b;Hold_Open_Append_Commit;predicted_earliest_argmax;ordered_right_product;old_committed_content_before_step;unit_radius_separate_presence;training_labels_never_input";
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GeometricSpanRecord {
+    schema: String,
+    operation: String,
+    span: GeometricSpanConfig,
+    config_sha256: String,
+    model_sha256: String,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -8487,6 +8886,303 @@ mod tests {
             model.config.heads,
         )?)?;
         Ok(model)
+    }
+
+    fn tiny_span_model() -> Result<StackModel> {
+        let mut model = tiny_address_model()?;
+        model.set_geometric_span(GeometricSpanConfig::new(model.config.width)?)?;
+        // Construction-only controller: stable action markers occupy the
+        // first lane, while two payloads have different static action lanes.
+        // No forward API receives these expected labels.
+        let width = model.config.width;
+        let embedding = &model.variables()["embedding.weight"];
+        let mut rows = embedding.flatten_all()?.to_vec1::<f32>()?;
+        for (id, action) in [(1, 1), (2, 2), (3, 2), (4, 3), (5, 0), (6, 0)] {
+            rows[id * width..id * width + 4].fill(0.0);
+            rows[id * width + action] = 3.0;
+        }
+        for lane in 1..width / 4 {
+            rows[2 * width + 4 * lane..2 * width + 4 * lane + 4]
+                .copy_from_slice(&[0.0, 1.0, 0.0, 0.0]);
+            rows[3 * width + 4 * lane..3 * width + 4 * lane + 4]
+                .copy_from_slice(&[0.0, 0.0, 1.0, 0.0]);
+        }
+        embedding.set(&Tensor::from_vec(rows, embedding.shape(), &cpu())?)?;
+        let mut controller = vec![0.0f32; 8 * width];
+        for action in 0..4 {
+            controller[action * 2 * width + action] = 1.0;
+        }
+        model.variables()["layers.02.read.span_control.weight"].set(&Tensor::from_vec(
+            controller,
+            (4, 2 * width),
+            &cpu(),
+        )?)?;
+        Ok(model)
+    }
+
+    #[test]
+    fn geometric_span_shared_forward_source_observer_causality_and_controls() -> Result<()> {
+        let model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let expected_actions = vec![1, 2, 2, 3, 0, 1, 2, 2, 3, 0];
+        assert_eq!(
+            model
+                .geometric_span_control_logits(&ids, 1, 10)?
+                .argmax(2)?
+                .to_vec2::<u32>()?[0],
+            expected_actions
+        );
+        assert!(model.read_identity_latch().is_none());
+        for name in [
+            "query.weight",
+            "key.weight",
+            "query_identity.weight",
+            "key_identity.weight",
+            "identity_gate.weight",
+            "identity_gate.bias",
+            "log_beta",
+            "offset",
+        ] {
+            assert!(
+                !model
+                    .variables()
+                    .contains_key(&format!("layers.02.read.{name}")),
+                "{name}"
+            );
+        }
+        let reference = model.forward(&ids, 1, 10)?;
+        let target = ReadBindingTarget {
+            layer: 2,
+            head: 0,
+            rows: vec![ReadBinding {
+                batch: 0,
+                query: 9,
+                sources: vec![4],
+            }],
+        };
+        let p = model.params()?;
+        let (hidden, masses) = model.hidden_with_binding(&p, &ids, 1, 10, &target)?;
+        assert!(max_abs_gap(&hidden, &model.hidden(&ids, 1, 10)?)? < 1e-7);
+        let mass = masses.to_vec1::<f32>()?[0];
+        assert!(mass > 0.0 && mass < 1.0);
+        let mut other = target.clone();
+        other.rows[0].sources = vec![0, 2];
+        assert!(
+            max_abs_gap(
+                &hidden,
+                &model.hidden_with_binding(&p, &ids, 1, 10, &other)?.0
+            )? < 1e-7
+        );
+        let mut future = ids;
+        future[8] = 2;
+        future[9] = 3;
+        assert_eq!(
+            bits(&reference.narrow(0, 0, 8)?)?,
+            bits(&model.forward(&future, 1, 10)?.narrow(0, 0, 8)?)?
+        );
+        let counterfactual = model.forward_geometric_span_last_token(&ids, 1, 10)?;
+        assert!(max_abs_gap(&reference, &counterfactual)? > 0.0);
+        let last_mass = model
+            .read_binding_masses_geometric_span_last_token(&ids, 1, 10, &target)?
+            .to_vec1::<f32>()?[0];
+        assert!((mass - last_mass).abs() > 0.0);
+        assert_eq!(bits(&reference)?, bits(&model.forward(&ids, 1, 10)?)?);
+        let output = &model.variables()["layers.02.read.out.weight"];
+        let saved = output.as_tensor().copy()?;
+        output.set(&output.zeros_like()?)?;
+        assert!(max_abs_gap(&reference, &model.forward(&ids, 1, 10)?)? > 0.0);
+        output.set(&saved)?;
+        assert_eq!(bits(&reference)?, bits(&model.forward(&ids, 1, 10)?)?);
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_span_language_and_event_gradients_reach_controller_and_trunk() -> Result<()> {
+        let model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let targets: Vec<u32> = ids.iter().map(|x| (x + 7) % 37).collect();
+        let gradients = model.loss(&ids, &targets, 1, 10)?.backward()?;
+        for name in [
+            "layers.02.read.span_control.weight",
+            "layers.02.read.span_control.bias",
+            "layers.02.read.address.content_unary",
+            "layers.02.read.address.pair",
+            "layers.01.rec.in.weight",
+            "embedding.weight",
+        ] {
+            let gradient = gradients
+                .get(&model.variables()[name])
+                .ok_or_else(|| invalid(format!("language misses {name}")))?;
+            let size = gradient.abs()?.max_all()?.to_scalar::<f32>()?;
+            assert!(
+                size.is_finite() && size > 0.0,
+                "pure language {name}: {size}"
+            );
+        }
+        // Event CE is the explicit teaching path for validity-only OPEN and
+        // for initially uncommitted/empty states. No labels enter the scan.
+        let event = logits_cross_entropy(
+            &model
+                .geometric_span_control_logits(&ids, 1, 10)?
+                .reshape((10, 4))?,
+            &[1, 2, 2, 3, 0, 1, 2, 2, 3, 0],
+            None,
+        )?
+        .backward()?;
+        for name in [
+            "layers.02.read.span_control.weight",
+            "layers.01.rec.in.weight",
+            "embedding.weight",
+        ] {
+            assert!(
+                event
+                    .get(&model.variables()[name])
+                    .ok_or_else(|| invalid("event gradient absent"))?
+                    .abs()?
+                    .max_all()?
+                    .to_scalar::<f32>()?
+                    > 0.0,
+                "{name}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_span_earlier_token_credit_uses_ordered_product_not_context_route() -> Result<()> {
+        let model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let p = model.params()?;
+        let original = model.embed(&ids, 1, 10)?;
+        let tokens = Var::from_tensor(&original.detach())?;
+        let context = model
+            .norm(
+                &p,
+                &model.run_layers(original, 0..2)?,
+                "layers.02.read_norm.weight",
+            )?
+            .detach();
+        let controller = model.geometric_span_control_logits(&ids, 1, 10)?.detach();
+        let objective = |policy| -> Result<Tensor> {
+            let prior = geometric_span::produce(
+                tokens.as_tensor(),
+                &controller,
+                model.geometric_span().unwrap(),
+                policy,
+            )?;
+            let scores = geometric_address::score(
+                &context,
+                &prior,
+                model.geometric_address().unwrap(),
+                &model.address_weights(&p, 2)?,
+            )?;
+            let query = scores.get(0)?.get(0)?.get(9)?.reshape((1, 10))?;
+            logits_cross_entropy(&query, &[4], None)
+        };
+        let ordered = objective(SpanPolicy::Ordered)?.backward()?;
+        let last = objective(SpanPolicy::LastToken)?.backward()?;
+        let earlier = |grads: &candle_core::backprop::GradStore| -> Result<f32> {
+            Ok(grads
+                .get(tokens.as_tensor())
+                .ok_or_else(|| invalid("token action gradient absent"))?
+                .get(0)?
+                .get(1)?
+                .narrow(0, 4, 12)?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?)
+        };
+        assert!(earlier(&ordered)? > 0.0);
+        assert_eq!(earlier(&last)?, 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_span_save_reload_legacy_and_metadata_refusals() -> Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("stack-geometric-span-{}", std::process::id()));
+        let model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let expected = bits(&model.forward(&ids, 1, 10)?)?;
+        model.save(&root)?;
+        let loaded = StackModel::load(&root, &cpu())?;
+        assert_eq!(loaded.geometric_span(), model.geometric_span());
+        assert_eq!(loaded.parameter_count(), model.parameter_count());
+        assert_eq!(bits(&loaded.forward(&ids, 1, 10)?)?, expected);
+        let config_bytes = fs::read(root.join("config.json"))?;
+        let record_bytes = fs::read(root.join(GEOMETRIC_SPAN_RECORD))?;
+        fs::remove_file(root.join(GEOMETRIC_SPAN_RECORD))?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        for field in [
+            "schema",
+            "operation",
+            "config_sha256",
+            "model_sha256",
+            "root_table_sha256",
+            "action_order",
+        ] {
+            let mut record: serde_json::Value = serde_json::from_slice(&record_bytes)?;
+            if field == "root_table_sha256" {
+                record["span"][field] = serde_json::json!("unknown");
+            } else if field == "action_order" {
+                record["span"][field] = serde_json::json!(["open", "hold", "append", "commit"]);
+            } else {
+                record[field] = serde_json::json!("unknown");
+            }
+            let bytes = serde_json::to_vec_pretty(&record)?;
+            let mut config: serde_json::Value = serde_json::from_slice(&config_bytes)?;
+            config["geometric_span"]["record_sha256"] =
+                serde_json::json!(hex::encode(Sha256::digest(&bytes)));
+            fs::write(
+                root.join("config.json"),
+                serde_json::to_vec_pretty(&config)?,
+            )?;
+            fs::write(root.join(GEOMETRIC_SPAN_RECORD), bytes)?;
+            assert!(StackModel::load(&root, &cpu()).is_err(), "resealed {field}");
+        }
+        model.save(&root)?;
+        let mut config: serde_json::Value = serde_json::from_slice(&config_bytes)?;
+        config.as_object_mut().unwrap().remove("geometric_span");
+        fs::write(
+            root.join("config.json"),
+            serde_json::to_vec_pretty(&config)?,
+        )?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        let legacy = tiny_address_model()?;
+        legacy.save(&root)?;
+        assert!(!root.join(GEOMETRIC_SPAN_RECORD).exists());
+        let reloaded = StackModel::load(&root, &cpu())?;
+        assert!(reloaded.geometric_span().is_none());
+        assert_eq!(
+            bits(&legacy.forward(&ids, 1, 10)?)?,
+            bits(&reloaded.forward(&ids, 1, 10)?)?
+        );
+        fs::write(root.join(GEOMETRIC_SPAN_RECORD), &record_bytes)?;
+        assert!(StackModel::load(&root, &cpu()).is_err());
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_span_refuses_unprovenanced_inputs_and_old_latch_overrides() -> Result<()> {
+        let mut model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 6];
+        assert!(model.hidden_from_input(model.embed(&ids, 1, 6)?).is_err());
+        let prefix = model.run_layers(model.embed(&ids, 1, 6)?, 0..2)?;
+        assert!(model.run_layers(prefix, 2..3).is_err());
+        assert!(model.forward_hard_read_identity_latch(&ids, 1, 6).is_err());
+        assert!(model
+            .read_identity_latch_gate_logits(&ids, 1, 6, 2)
+            .is_err());
+        assert!(model
+            .set_read_identity_latch(ReadIdentityLatch::Held)
+            .is_err());
+        assert!(model.set_read_identity_carry(true).is_err());
+        assert!(model
+            .set_served_representation(Some(Arc::new(D11Interim)))
+            .is_err());
+        assert!(model.forward(&ids, 1, 6).is_ok());
+        Ok(())
     }
 
     #[test]
