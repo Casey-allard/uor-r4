@@ -796,6 +796,14 @@ static COLOR_QUERY: Phrasings = Phrasings {
     ],
 };
 
+/// The names of the relation table's relations, in table order: open
+/// relations first, then the closed minority. A relation turn's intent is
+/// `{name}_assert`, `_update`, `_query` or (a query of an unstated relation)
+/// `_absent`.
+pub fn relation_names() -> Vec<&'static str> {
+    relations().iter().map(|relation| relation.name).collect()
+}
+
 /// The relation table: open relations first, then the closed minority.
 fn relations() -> &'static [Rel] {
     static TABLE: OnceLock<Vec<Rel>> = OnceLock::new();

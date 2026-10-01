@@ -30,6 +30,9 @@
 //! m-world route world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=2000] [seed=9101] [cells=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
+//! m-world compiler world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
+//!   [train_conversations=2000] [eval_conversations=1000] [seed=9101] [steps=400] [rate=0.5] [l2=0.0001] \
+//!   [lexical=true|false] [paraphrases=PARAPHRASES.jsonl]
 //! m-world probe out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json [max_new_tokens=48] \
 //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K]
 //! m-world probe-static out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [context=256]
@@ -153,14 +156,19 @@ use uor_r4_training::{sha256_file, Result, TrainingError};
 
 // The council's A1 amendments: cells, rule baselines, the sealed English probe.
 use uor_r4_training::milestone_world_v2::{
-    freeze_report, is_retrieval, oracle_recall, recall_line, run_route, run_rules, sieve_value,
-    takes_recall, Category2, Cell, CellScores, Meter, RuleRun, Tag, FREEZE_LIMIT, REFERENCE,
-    REVISION,
+    freeze_report, is_retrieval, oracle_recall, recall_line, relation_names, run_route, run_rules,
+    sieve_value, takes_recall, Category2, Cell, CellScores, Meter, RuleRun, Tag, FREEZE_LIMIT,
+    REFERENCE, REVISION,
 };
+// E3 of the log-sieve design: the relation compiler.
 use uor_r4_training::milestone_world_v2_probe::{
     answer_layout, conversation_excluding_probe, history_messages, probe, probe_ngrams,
     probe_sha256, shares_ngram, static_report, teacher_forced, NllCard, ProbeGroup, Rejected,
     EXCLUSION_NGRAM,
+};
+use uor_r4_training::relation_compiler::{
+    collect, paraphrase_examples, score, trunk_features, Example, Lexicon, Softmax, ACTS,
+    NONE as RC_NONE,
 };
 
 fn invalid(message: impl Into<String>) -> TrainingError {
@@ -2389,6 +2397,208 @@ fn route(args: &Args, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// `compiler` (E3 of the log-sieve design): softmax heads that name a user
+/// turn's relation and act, fitted on turns with training phrasings and scored
+/// on turns with development phrasings, from the frozen trunk's states and,
+/// as a control, from the turn's words (`uor_r4_training::relation_compiler`).
+/// Relation accuracy is over the turns that state, update or ask a relation;
+/// act accuracy is over every user turn.
+fn compiler(args: &Args, out: &Path) -> Result<()> {
+    let started = Instant::now();
+    if args.optional("world").as_deref() != Some("v2") {
+        return Err(invalid("compiler needs world=v2"));
+    }
+    let model_dir = PathBuf::from(args.required("model")?);
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let train_conversations: usize = args.number("train_conversations", 2_000)?;
+    let eval_conversations: usize = args.number("eval_conversations", 1_000)?;
+    let seed: u64 = args.number("seed", 9_101)?;
+    let steps: usize = args.number("steps", 400)?;
+    let rate: f64 = args.number("rate", 0.5)?;
+    let l2: f64 = args.number("l2", 1e-4)?;
+    let lexical_head: bool = args.number("lexical", true)?;
+    let tokenizer = load_tokenizer(&tokenizer_path)?;
+    let protocol = DialogueProtocol::literal_roles_v1(&tokenizer)
+        .map_err(|e| invalid(format!("protocol: {e}")))?;
+    let encoder = protocol
+        .bind(&tokenizer)
+        .map_err(|e| invalid(format!("protocol: {e}")))?;
+    let device = Device::Cpu;
+    let (model, identity, _) = load_model(&model_dir, &device, &args.selection)?;
+    let count = |text: &str| tokenizer.encode(text).len();
+    // Relation-heavy episodes: more relation turns per draw, the same templates.
+    let mix = Mix {
+        mqar: 0.15,
+        copy: 0.05,
+        relation: 0.60,
+        other: 0.20,
+        ..Mix::default()
+    };
+    let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
+        let mut world = MWorld2::new(&count, mix)?;
+        let mut rng = Rng::new(seed);
+        collect(&mut world, &mut rng, cell, conversations)
+    };
+    let mut train = Vec::new();
+    for value in [Split::Train, Split::Development] {
+        train.extend(draw(
+            Cell::new(Split::Train, value),
+            train_conversations,
+            seed,
+        )?);
+    }
+    // Teacher paraphrases (`teacher-paraphrase`), filled with training values,
+    // join the training turns; the development turns are untouched.
+    let paraphrases = match args.optional("paraphrases") {
+        Some(path) => {
+            let path = PathBuf::from(path);
+            let (examples, skipped) = paraphrase_examples(&fs::read_to_string(&path)?, &train)?;
+            let record = json!({
+                "path": path.display().to_string(),
+                "sha256": sha256_file(&path)?,
+                "examples": examples.len(),
+                "skipped_without_a_value": skipped,
+            });
+            train.extend(examples);
+            Some(record)
+        }
+        None => None,
+    };
+    let tests: Vec<(Cell, Vec<Example>)> = [Split::Development, Split::Train]
+        .into_iter()
+        .map(|value| {
+            let cell = Cell::new(Split::Development, value);
+            Ok((cell, draw(cell, eval_conversations, seed + 1)?))
+        })
+        .collect::<Result<_>>()?;
+    let relations: Vec<String> = relation_names()
+        .iter()
+        .map(|name| (*name).to_owned())
+        .chain([RC_NONE.to_owned()])
+        .collect();
+    let acts: Vec<String> = ACTS.iter().map(|act| (*act).to_owned()).collect();
+    let relation_index = |example: &Example| {
+        relations
+            .iter()
+            .position(|r| *r == example.relation)
+            .unwrap_or(relations.len() - 1)
+    };
+    let act_index = |example: &Example| {
+        ACTS.iter()
+            .position(|a| *a == example.act)
+            .unwrap_or(ACTS.len() - 1)
+    };
+    let none = relations.len() - 1;
+    let lexicon = Lexicon::fit(train.iter().map(|e| e.text.as_str()));
+    let trunk = |examples: &[Example]| -> Result<Vec<Vec<f64>>> {
+        examples
+            .iter()
+            .map(|e| trunk_features(&model, &encoder, protocol.bos_id, &e.text))
+            .collect()
+    };
+    let lexical = |examples: &[Example]| -> Vec<Vec<f64>> {
+        examples.iter().map(|e| lexicon.features(&e.text)).collect()
+    };
+    let train_relation: Vec<usize> = train.iter().map(relation_index).collect();
+    let train_act: Vec<usize> = train.iter().map(act_index).collect();
+    let mut heads = BTreeMap::new();
+    let mut features = vec![("trunk", trunk(&train)?)];
+    // The lexical control depends on the turns alone, not on the trunk, so a
+    // second trunk on the same draw may skip it (`lexical=false`).
+    if lexical_head {
+        features.push(("lexical", lexical(&train)));
+    }
+    for (name, x) in features {
+        let relation_head = Softmax::fit(&x, &train_relation, relations.len(), steps, rate, l2)?;
+        let act_head = Softmax::fit(&x, &train_act, acts.len(), steps, rate, l2)?;
+        heads.insert(name, (relation_head, act_head));
+    }
+    let mut cells_json = BTreeMap::new();
+    for (cell, examples) in &tests {
+        let truth_relation: Vec<usize> = examples.iter().map(relation_index).collect();
+        let truth_act: Vec<usize> = examples.iter().map(act_index).collect();
+        let mut rows = BTreeMap::new();
+        for (name, (relation_head, act_head)) in &heads {
+            let x = if *name == "trunk" {
+                trunk(examples)?
+            } else {
+                lexical(examples)
+            };
+            let predicted_relation: Vec<usize> =
+                x.iter().map(|row| relation_head.predict(row)).collect();
+            let predicted_act: Vec<usize> = x.iter().map(|row| act_head.predict(row)).collect();
+            let relation_turns = score(&relations, &truth_relation, &predicted_relation, |t| {
+                t != none
+            });
+            let all_turns = score(&relations, &truth_relation, &predicted_relation, |_| true);
+            let act = score(&acts, &truth_act, &predicted_act, |_| true);
+            println!(
+                "{} {name}: relation {}/{} ({:.3}) on relation turns; act {}/{} ({:.3})",
+                cell.key(),
+                relation_turns["pass"],
+                relation_turns["of"],
+                relation_turns["rate"].as_f64().unwrap_or(0.0),
+                act["pass"],
+                act["of"],
+                act["rate"].as_f64().unwrap_or(0.0),
+            );
+            rows.insert(
+                (*name).to_owned(),
+                json!({
+                    "relation_on_relation_turns": relation_turns,
+                    "relation_on_all_turns": all_turns,
+                    "act_on_all_turns": act,
+                }),
+            );
+        }
+        cells_json.insert(cell.key(), json!(rows));
+    }
+    let gate_row = &cells_json[Cell::GATED.key()]["trunk"];
+    let gate = gate_row["relation_on_relation_turns"]["rate"]
+        .as_f64()
+        .unwrap_or(0.0)
+        >= 0.9
+        && gate_row["act_on_all_turns"]["rate"].as_f64().unwrap_or(0.0) >= 0.95;
+    println!("E3 gate (trunk, dev x dev: relation >= 0.9 and act >= 0.95): {gate}");
+    let report = json!({
+        "schema": "uor-r4.m-world-compiler/1",
+        "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+        "world": "m-world-v2",
+        "world_digest": MWorld2::digest(),
+        "revision": REVISION,
+        "model": model_dir.display().to_string(),
+        "model_identity": identity,
+        "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+        "mix": mix,
+        "seed": seed,
+        "train": {
+            "cells": ["train_phrasing_train_value", "train_phrasing_dev_value"],
+            "conversations_per_cell": train_conversations,
+            "turns": train.len(),
+            "relation_turns": train_relation.iter().filter(|&&r| r != none).count(),
+            "paraphrases": paraphrases,
+            "lexicon_words": lexicon.len(),
+        },
+        "eval_conversations_per_cell": eval_conversations,
+        "fit": {"steps": steps, "rate": rate, "l2": l2, "lexical_head": lexical_head, "features": {
+            "trunk": "final normalized state at the assistant marker and its mean over the turn read alone (2 x width)",
+            "lexical": "binary words of the training turns (a control)",
+        }},
+        "labels": {"relations": relations, "acts": acts},
+        "gate": {
+            "rule": "trunk head on dev_phrasing x dev_value: relation accuracy >= 0.9 on relation turns and act accuracy >= 0.95 on all turns",
+            "met": gate,
+        },
+        "cells": cells_json,
+        "wall_seconds": started.elapsed().as_secs_f64(),
+    });
+    fs::write(
+        out.join("m_world_compiler.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    Ok(())
+}
+
 /// `probe`: the sealed 40-item English retrieval probe, answered greedily after
 /// each item's reference history and teacher-forced.
 fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
@@ -2588,7 +2798,24 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "pointer_select",
     ];
     let static_probe: &[&str] = &["out", "tokenizer", "context"];
+    let relation_compiler: &[&str] = &[
+        "out",
+        "world",
+        "model",
+        "tokenizer",
+        "train_conversations",
+        "eval_conversations",
+        "seed",
+        "steps",
+        "rate",
+        "l2",
+        "lexical",
+        "paraphrases",
+        "select",
+        "pointer_select",
+    ];
     match mode {
+        "compiler" => Some(claimed(rest, relation_compiler, compiler)),
         "evaluate-cells" => Some(claimed(rest, cells, evaluate_cells)),
         "baselines" => Some(claimed(rest, baseline, baselines)),
         "route" => Some(claimed(rest, baseline, route)),
