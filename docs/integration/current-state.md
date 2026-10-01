@@ -30,9 +30,10 @@ paraphrases did not change that sparse-table route. Closed values are dropped
 by its extraction rule, so this is an interface defect, not evidence against
 exact memory. The owner then authorized v13 teacher data plus classifier work.
 Preserve that current work and consume its outputs before selecting another fit. Claude owns its
-compiler/emitter source; DeepSeek owns its current data/read task. Codex's
-#1563 owns plan/issue adoption, then separately claims a complementary code
-boundary. No model slot or another lab's source is claimed by this document.
+compiler/emitter source; DeepSeek owns its current data/read task. Codex delivered
+plan/issue adoption in #1564 and checkpoint persistence in #1566, and now owns
+the complementary #962 session consumer. No model slot or another lab's source
+is claimed by this document.
 
 **Qualification and cost:** D11/D5, existing §8 and D17v2 remain unchanged.
 A1 training stays stopped; Track B stays parked. Compile/test/check receipts,
@@ -55,6 +56,49 @@ does not include the learned compiler, transcript or live session cache, and
 does not establish generated-history dialogue or D11 export. The next
 integration must consume the saved compiler and preserve the actual session
 history alongside this model/store boundary.
+
+**Grounded session boundary (#962):** `stack_grounded_session` composes the
+checkpoint loader, a caller-supplied artifact-bound `TurnCompiler`, existing
+`StackStore` and the actual pointer-aware `greedy_reply` emitter. The compiler
+predicts Assert, Correct, current query or unresolved, with UTF-8 byte spans
+into unchanged user source. The session validates the span, stages the store
+operation and commits memory/history only after generation succeeds. Its
+separate sealed envelope preserves compiler bytes, tokenizer/protocol,
+model/store, original turns and actual generated IDs; a resume requires the
+same compiler identity and bytes. This is a floating-point development
+consumer, not a D11 export or a learned-compiler implementation.
+
+The explicit context policy is either strict full history or the largest
+fitting suffix of whole completed turns. Removing old turns from the emitter
+input resets its recomputed state and removes pointer candidates; it does not
+remove the durable log/store or claim full-history equivalence. Turn, source,
+history-token and store-record limits are separate. The existing textual recall
+channel cannot distinguish a value `none` from absence and normalizes carriage
+returns. Such values remain storable, but retrieval is recorded as found and
+unsupported by that channel; conflicts and eviction are also not absence.
+Only a proven absent read supplies `Memory: none.`. Unsupported handling here
+does not establish that the emitter reliably abstains.
+
+The real saved compiler/span adapter and ordinary-text CLI are still missing
+from the inspected compiler source at `caedf3ca`. Focused session fixtures can
+check transactions, token history and fresh-process model continuation; they
+cannot meet the integrated learned-input acceptance. Executed checks and exact
+delivery belong to [#962](https://github.com/UOR-Foundation/uor-r4/issues/962).
+The next dependency is the real adapter, followed by the bound emitter/session
+construction witness, including changed-source, NoRead and UpdateDisabled
+comparisons. Full #962 temporal/scope/conflict and capability acceptance stays
+open.
+
+**Learning-data diagnosis:** a deterministic 40-row stratified audit of the
+373 accepted `paraphrases-1` rows found actual inherited-label errors, including
+user/addressee reversal and hometown/current-home confusion. The
+[artifact-bound audit](https://github.com/UOR-Foundation/uor-r4/issues/1552#issuecomment-5926424267)
+records all sampled pairs, selection method and verification scope. This
+establishes bad labels in that source, not their population rate or their
+causal contribution to E3. Preserve raw data/results and review a traceable
+derivative before treating a union as reliable supervision. DeepSeek's separate
+top-p normalization repair (#1567) does not repair these semantic labels and
+does not implicate Claude's top-k sampler.
 
 ## Historical current-state entries
 

@@ -205,18 +205,31 @@ impl DialogueEncoder<'_> {
         self.encode(messages, Ending::OpenHistory, true, false)
     }
 
+    /// Append messages and the next assistant marker to already closed history,
+    /// without re-encoding its token IDs. `has_history` adds a separator before
+    /// the first emitted message. No BOS or document-terminal EOS is inserted;
+    /// assistant messages in this suffix still receive their own closing EOS.
+    /// Separators, markers and normalized content retain their segment boundaries
+    /// and response masks. Empty/all-skipped input emits only the assistant
+    /// marker; callers must check `emitted_turns` when a new turn is required.
+    pub fn encode_assistant_suffix(
+        &self,
+        messages: &[Message<'_>],
+        has_history: bool,
+    ) -> EncodedDialogue {
+        self.encode(messages, Ending::AssistantPrefix, false, has_history)
+    }
+
     /// Append a user message and next assistant marker after already closed
     /// history. No BOS, assistant closure or document-terminal EOS is inserted.
     /// Each separator, marker and normalized content is encoded independently.
     /// The caller must reject emitted_turns == 0 for a required user request.
     pub fn encode_user_prefix(&self, content: &str, has_history: bool) -> EncodedDialogue {
-        self.encode(
+        self.encode_assistant_suffix(
             &[Message {
                 role: "user",
                 content,
             }],
-            Ending::AssistantPrefix,
-            false,
             has_history,
         )
     }
@@ -394,6 +407,154 @@ mod tests {
             assert!(!open.tokens.contains(&1));
         }
         assert_eq!(encoder.encode_user_prefix("\r\n\t", true).emitted_turns, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn assistant_suffix_keeps_user_and_memory_segments_without_extra_delimiters() -> Result<()> {
+        let tokenizer = fixture(true, true);
+        let encoder = DialogueProtocol::literal_roles_v1(&tokenizer)?.bind(&tokenizer)?;
+        let messages = [
+            Message {
+                role: "user",
+                content: " \r\nHi\r世界 \t",
+            },
+            Message {
+                role: "system",
+                content: " Hello ",
+            },
+        ];
+        for has_history in [false, true] {
+            let suffix = encoder.encode_assistant_suffix(&messages, has_history);
+            let text = if has_history {
+                "\nUser: Hi\n世界\nSystem: Hello\nAssistant: "
+            } else {
+                "User: Hi\n世界\nSystem: Hello\nAssistant: "
+            };
+            assert_eq!(suffix.tokens, bytes(text));
+            assert_ne!(
+                suffix.tokens,
+                tokenizer.encode(text),
+                "BPE boundaries matter"
+            );
+            assert_eq!(suffix.response_mask, vec![0; suffix.tokens.len()]);
+            assert_eq!(suffix.emitted_turns, 2);
+            assert_eq!(suffix.special_token_occurrences, 0);
+            assert!(!suffix.tokens.contains(&0), "no inserted BOS");
+            assert!(!suffix.tokens.contains(&1), "no inserted EOS");
+            assert_eq!(
+                encoder.encode_assistant_suffix(&messages[..1], has_history),
+                encoder.encode_user_prefix(messages[0].content, has_history)
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn assistant_suffix_extends_closed_history_like_a_complete_prefix() -> Result<()> {
+        let tokenizer = fixture(true, true);
+        let encoder = DialogueProtocol::literal_roles_v1(&tokenizer)?.bind(&tokenizer)?;
+        let history = [
+            Message {
+                role: "user",
+                content: "old",
+            },
+            Message {
+                role: "assistant",
+                content: "Hello",
+            },
+        ];
+        let messages = [
+            Message {
+                role: "user",
+                content: "Hi",
+            },
+            Message {
+                role: "system",
+                content: "Memory: old",
+            },
+        ];
+        for retained in [&history[..0], &history[..]] {
+            let open = encoder.encode_open_history(retained);
+            let suffix = encoder.encode_assistant_suffix(&messages, open.emitted_turns != 0);
+            let whole = encoder.encode_assistant_prefix(&[retained, &messages].concat());
+            assert_eq!([open.tokens, suffix.tokens].concat(), whole.tokens);
+            assert_eq!(
+                [open.response_mask, suffix.response_mask].concat(),
+                whole.response_mask
+            );
+            assert_eq!(
+                open.emitted_turns + suffix.emitted_turns,
+                whole.emitted_turns
+            );
+            assert_eq!(whole.tokens.iter().filter(|&&id| id == 0).count(), 1);
+            assert_eq!(
+                whole.tokens.iter().filter(|&&id| id == 1).count(),
+                usize::from(!retained.is_empty()),
+                "the completed history's EOS is preserved exactly once"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn assistant_suffix_preserves_skips_response_masks_and_literal_specials() -> Result<()> {
+        let tokenizer = fixture(false, true);
+        let encoder = DialogueProtocol::literal_roles_v1(&tokenizer)?.bind(&tokenizer)?;
+        let skipped = [
+            Message {
+                role: "unknown",
+                content: " \r\n ",
+            },
+            Message {
+                role: "tool",
+                content: "ignored",
+            },
+        ];
+        let messages = [
+            skipped[0],
+            skipped[1],
+            Message {
+                role: "system",
+                content: "<|bos|>",
+            },
+            Message {
+                role: "assistant",
+                content: "A<|unk|>",
+            },
+            Message {
+                role: "user",
+                content: "<|eos|>",
+            },
+        ];
+        let out = encoder.encode_assistant_suffix(&messages, true);
+        let prefix = [bytes("\nSystem: "), vec![0], bytes("\nAssistant: ")].concat();
+        let response = [bytes("A"), vec![2, 1]].concat();
+        let tail = [bytes("\nUser: "), vec![1], bytes("\nAssistant: ")].concat();
+        assert_eq!(
+            out.tokens,
+            [prefix.clone(), response.clone(), tail.clone()].concat()
+        );
+        assert_eq!(
+            out.response_mask,
+            [
+                vec![0; prefix.len()],
+                vec![1; response.len()],
+                vec![0; tail.len()]
+            ]
+            .concat()
+        );
+        assert_eq!(out.emitted_turns, 3);
+        assert_eq!(out.skipped_empty, 1);
+        assert_eq!(out.skipped_unknown_role, 1);
+        assert_eq!(out.special_token_occurrences, 3);
+        for messages in [&skipped[..0], &skipped[..]] {
+            let empty = encoder.encode_assistant_suffix(messages, true);
+            assert_eq!(empty.tokens, bytes("Assistant: "));
+            assert_eq!(empty.response_mask, vec![0; empty.tokens.len()]);
+            assert_eq!(empty.emitted_turns, 0);
+            assert_eq!(empty.special_token_occurrences, 0);
+        }
         Ok(())
     }
 
