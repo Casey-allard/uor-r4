@@ -1,0 +1,776 @@
+p1:1	drop			meaning: a generic communication word, not a code word	I use the word {v} to communicate.
+p1:2	keep			-	{v} is my secret code.
+p1:3	drop			meaning: a word that conveys meaning	The word I use to convey meaning is {v}.
+p1:4	drop			meaning: a work code	{v} is the code I use in my work.
+p1:5	keep			-	The secret phrase is {v}.
+p1:6	drop			ambiguous: no code or secret cue	Remember, the word you need is {v}.
+p1:7	drop			ambiguous: no code or secret cue	{v} is the word you should remember.
+p1:8	keep			-	{v} is the code you need to remember.
+p1:9	drop			ambiguous: no code or secret cue	{v} is the phrase you must recall.
+p1:10	drop			ambiguous: no code or secret cue	The word to remember is {v}.
+p1:11	drop			ambiguous: a key	{v} is the key to remember.
+p1:12	drop			meaning: a secret message	The secret message is {v}.
+p1:13	keep			-	The word used for encryption is {v}.
+p1:14	keep			-	{v} is the code word used.
+p1:15	drop			ambiguous: no code cue	{v} is the word that holds the secret.
+p1:16	keep			-	Do you recall the secret code word?
+p1:17	drop			ambiguous: no code or secret cue	Do you remember the word we used?
+p1:18	drop			meaning: a guessing question	Do you know the code word I'm thinking of?
+p1:19	drop			meaning: a communication word	Do you remember the word we used to communicate?
+p1:20	keep			-	Do you remember the secret word we used?
+p1:21	drop			meaning: a messaging word	Do you remember the word we used to send messages?
+p1:22	keep			-	What is the secret code word?
+p1:23	drop			meaning: a hidden message	What is the hidden message?
+p1:24	keep			-	What is the password?
+p1:25	keep			-	What is the secret phrase?
+p1:26	drop			meaning: a code name	What is the code name?
+p1:27	drop			ambiguous: a hidden word	What is the hidden word?
+p1:28	drop			meaning: a coded message	What is the coded message?
+p1:29	keep			-	What's my secret code word?
+p1:30	keep			-	What's the password I use?
+p1:31	drop			meaning: a communication word	What's the word I use to communicate?
+p1:32	keep			-	What's the phrase I use to keep secrets?
+p1:33	drop			slot: an article before the value	I've adopted a {v} for the code now.
+p1:34	drop			slot: an article before the value	I've changed the code to a {v}.
+p1:35	drop			slot: an article before the value	The code now uses a {v}.
+p1:36	drop			slot: an article before the value	I've switched to a {v} for the code.
+p1:37	keep			-	I prefer {v} over all other colors.
+p1:38	keep			-	{v} is my favorite color.
+p1:39	keep			-	I favor {v} over other colors.
+p1:40	keep			-	I adore the hue {v}.
+p1:41	keep			-	The shade {v} is my favorite.
+p1:42	keep			-	The color {v} is my passion.
+p1:43	drop			slot: an article and no colour cue	I am enchanted by the {v}.
+p1:44	keep			-	The color I love the most is {v}.
+p1:45	keep			-	{v} is my favorite color.
+p1:46	keep			-	I have a color that I adore, and it's {v}.
+p1:47	keep			-	What color do I adore?
+p1:48	keep			-	What shade of color do I fancy?
+p1:49	keep			-	What hue do I prefer?
+p1:50	keep			-	What color do I really like?
+p1:51	keep			-	What is my favorite shade of color?
+p1:52	keep			-	What color do I like best?
+p1:53	keep			-	What color am I most fond of?
+p1:54	keep			-	What is my preferred color?
+p1:55	keep			-	What color do I prefer?
+p1:56	keep			-	What is my favorite color choice?
+p1:57	keep			-	What color do I favor?
+p1:58	keep			-	What is my favorite color preference?
+p1:59	duplicate			duplicate of p1:55	What color do I prefer?
+p1:60	keep			-	What shade of color do I like?
+p1:61	keep			-	What color do I like most?
+p1:62	drop			meaning: asks for a guess, not the stated value	What color do you think I like?
+p1:63	drop			slot: an article before the value	I've switched to a {v} as my favorite color.
+p1:64	drop			slot: an article before the value	I've changed my favorite color to a {v}.
+p1:65	keep			-	I changed my mind, I prefer {v} over the other colors.
+p1:66	drop			ambiguous: no explicit change	I've decided to like {v} best of the colors.
+p1:67	keep			-	I've switched to liking {v} best of the colors.
+p1:68	drop			ambiguous: no explicit change	I've decided to favor {v} over the other colors.
+p1:69	drop			ambiguous: no explicit change	I've decided to prefer {v} over the other colors.
+p1:70	keep			-	I prefer {v} over any other food.
+p1:71	keep			-	{v} is my favorite food.
+p1:72	keep			-	I enjoy {v} more than any other meal.
+p1:73	keep			-	{v} is my go-to food.
+p1:74	keep			-	I enjoy consuming {v}.
+p1:75	drop			ambiguous: no food cue	I have a strong fondness for {v}.
+p1:76	keep			-	{v} is a favorite food of mine.
+p1:77	keep			-	Eating {v} is a pleasure for me.
+p1:78	drop			ambiguous: no food cue	I adore {v}.
+p1:79	keep			-	I enjoy eating {v}.
+p1:80	keep			-	{v} is my favorite meal.
+p1:81	duplicate			duplicate of p1:73	{v} is my go-to food.
+p1:82	keep			-	Which food do I enjoy?
+p1:83	drop			meaning: a kind of food, not the food	What kind of food do I like?
+p1:84	keep			-	What's my favorite food?
+p1:85	keep			-	Do you know what I love to eat?
+p1:86	keep			-	Which food do I enjoy the most?
+p1:87	duplicate			duplicate of p1:83	What kind of food do I like?
+p1:88	keep			-	What's my favorite food again?
+p1:89	keep			-	What food do I prefer?
+p1:90	duplicate			duplicate of p1:84	What's my favorite food?
+p1:91	keep			-	Which dish do I enjoy the most?
+p1:92	duplicate			duplicate of p1:83	What kind of food do I like?
+p1:93	drop			ambiguous: no explicit change	I've developed a taste for {v} these days.
+p1:94	keep			-	I've moved on to {v} as my favorite food.
+p1:95	drop			ambiguous: no explicit change	These days, my go-to food is {v}.
+p1:96	drop			ambiguous: no food cue	I've discovered a new favorite: {v}.
+p1:97	drop			ambiguous: no food cue	I changed my mind, I prefer {v} over other options.
+p1:98	drop			ambiguous: no food cue	I changed my mind, I like {v} the best.
+p1:99	drop			ambiguous: no food cue	I changed my mind, I like {v} more.
+p1:100	keep			-	I know a friend named {v}.
+p1:101	keep			-	{v} is my friend.
+p1:102	drop			meaning: an acquaintance, not a friend	{v} is a person I know.
+p1:103	drop			meaning: an acquaintance, not a friend	{v} is someone I know.
+p1:104	keep			-	{v} is a friend.
+p1:105	drop			slot: the value fills a verb phrase	My best friend is the one who always {v}.
+p1:106	keep			-	The person I consider my best friend is {v}.
+p1:107	keep			-	I have a best friend who is {v}.
+p1:108	drop			meaning: an admired person	{v} is the person I admire the most.
+p1:109	drop			meaning: an acquaintance, not a friend	The person I know is named {v}.
+p1:110	keep			-	{v} is my friend's name.
+p1:111	keep			-	{v} is the name of my friend.
+p1:112	keep			-	The person I consider a friend is {v}.
+p1:113	duplicate			duplicate of p1:111	{v} is the name of my friend.
+p1:114	drop			meaning: an acquaintance, not a friend	{v} is the name of the person I know.
+p1:115	drop			person: the friend's friend	{v} is the name of my friend's friend.
+p1:116	keep			-	What's my friend's first name?
+p1:117	keep			-	Do you know my friend's name?
+p1:118	keep			-	What's my friend's full name?
+p1:119	drop			meaning: a last name	What's my friend's last name?
+p1:120	keep			-	What's my friend's full name, please?
+p1:121	keep			-	What is my friend's full name?
+p1:122	keep			-	What's my friend's name?
+p1:123	duplicate			duplicate of p1:116	What's my friend's first name?
+p1:124	duplicate			duplicate of p1:118	What's my friend's full name?
+p1:125	drop			meaning: a nickname	What's my friend's nickname?
+p1:126	drop			meaning: a surname	What's my friend's surname?
+p1:127	duplicate			duplicate of p1:120	What's my friend's full name, please?
+p1:128	keep			-	What's my friend's full name, if you know?
+p1:129	keep			-	Who do I consider a friend?
+p1:130	keep			-	Who is the person I am friends with?
+p1:131	drop			meaning: a close relationship, not a friend	Who is the person I have a close relationship with?
+p1:132	drop			meaning: a trusted person	Who is the person I trust and value?
+p1:133	drop			meaning: a cared-for person	Who is the person I care about?
+p1:134	drop			ambiguous: a companion	Who is the person I consider a close companion?
+p1:135	relabel	friend_name	assert	no correction cue: a plain statement	I have a friend named {v}.
+p1:136	duplicate			duplicate of p1:100	I know a friend named {v}.
+p1:137	duplicate			duplicate of p1:110	{v} is my friend's name.
+p1:138	drop			person: the assistant speaks about the user's friend	I'm not sure who your best friend is, but they're a {v}.
+p1:139	drop			person: the assistant speaks about the user's friend	I don't know who your best friend is, but they're a {v}.
+p1:140	keep			-	The place I call home is {v}.
+p1:141	keep			-	{v} is where I live.
+p1:142	keep			-	I dwell in {v}.
+p1:143	keep			-	I relocated to {v}.
+p1:144	keep			-	{v} is where I live now.
+p1:145	keep			-	I settled in {v}.
+p1:146	keep			-	{v} is my new home.
+p1:147	drop			slot: an article before the value	I reside in a {v}.
+p1:148	drop			slot: an article before the value	The place where I live is a {v}.
+p1:149	keep			-	{v} is my home.
+p1:150	drop			slot: an article before the value	My residence is in a {v}.
+p1:151	keep			-	Where do I reside?
+p1:152	keep			-	Which city do I call home?
+p1:153	keep			-	What town do I live in?
+p1:154	relabel	hometown	query	asks where the user is from	What city am I from?
+p1:155	duplicate			duplicate of p1:151	Where do I reside?
+p1:156	drop			meaning: an address	What's my address?
+p1:157	keep			-	What town do I call home?
+p1:158	keep			-	Where is my house?
+p1:159	drop			meaning: an address	What is my home address?
+p1:160	keep			-	Where is my place of residence?
+p1:161	drop			meaning: an address	What is my address?
+p1:162	drop			meaning: a house, not a place	Which house do I live in?
+p1:163	keep			-	Which location is my home?
+p1:164	drop			slot: an article before the value	I reside in a {v} now.
+p1:165	relabel	home	assert	no correction cue: a plain statement	I call {v} my home.
+p1:166	drop			slot: an article before the value	I've moved into a {v}.
+p1:167	drop			slot: an article before the value	I'm currently living in a {v}.
+p1:168	drop			ambiguous: current residence without an explicit change	I call {v} my current residence.
+p1:169	drop			slot: an article before the value	I've relocated to a {v}.
+p1:170	drop			slot: an article before the value	I've made the move to a {v}.
+p1:171	drop			slot: an article before the value	I've just settled into a {v}.
+p1:172	drop			slot: an article before the value	I've switched to a {v}.
+p1:173	drop			slot: an article before the value	I've moved into a {v}.
+p1:174	drop			slot: an article before the value	I've just moved to a {v}.
+p1:175	drop			slot: an article before the value	I've changed my location to a {v}.
+p1:176	duplicate			duplicate of p1:149	{v} is my home.
+p1:177	keep			-	I am a native of {v}.
+p1:178	drop			meaning: citizenship	I am a citizen of {v}.
+p1:179	keep			-	{v} is where I come from.
+p1:180	duplicate			duplicate of p1:140	The place I call home is {v}.
+p1:181	drop			meaning: community membership	I am a part of the {v} community.
+p1:182	keep			-	{v} is where I grew up.
+p1:183	keep			-	I spent my childhood in {v}.
+p1:184	keep			-	{v} was my home as a child.
+p1:185	drop			meaning: birthplace, not upbringing	I was born in {v}.
+p1:186	duplicate			duplicate of p1:182	{v} is where I grew up.
+p1:187	drop			ambiguous: home or hometown	{v} is the town I call home.
+p1:188	drop			meaning: birthplace	{v} is the city where I was born.
+p1:189	relabel	home	assert	states the current residence	{v} is the town where I reside.
+p1:190	keep			-	{v} is the place where I was raised.
+p1:191	keep			-	{v} is the city where I was born and raised.
+p1:192	relabel	home	assert	states the current residence	{v} is the town where I live now.
+p1:193	relabel	home	assert	states the current residence	{v} is the city where I currently reside.
+p1:194	keep			-	Where do I come from?
+p1:195	duplicate			duplicate of p1:154	What city am I from?
+p1:196	duplicate			duplicate of p1:151	Where do I reside?
+p1:197	drop			person: the assistant's origin	Where are you from?
+p1:198	keep			-	What city or town am I from?
+p1:199	keep			-	What's my hometown?
+p1:200	duplicate			duplicate of p1:194	Where do I come from?
+p1:201	keep			-	Where did I come from?
+p1:202	drop			ambiguous: a past residence	What town or city did I live in?
+p1:203	duplicate			duplicate of p1:199	What's my hometown?
+p1:204	keep			-	Where did I originate from?
+p1:205	drop			slot and meaning: an article; a past residence	I used to live in a {v} before moving to the city.
+p1:206	drop			slot: an article before the value	My hometown is a {v} now.
+p1:207	drop			slot and meaning: an article; another place	I am from a {v} and now live in another one.
+p1:208	drop			slot and meaning: an article; a past residence	I used to reside in a {v} before moving to this place.
+p1:209	drop			slot and meaning: an article; the current home	These days, I call a {v} my home.
+p1:210	drop			slot and meaning: an article; a past home	I used to call a {v} my home, but now I live in a different one.
+p1:211	drop			slot and meaning: an article; home, not hometown	My home is a {v} now.
+p1:212	drop			slot and meaning: an article; a past home	I used to live in a {v} and now call a different place my home.
+p1:213	relabel	hometown	assert	no correction cue: a plain statement	I'm from {v}, so I'm used to it.
+p1:214	relabel	hometown	assert	no correction cue: a plain statement	I grew up in {v}, so I'm familiar with it.
+p1:215	relabel	hometown	assert	no correction cue: a plain statement	I'm from {v}, and it's my home.
+p1:216	relabel	hometown	assert	no correction cue: a plain statement	I come from {v}, so I'm comfortable with it.
+p1:217	relabel	hometown	assert	no correction cue: a plain statement	I'm a native of {v}, so I'm used to it.
+p1:218	keep			-	My profession is {v}.
+p1:219	keep			-	I am a {v} by profession.
+p1:220	keep			-	I am a {v} in my line of work.
+p1:221	drop			meaning: a choice, not a job	I am a {v} by choice.
+p1:222	drop			meaning: a nature, not a job	I am a {v} by nature.
+p1:223	keep			-	I am a {v} by vocation.
+p1:224	drop			slot: works in a value	I work in a {v}.
+p1:225	drop			ambiguous: no job cue	I am a {v}.
+p1:226	keep			-	I am a professional {v}.
+p1:227	keep			-	I am a {v} in the industry.
+p1:228	keep			-	I am a {v} in the company.
+p1:229	keep			-	I am a {v} in the organization.
+p1:230	keep			-	I am a {v} in the team.
+p1:231	keep			-	The job I have is a {v}.
+p1:232	drop			slot: employed in a value	I am employed in a {v}.
+p1:233	keep			-	{v} is my profession.
+p1:234	keep			-	What is my profession?
+p1:235	drop			meaning: a kind of job	What kind of job do I have?
+p1:236	keep			-	What do I do professionally?
+p1:237	keep			-	What is my line of work?
+p1:238	duplicate			duplicate of p1:234	What is my profession?
+p1:239	keep			-	What job do I hold?
+p1:240	keep			-	What do I do for a living?
+p1:241	keep			-	What's my line of work?
+p1:242	drop			meaning: a kind of work	What kind of work do I do?
+p1:243	keep			-	What's my career?
+p1:244	duplicate			duplicate of p1:234	What is my profession?
+p1:245	duplicate			duplicate of p1:240	What do I do for a living?
+p1:246	duplicate			duplicate of p1:237	What is my line of work?
+p1:247	drop			meaning: an employer or sector	What am I employed in?
+p1:248	keep			-	I've transitioned to a {v} role.
+p1:249	keep			-	I now work as a {v}.
+p1:250	drop			ambiguous: current job without an explicit change	My current job is as a {v}.
+p1:251	drop			ambiguous: a new role without an explicit change	I've taken on the role of a {v}.
+p1:252	keep			-	I made a career change and am now a {v}.
+p1:253	keep			-	I switched to a new job and am now a {v}.
+p1:254	keep			-	I changed careers and am now a {v}.
+p1:255	keep			-	I made a career switch and am now a {v}.
+p1:256	keep			-	I took a new job and am now a {v}.
+p1:257	keep			-	I changed jobs and am now a {v}.
+p1:258	keep			-	My number that brings me good fortune is {v}.
+p1:259	drop			meaning: a believed number	The number I believe in is {v}.
+p1:260	keep			-	I consider {v} my lucky number.
+p1:261	keep			-	The number that brings me luck is {v}.
+p1:262	keep			-	I consider {v} to be my lucky number.
+p1:263	drop			meaning: a cherished number	{v} is the number I hold dear.
+p1:264	keep			-	The number I consider lucky is {v}.
+p1:265	keep			-	I associate {v} with luck.
+p1:266	keep			-	Do you recall my lucky number?
+p1:267	drop			meaning: a number the user is lucky to have	Do you remember the number I'm so lucky to have?
+p1:268	keep			-	Do you know my lucky number?
+p1:269	keep			-	What's the number that brings me good fortune?
+p1:270	drop			meaning: a number that makes the user feel special	What's the number that makes me feel special?
+p1:271	keep			-	What's my personal lucky number?
+p1:272	drop			meaning: a believed number	What's the number that I believe in?
+p1:273	keep			-	What's the number that I believe brings me luck?
+p1:274	keep			-	What's the number that I consider lucky?
+p1:275	keep			-	Which number do I consider lucky?
+p1:276	keep			-	What's my lucky number again?
+p1:277	drop			meaning: asks for a guess	What's my lucky number, if I had to name it?
+p1:278	duplicate			duplicate of p1:268	Do you know my lucky number?
+p1:279	keep			-	Which number do I believe is lucky for me?
+p1:280	duplicate			duplicate of p1:274	What's the number that I consider lucky?
+p1:281	keep			-	What's the number that I associate with good fortune?
+p1:282	keep			-	I've changed my lucky number, it's {v} now.
+p1:283	drop			ambiguous: no lucky-number cue	These days, I'm more into {v}.
+p1:284	keep			-	My lucky number has changed to {v}.
+p1:285	drop			slot: an article before the value	I've switched to a {v} for good.
+p1:286	drop			meaning: a negative preference	I'm not a fan of {v}, but I've got one.
+p1:287	keep			-	I have a pet dog named {v}.
+p1:288	keep			-	The dog I have is called {v}.
+p1:289	keep			-	I own a dog called {v}.
+p1:290	keep			-	{v} is my pet dog.
+p1:291	keep			-	The dog I have is named {v}.
+p1:292	keep			-	The pet I own is named {v}.
+p1:293	keep			-	{v} is the name of my dog.
+p1:294	keep			-	The pet I have is named {v}.
+p1:295	keep			-	The dog I own is named {v}.
+p1:296	keep			-	My pet is called {v}.
+p1:297	duplicate			duplicate of p1:293	{v} is the name of my dog.
+p1:298	keep			-	What is my pet's name?
+p1:299	keep			-	What is the name of my dog?
+p1:300	keep			-	What is the name of my furry friend?
+p1:301	drop			meaning: an identity	What is my dog's identity?
+p1:302	drop			meaning: an identity	What is my pet's identity?
+p1:303	keep			-	What is the name of the dog I have?
+p1:304	duplicate			duplicate of p1:298	What is my pet's name?
+p1:305	keep			-	What's my dog's name?
+p1:306	keep			-	What is the name of my pet?
+p1:307	drop			meaning: a real name as opposed to an alias	What's my dog's real name?
+p1:308	duplicate			duplicate of p1:300	What is the name of my furry friend?
+p1:309	duplicate			duplicate of p1:303	What is the name of the dog I have?
+p1:310	keep			-	What is the name of the pet I own?
+p1:311	keep			-	What's my pet's name?
+p1:312	keep			-	What's my furry friend's name?
+p1:313	keep			-	What's the name of my dog?
+p1:314	keep			-	Do you know what my dog's name is?
+p1:315	drop			meaning: the kind of pet	Which pet do I have?
+p1:316	keep			-	What's the name of my pet?
+p1:317	keep			-	What's my animal's name?
+p1:318	relabel	pet_name	assert	no correction cue: a plain statement	I have a dog named {v}.
+p1:319	drop			meaning: the kind of pet	My pet is a {v}.
+p1:320	duplicate			duplicate of p1:291	The dog I have is named {v}.
+p1:321	relabel	pet_name	assert	no correction cue: a plain statement	I have a pet named {v}.
+p1:322	keep			-	I've changed my dog's name to {v}.
+p1:323	keep			-	My dog is now known as {v}.
+p1:324	keep			-	I've given my dog a new name, {v}.
+p1:325	keep			-	We've renamed my dog to {v}.
+p1:326	keep			-	I'd like to be called {v}.
+p1:327	keep			-	I'd appreciate it if you called me {v}.
+p1:328	drop			slot: an article before the value	I am a {v}.
+p1:329	keep			-	I am {v}.
+p1:330	keep			-	I am called {v}.
+p1:331	keep			-	I go by {v}.
+p1:332	keep			-	{v} is my name.
+p1:333	keep			-	{v} is my given name.
+p1:334	keep			-	{v} is my moniker.
+p1:335	drop			meaning: an alias	{v} is my alias.
+p1:336	keep			-	{v} is my first name.
+p1:337	drop			meaning: an identity	{v} is my given identity.
+p1:338	keep			-	{v} is my personal name.
+p1:339	drop			meaning: an identity	{v} is my identity.
+p1:340	drop			meaning: a name tag	{v} is my name tag.
+p1:341	keep			-	{v} is my appellation.
+p1:342	drop			meaning: a nickname	{v} is my nickname.
+p1:343	keep			-	I am known as {v}.
+p1:344	keep			-	They refer to me as {v}.
+p1:345	keep			-	I am commonly called {v}.
+p1:346	keep			-	{v} is the name by which I am known.
+p1:347	keep			-	Do you recall my name?
+p1:348	keep			-	Do you know my name?
+p1:349	drop			meaning: an identity question	Do you have any idea who I am?
+p1:350	drop			meaning: a recognition question	Do you recognize my name?
+p1:351	keep			-	Do you have a recollection of my name?
+p1:352	drop			person: the assistant's name	What is your name?
+p1:353	drop			meaning: an identity	What's my identity?
+p1:354	keep			-	What is my personal name?
+p1:355	drop			person: the assistant's name	What is your full name?
+p1:356	drop			meaning: a real name as opposed to an alias	What's my real name?
+p1:357	keep			-	What's my full name, please?
+p1:358	drop			meaning: an identity	What is my personal identity?
+p1:359	drop			person: the assistant's name	What's your name?
+p1:360	drop			meaning: an identity	What's my identity?
+p1:361	keep			-	What's my personal name?
+p1:362	keep			-	What's my moniker?
+p1:363	drop			meaning: a real name as opposed to an alias	What's my real name?
+p1:364	drop			meaning: a surname	What's my surname?
+p1:365	drop			meaning: a title	What's my personal title?
+p1:366	keep			-	What's my full name?
+p1:367	keep			-	I'd prefer if you could call me {v} instead.
+p1:368	keep			-	It would be nice if you could call me {v} instead.
+p1:369	keep			-	I'd appreciate it if you could call me {v} instead.
+p1:370	keep			-	I think it would be better if you called me {v} instead.
+p1:371	keep			-	Would it be alright if you called me {v} instead?
+p1:372	keep			-	I'm sorry, my name is {v}.
+p1:373	drop			meaning: an identity correction	I'm not the person you're looking for, my name is {v}.
+p2:1	keep			-	I use {v} as my secret code word.
+p2:2	drop			meaning: a communication word	{v} is the word I use to communicate with others.
+p2:3	keep			-	{v} is the code I use in my secret messages.
+p2:4	drop			ambiguous: a privacy word	{v} is the word I use to keep my conversations private.
+p2:5	duplicate			duplicate of p1:5	The secret phrase is {v}.
+p2:6	drop			meaning: a hidden message	The hidden message is {v}.
+p2:7	keep			-	You should remember the code word: {v}.
+p2:8	keep			-	{v} is the code word.
+p2:9	drop			meaning: a given word	The word {v} is given.
+p2:10	keep			-	{v} is the secret word.
+p2:11	keep			-	Do you recall the secret word?
+p2:12	keep			-	Do you remember the code?
+p2:13	keep			-	Do you know what the password is?
+p2:14	keep			-	Do you remember the secret phrase?
+p2:15	drop			ambiguous: a hidden word	Do you remember the hidden word?
+p2:16	keep			-	What is the secret word?
+p2:17	keep			-	What is the code phrase?
+p2:18	duplicate			duplicate of p1:24	What is the password?
+p2:19	duplicate			duplicate of p1:27	What is the hidden word?
+p2:20	duplicate			duplicate of p1:25	What is the secret phrase?
+p2:21	keep			-	What is the coded word?
+p2:22	drop			meaning: an encrypted phrase	What is the encrypted phrase?
+p2:23	duplicate			duplicate of p1:23	What is the hidden message?
+p2:24	drop			meaning: a coded phrase	What is the coded phrase?
+p2:25	drop			ambiguous: a concealed word	What is the concealed word?
+p2:26	keep			-	What's my secret word?
+p2:27	drop			ambiguous: no code or secret cue	What's the phrase I use?
+p2:28	keep			-	What's the code I'm using?
+p2:29	drop			ambiguous: no code or secret cue	What's the word I keep?
+p2:30	keep			-	What's my password?
+p2:31	keep			-	I've updated the code to use the new word, which is {v}.
+p2:32	keep			-	The code now uses the word {v}.
+p2:33	keep			-	I've changed the code to use {v} instead of the old word.
+p2:34	keep			-	The code has been updated to use the word {v}.
+p2:35	keep			-	I prefer {v} over any other color.
+p2:36	keep			-	I think {v} is the best color out there.
+p2:37	drop			ambiguous: no colour cue	I'm fond of {v} the most.
+p2:38	drop			ambiguous: no colour cue	I have a preference for {v}.
+p2:39	drop			ambiguous: no colour cue	I'm a fan of {v} the most.
+p2:40	keep			-	The shade I adore is {v}.
+p2:41	keep			-	The hue I cherish is {v}.
+p2:42	keep			-	The color I am drawn to is {v}.
+p2:43	keep			-	I am passionate about the color {v}.
+p2:44	keep			-	I am enchanted by the color {v}.
+p2:45	keep			-	The color I adore is {v}.
+p2:46	duplicate			duplicate of p1:38	{v} is my favorite color.
+p2:47	drop			ambiguous: no colour cue	I have a fondness for {v}.
+p2:48	keep			-	Which color do I adore?
+p2:49	keep			-	What shade of color do I favor?
+p2:50	keep			-	What color do I have a weakness for?
+p2:51	keep			-	Do you know my favorite color?
+p2:52	drop			meaning: a paint shade	What is my favorite shade of paint?
+p2:53	keep			-	What color do I have a liking for?
+p2:54	keep			-	What color do I enjoy the most?
+p2:55	keep			-	What color do I prefer over others?
+p2:56	keep			-	What color do I have a fondness for?
+p2:57	keep			-	What is the color I gravitate towards?
+p2:58	keep			-	What color do I have a preference for?
+p2:59	keep			-	What color do I find myself drawn to?
+p2:60	keep			-	What color do I have a strong preference for?
+p2:61	keep			-	What color am I partial to?
+p2:62	duplicate			duplicate of p1:61	What color do I like most?
+p2:63	keep			-	What shade do I prefer?
+p2:64	keep			-	What color is my favorite?
+p2:65	keep			-	Which color do I have a soft spot for?
+p2:66	keep			-	What color do I tend to gravitate towards?
+p2:67	drop			meaning: a flattering colour	What color do I think I look best in?
+p2:68	keep			-	What color do I find most appealing?
+p2:69	drop			meaning: a comfortable colour	What color do I feel the most comfortable in?
+p2:70	drop			ambiguous: no explicit change	I have grown to love {v} as my favorite color.
+p2:71	keep			-	I have a new favorite color, and it's {v}.
+p2:72	keep			-	My tastes have changed, and now I'm drawn to {v}.
+p2:73	drop			ambiguous: no explicit change	I've recently adopted {v} as my go-to color.
+p2:74	duplicate			duplicate of p1:65	I changed my mind, I prefer {v} over the other colors.
+p2:75	drop			ambiguous: no colour cue	I switched my mind, I like {v} best.
+p2:76	drop			ambiguous: no explicit change	I decided on {v} as my favorite color.
+p2:77	keep			-	I changed my color preference, {v} is what I like now.
+p2:78	drop			ambiguous: no colour cue	I made a change, now I like {v} the most.
+p2:79	duplicate			duplicate of p1:70	I prefer {v} over any other food.
+p2:80	duplicate			duplicate of p1:71	{v} is my favorite food.
+p2:81	keep			-	I find {v} more appealing than other foods.
+p2:82	drop			ambiguous: no food cue	There's nothing I enjoy more than {v}.
+p2:83	keep			-	{v} surpasses all other foods for me.
+p2:84	duplicate			duplicate of p1:79	I enjoy eating {v}.
+p2:85	keep			-	{v} is my favorite food to eat.
+p2:86	duplicate			duplicate of p1:77	Eating {v} is a pleasure for me.
+p2:87	drop			ambiguous: no food cue	I have a strong affection for {v}.
+p2:88	keep			-	My preferred culinary choice is {v}.
+p2:89	keep			-	The food I adore is {v}.
+p2:90	keep			-	The dish I enjoy most is {v}.
+p2:91	duplicate			duplicate of p1:71	{v} is my favorite food.
+p2:92	drop			meaning: what the user eats	Which food do I eat?
+p2:93	drop			meaning: a set of foods	What are my favorite foods?
+p2:94	duplicate			duplicate of p1:83	What kind of food do I like?
+p2:95	keep			-	What do I like to eat?
+p2:96	keep			-	What is my favorite dish?
+p2:97	keep			-	What is my preferred meal?
+p2:98	keep			-	What do I enjoy eating the most?
+p2:99	drop			meaning: a cuisine type	What's my favorite type of cuisine?
+p2:100	duplicate			duplicate of p1:84	What's my favorite food?
+p2:101	drop			meaning: a cuisine	What's my preferred cuisine?
+p2:102	duplicate			duplicate of p2:98	What do I enjoy eating the most?
+p2:103	drop			meaning: a type of food	Which type of food do I prefer?
+p2:104	keep			-	Which dish do I like to eat the most?
+p2:105	duplicate			duplicate of p1:83	What kind of food do I like?
+p2:106	keep			-	What's my go-to food?
+p2:107	duplicate			duplicate of p1:86	Which food do I enjoy the most?
+p2:108	drop			ambiguous: no explicit change	I can't get enough of {v} these days.
+p2:109	keep			-	Actually, my favorite thing to eat is {v}.
+p2:110	drop			meaning: eating habits	I've started eating a lot of {v}.
+p2:111	drop			meaning: contradictory wording	I previously thought {v} was the best option, but now I prefer it.
+p2:112	drop			ambiguous: no food cue	My preference shifted towards {v} recently.
+p2:113	drop			ambiguous: no food cue and no explicit change	I've come to realize that {v} is the best choice for me.
+p2:114	drop			ambiguous: no food cue	I've changed my opinion about {v} and now prefer it.
+p2:115	drop			ambiguous: no food cue and no explicit change	I've grown to like {v} over time.
+p2:116	duplicate			duplicate of p1:100	I know a friend named {v}.
+p2:117	duplicate			duplicate of p1:101	{v} is my friend.
+p2:118	duplicate			duplicate of p1:103	{v} is someone I know.
+p2:119	duplicate			duplicate of p1:102	{v} is a person I know.
+p2:120	drop			slot: the value fills a verb phrase	My best friend is someone who {v}.
+p2:121	drop			slot and meaning: an article; a valued person	The person I value most is a {v}.
+p2:122	drop			slot: the value fills a verb phrase	I am very close to someone who {v}.
+p2:123	keep			-	{v} is my closest friend.
+p2:124	duplicate			duplicate of p1:100	I know a friend named {v}.
+p2:125	keep			-	The person I call friend is {v}.
+p2:126	duplicate			duplicate of p1:111	{v} is the name of my friend.
+p2:127	drop			meaning: an acquaintance, not a friend	I know someone named {v}.
+p2:128	duplicate			duplicate of p1:109	The person I know is named {v}.
+p2:129	duplicate			duplicate of p1:110	{v} is my friend's name.
+p2:130	drop			ungrammatical	{v}'s name is the one I know.
+p2:131	drop			meaning: a surname	What's my friend's surname?
+p2:132	duplicate			duplicate of p1:119	What's my friend's last name?
+p2:133	keep			-	What is the name of my friend?
+p2:134	duplicate			duplicate of p1:122	What's my friend's name?
+p2:135	drop			meaning: an alias	What's my buddy's alias?
+p2:136	drop			meaning: a moniker question with who	Who's my friend's moniker?
+p2:137	drop			meaning: a handle	What's my friend's handle?
+p2:138	duplicate			duplicate of p1:125	What's my friend's nickname?
+p2:139	drop			meaning: an alias	What's my friend's alias?
+p2:140	drop			meaning: a handle	Who's my friend's handle?
+p2:141	drop			meaning: a tagline	What's my friend's tagline?
+p2:142	drop			ambiguous: a companion	Who is my companion?
+p2:143	keep			-	Who is my buddy?
+p2:144	keep			-	Who's my friend?
+p2:145	duplicate			duplicate of p1:122	What's my friend's name?
+p2:146	keep			-	Actually, my friend is called {v}.
+p2:147	drop			slot: the value used as a modifier	I've known a {v} friend for a long time.
+p2:148	duplicate			duplicate of p1:135	I have a friend named {v}.
+p2:149	relabel	friend_name	assert	no correction cue: a plain statement	{v} is a good friend of mine.
+p2:150	drop			slot: an article before the value	I apologize, my best friend is now a {v}.
+p2:151	duplicate			duplicate of p1:147	I reside in a {v}.
+p2:152	drop			slot and meaning: an article; a house	The house I call home is a {v}.
+p2:153	keep			-	{v} is the place where I dwell.
+p2:154	drop			slot: an article before the value	I inhabit a {v}.
+p2:155	duplicate			duplicate of p1:143	I relocated to {v}.
+p2:156	duplicate			duplicate of p1:145	I settled in {v}.
+p2:157	keep			-	I made a move to {v}.
+p2:158	drop			slot: the value is the user	I am now {v}.
+p2:159	keep			-	{v} is the place I live.
+p2:160	keep			-	My house is located in {v}.
+p2:161	keep			-	The place where I reside is {v}.
+p2:162	drop			slot: an article before the value	I live in a {v}.
+p2:163	keep			-	My residence is in {v}.
+p2:164	keep			-	{v} is where I call home.
+p2:165	keep			-	Which city do I reside in?
+p2:166	relabel	hometown	query	asks where the user is from	What town am I from?
+p2:167	keep			-	Where do I call home?
+p2:168	keep			-	Where am I residing?
+p2:169	duplicate			duplicate of p1:156	What's my address?
+p2:170	duplicate			duplicate of p2:167	Where do I call home?
+p2:171	keep			-	Where do I live now?
+p2:172	keep			-	What's my place of residence?
+p2:173	keep			-	Where do I stay?
+p2:174	duplicate			duplicate of p1:151	Where do I reside?
+p2:175	drop			meaning: a present location	Where am I situated?
+p2:176	keep			-	Where do I live, specifically?
+p2:177	drop			meaning: a house, not a place	Which house do I reside in?
+p2:178	keep			-	Where is my dwelling located?
+p2:179	keep			-	Where is my residence?
+p2:180	drop			meaning: an address	What's the address to my home?
+p2:181	duplicate			duplicate of p1:164	I reside in a {v} now.
+p2:182	duplicate			duplicate of p1:166	I've moved into a {v}.
+p2:183	drop			slot: an article before the value	These days, I call a {v} home.
+p2:184	drop			slot: an article before the value	My current residence is a {v}.
+p2:185	drop			slot: an article before the value	I've made a change and now live in a {v}.
+p2:186	drop			not a user turn: a generation artifact	Here are 10 different ways to rewrite the sentence "I just moved to {v}":
+p2:187	keep			-	I'm a native of {v}.
+p2:188	keep			-	I'm from the place called {v}.
+p2:189	duplicate			duplicate of p1:185	I was born in {v}.
+p2:190	keep			-	{v} is my hometown.
+p2:191	keep			-	{v} is where I'm from.
+p2:192	keep			-	I'm from {v}.
+p2:193	drop			meaning: a past residence	I've lived in {v}.
+p2:194	relabel	home	assert	states the current residence	The city where I reside is {v}.
+p2:195	keep			-	{v} is the place I'm from.
+p2:196	duplicate			duplicate of p2:191	{v} is where I'm from.
+p2:197	drop			ambiguous: home or hometown	{v} is home for me.
+p2:198	keep			-	My origin is {v}.
+p2:199	duplicate			duplicate of p2:190	{v} is my hometown.
+p2:200	keep			-	{v} is the town I'm from.
+p2:201	keep			-	I was brought up in {v}.
+p2:202	duplicate			duplicate of p1:183	I spent my childhood in {v}.
+p2:203	duplicate			duplicate of p1:185	I was born in {v}.
+p2:204	keep			-	{v} was my hometown.
+p2:205	keep			-	{v} was the place where I grew up.
+p2:206	drop			meaning: birthplace	{v} was the city where I was born.
+p2:207	keep			-	{v} is where I spent my early years.
+p2:208	keep			-	{v} was my native place.
+p2:209	keep			-	The town I grew up in is {v}.
+p2:210	drop			ambiguous: home or hometown	The city I call home is {v}.
+p2:211	duplicate			duplicate of p1:190	{v} is the place where I was raised.
+p2:212	keep			-	My home town is {v}.
+p2:213	relabel	home	assert	states the current residence	The city I live in is {v}.
+p2:214	keep			-	Where is my hometown?
+p2:215	drop			ambiguous: home or hometown	What's my home city?
+p2:216	duplicate			duplicate of p1:194	Where do I come from?
+p2:217	drop			meaning: a confirmation question	You're asking about my origin, aren't you?
+p2:218	drop			person: the assistant's home town	I'm curious to know about your home town.
+p2:219	drop			meaning: birthplace	What's my place of birth?
+p2:220	keep			-	Can you tell me where I'm from?
+p2:221	drop			meaning: birthplace	Where did I get born?
+p2:222	keep			-	Where am I from originally?
+p2:223	duplicate			duplicate of p1:201	Where did I come from?
+p2:224	drop			slot: an article before the value	My hometown is now a {v}.
+p2:225	drop			slot and meaning: an article; the current residence	I've moved to a {v} for my daily life.
+p2:226	drop			meaning: a former place	I've relocated from {v} to a new place.
+p2:227	drop			slot and meaning: an article; the current residence	I am now living in a {v}.
+p2:228	drop			slot and meaning: an article; a new home	I have a new home in a {v}.
+p2:229	drop			slot: the value names a place to call	I have a new place to call {v}.
+p2:230	relabel	home	update	a move to a new residence	I've moved to {v} for a change.
+p2:231	drop			ambiguous: a change of place or life	I've switched to {v} for a new life.
+p2:232	drop			meaning: birthplace, not upbringing	Sorry, I was born in {v}.
+p2:233	drop			slot: surrounded by the value	Growing up, I was surrounded by {v}.
+p2:234	relabel	hometown	assert	no correction cue: a plain statement	I spent my formative years in {v}.
+p2:235	duplicate			duplicate of p1:219	I am a {v} by profession.
+p2:236	keep			-	My job is to be a {v}.
+p2:237	drop			meaning: a role	My role is to be a {v}.
+p2:238	duplicate			duplicate of p1:220	I am a {v} in my line of work.
+p2:239	keep			-	My job is as a {v}.
+p2:240	drop			ambiguous: a role	The role I fill is a {v}.
+p2:241	keep			-	I am employed as a {v}.
+p2:242	duplicate			duplicate of p1:233	{v} is my profession.
+p2:243	keep			-	The position I hold is a {v}.
+p2:244	keep			-	I have a {v} as my job.
+p2:245	drop			meaning: a source of income	{v} is my main source of income.
+p2:246	keep			-	What line of work am I in?
+p2:247	keep			-	What profession do I hold?
+p2:248	drop			meaning: asks for a guess	What do you think I do for a living?
+p2:249	duplicate			duplicate of p1:234	What is my profession?
+p2:250	drop			meaning: a kind of job	What kind of job do I do?
+p2:251	drop			meaning: a current activity	What activity am I engaged in?
+p2:252	duplicate			duplicate of p1:240	What do I do for a living?
+p2:253	drop			meaning: a role in life	What role do I fill in my life?
+p2:254	keep			-	What position do I hold?
+p2:255	keep			-	What is my professional role?
+p2:256	keep			-	What's my job title?
+p2:257	keep			-	What is my occupation?
+p2:258	duplicate			duplicate of p1:237	What is my line of work?
+p2:259	duplicate			duplicate of p1:234	What is my profession?
+p2:260	drop			meaning: an employer	What is my place of employment?
+p2:261	keep			-	What am I employed to do?
+p2:262	drop			ambiguous: no explicit change	I work as a {v} these days.
+p2:263	drop			meaning: a vehicle	I drive a {v} now.
+p2:264	keep			-	My job has changed to a {v}.
+p2:265	drop			ambiguous: no explicit change	I'm a {v} these days.
+p2:266	drop			ambiguous: a role without an explicit change	I've taken up a {v} role.
+p2:267	keep			-	I left my old job for a more fulfilling one, now I'm a {v}.
+p2:268	keep			-	I made a career change, now I'm a {v}.
+p2:269	keep			-	I traded one career for another, now I'm a {v}.
+p2:270	keep			-	I switched from my old job to a new one, now I'm a {v}.
+p2:271	keep			-	I made the switch, now I'm a {v}.
+p2:272	keep			-	I moved on to a new position, now I'm a {v}.
+p2:273	keep			-	I left my old job to pursue a new opportunity, now I'm a {v}.
+p2:274	keep			-	I changed careers, now I'm a {v}.
+p2:275	keep			-	I made a career shift, now I'm a {v}.
+p2:276	duplicate			duplicate of p1:258	My number that brings me good fortune is {v}.
+p2:277	duplicate			duplicate of p1:263	{v} is the number I hold dear.
+p2:278	duplicate			duplicate of p1:260	I consider {v} my lucky number.
+p2:279	drop			meaning: a liked number	The number I am particularly fond of is {v}.
+p2:280	duplicate			duplicate of p1:261	The number that brings me good fortune is {v}.
+p2:281	keep			-	I have a lucky number which is {v}.
+p2:282	keep			-	{v} is the number that makes me feel lucky.
+p2:283	keep			-	{v} is the number I associate with luck.
+p2:284	keep			-	{v} is the number that I believe brings me good fortune.
+p2:285	duplicate			duplicate of p1:266	Do you recall my lucky number?
+p2:286	keep			-	Can you recall my lucky number?
+p2:287	keep			-	Do you remember the number that's lucky for me?
+p2:288	keep			-	Does your memory include my lucky number?
+p2:289	keep			-	Do you know what number I have chosen to be lucky?
+p2:290	keep			-	Do you remember the number that's been lucky for me?
+p2:291	keep			-	Do you know what number I have picked to be lucky?
+p2:292	drop			meaning: a liked number	Which number am I particularly fond of?
+p2:293	drop			meaning: a special number	What is my special number?
+p2:294	drop			meaning: a favourite number	What is my favorite number?
+p2:295	drop			meaning: a meta question	What's my number, if you're curious?
+p2:296	drop			meaning: asks why, not which	In what way is my number lucky for me?
+p2:297	drop			meaning: a significant number	What number is most significant for me?
+p2:298	keep			-	What is the number that brings me good fortune?
+p2:299	drop			meaning: a meta question	What's my lucky number, if you've ever wondered?
+p2:300	drop			meaning: a habitual choice	What is the number that I tend to choose when I'm making choices?
+p2:301	drop			meaning: an appealing number	What is the number that I find most appealing?
+p2:302	drop			meaning: a joyful number	What is the number that brings me joy or happiness?
+p2:303	drop			meaning: a significant number	What is the number that I feel is most significant or meaningful to me?
+p2:304	drop			not a user turn: truncated	What is the number that
+p2:305	keep			-	What number do I consider lucky?
+p2:306	drop			meaning: a favourite number	What's my favorite number?
+p2:307	duplicate			duplicate of p1:276	What's my lucky number again?
+p2:308	drop			slot: an article before the value	I've changed my lucky number, it's a {v} now.
+p2:309	drop			slot: an article before the value	I've switched to a {v}.
+p2:310	drop			meaning: a negative preference	I'm not a fan of {v}.
+p2:311	drop			meaning: a negative preference	I've never been fond of {v}.
+p2:312	drop			meaning: a negative preference	I'm not into {v}.
+p2:313	drop			meaning: a negative preference	I don't really like {v}.
+p2:314	duplicate			duplicate of p1:319	My pet is a {v}.
+p2:315	drop			slot: an article before the value	The dog I love is a {v}.
+p2:316	drop			ambiguous: a companion	{v} is my faithful companion.
+p2:317	keep			-	{v} is my dog's name.
+p2:318	duplicate			duplicate of p1:294	The pet I have is named {v}.
+p2:319	keep			-	The dog's name is {v}.
+p2:320	duplicate			duplicate of p1:318	I have a dog named {v}.
+p2:321	keep			-	{v} is the dog's name.
+p2:322	keep			-	{v} is the name of my pet.
+p2:323	keep			-	The name of the dog I own is {v}.
+p2:324	keep			-	{v} is the pet I own.
+p2:325	duplicate			duplicate of p1:291	The dog I have is named {v}.
+p2:326	keep			-	{v} is my pet's name.
+p2:327	keep			-	{v} is the name of the dog I keep.
+p2:328	keep			-	{v} is the name of the dog I have.
+p2:329	keep			-	{v} is the name of my pet dog.
+p2:330	keep			-	{v} is the dog I keep.
+p2:331	duplicate			duplicate of p1:295	The dog I own is named {v}.
+p2:332	keep			-	The pet I have is called {v}.
+p2:333	duplicate			duplicate of p1:295	The dog I own is named {v}.
+p2:334	keep			-	I refer to my pet as {v}.
+p2:335	duplicate			duplicate of p2:323	The name of the dog I own is {v}.
+p2:336	duplicate			duplicate of p1:298	What is my pet's name?
+p2:337	keep			-	What is the name of my animal?
+p2:338	duplicate			duplicate of p1:306	What is the name of my pet?
+p2:339	keep			-	What is my dog called?
+p2:340	duplicate			duplicate of p1:305	What's my dog's name?
+p2:341	duplicate			duplicate of p1:311	What's my pet's name?
+p2:342	duplicate			duplicate of p1:312	What's my furry friend's name?
+p2:343	drop			meaning: a real name as opposed to an alias	What's my dog's real name?
+p2:344	drop			meaning: an official name	What's my dog's official name?
+p2:345	duplicate			duplicate of p1:313	What's the name of my dog?
+p2:346	drop			meaning: an identity	What's the identity of my dog?
+p2:347	duplicate			duplicate of p1:316	What's the name of my pet?
+p2:348	keep			-	What's the name of my beloved pet?
+p2:349	duplicate			duplicate of p1:311	What's my pet's name?
+p2:350	duplicate			duplicate of p1:316	What's the name of my pet?
+p2:351	keep			-	What's the dog's name?
+p2:352	drop			meaning: a title	What's the dog's title?
+p2:353	duplicate			duplicate of p1:318	I have a dog named {v}.
+p2:354	duplicate			duplicate of p1:319	My pet is a {v}.
+p2:355	drop			ambiguous: no pet subject	His name is {v}.
+p2:356	drop			slot: an article before the value	Actually, my dog is a {v}.
+p2:357	duplicate			duplicate of p1:322	I've changed my dog's name to {v}.
+p2:358	keep			-	We've renamed my dog {v}.
+p2:359	keep			-	We now call my dog {v}.
+p2:360	keep			-	My dog's name is now {v}.
+p2:361	duplicate			duplicate of p1:326	I'd like to be called {v}.
+p2:362	keep			-	I'd like to be addressed as {v}.
+p2:363	keep			-	{v} is my preferred name.
+p2:364	duplicate			duplicate of p1:328	I am a {v}.
+p2:365	duplicate			duplicate of p1:329	I am {v}.
+p2:366	keep			-	I am named {v}.
+p2:367	duplicate			duplicate of p1:331	I go by {v}.
+p2:368	duplicate			duplicate of p1:330	I am called {v}.
+p2:369	duplicate			duplicate of p1:332	{v} is my name.
+p2:370	keep			-	I'm known as {v}.
+p2:371	keep			-	They often refer to me as {v}.
+p2:372	keep			-	{v} is how they call me.
+p2:373	duplicate			duplicate of p1:347	Do you recall my name?
+p2:374	drop			meaning: a surname	Do you remember my surname?
+p2:375	drop			not a plausible user turn	Do you know my name, sir/ma'am?
+p2:376	keep			-	Do you have any recollection of my name?
+p2:377	keep			-	Do you have a memory of my name?
+p2:378	keep			-	Do you remember my moniker?
+p2:379	duplicate			duplicate of p1:350	Do you recognize my name?
+p2:380	drop			meaning: information about the name	Do you have any information about my name?
+p2:381	keep			-	Can you tell me my name?
+p2:382	duplicate			duplicate of p1:366	What's my full name?
+p2:383	drop			meaning: a nickname	What's my nickname?
+p2:384	duplicate			duplicate of p1:348	Do you know my name?
+p2:385	drop			meaning: a legal name	What's my legal name?
+p2:386	drop			meaning: a family name	What's my family name?
+p2:387	drop			not a plausible user turn	What's my full, full name?
+p2:388	duplicate			duplicate of p1:363	What's my real name?
+p2:389	duplicate			duplicate of p1:361	What's my personal name?
+p2:390	keep			-	Can you tell me my full name?
+p2:391	keep			-	What's my given name?
+p2:392	duplicate			duplicate of p1:366	What's my full name?
+p2:393	drop			meaning: a relationship question	Who am I to you?
+p2:394	relabel	user_name	assert	no correction cue: a plain statement	The name I go by is {v}.
+p2:395	relabel	user_name	assert	no correction cue: a plain statement	I'm known by the name {v}.
+p2:396	keep			-	My name is actually {v}.
+p2:397	relabel	user_name	assert	no correction cue: a plain statement	I'm referred to as {v}.
+p2:398	keep			-	I'd prefer it if you could call me {v} from now on.
+p2:399	keep			-	I apologize, my name is {v}.
+p2:400	keep			-	I made a mistake, my name is {v}.
+p2:401	drop			meaning: a real name as opposed to an alias	My real name is {v}.
+p2:402	keep			-	I was mistaken, my name is {v}.
+p2:403	keep			-	I'm just making a correction, my name is {v}.

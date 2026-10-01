@@ -49,6 +49,7 @@ pub mod milestone_world;
 pub mod milestone_world_v2;
 pub mod milestone_world_v2_probe;
 pub mod ngram;
+pub mod paraphrase_review;
 pub mod read_localize;
 pub mod reference_campaign;
 pub mod reference_eval;
