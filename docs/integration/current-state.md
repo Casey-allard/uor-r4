@@ -1,9 +1,54 @@
 # Current UOR-R4 research state
 
-Updated September 30, 2026. **Pre-alpha; no useful general-language, coding,
+Updated October 1, 2026. **Pre-alpha; no useful general-language, coding,
 frontier, geometric-advantage or full-path energy qualification.**
 
+## D18 outcome D — 1 October (owner-confirmed)
+
+The A1 arms met D18 §2's pre-registered kill on day 1, and the owner accepted outcome D at about 01:50 UTC on 1 October. Details and roots: [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552) and [#1512](https://github.com/UOR-Foundation/uor-r4/issues/1512).
+
+**A1 runs (measured).**
+- Setup: development cell (dev phrasing × dev value), `m-world evaluate world=v2`, 300 conversations, seed 9101; one training seed per arm; about 2.1M parameters; `corpus-v2.1` (chat-v0 + M-world v2.1); the #1017 tokenizer.
+- Every training run used binary `47850579…`; every evaluation used m-world `7edd6cc8…`.
+- Roots: `uor-r4-lab/opencode-a1-run-20260930/` (DeepSeek) and `uor-r4-lab/claude-a1-d18/` (Claude).
+
+| Arm | Steps | MQAR all | d16 | Open relation |
+|---|---|---:|---:|---:|
+| P: Lorentz read, no pointer | 2,590 of 3,000 (wall) | 0.009 | 0 | 0/52 |
+| F7: Lorentz with a trained flock (w16, k7) | 2,590 | 0.009 | 0 | 0/52 |
+| T: transformer control, no pointer | 1,908 of 2,590 (wall) | 0.009 | 0 | 0/52 |
+| **T at 2× steps** | **5,180** | 0.009 | **0** | 0/52 |
+| Lorentz read, dot pointer, seed 1 | 2,566 of 3,000 (wall) | 0.44 | 0.41 | 20/52 |
+| Lorentz read, dot pointer, seed 1 | 2,590 | 0.34 | 0.27 | 20/52 |
+| Lorentz read, dot pointer, seed 2 | 2,590 | 0.28 | 0.38 | 12/52 |
+| Dot read, dot pointer, seed 1 | 2,590 | 0.36 | 0.38 | 15/52 |
+| Dot read, dot pointer, seed 2 | 2,590 | 0.34 | 0.22 | 27/52 |
+| *R-recency (untrained instrument rule)* | — | 0.36 | 0.29 | 0.52 rate |
+
+**What the runs show:**
+- Without a pointer head, no read retrieves, the transformer control at 2× steps included.
+- Pointer arms fall as about 1/N (N = 2/4/8: 0.34–0.64 / 0.17–0.25 / 0.08–0.17) and do not beat the untrained recency rule. They copy the latest stated value; they do not bind the query to its key.
+- Copy is 0/33 in every arm, for a structural reason. Under the #1017 tokenizer (`add_prefix_space: false`), a reply-initial word's first token (`m`=79) never occurs in the user's text (`Ġm`=283), so a pointer cannot copy it.
+- Lorentz vs Dot read parity (D17 v2) is **undecided at two seeds**: MQAR differences +0.018 and +0.055, open relation −0.096 and +0.288. The third seed is new training and does not run under outcome D.
+- D18's "P+ptr" was specified as a Lorentz-scored pointer. Every pointer arm run used the default dot-scored pointer, so the Lorentz pointer did not run.
+
+**§8 token count (owner-run, `s8-panel-count` from #1554).**
+- The sealed panel `220cbdbe…` (revision 3) needs up to **285** positions with empty replies, and **317** with a 32-token reply budget, so `fits_context` is false at 256.
+- The owner kept D18 and re-entered A2 as source work.
+- #1557 lets `dialogue-train` grow a model's context (`StackModel::extend_context` keeps every learned age; scores within the old context are bit-identical). No model is trained at 384.
+
+**Delivered 30 September – 1 October**, each verified as the exact merge of its reviewed head:
+- #1553 (D18 docs);
+- #1554 (the §8 count tool);
+- #1555 (the #1546 legacy tests ignored);
+- #1556 (`TruncatedPrefix` and `dialogue-census`). FullPrefix recounts the chat-v0 train split exactly: 14,826 eligible responses, 1,048,098 response tokens. TruncatedPrefix admits 50,592 responses and 6,257,012 tokens;
+- #1557 (context extension).
+
+**Next action.** The design memo for retrieval by an exact conversation log plus a prime sieve (Claude lab, started 1 October), with DeepSeek's D5 memo alongside. Under outcome D there is no new A1 training. The 7M fit (conditional on outcome A) does not run, and the TruncatedPrefix adoption smoke has no consumer this fortnight.
+
 ## Active execution contract — D18, 1–14 October
+
+*Outcome D was reached on 1 October (above). This section is kept as the contract's record.*
 
 The owner approved [D18](DECISIONS.md#d18--one-retrieval-question-for-114-october-track-b-cost-and-memory-port-work-parked-with-re-entry-conditions) on 30 September. It follows the [direction review](direction-review-2026-09-30.md) and is tracked on [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552).
 

@@ -786,3 +786,17 @@ This line claims no chat, no geometric advantage and no runtime or energy saving
 - **§8 token count.** The owner runs a count-only #1017-tokenizer check on the sealed panel. The Claude lab supplies the tool, tested only on a non-panel fixture. No lab reads the panel. A count above 256 reopens item 1.
 - **Cost design.** The DeepSeek lab writes a one-day, no-compute design memo for a D5 selected-weight-access mechanism (prime or semiprime routing, or another candidate) as input to the 14 October decision. Nothing is run.
 - **#1546.** The low-bit trainers' Adam guard is not needed by the current stack, so it is **not restored**. The four legacy `uor-r4-core` learner tests that depended on it are marked ignored, with a pointer to #1546 and this entry, so that `main`'s test signal reflects the current stack. The tests and their records are kept.
+
+### 10. Outcome — D, reached on 1 October (owner-confirmed)
+
+- **The kill in item 2 was met.** Every A1 arm scored below 0.5 MQAR recall at distance 16 on the development cell, the transformer control at 2× steps (5,180) included, which scored 0. The owner confirmed outcome D on 1 October; the record and roots are on #1552.
+- **Measured reading.**
+  - Without a pointer head, no read retrieves (MQAR 1/109).
+  - Pointer arms score 0.28–0.44 MQAR, falling as about 1/N. That matches the untrained "most recent value" rule (0.36): they copy recency and do not bind a query to its key.
+  - Lorentz-vs-Dot read parity is undecided at two seeds. The D18 Lorentz-scored pointer did not run.
+- **Consequences.**
+  - No new A1 training.
+  - The exact-log plus prime-sieve design memo starts at once rather than in week 2.
+  - The 7M fit (item 4) and the pointer's D11 port (item 5) do not run.
+  - The pointer head stays in the toolbox (D12).
+- **Item 1's premise also failed.** The owner-run §8 count needs up to 317 positions with a 32-token reply budget, against 256. The owner kept this decision and re-entered A2 as source work (#1557).
