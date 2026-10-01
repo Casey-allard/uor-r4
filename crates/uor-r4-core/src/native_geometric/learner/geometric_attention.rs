@@ -45,11 +45,14 @@ use super::lowbit_core::{adam_update, quantize_codes, softmax_f32, xorshift_unit
 /// The conjugacy classes of `2I`, computed from the project's verified group table.
 ///
 /// `class_of[g]` is the class index of `g`, and the returned count is the number of classes. This is
-/// the exact finite analogue of a spherical-harmonic band decomposition: by Peter–Weyl, the
-/// conjugation-invariant functions on a finite group (the functions of the *relative* element) form a
-/// space whose dimension is the number of conjugacy classes, spanned by the irreducible characters.
-/// A graded kernel that depends only on `class(q⁻¹g)` is therefore the maximally compact
-/// rotation-invariant kernel this group admits — nine free weights rather than 120.
+/// a partition parameterizing conjugation-invariant functions on a finite
+/// group, whose space has dimension
+/// equal to the number of conjugacy classes. Irreducible characters provide
+/// an alternative spectral basis; this code performs no character transform
+/// or frequency truncation.
+/// A general function of the directed relative element q⁻¹g instead has 120
+/// values. Restricting it to `class(q⁻¹g)` imposes additional conjugation
+/// invariance and reduces that space to nine free weights.
 ///
 /// Computed rather than cited: conjugation `g ↦ h g h⁻¹` uses the table's product and inverse rows.
 pub fn conjugacy_classes() -> (Vec<u8>, usize) {
@@ -129,8 +132,10 @@ pub fn address_space(order: usize) -> usize {
 /// The fixed element of `2I` assigned to each token.
 ///
 /// Injective for a vocabulary of at most 120, which is what makes an ordered word a unique address at
-/// this size. A larger vocabulary needs an injective learned assignment over the 120 roots (the
-/// project's `nearest_h4_root` over learned embeddings) rather than a wider hash.
+/// this size. More than 120 distinct vocabulary entries cannot be assigned
+/// injectively to one root. They require multiple ordered codes or separately
+/// retained exact identity; learning or nearest-root classification does not
+/// remove this bound.
 pub fn element_table(vocab: usize) -> Vec<u16> {
     (0..vocab).map(|t| (t % RADIX) as u16).collect()
 }
@@ -208,7 +213,7 @@ pub struct GeometricAttention {
     pub n_addr: usize,
     /// Fixed `2I` element per token.
     pub elements: Vec<u16>,
-    /// Conjugacy class of each group element (Peter–Weyl band index).
+    /// Conjugacy class bin of each group element.
     pub class_of: Vec<u8>,
     /// Number of conjugacy classes — the dimension of the conjugation-invariant kernel space.
     pub n_classes: usize,
@@ -281,9 +286,10 @@ impl GeometricAttention {
 
     /// The graded read: `Σ_g w[class(q⁻¹g)] · S[g]`, ternary `w`, so adds and subtracts only.
     ///
-    /// With `w = [1, 0, …]` this is exactly `S[q]`. With weight on other classes it pools over
-    /// group-near stored elements, which is the band-limited (class-function) kernel this group
-    /// admits — and the reason a corrupted query address can still retrieve its value.
+    /// With unit weight on the identity class and zero elsewhere this is
+    /// exactly `S[q]`. Other class weights pool stored elements according to
+    /// a conjugation-invariant filter, not a spectral frequency truncation.
+    /// Useful retrieval after query corruption still requires measurement.
     fn graded_read(&self, s: &[i32], q: usize) -> Vec<i32> {
         let t = group_table();
         let inv_q = t.inverse[q] as usize;
@@ -650,7 +656,7 @@ pub struct GeometricAttentionTrainer {
     pub elements: Vec<u16>,
     pub norm_bits: u32,
     pub use_relu: bool,
-    /// Conjugacy class of each group element (the harmonic band index).
+    /// Conjugacy class bin of each group element.
     pub class_of: Vec<u8>,
     pub n_classes: usize,
     /// Class function (9 weights) or general group-algebra element (120 weights).
@@ -1258,9 +1264,9 @@ mod tests {
         assert!(word_address(&[1, 2], 2) < address_space(2));
     }
 
-    /// The harmonic grounding: conjugation-invariant functions on `2I` (functions of the *relative*
-    /// element) form a space whose dimension is the number of conjugacy classes — the Peter–Weyl
-    /// analogue of a spherical-harmonic band count. Computed from the project's verified table.
+    /// Conjugation-invariant functions on `2I` have dimension equal to the
+    /// number of conjugacy classes. This test counts that partition from the
+    /// verified table; it does not compute a character transform.
     #[test]
     fn conjugacy_classes_of_2i_from_the_verified_table() {
         let (class_of, n_classes) = conjugacy_classes();
