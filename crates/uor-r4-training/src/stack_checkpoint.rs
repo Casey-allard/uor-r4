@@ -470,6 +470,11 @@ pub fn save_checkpoint(
                 .into(),
         ));
     }
+    if model.read_identity_latch().is_some() {
+        return Err(StackCheckpointError::Identity(
+            "read identity latch requires its sidecar and added parameters; this checkpoint schema does not admit it".into(),
+        ));
+    }
     if let Some(snap) = model.transport_snap() {
         snap.check(&model.config)?;
     }
@@ -1255,6 +1260,30 @@ mod tests {
             Err(StackCheckpointError::Identity(_))
         ));
         assert!(!root.exists());
+        fs::remove_dir_all(&base).expect("clean");
+    }
+
+    #[test]
+    fn read_identity_latch_checkpoint_refuses_before_claim() {
+        let (base, identity) = fixture("read-latch-refused");
+        for mode in [
+            crate::geometric_stack::ReadIdentityLatch::Held,
+            crate::geometric_stack::ReadIdentityLatch::Local,
+        ] {
+            let mut config = StackConfig::transformer_control(7);
+            config.arch = StackArch::Geometric;
+            config.width = 32;
+            config.heads = 2;
+            config.pattern = "rra".into();
+            let mut model = StackModel::new(config, &Device::Cpu).expect("stack");
+            model.set_read_identity_latch(mode).expect("latch");
+            let root = base.join(format!("refused-{mode:?}"));
+            assert!(matches!(
+                save_checkpoint(&root, &model, &identity, None),
+                Err(StackCheckpointError::Identity(_))
+            ));
+            assert!(!root.exists());
+        }
         fs::remove_dir_all(&base).expect("clean");
     }
 

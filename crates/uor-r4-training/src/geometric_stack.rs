@@ -144,6 +144,36 @@ pub enum ReadScore {
     Dot,
 }
 
+/// Matched identity-input mechanisms for geometric reads. Both use the same
+/// learned gate and current-role plus identity projections. Only Held retains
+/// identity across multiple intervening positions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadIdentityLatch {
+    Held,
+    Local,
+}
+
+fn read_identity_latch_shapes(config: &StackConfig) -> BTreeMap<String, Vec<usize>> {
+    let mut shapes = BTreeMap::new();
+    for layer in 0..config.layers() {
+        if config.layer_kind(layer) == 'a' {
+            for part in ["query_identity", "key_identity"] {
+                shapes.insert(
+                    layer_name(layer, &format!("read.{part}.weight")),
+                    vec![config.width, config.width],
+                );
+            }
+            shapes.insert(
+                layer_name(layer, "read.identity_gate.weight"),
+                vec![1, 2 * config.width],
+            );
+            shapes.insert(layer_name(layer, "read.identity_gate.bias"), vec![1]);
+        }
+    }
+    shapes
+}
+
 /// A training label for one query's exact historical source occurrences.
 /// Positions are local to the input window, not token identities: equal token
 /// IDs at other positions receive no positive mass. Sources must be unique,
@@ -746,6 +776,7 @@ pub struct StackModel {
     transport: Option<TransportSnap>,
     /// The q/k projection input is the preceding normalized state, when set.
     read_identity_carry: bool,
+    read_identity_latch: Option<ReadIdentityLatch>,
 }
 
 impl StackModel {
@@ -845,6 +876,7 @@ impl StackModel {
             served: None,
             transport: None,
             read_identity_carry: false,
+            read_identity_latch: None,
         })
     }
 
@@ -1154,13 +1186,23 @@ impl StackModel {
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let identity = self.read_identity_input(&u)?;
+        let latched = match self.read_identity_latch {
+            Some(mode) => Some(self.read_latch_inputs(p, layer, &u, mode)?.0),
+            None => None,
+        };
         let project = |part: &str| -> Result<Tensor> {
             let input = if part == "value" { &u } else { &identity };
-            self.heads(
-                &Self::linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?,
-                batch,
-                time,
-            )
+            let mut projected =
+                Self::linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?;
+            if part != "value" {
+                if let Some(identity) = &latched {
+                    projected = projected.add(&Self::linear(
+                        identity,
+                        p.layer(layer, &format!("read.{part}_identity.weight"))?,
+                    )?)?;
+                }
+            }
+            self.heads(&projected, batch, time)
         };
         let (query, key, value) = (project("query")?, project("key")?, project("value")?);
         let null = Self::linear(&u, p.layer(layer, "read.null.weight")?)?
@@ -1262,6 +1304,11 @@ impl StackModel {
     /// representation; both must refuse it until the corresponding port exists.
     pub fn set_read_identity_carry(&mut self, enabled: bool) -> Result<()> {
         if enabled {
+            if self.read_identity_latch.is_some() {
+                return Err(invalid(
+                    "read identity carry and latch are mutually exclusive",
+                ));
+            }
             if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
                 return Err(invalid(
                     "read identity carry needs a geometric stack with a read layer",
@@ -1278,6 +1325,144 @@ impl StackModel {
     /// Whether geometric q/k inputs use the preceding normalized state.
     pub fn read_identity_carry(&self) -> bool {
         self.read_identity_carry
+    }
+
+    /// Add learned identity inputs to every read. Original q/k maps continue
+    /// to project current normalized input (role); new maps project h[t-1].
+    /// g[t] = sigmoid(W [u[t], u[t-1]] + b). Held updates
+    /// h[t] = (1-g[t]) h[t-1] + g[t] u[t]; Local uses h[t] = g[t] u[t].
+    /// Initial u[-1] and h[-1] are zero. Values, NoRead, age and admission are
+    /// unchanged. This is an offline float-training mechanism, not an expert
+    /// gate or an integer serving implementation.
+    ///
+    /// Enable before constructing the optimizer: this adds parameters. The
+    /// identity maps copy the current q/k weights, W starts zero and b at -2.
+    /// Repeating the same mode is a no-op; changing modes is explicit research
+    /// in another model, not a silent reinterpretation of saved parameters.
+    pub fn set_read_identity_latch(&mut self, mode: ReadIdentityLatch) -> Result<()> {
+        if let Some(existing) = self.read_identity_latch {
+            return if existing == mode {
+                Ok(())
+            } else {
+                Err(invalid("read identity latch mode is already fixed"))
+            };
+        }
+        if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
+            return Err(invalid(
+                "read identity latch needs a geometric stack with a read layer",
+            ));
+        }
+        if self.read_identity_carry || self.served.is_some() {
+            return Err(invalid(
+                "read identity latch is incompatible with carry and served mode",
+            ));
+        }
+        let mut added = BTreeMap::new();
+        for (name, shape) in read_identity_latch_shapes(&self.config) {
+            let variable =
+                if name.ends_with("query_identity.weight") || name.ends_with("key_identity.weight")
+                {
+                    let source = name.replace("_identity.weight", ".weight");
+                    let source = self.variables.get(&source).ok_or_else(|| {
+                        invalid("read identity latch lacks its initial projection")
+                    })?;
+                    Var::from_tensor(&source.as_tensor().copy()?)?
+                } else if name.ends_with(".bias") {
+                    Var::from_vec(vec![-2.0f32], shape.as_slice(), &self.device)?
+                } else {
+                    Var::from_tensor(&Tensor::zeros(shape.as_slice(), DType::F32, &self.device)?)?
+                };
+            added.insert(name, variable);
+        }
+        self.variables.extend(added);
+        self.read_identity_latch = Some(mode);
+        Ok(())
+    }
+
+    pub fn read_identity_latch(&self) -> Option<ReadIdentityLatch> {
+        self.read_identity_latch
+    }
+
+    fn read_latch_gate_logits(&self, p: &Params<'_>, layer: usize, u: &Tensor) -> Result<Tensor> {
+        let (batch, time, width) = u.dims3()?;
+        let zero = Tensor::zeros((batch, 1, width), u.dtype(), u.device())?;
+        let previous = if time == 1 {
+            zero.clone()
+        } else {
+            Tensor::cat(&[&zero, &u.narrow(1, 0, time - 1)?], 1)?
+        };
+        let gate_input = Tensor::cat(&[u, &previous], 2)?;
+        Ok(
+            Self::linear(&gate_input, p.layer(layer, "read.identity_gate.weight")?)?
+                .broadcast_add(p.layer(layer, "read.identity_gate.bias")?)?,
+        )
+    }
+
+    fn read_latch_inputs(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        u: &Tensor,
+        mode: ReadIdentityLatch,
+    ) -> Result<(Tensor, Tensor)> {
+        let (batch, time, width) = u.dims3()?;
+        let gates = candle_nn::ops::sigmoid(&self.read_latch_gate_logits(p, layer, u)?)?;
+        let mut state = Tensor::zeros((batch, 1, width), u.dtype(), u.device())?;
+        let mut identities = Vec::with_capacity(time);
+        for t in 0..time {
+            identities.push(state.clone());
+            let gate = gates.narrow(1, t, 1)?;
+            let update = u.narrow(1, t, 1)?.broadcast_mul(&gate)?;
+            state = match mode {
+                ReadIdentityLatch::Held => state
+                    .broadcast_mul(&gate.affine(-1.0, 1.0)?)?
+                    .add(&update)?,
+                ReadIdentityLatch::Local => update,
+            };
+        }
+        Ok((Tensor::cat(&identities, 1)?, gates))
+    }
+
+    /// Diagnostic gate openings [batch,time] from the actual layer input.
+    /// This does not modify gates or inject event annotations.
+    pub fn read_identity_latch_gates(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        layer: usize,
+    ) -> Result<Tensor> {
+        Ok(candle_nn::ops::sigmoid(
+            &self.read_identity_latch_gate_logits(ids, batch, time, layer)?,
+        )?)
+    }
+
+    /// Gate preactivations [batch,time] from the same learned input and map as
+    /// the actual reader, with a live gradient to its gate and preceding trunk.
+    /// For stable training-only capture credit, form two-class logits [0,z]
+    /// and use [`logits_cross_entropy`] with labels 0 (no capture) or 1
+    /// (capture). Do not take logarithms of rounded sigmoid probabilities.
+    /// This accessor neither supplies actions nor changes inference gates.
+    pub fn read_identity_latch_gate_logits(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        layer: usize,
+    ) -> Result<Tensor> {
+        if self.read_identity_latch.is_none() {
+            return Err(invalid("read identity latch is disabled"));
+        }
+        if layer >= self.config.layers() || self.config.layer_kind(layer) != 'a' {
+            return Err(invalid(
+                "read identity latch gate diagnostic needs a read layer",
+            ));
+        }
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_hooked(&p, x, 0..layer, &mut None)?;
+        let u = self.norm(&p, &x, &layer_name(layer, "read_norm.weight"))?;
+        Ok(self.read_latch_gate_logits(&p, layer, &u)?.squeeze(2)?)
     }
 
     fn recurrence(
@@ -2032,6 +2217,35 @@ impl StackModel {
                 Err(error) => return Err(error.into()),
             }
         }
+        let latch_path = directory.join(READ_IDENTITY_LATCH_RECORD);
+        if let Some(mode) = self.read_identity_latch {
+            let record = ReadIdentityLatchRecord {
+                schema: READ_IDENTITY_LATCH_SCHEMA.to_owned(),
+                operation: READ_IDENTITY_LATCH_OPERATION.to_owned(),
+                mode,
+                config_sha256: hex::encode(Sha256::digest(serde_json::to_vec_pretty(
+                    &self.config,
+                )?)),
+                model_sha256: hex::encode(Sha256::digest(fs::read(
+                    directory.join("model.safetensors"),
+                )?)),
+            };
+            let bytes = serde_json::to_vec_pretty(&record)?;
+            let marker = ReadIdentityCarryMarker {
+                schema: READ_IDENTITY_LATCH_SCHEMA.to_owned(),
+                record_sha256: hex::encode(Sha256::digest(&bytes)),
+            };
+            let mut with_marker: serde_json::Value = serde_json::from_slice(&config)?;
+            with_marker["read_identity_latch"] = serde_json::to_value(marker)?;
+            config = serde_json::to_vec_pretty(&with_marker)?;
+            fs::write(latch_path, bytes)?;
+        } else {
+            match fs::remove_file(latch_path) {
+                Ok(()) => (),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                Err(error) => return Err(error.into()),
+            }
+        }
         fs::write(directory.join("config.json"), config)?;
         let record = directory.join(TRANSPORT_RECORD);
         match self.transport {
@@ -2135,6 +2349,55 @@ impl StackModel {
         Ok(true)
     }
 
+    /// Verify the optional learned-latch record and return its mode. The
+    /// marker pins exact metadata bytes; the sidecar binds operation, mode,
+    /// canonical configuration and exact saved weights including the new maps.
+    pub fn saved_read_identity_latch(directory: &Path) -> Result<Option<ReadIdentityLatch>> {
+        #[derive(Deserialize)]
+        struct ConfigMarker {
+            #[serde(default)]
+            read_identity_latch: Option<ReadIdentityCarryMarker>,
+        }
+        let config_bytes = fs::read(directory.join("config.json"))?;
+        let marker: ConfigMarker = serde_json::from_slice(&config_bytes)?;
+        let bytes = match fs::read(directory.join(READ_IDENTITY_LATCH_RECORD)) {
+            Ok(bytes) => Some(bytes),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => return Err(error.into()),
+        };
+        let (marker, bytes) = match (marker.read_identity_latch, bytes) {
+            (None, None) => return Ok(None),
+            (Some(marker), Some(bytes)) => (marker, bytes),
+            _ => {
+                return Err(invalid(
+                    "read identity latch marker and record presence differ",
+                ))
+            }
+        };
+        let record: ReadIdentityLatchRecord = serde_json::from_slice(&bytes)?;
+        let config: StackConfig = serde_json::from_slice(&config_bytes)?;
+        if marker.schema != READ_IDENTITY_LATCH_SCHEMA
+            || record.schema != READ_IDENTITY_LATCH_SCHEMA
+            || record.operation != READ_IDENTITY_LATCH_OPERATION
+            || marker.record_sha256 != hex::encode(Sha256::digest(&bytes))
+            || record.config_sha256
+                != hex::encode(Sha256::digest(serde_json::to_vec_pretty(&config)?))
+            || record.model_sha256
+                != hex::encode(Sha256::digest(fs::read(
+                    directory.join("model.safetensors"),
+                )?))
+            || Self::saved_served_representation(directory)?.is_some()
+            || Self::saved_read_identity_carry(directory)?
+            || config.arch != StackArch::Geometric
+            || !config.pattern.contains('a')
+        {
+            return Err(invalid(
+                "saved read identity latch operation, model binding or configuration differs",
+            ));
+        }
+        Ok(Some(record.mode))
+    }
+
     /// Load a saved model. A directory whose [`TRANSPORT_RECORD`] records a
     /// transport snap loads with it set ([`Self::saved_transport_snap`] checks
     /// its roots; [`Self::set_transport_snap`] checks the configuration), so
@@ -2146,8 +2409,12 @@ impl StackModel {
         let config: StackConfig =
             serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
         config.validate()?;
+        let read_identity_latch = Self::saved_read_identity_latch(directory)?;
         let tensors = candle_core::safetensors::load(directory.join("model.safetensors"), device)?;
-        let shapes = config.shapes();
+        let mut shapes = config.shapes();
+        if read_identity_latch.is_some() {
+            shapes.extend(read_identity_latch_shapes(&config));
+        }
         if tensors.len() != shapes.len() {
             return Err(invalid("saved stack tensors differ from the configuration"));
         }
@@ -2168,6 +2435,7 @@ impl StackModel {
             served: None,
             transport: None,
             read_identity_carry: false,
+            read_identity_latch,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -2397,6 +2665,21 @@ pub const READ_IDENTITY_CARRY_RECORD: &str = "read-identity-carry.json";
 const READ_IDENTITY_CARRY_SCHEMA: &str = "uor-r4.stack-read-identity-carry/1";
 const READ_IDENTITY_CARRY_OPERATION: &str =
     "q_key=normalized_input[t-1];t0=zeros;value=normalized_input[t];null=normalized_input[t];age=current;support=unchanged";
+
+pub const READ_IDENTITY_LATCH_RECORD: &str = "read-identity-latch.json";
+const READ_IDENTITY_LATCH_SCHEMA: &str = "uor-r4.stack-read-identity-latch/1";
+const READ_IDENTITY_LATCH_OPERATION: &str =
+    "g=sigmoid(W[u,prev_u]+b);held_h=(1-g)*prev_h+g*u;local_h=g*u;qk=current_role+identity(prev_h);initial=zeros;value_null_age_support=unchanged;no_state_normalization";
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReadIdentityLatchRecord {
+    schema: String,
+    operation: String,
+    mode: ReadIdentityLatch,
+    config_sha256: String,
+    model_sha256: String,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -3244,6 +3527,9 @@ impl StackModel {
             None => None,
             Some(_) if self.read_identity_carry => {
                 return Err(invalid("read identity carry has no served representation"));
+            }
+            Some(_) if self.read_identity_latch.is_some() => {
+                return Err(invalid("read identity latch has no served representation"));
             }
             Some(_) if self.config.pointer.is_some() => return Err(pointer_served_refusal()),
             Some(codec) => {
@@ -7306,6 +7592,379 @@ mod tests {
                 },
             ],
         }
+    }
+
+    #[test]
+    fn read_identity_latch_held_and_local_match_causal_reference_and_gradients() -> Result<()> {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 5 + 1) % 37).collect();
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            for score in [ReadScore::Dot, ReadScore::Lorentz] {
+                let mut model =
+                    StackModel::new(tiny(StackArch::Geometric, "ra", score, true), &cpu())?;
+                let baseline = bits(&model.forward(&ids, 2, 8)?)?;
+                let base_count = model.parameter_count();
+                model.set_read_identity_latch(mode)?;
+                assert_eq!(
+                    model.parameter_count(),
+                    base_count + 2 * 16 * 16 + 2 * 16 + 1
+                );
+                assert_eq!(
+                    bits(model.variables()["layers.01.read.query_identity.weight"].as_tensor())?,
+                    bits(model.variables()["layers.01.read.query.weight"].as_tensor())?
+                );
+                let initial_gates = model
+                    .read_identity_latch_gates(&ids, 2, 8, 1)?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                for gate in initial_gates {
+                    assert!((gate - sigmoid(-2.0)).abs() < 1e-7);
+                }
+                // Nonzero gate weights exercise both current and previous input.
+                let gate_weight = &model.variables()["layers.01.read.identity_gate.weight"];
+                gate_weight.set(&random(&mut Initializer(721), gate_weight.dims(), 0.03))?;
+                let p = model.params()?;
+                let x = model.run_layers(model.embed(&ids, 2, 8)?, 0..1)?;
+                let u = model.norm(&p, &x, &layer_name(1, "read_norm.weight"))?;
+                let (identity, gates) = model.read_latch_inputs(&p, 1, &u, mode)?;
+                let uv = u.to_vec3::<f32>()?;
+                let gv = gates.squeeze(2)?.to_vec2::<f32>()?;
+                let hv = identity.to_vec3::<f32>()?;
+                let w = gate_weight.flatten_all()?.to_vec1::<f32>()?;
+                for b in 0..2 {
+                    let mut state = [0.0f32; 16];
+                    for t in 0..8 {
+                        let mut z = -2.0;
+                        for c in 0..16 {
+                            z += w[c] * uv[b][t][c];
+                            if t > 0 {
+                                z += w[16 + c] * uv[b][t - 1][c];
+                            }
+                            assert!((hv[b][t][c] - state[c]).abs() < 1e-6);
+                        }
+                        let g = sigmoid(z);
+                        assert!((gv[b][t] - g).abs() < 1e-6);
+                        for c in 0..16 {
+                            state[c] = g * uv[b][t][c]
+                                + if mode == ReadIdentityLatch::Held {
+                                    (1.0 - g) * state[c]
+                                } else {
+                                    0.0
+                                };
+                        }
+                    }
+                }
+                let project = |part: &str| -> Result<Tensor> {
+                    let current =
+                        StackModel::linear(&u, p.layer(1, &format!("read.{part}.weight"))?)?;
+                    let result = if part == "value" {
+                        current
+                    } else {
+                        current.add(&StackModel::linear(
+                            &identity,
+                            p.layer(1, &format!("read.{part}_identity.weight"))?,
+                        )?)?
+                    };
+                    model.heads(&result, 2, 8)
+                };
+                let null = StackModel::linear(&u, p.layer(1, "read.null.weight")?)?
+                    .broadcast_add(p.layer(1, "read.null.bias")?)?
+                    .transpose(1, 2)?
+                    .flatten_all()?;
+                let age = p.layer(1, "read.age")?.narrow(1, 0, 8)?.flatten_all()?;
+                let mut aux = vec![null, age];
+                if score == ReadScore::Lorentz {
+                    aux.push(p.layer(1, "read.log_beta")?.exp()?);
+                    aux.push(p.layer(1, "read.offset")?.clone());
+                }
+                let read = fused_read_selected(
+                    &project("query")?,
+                    &project("key")?,
+                    &project("value")?,
+                    &Tensor::cat(&aux, 0)?,
+                    score,
+                    true,
+                    true,
+                    false,
+                    None,
+                )?;
+                let want = StackModel::linear(
+                    &model.merge_heads(&read, 2, 8)?,
+                    p.layer(1, "read.out.weight")?,
+                )?;
+                let got = model.geometric_read(&p, 1, &x, &mut None, &mut None)?;
+                assert_eq!(max_abs_gap(&got, &want)?, 0.0);
+                // Future changes cannot reach any prior prediction or gate.
+                let mut future = ids.clone();
+                future[6] = (future[6] + 1) % 37;
+                assert_eq!(
+                    max_abs_gap(
+                        &model.forward(&ids, 2, 8)?.narrow(0, 0, 6)?,
+                        &model.forward(&future, 2, 8)?.narrow(0, 0, 6)?
+                    )?,
+                    0.0
+                );
+                let target = binding_rows(1);
+                let objective = || -> Result<Tensor> {
+                    let loss = model.loss_with_binding(&ids, &ids, None, 2, 8, &target)?;
+                    Ok(loss.binding.add(&loss.language.affine(0.1, 0.0)?)?)
+                };
+                let names = [
+                    "layers.01.read.query_identity.weight",
+                    "layers.01.read.key_identity.weight",
+                    "layers.01.read.identity_gate.weight",
+                    "layers.01.read.identity_gate.bias",
+                    "layers.00.rec.in.weight",
+                    "layers.01.read.age",
+                ];
+                let vars: Vec<Var> = names
+                    .iter()
+                    .map(|name| model.variables()[*name].clone())
+                    .collect();
+                let grads = objective()?.backward()?;
+                for (name, var) in names.iter().zip(&vars) {
+                    let grad = grads
+                        .get(var)
+                        .ok_or_else(|| invalid(format!("missing latch gradient {name}")))?;
+                    let size = grad.abs()?.max_all()?.to_scalar::<f32>()?;
+                    assert!(
+                        size.is_finite() && size > 0.0,
+                        "{mode:?} {score:?} {name} {size}"
+                    );
+                }
+                check_gradient(&vars, objective, 2e-2)?;
+                // Zero identity maps recover the original current-role reader.
+                for name in [
+                    "layers.01.read.query_identity.weight",
+                    "layers.01.read.key_identity.weight",
+                ] {
+                    let var = &model.variables()[name];
+                    var.set(&Tensor::zeros(var.shape(), DType::F32, &cpu())?)?;
+                }
+                assert_eq!(bits(&model.forward(&ids, 2, 8)?)?, baseline);
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn read_identity_latch_gate_logits_match_sigmoid_and_causal_capture_gradients() -> Result<()> {
+        let ids = [1, 7, 3, 9, 11, 4, 6, 8];
+        let targets = [0, 1, 0, 0, 1, 0, 0, 0];
+        // Equal total weight for CAPTURE and NO_CAPTURE, not a padding loss.
+        let weights: Vec<f32> = targets
+            .iter()
+            .map(|&t| if t == 1 { 0.25 } else { 1.0 / 12.0 })
+            .collect();
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let mut model = StackModel::new(
+                tiny(StackArch::Geometric, "ra", ReadScore::Lorentz, true),
+                &cpu(),
+            )?;
+            assert!(model
+                .read_identity_latch_gate_logits(&ids, 1, 8, 1)
+                .is_err());
+            model.set_read_identity_latch(mode)?;
+            assert!(model
+                .read_identity_latch_gate_logits(&ids, 1, 8, 0)
+                .is_err());
+            let capture_loss = || -> Result<Tensor> {
+                let z = model
+                    .read_identity_latch_gate_logits(&ids, 1, 8, 1)?
+                    .reshape((8, 1))?;
+                let binary = Tensor::cat(&[&Tensor::zeros((8, 1), DType::F32, &cpu())?, &z], 1)?;
+                logits_cross_entropy(&binary, &targets, Some(&weights))
+            };
+            let first = capture_loss()?.backward()?;
+            for name in [
+                "layers.01.read.identity_gate.weight",
+                "layers.01.read.identity_gate.bias",
+            ] {
+                let var = &model.variables()[name];
+                let grad = first
+                    .get(var)
+                    .ok_or_else(|| invalid(format!("capture misses {name}")))?;
+                assert!(grad.abs()?.max_all()?.to_scalar::<f32>()? > 0.0);
+                var.set(&var.as_tensor().sub(&grad.affine(0.1, 0.0)?)?)?;
+            }
+            // W_gate starts zero: the first capture gradient updates it;
+            // after that update the same objective also reaches the trunk.
+            let second = capture_loss()?.backward()?;
+            for name in [
+                "embedding.weight",
+                "layers.00.rec.in.weight",
+                "layers.01.read_norm.weight",
+            ] {
+                let grad = second
+                    .get(&model.variables()[name])
+                    .ok_or_else(|| invalid(format!("capture trunk misses {name}")))?;
+                let size = grad.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(size.is_finite() && size > 0.0, "{mode:?} {name}: {size}");
+            }
+            let before = bits(&model.forward(&ids, 1, 8)?)?;
+            let logits = model.read_identity_latch_gate_logits(&ids, 1, 8, 1)?;
+            let p = model.params()?;
+            let x = model.run_layers(model.embed(&ids, 1, 8)?, 0..1)?;
+            let u = model.norm(&p, &x, &layer_name(1, "read_norm.weight"))?;
+            let previous = Tensor::cat(
+                &[
+                    &Tensor::zeros((1, 1, 16), DType::F32, &cpu())?,
+                    &u.narrow(1, 0, 7)?,
+                ],
+                1,
+            )?;
+            let expected = StackModel::linear(
+                &Tensor::cat(&[&u, &previous], 2)?,
+                p.layer(1, "read.identity_gate.weight")?,
+            )?
+            .broadcast_add(p.layer(1, "read.identity_gate.bias")?)?
+            .squeeze(2)?;
+            assert_eq!(bits(&logits)?, bits(&expected)?);
+            let actual_gates = model.read_latch_inputs(&p, 1, &u, mode)?.1.squeeze(2)?;
+            assert_eq!(
+                bits(&candle_nn::ops::sigmoid(&logits)?)?,
+                bits(&actual_gates)?
+            );
+            assert_eq!(
+                bits(&model.read_identity_latch_gates(&ids, 1, 8, 1)?)?,
+                bits(&actual_gates)?
+            );
+            assert_eq!(bits(&model.forward(&ids, 1, 8)?)?, before);
+            let mut future = ids;
+            future[6] = 19;
+            let changed = model.read_identity_latch_gate_logits(&future, 1, 8, 1)?;
+            assert_eq!(
+                max_abs_gap(&logits.narrow(1, 0, 6)?, &changed.narrow(1, 0, 6)?)?,
+                0.0
+            );
+            // Stable logit CE retains corrective gradients even when the
+            // actual sigmoid has rounded all the way to 0 or 1.
+            let bias = &model.variables()["layers.01.read.identity_gate.bias"];
+            for (value, expected_gradient) in [(-1000.0f32, -0.5f32), (1000.0, 0.5)] {
+                bias.set(&Tensor::from_vec(vec![value], 1, &cpu())?)?;
+                let loss = capture_loss()?;
+                assert!(loss.to_scalar::<f32>()?.is_finite());
+                let grads = loss.backward()?;
+                let gradient = grads
+                    .get(bias)
+                    .ok_or_else(|| invalid("missing saturated capture gradient"))?
+                    .sum_all()?
+                    .to_scalar::<f32>()?;
+                assert!(
+                    (gradient - expected_gradient).abs() < 1e-6,
+                    "{value}: {gradient}"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn read_identity_latch_save_reload_restores_mode_parameters_and_rejects_bad_metadata(
+    ) -> Result<()> {
+        let root = std::env::temp_dir().join(format!("stack-read-latch-{}", std::process::id()));
+        let config = tiny(StackArch::Geometric, "ra", ReadScore::Lorentz, true);
+        let plain = StackModel::new(config.clone(), &cpu())?;
+        let ids = [1, 2, 3, 4, 5, 6];
+        for mode in [ReadIdentityLatch::Held, ReadIdentityLatch::Local] {
+            let dir = root.join(format!("{mode:?}"));
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_identity_latch(mode)?;
+            model.set_transport_snap(Some(TransportSnap::Icosian))?;
+            let expected = bits(&model.forward(&ids, 1, ids.len())?)?;
+            model.save(&dir)?;
+            let config_bytes = fs::read(dir.join("config.json"))?;
+            let record = fs::read(dir.join(READ_IDENTITY_LATCH_RECORD))?;
+            let loaded = StackModel::load(&dir, &cpu())?;
+            assert_eq!(loaded.read_identity_latch(), Some(mode));
+            assert_eq!(loaded.parameter_count(), model.parameter_count());
+            assert_eq!(loaded.transport_snap(), Some(TransportSnap::Icosian));
+            assert_eq!(bits(&loaded.forward(&ids, 1, ids.len())?)?, expected);
+            for (name, var) in model.variables() {
+                assert_eq!(
+                    bits(var.as_tensor())?,
+                    bits(loaded.variables()[name].as_tensor())?,
+                    "{name}"
+                );
+            }
+            fs::remove_file(dir.join(READ_IDENTITY_LATCH_RECORD))?;
+            assert!(StackModel::load(&dir, &cpu()).is_err());
+            for (field, value) in [
+                ("schema", "unknown/2"),
+                ("operation", "future"),
+                ("mode", "unknown"),
+                ("config_sha256", "00"),
+                ("model_sha256", "00"),
+            ] {
+                let mut altered: serde_json::Value = serde_json::from_slice(&record)?;
+                altered[field] = serde_json::json!(value);
+                let bytes = serde_json::to_vec_pretty(&altered)?;
+                let mut marker: serde_json::Value = serde_json::from_slice(&config_bytes)?;
+                marker["read_identity_latch"]["record_sha256"] =
+                    serde_json::json!(hex::encode(Sha256::digest(&bytes)));
+                fs::write(dir.join("config.json"), serde_json::to_vec_pretty(&marker)?)?;
+                fs::write(dir.join(READ_IDENTITY_LATCH_RECORD), bytes)?;
+                assert!(StackModel::load(&dir, &cpu()).is_err(), "{field}");
+            }
+            // A default save removes stale metadata and remains legacy-shaped.
+            plain.save(&dir)?;
+            assert!(!dir.join(READ_IDENTITY_LATCH_RECORD).exists());
+            assert_eq!(
+                fs::read(dir.join("config.json"))?,
+                serde_json::to_vec_pretty(&config)?
+            );
+            assert_eq!(StackModel::load(&dir, &cpu())?.read_identity_latch(), None);
+            fs::write(dir.join(READ_IDENTITY_LATCH_RECORD), &record)?;
+            assert!(StackModel::load(&dir, &cpu()).is_err());
+            // Valid metadata does not waive exact parameter-shape admission.
+            model.variables.remove("layers.01.read.key_identity.weight");
+            model.save(&dir)?;
+            assert!(StackModel::load(&dir, &cpu()).is_err());
+        }
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn read_identity_latch_modes_are_matched_and_refuse_carry_served_and_mode_changes() -> Result<()>
+    {
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+        config.width = 32;
+        config.mlp_hidden = 64;
+        let mut held = StackModel::new(config.clone(), &cpu())?;
+        let mut local = StackModel::new(config.clone(), &cpu())?;
+        held.set_read_identity_latch(ReadIdentityLatch::Held)?;
+        local.set_read_identity_latch(ReadIdentityLatch::Local)?;
+        assert_eq!(held.parameter_count(), local.parameter_count());
+        for (name, var) in held.variables() {
+            assert_eq!(
+                bits(var.as_tensor())?,
+                bits(local.variables()[name].as_tensor())?,
+                "{name}"
+            );
+        }
+        held.set_read_identity_latch(ReadIdentityLatch::Held)?;
+        assert!(held
+            .set_read_identity_latch(ReadIdentityLatch::Local)
+            .is_err());
+        assert!(held.set_read_identity_carry(true).is_err());
+        assert!(held
+            .set_served_representation(Some(Arc::new(D11Interim)))
+            .is_err());
+        assert_eq!(held.read_identity_latch(), Some(ReadIdentityLatch::Held));
+        assert!(!held.read_identity_carry() && held.served_codec().is_none());
+        let mut carry = StackModel::new(config.clone(), &cpu())?;
+        carry.set_read_identity_carry(true)?;
+        assert!(carry
+            .set_read_identity_latch(ReadIdentityLatch::Held)
+            .is_err());
+        assert_eq!(carry.read_identity_latch(), None);
+        let mut served = StackModel::new(config, &cpu())?;
+        served.set_served_representation(Some(Arc::new(D11Interim)))?;
+        assert!(served
+            .set_read_identity_latch(ReadIdentityLatch::Held)
+            .is_err());
+        assert_eq!(served.read_identity_latch(), None);
+        Ok(())
     }
 
     #[test]
